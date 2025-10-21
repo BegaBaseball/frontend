@@ -1,0 +1,12 @@
+_metadata.json
+.vite
+
+node_modules/
+dist/
+build/
+.env
+.vscode/
+.idea/
+.DS_Store/
+npm-debug.log*
+* yarn-error.log*
