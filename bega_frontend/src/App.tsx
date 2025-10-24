@@ -1,6 +1,7 @@
 import begaCharacter from 'figma:asset/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useParams, NavigateFunction } from 'react-router-dom';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Label } from './components/ui/label';
@@ -15,9 +16,105 @@ import CheerWrite from './components/CheerWrite';
 import CheerDetail from './components/CheerDetail';
 import CheerEdit from './components/CheerEdit';
 import MyPage from './components/MyPage';
+import { ViewName } from './types';
 
-export default function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'login' | 'signup' | 'stadium' | 'diary' | 'prediction' | 'cheer' | 'cheerWrite' | 'cheerDetail' | 'cheerEdit' | 'mypage'>('home');
+const createNavigationHandler = (navigate: NavigateFunction) => (view: ViewName, postId?: string) => {
+  switch (view) {
+    case 'home':
+      navigate('/');
+      break;
+    case 'login':
+      navigate('/login');
+      break;
+    case 'signup':
+      navigate('/signup');
+      break;
+    case 'stadium':
+      navigate('/stadium');
+      break;
+    case 'diary':
+      navigate('/diary');
+      break;
+    case 'prediction':
+      navigate('/prediction');
+      break;
+    case 'cheer':
+      navigate('/posts');
+      break;
+    case 'cheerWrite':
+      navigate('/posts/new');
+      break;
+    case 'cheerDetail':
+      navigate(`/posts/${postId ?? '1'}`);
+      break;
+    case 'cheerEdit':
+      navigate(`/posts/${postId ?? '1'}/edit`);
+      break;
+    case 'mypage':
+      navigate('/mypage');
+      break;
+  }
+};
+
+// 각 페이지 컴포넌트들
+function HomePage() {
+  const navigate = useNavigate();
+  const handleNavigate = createNavigationHandler(navigate);
+  return <Home onNavigateToLogin={() => navigate('/login')} onNavigate={handleNavigate} />;
+}
+
+function CheerPage() {
+  const navigate = useNavigate();
+  const handleNavigate = createNavigationHandler(navigate);
+  return <Cheer onNavigateToLogin={() => navigate('/login')} onNavigate={handleNavigate} />;
+}
+
+function CheerWritePage() {
+  const navigate = useNavigate();
+  const handleNavigate = createNavigationHandler(navigate);
+  return <CheerWrite onNavigateToLogin={() => navigate('/login')} onNavigate={handleNavigate} />;
+}
+
+function CheerDetailPage() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const handleNavigate = createNavigationHandler(navigate);
+  return <CheerDetail onNavigateToLogin={() => navigate('/login')} onNavigate={handleNavigate} postId={id} />;
+}
+
+function CheerEditPage() {
+  const navigate = useNavigate();
+  const handleNavigate = createNavigationHandler(navigate);
+  return <CheerEdit onNavigateToLogin={() => navigate('/login')} onNavigate={handleNavigate} />;
+}
+
+function StadiumPage() {
+  const navigate = useNavigate();
+  const handleNavigate = createNavigationHandler(navigate);
+  return <StadiumGuide onNavigateToLogin={() => navigate('/login')} onNavigate={handleNavigate} />;
+}
+
+function DiaryPage() {
+  const navigate = useNavigate();
+  const handleNavigate = createNavigationHandler(navigate);
+  return <Diary onNavigateToLogin={() => navigate('/login')} onNavigate={handleNavigate} />;
+}
+
+function PredictionPage() {
+  const navigate = useNavigate();
+  const handleNavigate = createNavigationHandler(navigate);
+  return <Prediction onNavigateToLogin={() => navigate('/login')} onNavigate={handleNavigate} />;
+}
+
+function MyPageComponent() {
+  const navigate = useNavigate();
+  const handleNavigate = createNavigationHandler(navigate);
+  return <MyPage onNavigateToLogin={() => navigate('/login')} onNavigate={handleNavigate} />;
+}
+
+// 로그인 페이지 컴포넌트
+function LoginPage() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,48 +123,8 @@ export default function App() {
     e.preventDefault();
     console.log('Login attempt:', { email, password });
     // On successful login, navigate to home
-    setCurrentView('home');
+    navigate('/');
   };
-
-  if (currentView === 'home') {
-    return <Home onNavigateToLogin={() => setCurrentView('login')} onNavigate={setCurrentView} />;
-  }
-
-  if (currentView === 'signup') {
-    return <SignUp onBackToLogin={() => setCurrentView('login')} />;
-  }
-
-  if (currentView === 'stadium') {
-    return <StadiumGuide onNavigateToLogin={() => setCurrentView('login')} onNavigate={setCurrentView} />;
-  }
-
-  if (currentView === 'diary') {
-    return <Diary onNavigateToLogin={() => setCurrentView('login')} onNavigate={setCurrentView} />;
-  }
-
-  if (currentView === 'prediction') {
-    return <Prediction onNavigateToLogin={() => setCurrentView('login')} onNavigate={setCurrentView} />;
-  }
-
-  if (currentView === 'cheer') {
-    return <Cheer onNavigateToLogin={() => setCurrentView('login')} onNavigate={setCurrentView} />;
-  }
-
-  if (currentView === 'cheerWrite') {
-    return <CheerWrite onNavigateToLogin={() => setCurrentView('login')} onNavigate={setCurrentView} />;
-  }
-
-  if (currentView === 'cheerDetail') {
-    return <CheerDetail onNavigateToLogin={() => setCurrentView('login')} onNavigate={setCurrentView} />;
-  }
-
-  if (currentView === 'cheerEdit') {
-    return <CheerEdit onNavigateToLogin={() => setCurrentView('login')} onNavigate={setCurrentView} />;
-  }
-
-  if (currentView === 'mypage') {
-    return <MyPage onNavigateToLogin={() => setCurrentView('login')} onNavigate={setCurrentView} />;
-  }
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
@@ -226,7 +283,7 @@ export default function App() {
                   계정이 없으신가요?{' '}
                   <button 
                     type="button"
-                    onClick={() => setCurrentView('signup')}
+                    onClick={() => navigate('/signup')}
                     className="hover:underline" 
                     style={{ color: '#2d5f4f' }}
                   >
@@ -278,5 +335,31 @@ export default function App() {
         </div>
       </div>
     </div>
+  );
+}
+
+function SignUpPage() {
+  const navigate = useNavigate();
+  return <SignUp onBackToLogin={() => navigate('/login')} />;
+}
+
+// 메인 App 컴포넌트
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/stadium" element={<StadiumPage />} />
+        <Route path="/diary" element={<DiaryPage />} />
+        <Route path="/prediction" element={<PredictionPage />} />
+        <Route path="/posts" element={<CheerPage />} />
+        <Route path="/posts/new" element={<CheerWritePage />} />
+        <Route path="/posts/:id" element={<CheerDetailPage />} />
+        <Route path="/posts/:id/edit" element={<CheerEditPage />} />
+        <Route path="/mypage" element={<MyPageComponent />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
