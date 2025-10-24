@@ -1,12 +1,35 @@
+/**
+ * 야구 팬 응원 게시판 컴포넌트
+ * 
+ * 작업 내용:
+ * 1. 기존 하드코딩된 데이터를 실제 백엔드 API와 연동
+ * 2. 개발용 인증 시스템 통합 (DevAuthPanel)
+ * 3. 로딩/에러 상태 처리 추가
+ * 4. 팀별 필터링 기능 실제 API 호출로 변경
+ * 5. 실시간 데이터 업데이트 구조 구현
+ * 
+ * 주요 변경사항:
+ * - API 호출: getPosts() 함수로 실제 데이터 로드
+ * - 상태 관리: loading, error 상태 추가
+ * - 인증: DevAuthPanel로 개발용 로그인 기능
+ * - 데이터 변환: PostSummary → Post 인터페이스 변환
+ * - 팀 필터링: activeTab에 따른 API 호출 변경
+ */
+
 import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import { useState } from 'react';
-import { MessageSquare, Heart, Flame, PenSquare, Bell, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MessageSquare, Heart, Flame, PenSquare, Bell, User, Eye, Megaphone } from 'lucide-react';
 import { Button } from './ui/button';
 import ChatBot from './ChatBot';
+import DevAuthPanel from './DevAuthPanel'; // 개발용 인증 패널 추가
+import { getPosts } from '../api/cheer'; // 백엔드 API 연동
+import { PostSummary } from '../types/cheer'; // 타입 안전성을 위한 인터페이스
+import { getDevUser } from '../utils/devAuth'; // 개발용 사용자 정보 가져오기
+import { NavigateHandler } from '../types';
 
 interface CheerProps {
   onNavigateToLogin: () => void;
-  onNavigate: (view: 'home' | 'login' | 'signup' | 'stadium' | 'diary' | 'prediction' | 'cheer' | 'cheerWrite' | 'cheerDetail' | 'cheerEdit' | 'mypage') => void;
+  onNavigate: NavigateHandler;
 }
 
 interface Post {
@@ -36,105 +59,123 @@ const teamColors: { [key: string]: string } = {
 };
 
 export default function Cheer({ onNavigateToLogin, onNavigate }: CheerProps) {
+  // 상태 관리: 기존 하드코딩 대신 실제 API 데이터 관리
   const [activeTab, setActiveTab] = useState<'all' | 'myTeam'>('all');
-  const [myTeam] = useState('LG'); // 사용자의 마이팀 설정
+  const [posts, setPosts] = useState<PostSummary[]>([]); // 백엔드에서 받은 실제 게시글 데이터
+  const [loading, setLoading] = useState(true); // API 호출 중 로딩 상태
+  const [loadingMore, setLoadingMore] = useState(false); // 더보기 로딩 상태
+  const [error, setError] = useState<string | null>(null); // 에러 상태 관리
+  const [currentPage, setCurrentPage] = useState(0); // 현재 페이지 번호
+  const [hasNextPage, setHasNextPage] = useState(true); // 다음 페이지 존재 여부
+  
+  // 개발용 인증: localStorage에서 현재 사용자 정보 가져오기
+  const currentUser = getDevUser();
+  const myTeam = currentUser?.team || 'LG'; // 사용자의 응원팀 정보
 
-  const allPosts: Post[] = [
-    {
-      id: 1,
-      team: 'LG',
-      teamColor: teamColors['LG'],
-      title: '오늘 역전승 가자!',
-      author: '야구팬123',
-      timeAgo: '30분 전',
-      comments: 24,
-      likes: 156,
-      isHot: true,
-    },
-    {
-      id: 2,
-      team: '두산',
-      teamColor: teamColors['두산'],
-      title: '양의지 홈런 기원',
-      author: '베어스사랑',
-      timeAgo: '30분 전',
-      comments: 12,
-      likes: 87,
-      isHot: false,
-    },
-    {
-      id: 3,
-      team: 'SSG',
-      teamColor: teamColors['SSG'],
-      title: '랜더스 화이팅!',
-      author: 'SSG팬',
-      timeAgo: '1시간 전',
-      comments: 45,
-      likes: 203,
-      isHot: true,
-    },
-    {
-      id: 4,
-      team: 'KT',
-      teamColor: teamColors['KT'],
-      title: '위즈 오늘도 승리하자',
-      author: 'KT응원단',
-      timeAgo: '2시간 전',
-      comments: 18,
-      likes: 92,
-      isHot: false,
-    },
-    {
-      id: 5,
-      team: '키움',
-      teamColor: teamColors['키움'],
-      title: '히어로즈 파이팅!',
-      author: '키움조아',
-      timeAgo: '3시간 전',
-      comments: 33,
-      likes: 145,
-      isHot: true,
-    },
-    {
-      id: 6,
-      team: 'NC',
-      teamColor: teamColors['NC'],
-      title: '다이노스 응원합니다',
-      author: 'NC팬',
-      timeAgo: '4시간 전',
-      comments: 21,
-      likes: 78,
-      isHot: false,
-    },
-    {
-      id: 7,
-      team: '삼성',
-      teamColor: teamColors['삼성'],
-      title: '라이온즈 오늘도 화이팅',
-      author: '삼성팬',
-      timeAgo: '5시간 전',
-      comments: 29,
-      likes: 112,
-      isHot: false,
-    },
-    {
-      id: 8,
-      team: '롯데',
-      teamColor: teamColors['롯데'],
-      title: '자이언츠 응원해요!',
-      author: '롯데사랑',
-      timeAgo: '6시간 전',
-      comments: 15,
-      likes: 65,
-      isHot: false,
-    },
-  ];
+  // API 데이터 로드: 탭 변경시마다 새로운 데이터 요청
+  useEffect(() => {
+    setCurrentPage(0);
+    setHasNextPage(true);
+    loadPosts(true); // 탭 변경시 첫 페이지부터 다시 로드
+  }, [activeTab]); // activeTab이 변경될 때마다 재호출 (전체 ↔ 마이팀)
 
-  const displayedPosts = activeTab === 'all' 
-    ? allPosts 
-    : allPosts.filter(post => post.team === myTeam);
+  /**
+   * 백엔드 API 호출 함수
+   * - 전체 탭: 모든 팀의 게시글 가져오기
+   * - 마이팀 탭: 현재 사용자 팀의 게시글만 가져오기
+   */
+  const loadPosts = async (reset = false) => {
+    try {
+      if (reset) {
+        setLoading(true);
+        setCurrentPage(0);
+      } else {
+        setLoadingMore(true);
+      }
+      setError(null);
+      
+      // 팀 필터링: 마이팀 탭이면 팀ID 전달, 전체 탭이면 undefined
+      const teamId = activeTab === 'myTeam' ? myTeam : undefined;
+      const pageToLoad = reset ? 0 : currentPage + 1;
+      
+      const response = await getPosts(teamId, pageToLoad, 10); // 페이지당 10개씩
+      
+      if (reset) {
+        setPosts(response.content || []); // 첫 페이지 또는 탭 변경시 새로 설정
+      } else {
+        setPosts(prev => [...prev, ...(response.content || [])]); // 더보기시 기존 데이터에 추가
+      }
+      
+      // 다음 페이지 존재 여부 설정
+      setHasNextPage(!response.last);
+      setCurrentPage(pageToLoad);
+      
+    } catch (err) {
+      console.error('Failed to load posts:', err);
+      // 더 구체적인 에러 메시지 표시
+      if (err instanceof Error && err.message.includes('HTTP')) {
+        setError(`서버 연결 실패: ${err.message}`);
+      } else {
+        setError('게시글을 불러오는데 실패했습니다.');
+      }
+      if (reset) {
+        setPosts([]); // 에러 시 빈 배열로 설정
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
 
-  const hotPosts = allPosts.filter(post => post.isHot);
+  /**
+   * 더보기 버튼 클릭 핸들러
+   */
+  const handleLoadMore = () => {
+    if (!loadingMore && hasNextPage) {
+      loadPosts(false);
+    }
+  };
+
+  /**
+   * 데이터 변환 함수: 백엔드 데이터를 UI에 맞게 변환
+   * PostSummary (백엔드) → Post (프론트엔드) 인터페이스 변환
+   * - 시간 계산: createdAt을 "몇분 전" 형태로 변환
+   * - 팀 색상: teamId를 기반으로 색상 매핑
+   * - HOT 배지: 좋아요 수 기준으로 인기글 표시
+   */
+  const formatPost = (post: PostSummary): Post => {
+    // 시간 차이 계산 (상대시간 표시)
+    const now = new Date();
+    const createdAt = new Date(post.createdAt);
+    const diffInMinutes = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60));
+    
+    let timeAgo = '';
+    if (diffInMinutes < 60) {
+      timeAgo = `${diffInMinutes}분 전`;
+    } else if (diffInMinutes < 1440) {
+      timeAgo = `${Math.floor(diffInMinutes / 60)}시간 전`;
+    } else {
+      timeAgo = `${Math.floor(diffInMinutes / 1440)}일 전`;
+    }
+
+    return {
+      id: post.id,
+      team: post.teamId,
+      teamColor: teamColors[post.teamId] || '#666666', // 팀별 고유 색상 적용
+      title: post.title,
+      author: post.author,
+      timeAgo,
+      comments: post.comments,
+      likes: post.likes,
+      views: post.views || 0,
+      isHot: post.isHot, // 백엔드에서 계산된 HOT 여부 사용
+      isNotice: post.postType === 'NOTICE', // 공지사항 여부
+    };
+  };
+
+  // 데이터 처리: API 데이터를 UI용 형태로 변환
+  const displayedPosts = posts.map(formatPost);
+  const hotPosts = displayedPosts.filter(post => post.isHot); // HOT 게시글만 필터링
 
   return (
     <div className="min-h-screen bg-white">
@@ -212,6 +253,9 @@ export default function Cheer({ onNavigateToLogin, onNavigate }: CheerProps) {
 
       {/* Page Title and Write Button */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        {/* 개발용 인증 패널: 개발 단계에서 사용자 로그인 시뮬레이션 */}
+        <DevAuthPanel />
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <MessageSquare className="w-7 h-7" style={{ color: '#2d5f4f' }} />
@@ -263,7 +307,7 @@ export default function Cheer({ onNavigateToLogin, onNavigate }: CheerProps) {
                 {hotPosts.map((post) => (
                   <div
                     key={`hot-${post.id}`}
-                    onClick={() => onNavigate('cheerDetail')}
+                    onClick={() => onNavigate('cheerDetail', post.id.toString())}
                     className="bg-white rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer border border-red-100"
                   >
                     <div className="flex gap-4">
@@ -322,12 +366,48 @@ export default function Cheer({ onNavigateToLogin, onNavigate }: CheerProps) {
           </h2>
         </div>
 
+        {/* 로딩 및 에러 상태 처리: 사용자 경험 개선을 위한 상태별 UI */}
+        {loading && (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-gray-600">게시글을 불러오는 중...</p>
+          </div>
+        )}
+
+        {/* 에러 상태: 네트워크 오류나 서버 문제 시 표시 */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-600">{error}</p>
+            <Button 
+              onClick={loadPosts} 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+            >
+              다시 시도
+            </Button>
+          </div>
+        )}
+
+        {/* 빈 상태: 게시글이 없을 때 안내 메시지 */}
+        {!loading && !error && displayedPosts.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-600">게시글이 없습니다.</p>
+            {activeTab === 'myTeam' && (
+              <p className="text-sm text-gray-500 mt-2">
+                {myTeam}팀 게시글이 없습니다. 첫 번째 글을 작성해보세요!
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Posts List */}
-        <div className="space-y-4">
-          {displayedPosts.map((post) => (
+        {!loading && !error && displayedPosts.length > 0 && (
+          <div className="space-y-4">
+            {displayedPosts.map((post) => (
             <div
               key={post.id}
-              onClick={() => onNavigate('cheerDetail')}
+              onClick={() => onNavigate('cheerDetail', post.id.toString())}
               className="border rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer"
             >
               <div className="flex gap-4">
@@ -338,7 +418,7 @@ export default function Cheer({ onNavigateToLogin, onNavigate }: CheerProps) {
 
                 {/* Content */}
                 <div className="flex-1">
-                  {/* Team Badge and Hot Badge */}
+                  {/* Team Badge, Notice Badge and Hot Badge */}
                   <div className="flex items-center gap-2 mb-2">
                     <span
                       className="px-3 py-1 rounded-full text-xs text-white"
@@ -346,6 +426,12 @@ export default function Cheer({ onNavigateToLogin, onNavigate }: CheerProps) {
                     >
                       {post.team}
                     </span>
+                    {post.isNotice && (
+                      <span className="px-2 py-1 rounded-full text-xs bg-blue-600 text-white flex items-center gap-1">
+                        <Megaphone className="w-3 h-3" />
+                        공지
+                      </span>
+                    )}
                     {post.isHot && (
                       <span className="px-2 py-1 rounded-full text-xs bg-red-500 text-white flex items-center gap-1">
                         <Flame className="w-3 h-3" />
@@ -364,6 +450,10 @@ export default function Cheer({ onNavigateToLogin, onNavigate }: CheerProps) {
                     <span>{post.timeAgo}</span>
                     <span>•</span>
                     <div className="flex items-center gap-1">
+                      <Eye className="w-4 h-4" />
+                      <span>{post.views || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
                       <MessageSquare className="w-4 h-4" />
                       <span>{post.comments}</span>
                     </div>
@@ -377,6 +467,35 @@ export default function Cheer({ onNavigateToLogin, onNavigate }: CheerProps) {
             </div>
           ))}
         </div>
+        )}
+
+        {/* Load More Button */}
+        {!loading && !error && hasNextPage && displayedPosts.length > 0 && (
+          <div className="text-center mt-8">
+            <Button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="px-8 py-3 text-white"
+              style={{ backgroundColor: '#2d5f4f' }}
+            >
+              {loadingMore ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  불러오는 중...
+                </div>
+              ) : (
+                '더보기'
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* No More Posts Message */}
+        {!loading && !error && !hasNextPage && displayedPosts.length > 0 && (
+          <div className="text-center mt-8 text-gray-500">
+            모든 게시글을 불러왔습니다.
+          </div>
+        )}
       </div>
 
       {/* ChatBot */}

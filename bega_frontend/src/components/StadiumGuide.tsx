@@ -5,11 +5,11 @@ import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Bell, User, MapPin, Home, Heart, TrendingUp, BookOpen, Utensils, ShoppingBag, ParkingCircle } from 'lucide-react';
 import ChatBot from './ChatBot';
-import { ViewName } from '../types';
+import { NavigateHandler } from '../types';
 
 interface StadiumGuideProps {
   onNavigateToLogin: () => void;
-  onNavigate: (view: ViewName) => void;
+  onNavigate: NavigateHandler;
 }
 
 export default function StadiumGuide({ onNavigateToLogin, onNavigate }: StadiumGuideProps) {

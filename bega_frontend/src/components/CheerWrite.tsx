@@ -1,20 +1,47 @@
+/**
+ * 게시글 작성 페이지 컴포넌트
+ * 
+ * 작업 내용:
+ * 1. 기존 하드코딩된 팀 정보를 개발용 인증에서 가져오도록 변경
+ * 2. 실제 백엔드 API 호출로 게시글 작성 기능 구현
+ * 3. 로딩 상태 및 에러 처리 추가
+ * 4. 개발용 인증 패널 통합
+ * 5. 작성 완료 후 게시판으로 자동 이동
+ * 
+ * 주요 변경사항:
+ * - 팀 정보: getDevUser()에서 현재 사용자 팀 가져오기
+ * - API 호출: createPost() 함수로 실제 게시글 생성
+ * - 상태 관리: loading, error 상태 추가
+ * - 유효성 검사: 로그인 및 필수 입력 확인
+ */
+
 import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { useState } from 'react';
 import { ArrowLeft, Image as ImageIcon, Bell, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
+import DevAuthPanel from './DevAuthPanel';
+import { createPost } from '../api/cheer';
+import { getDevUser } from '../utils/devAuth';
+import { NavigateHandler } from '../types';
 
 interface CheerWriteProps {
   onNavigateToLogin: () => void;
-  onNavigate: (view: 'home' | 'login' | 'signup' | 'stadium' | 'diary' | 'prediction' | 'cheer' | 'cheerWrite' | 'cheerDetail' | 'cheerEdit' | 'mypage') => void;
+  onNavigate: NavigateHandler;
 }
 
 export default function CheerWrite({ onNavigateToLogin, onNavigate }: CheerWriteProps) {
-  const [myTeam] = useState('LG'); // 마이페이지에서 설정한 팀
+  // 상태 관리: 폼 데이터 및 API 호출 상태
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false); // 게시글 작성 중 로딩 상태
+  const [error, setError] = useState<string | null>(null); // 에러 상태
+  
+  // 개발용 인증: 현재 사용자 정보 가져오기
+  const currentUser = getDevUser();
+  const myTeam = currentUser?.team || null; // 사용자의 응원팀
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -24,10 +51,54 @@ export default function CheerWrite({ onNavigateToLogin, onNavigate }: CheerWrite
     }
   };
 
-  const handleSubmit = () => {
-    // TODO: 게시글 저장 로직
-    console.log('게시글 작성:', { myTeam, title, content, images });
-    onNavigate('cheer');
+  /**
+   * 게시글 작성 처리 함수
+   * - 로그인 상태 및 필수 입력 확인
+   * - 백엔드 API 호출로 실제 게시글 생성
+   * - 성공 시 게시판으로 이동, 실패 시 에러 메시지 표시
+   */
+  const handleSubmit = async () => {
+    // 유효성 검사: 로그인 상태 확인
+    if (!currentUser || !myTeam) {
+      setError('로그인이 필요합니다. 개발용 인증 패널에서 로그인해주세요.');
+      return;
+    }
+
+    // 유효성 검사: 필수 입력 확인
+    if (!title.trim() || !content.trim()) {
+      setError('제목과 내용을 모두 입력해주세요.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 백엔드 API 호출: 게시글 생성
+      // Note: 현재는 이미지 미리보기 URL을 그대로 전송 (개발용)
+      // 실제 운영환경에서는 이미지 파일을 서버에 업로드하고 URL을 받아야 함
+      await createPost({
+        teamId: myTeam,
+        title: title.trim(),
+        content: content.trim(),
+        images: images.length > 0 ? images.map(img => 
+          img.startsWith('blob:') ? `placeholder-image-${Date.now()}-${Math.random()}.jpg` : img
+        ) : undefined,
+      });
+
+      // 성공 시 게시판으로 이동
+      onNavigate('cheer');
+    } catch (err) {
+      console.error('Failed to create post:', err);
+      // 더 상세한 에러 정보 표시
+      if (err instanceof Error) {
+        setError(`게시글 작성 실패: ${err.message}`);
+      } else {
+        setError('게시글 작성에 실패했습니다. 다시 시도해주세요.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -121,9 +192,9 @@ export default function CheerWrite({ onNavigateToLogin, onNavigate }: CheerWrite
               onClick={handleSubmit}
               className="text-white"
               style={{ backgroundColor: '#2d5f4f' }}
-              disabled={!title || !content}
+              disabled={loading || !title.trim() || !content.trim() || !currentUser || !myTeam}
             >
-              등록
+              {loading ? '작성 중...' : '등록'}
             </Button>
           </div>
         </div>
@@ -131,6 +202,25 @@ export default function CheerWrite({ onNavigateToLogin, onNavigate }: CheerWrite
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 개발용 인증 패널 */}
+        <DevAuthPanel />
+
+        {/* 에러 메시지 */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+
+        {/* 팀 정보 표시 */}
+        {currentUser && myTeam && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-blue-800">
+              <span className="font-semibold">{myTeam}</span> 팀 게시판에 글을 작성합니다.
+            </p>
+          </div>
+        )}
+
         <div className="space-y-6">
           {/* Title */}
           <div className="space-y-2">
@@ -197,6 +287,7 @@ export default function CheerWrite({ onNavigateToLogin, onNavigate }: CheerWrite
                 ))}
               </div>
             )}
+
           </div>
         </div>
       </div>
