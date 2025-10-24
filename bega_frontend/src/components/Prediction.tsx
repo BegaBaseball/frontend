@@ -5,10 +5,11 @@ import { Bell, User, TrendingUp, RotateCcw } from 'lucide-react';
 import ChatBot from './ChatBot';
 import { useState } from 'react';
 import TeamLogo from './TeamLogo';
+import { ViewName } from '../types';
 
 interface PredictionProps {
   onNavigateToLogin: () => void;
-  onNavigate: (view: string) => void;
+  onNavigate: (view: ViewName) => void;
 }
 
 // KBO 팀 색상 매핑
