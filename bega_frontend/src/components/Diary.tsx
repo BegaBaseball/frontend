@@ -45,6 +45,8 @@ export default function Diary({ onNavigateToLogin, onNavigate }: DiaryProps) {
     fetchDiaries();
   }, []);
 
+
+  
   const fetchDiaries = async() => {
     try {
       const response = await fetch('/api/diary/show');
