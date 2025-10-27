@@ -1,6 +1,6 @@
 import begaCharacter from 'figma:asset/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
-import { useState } from 'react';
+import { useState , useCallback } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams, NavigateFunction } from 'react-router-dom';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
@@ -115,16 +115,110 @@ function MyPageComponent() {
 // 로그인 페이지 컴포넌트
 function LoginPage() {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
+const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Login attempt:', { email, password });
-    // On successful login, navigate to home
-    navigate('/');
-  };
+
+
+const handleLogin = useCallback(async (e) => { // e는 React.FormEvent 타입으로 사용 가능
+  // 폼 제출 기본 동작 방지
+  if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+  }
+  
+  setError('');
+  setIsLoading(true);
+
+  // TODO: 실제 환경에서는 이 URL을 환경 변수로 설정해야 합니다.
+  const backendUrl = 'http://localhost:8080/api/auth/login'; 
+
+  try {
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // --- 요청 본문: UserDto에 정의된 email, password 필드만 사용 ---
+      body: JSON.stringify({ email, password }),
+      // -----------------------------------------------------------------
+    });
+
+    // HTTP 상태 코드가 2xx가 아닌 경우 에러 처리
+    if (!response.ok) {
+      let errorMessage = '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.';
+      
+      try {
+        // 응답 본문에서 에러 메시지 추출 시도
+        const errorData = await response.json();
+        // 서버 응답 구조에 따라 필드명 (accessToken, message, error 등)을 조정해야 합니다.
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (jsonError) {
+        // 응답이 JSON 형식이 아닐 경우
+        if (response.status === 401) {
+           errorMessage = '인증 정보가 올바르지 않습니다.';
+        } else {
+           errorMessage = `서버 오류: ${response.status} (${response.statusText})`;
+        }
+      }
+      
+      // 에러를 던져 catch 블록으로 이동
+      throw new Error(errorMessage);
+    }
+
+    // 성공 시 처리
+    const data = await response.json();
+    
+    // 1. JWT Token Handling
+    const token = data.accessToken; // <<< 서버 응답 필드명을 확인하고 필요 시 수정하세요.
+    if (token) {
+        localStorage.setItem('authToken', token);
+    } else {
+        localStorage.setItem('authToken', 'session_active'); 
+    }
+
+    // 2. User Info Handling
+    // 서버 응답의 'username' 필드만 사용합니다.
+    const userDisplayName = data.username; 
+    
+    if (userDisplayName) {
+      localStorage.setItem('username', userDisplayName);
+      setUsername(userDisplayName); // 상태 업데이트
+    } else {
+      console.warn('경고: 로그인 응답에 username 필드가 포함되어 있지 않습니다.');
+      localStorage.removeItem('username');
+    }
+
+    // 3. UI Update
+    // username이 없을 경우 '사용자'로 표시하기 위해 임시로 '사용자' 문자열 사용
+    const finalDisplayName = userDisplayName || '사용자'; 
+    setIsLoggedIn(true); // 로그인 성공 처리
+    console.log('로그인 성공! ' + finalDisplayName + '님 환영합니다.'); 
+
+  } catch (err) {
+    // API 호출 또는 응답 처리 중 발생한 모든 에러 처리
+    setError((err as Error).message || '네트워크 오류로 로그인에 실패했습니다.');
+    console.error('Login Error:', err);
+  } finally {
+    setIsLoading(false);
+  }
+}, [email, password]);
+
+// --- 로그아웃 로직 (선택 사항) ---
+const handleLogout = useCallback(() => {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('username');
+  setIsLoggedIn(false);
+  setEmail('');
+  setPassword('');
+  setError('');
+  console.log('로그아웃 되었습니다.');
+}, []);
+
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
@@ -304,22 +398,27 @@ function LoginPage() {
 
               {/* Social Login Buttons */}
               <div className="space-y-3">
-                <Button
-                  type="button"
-                  className="w-full py-6 rounded-full flex items-center justify-center gap-3"
+                
+                {/* 🚨 수정: <Button> 대신 <a> 태그 사용 */}
+                <a
+                  href="http://localhost:8080/oauth2/authorization/kakao"
+                  // Button 컴포넌트의 스타일 클래스를 그대로 적용하여 UI 유지
+                  className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium ring-offset-background transition-colors hover:opacity-90"
                   style={{ backgroundColor: '#FEE500', color: '#000000' }}
-                  onClick={() => console.log('Kakao login clicked')}
+                  // onClick 이벤트는 제거합니다. 브라우저가 직접 URL로 이동해야 합니다.
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M10 3C5.589 3 2 5.792 2 9.22c0 2.155 1.396 4.046 3.505 5.146-.15.554-.976 3.505-1.122 4.045-.174.646.237.637.501.463.21-.138 3.429-2.282 3.996-2.657.373.053.754.08 1.12.08 4.411 0 8-2.792 8-6.22C18 5.793 14.411 3 10 3z" fill="currentColor"/>
                   </svg>
                   카카오로 로그인
-                </Button>
+                </a>
 
-                <Button
-                  type="button"
-                  className="w-full py-6 rounded-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
-                  onClick={() => console.log('Google login clicked')}
+                {/* 🚨 수정: <Button> 대신 <a> 태그 사용 */}
+                <a
+                  href="http://localhost:8080/oauth2/authorization/google"
+                  // Button 컴포넌트의 스타일 클래스를 그대로 적용하여 UI 유지
+                  className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium ring-offset-background transition-colors bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:opacity-90"
+                  // onClick 이벤트 제거
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18.17 8.36h-8.04v3.45h4.62c-.39 2.11-2.26 3.45-4.62 3.45a5.26 5.26 0 1 1 3.42-9.25l2.58-2.58A8.76 8.76 0 1 0 10.13 18.7c4.35 0 8.23-3.02 8.04-10.34z" fill="#4285F4"/>
@@ -328,7 +427,7 @@ function LoginPage() {
                     <path d="M10.13 4.96c1.39 0 2.63.48 3.61 1.42l2.71-2.71A8.76 8.76 0 0 0 2.15 4.35l2.99 2.31a5.26 5.26 0 0 1 5.14-1.7z" fill="#EA4335"/>
                   </svg>
                   Google로 로그인
-                </Button>
+                </a>
               </div>
             </div>
           </div>
