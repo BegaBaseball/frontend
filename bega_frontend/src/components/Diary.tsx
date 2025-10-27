@@ -76,7 +76,7 @@ export default function Diary({ onNavigateToLogin, onNavigate }: DiaryProps) {
   const data = await response.json();
   return data;
   };
-
+  
   const getCurrentMonthEmojiStats = () => {
     const stats = [
       { name: '속상', emoji: sadEmoji, count: 0 },
