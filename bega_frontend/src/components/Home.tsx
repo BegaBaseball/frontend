@@ -6,12 +6,11 @@ import { Badge } from './ui/badge';
 import { Bell, User, Calendar, Trophy, Home as HomeIcon, Heart, MapPin, TrendingUp, BookOpen } from 'lucide-react';
 import ChatBot from './ChatBot';
 import TeamLogo from './TeamLogo';
-import { ViewName } from '../types';
-
+import { NavigateHandler } from '../types';
 
 interface HomeProps {
   onNavigateToLogin: () => void;
-  onNavigate: (view: ViewName) => void;
+  onNavigate: NavigateHandler;
 }
 
 export default function Home({ onNavigateToLogin, onNavigate }: HomeProps) {

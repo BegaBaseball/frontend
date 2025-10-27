@@ -2,11 +2,15 @@ _metadata.json
 .vite
 
 node_modules/
+/bega_frontend/node_modules/
 dist/
 build/
 .env
 .vscode/
 .idea/
 .DS_Store/
+.DS_Store
 npm-debug.log*
 * yarn-error.log*
+/bega_frontend/node_modules
+/bega_frontend/node_modules
