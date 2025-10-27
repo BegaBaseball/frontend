@@ -4,7 +4,7 @@ import angryEmoji from 'figma:asset/42dd52586f6d1d030d23511fbd3cb76d6f973a98.png
 import boredEmoji from 'figma:asset/d1ffa1015580d6d5f87b9c727162461d8be1f9cf.png';
 import fullEmoji from 'figma:asset/c5b952237a2428b4f5b6a0a8504b604f69464631.png';
 import happyEmoji from 'figma:asset/5843378a1433c3b38912e3121e2ff42cf8f6cd42.png';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Calendar } from './ui/calendar';
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Bell, User, ChevronLeft, ChevronRight, TrendingUp, X, Camera, Upload, Clock, CheckCircle } from 'lucide-react';
 import ChatBot from './ChatBot';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { error } from 'console';
+import { useDiaryStore } from '@/stores/useDiaryStore';
 
 interface DiaryProps {
   onNavigateToLogin: () => void;
@@ -20,28 +20,27 @@ interface DiaryProps {
 }
 
 export default function Diary({ onNavigateToLogin, onNavigate }: DiaryProps) {
-  const [diaryEntries, setDiaryEntries] = useState<any[]>([]);
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedEntry, setSelectedEntry] = useState<any>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editedEntry, setEditedEntry] = useState<any>(null);
-  const [editPhotos, setEditPhotos] = useState<string[]>([]);
-  const [isCreateMode, setIsCreateMode] = useState(false);
-  const [newEntry, setNewEntry] = useState<any>({
-    date: new Date().toISOString().split('T')[0],
-    team: '',
-    stadium: '',
-    homeScore: '',
-    awayScore: '',
-    emoji: happyEmoji,
-    emojiName: '좋음',
-    memo: '',
-    photos: [],
-    type: 'attended'
-  });
-  
+  // Zustand로 교체 - useState → useDiaryStore
+  const diaryEntries = useDiaryStore(state => state.diaryEntries);
+  const setDiaryEntries = useDiaryStore(state => state.setDiaryEntries);
+  const date = useDiaryStore(state => state.date);
+  const setDate = useDiaryStore(state => state.setDate);
+  const currentMonth = useDiaryStore(state => state.currentMonth);
+  const setCurrentMonth = useDiaryStore(state => state.setCurrentMonth);
+  const selectedEntry = useDiaryStore(state => state.selectedEntry);
+  const setSelectedEntry = useDiaryStore(state => state.setSelectedEntry);
+  const isDialogOpen = useDiaryStore(state => state.isDialogOpen);
+  const setIsDialogOpen = useDiaryStore(state => state.setIsDialogOpen);
+  const isEditMode = useDiaryStore(state => state.isEditMode);
+  const setIsEditMode = useDiaryStore(state => state.setIsEditMode);
+  const editedEntry = useDiaryStore(state => state.editedEntry);
+  const setEditedEntry = useDiaryStore(state => state.setEditedEntry);
+  const editPhotos = useDiaryStore(state => state.editPhotos);
+  const setEditPhotos = useDiaryStore(state => state.setEditPhotos);
+  const isCreateMode = useDiaryStore(state => state.isCreateMode);
+  const setIsCreateMode = useDiaryStore(state => state.setIsCreateMode);
+  const newEntry = useDiaryStore(state => state.newEntry);
+  const setNewEntry = useDiaryStore(state => state.setNewEntry);
   useEffect(() => {
     fetchDiaries();
   }, []);
