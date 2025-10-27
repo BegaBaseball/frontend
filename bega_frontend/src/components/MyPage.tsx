@@ -6,10 +6,11 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import ChatBot from './ChatBot';
+import { NavigateHandler } from '../types';
 
 interface MyPageProps {
   onNavigateToLogin: () => void;
-  onNavigate: (view: 'home' | 'login' | 'signup' | 'stadium' | 'diary' | 'prediction' | 'cheer' | 'cheerWrite' | 'cheerDetail' | 'mypage') => void;
+  onNavigate: NavigateHandler;
 }
 
 const teamColors: { [key: string]: string } = {
