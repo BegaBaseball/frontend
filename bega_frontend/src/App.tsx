@@ -125,99 +125,104 @@ const [showPassword, setShowPassword] = useState(false);
 
 
 
-const handleLogin = useCallback(async (e) => { // e는 React.FormEvent 타입으로 사용 가능
-  // 폼 제출 기본 동작 방지
-  if (e && typeof e.preventDefault === 'function') {
-      e.preventDefault();
-  }
-  
-  setError('');
-  setIsLoading(true);
-
-  // TODO: 실제 환경에서는 이 URL을 환경 변수로 설정해야 합니다.
-  const backendUrl = 'http://localhost:8080/api/auth/login'; 
-
-  try {
-    const response = await fetch(backendUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      // --- 요청 본문: UserDto에 정의된 email, password 필드만 사용 ---
-      body: JSON.stringify({ email, password }),
-      // -----------------------------------------------------------------
-    });
-
-    // HTTP 상태 코드가 2xx가 아닌 경우 에러 처리
-    if (!response.ok) {
-      let errorMessage = '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.';
-      
-      try {
-        // 응답 본문에서 에러 메시지 추출 시도
-        const errorData = await response.json();
-        // 서버 응답 구조에 따라 필드명 (accessToken, message, error 등)을 조정해야 합니다.
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (jsonError) {
-        // 응답이 JSON 형식이 아닐 경우
-        if (response.status === 401) {
-           errorMessage = '인증 정보가 올바르지 않습니다.';
-        } else {
-           errorMessage = `서버 오류: ${response.status} (${response.statusText})`;
+    const handleLogin = useCallback(async (e) => { // e는 React.FormEvent 타입으로 사용 가능
+        // 폼 제출 기본 동작 방지
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
         }
-      }
-      
-      // 에러를 던져 catch 블록으로 이동
-      throw new Error(errorMessage);
-    }
+        
+        setError('');
+        setIsLoading(true);
 
-    // 성공 시 처리
-    const data = await response.json();
-    
-    // 1. JWT Token Handling
-    const token = data.accessToken; // <<< 서버 응답 필드명을 확인하고 필요 시 수정하세요.
-    if (token) {
-        localStorage.setItem('authToken', token);
-    } else {
-        localStorage.setItem('authToken', 'session_active'); 
-    }
+        // TODO: 실제 환경에서는 이 URL을 환경 변수로 설정해야 합니다.
+        const backendUrl = 'http://localhost:8080/api/auth/login'; 
 
-    // 2. User Info Handling
-    // 서버 응답의 'username' 필드만 사용합니다.
-    const userDisplayName = data.username; 
-    
-    if (userDisplayName) {
-      localStorage.setItem('username', userDisplayName);
-      setUsername(userDisplayName); // 상태 업데이트
-    } else {
-      console.warn('경고: 로그인 응답에 username 필드가 포함되어 있지 않습니다.');
-      localStorage.removeItem('username');
-    }
+        try {
+            const response = await fetch(backendUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // HttpOnly 쿠키를 포함하여 서버에 전송하도록 설정 (인증에 필수)
+                credentials: 'include',
+                // --- 요청 본문: UserDto에 정의된 email, password 필드만 사용 ---
+                body: JSON.stringify({ email, password }),
+                // -----------------------------------------------------------------
+            });
 
-    // 3. UI Update
-    // username이 없을 경우 '사용자'로 표시하기 위해 임시로 '사용자' 문자열 사용
-    const finalDisplayName = userDisplayName || '사용자'; 
-    setIsLoggedIn(true); // 로그인 성공 처리
-    console.log('로그인 성공! ' + finalDisplayName + '님 환영합니다.'); 
+            // HTTP 상태 코드가 2xx가 아닌 경우 에러 처리
+            if (!response.ok) {
+                let errorMessage = '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.';
+                
+                try {
+                    // 응답 본문에서 에러 메시지 추출 시도
+                    const errorData = await response.json();
+                    // 서버 응답 구조에 따라 필드명 (message, error 등)을 조정해야 합니다.
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                } catch (jsonError) {
+                    // 응답이 JSON 형식이 아닐 경우
+                    if (response.status === 401) {
+                        errorMessage = '인증 정보가 올바르지 않습니다.';
+                    } else {
+                        errorMessage = `서버 오류: ${response.status} (${response.statusText})`;
+                    }
+                }
+                
+                // 에러를 던져 catch 블록으로 이동
+                throw new Error(errorMessage);
+            }
 
-  } catch (err) {
-    // API 호출 또는 응답 처리 중 발생한 모든 에러 처리
-    setError((err as Error).message || '네트워크 오류로 로그인에 실패했습니다.');
-    console.error('Login Error:', err);
-  } finally {
-    setIsLoading(false);
-  }
-}, [email, password]);
+            // 성공 시 처리 (JWT 토큰은 HttpOnly 쿠키에 의해 브라우저에 자동 저장됨)
+            const data = await response.json();
+            
+            // 1. JWT Token Handling: HttpOnly 쿠키를 사용하므로 클라이언트 측 토큰 저장 로직 제거
+            // const token = data.accessToken; // 토큰 필드는 이제 무시
+            // if (token) { localStorage.setItem('authToken', token); } ... (제거)
 
-// --- 로그아웃 로직 (선택 사항) ---
-const handleLogout = useCallback(() => {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('username');
-  setIsLoggedIn(false);
-  setEmail('');
-  setPassword('');
-  setError('');
-  console.log('로그아웃 되었습니다.');
-}, []);
+            // 2. User Info Handling
+            // 서버 응답의 'username' 필드만 사용합니다.
+            const userDisplayName = data.name || data.email; 
+            
+            if (userDisplayName) {
+                // setUsername(userDisplayName); // 상태 업데이트
+                console.log('로그인 응답에 사용자 이름(또는 이메일) 포함:', userDisplayName);
+                // localStorage.removeItem('username'); // 로컬 스토리지 저장 로직 제거
+            } else {
+                console.warn('경고: 로그인 응답에 username 필드가 포함되어 있지 않습니다.');
+            }
+
+            // 3. UI Update 및 리다이렉션
+            const finalDisplayName = userDisplayName || '사용자'; 
+            setIsLoggedIn(true); // 로그인 성공 처리 (UI 상태만 업데이트)
+            console.log('로그인 성공! ' + finalDisplayName + '님 환영합니다. 메인 페이지로 이동합니다.'); 
+
+            // React Router를 사용하여 메인 페이지로 이동하며 사용자 정보를 state로 전달
+            navigate('/', {
+                state: { userDisplayName: finalDisplayName },
+                replace: true // 뒤로가기 방지
+            });
+
+
+        } catch (err) {
+            // API 호출 또는 응답 처리 중 발생한 모든 에러 처리
+            setError((err as Error).message || '네트워크 오류로 로그인에 실패했습니다.');
+            console.error('Login Error:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [email, password, navigate]); // navigate를 dependency에 추가
+
+    // --- 로그아웃 로직 (선택 사항) ---
+    const handleLogout = useCallback(() => {
+        // HttpOnly 쿠키를 사용하더라도 클라이언트 측에서 상태 초기화 및 잔여 로컬 저장소 정리
+        localStorage.removeItem('authToken'); 
+        localStorage.removeItem('username');
+        setIsLoggedIn(false);
+        setEmail('');
+        setPassword('');
+        setError('');
+        console.log('로그아웃 되었습니다.');
+    }, []);
 
 
   return (
