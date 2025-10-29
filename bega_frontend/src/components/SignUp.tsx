@@ -30,13 +30,13 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
     e.preventDefault();
     setError(null);
     
-    // 비밀번호 일치 확인
+    // 비밀번호 일치 확인 (프론트엔드 유효성 검사)
     if (formData.password !== formData.confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.');
       return;
     }
     
-    // 비밀번호가 8자 미만인지 다시 확인 (HTML 속성이 있지만, 이중 확인)
+    // 비밀번호 길이 확인 (프론트엔드 유효성 검사)
     if (formData.password.length < 8) {
       setError('비밀번호는 8자 이상이어야 합니다.');
       return;
@@ -50,20 +50,24 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        // 서버 요구 사항에 맞춰 필요한 데이터만 전송
+        // 🚨🚨🚨 서버 DTO 필드 이름과 일치하도록 수정 🚨🚨🚨
         body: JSON.stringify({
-          username: formData.name, // 서버에서 'username'으로 받을 가능성이 높으므로 변경
+          name: formData.name, 
           email: formData.email,
           password: formData.password,
-          favoriteTeam: formData.favoriteTeam === '없음' ? null : formData.favoriteTeam, // '없음'을 null로 처리
+          confirmPassword: formData.confirmPassword, 
+          favoriteTeam: formData.favoriteTeam === '없음' ? null : formData.favoriteTeam,
+          // provider 및 providerId는 일반 가입 시 누락되거나 null로 전송해도 DTO가 처리
         }),
       });
       
       // HTTP 상태 코드가 2xx가 아닌 경우 에러 처리
       if (!response.ok) {
-        // 응답 본문에서 에러 메시지 추출 시도
+        // 응답 본문에서 에러 메시지 추출 시도 
         const errorData = await response.json();
-        throw new Error(errorData.message || `회원가입 실패: ${response.statusText}`);
+        // 에러 응답이 JSON이 아닐 경우 (예: plain text) 대비
+        const errorMessage = errorData.message || (typeof errorData === 'string' ? errorData : `회원가입 실패: ${response.statusText}`);
+        throw new Error(errorMessage);
       }
 
       // 성공 시 처리
@@ -91,7 +95,7 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
     'NC 다이노스',
     '기아 타이거즈'
   ];
-
+ 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background decorative shapes - Fixed positioning */}
