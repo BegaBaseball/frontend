@@ -8,8 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useNavigationStore } from '../store/navigationStore';
 
-export default function SignUp() {
-  const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
+interface SignUpProps {
+  onBackToLogin: () => void;
+}
+
+export default function SignUp({ onBackToLogin }: SignUpProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -19,10 +22,65 @@ export default function SignUp() {
     confirmPassword: '',
     favoriteTeam: ''
   });
+  
+  // 로딩 및 에러 상태 추가 (선택 사항이지만 유용함)
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Sign up attempt:', formData);
+    setError(null);
+    
+    // 비밀번호 일치 확인 (프론트엔드 유효성 검사)
+    if (formData.password !== formData.confirmPassword) {
+      setError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    
+    // 비밀번호 길이 확인 (프론트엔드 유효성 검사)
+    if (formData.password.length < 8) {
+      setError('비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // 🚨🚨🚨 서버 DTO 필드 이름과 일치하도록 수정 🚨🚨🚨
+        body: JSON.stringify({
+          name: formData.name, 
+          email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword, 
+          favoriteTeam: formData.favoriteTeam === '없음' ? null : formData.favoriteTeam,
+          // provider 및 providerId는 일반 가입 시 누락되거나 null로 전송해도 DTO가 처리
+        }),
+      });
+      
+      // HTTP 상태 코드가 2xx가 아닌 경우 에러 처리
+      if (!response.ok) {
+        // 응답 본문에서 에러 메시지 추출 시도 
+        const errorData = await response.json();
+        // 에러 응답이 JSON이 아닐 경우 (예: plain text) 대비
+        const errorMessage = errorData.message || (typeof errorData === 'string' ? errorData : `회원가입 실패: ${response.statusText}`);
+        throw new Error(errorMessage);
+      }
+
+      // 성공 시 처리
+      alert('회원가입 성공! 로그인 화면으로 이동합니다.');
+      onBackToLogin();
+
+    } catch (err) {
+      console.error('Sign up error:', err);
+      setError((err as Error).message || '네트워크 오류로 회원가입에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const teams = [
@@ -257,7 +315,7 @@ export default function SignUp() {
                   이미 계정이 있으신가요?{' '}
                   <button 
                     type="button"
-                    onClick={navigateToLogin}
+                    onClick={onBackToLogin}
                     className="hover:underline" 
                     style={{ color: '#2d5f4f' }}
                   >
