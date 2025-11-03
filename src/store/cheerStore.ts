@@ -66,7 +66,7 @@ const initialPosts: Post[] = [
   },
   {
     id: 2,
-    team: 'OB',
+    team: '두산',
     teamColor: teamColors['두산'],
     title: '양의지 홈런 기원',
     author: '베어스사랑',
@@ -77,7 +77,7 @@ const initialPosts: Post[] = [
   },
   {
     id: 3,
-    team: 'SK',
+    team: 'SSG',
     teamColor: teamColors['SSG'],
     title: '랜더스 화이팅!',
     author: 'SSG팬',
@@ -99,7 +99,7 @@ const initialPosts: Post[] = [
   },
   {
     id: 5,
-    team: 'WO',
+    team: '키움',
     teamColor: teamColors['키움'],
     title: '히어로즈 파이팅!!',
     author: '히어로즈',

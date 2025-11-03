@@ -3,27 +3,29 @@ import { Button } from './ui/button';
 import { Bell, User } from 'lucide-react';
 import { useNavigationStore } from '../store/navigationStore';
 import { ViewType } from '../store/navigationStore';
+import { useUIStore } from '../store/uiStore';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 interface NavbarProps {
-  currentPage: 'home' | 'cheer' | 'stadium' | 'prediction' | 'diary' | 'mate' | 'mypage';
+  currentPage: 'home' | 'cheer' | 'stadium' | 'prediction' | 'mate' | 'mypage';
 }
 
 export default function Navbar({ currentPage }: NavbarProps) {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const { isNotificationOpen, setIsNotificationOpen } = useUIStore();
   
   const navItems = [
     { id: 'home', label: '홈' },
     { id: 'cheer', label: '응원' },
     { id: 'stadium', label: '구장' },
     { id: 'prediction', label: '예측' },
-    { id: 'mate', label: '메이트' },
-    { id: 'diary', label: '다이어리' }
+    { id: 'mate', label: '메이트' }
   ];
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="relative flex items-center justify-between h-16">
           {/* Logo */}
           <button onClick={() => setCurrentView('home')} className="flex items-center gap-3">
             <img src={baseballLogo} alt="Baseball" className="w-10 h-10" />
@@ -33,8 +35,8 @@ export default function Navbar({ currentPage }: NavbarProps) {
             </div>
           </button>
 
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
+          {/* Navigation - Centered */}
+          <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -49,19 +51,31 @@ export default function Navbar({ currentPage }: NavbarProps) {
 
           {/* Right Actions */}
           <div className="flex items-center gap-4">
-            <button className="text-gray-600 hover:text-gray-900 relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            <button 
+            <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
+              <PopoverTrigger asChild>
+                <button className="text-gray-600 hover:text-gray-900 relative">
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="w-80 p-6 bg-gray-900 border-gray-800"
+                align="end"
+              >
+                <p className="text-white text-center">내용 없음</p>
+              </PopoverContent>
+            </Popover>
+            <Button
               onClick={() => setCurrentView('mypage')}
-              className="text-gray-600 hover:text-gray-900"
+              variant="outline"
+              className="rounded-full px-6 border-2 bg-white hover:bg-gray-50"
+              style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
             >
-              <User className="w-5 h-5" />
-            </button>
+              내 정보
+            </Button>
             <Button
               onClick={() => setCurrentView('login')}
-              className="rounded-full px-6"
+              className="rounded-full px-6 text-white"
               style={{ backgroundColor: '#2d5f4f' }}
             >
               로그인
