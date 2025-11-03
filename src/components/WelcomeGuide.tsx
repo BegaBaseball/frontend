@@ -12,7 +12,8 @@ import {
   MessageCircle,
   X,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Users
 } from 'lucide-react';
 import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
@@ -76,44 +77,52 @@ export default function WelcomeGuide() {
       description: '오늘의 경기 일정, 실시간 스코어, 팀 순위를 한눈에 확인하세요. 시즌과 비시즌에 맞춘 다양한 정보를 제공합니다.',
       icon: <Home className="w-16 h-16" />,
       color: '#2d5f4f',
-      features: ['실시간 경기 정보', '팀 순위 현황', '스토브리그 소식']
+      features: ['실시간 경기 정보', 'KBO 팀 순위', '스토브리그 소식']
     },
     {
-      title: '응원게시판',
+      title: '응원',
       subtitle: '팬들과 함께하는 공간',
-      description: '우리 팀을 응원하고, 다른 팬들과 소통하며 야구의 즐거움을 나누세요.',
+      description: '우리 팀을 응원하고, 다른 팬들과 소통하며 야구의 즐거움을 나누세요. 팀별 게시판에서 열정을 공유하세요!',
       icon: <Heart className="w-16 h-16" />,
       color: '#ef4444',
-      features: ['팀별 응원 게시판', '자유로운 소통', '좋아요 & 댓글']
+      features: ['팀별 응원 게시판', '게시글 작성 & 수정', '좋아요 & 댓글']
     },
     {
-      title: '구장 가이드',
+      title: '구장',
       subtitle: '야구장 완전 정복',
-      description: '전국 10개 구장의 좌석 정보, 맛집, 주차 정보까지 직관 준비의 모든 것을 알려드립니다.',
+      description: '전국 10개 구장의 좌석 정보, 맛집, 주차 정보까지! 직관 준비의 모든 것을 알려드립니다.',
       icon: <MapPin className="w-16 h-16" />,
       color: '#f59e0b',
       features: ['좌석별 시야 정보', '구장 주변 맛집', '교통 & 주차 안내']
     },
     {
-      title: '승부예측',
+      title: '예측',
       subtitle: '나만의 예측으로 즐기기',
-      description: '오늘의 경기 결과를 예측하고, 다른 팬들과 예측 결과를 공유해보세요.',
+      description: '오늘의 경기 결과를 예측하고, 시즌 최종 순위도 예상해보세요. 예측 통계와 랭킹으로 실력을 확인하세요!',
       icon: <TrendingUp className="w-16 h-16" />,
       color: '#8b5cf6',
-      features: ['경기 결과 예측', '예측 통계 확인', '랭킹 시스템']
+      features: ['경기 결과 예측', '시즌 순위 예측', '예측 통계 & 랭킹']
     },
     {
-      title: '직관 다이어리',
-      subtitle: '소중한 야구 추억 기록',
-      description: '직관 경험을 사진과 함께 기록하고, 나만의 야구 다이어리를 만들어보세요.',
+      title: '메이트',
+      subtitle: '함께 야구 보러 가요',
+      description: '직관 메이트를 찾고 모임을 만들어보세요. 야구는 혼자보다 함께 볼 때 더 재미있으니까요!',
+      icon: <Users className="w-16 h-16" />,
+      color: '#ec4899',
+      features: ['직관 메이트 모집', '모임 관리', '실시간 채팅']
+    },
+    {
+      title: '마이페이지',
+      subtitle: '나의 야구 라이프',
+      description: '프로필 관리, 직관 다이어리 작성, 응원 통계를 확인하세요. 캘린더로 내 직관 기록을 한눈에 볼 수 있어요.',
       icon: <BookOpen className="w-16 h-16" />,
       color: '#06b6d4',
-      features: ['경기 관람 기록', '사진 첨부 가능', '감정 & 메모']
+      features: ['직관 다이어리 기록', '캘린더 뷰', '나의 통계']
     },
     {
       title: 'AI 챗봇',
       subtitle: '야구가 궁금할 땐?',
-      description: 'KBO 규칙, 선수 정보, 팀 전략까지! AI 챗봇이 친절하게 답변해드립니다.',
+      description: 'KBO 규칙, 선수 정보, 팀 전략까지! 헤드셋을 쓴 야구공 캐릭터가 친절하게 답변해드립니다.',
       icon: <MessageCircle className="w-16 h-16" />,
       color: '#10b981',
       features: ['24시간 답변', '야구 규칙 설명', '실시간 정보 제공']
@@ -226,10 +235,10 @@ export default function WelcomeGuide() {
                 <Card className="p-6 border-2" style={{ borderColor: '#2d5f4f', backgroundColor: '#f0f9f6' }}>
                   <div className="text-left mb-4">
                     <h4 className="mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                      6가지 핵심 기능
+                      7가지 핵심 기능
                     </h4>
                     <p className="text-sm text-gray-600">
-                      홈, 응원, 구장, 예측, 다이어리, 챗봇
+                      홈, 응원, 구장, 예측, 메이트, 마이페이지, 챗봇
                     </p>
                   </div>
                   <p className="text-sm text-gray-600 text-left leading-relaxed">

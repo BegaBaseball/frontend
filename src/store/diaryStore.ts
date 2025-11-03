@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import happyEmoji from 'figma:asset/5843378a1433c3b38912e3121e2ff42cf8f6cd42.png';
+import worstEmoji from 'figma:asset/7642c88659d68a93b809e39f4c56d9c284123115.png';
+import fullEmoji from 'figma:asset/691ca553a888de6b3262d9c3c63d03f37db27b4a.png';
+import bestEmoji from 'figma:asset/19b0bb1cde805dc5d6e6af053a4bd1622a1a4fad.png';
+import angryEmoji from 'figma:asset/01cb53a9197c5457e6d7dd7460bdf1cd27b5440b.png';
+import happyEmoji from 'figma:asset/e2bd5a0f58df48e435d03f049811638d849de606.png';
 
 export interface DiaryEntry {
   date: string;
@@ -43,10 +47,21 @@ interface DiaryState {
 
 const initialEntries: DiaryEntry[] = [
   { 
+    date: '2025-11-03', 
+    team: 'SSG vs KIA', 
+    emoji: worstEmoji, 
+    emojiName: '최악',
+    type: 'attended',
+    stadium: '인천 SSG 랜더스필드',
+    score: '0-8 SSG 패',
+    memo: '완패... 오늘은 잊고 싶네요.',
+    photos: []
+  },
+  { 
     date: '2025-10-10', 
     team: 'KIA vs NC', 
-    emoji: happyEmoji, 
-    emojiName: '좋음',
+    emoji: bestEmoji, 
+    emojiName: '최고',
     type: 'attended',
     stadium: '광주 KIA 챔피언스 필드',
     score: '5-3 KIA 승',
@@ -60,7 +75,7 @@ const initialEntries: DiaryEntry[] = [
     date: '2025-10-07', 
     team: 'LG vs 두산', 
     emoji: happyEmoji,
-    emojiName: '좋음',
+    emojiName: '즐거움',
     type: 'attended',
     stadium: '잠실야구장',
     score: '7-2 LG 승',
@@ -88,7 +103,7 @@ export const useDiaryStore = create<DiaryState>()(
         stadium: '',
         score: '',
         emoji: happyEmoji,
-        emojiName: '좋음',
+        emojiName: '즐거움',
         memo: '',
         photos: []
       },
@@ -123,7 +138,7 @@ export const useDiaryStore = create<DiaryState>()(
             stadium: '',
             score: '',
             emoji: happyEmoji,
-            emojiName: '좋음',
+            emojiName: '즐거움',
             memo: '',
             photos: []
           },

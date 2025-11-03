@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import Navbar from './Navbar';
 import { Card } from './ui/card';
+import TeamLogo from './TeamLogo';
 import { useNavigationStore } from '../store/navigationStore';
 import { useCheerStore } from '../store/cheerStore';
 
@@ -99,15 +100,13 @@ export default function CheerDetail() {
               <div className="flex items-center justify-between mb-6 pb-6 border-b">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-300" />
-                  <div>
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="font-semibold text-gray-900">{post.author}</span>
-                      <span
-                        className="px-3 py-1 rounded-full text-xs text-white"
-                        style={{ backgroundColor: post.teamColor }}
-                      >
-                        {post.team}
-                      </span>
+                  <div className="flex-1">
+                    <h2 className="text-gray-900 mb-2">{post.title}</h2>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm text-gray-600">{post.author}</span>
+                      <div className="flex items-center justify-center w-6 h-6 rounded-full" style={{ backgroundColor: '#f3f4f6' }}>
+                        <TeamLogo team={post.team} size={24} />
+                      </div>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-500">
                       <span>{post.timeAgo}</span>
@@ -137,9 +136,6 @@ export default function CheerDetail() {
                   </button>
                 </div>
               </div>
-
-              {/* Title */}
-              <h1 className="mb-6 text-gray-900">{post.title}</h1>
 
               {/* Content */}
               <div className="text-gray-700 whitespace-pre-wrap mb-8 leading-relaxed">

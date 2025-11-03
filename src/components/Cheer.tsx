@@ -88,18 +88,18 @@ export default function Cheer() {
                   className="border rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer bg-white"
                 >
                   <div className="flex gap-4">
-                    {/* Avatar */}
+                    {/* Team Logo */}
                     <div className="flex-shrink-0">
-                      <div className="w-12 h-12 rounded-full bg-gray-200" />
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#f3f4f6' }}>
+                        <TeamLogo team={post.team} size={40} />
+                      </div>
                     </div>
 
                     {/* Content */}
                     <div className="flex-1">
-                      {/* Team Logo and Hot Badge */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-gray-200">
-                          <TeamLogo team={post.team} size={28} />
-                        </div>
+                      {/* Title and Hot Badge */}
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-base">{post.title}</h3>
                         {post.isHot && (
                           <span className="px-2 py-1 rounded-full text-xs bg-red-500 text-white flex items-center gap-1">
                             <Flame className="w-3 h-3" />
@@ -108,13 +108,13 @@ export default function Cheer() {
                         )}
                       </div>
 
-                      {/* Title */}
-                      <h3 className="mb-2">{post.title}</h3>
+                      {/* Author */}
+                      <div className="text-sm text-gray-500 mb-2">
+                        {post.author}
+                      </div>
 
                       {/* Meta Info */}
                       <div className="flex items-center gap-3 text-sm text-gray-500">
-                        <span>{post.author}</span>
-                        <span>•</span>
                         <span>{post.timeAgo}</span>
                         <span>•</span>
                         <div className="flex items-center gap-1">
@@ -154,34 +154,33 @@ export default function Cheer() {
                       className="bg-white rounded-xl p-3 hover:shadow-md transition-shadow cursor-pointer border border-red-100"
                     >
                       <div className="flex gap-3">
-                        {/* Avatar */}
+                        {/* Team Logo */}
                         <div className="flex-shrink-0">
-                          <div className="w-10 h-10 rounded-full bg-gray-200" />
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#f3f4f6' }}>
+                            <TeamLogo team={post.team} size={32} />
+                          </div>
                         </div>
 
                         {/* Content */}
                         <div className="flex-1 min-w-0">
-                          {/* Team Logo and Hot Badge */}
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-white border border-gray-200">
-                              <TeamLogo team={post.team} size={24} />
-                            </div>
-                            <span className="px-2 py-0.5 rounded-full text-xs bg-red-500 text-white flex items-center gap-1">
+                          {/* Title and Hot Badge */}
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-sm line-clamp-2">{post.title}</h4>
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-red-500 text-white flex items-center gap-1 flex-shrink-0">
                               <Flame className="w-3 h-3" />
                               HOT
                             </span>
                           </div>
 
-                          {/* Title */}
-                          <h4 className="text-sm mb-1.5 line-clamp-2">{post.title}</h4>
+                          {/* Author */}
+                          <div className="text-xs text-gray-500 mb-1.5">
+                            {post.author}
+                          </div>
 
                           {/* Meta Info */}
                           <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <span className="truncate max-w-[80px]">{post.author}</span>
-                            <span>•</span>
                             <span>{post.timeAgo}</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                            <span>•</span>
                             <div className="flex items-center gap-1">
                               <MessageSquare className="w-3 h-3" />
                               <span>{post.comments}</span>

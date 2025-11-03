@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { RotateCcw, Award, X, GripVertical } from 'lucide-react';
@@ -8,8 +8,20 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { usePredictionStore, Team } from '../store/predictionStore';
 import podiumImage from 'figma:asset/4b5cf234f729d37970ba7ab9c5a1134fcd8e70b6.png';
 import firstPlaceImage from 'figma:asset/f552d9266ac817e0c86b657dead0069395c6da11.png';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 
 export default function RankingPrediction() {
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  
   const rankings = usePredictionStore((state) => state.rankings);
   const availableTeams = usePredictionStore((state) => state.availableTeams);
   const isPredictionSaved = usePredictionStore((state) => state.isPredictionSaved);
@@ -38,7 +50,12 @@ export default function RankingPrediction() {
   };
 
   const handleSave = () => {
+    setShowSaveDialog(true);
+  };
+
+  const confirmSave = () => {
     toast.success('예측이 저장되었습니다!');
+    setShowSaveDialog(false);
     // 여기에 실제 저장 로직 추가
   };
 
@@ -122,6 +139,28 @@ export default function RankingPrediction() {
 
   return (
     <DndProvider backend={require('react-dnd-html5-backend').HTML5Backend}>
+      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle style={{ color: '#2d5f4f' }}>순위 확정</AlertDialogTitle>
+            <AlertDialogDescription>
+              한번 저장하면 순위 변경이 불가능합니다.<br />
+              이대로 순위를 확정하시겠습니까?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSave}
+              className="text-white"
+              style={{ backgroundColor: '#2d5f4f' }}
+            >
+              확인
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Rankings Area - 왼쪽 */}
         <div className="lg:col-span-2">

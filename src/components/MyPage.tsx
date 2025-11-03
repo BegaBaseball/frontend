@@ -1,484 +1,767 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Camera, Save, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Camera, Save, User, Edit, BarChart3, ChevronLeft, ChevronRight, X, TrendingUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Card } from './ui/card';
 import ChatBot from './ChatBot';
 import TeamRecommendationTest from './TeamRecommendationTest';
 import TeamLogo from './TeamLogo';
 import Navbar from './Navbar';
-import { useNavigationStore } from '../store/navigationStore';
+import worstEmoji from 'figma:asset/7642c88659d68a93b809e39f4c56d9c284123115.png';
+import fullEmoji from 'figma:asset/691ca553a888de6b3262d9c3c63d03f37db27b4a.png';
+import bestEmoji from 'figma:asset/19b0bb1cde805dc5d6e6af053a4bd1622a1a4fad.png';
+import angryEmoji from 'figma:asset/01cb53a9197c5457e6d7dd7460bdf1cd27b5440b.png';
+import happyEmoji from 'figma:asset/e2bd5a0f58df48e435d03f049811638d849de606.png';
+import { useDiaryStore } from '../store/diaryStore';
+import { ImageWithFallback } from './figma/ImageWithFallback';
 
-
-const API_URL = 'http://localhost:8080/api/auth/mypage';
-
-const showCustomAlert = (message: string) => {
-// 실제 환경에서는 모달 컴포넌트를 띄워야 합니다.
-console.log('ALERT:', message);
-
-const alertBox = document.getElementById('custom-alert-box');
-  if (alertBox) {
-    alertBox.textContent = message;
-    alertBox.classList.remove('hidden', 'opacity-0');
-    alertBox.classList.add('opacity-100');
-    setTimeout(() => {
-      alertBox.classList.remove('opacity-100');
-      alertBox.classList.add('opacity-0');
-      setTimeout(() => {
-       alertBox.classList.add('hidden');
-      }, 500); // Transition duration
-    }, 3000);
-  }
+const teamColors: { [key: string]: string } = {
+  '없음': '#9ca3af',
+  'LG': '#C30452',
+  '두산': '#131230',
+  'SSG': '#CE0E2D',
+  'KT': '#000000',
+  '키움': '#570514',
+  'NC': '#315288',
+  '삼성': '#074CA1',
+  '롯데': '#041E42',
+  '기아': '#EA0029',
+  '한화': '#FF6600',
 };
 
-const TEAM_DATA: { [key: string]: { name: string, color: string } } = {
-  // DB 약어(Key) : { 표시명(name), 색상(color) }
-  '없음': { name: '없음', color: '#9ca3af' },
-  'LG': { name: 'LG 트윈스', color: '#C30452' },
-  'OB': { name: '두산 베어스', color: '#131230' },
-  'SK': { name: 'SSG 랜더스', color: '#CE0E2D' },
-  'KT': { name: 'KT 위즈', color: '#000000' },
-  'WO': { name: '키움 히어로즈', color: '#570514' }, // 키움 히어로즈 약어 확인 필요
-  'NC': { name: 'NC 다이노스', color: '#315288' },
-  'SS': { name: '삼성 라이온즈', color: '#074CA1' },
-  'LT': { name: '롯데 자이언츠', color: '#041E42' },
-  'HT': { name: '기아 타이거즈', color: '#EA0029' },
-  'HH': { name: '한화 이글스', color: '#FF6600' },
+const teamFullNames: { [key: string]: string } = {
+  '없음': '없음',
+  'LG': 'LG 트윈스',
+  '두산': '두산 베어스',
+  'SSG': 'SSG 랜더스',
+  'KT': 'KT 위즈',
+  '키움': '키움 히어로즈',
+  'NC': 'NC 다이노스',
+  '삼성': '삼성 라이온즈',
+  '롯데': '롯데 자이언츠',
+  '기아': 'KIA 타이거즈',
+  '한화': '한화 이글스',
 };
 
-// 가입일 형식 변환 유틸리티 함수
-const formatDate = (dateString: string | null): string => {
-  if (!dateString) return '정보 없음';
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-    return '유효하지 않은 날짜';
-    }
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}년 ${month}월 ${day}일`;
-  } catch (e) {
-    console.error("날짜 형식 변환 오류:", e);
-    return '날짜 오류';
-  }
-};
+type ViewMode = 'diary' | 'stats' | 'editProfile';
 
 export default function MyPage() {
-  const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  // name 상태가 닉네임 역할을 수행하도록 통일했습니다.
-  const [profileImage, setProfileImage] = useState('https://placehold.co/100x100/374151/ffffff?text=User');
-  const [name, setName] = useState('로딩 중...');
-  const [email, setEmail] = useState('loading@...');
-  const [savedFavoriteTeam, setSavedFavoriteTeam] = useState('없음');
-  const [editingFavoriteTeam, setEditingFavoriteTeam] = useState('없음');
-  const [createdAt, setCreatedAt] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [profileImage, setProfileImage] = useState<string>('');
+  const [name, setName] = useState('홍길동');
+  const [email, setEmail] = useState('user@example.com');
+  const [favoriteTeam, setFavoriteTeam] = useState('LG');
+  const [nickname, setNickname] = useState('야구팬123');
   const [showTeamTest, setShowTeamTest] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('diary');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [isEditMode, setIsEditMode] = useState(false);
 
-  // 1. 서버에서 프로필 정보 가져오기 (GET)
-const fetchUserProfile = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const { diaryEntries, addDiaryEntry, updateDiaryEntry } = useDiaryStore();
 
-      try {
-      const MAX_RETRIES = 3;
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) { 
-        try {
-          // API_URL은 /api/auth/mypage 형태를 가정하며 GET 요청입니다.
-          const response = await fetch(API_URL, { 
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include', 
-          });
+  const emojiStats = [
+    { name: '최악', emoji: worstEmoji, count: 1 },
+    { name: '배부름', emoji: fullEmoji, count: 3 },
+    { name: '최고', emoji: bestEmoji, count: 5 },
+    { name: '분노', emoji: angryEmoji, count: 2 },
+    { name: '즐거움', emoji: happyEmoji, count: 8 }
+  ];
 
-          if (response.ok) {
-            const apiResponse = await response.json(); 
+  const totalCount = emojiStats.reduce((sum, item) => sum + item.count, 0);
 
-            if (apiResponse.data) {
-                const profileDto = apiResponse.data;
-                const initialTeamId = profileDto.favoriteTeam || '없음';
-
-                // DTO 필드를 사용하여 상태 업데이트
-                setName(profileDto.name || '알 수 없음'); 
-                setEmail(profileDto.email || '알 수 없음');
-                setSavedFavoriteTeam(initialTeamId); 
-                setEditingFavoriteTeam(initialTeamId);
-                setCreatedAt(profileDto.createdAt || null);
-                setProfileImage(profileDto.profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User');
-                setLoading(false);
-                return; // 성공적으로 데이터 로드
-              } else {
-                // apiResponse.data가 없는 경우 (데이터 로드 실패)
-                showCustomAlert(apiResponse.message || '프로필 데이터를 찾을 수 없습니다.');
-                throw new Error('API Data Missing Error');
-            }
-          }
-
-          if (response.status === 401) {
-            // 서버로부터 401 응답을 받으면 토큰을 지우고 로그인 페이지로 이동
-            showCustomAlert('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
-            navigateToLogin();
-            return;
-          }
-
-          if (attempt < MAX_RETRIES - 1) {
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-          } else {
-            // API 서버가 작동하지 않을 경우를 대비하여 더미데이터를 설정합니다.
-            if (response.status === 404 || response.status === 500) {
-              setName('홍길동');
-              setEmail('hong.gildong@kbo.com');
-              setSavedFavoriteTeam('LG'); // Mock 데이터
-              setEditingFavoriteTeam('LG'); // Mock 데이터
-              setCreatedAt('2023-08-15T10:00:00Z');
-              setProfileImage('https://placehold.co/100x100/374151/ffffff?text=LG+Fan');
-              showCustomAlert(`[Mock Data] 서버 응답 오류(${response.status}). 기본 데이터로 표시합니다.`);
-            return;
-            }
-            throw new Error(`Failed to fetch profile after ${MAX_RETRIES} attempts: ${response.statusText}`);
-          }
-
-        } catch (innerError) {
-          if (attempt < MAX_RETRIES - 1) {
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-          } else {
-            throw innerError;
-          }
-        }
-      }
-
-    } catch (err) {
-      console.error('프로필 로딩 오류:', err);
-      setError('프로필 정보를 불러오는 데 실패했습니다. 서버 상태를 확인하세요.');
-      // 데이터 로딩 실패 시 Mock 데이터로 대체
-      setName('사용자');
-      setEmail('user@example.com');
-      setSavedFavoriteTeam('LG'); // Mock 데이터
-      setEditingFavoriteTeam('LG'); // Mock 데이터
-      setCreatedAt('2023-01-01T00:00:00Z');
-      setProfileImage('https://placehold.co/100x100/374151/ffffff?text=User');
-      showCustomAlert('프로필 로딩 중 통신 오류 발생. Mock 데이터로 대체합니다.');
-    } finally {
-      setLoading(false);
-    }
-  }, [navigateToLogin]);
-
-  useEffect(() => {
-    fetchUserProfile();
-    // 컴포넌트 언마운트 시 로컬 URL 객체 해제
-    return () => {
-      if (profileImage.startsWith('blob:')) {
-        URL.revokeObjectURL(profileImage);
-      }
-    };
-  }, [fetchUserProfile]);
-
-
-  // 2. 프로필 이미지 로컬 업로드 미리보기
-  const handleImageUpload = (e) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // 이전 blob URL 해제
-      if (profileImage.startsWith('blob:')) {
-        URL.revokeObjectURL(profileImage);
-      }
-
       const imageUrl = URL.createObjectURL(file);
       setProfileImage(imageUrl);
-      // 실제 환경에서는 이미지 파일을 서버에 업로드하고 URL을 받아와야 합니다.
-      showCustomAlert('이미지 미리보기 적용됨. 저장을 눌러 서버에 반영하세요.');
     }
   };
 
-  // 3. 프로필 정보 저장 (PUT)
-const handleSave = async () => {
-  setLoading(true);
-  setError(null);
-
-  // 닉네임이 비어있는지 확인
-  if (!name.trim()) {
-    showCustomAlert('이름(닉네임)은 필수로 입력해야 합니다.');
-    setLoading(false);
-    return;
-  }
-   
-// 요청 본문(Body)의 키를 'name'으로 사용하고 favoriteTeam을 포함
-const updatedProfile = {
-  name: name.trim(), 
-  profileImageUrl: profileImage,
-  favoriteTeam: editingFavoriteTeam === '없음' ? null : editingFavoriteTeam,
-  email: email // 기존 이메일 값을 그대로 포함
+  const handleSave = () => {
+    console.log('프로필 저장:', { name, email, favoriteTeam, nickname, profileImage });
+    alert('프로필이 저장되었습니다!');
+    setViewMode('diary');
   };
 
-  try {
-    const response = await fetch(API_URL, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', 
-      body: JSON.stringify(updatedProfile),
-    });
+  const goToPreviousMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+  };
 
-  if (!response.ok) {
-    if (response.status === 401) {
-      showCustomAlert('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
-      navigateToLogin();
-      return;
+  const goToNextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+  };
+
+  // 선택된 날짜의 다이어리 엔트리 찾기
+  const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+  const selectedDiary = diaryEntries.find(e => e.date === selectedDateStr);
+
+  // 다이어리 폼 상태
+  const [diaryForm, setDiaryForm] = useState({
+    emoji: happyEmoji,
+    emojiName: '즐거움',
+    team: '',
+    stadium: '',
+    score: '',
+    memo: '',
+    photos: [] as string[]
+  });
+
+  // 날짜 선택 시 해당 다이어리 로드
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    setIsEditMode(false); // 날짜 변경 시 편집 모드 해제
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const entry = diaryEntries.find(e => e.date === dateStr);
+    
+    if (entry) {
+      setDiaryForm({
+        emoji: entry.emoji,
+        emojiName: entry.emojiName,
+        team: entry.team,
+        stadium: entry.stadium,
+        score: entry.score || '',
+        memo: entry.memo || '',
+        photos: entry.photos || []
+      });
+    } else {
+      // 새 다이어리
+      setIsEditMode(true); // 새 다이어리는 바로 편집 모드
+      setDiaryForm({
+        emoji: happyEmoji,
+        emojiName: '즐거움',
+        team: '',
+        stadium: '',
+        score: '',
+        memo: '',
+        photos: []
+      });
     }
-    throw new Error(`Failed to save profile: ${response.statusText}`);
-  }
- 	 
- 	 // 🚨 수정된 부분: PUT 응답도 ApiResponse 구조를 따름
- 	 const apiResponse = await response.json();
-    if (apiResponse.isSuccess) {
-      // ⭐ 1. 핵심: 새로운 JWT 토큰 처리 ⭐
-          const newToken = apiResponse.data.token;
-          if (newToken) {
-            // 백엔드에서 받은 새 토큰을 localStorage의 기존 토큰과 교체
-            localStorage.setItem('authToken', newToken); 
-            console.log('새로운 JWT 토큰으로 교체 완료. 권한이 즉시 적용됩니다.');
-          }
-            
-          // ⭐ 2. 상태 업데이트: 업데이트된 프로필 정보로 UI 상태를 갱신
-          const updatedProfileData = apiResponse.data;
-          setName(updatedProfileData.name);
-          setSavedFavoriteTeam(editingFavoriteTeam);
-          setProfileImage(updatedProfileData.profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User');
+  };
 
+  useEffect(() => {
+    // selectedDate가 변경될 때마다 폼 업데이트
+    handleDateSelect(selectedDate);
+  }, [selectedDate]);
 
-          // 3. 성공 알림
-          showCustomAlert(apiResponse.message || '프로필이 성공적으로 저장되었습니다!');
-          return; 
-        } else {
-          // isSuccess가 false인 경우 또는 data 구조가 예상과 다른 경우
-          throw new Error(apiResponse.message || '프로필 저장에 실패했습니다.');
-        }
-      } catch (err) {
-        // err가 Error 객체이고, 메시지에 '프로필 수정 성공'이 포함되어 있다면 성공으로 간주
-        const isSuccessMessageError = err instanceof Error && err.message.includes('프로필 수정 성공');
+  const handleSaveDiary = () => {
+    const entry = {
+      date: selectedDateStr,
+      type: 'attended' as const,
+      ...diaryForm
+    };
 
-        if (isSuccessMessageError) {
-          // DB에 저장된 상태이므로, 성공으로 간주하고 오류 메시지를 띄우지 않습니다.
-          // console.log('프로필 저장 성공 (에러 처리 필터링됨)'); 
-          setSavedFavoriteTeam(editingFavoriteTeam);
-          return; 
-        }
-        
-        // 실제 오류(통신 오류, HTTP 4xx/5xx 등)만 처리
-        console.error('프로필 저장 오류:', err); 
-        setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해 주세요.'); 
-
-    } finally {
-        setLoading(false);
+    if (selectedDiary) {
+      updateDiaryEntry(selectedDateStr, entry as any);
+    } else {
+      addDiaryEntry(entry as any);
     }
-};
+    alert('다���어리가 저장되었습니다!');
+    setIsEditMode(false); // 저장 후 편집 모드 해제
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newPhotos = Array.from(files).map(file => URL.createObjectURL(file));
+      setDiaryForm({ ...diaryForm, photos: [...diaryForm.photos, ...newPhotos] });
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    const updatedPhotos = diaryForm.photos.filter((_, i) => i !== index);
+    setDiaryForm({ ...diaryForm, photos: updatedPhotos });
+  };
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navbar */}
-      <Navbar 
-        currentPage="mypage" 
-      />
+      <Navbar currentPage="mypage" />
 
-      {/* Page Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 style={{ color: '#2d5f4f' }}>마이페이지</h1>
-          <p className="text-gray-600 mt-2">회원 정보를 수정하고 응원구단을 설정하세요</p>
-        </div>
-
-        {/* Profile Section */}
-        <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-8 mb-6">
-          {/* Profile Image */}
-          <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gray-200">
-            <div className="relative">
-              <div className="w-32 h-32 rounded-full bg-gray-200 overflow-hidden">
-                {profileImage ? (
-                  <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <User className="w-16 h-16 text-gray-400" />
-                  </div>
-                )}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 상단 회원 정보 섹션 */}
+        <Card className="p-8 mb-8">
+          <div className="flex items-start justify-between">
+            {/* 프로필 정보 */}
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden">
+                  {profileImage ? (
+                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                </div>
               </div>
-              <label className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center cursor-pointer hover:bg-gray-50 shadow-md"
-                style={{ borderColor: '#2d5f4f' }}
-              >
-                <Camera className="w-5 h-5" style={{ color: '#2d5f4f' }} />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
-            <div>
-              <h2 style={{ color: '#2d5f4f' }}>{name}</h2>
-              <p className="text-gray-600 mt-1">{email}</p>
-            </div>
-          </div>
-
-          {/* Form Fields */}
-          <div className="space-y-6">
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-700">
-                이름 *
-              </Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full"
-                placeholder="이름을 입력하세요"
-              />
-            </div>
-
-            {/* Nickname */}
-            {/* <div className="space-y-2">
-              <Label htmlFor="nickname" className="text-gray-700">
-                닉네임 *
-              </Label>
-              <Input
-                id="nickname"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                className="w-full"
-                placeholder="닉네임을 입력하세요"
-              />
-            </div> */}
-
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700">
-                이메일 *
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full"
-                placeholder="이메일을 입력하세요"
-              />
-            </div>
-
-            {/* Favorite Team */}
-            <div className="space-y-2">
-              <Label htmlFor="team" className="text-gray-700">
-                응원구단 *
-              </Label>
-              <Select value={editingFavoriteTeam} onValueChange={setEditingFavoriteTeam}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="응원하는 팀을 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(TEAM_DATA).map(teamId => (
-                    <SelectItem key={teamId} value={teamId}>
-                      <div className="flex items-center gap-2">
-                        {teamId !== '없음' && (
-                          <div className="w-6 h-6">
-                            <TeamLogo team={teamId} size="sm" />
-                          </div>
-                        )}
-                        {teamId === '없음' && (
-                          <div 
-                            className="w-6 h-6 rounded-full" 
-                            style={{ backgroundColor: TEAM_DATA[teamId]? TEAM_DATA[teamId].color  : TEAM_DATA['없음'].color }}
-                          />
-                        )}
-                        {TEAM_DATA[teamId].name}
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h2 style={{ color: '#2d5f4f' }}>{name}</h2>
+                  <div className="flex items-center gap-2">
+                    {favoriteTeam !== '없음' && (
+                      <div className="w-6 h-6">
+                        <TeamLogo team={favoriteTeam} size="sm" />
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-sm text-gray-500">
-                  응원구단은 응원게시판에서 사용됩니다
-                </p>
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowTeamTest(true)}
-                  className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50"
-                  style={{ color: '#2d5f4f' }}
-                >
-                  구단 테스트 해보기
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <Button
-              onClick={handleSave}
-              className="w-full text-white py-6 rounded-full flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#2d5f4f' }}
-            >
-              <Save className="w-5 h-5" />
-              저장하기
-            </Button>
-          </div>
-        </div>
-
-        {/* Additional Info Section */}
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border-2"
-          style={{ borderColor: '#2d5f4f' }}
-        >
-          <h3 className="mb-4" style={{ color: '#2d5f4f' }}>회원 정보</h3>
-          <div className="space-y-3 text-sm text-gray-600">
-            <div className="flex items-center justify-between">
-              <span>가입일</span>
-              <span className="text-gray-900">{formatDate(createdAt)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>응원구단</span>
-              <div className="flex items-center gap-2">
-                {savedFavoriteTeam !== '없음' && (
-                  <div className="w-6 h-6">
-                    <TeamLogo team={savedFavoriteTeam} size="sm" />
+                    )}
                   </div>
-                )}
-                {savedFavoriteTeam === '없음' && (
-                  <div 
-                    className="w-6 h-6 rounded-full" 
-                    style={{ backgroundColor: TEAM_DATA[savedFavoriteTeam].color }}
-                  />
-                )}
-                <span className="text-gray-900">{TEAM_DATA[savedFavoriteTeam].name}</span>
+                </div>
+                <p className="text-gray-600 mb-1">{nickname}</p>
+                <p className="text-sm text-gray-500">{email}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span>작성한 게시글</span>
-              <span className="text-gray-900">12개</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>다이어리</span>
-              <span className="text-gray-900">8개</span>
+
+            {/* 버튼들 */}
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setViewMode('editProfile')}
+                className="flex items-center gap-2 bg-white border-2 hover:bg-gray-50"
+                style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+              >
+                <Edit className="w-4 h-4" />
+                내 정보 수정
+              </Button>
+              <Button
+                onClick={() => setViewMode(viewMode === 'stats' ? 'diary' : 'stats')}
+                className="flex items-center gap-2 text-white"
+                style={{ backgroundColor: '#2d5f4f' }}
+              >
+                <BarChart3 className="w-4 h-4" />
+                {viewMode === 'stats' ? '다이어리 보기' : '통계 보기'}
+              </Button>
             </div>
           </div>
-        </div>
+
+          {/* 간단한 통계 정보 */}
+          <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t">
+            <div className="text-center">
+              <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                {totalCount}
+              </div>
+              <div className="text-sm text-gray-600">직관 횟수</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                12
+              </div>
+              <div className="text-sm text-gray-600">응원글</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                60%
+              </div>
+              <div className="text-sm text-gray-600">승률</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                3
+              </div>
+              <div className="text-sm text-gray-600">메이트 참여</div>
+            </div>
+          </div>
+        </Card>
+
+        {/* 내 정보 수정 뷰 */}
+        {viewMode === 'editProfile' && (
+          <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-8 mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 style={{ color: '#2d5f4f' }}>내 정보 수정</h2>
+            </div>
+
+            <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gray-200">
+              <div className="relative">
+                <div className="w-32 h-32 rounded-full bg-gray-200 overflow-hidden">
+                  {profileImage ? (
+                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-16 h-16 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <label className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center cursor-pointer hover:bg-gray-50 shadow-md"
+                  style={{ borderColor: '#2d5f4f' }}
+                >
+                  <Camera className="w-5 h-5" style={{ color: '#2d5f4f' }} />
+                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                </label>
+              </div>
+              <div>
+                <h3 style={{ color: '#2d5f4f' }}>{name}</h3>
+                <p className="text-gray-600 mt-1">{email}</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-gray-700">이름 *</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="w-full" placeholder="이름을 입력하세요" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="nickname" className="text-gray-700">닉네임 *</Label>
+                <Input id="nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full" placeholder="닉네임을 입력하세요" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-700">이메일 *</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full" placeholder="이메일을 입력하세요" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="team" className="text-gray-700">응원구단 *</Label>
+                <Select value={favoriteTeam} onValueChange={setFavoriteTeam}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="응원하는 팀을 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(teamColors).map(team => (
+                      <SelectItem key={team} value={team}>
+                        <div className="flex items-center gap-2">
+                          {team !== '없음' && <div className="w-6 h-6"><TeamLogo team={team} size="sm" /></div>}
+                          {team === '없음' && <div className="w-6 h-6 rounded-full" style={{ backgroundColor: teamColors[team] }} />}
+                          {teamFullNames[team]}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-sm text-gray-500">응원구단은 응원게시판에서 사용됩니다</p>
+                  <Button variant="ghost" onClick={() => setShowTeamTest(true)} className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50" style={{ color: '#2d5f4f' }}>
+                    구단 테스트 해보기
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">
+              <Button variant="outline" className="flex-1" onClick={() => setViewMode('diary')}>취소</Button>
+              <Button onClick={handleSave} className="flex-1 text-white flex items-center justify-center gap-2" style={{ backgroundColor: '#2d5f4f' }}>
+                <Save className="w-5 h-5" />
+                저장하기
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* 통계 보기 뷰 */}
+        {viewMode === 'stats' && (
+          <div className="space-y-8">
+            {/* 월간 통계 */}
+            <Card className="p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <TrendingUp className="w-7 h-7" style={{ color: '#2d5f4f' }} />
+                <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>월간 기분 통계</h2>
+              </div>
+
+              <div className="flex items-center justify-around mb-6">
+                {emojiStats.map((item, index) => (
+                  <div key={index} className="text-center">
+                    <img src={item.emoji} alt={item.name} className="w-20 h-20 mx-auto mb-2 object-contain" />
+                    <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                      {item.count}
+                    </div>
+                    <div className="text-sm text-gray-600">{item.name}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t pt-6 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">총 직관 횟수</span>
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontWeight: 900, fontSize: '20px', color: '#2d5f4f' }}>
+                      {totalCount}회
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">응원팀 승률</span>
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                      60% (3승 2패)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* 연간 통계 */}
+            <Card className="p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <BarChart3 className="w-7 h-7" style={{ color: '#2d5f4f' }} />
+                <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>연간 직관 통계</h2>
+              </div>
+
+              <div className="grid grid-cols-3 gap-6 mb-6">
+                <div className="bg-green-50 p-6 rounded-xl text-center">
+                  <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                    24
+                  </div>
+                  <div className="text-sm text-gray-600">총 직관 횟수</div>
+                </div>
+                <div className="bg-green-50 p-6 rounded-xl text-center">
+                  <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                    15승
+                  </div>
+                  <div className="text-sm text-gray-600">응원팀 승리</div>
+                </div>
+                <div className="bg-green-50 p-6 rounded-xl text-center">
+                  <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                    62.5%
+                  </div>
+                  <div className="text-sm text-gray-600">연간 승률</div>
+                </div>
+              </div>
+
+              <div className="border-t pt-6 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">가장 많이 간 구장</span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>광주 KIA 챔피언스 필드 (8회)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">가장 행복했던 달</span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>7월 (좋음 12회)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">첫 직관</span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>2024년 3월 23일</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* 다이어리 뷰 */}
+        {viewMode === 'diary' && (
+          <div className="rounded-3xl p-8" style={{ backgroundColor: '#2d5f4f' }}>
+            <div className="grid grid-cols-20 gap-8">
+            {/* 왼쪽: 캘린더 */}
+            <Card className="p-8 col-span-13">
+              <div className="flex items-center justify-between mb-6">
+                <button onClick={goToPreviousMonth} className="p-2 hover:bg-gray-100 rounded-full">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <h3 style={{ fontWeight: 900 }}>
+                  {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
+                </h3>
+                <button onClick={goToNextMonth} className="p-2 hover:bg-gray-100 rounded-full">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-7 gap-3">
+                {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+                  <div key={day} className="text-center py-2 text-sm text-gray-500">
+                    {day}
+                  </div>
+                ))}
+
+                {Array.from({ length: 35 }, (_, i) => {
+                  const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+                  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+                  const dayNumber = i - firstDay + 1;
+                  const isValidDay = dayNumber > 0 && dayNumber <= daysInMonth;
+                  
+                  const dateStr = isValidDay 
+                    ? `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
+                    : '';
+                  
+                  const entry = diaryEntries.find(e => e.date === dateStr);
+                  const isSelected = selectedDateStr === dateStr;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => isValidDay && handleDateSelect(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayNumber))}
+                      className={`border rounded-lg p-2 flex flex-col min-h-[110px] ${
+                        isValidDay ? 'bg-white hover:bg-gray-50' : 'bg-gray-50'
+                      } ${isSelected ? 'ring-2 ring-offset-1' : ''}`}
+                      style={{
+                        borderColor: entry 
+                          ? entry.type === 'attended' 
+                            ? '#2d5f4f' 
+                            : '#fbbf24'
+                          : '#e5e7eb',
+                        backgroundColor: entry 
+                          ? entry.type === 'attended'
+                            ? '#e8f5f0'
+                            : '#fef3c7'
+                          : isValidDay ? 'white' : '#f9fafb',
+                        ringColor: isSelected ? '#2d5f4f' : undefined
+                      }}
+                      disabled={!isValidDay}
+                    >
+                      {isValidDay && (
+                        <>
+                          <div className="text-sm text-center w-full mb-2">{dayNumber}</div>
+                          {entry && (
+                            <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
+                              <div className="text-xs text-gray-600 text-center leading-tight px-1">{entry.team}</div>
+                              <img src={entry.emoji} alt={entry.emojiName} className="w-10 h-10 flex-shrink-0" />
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center gap-6 mt-6 justify-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#e8f5f0', border: '2px solid #2d5f4f' }} />
+                  <span className="text-sm text-gray-600">직관 완료</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#fef3c7', border: '2px solid #fbbf24' }} />
+                  <span className="text-sm text-gray-600">직관 예정</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* 오른쪽: 다이어리 상세/작성 폼 */}
+            <Card className="p-6 col-span-7">
+              <div className="mb-6">
+                <h3 style={{ color: '#2d5f4f', fontWeight: 900 }}>
+                  {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 직관 기록
+                </h3>
+              </div>
+
+              {/* 다이어리가 있고 편집 모드가 아닐 때: 읽기 전용 뷰 */}
+              {selectedDiary && !isEditMode ? (
+                <div className="p-6 space-y-6">
+                  {/* 헤더 */}
+                  <div className="flex items-center justify-between">
+                    <h3 style={{ fontWeight: 900, color: '#2d5f4f' }}>직관 기록</h3>
+                  </div>
+
+                  {/* 오늘의 기분 */}
+                  <div className="flex items-center gap-6 p-6 rounded-2xl" style={{ backgroundColor: '#f8fcfb' }}>
+                    <img src={diaryForm.emoji} alt={diaryForm.emojiName} className="w-20 h-20" />
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">오늘의 기분</div>
+                      <div className="text-2xl" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                        {diaryForm.emojiName}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 사진 */}
+                  {diaryForm.photos.length > 0 && (
+                    <div>
+                      <div className="text-sm mb-3" style={{ color: '#2d5f4f', fontWeight: 700 }}>
+                        사진
+                      </div>
+                      {diaryForm.photos.length === 1 ? (
+                        <img 
+                          src={diaryForm.photos[0]} 
+                          alt="직관 사진" 
+                          className="w-full rounded-xl object-cover max-h-64"
+                        />
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          {diaryForm.photos.slice(0, 4).map((photo: string, index: number) => (
+                            <div key={index} className="aspect-square relative rounded-xl overflow-hidden">
+                              <img 
+                                src={photo} 
+                                alt={`사진 ${index + 1}`} 
+                                className="w-full h-full object-cover"
+                              />
+                              {index === 3 && diaryForm.photos.length > 4 && (
+                                <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+                                  <span className="text-white text-2xl" style={{ fontWeight: 900 }}>
+                                    +{diaryForm.photos.length - 4}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 경기 정보 */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-[80px_1fr] gap-2">
+                      <div className="text-sm text-gray-600">경기</div>
+                      <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                        {diaryForm.team}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-[80px_1fr] gap-2">
+                      <div className="text-sm text-gray-600">구장</div>
+                      <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                        {diaryForm.stadium}
+                      </div>
+                    </div>
+
+                    {diaryForm.score && (
+                      <div className="grid grid-cols-[80px_1fr] gap-2">
+                        <div className="text-sm text-gray-600">스코어</div>
+                        <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                          {diaryForm.score}
+                        </div>
+                      </div>
+                    )}
+
+                    {diaryForm.memo && (
+                      <div className="grid grid-cols-[80px_1fr] gap-2">
+                        <div className="text-sm text-gray-600">메모</div>
+                        <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                          {diaryForm.memo}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 수정하기 버튼 */}
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={() => setIsEditMode(true)}
+                      className="w-full text-white"
+                      style={{ backgroundColor: '#2d5f4f' }}
+                    >
+                      수정하기
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* 편집 모드 또는 새 다이어리 작성 */
+                <div className="space-y-4">
+                  {/* Emoji Selection */}
+                  <div>
+                    <label className="text-sm text-gray-600 mb-3 block">오늘의 기분</label>
+                    <div className="flex items-center justify-around p-4 bg-gray-50 rounded-2xl">
+                      {emojiStats.map((item, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setDiaryForm({ ...diaryForm, emoji: item.emoji, emojiName: item.name })}
+                          className={`p-2 rounded-xl transition-all flex flex-col items-center gap-1 ${
+                            diaryForm.emojiName === item.name 
+                              ? 'bg-white shadow-md scale-110' 
+                              : 'hover:bg-white/50'
+                          }`}
+                        >
+                          <img src={item.emoji} alt={item.name} className="w-12 h-12" />
+                          <span className="text-xs text-gray-600">{item.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Photo Upload */}
+                  <div>
+                    <label className="text-sm text-gray-600 mb-3 block">사진 추가</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {diaryForm.photos.map((photo: string, index: number) => (
+                        <div key={index} className="relative aspect-square">
+                          <img src={photo} alt={`업로드 ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
+                          <button
+                            onClick={() => removePhoto(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      {diaryForm.photos.length < 6 && (
+                        <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#2d5f4f] hover:bg-gray-50 transition-all">
+                          <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                          <span className="text-xs text-gray-500">사진 추가</span>
+                          <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">최대 6장까지 업로드 가능합니다</p>
+                  </div>
+
+                  {/* Match Info */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm text-gray-500 mb-1 block">경기</label>
+                      <input
+                        type="text"
+                        value={diaryForm.team}
+                        onChange={(e) => setDiaryForm({ ...diaryForm, team: e.target.value })}
+                        placeholder="예) KIA vs NC"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f]"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm text-gray-500 mb-1 block">구장</label>
+                      <input
+                        type="text"
+                        value={diaryForm.stadium}
+                        onChange={(e) => setDiaryForm({ ...diaryForm, stadium: e.target.value })}
+                        placeholder="예) 광주 KIA 챔피언스 필드"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f]"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm text-gray-500 mb-1 block">스코어</label>
+                      <input
+                        type="text"
+                        value={diaryForm.score}
+                        onChange={(e) => setDiaryForm({ ...diaryForm, score: e.target.value })}
+                        placeholder="예) 5-3 KIA 승"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f]"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm text-gray-500 mb-1 block">메모</label>
+                      <textarea
+                        value={diaryForm.memo}
+                        onChange={(e) => setDiaryForm({ ...diaryForm, memo: e.target.value })}
+                        placeholder="오늘의 직관 경험을 기록해보세요"
+                        rows={4}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    {selectedDiary && (
+                      <Button 
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setIsEditMode(false);
+                          handleDateSelect(selectedDate); // 원래 데이터로 복원
+                        }}
+                      >
+                        취소
+                      </Button>
+                    )}
+                    <Button 
+                      className={`${selectedDiary ? 'flex-1' : 'w-full'} text-white`}
+                      style={{ backgroundColor: '#2d5f4f' }}
+                      onClick={handleSaveDiary}
+                    >
+                      {selectedDiary ? '저장하기' : '작성하기'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ChatBot */}
       <ChatBot />
-
-      {/* Team Recommendation Test */}
       <TeamRecommendationTest
         isOpen={showTeamTest}
         onClose={() => setShowTeamTest(false)}
         onSelectTeam={(team) => {
-          setSavedFavoriteTeam(team);
+          setFavoriteTeam(team);
           setShowTeamTest(false);
         }}
       />
