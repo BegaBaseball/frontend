@@ -10,6 +10,7 @@ import { useMateStore } from '../store/mateStore';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { Input } from './ui/input';
 import { Avatar, AvatarFallback } from './ui/avatar';
+import ChatBot from './ChatBot';
 
 export default function Mate() {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
@@ -242,6 +243,9 @@ export default function Mate() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* ChatBot */}
+      <ChatBot />
     </div>
   );
 }

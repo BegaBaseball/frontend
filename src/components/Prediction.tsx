@@ -1,6 +1,6 @@
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { TrendingUp, RotateCcw, Trophy } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import ChatBot from './ChatBot';
 import { useState } from 'react';
 import TeamLogo from './TeamLogo';
@@ -67,8 +67,29 @@ export default function Prediction() {
   ];
 
   const handleVote = (team: 'home' | 'away') => {
-    if (userVote[selectedGame]) return; // 이미 투표한 경우
+    // 같은 팀을 다시 클릭하면 투표 취소
+    if (userVote[selectedGame] === team) {
+      setVotes(prev => ({
+        ...prev,
+        [selectedGame]: {
+          ...prev[selectedGame],
+          [team]: Math.max(0, prev[selectedGame][team] - 1)
+        }
+      }));
+      
+      setUserVote(prev => ({
+        ...prev,
+        [selectedGame]: null
+      }));
+      return;
+    }
     
+    // 다른 팀에 이미 투표한 경우 아무 일도 안 함
+    if (userVote[selectedGame] && userVote[selectedGame] !== team) {
+      return;
+    }
+    
+    // 새로운 투표
     setVotes(prev => ({
       ...prev,
       [selectedGame]: {
@@ -81,19 +102,6 @@ export default function Prediction() {
       ...prev,
       [selectedGame]: team
     }));
-  };
-
-  const handleReset = () => {
-    setVotes({
-      0: { home: 0, away: 0 },
-      1: { home: 0, away: 0 },
-      2: { home: 0, away: 0 }
-    });
-    setUserVote({
-      0: null,
-      1: null,
-      2: null
-    });
   };
 
   const currentGame = games[selectedGame];
@@ -157,30 +165,21 @@ export default function Prediction() {
             </Card>
 
             {/* Game Selection Tabs */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex gap-3">
-            {games.map((_, index) => (
-              <Button
-                key={index}
-                onClick={() => setSelectedGame(index)}
-                className={`rounded-lg px-6 py-2 ${
-                  selectedGame === index 
-                    ? 'text-white' 
-                    : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-                }`}
-                style={selectedGame === index ? { backgroundColor: '#2d5f4f' } : {}}
-              >
-                {index + 1}경기
-              </Button>
-            ))}
-          </div>
-          <Button
-            onClick={handleReset}
-            className="rounded-lg px-6 py-2 bg-red-500 text-white hover:bg-red-600"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            리셋
-          </Button>
+        <div className="flex gap-3 mb-8">
+          {games.map((_, index) => (
+            <Button
+              key={index}
+              onClick={() => setSelectedGame(index)}
+              className={`rounded-lg px-6 py-2 ${
+                selectedGame === index 
+                  ? 'text-white' 
+                  : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+              }`}
+              style={selectedGame === index ? { backgroundColor: '#2d5f4f' } : {}}
+            >
+              {index + 1}경기
+            </Button>
+          ))}
         </div>
 
         {/* Game Card */}
@@ -219,25 +218,25 @@ export default function Prediction() {
           <div className="flex gap-4 mb-6">
             <Button
               onClick={() => handleVote('away')}
-              disabled={userVote[selectedGame] !== null}
-              className="flex-1 py-6 text-white text-lg rounded-lg hover:opacity-90 transition-opacity disabled:opacity-70"
+              className="flex-1 py-6 text-white text-lg rounded-lg hover:opacity-90 transition-opacity"
               style={{ 
                 backgroundColor: teamColors[currentGame.awayTeam],
-                fontWeight: 700
+                fontWeight: 700,
+                opacity: userVote[selectedGame] === 'away' ? 1 : userVote[selectedGame] === 'home' ? 0.5 : 1
               }}
             >
-              {currentGame.awayTeam} 승리
+              {currentGame.awayTeam} 승리 {userVote[selectedGame] === 'away' && '✓'}
             </Button>
             <Button
               onClick={() => handleVote('home')}
-              disabled={userVote[selectedGame] !== null}
-              className="flex-1 py-6 text-white text-lg rounded-lg hover:opacity-90 transition-opacity disabled:opacity-70"
+              className="flex-1 py-6 text-white text-lg rounded-lg hover:opacity-90 transition-opacity"
               style={{ 
                 backgroundColor: teamColors[currentGame.homeTeam],
-                fontWeight: 700
+                fontWeight: 700,
+                opacity: userVote[selectedGame] === 'home' ? 1 : userVote[selectedGame] === 'away' ? 0.5 : 1
               }}
             >
-              {currentGame.homeTeam} 승리
+              {currentGame.homeTeam} 승리 {userVote[selectedGame] === 'home' && '✓'}
             </Button>
           </div>
 
