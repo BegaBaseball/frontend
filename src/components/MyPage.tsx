@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Camera, Save, User, Edit, BarChart3, ChevronLeft, ChevronRight, X, TrendingUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -16,48 +16,81 @@ import angryEmoji from 'figma:asset/01cb53a9197c5457e6d7dd7460bdf1cd27b5440b.png
 import happyEmoji from 'figma:asset/e2bd5a0f58df48e435d03f049811638d849de606.png';
 import { useDiaryStore } from '../store/diaryStore';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { useAuthStore } from '../store/authStore';
+import { useNavigationStore } from '../store/navigationStore';
 
-const teamColors: { [key: string]: string } = {
-  '없음': '#9ca3af',
-  'LG': '#C30452',
-  '두산': '#131230',
-  'SSG': '#CE0E2D',
-  'KT': '#000000',
-  '키움': '#570514',
-  'NC': '#315288',
-  '삼성': '#074CA1',
-  '롯데': '#041E42',
-  '기아': '#EA0029',
-  '한화': '#FF6600',
+const API_URL = 'http://localhost:8080/api/auth/mypage';
+
+const showCustomAlert = (message: string) => {
+// 실제 환경에서는 모달 컴포넌트를 띄워야 합니다.
+console.log('ALERT:', message);
+
+const alertBox = document.getElementById('custom-alert-box');
+  if (alertBox) {
+    alertBox.textContent = message;
+    alertBox.classList.remove('hidden', 'opacity-0');
+    alertBox.classList.add('opacity-100');
+    setTimeout(() => {
+      alertBox.classList.remove('opacity-100');
+      alertBox.classList.add('opacity-0');
+      setTimeout(() => {
+       alertBox.classList.add('hidden');
+      }, 500); // Transition duration
+    }, 3000);
+  }
 };
 
-const teamFullNames: { [key: string]: string } = {
-  '없음': '없음',
-  'LG': 'LG 트윈스',
-  '두산': '두산 베어스',
-  'SSG': 'SSG 랜더스',
-  'KT': 'KT 위즈',
-  '키움': '키움 히어로즈',
-  'NC': 'NC 다이노스',
-  '삼성': '삼성 라이온즈',
-  '롯데': '롯데 자이언츠',
-  '기아': 'KIA 타이거즈',
-  '한화': '한화 이글스',
+const TEAM_DATA: { [key: string]: { name: string, color: string } } = {
+  // DB 약어(Key) : { 표시명(name), 색상(color) }
+  '없음': { name: '없음', color: '#9ca3af' },
+  'LG': { name: 'LG 트윈스', color: '#C30452' },
+  'OB': { name: '두산 베어스', color: '#131230' },
+  'SK': { name: 'SSG 랜더스', color: '#CE0E2D' },
+  'KT': { name: 'KT 위즈', color: '#000000' },
+  'WO': { name: '키움 히어로즈', color: '#570514' }, // 키움 히어로즈 약어 확인 필요
+  'NC': { name: 'NC 다이노스', color: '#315288' },
+  'SS': { name: '삼성 라이온즈', color: '#074CA1' },
+  'LT': { name: '롯데 자이언츠', color: '#041E42' },
+  'HT': { name: '기아 타이거즈', color: '#EA0029' },
+  'HH': { name: '한화 이글스', color: '#FF6600' },
 };
 
+// 가입일 형식 변환 유틸리티 함수
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return '정보 없음';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+    return '유효하지 않은 날짜';
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}년 ${month}월 ${day}일`;
+  } catch (e) {
+    console.error("날짜 형식 변환 오류:", e);
+    return '날짜 오류';
+  }
+};
 type ViewMode = 'diary' | 'stats' | 'editProfile';
 
 export default function MyPage() {
-  const [profileImage, setProfileImage] = useState<string>('');
-  const [name, setName] = useState('홍길동');
-  const [email, setEmail] = useState('user@example.com');
-  const [favoriteTeam, setFavoriteTeam] = useState('LG');
-  const [nickname, setNickname] = useState('야구팬123');
+  const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
+  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const [profileImage, setProfileImage] = useState('https://placehold.co/100x100/374151/ffffff?text=User');
+  const [name, setName] = useState('로딩 중...');
+  const [email, setEmail] = useState('loading@...');
+  const [savedFavoriteTeam, setSavedFavoriteTeam] = useState('없음');
+  const [editingFavoriteTeam, setEditingFavoriteTeam] = useState('없음');
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showTeamTest, setShowTeamTest] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('diary');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isEditMode, setIsEditMode] = useState(false);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
   const { diaryEntries, addDiaryEntry, updateDiaryEntry } = useDiaryStore();
 
@@ -71,19 +104,210 @@ export default function MyPage() {
 
   const totalCount = emojiStats.reduce((sum, item) => sum + item.count, 0);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // 서버에서 프로필 정보 가져오기 (GET)
+const fetchUserProfile = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+      try {
+      const MAX_RETRIES = 1;
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) { 
+        try {
+          const response = await fetch(API_URL, { 
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', 
+          });
+
+          if (response.ok) {
+            const apiResponse = await response.json(); 
+
+            if (apiResponse.data) {
+                const profileDto = apiResponse.data;
+                const initialTeamId = profileDto.favoriteTeam || '없음';
+
+                // DTO 필드를 사용하여 상태 업데이트
+                setName(profileDto.name || '알 수 없음'); 
+                setEmail(profileDto.email || '알 수 없음');
+                setSavedFavoriteTeam(initialTeamId); 
+                setEditingFavoriteTeam(initialTeamId);
+                setCreatedAt(profileDto.createdAt || null);
+                setProfileImage(profileDto.profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User');
+                setLoading(false);
+                return; // 성공적으로 데이터 로드
+              } else {
+                // apiResponse.data가 없는 경우 (데이터 로드 실패)
+                showCustomAlert(apiResponse.message || '프로필 데이터를 찾을 수 없습니다.');
+                throw new Error('API Data Missing Error');
+            }
+          }
+
+          if (response.status === 401) {
+            // 서버로부터 401 응답을 받으면 토큰을 지우고 로그인 페이지로 이동
+            alert('로그인 후 이용해주세요')
+            showCustomAlert('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
+            navigateToLogin();
+            return;
+          }
+
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          } else {
+            // API 서버가 작동하지 않을 경우를 대비하여 더미데이터를 설정합니다.
+            if (response.status === 404 || response.status === 500) {
+              setName('홍길동');
+              setEmail('hong.gildong@kbo.com');
+              setSavedFavoriteTeam('LG'); // 더미 데이터
+              setEditingFavoriteTeam('LG'); // 더미 데이터
+              setCreatedAt('2023-08-15T10:00:00Z');
+              setProfileImage('https://placehold.co/100x100/374151/ffffff?text=LG+Fan');
+              showCustomAlert(`[Mock Data] 서버 응답 오류(${response.status}). 기본 데이터로 표시합니다.`);
+            return;
+            }
+            throw new Error(`Failed to fetch profile after ${MAX_RETRIES} attempts: ${response.statusText}`);
+          }
+
+        } catch (innerError) {
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          } else {
+            throw innerError;
+          }
+        }
+      }
+
+    } catch (err) {
+      console.error('프로필 로딩 오류:', err);
+      setError('프로필 정보를 불러오는 데 실패했습니다. 서버 상태를 확인하세요.');
+      // 데이터 로딩 실패 시 더미 데이터로 대체
+      setName('사용자');
+      setEmail('user@example.com');
+      setSavedFavoriteTeam('LG'); // 더미 데이터
+      setEditingFavoriteTeam('LG'); // 더미 데이터
+      setCreatedAt('2023-01-01T00:00:00Z');
+      setProfileImage('https://placehold.co/100x100/374151/ffffff?text=User');
+      showCustomAlert('프로필 로딩 중 통신 오류 발생. Mock 데이터로 대체합니다.');
+    } finally {
+      setLoading(false);
+    }
+  }, [navigateToLogin]);
+
+  useEffect(() => {
+    fetchUserProfile();
+    // 컴포넌트 언마운트 시 로컬 URL 객체 해제
+    return () => {
+      if (profileImage.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImage);
+      }
+    };
+  }, [fetchUserProfile]);
+
+
+  // 프로필 이미지 로컬 업로드 미리보기
+  const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      // 이전 blob URL 해제
+      if (profileImage.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImage);
+      }
+
       const imageUrl = URL.createObjectURL(file);
       setProfileImage(imageUrl);
+      // 실제 환경에서는 이미지 파일을 서버에 업로드하고 URL을 받아와야 합니다.
+      showCustomAlert('이미지 미리보기 적용됨. 저장을 눌러 서버에 반영하세요.');
     }
   };
 
-  const handleSave = () => {
-    console.log('프로필 저장:', { name, email, favoriteTeam, nickname, profileImage });
-    alert('프로필이 저장되었습니다!');
-    setViewMode('diary');
+  // 3. 프로필 정보 저장 (PUT)
+const handleSave = async () => {
+  setLoading(true);
+  setError(null);
+
+  // 닉네임이 비어있는지 확인
+  if (!name.trim()) {
+    showCustomAlert('이름(닉네임)은 필수로 입력해야 합니다.');
+    setLoading(false);
+    return;
+  }
+   
+// 요청 본문(Body)의 키를 'name'으로 사용하고 favoriteTeam을 포함
+const updatedProfile = {
+  name: name.trim(), 
+  profileImageUrl: profileImage,
+  favoriteTeam: editingFavoriteTeam === '없음' ? null : editingFavoriteTeam,
+  email: email // 기존 이메일 값을 그대로 포함
   };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', 
+      body: JSON.stringify(updatedProfile),
+    });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      showCustomAlert('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
+      navigateToLogin();
+      return;
+    }
+    throw new Error(`Failed to save profile: ${response.statusText}`);
+  }
+ 	 
+ 	 const apiResponse = await response.json();
+   console.log('API 응답 확인:', apiResponse);
+    if (apiResponse.isSuccess) {
+          // 새로운 JWT 토큰 처리
+          const newToken = apiResponse.data.token;
+          console.log(newToken)
+          if (newToken) { 
+            // 백엔드에서 받은 새 토큰을 localStorage의 기존 토큰과 교체
+            localStorage.setItem('authToken', newToken); 
+            console.log('새로운 JWT 토큰으로 교체 완료. 권한이 즉시 적용됩니다.');
+          }
+            
+          // 상태 업데이트: 업데이트된 프로필 정보로 UI 상태를 갱신
+          const updatedProfileData = apiResponse.data;
+          setName(updatedProfileData.name);
+          setSavedFavoriteTeam(editingFavoriteTeam);
+          setProfileImage(updatedProfileData.profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User');
+
+
+          // 성공 알림
+          showCustomAlert(apiResponse.message || '프로필이 성공적으로 저장되었습니다!');
+          setViewMode('diary');
+          console.log('프로필 저장 성공. 알림 표시 및 뷰 전환 실행 완료.');
+          return; 
+        } else {
+          // isSuccess가 false인 경우 또는 data 구조가 예상과 다른 경우
+          throw new Error(apiResponse.message || '프로필 저장에 실패했습니다. (isSuccess: false)');
+        }
+      } catch (err) {
+        // err가 Error 객체이고, 메시지에 '프로필 수정 성공'이 포함되어 있다면 성공으로 간주
+        const isSuccessMessageError = err instanceof Error && err.message.includes('프로필 수정 성공');
+
+        if (isSuccessMessageError) {
+          // DB에 저장된 상태이므로, 성공으로 간주하고 오류 메시지를 띄우지 않습니다.
+          // console.log('프로필 저장 성공 (에러 처리 필터링됨)'); 
+          setSavedFavoriteTeam(editingFavoriteTeam);
+          return; 
+        }
+        
+        // 실제 오류(통신 오류, HTTP 4xx/5xx 등)만 처리
+        console.error('프로필 저장 오류:', err); 
+        setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해 주세요.'); 
+
+    } finally {
+        setLoading(false);
+    }
+};
+
 
   const goToPreviousMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
@@ -199,14 +423,14 @@ export default function MyPage() {
                 <div className="flex items-center gap-3 mb-2">
                   <h2 style={{ color: '#2d5f4f' }}>{name}</h2>
                   <div className="flex items-center gap-2">
-                    {favoriteTeam !== '없음' && (
+                    {savedFavoriteTeam !== '없음' && (
                       <div className="w-6 h-6">
-                        <TeamLogo team={favoriteTeam} size="sm" />
+                        <TeamLogo team={savedFavoriteTeam} size="sm" />
                       </div>
                     )}
                   </div>
                 </div>
-                <p className="text-gray-600 mb-1">{nickname}</p>
+                <p className="text-gray-600 mb-1">{name}</p>
                 <p className="text-sm text-gray-500">{email}</p>
               </div>
             </div>
@@ -297,11 +521,11 @@ export default function MyPage() {
                 <Label htmlFor="name" className="text-gray-700">이름 *</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="w-full" placeholder="이름을 입력하세요" />
               </div>
-
+{/* 
               <div className="space-y-2">
                 <Label htmlFor="nickname" className="text-gray-700">닉네임 *</Label>
                 <Input id="nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full" placeholder="닉네임을 입력하세요" />
-              </div>
+              </div> */}
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-700">이메일 *</Label>
@@ -310,17 +534,17 @@ export default function MyPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="team" className="text-gray-700">응원구단 *</Label>
-                <Select value={favoriteTeam} onValueChange={setFavoriteTeam}>
+                <Select value={editingFavoriteTeam} onValueChange={setEditingFavoriteTeam}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="응원하는 팀을 선택하세요" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.keys(teamColors).map(team => (
-                      <SelectItem key={team} value={team}>
+                    {Object.keys(TEAM_DATA).map(teamId => (
+                      <SelectItem key={teamId} value={teamId}>
                         <div className="flex items-center gap-2">
-                          {team !== '없음' && <div className="w-6 h-6"><TeamLogo team={team} size="sm" /></div>}
-                          {team === '없음' && <div className="w-6 h-6 rounded-full" style={{ backgroundColor: teamColors[team] }} />}
-                          {teamFullNames[team]}
+                          {teamId !== '없음' && <div className="w-6 h-6"><TeamLogo team={teamId} size="sm" /></div>}
+                          {teamId === '없음' && <div className="w-6 h-6 rounded-full" style={{ backgroundColor: TEAM_DATA[teamId]? TEAM_DATA[teamId].color  : TEAM_DATA['없음'].color }} />}
+                          {TEAM_DATA[teamId].name}
                         </div>
                       </SelectItem>
                     ))}
@@ -761,7 +985,7 @@ export default function MyPage() {
         isOpen={showTeamTest}
         onClose={() => setShowTeamTest(false)}
         onSelectTeam={(team) => {
-          setFavoriteTeam(team);
+          setSavedFavoriteTeam(team);
           setShowTeamTest(false);
         }}
       />
