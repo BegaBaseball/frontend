@@ -1,5 +1,6 @@
 import begaCharacter from 'figma:asset/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
+import { useState , useCallback } from 'react';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Label } from './components/ui/label';
@@ -30,16 +31,95 @@ import { useUIStore } from './store/uiStore';
 export default function App() {
   const currentView = useNavigationStore((state) => state.currentView);
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  
   const { email, password, showPassword, setEmail, setPassword, setShowPassword, login } = useAuthStore();
   const { showWelcome, setShowWelcome } = useUIStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Login attempt:', { email, password });
-    login(email, password);
-    setCurrentView('home');
-  };
+  const handleLogin = useCallback(async (e) => {
+        // 폼 제출 기본 동작 방지
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
+        }
+        
+        setError('');
+        setIsLoading(true);
+
+        const backendUrl = 'http://localhost:8080/api/auth/login'; 
+
+        try {
+            const response = await fetch(backendUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // HttpOnly 쿠키를 포함하여 서버에 전송하도록 설정 (인증에 필수)
+                credentials: 'include',
+                // UserDto에 정의된 email, password 필드만 사용
+                body: JSON.stringify({ email, password }),
+            });
+
+            // HTTP 상태 코드가 2xx가 아닌 경우 에러 처리
+            if (!response.ok) {
+                let errorMessage = '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.';
+                
+                try {
+                    // 응답 본문에서 에러 메시지 추출 시도
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                } catch (jsonError) {
+                    // 응답이 JSON 형식이 아닐 경우
+                    if (response.status === 401) {
+                        errorMessage = '인증 정보가 올바르지 않습니다.';
+                    } else {
+                        errorMessage = `서버 오류: ${response.status} (${response.statusText})`;
+                    }
+                }
+                
+                // 에러를 던져 catch 블록으로 이동
+                throw new Error(errorMessage);
+            }
+
+            // 성공 시 처리 (JWT 토큰은 HttpOnly 쿠키에 의해 브라우저에 자동 저장됨)
+            const data = await response.json();
+            
+
+            // 유저 정보
+            const userDisplayName = data.name || data.email; 
+            
+            if (userDisplayName) {
+                console.log('로그인 응답에 사용자 이름(또는 이메일) 포함:', userDisplayName);
+            } else {
+                console.warn('경고: 로그인 응답에 username 필드가 포함되어 있지 않습니다.');
+            }
+
+            const finalDisplayName = userDisplayName || '사용자'; 
+            setIsLoggedIn(true); // 로그인 성공 처리
+            console.log('로그인 성공! ' + finalDisplayName + '님 환영합니다. 메인 페이지로 이동합니다.'); 
+            setCurrentView('home');
+
+
+        } catch (err) {
+            // API 호출 또는 응답 처리 중 발생한 모든 에러 처리
+            setError((err as Error).message || '네트워크 오류로 로그인에 실패했습니다.');
+            console.error('Login Error:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [email, password, useNavigationStore]); 
+
+    // 로그아웃 로직
+    const handleLogout = useCallback(() => {
+        localStorage.removeItem('authToken'); 
+        localStorage.removeItem('username');
+        setIsLoggedIn(false);
+        setEmail('');
+        setPassword('');
+        setError('');
+        console.log('로그아웃 되었습니다.');
+    }, []);
 
   if (currentView === 'home') {
     return (
@@ -300,22 +380,20 @@ export default function App() {
 
               {/* Social Login Buttons */}
               <div className="space-y-3">
-                <Button
-                  type="button"
-                  className="w-full py-6 rounded-full flex items-center justify-center gap-3"
+                <a
+                  href="http://localhost:8080/oauth2/authorization/kakao"
+                  className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium ring-offset-background transition-colors hover:opacity-90"
                   style={{ backgroundColor: '#FEE500', color: '#000000' }}
-                  onClick={() => console.log('Kakao login clicked')}
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M10 3C5.589 3 2 5.792 2 9.22c0 2.155 1.396 4.046 3.505 5.146-.15.554-.976 3.505-1.122 4.045-.174.646.237.637.501.463.21-.138 3.429-2.282 3.996-2.657.373.053.754.08 1.12.08 4.411 0 8-2.792 8-6.22C18 5.793 14.411 3 10 3z" fill="currentColor"/>
                   </svg>
                   카카오로 로그인
-                </Button>
+                </a>
 
-                <Button
-                  type="button"
-                  className="w-full py-6 rounded-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
-                  onClick={() => console.log('Google login clicked')}
+                <a
+                  href="http://localhost:8080/oauth2/authorization/google"
+                  className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium ring-offset-background transition-colors bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:opacity-90"
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18.17 8.36h-8.04v3.45h4.62c-.39 2.11-2.26 3.45-4.62 3.45a5.26 5.26 0 1 1 3.42-9.25l2.58-2.58A8.76 8.76 0 1 0 10.13 18.7c4.35 0 8.23-3.02 8.04-10.34z" fill="#4285F4"/>
@@ -324,7 +402,7 @@ export default function App() {
                     <path d="M10.13 4.96c1.39 0 2.63.48 3.61 1.42l2.71-2.71A8.76 8.76 0 0 0 2.15 4.35l2.99 2.31a5.26 5.26 0 0 1 5.14-1.7z" fill="#EA4335"/>
                   </svg>
                   Google로 로그인
-                </Button>
+                </a>
               </div>
             </div>
           </div>
