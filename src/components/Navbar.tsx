@@ -1,7 +1,7 @@
 import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import React, { useEffect } from 'react'; 
 import { Button } from './ui/button';
-import { Bell, User, LogOut } from 'lucide-react';
+import { Bell, User, LogOut, ShieldAlert } from 'lucide-react';
 import { useNavigationStore } from '../store/navigationStore';
 import { ViewType } from '../store/navigationStore';
 import { useUIStore } from '../store/uiStore';
@@ -17,7 +17,7 @@ interface NavbarProps {
 export default function Navbar({ currentPage }: NavbarProps) {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
   const { isNotificationOpen, setIsNotificationOpen } = useUIStore();
-  const { isLoggedIn, user, logout, fetchProfileAndAuthenticate } = useAuthStore();
+  const { isLoggedIn, user, logout, fetchProfileAndAuthenticate, isAdmin } = useAuthStore();
 
    // 컴포넌트 마운트 시 인증 상태를 확인 (쿠키 존재 여부)
   useEffect(() => {
@@ -107,19 +107,33 @@ export default function Navbar({ currentPage }: NavbarProps) {
                 <p className="text-white text-center">내용 없음</p>
               </PopoverContent>
             </Popover>
-            <Button
-              onClick={() => setCurrentView('mypage')}
-              variant="outline"
-              className="rounded-full px-6 border-2 bg-white hover:bg-gray-50"
-              style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
-            >
-              내 정보
-            </Button>
 
             {/* 로그인 상태에 따른 버튼 조건부 렌더링 */}
             {isLoggedIn ? (
               // 닉네임과 로그아웃 버튼 표시
               <div className="flex items-center gap-4">
+                {/* ⬇️ 관리자(Admin)일 경우에만 이 버튼이 보이도록 추가 */}
+              {isAdmin && (
+                <Button
+                  onClick={() => setCurrentView('admin')}
+                  variant="outline"
+                  className="rounded-full px-4 text-sm flex items-center gap-1"
+                  style={{ color: '#d32f2f', borderColor: '#d32f2f' }} // 관리자 버튼 (빨간색)
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                  관리자
+                </Button>
+              )}
+              <Button
+                  onClick={() => setCurrentView('mypage')}
+                  variant="outline"
+                  className="rounded-full px-6 border-2 bg-white hover:bg-gray-50"
+                  style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+                >
+                  내 정보
+                </Button>
+              
+                
                 <span 
                   className="font-bold cursor-pointer text-sm py-1 px-3 rounded-full"
                   style={{ color: '#2d5f4f', backgroundColor: '#e0f2f1' }}
