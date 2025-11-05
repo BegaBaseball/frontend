@@ -41,7 +41,7 @@ interface CheerState {
 
 const teamColors: { [key: string]: string } = {
   'LG': '#C30452',
-  '두산': '#131230',
+  'OB': '#131230',
   'SSG': '#CE0E2D',
   'KT': '#000000',
   '키움': '#570514',
@@ -66,7 +66,7 @@ const initialPosts: Post[] = [
   },
   {
     id: 2,
-    team: '두산',
+    team: 'OB',
     teamColor: teamColors['두산'],
     title: '양의지 홈런 기원',
     author: '베어스사랑',
@@ -77,7 +77,7 @@ const initialPosts: Post[] = [
   },
   {
     id: 3,
-    team: 'SSG',
+    team: 'SK',
     teamColor: teamColors['SSG'],
     title: '랜더스 화이팅!',
     author: 'SSG팬',
@@ -99,7 +99,7 @@ const initialPosts: Post[] = [
   },
   {
     id: 5,
-    team: '키움',
+    team: 'WO',
     teamColor: teamColors['키움'],
     title: '히어로즈 파이팅!!',
     author: '히어로즈',
