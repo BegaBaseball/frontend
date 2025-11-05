@@ -18,13 +18,13 @@ interface TeamLogoProps {
 
 // 각 팀 로고 이미지 매핑 (한글)
 const teamLogoImages: Record<string, string> = {
-  '한화': hanwhaLogo,
-  '키움': kiwoomLogo,
-  '삼성': samsungLogo,
-  '롯데': lotteLogo,
-  '두산': doosanLogo,
-  '기아': kiaLogo,
-  'SSG': ssgLogo,
+  'HH': hanwhaLogo,
+  'WO': kiwoomLogo,
+  'SS': samsungLogo,
+  'LT': lotteLogo,
+  'OB': doosanLogo,
+  'HT': kiaLogo,
+  'SK': ssgLogo,
   'NC': ncLogo,
   'LG': lgLogo,
   'KT': ktLogo,

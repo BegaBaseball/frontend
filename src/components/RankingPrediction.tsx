@@ -4,6 +4,7 @@ import { Card } from './ui/card';
 import { RotateCcw, Award, X, GripVertical } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { toast } from 'sonner@2.0.3';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { usePredictionStore, Team } from '../store/predictionStore';
 import podiumImage from 'figma:asset/4b5cf234f729d37970ba7ab9c5a1134fcd8e70b6.png';
@@ -138,7 +139,7 @@ export default function RankingPrediction() {
   };
 
   return (
-    <DndProvider backend={require('react-dnd-html5-backend').HTML5Backend}>
+    <DndProvider backend={HTML5Backend}>
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
