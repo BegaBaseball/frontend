@@ -95,11 +95,11 @@ export default function MyPage() {
   const { diaryEntries, addDiaryEntry, updateDiaryEntry } = useDiaryStore();
 
   const emojiStats = [
-    { name: '최악', emoji: worstEmoji, count: 1 },
-    { name: '배부름', emoji: fullEmoji, count: 3 },
-    { name: '최고', emoji: bestEmoji, count: 5 },
-    { name: '분노', emoji: angryEmoji, count: 2 },
-    { name: '즐거움', emoji: happyEmoji, count: 8 }
+    { name: '최악', emoji: worstEmoji, count: 0 },
+    { name: '배부름', emoji: fullEmoji, count: 0 },
+    { name: '최고', emoji: bestEmoji, count: 0 },
+    { name: '분노', emoji: angryEmoji, count: 0 },
+    { name: '즐거움', emoji: happyEmoji, count: 0 }
   ];
 
   const totalCount = emojiStats.reduce((sum, item) => sum + item.count, 0);
@@ -232,7 +232,7 @@ const handleSave = async () => {
     setLoading(false);
     return;
   }
-   
+  
 // 요청 본문(Body)의 키를 'name'으로 사용하고 favoriteTeam을 포함
 const updatedProfile = {
   name: name.trim(), 
@@ -259,9 +259,9 @@ const updatedProfile = {
     }
     throw new Error(`Failed to save profile: ${response.statusText}`);
   }
- 	 
- 	 const apiResponse = await response.json();
-   console.log('API 응답 확인:', apiResponse);
+
+  const apiResponse = await response.json();
+  console.log('API 응답 확인:', apiResponse);
     if (apiResponse.isSuccess) {
           // 새로운 JWT 토큰 처리
           const newToken = apiResponse.data.token;
@@ -316,36 +316,64 @@ const updatedProfile = {
   const goToNextMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
   };
-
+// ====================================================================================
   // 선택된 날짜의 다이어리 엔트리 찾기
   const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
   const selectedDiary = diaryEntries.find(e => e.date === selectedDateStr);
 
   // 다이어리 폼 상태
   const [diaryForm, setDiaryForm] = useState({
+    type: 'attended' as 'attended' | 'scheduled',
     emoji: happyEmoji,
     emojiName: '즐거움',
-    team: '',
-    stadium: '',
-    score: '',
+    gameId: '',
     memo: '',
     photos: [] as string[]
   });
 
-  // 날짜 선택 시 해당 다이어리 로드
-  const handleDateSelect = (date: Date) => {
+  // 선택된 날짜의 경기 목록
+  const [availableGames, setAvailableGames] = useState<any[]>([]);
+  
+  const TEAMS = [
+    'KIA',
+    'LG',
+    'NC',
+    'SSG',
+    '두산',
+    'KT',
+    '롯데',
+    '삼성',
+    '한화',
+    '키움'
+  ];
+
+  // 날짜 선택 시 해당 다이어리 로드 및 경기 정보 불러오기
+  const handleDateSelect = async (date: Date) => {
     setSelectedDate(date);
     setIsEditMode(false); // 날짜 변경 시 편집 모드 해제
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const entry = diaryEntries.find(e => e.date === dateStr);
     
+    // 해당 날짜의 경기 정보 불러오기
+    try {
+      const response = await fetch(`/api/diary/games?date=${dateStr}`);
+      if (response.ok) {
+        const games = await response.json();
+        setAvailableGames(games);
+      } else {
+        setAvailableGames([]);
+      }
+    } catch (error) {
+      console.error('경기 정보 불러오기 실패:', error);
+      setAvailableGames([]);
+    }
+    
     if (entry) {
       setDiaryForm({
+        type: entry.type || 'attended',
         emoji: entry.emoji,
         emojiName: entry.emojiName,
-        team: entry.team,
-        stadium: entry.stadium,
-        score: entry.score || '',
+        gameId: entry.gameId || '',
         memo: entry.memo || '',
         photos: entry.photos || []
       });
@@ -353,11 +381,10 @@ const updatedProfile = {
       // 새 다이어리
       setIsEditMode(true); // 새 다이어리는 바로 편집 모드
       setDiaryForm({
+        type: 'attended',
         emoji: happyEmoji,
         emojiName: '즐거움',
-        team: '',
-        stadium: '',
-        score: '',
+        gameId: '',
         memo: '',
         photos: []
       });
@@ -381,7 +408,7 @@ const updatedProfile = {
     } else {
       addDiaryEntry(entry as any);
     }
-    alert('다���어리가 저장되었습니다!');
+    alert('다이어리가 저장되었습니다!');
     setIsEditMode(false); // 저장 후 편집 모드 해제
   };
 
@@ -812,22 +839,34 @@ const updatedProfile = {
                     <div className="grid grid-cols-[80px_1fr] gap-2">
                       <div className="text-sm text-gray-600">경기</div>
                       <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                        {diaryForm.team}
+                        {(() => {
+                          const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+                          if (game) {
+                            return `${game.homeTeam} vs ${game.awayTeam}`;
+                          }
+                          return selectedDiary?.team || '경기 정보 없음';
+                        })()}
                       </div>
                     </div>
 
                     <div className="grid grid-cols-[80px_1fr] gap-2">
                       <div className="text-sm text-gray-600">구장</div>
                       <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                        {diaryForm.stadium}
+                        {(() => {
+                          const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+                          if (game) {
+                            return game.stadium;
+                          }
+                          return selectedDiary?.stadium || '구장 정보 없음';
+                        })()}
                       </div>
                     </div>
 
-                    {diaryForm.score && (
+                    {selectedDiary?.score && (
                       <div className="grid grid-cols-[80px_1fr] gap-2">
                         <div className="text-sm text-gray-600">스코어</div>
                         <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                          {diaryForm.score}
+                          {selectedDiary.score}
                         </div>
                       </div>
                     )}
@@ -856,7 +895,61 @@ const updatedProfile = {
               ) : (
                 /* 편집 모드 또는 새 다이어리 작성 */
                 <div className="space-y-4">
+                  {/* Type Selection */}
+                  <div>
+                    <label className="text-sm text-gray-600 mb-3 block">직관 유형</label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setDiaryForm({ ...diaryForm, type: 'attended' })}
+                        className={`flex-1 rounded-lg transition-all transform group ${
+                          diaryForm.type === 'attended'
+                            ? 'shadow-md scale-105'
+                            : 'bg-gray-100 hover:bg-gray-200 active:scale-95'
+                        }`}
+                        style={diaryForm.type === 'attended' ? {
+                          backgroundColor: 'rgb(45, 95, 79)',
+                          padding: '10px'
+                        } : {
+                          padding: '10px'
+                        }}
+                      >
+                        <div className={`font-bold ${
+                          diaryForm.type === 'attended' 
+                            ? 'text-white' 
+                            : 'text-gray-700 group-hover:text-[rgb(45,95,79)]'
+                        }`}>
+                          직관 완료
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDiaryForm({ ...diaryForm, type: 'scheduled' })}
+                        className={`flex-1 rounded-lg transition-all transform group ${
+                          diaryForm.type === 'scheduled'
+                            ? 'shadow-md scale-105'
+                            : 'bg-gray-100 hover:bg-gray-200 active:scale-95'
+                        }`}
+                        style={diaryForm.type === 'scheduled' ? {
+                          backgroundColor: 'rgb(251, 191, 36)',
+                          padding: '10px'
+                        } : {
+                          padding: '10px'
+                        }}
+                      >
+                        <div className={`font-bold ${
+                          diaryForm.type === 'scheduled' 
+                            ? 'text-white' 
+                            : 'text-gray-700 group-hover:text-[rgb(251,191,36)]'
+                        }`}>
+                          직관 예정
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Emoji Selection */}
+                  {diaryForm.type === 'attended' && (
                   <div>
                     <label className="text-sm text-gray-600 mb-3 block">오늘의 기분</label>
                     <div className="flex items-center justify-around p-4 bg-gray-50 rounded-2xl">
@@ -876,8 +969,10 @@ const updatedProfile = {
                       ))}
                     </div>
                   </div>
+                  )}
 
                   {/* Photo Upload */}
+                  {diaryForm.type === 'attended' && (
                   <div>
                     <label className="text-sm text-gray-600 mb-3 block">사진 추가</label>
                     <div className="grid grid-cols-3 gap-3">
@@ -902,48 +997,39 @@ const updatedProfile = {
                     </div>
                     <p className="text-xs text-gray-500 mt-2">최대 6장까지 업로드 가능합니다</p>
                   </div>
+                  )}
 
                   {/* Match Info */}
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm text-gray-500 mb-1 block">경기</label>
-                      <input
-                        type="text"
-                        value={diaryForm.team}
-                        onChange={(e) => setDiaryForm({ ...diaryForm, team: e.target.value })}
-                        placeholder="예) KIA vs NC"
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f]"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm text-gray-500 mb-1 block">구장</label>
-                      <input
-                        type="text"
-                        value={diaryForm.stadium}
-                        onChange={(e) => setDiaryForm({ ...diaryForm, stadium: e.target.value })}
-                        placeholder="예) 광주 KIA 챔피언스 필드"
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f]"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm text-gray-500 mb-1 block">스코어</label>
-                      <input
-                        type="text"
-                        value={diaryForm.score}
-                        onChange={(e) => setDiaryForm({ ...diaryForm, score: e.target.value })}
-                        placeholder="예) 5-3 KIA 승"
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f]"
-                      />
+                      <label className="text-sm text-gray-500 mb-1 block">경기 선택</label>
+                      {availableGames.length > 0 ? (
+                        <select
+                          value={diaryForm.gameId}
+                          onChange={(e) => setDiaryForm({ ...diaryForm, gameId: e.target.value })}
+                          className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] bg-white"
+                        >
+                          <option value="">경기를 선택하세요</option>
+                          {availableGames.map((game) => (
+                            <option key={game.id} value={game.id}>
+                              {game.homeTeam} vs {game.awayTeam} - {game.stadium} {game.score ? `(${game.score})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-center">
+                          이 날짜에 예정된 경기가 없습니다
+                        </div>
+                      )}
                     </div>
                     
                     <div>
                       <label className="text-sm text-gray-500 mb-1 block">메모</label>
                       <textarea
+                        disabled={diaryForm.type === 'scheduled'}
                         value={diaryForm.memo}
                         onChange={(e) => setDiaryForm({ ...diaryForm, memo: e.target.value })}
-                        placeholder="오늘의 직관 경험을 기록해보세요"
+                        placeholder={diaryForm.type === 'attended' ? "오늘의 직관 경험을 기록해보세요" : "경기 후 입력 가능"}
                         rows={4}
                         className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] resize-none"
                       />
