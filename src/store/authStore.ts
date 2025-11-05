@@ -10,11 +10,14 @@ interface User {
   name?: string; 
   favoriteTeam?: string;
   favoriteTeamColor?: string;
+  isAdmin?: boolean;
+
 }
 
 interface AuthState {
   user: User | null;
   isLoggedIn: boolean; 
+  isAdmin: boolean;
   email: string;
   password: string;
   showPassword: boolean;
@@ -37,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       isLoggedIn: false, 
+      isAdmin: false,
       email: '',
       password: '',
       showPassword: false,
@@ -78,21 +82,36 @@ export const useAuthStore = create<AuthState>()(
         }));
       },
       
+      //   set({
+      //     user: { email, name }, // name 필드에 닉네임 저장
+      //     isLoggedIn: true, 
+      //     email: '',
+      //     password: '',
+      //   });
+      // },
       // 로그인
       login: (email, name) => { 
+      const isAdminUser = email === 'admin' || email === 'admin@bega.com';
         set({
-          user: { email, name }, // name 필드에 닉네임 저장
-          isLoggedIn: true, 
-          email: '',
-          password: '',
+          user: { 
+            email: email, 
+            name: name,           // 1번 코드의 파라미터(name) 사용
+            isAdmin: isAdminUser  // 2번 코드의 로직 적용
+          },
+          isLoggedIn: true,       // 1번 코드의 상태명(isLoggedIn) 사용
+          isAdmin: isAdminUser,     // 2번 코드의 로직 적용 (전역 상태)
+          email: '',              // 로그인 폼 초기화
+          password: '',           // 로그인 폼 초기화
         });
       },
+
+
       
       // 로그아웃 (클라이언트 쿠키 삭제)
       logout: () => {
         // 서버에서 쿠키 만료 응답을 받더라도, 클라이언트에서 보조적으로 삭제
         Cookies.remove(AUTH_COOKIE_NAME, { path: '/' }); 
-        set({ user: null, isLoggedIn: false, email: '', password: '' });
+        set({ user: null, isLoggedIn: false, isAdmin: false, email: '', password: '' }); // <-- isAdmin: false 추가
       },
       
       setEmail: (email) => set({ email }),
@@ -110,6 +129,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         isLoggedIn: state.isLoggedIn,
+        isAdmin: state.isAdmin,
       }),
       // Hydration 완료 후 서버에 인증 상태 재검증 요청 (새로고침 시)
       onRehydrateStorage: () => (state) => {

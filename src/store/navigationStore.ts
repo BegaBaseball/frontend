@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type ViewType = 'home' | 'login' | 'signup' | 'passwordReset' | 'passwordResetConfirm' | 'stadium' | 'prediction' | 'cheer' | 'cheerWrite' | 'cheerDetail' | 'cheerEdit' | 'mate' | 'mateCreate' | 'mateDetail' | 'mateApply' | 'mateCheckIn' | 'mateChat' | 'mateManage' | 'mypage';
+export type ViewType = 'home' | 'login' | 'signup' | 'passwordReset' | 'passwordResetConfirm' | 'stadium' | 'prediction' | 'cheer' | 'cheerWrite' | 'cheerDetail' | 'cheerEdit' | 'mate' | 'mateCreate' | 'mateDetail' | 'mateApply' | 'mateCheckIn' | 'mateChat' | 'mateManage' | 'mypage'|'admin';
 
 const viewToPath: Record<ViewType, string> = {
   home: '/',
@@ -22,6 +22,7 @@ const viewToPath: Record<ViewType, string> = {
   mateChat: '/mate/chat',
   mateManage: '/mate/manage',
   mypage: '/mypage',
+  admin: '/admin',
 };
 
 const pathToView = Object.fromEntries(
