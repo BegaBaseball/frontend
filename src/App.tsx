@@ -27,6 +27,7 @@ import WelcomeGuide from './components/WelcomeGuide';
 import { useNavigationStore } from './store/navigationStore';
 import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
+import AdminPage from './components/AdminPage';
 
 export default function App() {
   const currentView = useNavigationStore((state) => state.currentView);
@@ -98,7 +99,14 @@ export default function App() {
             const finalDisplayName = userDisplayName || '사용자'; 
             setIsLoggedIn(true); // 로그인 성공 처리
             console.log('로그인 성공! ' + finalDisplayName + '님 환영합니다. 메인 페이지로 이동합니다.'); 
-            setCurrentView('home');
+            login(email, finalDisplayName); 
+
+            // ‼️ Admin 이메일인지 확인 후 분기
+            if (email === 'admin' || email === 'admin@bega.com') {
+                setCurrentView('admin'); // 관리자 페이지로 이동
+            } else {
+                setCurrentView('home'); // 일반 사용자는 홈으로 이동
+            }
 
 
         } catch (err) {
@@ -196,6 +204,10 @@ export default function App() {
 
   if (currentView === 'mypage') {
     return <MyPage />;
+  }
+
+  if (currentView === 'admin') {
+    return <AdminPage />;
   }
 
   return (
