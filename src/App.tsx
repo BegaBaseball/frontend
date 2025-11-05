@@ -48,7 +48,7 @@ export default function App() {
         setError('');
         setIsLoading(true);
 
-        const backendUrl = 'http://localhost:8080/api/auth/login'; 
+        const backendUrl = '/api/auth/login'; 
 
         try {
             const response = await fetch(backendUrl, {

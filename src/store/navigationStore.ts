@@ -1,6 +1,31 @@
 import { create } from 'zustand';
+import { useCheerStore } from './cheerStore';
 
-export type ViewType = 'home' | 'login' | 'signup' | 'passwordReset' | 'passwordResetConfirm' | 'stadium' | 'prediction' | 'cheer' | 'cheerWrite' | 'cheerDetail' | 'cheerEdit' | 'mate' | 'mateCreate' | 'mateDetail' | 'mateApply' | 'mateCheckIn' | 'mateChat' | 'mateManage' | 'mypage'|'admin';
+export type ViewType =
+  | 'home'
+  | 'login'
+  | 'signup'
+  | 'passwordReset'
+  | 'passwordResetConfirm'
+  | 'stadium'
+  | 'prediction'
+  | 'cheer'
+  | 'cheerWrite'
+  | 'cheerDetail'
+  | 'cheerEdit'
+  | 'mate'
+  | 'mateCreate'
+  | 'mateDetail'
+  | 'mateApply'
+  | 'mateCheckIn'
+  | 'mateChat'
+  | 'mateManage'
+  | 'admin'
+  | 'mypage';
+
+type NavigationOptions = {
+  postId?: number;
+};
 
 const viewToPath: Record<ViewType, string> = {
   home: '/',
@@ -21,8 +46,8 @@ const viewToPath: Record<ViewType, string> = {
   mateCheckIn: '/mate/check-in',
   mateChat: '/mate/chat',
   mateManage: '/mate/manage',
-  mypage: '/mypage',
   admin: '/admin',
+  mypage: '/mypage',
 };
 
 const pathToView = Object.fromEntries(
@@ -30,22 +55,50 @@ const pathToView = Object.fromEntries(
 ) as Record<string, ViewType>;
 
 const isBrowser = typeof window !== 'undefined';
+const cheerDetailPattern = /^\/cheer\/detail\/(\d+)$/;
+let lastCheerDetailId: number | null = null;
 
 const getViewFromLocation = (): ViewType => {
   if (!isBrowser) {
     return 'home';
   }
   const currentPath = window.location.pathname || '/';
+
+  const detailMatch = cheerDetailPattern.exec(currentPath);
+  if (detailMatch) {
+    const postId = Number(detailMatch[1]);
+    if (!Number.isNaN(postId)) {
+      lastCheerDetailId = postId;
+      useCheerStore.getState().setSelectedPostId(postId);
+      return 'cheerDetail';
+    }
+  }
+
+  lastCheerDetailId = null;
   return pathToView[currentPath] ?? 'home';
 };
 
-const navigate = (view: ViewType) => {
+const navigate = (view: ViewType, options?: NavigationOptions) => {
   if (!isBrowser) {
     return;
   }
-  const targetPath = viewToPath[view] ?? '/';
+  let targetPath = viewToPath[view] ?? '/';
+
+  if (view === 'cheerDetail') {
+    const postId =
+      options?.postId ??
+      useCheerStore.getState().selectedPostId ??
+      lastCheerDetailId;
+    if (postId != null) {
+      targetPath = `/cheer/detail/${postId}`;
+      lastCheerDetailId = postId;
+    }
+  } else {
+    lastCheerDetailId = null;
+  }
+
   if (window.location.pathname !== targetPath) {
-    window.history.pushState({ view }, '', targetPath);
+    window.history.pushState({ view, postId: lastCheerDetailId }, '', targetPath);
   }
 };
 
@@ -53,7 +106,7 @@ let popstateRegistered = false;
 
 interface NavigationState {
   currentView: ViewType;
-  setCurrentView: (view: ViewType) => void;
+  setCurrentView: (view: ViewType, options?: NavigationOptions) => void;
   navigateToLogin: () => void;
 }
 
@@ -67,8 +120,20 @@ export const useNavigationStore = create<NavigationState>((set) => {
 
   return {
     currentView: getViewFromLocation(),
-    setCurrentView: (view) => {
-      navigate(view);
+    setCurrentView: (view, options) => {
+      if (view === 'cheerDetail') {
+        const postId =
+          options?.postId ??
+          useCheerStore.getState().selectedPostId ??
+          lastCheerDetailId;
+        if (postId != null) {
+          useCheerStore.getState().setSelectedPostId(postId);
+          lastCheerDetailId = postId;
+        }
+        navigate(view, { postId });
+      } else {
+        navigate(view);
+      }
       set({ currentView: view });
     },
     navigateToLogin: () => {
@@ -77,6 +142,3 @@ export const useNavigationStore = create<NavigationState>((set) => {
     },
   };
 });
-
-
-
