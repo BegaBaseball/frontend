@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -14,13 +15,43 @@ import { Alert, AlertDescription } from './ui/alert';
 
 export default function MateApply() {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  const { 
-    selectedParty, 
-    applyToParty, 
-    applicationForm, 
-    updateApplicationForm,
-    resetApplicationForm,
-  } = useMateStore();
+  const { selectedParty } = useMateStore();
+
+  const [message, setMessage] = useState('');
+  const [paymentType, setPaymentType] = useState<'deposit' | 'full'>('deposit');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [currentUserName, setCurrentUserName] = useState('');
+
+  // 현재 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const userResponse = await fetch('http://localhost:8080/api/auth/mypage', {
+          credentials: 'include',
+        });
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          setCurrentUserName(userData.data.name);
+          
+          const userIdResponse = await fetch(
+            `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(userData.data.email)}`,
+            { credentials: 'include' }
+          );
+          
+          if (userIdResponse.ok) {
+            const userIdData = await userIdResponse.json();
+            setCurrentUserId(userIdData.data || userIdData);
+          }
+        }
+      } catch (error) {
+        console.error('사용자 정보 가져오기 실패:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   if (!selectedParty) {
     return null;
@@ -30,27 +61,58 @@ export default function MateApply() {
   const baseDeposit = 10000;
   const fullPrice = selectedParty.price || 50000;
 
-  const handleSubmit = () => {
-    const application = {
-      id: Date.now().toString(),
-      partyId: selectedParty.id,
-      applicantId: 'currentUser',
-      applicantName: '나',
-      applicantBadge: 'new' as const,
-      applicantRating: 5.0,
-      message: applicationForm.message,
-      depositAmount: applicationForm.paymentType === 'deposit' ? baseDeposit : fullPrice,
-      isPaid: false,
-      isApproved: false,
-      isRejected: false,
-      createdAt: new Date().toISOString(),
-    };
+  const handleSubmit = async () => {
+    if (!currentUserId) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
 
-    applyToParty(application);
-    resetApplicationForm();
+    if (!isSelling && message.length < 10) {
+      alert('메시지를 10자 이상 입력해주세요.');
+      return;
+    }
 
-    alert('신청이 완료되었습니다! 호스트의 승인을 기다려주세요.');
-    setCurrentView('mateDetail');
+    setIsSubmitting(true);
+
+    try {
+      const applicationData = {
+        partyId: selectedParty.id,
+        applicantId: currentUserId,
+        applicantName: currentUserName,
+        applicantBadge: 'NEW',
+        applicantRating: 5.0,
+        message: message || '함께 즐거운 관람 부탁드립니다!',
+        depositAmount: paymentType === 'deposit' ? baseDeposit : fullPrice,
+        paymentType: paymentType === 'deposit' ? 'DEPOSIT' : 'FULL',
+      };
+
+      console.log('📤 신청 요청:', applicationData);
+
+      const response = await fetch('http://localhost:8080/api/applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(applicationData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('신청 완료:', result);
+        alert('신청이 완료되었습니다! 호스트의 승인을 기다려주세요.');
+        setCurrentView('mateDetail');
+      } else {
+        const error = await response.text();
+        console.error('신청 실패:', error);
+        alert('신청에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (error) {
+      console.error('신청 중 오류:', error);
+      alert('신청 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -120,13 +182,14 @@ export default function MateApply() {
             </Label>
             <Textarea
               id="message"
-              value={applicationForm.message}
-              onChange={(e) => updateApplicationForm({ message: e.target.value })}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
               placeholder="자기소개와 함께 야구를 즐기고 싶은 마음을 전해주세요..."
               className="min-h-[120px] mb-2"
+              maxLength={200}
             />
             <p className="text-sm text-gray-500">
-              {applicationForm.message.length}/200
+              {message.length}/200
             </p>
           </Card>
         )}
@@ -139,10 +202,8 @@ export default function MateApply() {
           </div>
 
           <RadioGroup
-            value={applicationForm.paymentType}
-            onValueChange={(value: 'deposit' | 'full') =>
-              updateApplicationForm({ paymentType: value })
-            }
+            value={paymentType}
+            onValueChange={(value: 'deposit' | 'full') => setPaymentType(value)}
           >
             {!isSelling && (
               <div className="flex items-start space-x-3 mb-4 p-4 border rounded-lg">
@@ -203,17 +264,19 @@ export default function MateApply() {
         {/* Submit Button */}
         <Button
           onClick={handleSubmit}
-          disabled={!isSelling && applicationForm.message.length < 10}
+          disabled={(!isSelling && message.length < 10) || isSubmitting}
           className="w-full text-white"
           size="lg"
           style={{ backgroundColor: '#2d5f4f' }}
         >
-          {applicationForm.paymentType === 'deposit'
+          {isSubmitting
+            ? '신청 중...'
+            : paymentType === 'deposit'
             ? `보증금 ${baseDeposit.toLocaleString()}원 결제하기`
             : `${fullPrice.toLocaleString()}원 결제하기`}
         </Button>
 
-        {!isSelling && applicationForm.message.length < 10 && (
+        {!isSelling && message.length < 10 && (
           <p className="text-sm text-gray-500 text-center mt-2">
             메시지를 10자 이상 입력해주세요
           </p>

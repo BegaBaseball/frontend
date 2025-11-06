@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Navbar from './Navbar';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -14,10 +15,61 @@ import ChatBot from './ChatBot';
 
 export default function Mate() {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  const { parties, setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
+  const { parties, setParties, setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
+
+  // 컴포넌트 마운트 시 파티 목록 불러오기
+  useEffect(() => {
+    const fetchParties = async () => {
+      try {
+        console.log('파티 목록 불러오는 중...');
+        
+        const response = await fetch('http://localhost:8080/api/parties', {
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const backendParties = await response.json();
+          console.log('파티 목록 불러오기 성공:', backendParties.length + '개');
+          
+          // Response 구조를 프론트엔드 구조로 변환
+          const mappedParties = backendParties.map((party: any) => ({
+            id: party.id.toString(),
+            hostId: party.hostId.toString(),
+            hostName: party.hostName,
+            hostBadge: party.hostBadge.toLowerCase(), // NEW → new
+            hostRating: party.hostRating,
+            teamId: party.teamId,
+            gameDate: party.gameDate,
+            gameTime: party.gameTime,
+            stadium: party.stadium,
+            homeTeam: party.homeTeam,
+            awayTeam: party.awayTeam,
+            section: party.section,
+            maxParticipants: party.maxParticipants,
+            currentParticipants: party.currentParticipants,
+            description: party.description,
+            ticketVerified: party.ticketVerified,
+            ticketImageUrl: party.ticketImageUrl,
+            status: party.status,
+            price: party.price,
+            createdAt: party.createdAt,
+          }));
+          
+          setParties(mappedParties);
+        } else {
+          console.error('파티 목록 불러오기 실패:', response.status);
+        }
+      } catch (error) {
+        console.error('파티 목록 불러오기 오류:', error);
+      }
+    };
+
+    fetchParties();
+  }, [setParties]);
 
   const handlePartyClick = (party: any) => {
     setSelectedParty(party);
+    localStorage.setItem('selectedParty', JSON.stringify(party)); // ✅ 추가
     setCurrentView('mateDetail');
   };
 
