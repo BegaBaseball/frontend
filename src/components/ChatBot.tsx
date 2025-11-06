@@ -32,44 +32,59 @@ export default function ChatBot() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
     const userMessage: Message = {
       text: inputMessage,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInputMessage('');
 
-    // Simulate bot response
-    setTimeout(() => {
-      const botResponse: Message = {
-        text: getBotResponse(inputMessage),
-        sender: 'bot',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botResponse]);
-    }, 1000);
-  };
+    const botMessage: Message = {
+      text: '',
+      sender: 'bot',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, botMessage]);
 
-  const getBotResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase();
-    
-    if (input.includes('경기') || input.includes('일정')) {
-      return '오늘의 KBO 경기 일정을 확인하시려면 메인 화면의 "오늘의 경기" 섹션을 확인해주세요!';
-    } else if (input.includes('순위') || input.includes('랭킹')) {
-      return '현재 LG 트윈스가 1위를 달리고 있습니다. 전체 순위는 메인 화면에서 확인하실 수 있습니다.';
-    } else if (input.includes('티켓') || input.includes('예매')) {
-      return '경기 티켓 예매는 각 경기 카드의 "예매하기" 버튼을 클릭해주세요!';
-    } else if (input.includes('선수') || input.includes('기록')) {
-      return '선수 정보와 기록은 상단 메뉴의 "선수" 및 "기록" 탭에서 확인하실 수 있습니다.';
-    } else {
-      return '궁금하신 점을 말씀해주세요. 경기 일정, 팀 순위, 티켓 예매 등에 대해 도움드릴 수 있습니다!';
-    }
+    const apiUrl = import.meta.env.VITE_AI_API_URL || 'http://localhost:8001';
+
+    const eventSource = new EventSource(
+      `${apiUrl}/chat/stream?q=${encodeURIComponent(inputMessage)}`
+    );
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.delta) {
+        setMessages((prev) =>
+          prev.map((msg, index) =>
+            index === prev.length - 1
+              ? { ...msg, text: msg.text + data.delta }
+              : msg
+          )
+        );
+      }
+    };
+
+    eventSource.onerror = () => {
+      setMessages((prev) =>
+        prev.map((msg, index) =>
+          index === prev.length - 1
+            ? { ...msg, text: '죄송합니다, 답변을 생성하는 중 오류가 발생했습니다.' }
+            : msg
+        )
+      );
+      eventSource.close();
+    };
+
+    eventSource.addEventListener('done', () => {
+      eventSource.close();
+    });
   };
 
   const handleMicClick = () => {
