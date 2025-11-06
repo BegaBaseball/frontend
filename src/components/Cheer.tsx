@@ -145,7 +145,7 @@ export default function Cheer() {
               <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
                 <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <div>
-                  마이팀을 설정하지 않으셨습니다. 마이팀 게시물은 <span className="font-semibold">마이페이지 &gt; 응원구단</span>에서 팀을 선택한 후 확인할 수 있어요.
+                  응원구단을 설정하지 않으셨습니다. 마이팀 게시물은 <span className="font-semibold">내 정보 &gt; 응원구단</span>에서 팀을 선택한 후 확인할 수 있어요.
                 </div>
               </div>
             )}
@@ -220,14 +220,19 @@ export default function Cheer() {
           </div>
 
           <aside className="space-y-6">
-            <div className="rounded-xl border bg-white p-4">
-              <h3 className="mb-4 text-sm font-semibold text-gray-700">HOT 게시물</h3>
+            <div 
+              className="rounded-2xl p-4 border-2 sticky top-24 bg-gradient-to-br from-red-50 to-orange-50 border-red-200"
+            >
+              <h2 className="mb-4 flex items-center gap-2 text-red-500">
+                <Flame className="w-5 h-5" />
+                {activeTab === 'all' ? 'HOT 게시물' : '마이팀 HOT 게시물'}
+              </h2>
               <div className="space-y-3">
                 {hotPosts.slice(0, 5).map((post) => (
-                  <button
-                    key={post.id}
+                  <div
+                    key={`hot-${post.id}`}
                     onClick={() => handlePostClick(post.id)}
-                    className="w-full rounded-lg border border-transparent px-3 py-2 text-left transition hover:border-gray-200"
+                    className="bg-white rounded-xl p-3 hover:shadow-md transition-shadow cursor-pointer border border-red-100"
                   >
                     <div className="flex items-center justify-between text-sm text-gray-600">
                       <span>{post.team}</span>
@@ -244,12 +249,15 @@ export default function Cheer() {
                         {post.likes}
                       </span>
                     </div>
-                  </button>
+                  </div>
                 ))}
 
                 {hotPosts.length === 0 && (
-                  <div className="rounded-md border border-dashed border-gray-200 p-4 text-center text-sm text-gray-500">
-                    인기 게시글이 없습니다.
+                  <div className="text-center py-8 text-gray-500">
+                    <Flame className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">
+                      {activeTab === 'myTeam' ? '마이팀 HOT 게시물이 없습니다' : 'HOT 게시물이 없습니다'}
+                    </p>
                   </div>
                 )}
               </div>
