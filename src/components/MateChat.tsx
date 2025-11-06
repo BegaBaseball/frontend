@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Navbar from './Navbar';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -6,6 +6,7 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
+import { Badge } from './ui/badge';
 import {
   ChevronLeft,
   Send,
@@ -13,77 +14,118 @@ import {
   Calendar,
   MapPin,
   Info,
+  AlertCircle,
 } from 'lucide-react';
 import { useNavigationStore } from '../store/navigationStore';
 import { useMateStore, ChatMessage } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 export default function MateChat() {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  const {
-    selectedParty,
-    getChatMessages,
-    sendMessage,
-    getChatRoom,
-    markAsRead,
-    currentUserId,
-    getPartyApplications,
-  } = useMateStore();
+  const { selectedParty } = useMateStore();
 
+  // 모든 useState를 최상단에 선언
   const [messageText, setMessageText] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentUser, setCurrentUser] = useState<{ 
+    id: number;
+    email: string; 
+    name: string 
+  } | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [myApplication, setMyApplication] = useState<any>(null);
+  const [isCheckingApproval, setIsCheckingApproval] = useState(true);
+  
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  if (!selectedParty) {
-    return null;
-  }
+  const handleMessageReceived = useCallback((message: ChatMessage) => {
+    console.log('메시지 수신:', message);
+    setMessages((prev) => {
+      if (prev.some(m => m.id === message.id)) {
+        return prev;
+      }
+      return [...prev, message];
+    });
+  }, []);
 
-  const chatRoom = getChatRoom(selectedParty.id);
-  const messages = getChatMessages(selectedParty.id);
-  const isHost = selectedParty.hostId === currentUserId;
-  const applications = getPartyApplications(selectedParty.id);
-  const approvedApplications = applications.filter(app => app.isApproved);
-
-  // 승인된 참여자가 없으면 채팅 불가
-  if (approvedApplications.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar currentPage="mate" />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Button
-            variant="ghost"
-            onClick={() => setCurrentView(isHost ? 'mateManage' : 'mateDetail')}
-            className="mb-4"
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            뒤로
-          </Button>
-          <Alert>
-            <Info className="w-4 h-4" />
-            <AlertDescription>
-              승인된 참여자가 없습니다. {isHost ? '신청을 승인하면 채팅을 시작할 수 있습니다.' : '호스트의 승인을 기다려주세요.'}
-            </AlertDescription>
-          </Alert>
-          {isHost && (
-            <Button
-              onClick={() => setCurrentView('mateManage')}
-              className="mt-4 text-white"
-              style={{ backgroundColor: '#2d5f4f' }}
-            >
-              신청 관리하기
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Mark as read when entering chat
+  // 사용자 정보 가져오기
   useEffect(() => {
-    markAsRead(selectedParty.id);
-  }, [selectedParty.id, markAsRead]);
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/auth/mypage', {
+          credentials: 'include',
+        });
 
-  // Scroll to bottom when new messages arrive
+        if (response.ok) {
+          const result = await response.json();
+          console.log('👤 사용자 정보:', result);
+          
+          if (result.success && result.data) {
+            const userIdResponse = await fetch(
+              `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(result.data.email)}`,
+              { credentials: 'include' }
+            );
+            
+            let userId = result.data.email;
+            
+            if (userIdResponse.ok) {
+              const userIdData = await userIdResponse.json();
+              userId = userIdData.data || userIdData;
+            }
+            
+            console.log('사용자 ID:', userId);
+            
+            setCurrentUser({
+              id: typeof userId === 'number' ? userId : parseInt(userId),
+              email: result.data.email,
+              name: result.data.name,
+            });
+          }
+        } else {
+          console.error('인증 실패:', response.status);
+        }
+      } catch (error) {
+        console.error('사용자 정보 가져오기 실패:', error);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
+
+  // WebSocket 연결
+  const { sendMessage: sendWebSocketMessage, isConnected } = useWebSocket({
+    partyId: selectedParty?.id || '',
+    onMessageReceived: handleMessageReceived,
+    enabled: !!selectedParty && !!currentUser,
+  });
+
+  // 기존 메시지 불러오기
+  useEffect(() => {
+    if (!selectedParty || !currentUser) return;
+
+    const fetchMessages = async () => {
+      try {
+        const response = await fetch(`http://localhost:8080/api/chat/party/${selectedParty.id}`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log('기존 메시지 개수:', data.length);
+          setMessages(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch messages:', error);
+      }
+    };
+
+    fetchMessages();
+  }, [selectedParty, currentUser]);
+
+  // 스크롤 자동 이동
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -93,20 +135,161 @@ export default function MateChat() {
     }
   }, [messages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!messageText.trim()) return;
+  // isHost 계산 (조건부 return 전에)
+  const isHost = currentUser && selectedParty 
+    ? String(selectedParty.hostId) === String(currentUser.id) 
+    : false;
 
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      partyId: selectedParty.id,
-      senderId: currentUserId,
-      senderName: isHost ? selectedParty.hostName : '나',
-      message: messageText,
-      createdAt: new Date().toISOString(),
+  // 내 신청 정보 확인
+  useEffect(() => {
+    if (!selectedParty || !currentUser || isHost) {
+      setIsCheckingApproval(false);
+      return;
+    }
+
+    const checkMyApproval = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/api/applications/applicant/${currentUser.id}`,
+          { credentials: 'include' }
+        );
+        
+        if (response.ok) {
+          const applications = await response.json();
+          const myApp = applications.find((app: any) => 
+            String(app.partyId) === String(selectedParty.id)
+          );
+          console.log('채팅방 - 내 신청 정보:', myApp);
+          console.log('승인 여부:', myApp?.isApproved);
+          setMyApplication(myApp);
+        }
+      } catch (error) {
+        console.error('신청 정보 확인 실패:', error);
+      } finally {
+        setIsCheckingApproval(false);
+      }
     };
 
-    sendMessage(newMessage);
+    checkMyApproval();
+  }, [selectedParty, currentUser, isHost]);
+
+  // 조건부 return들
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
+          <p className="text-gray-600">사용자 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar currentPage="mate" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Alert className="border-red-200 bg-red-50">
+            <AlertCircle className="w-4 h-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              로그인이 필요합니다. 로그인 후 이용해주세요.
+            </AlertDescription>
+          </Alert>
+          <Button
+            onClick={() => window.location.href = '/login'}
+            className="mt-4 text-white"
+            style={{ backgroundColor: '#2d5f4f' }}
+          >
+            로그인하기
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedParty) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar currentPage="mate" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Alert>
+            <Info className="w-4 h-4" />
+            <AlertDescription>
+              파티를 선택해주세요.
+            </AlertDescription>
+          </Alert>
+          <Button
+            onClick={() => setCurrentView('mate')}
+            className="mt-4 text-white"
+            style={{ backgroundColor: '#2d5f4f' }}
+          >
+            파티 목록으로
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('🏠 호스트 여부:', {
+    partyHostId: selectedParty.hostId,
+    currentUserId: currentUser.id,
+    isHost
+  });
+
+  // 승인 체크 중
+  if (isCheckingApproval) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
+          <p className="text-gray-600">승인 정보 확인 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 호스트가 아니고 승인도 안 받았으면 접근 불가
+  if (!isHost && !myApplication?.isApproved) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar currentPage="mate" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Button
+            variant="ghost"
+            onClick={() => setCurrentView('mateDetail')}
+            className="mb-4"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            뒤로
+          </Button>
+          <Alert>
+            <Info className="w-4 h-4" />
+            <AlertDescription>
+              호스트의 승인을 기다려주세요.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageText.trim() || !isConnected) {
+      console.warn('메시지 전송 불가:', { messageText, isConnected });
+      return;
+    }
+
+    const newMessage = {
+      partyId: selectedParty.id,
+      senderId: String(currentUser.id),
+      senderName: currentUser.name,
+      message: messageText,
+    };
+
+    console.log('📤 메시지 전송:', newMessage);
+    sendWebSocketMessage(newMessage);
     setMessageText('');
   };
 
@@ -136,7 +319,6 @@ export default function MateChat() {
     }
   };
 
-  // Group messages by date
   const groupedMessages: { date: string; messages: ChatMessage[] }[] = [];
   messages.forEach((msg) => {
     const dateStr = formatMessageDate(msg.createdAt);
@@ -159,7 +341,6 @@ export default function MateChat() {
       />
 
       <div className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 relative z-10 flex flex-col">
-        {/* Header */}
         <div className="mb-4">
           <Button
             variant="ghost"
@@ -174,9 +355,14 @@ export default function MateChat() {
             <div className="flex items-center gap-3">
               <TeamLogo teamId={selectedParty.teamId} size="sm" />
               <div className="flex-1">
-                <h3 className="mb-1" style={{ color: '#2d5f4f' }}>
-                  {selectedParty.stadium}
-                </h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 style={{ color: '#2d5f4f' }}>
+                    {selectedParty.stadium}
+                  </h3>
+                  {isHost && (
+                    <Badge className="bg-blue-500 text-white text-xs">호스트</Badge>
+                  )}
+                </div>
                 <div className="flex items-center gap-3 text-xs text-gray-500">
                   <div className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
@@ -188,7 +374,11 @@ export default function MateChat() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Users className="w-3 h-3" />
-                    {chatRoom?.participants.length || 0}명
+                    {selectedParty.currentParticipants}명
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                    <span>{isConnected ? '연결됨' : '연결 중...'}</span>
                   </div>
                 </div>
               </div>
@@ -196,7 +386,6 @@ export default function MateChat() {
           </Card>
         </div>
 
-        {/* Chat Messages */}
         <Card className="flex-1 p-4 mb-4 flex flex-col overflow-hidden">
           <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4">
             {groupedMessages.length === 0 ? (
@@ -204,16 +393,13 @@ export default function MateChat() {
                 <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                 <p className="text-gray-500 mb-2">아직 메시지가 없습니다</p>
                 <p className="text-sm text-gray-400">
-                  {isHost
-                    ? '참여자와 인사를 나눠보세요'
-                    : '호스트와 인사를 나눠보세요'}
+                  {isHost ? '참여자와 인사를 나눠보세요' : '호스트와 인사를 나눠보세요'}
                 </p>
               </div>
             ) : (
               <div className="space-y-6">
                 {groupedMessages.map((group, groupIdx) => (
                   <div key={groupIdx}>
-                    {/* Date Divider */}
                     <div className="flex items-center gap-4 mb-4">
                       <Separator className="flex-1" />
                       <span className="text-xs text-gray-500 px-3 py-1 bg-gray-100 rounded-full">
@@ -222,10 +408,9 @@ export default function MateChat() {
                       <Separator className="flex-1" />
                     </div>
 
-                    {/* Messages */}
                     <div className="space-y-3">
                       {group.messages.map((msg) => {
-                        const isMyMessage = msg.senderId === currentUserId;
+                        const isMyMessage = String(msg.senderId) === String(currentUser.id);
                         return (
                           <div
                             key={msg.id}
@@ -248,9 +433,7 @@ export default function MateChat() {
                                     : 'bg-gray-100 text-gray-800'
                                 }`}
                                 style={
-                                  isMyMessage
-                                    ? { backgroundColor: '#2d5f4f' }
-                                    : {}
+                                  isMyMessage ? { backgroundColor: '#2d5f4f' } : {}
                                 }
                               >
                                 <p className="whitespace-pre-wrap break-words">
@@ -272,18 +455,18 @@ export default function MateChat() {
           </ScrollArea>
         </Card>
 
-        {/* Message Input */}
         <Card className="p-4">
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
-              placeholder="메시지를 입력하세요..."
+              placeholder={isConnected ? "메시지를 입력하세요..." : "서버 연결 중..."}
               className="flex-1"
+              disabled={!isConnected}
             />
             <Button
               type="submit"
-              disabled={!messageText.trim()}
+              disabled={!messageText.trim() || !isConnected}
               className="text-white px-6"
               style={{ backgroundColor: '#2d5f4f' }}
             >
@@ -292,7 +475,6 @@ export default function MateChat() {
           </form>
         </Card>
 
-        {/* Info */}
         <Alert className="mt-4">
           <Info className="w-4 h-4" />
           <AlertDescription className="text-sm">

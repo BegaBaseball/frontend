@@ -89,37 +89,113 @@ export default function MateCreate() {
     return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.ticketFile) {
       setFormError('ticketFile', '예매내역 인증이 필요합니다.');
       return;
     }
 
-    const newParty = {
-      id: Date.now().toString(),
-      hostId: 'currentUser',
-      hostName: '나',
-      hostBadge: 'new' as const,
-      hostRating: 5.0,
-      teamId: formData.homeTeam,
-      gameDate: formData.gameDate,
-      gameTime: formData.gameTime || '18:30',
-      stadium: formData.stadium,
-      homeTeam: formData.homeTeam,
-      awayTeam: formData.awayTeam,
-      section: formData.section,
-      maxParticipants: formData.maxParticipants,
-      currentParticipants: 1,
-      description: formData.description,
-      ticketVerified: true,
-      status: 'PENDING' as const,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      // 1. 현재 사용자 정보 가져오기
+      const userResponse = await fetch('http://localhost:8080/api/auth/mypage', {
+        credentials: 'include',
+      });
+      
+      if (!userResponse.ok) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+      
+      const userData = await userResponse.json();
+      console.log('사용자 정보:', userData);
+      
+      // 2. userId 조회
+      const userIdResponse = await fetch(
+        `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(userData.data.email)}`,
+        { credentials: 'include' }
+      );
+      
+      if (!userIdResponse.ok) {
+        alert('사용자 정보를 가져올 수 없습니다.');
+        return;
+      }
+      
+      const userIdData = await userIdResponse.json();
+      const currentUserId = userIdData.data || userIdData;
+      
+      console.log('사용자 ID:', currentUserId);
 
-    addParty(newParty);
-    setSelectedParty(newParty);
-    resetForm();
-    setCurrentView('mateDetail');
+      // 3. 백엔드 API 구조에 맞춰 데이터 생성
+      const partyData = {
+        hostId: currentUserId,
+        hostName: userData.data.name,
+        hostBadge: 'NEW',
+        hostRating: 5.0,
+        teamId: formData.homeTeam,
+        gameDate: formData.gameDate,
+        gameTime: formData.gameTime || '18:30:00',
+        stadium: formData.stadium,
+        homeTeam: formData.homeTeam,
+        awayTeam: formData.awayTeam,
+        section: formData.section,
+        maxParticipants: formData.maxParticipants,
+        description: formData.description,
+        ticketImageUrl: null,
+      };
+
+      console.log('파티 생성 요청:', partyData);
+
+      const response = await fetch('http://localhost:8080/api/parties', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(partyData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('파티 생성 실패:', errorText);
+        alert('파티 생성에 실패했습니다.');
+        return;
+      }
+
+      const createdParty = await response.json();
+      console.log('파티 생성 성공:', createdParty);
+
+      // 4. 프론트엔드 형식으로 변환
+      const mappedParty = {
+        id: createdParty.id.toString(),
+        hostId: createdParty.hostId.toString(),
+        hostName: createdParty.hostName,
+        hostBadge: createdParty.hostBadge.toLowerCase(),
+        hostRating: createdParty.hostRating,
+        teamId: createdParty.teamId,
+        gameDate: createdParty.gameDate,
+        gameTime: createdParty.gameTime,
+        stadium: createdParty.stadium,
+        homeTeam: createdParty.homeTeam,
+        awayTeam: createdParty.awayTeam,
+        section: createdParty.section,
+        maxParticipants: createdParty.maxParticipants,
+        currentParticipants: createdParty.currentParticipants,
+        description: createdParty.description,
+        ticketVerified: createdParty.ticketVerified,
+        status: createdParty.status,
+        createdAt: createdParty.createdAt,
+      };
+
+      addParty(mappedParty);
+      setSelectedParty(mappedParty);
+      resetForm();
+      alert('파티가 생성되었습니다!');
+      setCurrentView('mateDetail');
+
+    } catch (error) {
+      console.error('파티 생성 중 오류:', error);
+      alert('파티 생성 중 오류가 발생했습니다.');
+    }
   };
 
   const handleBack = () => {
