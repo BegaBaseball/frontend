@@ -8,7 +8,7 @@ import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore'; 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
-const LOGOUT_API_URL = 'http://localhost:8080/api/auth/logout'; 
+const LOGOUT_API_URL = '/api/auth/logout'; 
 
 interface NavbarProps {
   currentPage: 'home' | 'cheer' | 'stadium' | 'prediction' | 'mate' | 'mypage';
