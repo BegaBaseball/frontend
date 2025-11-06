@@ -56,6 +56,7 @@ const pathToView = Object.fromEntries(
 
 const isBrowser = typeof window !== 'undefined';
 const cheerDetailPattern = /^\/cheer\/detail\/(\d+)$/;
+const cheerEditPattern = /^\/cheer\/edit\/(\d+)$/;
 let lastCheerDetailId: number | null = null;
 
 const getViewFromLocation = (): ViewType => {
@@ -64,6 +65,7 @@ const getViewFromLocation = (): ViewType => {
   }
   const currentPath = window.location.pathname || '/';
 
+  // cheerDetail 패턴 체크
   const detailMatch = cheerDetailPattern.exec(currentPath);
   if (detailMatch) {
     const postId = Number(detailMatch[1]);
@@ -71,6 +73,17 @@ const getViewFromLocation = (): ViewType => {
       lastCheerDetailId = postId;
       useCheerStore.getState().setSelectedPostId(postId);
       return 'cheerDetail';
+    }
+  }
+
+  // cheerEdit 패턴 체크
+  const editMatch = cheerEditPattern.exec(currentPath);
+  if (editMatch) {
+    const postId = Number(editMatch[1]);
+    if (!Number.isNaN(postId)) {
+      lastCheerDetailId = postId;
+      useCheerStore.getState().setSelectedPostId(postId);
+      return 'cheerEdit';
     }
   }
 
@@ -91,6 +104,15 @@ const navigate = (view: ViewType, options?: NavigationOptions) => {
       lastCheerDetailId;
     if (postId != null) {
       targetPath = `/cheer/detail/${postId}`;
+      lastCheerDetailId = postId;
+    }
+  } else if (view === 'cheerEdit') {
+    const postId =
+      options?.postId ??
+      useCheerStore.getState().selectedPostId ??
+      lastCheerDetailId;
+    if (postId != null) {
+      targetPath = `/cheer/edit/${postId}`;
       lastCheerDetailId = postId;
     }
   } else {
@@ -121,7 +143,7 @@ export const useNavigationStore = create<NavigationState>((set) => {
   return {
     currentView: getViewFromLocation(),
     setCurrentView: (view, options) => {
-      if (view === 'cheerDetail') {
+      if (view === 'cheerDetail' || view === 'cheerEdit') {
         const postId =
           options?.postId ??
           useCheerStore.getState().selectedPostId ??
