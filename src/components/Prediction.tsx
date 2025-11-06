@@ -31,12 +31,16 @@ export default function Prediction() {
   const [votes, setVotes] = useState<{ [key: number]: { home: number; away: number } }>({
     0: { home: 0, away: 0 },
     1: { home: 0, away: 0 },
-    2: { home: 0, away: 0 }
+    2: { home: 0, away: 0 },
+    3: { home: 0, away: 0 },
+    4: { home: 0, away: 0 }
   });
   const [userVote, setUserVote] = useState<{ [key: number]: 'home' | 'away' | null }>({
     0: null,
     1: null,
-    2: null
+    2: null,
+    3: null,
+    4: null
   });
 
   const games = [
@@ -63,6 +67,22 @@ export default function Prediction() {
       awayTeamFull: '기아 타이거즈',
       time: '18:30',
       stadium: '창원구장'
+    },
+     {
+      homeTeam: '삼성',
+      homeTeamFull: '삼성 라이온즈',
+      awayTeam: '한화',
+      awayTeamFull: '한화 이글스',
+      time: '18:30',
+      stadium: '대구구장'
+    },
+    {
+      homeTeam: '롯데',
+      homeTeamFull: '롯데 자이언츠',
+      awayTeam: '키움',
+      awayTeamFull: '키움 히어로즈',
+      time: '18:30',
+      stadium: '사직구장'
     }
   ];
 

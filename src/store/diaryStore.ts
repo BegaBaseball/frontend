@@ -45,46 +45,7 @@ interface DiaryState {
   resetNewEntry: () => void;
 }
 
-const initialEntries: DiaryEntry[] = [
-  { 
-    date: '2025-11-03', 
-    team: 'SSG vs KIA', 
-    emoji: worstEmoji, 
-    emojiName: '최악',
-    type: 'attended',
-    stadium: '인천 SSG 랜더스필드',
-    score: '0-8 SSG 패',
-    memo: '완패... 오늘은 잊고 싶네요.',
-    photos: []
-  },
-  { 
-    date: '2025-10-10', 
-    team: 'KIA vs NC', 
-    emoji: bestEmoji, 
-    emojiName: '최고',
-    type: 'attended',
-    stadium: '광주 KIA 챔피언스 필드',
-    score: '5-3 KIA 승',
-    memo: '역전승으로 기분이 너무 좋았어요! 치맥이 맛있었습니다.',
-    photos: [
-      'https://images.unsplash.com/photo-1621601504231-d3b989089c12?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNlYmFsbCUyMHN0YWRpdW0lMjBmb29kJTIwY2hpY2tlbiUyMGJlZXJ8ZW58MXx8fHwxNzYwOTI0NzU3fDA&ixlib=rb-4.1.0&q=80&w=1080',
-      'https://images.unsplash.com/photo-1604329003703-dcd7f21527e2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNlYmFsbCUyMGZpZWxkJTIwbmlnaHQlMjBnYW1lfGVufDF8fHx8MTc2MDkyNDc1N3ww&ixlib=rb-4.1.0&q=80&w=1080'
-    ]
-  },
-  { 
-    date: '2025-10-07', 
-    team: 'LG vs 두산', 
-    emoji: happyEmoji,
-    emojiName: '즐거움',
-    type: 'attended',
-    stadium: '잠실야구장',
-    score: '7-2 LG 승',
-    memo: '압도적인 승리! 분위기가 정말 좋았어요.',
-    photos: [
-      'https://images.unsplash.com/photo-1758234449055-578be59f9613?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNlYmFsbCUyMGdhbWUlMjBjcm93ZCUyMHN0YWRpdW18ZW58MXx8fHwxNzYwOTI0NzU3fDA&ixlib=rb-4.1.0&q=80&w=1080'
-    ]
-  },
-];
+const initialEntries: DiaryEntry[] = [];
 
 export const useDiaryStore = create<DiaryState>()(
   persist(
