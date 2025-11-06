@@ -80,10 +80,12 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
       target: 'esnext',
       outDir: 'build',
     },
-    server: {
-      port: 3000,
-      open: false,
-      proxy: {
+    
+  server: {
+    host: '0.0.0.0',
+    port: 3000,
+    open: false,
+    proxy: {
       '/api': {
         target: proxyTarget,
         changeOrigin: true,
@@ -92,3 +94,4 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
     },
     },
   });
+
