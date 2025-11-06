@@ -18,40 +18,11 @@ import { useDiaryStore } from '../store/diaryStore';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useAuthStore } from '../store/authStore';
 import { useNavigationStore } from '../store/navigationStore';
-import { supabase } from '../lib/supabase';
+import { uploadPostImages, uploadProfileImage, supabaseClient } from '../api/images'; 
 
 const API_URL = 'http://localhost:8080/api/auth/mypage';
 const DEFAULT_PROFILE_IMAGE = 'https://placehold.co/100x100/374151/ffffff?text=User';
 
-const uploadToSupabase = async (file: File, userId: string): Promise<string> => {
-    // 파일명 형식: {userId}/{timestamp}-{originalFileName}
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${userId}/${fileName}`; 
-
-    // Supabase Storage에 파일 업로드 (버킷 이름은 'profile-images'라고 가정)
-    const { data, error } = await supabase.storage
-        .from('profile-images') 
-        .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true, // 덮어쓰기 허용
-        });
-
-    if (error) {
-        throw new Error(`Supabase 업로드 실패: ${error.message}`);
-    }
-
-    // 업로드 성공 시, public URL을 가져옵니다.
-    const { data: publicUrlData } = supabase.storage
-        .from('profile-images')
-        .getPublicUrl(filePath);
-
-    if (!publicUrlData || !publicUrlData.publicUrl) {
-        throw new Error('Supabase Public URL 획득 실패');
-    }
-
-    return publicUrlData.publicUrl;
-};
 
 const showCustomAlert = (message: string) => {
 
@@ -110,7 +81,7 @@ export default function MyPage() {
     const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
     const setCurrentView = useNavigationStore((state) => state.setCurrentView);
     const [profileImage, setProfileImage] = useState(DEFAULT_PROFILE_IMAGE);
-    const [newProfileImageFile, setNewProfileImageFile] = useState<File | null>(null);
+    const [newProfileImageFile, setNewProfileImageFile] = useState<File | null>(null); 
     const [name, setName] = useState('로딩 중...');
     const [email, setEmail] = useState('loading@...');
     const [savedFavoriteTeam, setSavedFavoriteTeam] = useState('없음');
@@ -247,50 +218,120 @@ export default function MyPage() {
 
     // 프로필 이미지 로컬 업로드 미리보기
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-        // 1. File 객체를 상태에 저장 (handleSave에서 사용)
-        setNewProfileImageFile(file); 
+        const file = e.target.files?.[0];
+        if (file) {
+            // 1. File 객체를 상태에 저장 (handleSave에서 사용)
+            setNewProfileImageFile(file); 
 
-        // 2. 로컬 미리보기용 URL 생성 및 상태에 저장
-        // 이전 blob URL이 있다면 해제
-        if (profileImage.startsWith('blob:')) {
-            URL.revokeObjectURL(profileImage);
+            // 2. 로컬 미리보기용 URL 생성 및 상태에 저장
+            // 이전 blob URL이 있다면 해제 (이전 상태가 blob인 경우만 안전하게 해제)
+            if (profileImage.startsWith('blob:')) {
+                URL.revokeObjectURL(profileImage);
+            }
+            const imageUrl = URL.createObjectURL(file);
+            setProfileImage(imageUrl);
+            
+            showCustomAlert('이미지 미리보기 적용됨. 저장을 눌러 서버에 반영하세요.');
         }
-        const imageUrl = URL.createObjectURL(file);
-        setProfileImage(imageUrl);
-        
-        showCustomAlert('이미지 미리보기 적용됨. 저장을 눌러 서버에 반영하세요.');
-        // console.log('ALERT: 이미지 미리보기 적용됨. 저장을 눌러 서버에 반영하세요.'); // 주석 처리된 console.log가 있어서 주석 처리된 상태로 둠
     }
+
+    function getJwtFromCookie(): string | null {
+    // 1. document.cookie 문자열을 가져옵니다.
+    const cookies = document.cookie;
+    
+    // 2. Authorization=...; 형태의 쿠키를 찾습니다.
+    const match = cookies.match(/Authorization=([^;]+)/);
+
+    if (match && match[1]) {
+        let token = match[1];
+        
+        // 1. URL 디코딩 수행 (가장 흔한 문제)
+        token = decodeURIComponent(token); 
+        
+        // 2. 'Bearer ' 접두사가 있다면 제거
+        if (token.startsWith('Bearer ')) {
+            token = token.substring(7); // 'Bearer ' 7글자 제거
+        }
+        
+        // 3. 토큰이 비어있는지 다시 확인
+        if (token.length > 0) {
+            return token;
+        }
+    }
+    return null;
 }
 
     // 3. 프로필 정보 저장 (PUT)
     const handleSave = async () => {
-        setLoading(true);
-        setError(null);
+    setLoading(true);
+    setError(null);
 
-        // 닉네임이 비어있는지 확인
-        if (!name.trim()) {
-            showCustomAlert('이름(닉네임)은 필수로 입력해야 합니다.');
-            setLoading(false);
-            return;
-        }
+    // 닉네임 유효성 검사 (기존 로직)
+    if (!name.trim()) {
+        showCustomAlert('이름(닉네임)은 필수로 입력해야 합니다.');
+        setLoading(false);
+        return;
+    }
 
-        let finalImageUrl: string | undefined = undefined;
+    // 🚨 절대 URL을 위한 백엔드 호스트 추출
+    const BACKEND_HOST = API_URL.split('/api')[0]; // 예: 'http://localhost:8080'
+    let finalImageUrl: string | undefined = undefined;
 
-        if (newProfileImageFile) {
+    // 1. 프로필 이미지가 새로 업로드되는 경우에만 토큰 획득 및 Supabase 인증 과정 필요
+    if (newProfileImageFile) {
         try {
-            // 사용자 ID를 가져와야 합니다. 여기서는 email을 임시 ID로 사용하거나, 
-            // 실제 사용자 ID를 authStore에서 가져와야 합니다.
-            // 일단은 email을 userId로 사용한다고 가정합니다.
-            const userId = email; 
+            // 🚨🚨🚨 CRITICAL FIX: 프록시 우회를 위한 절대 경로 사용 🚨🚨🚨
+            const tokenResponse = await fetch(`${BACKEND_HOST}/api/auth/supabasetoken`, {
+                method: 'GET',
+                credentials: 'include' // HttpOnly 쿠키가 localhost:3000 -> localhost:8080으로 전송됨 (CORS 필요)
+            });
+
+            // 401 Unauthorized 등 오류 처리
+            if (!tokenResponse.ok) {
+                if (tokenResponse.status === 401) {
+                    throw new Error('인증 정보 만료');
+                }
+                throw new Error(`토큰 획득 실패: HTTP ${tokenResponse.status}`);
+            }
             
-            finalImageUrl = await uploadToSupabase(newProfileImageFile, userId);
-            console.log("Supabase 업로드 성공, URL:", finalImageUrl);
+            // 2. 응답 텍스트를 먼저 읽어 JSON 파싱 오류 및 응답 본문 누락 방지
+            const responseText = await tokenResponse.text();
+            
+            if (!responseText || responseText.length === 0) {
+                 throw new Error('Supabase 토큰을 받지 못했습니다. (응답 본문 없음)');
+            }
+
+            // 3. 텍스트를 JSON으로 변환하고 토큰 추출
+            const apiResponse = JSON.parse(responseText); 
+            const supabaseJwt = apiResponse.data?.token; // 🚨 최종 확인된 올바른 접근 경로
+
+            if (!supabaseJwt) {
+                console.error("서버 응답 데이터 구조 오류:", apiResponse); 
+                throw new Error('Supabase 토큰을 받지 못했습니다. (데이터 구조 문제)');
+            }
+
+            // 4. 획득한 JWT를 Supabase SDK에 설정 (RLS 우회)
+            await supabaseClient.auth.setSession({ access_token: supabaseJwt, refresh_token: 'dummy' });
+            console.log('✅ Supabase SDK 세션 설정 완료. 업로드 시작.');
+
+
+            // 5. Supabase Storage 업로드 함수 호출
+            const uploadedUrls = await uploadProfileImage(email, newProfileImageFile);
+
+            if (uploadedUrls && uploadedUrls.length > 0) {
+                finalImageUrl = uploadedUrls[0];
+                console.log("Supabase 업로드 성공, URL:", finalImageUrl);
+            }
+        
         } catch (uploadError) {
-            console.error('Supabase 업로드 오류:', uploadError);
-            showCustomAlert('이미지 업로드에 실패했습니다. (Supabase 오류)');
+            // 토큰 획득 오류나 이미지 업로드 오류 처리
+            console.error('이미지 업로드 및 토큰 설정 오류:', uploadError);
+            if (uploadError instanceof Error && uploadError.message === '인증 정보 만료') {
+                showCustomAlert('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
+                navigateToLogin();
+            } else {
+                showCustomAlert('이미지 업로드에 실패했습니다. (Supabase 오류)');
+            }
             setLoading(false);
             return;
         }
@@ -301,7 +342,7 @@ export default function MyPage() {
             name: string;
             favoriteTeam: string | null;
             email: string;
-            profileImageUrl?: string;
+            profileImageUrl?: string; // ⬅️ URL 필드
         } = {
             name: name.trim(),
             favoriteTeam: editingFavoriteTeam === '없음' ? null : editingFavoriteTeam,
@@ -309,7 +350,13 @@ export default function MyPage() {
         };
 
         if (finalImageUrl) {
-            updatedProfile.profileImageUrl = finalImageUrl;
+            updatedProfile.profileImageUrl = finalImageUrl; 
+        } else if (newProfileImageFile === null && profileImage !== DEFAULT_PROFILE_IMAGE) {
+            // 이미지를 변경하지 않았으나 기존에 유효한 URL이 있다면 그 URL을 다시 보냄
+            updatedProfile.profileImageUrl = profileImage; 
+        } else if (newProfileImageFile === null && profileImage === DEFAULT_PROFILE_IMAGE) {
+            // 프로필 사진을 디폴트로 유지
+            // (이 경우 필드 자체를 생략하거나 null을 보내는 것이 백엔드에 따라 다름. 여기서는 생략)
         }
 
         try {
@@ -344,8 +391,13 @@ export default function MyPage() {
                 const updatedProfileData = apiResponse.data;
                 setName(updatedProfileData.name);
                 setSavedFavoriteTeam(editingFavoriteTeam);
-                setProfileImage(updatedProfileData.profileImageUrl || DEFAULT_PROFILE_IMAGE);
-                setNewProfileImageFile(null);
+                if (finalImageUrl) {
+                setProfileImage(finalImageUrl);
+            } else if (updatedProfileData.profileImageUrl) {
+                setProfileImage(updatedProfileData.profileImageUrl);
+            }
+            
+            setNewProfileImageFile(null);
 
 
                 // 성공 알림
@@ -492,6 +544,8 @@ export default function MyPage() {
         <div className="min-h-screen bg-white">
             <Navbar currentPage="mypage" />
 
+            <div id="custom-alert-box" className="hidden opacity-0 transition-opacity duration-500 fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-4 py-2 rounded-md shadow-lg"></div>
+
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* 상단 회원 정보 섹션 */}
                 <Card className="p-8 mb-8">
@@ -501,7 +555,7 @@ export default function MyPage() {
                             <div className="relative">
                                 <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden">
                                     {profileImage ? (
-                                        <img src={`${profileImage}?t=${Date.now()}`} alt="Profile" className="w-full h-full object-cover" />
+                                        <img src={profileImage.startsWith('blob:') ? profileImage : `${profileImage}?t=${Date.now()}`} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center">
                                             <User className="w-12 h-12 text-gray-400" />
@@ -586,7 +640,7 @@ export default function MyPage() {
                             <div className="relative">
                                 <div className="w-32 h-32 rounded-full bg-gray-200 overflow-hidden">
                                     {profileImage ? (
-                                        <img src={`${profileImage}?t=${Date.now()}`} alt="Profile" className="w-full h-full object-cover" />
+                                        <img src={profileImage.startsWith('blob:') ? profileImage : `${profileImage}?t=${Date.now()}`} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center">
                                             <User className="w-16 h-16 text-gray-400" />
