@@ -18,15 +18,25 @@ interface TeamLogoProps {
 
 // 각 팀 로고 이미지 매핑 (한글)
 const teamLogoImages: Record<string, string> = {
-  'HH': hanwhaLogo,
-  'WO': kiwoomLogo,
-  'SS': samsungLogo,
-  'LT': lotteLogo,
-  'OB': doosanLogo,
-  'HT': kiaLogo,
-  'SK': ssgLogo,
+  HH: hanwhaLogo,
+  '한화': hanwhaLogo,
+  WO: kiwoomLogo,
+  '키움': kiwoomLogo,
+  SS: samsungLogo,
+  '삼성': samsungLogo,
+  LT: lotteLogo,
+  '롯데': lotteLogo,
+  OB: doosanLogo,
+  '두산': doosanLogo,
+  HT: kiaLogo,
+  '기아': kiaLogo,
+  SK: ssgLogo,
+  'SSG': ssgLogo,
+  NC: ncLogo,
   'NC': ncLogo,
+  LG: lgLogo,
   'LG': lgLogo,
+  KT: ktLogo,
   'KT': ktLogo,
 };
 
@@ -44,6 +54,19 @@ export const teamIdToName: Record<string, string> = {
   'kt': 'KT',
 };
 
+const normalizeTeamLabel = (value?: string | null): string | undefined => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  // Remove words like "라이온즈", "베어스" 등 by splitting first token if there is a space.
+  const firstToken = trimmed.split(/\s+/)[0];
+  // Upper-case short codes should stay uppercase (KT, LG 등)
+  if (firstToken.length <= 3 && /^[A-Z가-힣]+$/.test(firstToken)) {
+    return firstToken;
+  }
+  return firstToken;
+};
+
 // 크기 문자열 -> 숫자 변환
 const sizeMap: Record<string, number> = {
   'sm': 24,
@@ -54,11 +77,12 @@ const sizeMap: Record<string, number> = {
 export default function TeamLogo({ team, teamId, size = 64, className = '' }: TeamLogoProps) {
   // teamId가 있으면 한글 이름으로 변환
   const teamName = teamId ? teamIdToName[teamId] : team;
+  const canonicalKey = normalizeTeamLabel(teamName ?? team);
   
   // size가 문자열이면 숫자로 변환
   const numericSize = typeof size === 'string' ? sizeMap[size] : size;
   
-  const logoImage = teamName ? teamLogoImages[teamName] : undefined;
+  const logoImage = canonicalKey ? teamLogoImages[canonicalKey] : undefined;
   
   if (!logoImage) {
     // 로고가 없는 경우 기본 표시
