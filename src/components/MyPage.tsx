@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Camera, Save, User, Edit, BarChart3, ChevronLeft, ChevronRight, X, TrendingUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -91,16 +91,31 @@ export default function MyPage() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isEditMode, setIsEditMode] = useState(false);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const { diaryEntries, addDiaryEntry, updateDiaryEntry, deleteDiaryEntry, setDiaryEntries } = useDiaryStore();
 
-  const { diaryEntries, addDiaryEntry, updateDiaryEntry } = useDiaryStore();
-
-  const emojiStats = [
-    { name: '최악', emoji: worstEmoji, count: 0 },
-    { name: '배부름', emoji: fullEmoji, count: 0 },
-    { name: '최고', emoji: bestEmoji, count: 0 },
-    { name: '분노', emoji: angryEmoji, count: 0 },
-    { name: '즐거움', emoji: happyEmoji, count: 0 }
-  ];
+  const emojiStats = useMemo(() => {
+    const stats = {
+      최악: 0,
+      배부름: 0,
+      최고: 0,
+      분노: 0,
+      즐거움: 0
+    };
+    
+    diaryEntries.forEach(entry => {
+      if (entry.emojiName && stats.hasOwnProperty(entry.emojiName)) {
+        stats[entry.emojiName]++;
+      }
+    });
+    
+    return [
+      { name: '최악', emoji: worstEmoji, count: stats.최악 },
+      { name: '배부름', emoji: fullEmoji, count: stats.배부름 },
+      { name: '최고', emoji: bestEmoji, count: stats.최고 },
+      { name: '분노', emoji: angryEmoji, count: stats.분노 },
+      { name: '즐거움', emoji: happyEmoji, count: stats.즐거움 }
+    ];
+  }, [diaryEntries]);
 
   const totalCount = emojiStats.reduce((sum, item) => sum + item.count, 0);
 
@@ -194,15 +209,33 @@ const fetchUserProfile = useCallback(async () => {
     }
   }, [navigateToLogin]);
 
+  const fetchUserDiaries = useCallback(async () => {
+    try {
+      const response = await fetch('/api/diary/entries', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const diaries = await response.json();
+        setDiaryEntries(diaries);
+      } else if (response.status === 401) {
+        showCustomAlert('로그인이 필요합니다.');
+        navigateToLogin();
+      }
+    } catch (error) {
+      console.error('다이어리 로드 실패:', error)
+    }
+  }, [navigateToLogin]);
+
   useEffect(() => {
     fetchUserProfile();
     // 컴포넌트 언마운트 시 로컬 URL 객체 해제
+    fetchUserDiaries();
     return () => {
       if (profileImage.startsWith('blob:')) {
         URL.revokeObjectURL(profileImage);
       }
     };
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, fetchUserDiaries]);
 
 
   // 프로필 이미지 로컬 업로드 미리보기
@@ -317,99 +350,128 @@ const updatedProfile = {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
   };
 // ====================================================================================
-  // 선택된 날짜의 다이어리 엔트리 찾기
   const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
   const selectedDiary = diaryEntries.find(e => e.date === selectedDateStr);
 
-  // 다이어리 폼 상태
   const [diaryForm, setDiaryForm] = useState({
     type: 'attended' as 'attended' | 'scheduled',
     emoji: happyEmoji,
     emojiName: '즐거움',
+    winningName: '',
     gameId: '',
     memo: '',
     photos: [] as string[]
   });
 
-  // 선택된 날짜의 경기 목록
   const [availableGames, setAvailableGames] = useState<any[]>([]);
-  
-  const TEAMS = [
-    'KIA',
-    'LG',
-    'NC',
-    'SSG',
-    '두산',
-    'KT',
-    '롯데',
-    '삼성',
-    '한화',
-    '키움'
-  ];
 
-  // 날짜 선택 시 해당 다이어리 로드 및 경기 정보 불러오기
-  const handleDateSelect = async (date: Date) => {
-    setSelectedDate(date);
-    setIsEditMode(false); // 날짜 변경 시 편집 모드 해제
-    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    const entry = diaryEntries.find(e => e.date === dateStr);
+  const handleDateSelect = useCallback(async (date: Date) => {
+  setSelectedDate(date);
+  setIsEditMode(false);
+  
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  
+  try {
+    const response = await fetch(`/api/diary/games?date=${dateStr}`, {
+      credentials: 'include'
+    });
     
-    // 해당 날짜의 경기 정보 불러오기
-    try {
-      const response = await fetch(`/api/diary/games?date=${dateStr}`);
-      if (response.ok) {
-        const games = await response.json();
-        setAvailableGames(games);
-      } else {
-        setAvailableGames([]);
-      }
-    } catch (error) {
-      console.error('경기 정보 불러오기 실패:', error);
-      setAvailableGames([]);
+    if (response.ok) {
+      const games = await response.json();
+      setAvailableGames(games);
     }
-    
-    if (entry) {
-      setDiaryForm({
-        type: entry.type || 'attended',
-        emoji: entry.emoji,
-        emojiName: entry.emojiName,
-        gameId: entry.gameId || '',
-        memo: entry.memo || '',
-        photos: entry.photos || []
-      });
-    } else {
-      // 새 다이어리
-      setIsEditMode(true); // 새 다이어리는 바로 편집 모드
-      setDiaryForm({
-        type: 'attended',
-        emoji: happyEmoji,
-        emojiName: '즐거움',
-        gameId: '',
-        memo: '',
-        photos: []
-      });
-    }
-  };
+  } catch (error) {
+    console.error('경기 정보 불러오기 실패:', error);
+    setAvailableGames([]);
+  }
+  
+  const entry = diaryEntries.find(e => e.date === dateStr);
+  if (entry) {
+    setDiaryForm({
+      type: entry.type || 'attended',
+      emoji: entry.emoji,
+      emojiName: entry.emojiName,
+      winningName: entry.winningName,
+      gameId: entry.gameId ? String(entry.gameId) : '',
+      memo: entry.memo || '',
+      photos: entry.photos || []
+    });
+  } else {
+    setIsEditMode(true);
+    setDiaryForm({
+      type: 'attended',
+      emoji: happyEmoji,
+      emojiName: '즐거움',
+      winningName: '',
+      gameId: '',
+      memo: '',
+      photos: []
+    });
+  }
+}, [diaryEntries]);
 
   useEffect(() => {
-    // selectedDate가 변경될 때마다 폼 업데이트
     handleDateSelect(selectedDate);
   }, [selectedDate]);
 
-  const handleSaveDiary = () => {
+  const handleSaveDiary = async () => {
+    const isUpdate = !!selectedDiary;
     const entry = {
       date: selectedDateStr,
-      type: 'attended' as const,
-      ...diaryForm
+      type: diaryForm.type,
+      emoji: diaryForm.emoji,
+      emojiName: diaryForm.emojiName,
+      winningName: diaryForm.winningName,
+      gameId: diaryForm.gameId,
+      memo: diaryForm.memo,
+      photos: diaryForm.photos,
+      team: (() => {
+        const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+        return game ? `${game.homeTeam} vs ${game.awayTeam}` : '';
+      })(),
+      stadium: (() => {
+        const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+        return game?.stadium || '';
+      })()
     };
 
-    if (selectedDiary) {
-      updateDiaryEntry(selectedDateStr, entry as any);
-    } else {
-      addDiaryEntry(entry as any);
+    const entryPayload = isUpdate ? { ...entry, id: selectedDiary!.id } : entry;
+    const method = 'POST';
+    const apiPath = isUpdate ? `/api/diary/${selectedDiary!.id}/modify` : '/api/diary/save'
+
+    try {
+      const response = await fetch(apiPath, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(entryPayload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`다이어리 ${isUpdate ? '수정' : '작성'} 실패`);
+      }
+      
+      const result = await response.json();
+
+      const finalEntry = {
+      ...entryPayload,
+      id: result.data?.id || result.id || (isUpdate ? selectedDiary!.id : undefined)
+      };
+
+      if (isUpdate) {
+          updateDiaryEntry(selectedDateStr, finalEntry as any);
+      } else {
+          addDiaryEntry(finalEntry as any);
+      }
+      
+      showCustomAlert(`다이어리가 ${isUpdate ? '수정' : '작성'}되었습니다!`);
+      setIsEditMode(false);
+
+    } catch (error) {
+      showCustomAlert(`다이어리 ${isUpdate ? '수정' : '작성'}에 실패했습니다.`);
     }
-    alert('다이어리가 저장되었습니다!');
-    setIsEditMode(false); // 저장 후 편집 모드 해제
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -424,6 +486,67 @@ const updatedProfile = {
     const updatedPhotos = diaryForm.photos.filter((_, i) => i !== index);
     setDiaryForm({ ...diaryForm, photos: updatedPhotos });
   };
+
+  const handleDeleteDiary = async () => {
+    if (!selectedDiary) {
+      showCustomAlert('삭제할 다이어리가 없습니다');
+      return;
+    }
+
+    const diaryId = selectedDiary?.id;
+    if(!diaryId) {
+      showCustomAlert('다이어리를 찾을 수 없습니다.');
+      return;
+    }
+
+    if (!window.confirm('정말로 이 다이어리를 삭제하시겠습니까?\n삭제된 다이어리는 복구할 수 없습니다.')) {
+      return;
+    }
+
+    try {
+      
+      const response = await fetch(`/api/diary/${diaryId}/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          showCustomAlert('로그인이 필요합니다.');
+          navigateToLogin();
+          return;
+        }
+        if (response.status === 404) {
+          showCustomAlert('다이어리를 찾을 수 없습니다.');
+          return;
+        }
+        throw new Error('다이어리 삭제 실패');
+      }
+        // Store에서 삭제 (날짜로 찾아서 삭제)
+        deleteDiaryEntry(selectedDateStr);
+        
+        showCustomAlert('다이어리가 삭제되었습니다.');
+        setIsEditMode(false);
+        
+        // 폼 초기화
+        setDiaryForm({
+          type: 'attended',
+          emoji: happyEmoji,
+          emojiName: '즐거움',
+          winningName: '',
+          gameId: '',
+          memo: '',
+          photos: []
+        });
+        
+      } catch (error) {
+        console.error('❌ 다이어리 삭제 오류:', error);
+        showCustomAlert('다이어리 삭제에 실패했습니다.');
+      }
+    };
 
   return (
     <div className="min-h-screen bg-white">
@@ -749,7 +872,11 @@ const updatedProfile = {
                           <div className="text-sm text-center w-full mb-2">{dayNumber}</div>
                           {entry && (
                             <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
-                              <div className="text-xs text-gray-600 text-center leading-tight px-1">{entry.team}</div>
+                              {entry.team && (
+                                <div className="text-[10px] text-gray-700 font-semibold text-center leading-snug px-1 line-clamp-2">
+                                  {entry.team}
+                                </div>
+                              )}
                               <img src={entry.emoji} alt={entry.emojiName} className="w-10 h-10 flex-shrink-0" />
                             </div>
                           )}
@@ -848,6 +975,23 @@ const updatedProfile = {
                         })()}
                       </div>
                     </div>
+                    
+                    {/* 스코어 표시 - game에서 가져오거나 selectedDiary에서 가져옴 */}
+                    {(() => {
+                      const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+                      const score = game?.score || selectedDiary?.score;
+                      if (score) {
+                        return (
+                          <div className="grid grid-cols-[80px_1fr] gap-2">
+                            <div className="text-sm text-gray-600">스코어</div>
+                            <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                              {score}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     <div className="grid grid-cols-[80px_1fr] gap-2">
                       <div className="text-sm text-gray-600">구장</div>
@@ -861,6 +1005,17 @@ const updatedProfile = {
                         })()}
                       </div>
                     </div>
+
+
+                    {diaryForm.winningName && (
+                      <div className="grid grid-cols-[80px_1fr] gap-2">
+                        <div className="text-sm text-gray-600">승패</div>
+                        <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                          {diaryForm.winningName === 'WIN' ? '승리' : 
+                          diaryForm.winningName === 'DRAW' ? '무승부' : '패배'}
+                        </div>
+                      </div>
+                    )}
 
                     {selectedDiary?.score && (
                       <div className="grid grid-cols-[80px_1fr] gap-2">
@@ -882,13 +1037,20 @@ const updatedProfile = {
                   </div>
 
                   {/* 수정하기 버튼 */}
-                  <div className="flex justify-center">
+                  <div className="flex gap-3 justify-center">
                     <Button
                       onClick={() => setIsEditMode(true)}
-                      className="w-full text-white"
+                      className="text-white"
                       style={{ backgroundColor: '#2d5f4f' }}
                     >
                       수정하기
+                    </Button>
+                    <Button
+                      onClick={() => {handleDeleteDiary();}}
+                      className="text-white"
+                      style={{ backgroundColor: '#EF4444' }}
+                    >
+                      삭제
                     </Button>
                   </div>
                 </div>
@@ -1023,6 +1185,107 @@ const updatedProfile = {
                       )}
                     </div>
                     
+
+                    {diaryForm.type === 'attended' && (
+                      <div className="space-y-2">
+                        <label className="block text-sm text-gray-500 mb-2">
+                          응원 팀 승패
+                        </label>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setDiaryForm(prev => ({ ...prev, winningName: 'WIN' }))}
+                            className={`flex-1 py-4 px-4 rounded-xl transition-all transform border-2 ${
+                              diaryForm.winningName === 'WIN'
+                                ? 'shadow-lg scale-105'
+                                : 'hover:scale-105 active:scale-95'
+                            }`}
+                            style={diaryForm.winningName === 'WIN' ? {
+                              backgroundColor: '#22c55e',
+                              color: 'white',
+                              borderColor: '#22c55e'
+                            } : {
+                              backgroundColor: '#f0fdf4',
+                              color: '#166534',
+                              borderColor: '#f0fdf4'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (diaryForm.winningName !== 'WIN') {
+                                e.currentTarget.style.borderColor = '#22c55e';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (diaryForm.winningName !== 'WIN') {
+                                e.currentTarget.style.borderColor = '#f0fdf4';
+                              }
+                            }}
+                          >
+                            <div className="font-bold text-lg">승</div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDiaryForm(prev => ({ ...prev, winningName: 'DRAW' }))}
+                            className={`flex-1 py-4 px-4 rounded-xl transition-all transform border-2 ${
+                              diaryForm.winningName === 'DRAW'
+                                ? 'shadow-lg scale-105'
+                                : 'hover:scale-105 active:scale-95'
+                            }`}
+                            style={diaryForm.winningName === 'DRAW' ? {
+                              backgroundColor: '#eab308',
+                              color: 'white',
+                              borderColor: '#eab308'
+                            } : {
+                              backgroundColor: '#fefce8',
+                              color: '#854d0e',
+                              borderColor: '#fefce8'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (diaryForm.winningName !== 'DRAW') {
+                                e.currentTarget.style.borderColor = '#eab308';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (diaryForm.winningName !== 'DRAW') {
+                                e.currentTarget.style.borderColor = '#fefce8';
+                              }
+                            }}
+                          >
+                            <div className="font-bold text-lg">무</div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDiaryForm(prev => ({ ...prev, winningName: 'LOSE' }))}
+                            className={`flex-1 py-4 px-4 rounded-xl transition-all transform border-2 ${
+                              diaryForm.winningName === 'LOSE'
+                                ? 'shadow-lg scale-105'
+                                : 'hover:scale-105 active:scale-95'
+                            }`}
+                            style={diaryForm.winningName === 'LOSE' ? {
+                              backgroundColor: '#ef4444',
+                              color: 'white',
+                              borderColor: '#ef4444'
+                            } : {
+                              backgroundColor: '#fef2f2',
+                              color: '#991b1b',
+                              borderColor: '#fef2f2'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (diaryForm.winningName !== 'LOSE') {
+                                e.currentTarget.style.borderColor = '#ef4444';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (diaryForm.winningName !== 'LOSE') {
+                                e.currentTarget.style.borderColor = '#fef2f2';
+                              }
+                            }}
+                          >
+                            <div className="font-bold text-lg">패</div>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       <label className="text-sm text-gray-500 mb-1 block">메모</label>
                       <textarea
@@ -1053,7 +1316,9 @@ const updatedProfile = {
                     <Button 
                       className={`${selectedDiary ? 'flex-1' : 'w-full'} text-white`}
                       style={{ backgroundColor: '#2d5f4f' }}
-                      onClick={handleSaveDiary}
+                      onClick={() => {
+                        handleSaveDiary();
+                      }}
                     >
                       {selectedDiary ? '저장하기' : '작성하기'}
                     </Button>
