@@ -67,9 +67,12 @@ export default function Navbar({ currentPage }: NavbarProps) {
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative flex items-center justify-between h-16">
+        <div className="flex items-center h-16 gap-4 lg:gap-6">
           {/* Logo */}
-          <button onClick={() => setCurrentView('home')} className="flex items-center gap-3">
+          <button
+            onClick={() => setCurrentView('home')}
+            className="flex items-center gap-3 shrink-0"
+          >
             <img src={baseballLogo} alt="Baseball" className="w-10 h-10" />
             <div>
               <h1 className="tracking-wider" style={{ fontWeight: 900, color: '#2d5f4f' }}>BEGA</h1>
@@ -78,12 +81,12 @@ export default function Navbar({ currentPage }: NavbarProps) {
           </button>
 
           {/* Navigation - Centered */}
-          <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+          <nav className="hidden md:flex flex-1 justify-center items-center gap-4 lg:gap-8 flex-wrap">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setCurrentView(item.id as ViewType)}
-                className={currentPage === item.id ? 'hover:opacity-70' : 'text-gray-700 hover:opacity-70'}
+                className={`${currentPage === item.id ? 'hover:opacity-70' : 'text-gray-700 hover:opacity-70'} whitespace-nowrap px-2 flex-shrink-0`}
                 style={currentPage === item.id ? { color: '#2d5f4f', fontWeight: 700 } : {}}
               >
                 {item.label}
@@ -92,7 +95,7 @@ export default function Navbar({ currentPage }: NavbarProps) {
           </nav>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 shrink-0">
             <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
               <PopoverTrigger asChild>
                 <button className="text-gray-600 hover:text-gray-900 relative">
