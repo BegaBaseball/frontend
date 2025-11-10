@@ -11,6 +11,7 @@ interface User {
   favoriteTeam?: string;
   favoriteTeamColor?: string;
   isAdmin?: boolean;
+  profileImageUrl?: string;
 
 }
 
@@ -78,7 +79,12 @@ export const useAuthStore = create<AuthState>()(
       // 마이페이지에서 프로필 수정 후 상태 업데이트
       setUserProfile: (profile) => {
         set((state) => ({
-          user: state.user ? { ...state.user, ...profile, name: profile.name } : null,
+          user: state.user ? { 
+            ...state.user, 
+            ...profile, 
+            name: profile.name,
+            profileImageUrl: profile.profileImageUrl || state.user.profileImageUrl // ✅ 추가
+          } : null,
         }));
       },
       
@@ -90,21 +96,21 @@ export const useAuthStore = create<AuthState>()(
       //   });
       // },
       // 로그인
-      login: (email, name) => { 
-      const isAdminUser = email === 'admin' || email === 'admin@bega.com';
+      login: (email, name, profileImageUrl) => { 
+        const isAdminUser = email === 'admin' || email === 'admin@bega.com';
         set({
           user: { 
             email: email, 
-            name: name,           // 1번 코드의 파라미터(name) 사용
-            isAdmin: isAdminUser  // 2번 코드의 로직 적용
+            name: name,
+            isAdmin: isAdminUser,
+            profileImageUrl: profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User' // ✅ 추가
           },
-          isLoggedIn: true,       // 1번 코드의 상태명(isLoggedIn) 사용
-          isAdmin: isAdminUser,     // 2번 코드의 로직 적용 (전역 상태)
-          email: '',              // 로그인 폼 초기화
-          password: '',           // 로그인 폼 초기화
+          isLoggedIn: true,
+          isAdmin: isAdminUser,
+          email: '',
+          password: '',
         });
       },
-
 
       
       // 로그아웃 (클라이언트 쿠키 삭제)

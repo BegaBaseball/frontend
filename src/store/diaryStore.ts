@@ -18,6 +18,7 @@ export interface DiaryEntry {
   score: string;
   memo: string;
   photos: string[];
+  winningName: string | null;
 }
 
 interface DiaryState {

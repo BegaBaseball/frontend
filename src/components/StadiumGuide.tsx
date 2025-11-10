@@ -12,10 +12,6 @@ declare global {
   }
 }
 
-const kakao = window.kakao;
-const KAKAO_API_KEY = import.meta.env.VITE_KAKAO_MAP_KEY as string;
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:8080/api';
-
 // 백엔드 DTO와 일치하는 인터페이스
 interface Stadium {
   stadiumId: string;
@@ -43,6 +39,12 @@ interface Place {
 }
 
 export default function StadiumGuide() {
+  const KAKAO_API_KEY = import.meta.env.VITE_KAKAO_MAP_KEY as string;
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:8080/api';
+
+  // 디버깅용 로그
+  console.log(' Kakao API Key:', KAKAO_API_KEY);
+  console.log(' API Base URL:', API_BASE_URL);
   // 상태 관리
   const [stadiums, setStadiums] = useState<Stadium[]>([]);
   const [selectedStadium, setSelectedStadium] = useState<Stadium | null>(null);

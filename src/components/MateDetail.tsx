@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -26,14 +27,140 @@ import { Alert, AlertDescription } from './ui/alert';
 export default function MateDetail() {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
   const selectedParty = useMateStore((state) => state.selectedParty);
+  const setSelectedParty = useMateStore((state) => state.setSelectedParty);
   const updateParty = useMateStore((state) => state.updateParty);
-  const currentUserId = useMateStore((state) => state.currentUserId);
-  const getPartyApplications = useMateStore((state) => state.getPartyApplications);
-  const myApplications = useMateStore((state) => state.myApplications);
+
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [myApplication, setMyApplication] = useState<any>(null);
+  const [applications, setApplications] = useState<any[]>([]);
+
+  // localStorage에서 파티 정보 복원
+useEffect(() => {
+  if (!selectedParty) {
+    const savedParty = localStorage.getItem('selectedParty');
+    if (savedParty) {
+      try {
+        const party = JSON.parse(savedParty);
+        setSelectedParty(party);
+      } catch (error) {
+        console.error('파티 정보 복원 실패:', error);
+        localStorage.removeItem('selectedParty');
+      }
+    }
+  }
+}, [selectedParty, setSelectedParty]);
+
+// selectedParty가 변경될 때 localStorage에 저장
+useEffect(() => {
+  if (selectedParty) {
+    localStorage.setItem('selectedParty', JSON.stringify(selectedParty));
+  }
+}, [selectedParty]);
+
+  // 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const userResponse = await fetch('http://localhost:8080/api/auth/mypage', {
+          credentials: 'include',
+        });
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          
+          const userIdResponse = await fetch(
+            `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(userData.data.email)}`,
+            { credentials: 'include' }
+          );
+          
+          if (userIdResponse.ok) {
+            const userIdData = await userIdResponse.json();
+            const userId = userIdData.data || userIdData;
+            setCurrentUserId(userId);
+          }
+        }
+      } catch (error) {
+        console.error('사용자 정보 가져오기 실패:', error);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  // 내 신청 정보 가져오기 (하나만 유지)
+  useEffect(() => {
+    if (!selectedParty || !currentUserId) return;
+
+    const fetchMyApplication = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/api/applications/applicant/${currentUserId}`,
+          { credentials: 'include' }
+        );
+        
+        if (response.ok) {
+          const applicationsData = await response.json();
+          const myApp = applicationsData.find((app: any) => 
+            String(app.partyId) === String(selectedParty.id)
+          );
+          setMyApplication(myApp);
+        }
+      } catch (error) {
+        console.error('내 신청 정보 가져오기 실패:', error);
+      }
+    };
+
+    fetchMyApplication();
+  }, [selectedParty, currentUserId]);
+
+  // 파티 신청 목록 가져오기 (호스트인 경우)
+  useEffect(() => {
+    if (!selectedParty || !currentUserId) return;
+
+    const isHost = String(selectedParty.hostId) === String(currentUserId);
+    if (!isHost) return;
+
+    const fetchApplications = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/api/applications/party/${selectedParty.id}`,
+          { credentials: 'include' }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          setApplications(data);
+        }
+      } catch (error) {
+        console.error('신청 목록 가져오기 실패:', error);
+      }
+    };
+
+    fetchApplications();
+  }, [selectedParty, currentUserId]);
+
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
+          <p className="text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!selectedParty) {
     return null;
   }
+
+  const isHost = String(selectedParty.hostId) === String(currentUserId);
+  const isApproved = myApplication?.isApproved || false;
+  const approvedApplications = applications.filter(app => app.isApproved);
+  const pendingApplications = applications.filter(app => !app.isApproved && !app.isRejected);
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; color: string }> = {
@@ -123,12 +250,6 @@ export default function MateDetail() {
     setCurrentView('mateChat');
   };
 
-  const isHost = selectedParty.hostId === currentUserId;
-  const myApplication = myApplications.find(app => app.partyId === selectedParty.id);
-  const isApproved = myApplication?.isApproved || false;
-  const applications = getPartyApplications(selectedParty.id);
-  const approvedApplications = applications.filter(app => app.isApproved);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar currentPage="mate" />
@@ -141,10 +262,13 @@ export default function MateDetail() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <Button
-          variant="ghost"
-          onClick={() => setCurrentView('mate')}
-          className="mb-4"
-        >
+            variant="ghost"
+            onClick={() => {
+              localStorage.removeItem('selectedParty'); 
+              setCurrentView('mate');
+            }}
+            className="mb-4"
+          >
           <ChevronLeft className="w-4 h-4 mr-2" />
           목록으로
         </Button>
@@ -263,17 +387,44 @@ export default function MateDetail() {
             </div>
           </div>
 
-          {/* Price (if selling) */}
-          {selectedParty.price && (
-            <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-orange-700">티켓 판매가</span>
-                <span className="text-orange-900">
-                  {selectedParty.price.toLocaleString()}원
-                </span>
-              </div>
+          {/* Price Info */}
+            <div className="mb-6">
+              {selectedParty.status === 'SELLING' && selectedParty.price ? (
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-orange-700">티켓 판매가</span>
+                    <span className="text-orange-900" style={{ fontWeight: 'bold' }}>
+                      {selectedParty.price.toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-blue-700">티켓 가격</span>
+                      <span className="text-blue-900">
+                        {(selectedParty.ticketPrice || 0).toLocaleString()}원
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-blue-700">보증금</span>
+                      <span className="text-blue-900">10,000원</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-blue-700" style={{ fontWeight: 'bold' }}>총 결제 금액</span>
+                      <span className="text-lg text-blue-900" style={{ fontWeight: 'bold' }}>
+                        {((selectedParty.ticketPrice || 0) + 10000).toLocaleString()}원
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-3">
+                    티켓 가격은 경기 1일 후 자정에 호스트에게 정산됩니다 (수수료 10%)
+                  </p>
+                </div>
+              )}
             </div>
-          )}
 
           {/* Warnings */}
           {selectedParty.status === 'MATCHED' && (
@@ -311,7 +462,7 @@ export default function MateDetail() {
                   style={{ backgroundColor: '#2d5f4f' }}
                 >
                   <Settings className="w-5 h-5 mr-2" />
-                  신청 관리 ({applications.filter(app => !app.isApproved && !app.isRejected).length})
+                  신청 관리 ({pendingApplications.length})
                 </Button>
                 {approvedApplications.length > 0 && (
                   <Button
@@ -338,7 +489,7 @@ export default function MateDetail() {
                     style={{ backgroundColor: '#2d5f4f' }}
                   >
                     <MessageSquare className="w-5 h-5 mr-2" />
-                    채팅하기
+                    채팅방 입장
                   </Button>
                 )}
 

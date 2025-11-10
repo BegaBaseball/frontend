@@ -22,6 +22,7 @@ export interface Party {
   status: PartyStatus;
   price?: number; // 판매 전환 시
   createdAt: string;
+  ticketPrice?: number;
 }
 
 export interface PartyApplication {
@@ -70,13 +71,13 @@ export interface PartyFormData {
   stadium: string;
   section: string;
   maxParticipants: number;
+  ticketPrice: number;
   description: string;
   ticketFile: File | null;
 }
 
 export interface ApplicationFormData {
   message: string;
-  paymentType: 'deposit' | 'full';
 }
 
 interface MateState {
@@ -341,6 +342,7 @@ export const useMateStore = create<MateState>((set) => ({
     stadium: '',
     section: '',
     maxParticipants: 2,
+    ticketPrice: 0,
     description: '',
     ticketFile: null,
   },
@@ -352,7 +354,6 @@ export const useMateStore = create<MateState>((set) => ({
   // Application form state
   applicationForm: {
     message: '',
-    paymentType: 'deposit',
   },
   
   setSearchQuery: (query) => set({ searchQuery: query }),
@@ -486,6 +487,7 @@ export const useMateStore = create<MateState>((set) => ({
       stadium: '',
       section: '',
       maxParticipants: 2,
+      ticketPrice: 0,
       description: '',
       ticketFile: null,
     },
@@ -529,7 +531,6 @@ export const useMateStore = create<MateState>((set) => ({
   resetApplicationForm: () => set({
     applicationForm: {
       message: '',
-      paymentType: 'deposit',
     },
   }),
 }));

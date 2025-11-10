@@ -18,6 +18,7 @@ import { useDiaryStore } from '../store/diaryStore';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useAuthStore } from '../store/authStore';
 import { useNavigationStore } from '../store/navigationStore';
+import { Users } from 'lucide-react';
 
 const API_URL = 'http://localhost:8080/api/auth/mypage';
 
@@ -72,7 +73,7 @@ const formatDate = (dateString: string | null): string => {
     return '날짜 오류';
   }
 };
-type ViewMode = 'diary' | 'stats' | 'editProfile';
+type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory';
 
 export default function MyPage() {
   const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
@@ -84,17 +85,31 @@ export default function MyPage() {
   const [editingFavoriteTeam, setEditingFavoriteTeam] = useState('없음');
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [showTeamTest, setShowTeamTest] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('diary');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isEditMode, setIsEditMode] = useState(false);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const [mateHistoryTab, setMateHistoryTab] = useState<'all' | 'completed' | 'ongoing'>('all');
   const { diaryEntries, addDiaryEntry, updateDiaryEntry, deleteDiaryEntry, setDiaryEntries } = useDiaryStore();
 
   const emojiStats = useMemo(() => {
-    const stats = {
+    
+    // 1. stats의 타입을 먼저 정의합니다.
+    // [key: string]: number; <-- "어떤 문자열 키가 와도 값은 숫자"라는 의미
+    interface EmojiStatsType {
+      [key: string]: number;
+      최악: number;
+      배부름: number;
+      최고: number;
+      분노: number;
+      즐거움: number;
+    }
+
+    // 2. 객체를 초기화할 때 위에서 만든 타입을 적용합니다.
+    const stats: EmojiStatsType = {
       최악: 0,
       배부름: 0,
       최고: 0,
@@ -104,6 +119,7 @@ export default function MyPage() {
     
     diaryEntries.forEach(entry => {
       if (entry.emojiName && stats.hasOwnProperty(entry.emojiName)) {
+        // 이제 TypeScript는 이 코드가 안전하다고 인식합니다.
         stats[entry.emojiName]++;
       }
     });
@@ -310,7 +326,14 @@ const updatedProfile = {
           setName(updatedProfileData.name);
           setSavedFavoriteTeam(editingFavoriteTeam);
           setProfileImage(updatedProfileData.profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User');
-
+          
+          const setUserProfile = useAuthStore.getState().setUserProfile;
+          setUserProfile({
+            email: email,
+            name: updatedProfileData.name,
+            profileImageUrl: updatedProfileData.profileImageUrl || profileImage,
+            favoriteTeam: editingFavoriteTeam === '없음' ? undefined : editingFavoriteTeam
+          });
 
           // 성공 알림
           showCustomAlert(apiResponse.message || '프로필이 성공적으로 저장되었습니다!');
@@ -329,6 +352,13 @@ const updatedProfile = {
           // DB에 저장된 상태이므로, 성공으로 간주하고 오류 메시지를 띄우지 않습니다.
           // console.log('프로필 저장 성공 (에러 처리 필터링됨)'); 
           setSavedFavoriteTeam(editingFavoriteTeam);
+          const setUserProfile = useAuthStore.getState().setUserProfile;
+          setUserProfile({
+            email: email,
+            name: name,
+            profileImageUrl: profileImage,
+            favoriteTeam: editingFavoriteTeam === '없음' ? undefined : editingFavoriteTeam
+          });
           return; 
         }
         
@@ -391,7 +421,7 @@ const updatedProfile = {
       type: entry.type || 'attended',
       emoji: entry.emoji,
       emojiName: entry.emojiName,
-      winningName: entry.winningName,
+      winningName: entry.winningName || '',
       gameId: entry.gameId ? String(entry.gameId) : '',
       memo: entry.memo || '',
       photos: entry.photos || []
@@ -486,6 +516,163 @@ const updatedProfile = {
     const updatedPhotos = diaryForm.photos.filter((_, i) => i !== index);
     setDiaryForm({ ...diaryForm, photos: updatedPhotos });
   };
+
+  const MateHistoryContent = ({ tab }: { tab: 'all' | 'completed' | 'ongoing' }) => {
+    const [myParties, setMyParties] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchMyParties = async () => {
+        try {
+          setLoading(true);
+          
+          // 1. 현재 사용자 정보
+          const userResponse = await fetch('http://localhost:8080/api/auth/mypage', {
+            credentials: 'include',
+          });
+          
+          if (!userResponse.ok) {
+            setLoading(false);
+            return;
+          }
+          
+          const userData = await userResponse.json();
+          
+          const userIdResponse = await fetch(
+            `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(userData.data.email)}`,
+            { credentials: 'include' }
+          );
+          
+          if (!userIdResponse.ok) {
+            setLoading(false);
+            return;
+          }
+          
+          const userIdData = await userIdResponse.json();
+          const currentUserId = userIdData.data || userIdData;
+
+          // 2. 전체 파티 목록
+          const partiesResponse = await fetch('http://localhost:8080/api/parties', {
+            credentials: 'include',
+          });
+
+          if (!partiesResponse.ok) {
+            setLoading(false);
+            return;
+          }
+
+          const allParties = await partiesResponse.json();
+          
+          // 3. 내가 참여한 파티 필터링
+          const myPartiesList = allParties.filter((party: any) => {
+            if (String(party.hostId) === String(currentUserId)) {
+              return true;
+            }
+            return false;
+          });
+
+          // 4. 탭별 필터링
+          let filtered = myPartiesList;
+          if (tab === 'completed') {
+            filtered = myPartiesList.filter((p: any) => 
+              p.status === 'COMPLETED' || p.status === 'CHECKED_IN'
+            );
+          } else if (tab === 'ongoing') {
+            filtered = myPartiesList.filter((p: any) => 
+              p.status === 'PENDING' || p.status === 'MATCHED'
+            );
+          }
+
+          setMyParties(filtered);
+        } catch (error) {
+          console.error('메이트 내역 불러오기 실패:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchMyParties();
+    }, [tab]);
+
+    if (loading) {
+      return (
+        <div className="text-center py-8">
+          <div className="text-gray-500">로딩 중...</div>
+        </div>
+      );
+    }
+
+    if (myParties.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-600">
+            {tab === 'completed' && '완료된 메이트 내역이 없습니다'}
+            {tab === 'ongoing' && '진행 중인 메이트가 없습니다'}
+            {tab === 'all' && '참여한 메이트 내역이 없습니다'}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {myParties.map((party) => (
+          <Card
+            key={party.id}
+            className="p-6 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => {
+              setCurrentView('mateDetail');
+            }}
+          >
+            <div className="flex items-start gap-4">
+              <TeamLogo teamId={party.teamId} size="lg" />
+              
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 style={{ color: '#2d5f4f' }}>
+                    {party.stadium}
+                  </h3>
+                  <span className={`px-3 py-1 rounded-full text-sm ${
+                    party.status === 'COMPLETED' || party.status === 'CHECKED_IN'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {party.status === 'COMPLETED' && '완료'}
+                    {party.status === 'CHECKED_IN' && '체크인 완료'}
+                    {party.status === 'MATCHED' && '매칭 완료'}
+                    {party.status === 'PENDING' && '모집 중'}
+                  </span>
+                </div>
+
+                <div className="space-y-1 text-sm text-gray-600">
+                  <p>날짜 : {party.gameDate} {party.gameTime}</p>
+                  <p>좌석 :  {party.section}</p>
+                  <p>참여 인원 :  {party.currentParticipants}/{party.maxParticipants}명</p>
+                </div>
+
+                {party.status === 'COMPLETED' && (
+                  <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                    <p className="text-sm text-green-700">
+                      경기 관람 완료 · 보증금 환불 완료
+                    </p>
+                  </div>
+                )}
+
+                {party.status === 'CHECKED_IN' && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      체크인 완료 · 경기 관람 완료
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
 
   const handleDeleteDiary = async () => {
     if (!selectedDiary) {
@@ -588,6 +775,14 @@ const updatedProfile = {
             {/* 버튼들 */}
             <div className="flex items-center gap-3">
               <Button
+                onClick={() => setViewMode('mateHistory')} // ✅ 추가
+                className="flex items-center gap-2 bg-white border-2 hover:bg-gray-50"
+                style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+              >
+                <Users className="w-4 h-4" />
+                메이트 내역
+              </Button>
+              <Button
                 onClick={() => setViewMode('editProfile')}
                 className="flex items-center gap-2 bg-white border-2 hover:bg-gray-50"
                 style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
@@ -595,6 +790,7 @@ const updatedProfile = {
                 <Edit className="w-4 h-4" />
                 내 정보 수정
               </Button>
+              
               <Button
                 onClick={() => setViewMode(viewMode === 'stats' ? 'diary' : 'stats')}
                 className="flex items-center gap-2 text-white"
@@ -635,6 +831,64 @@ const updatedProfile = {
           </div>
         </Card>
 
+        
+      {/* 메이트 내역 뷰 */}
+      {viewMode === 'mateHistory' && (
+        <div className="space-y-6">
+          <Card className="p-8">
+            <h2 className="mb-6" style={{ color: '#2d5f4f' }}>
+              참여한 메이트
+            </h2>
+            
+            {/* 탭 버튼 */}
+            <div className="flex gap-2 mb-6 border-b">
+              <button
+                onClick={() => setMateHistoryTab('all')}
+                className={`px-4 py-2 -mb-px ${
+                  mateHistoryTab === 'all'
+                    ? 'border-b-2 font-bold'
+                    : 'text-gray-500'
+                }`}
+                style={{
+                  borderColor: mateHistoryTab === 'all' ? '#2d5f4f' : 'transparent',
+                  color: mateHistoryTab === 'all' ? '#2d5f4f' : undefined,
+                }}
+              >
+                전체
+              </button>
+              <button
+                onClick={() => setMateHistoryTab('completed')}
+                className={`px-4 py-2 -mb-px ${
+                  mateHistoryTab === 'completed'
+                    ? 'border-b-2 font-bold'
+                    : 'text-gray-500'
+                }`}
+                style={{
+                  borderColor: mateHistoryTab === 'completed' ? '#2d5f4f' : 'transparent',
+                  color: mateHistoryTab === 'completed' ? '#2d5f4f' : undefined,
+                }}
+              >
+                완료됨
+              </button>
+              <button
+                onClick={() => setMateHistoryTab('ongoing')}
+                className={`px-4 py-2 -mb-px ${
+                  mateHistoryTab === 'ongoing'
+                    ? 'border-b-2 font-bold'
+                    : 'text-gray-500'
+                }`}
+                style={{
+                  borderColor: mateHistoryTab === 'ongoing' ? '#2d5f4f' : 'transparent',
+                  color: mateHistoryTab === 'ongoing' ? '#2d5f4f' : undefined,
+                }}
+              >
+                진행 중
+              </button>
+            </div>
+            <MateHistoryContent tab={mateHistoryTab} />
+          </Card>
+        </div>
+      )}
         {/* 내 정보 수정 뷰 */}
         {viewMode === 'editProfile' && (
           <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-8 mb-6">
@@ -851,7 +1105,7 @@ const updatedProfile = {
                       onClick={() => isValidDay && handleDateSelect(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayNumber))}
                       className={`border rounded-lg p-2 flex flex-col min-h-[110px] ${
                         isValidDay ? 'bg-white hover:bg-gray-50' : 'bg-gray-50'
-                      } ${isSelected ? 'ring-2 ring-offset-1' : ''}`}
+                      } ${isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f]' : ''}`}
                       style={{
                         borderColor: entry 
                           ? entry.type === 'attended' 
@@ -863,7 +1117,7 @@ const updatedProfile = {
                             ? '#e8f5f0'
                             : '#fef3c7'
                           : isValidDay ? 'white' : '#f9fafb',
-                        ringColor: isSelected ? '#2d5f4f' : undefined
+                        
                       }}
                       disabled={!isValidDay}
                     >
