@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useNavigationStore } from '../store/navigationStore';
 
 interface SignUpProps {
@@ -75,6 +75,7 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
 
       // 성공 시 처리
       alert('회원가입 성공! 로그인 화면으로 이동합니다.');
+      setCurrentView('login')
       onBackToLogin();
 
     } catch (err) {
