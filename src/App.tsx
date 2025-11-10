@@ -1,6 +1,6 @@
 import begaCharacter from 'figma:asset/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
-import { useState , useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react'; // 🔥 useEffect 추가
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Label } from './components/ui/label';
@@ -39,6 +39,32 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
 
+  // URL 파라미터로 들어온 경우 처리
+  useEffect(() => {
+  const path = window.location.pathname;
+  const params = new URLSearchParams(window.location.search);
+  
+  console.log('현재 경로:', path);
+  console.log('URL 파라미터:', params.toString());
+
+  // 비밀번호 재설정 확인 페이지
+  if (path === '/password-reset/confirm') {
+    const token = params.get('token');
+    console.log('토큰 감지:', token);
+    if (token) {
+      setCurrentView('passwordResetConfirm', { token }); // ✅ 완벽!
+    } else {
+      alert('유효하지 않은 링크입니다.');
+    }
+    return; // 🔥 여기서 return 추가 (아래 조건 실행 방지)
+  }
+  
+  // 비밀번호 재설정 요청 페이지
+  if (path === '/password-reset') {
+    setCurrentView('passwordReset');
+  }
+}, [setCurrentView]);
+
   const handleLogin = useCallback(async (e) => {
         // 폼 제출 기본 동작 방지
         if (e && typeof e.preventDefault === 'function') {
@@ -56,22 +82,17 @@ export default function App() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                // HttpOnly 쿠키를 포함하여 서버에 전송하도록 설정 (인증에 필수)
                 credentials: 'include',
-                // UserDto에 정의된 email, password 필드만 사용
                 body: JSON.stringify({ email, password }),
             });
 
-            // HTTP 상태 코드가 2xx가 아닌 경우 에러 처리
             if (!response.ok) {
                 let errorMessage = '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.';
                 
                 try {
-                    // 응답 본문에서 에러 메시지 추출 시도
                     const errorData = await response.json();
                     errorMessage = errorData.message || errorData.error || errorMessage;
                 } catch (jsonError) {
-                    // 응답이 JSON 형식이 아닐 경우
                     if (response.status === 401) {
                         errorMessage = '인증 정보가 올바르지 않습니다.';
                     } else {
@@ -79,15 +100,11 @@ export default function App() {
                     }
                 }
                 
-                // 에러를 던져 catch 블록으로 이동
                 throw new Error(errorMessage);
             }
 
-            // 성공 시 처리 (JWT 토큰은 HttpOnly 쿠키에 의해 브라우저에 자동 저장됨)
             const data = await response.json();
-            
 
-            // 유저 정보
             const userDisplayName = data.name || data.email; 
             
             if (userDisplayName) {
@@ -97,28 +114,24 @@ export default function App() {
             }
 
             const finalDisplayName = userDisplayName || '사용자'; 
-            setIsLoggedIn(true); // 로그인 성공 처리
+            setIsLoggedIn(true);
             console.log('로그인 성공! ' + finalDisplayName + '님 환영합니다. 메인 페이지로 이동합니다.'); 
             login(email, finalDisplayName); 
 
-            // ‼️ Admin 이메일인지 확인 후 분기
             if (email === 'admin' || email === 'admin@bega.com') {
-                setCurrentView('admin'); // 관리자 페이지로 이동
+                setCurrentView('admin');
             } else {
-                setCurrentView('home'); // 일반 사용자는 홈으로 이동
+                setCurrentView('home');
             }
 
-
         } catch (err) {
-            // API 호출 또는 응답 처리 중 발생한 모든 에러 처리
             setError((err as Error).message || '네트워크 오류로 로그인에 실패했습니다.');
             console.error('Login Error:', err);
         } finally {
             setIsLoading(false);
         }
-    }, [email, password, useNavigationStore]); 
+    }, [email, password, setCurrentView, login]);
 
-    // 로그아웃 로직
     const handleLogout = useCallback(() => {
         localStorage.removeItem('authToken'); 
         localStorage.removeItem('username');
@@ -127,7 +140,7 @@ export default function App() {
         setPassword('');
         setError('');
         console.log('로그아웃 되었습니다.');
-    }, []);
+    }, [setEmail, setPassword]);
 
   if (currentView === 'home') {
     return (

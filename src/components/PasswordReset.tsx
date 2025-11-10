@@ -12,12 +12,44 @@ export default function PasswordReset() {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Password reset requested for:', email);
-    // 여기에 실제 비밀번호 재설정 로직 추가
-    setIsSubmitted(true);
-  };
+    
+    try {
+        const response = await fetch('http://localhost:8080/api/auth/password-reset/request', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email }),
+        });
+
+         if (!response.ok) {
+            // 401, 404 등의 에러
+            let errorMessage = '이메일 발송에 실패했습니다.';
+            try {
+                const data = await response.json();
+                errorMessage = data.message || errorMessage;
+            } catch {
+                // JSON 파싱 실패 시 (HTML 에러 페이지 등)
+                errorMessage = `서버 오류 (${response.status})`;
+            }
+            alert(errorMessage);
+            return;
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            setIsSubmitted(true);
+        } else {
+            alert(data.message || '이메일 발송에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('Password reset request error:', error);
+        alert('서버와 통신 중 오류가 발생했습니다.');
+    }
+};
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">

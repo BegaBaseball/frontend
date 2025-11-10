@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Lock, Eye, EyeOff, Check } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -9,6 +9,32 @@ import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png
 
 export default function PasswordResetConfirm() {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const params = useNavigationStore((state) => state.params); // 🔥 store에서 params 가져오기
+  
+  // 🔥 useState 초기화 함수로 토큰 설정
+  const [token, setToken] = useState(() => {
+    console.log('===== 토큰 초기화 =====');
+    
+    // 1. store의 params에서 먼저 확인
+    if (params?.token) {
+      console.log('Store에서 토큰 가져옴:', params.token);
+      return params.token;
+    }
+    
+    // 2. URL에서 직접 가져오기 (fallback)
+    try {
+      const fullUrl = window.location.href;
+      console.log('전체 URL:', fullUrl);
+      const url = new URL(fullUrl);
+      const tokenFromUrl = url.searchParams.get('token');
+      console.log('URL에서 토큰 추출:', tokenFromUrl);
+      return tokenFromUrl || '';
+    } catch (error) {
+      console.error('토큰 추출 에러:', error);
+      return '';
+    }
+  });
+  
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -16,11 +42,35 @@ export default function PasswordResetConfirm() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 🔥 params가 변경되면 토큰 업데이트
+  useEffect(() => {
+    if (params?.token && params.token !== token) {
+      console.log('Params에서 토큰 업데이트:', params.token);
+      setToken(params.token);
+    }
+  }, [params, token]);
+
+  // 🔥 토큰 없으면 에러 표시
+  useEffect(() => {
+    if (!token) {
+      console.warn('토큰이 없습니다!');
+      setError('유효하지 않은 링크입니다. 비밀번호 재설정을 다시 요청해주세요.');
+    } else {
+      console.log('현재 토큰 상태:', token.substring(0, 20) + '...');
+    }
+  }, [token]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // 비밀번호 유효성 검사
+    console.log('제출 시 토큰:', token ? 'O' : 'X');
+
+    if (!token) {
+      setError('유효하지 않은 토큰입니다.');
+      return;
+    }
+
     if (newPassword.length < 8) {
       setError('비밀번호는 최소 8자 이상이어야 합니다.');
       return;
@@ -31,9 +81,38 @@ export default function PasswordResetConfirm() {
       return;
     }
 
-    console.log('Password reset confirmed');
-    // 여기에 실제 비밀번호 재설정 로직 추가
-    setIsCompleted(true);
+    console.log('전송할 데이터:', {
+      token: token.substring(0, 20) + '...',
+      newPassword: '****',
+      confirmPassword: '****'
+    });
+
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/password-reset/confirm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          newPassword,
+          confirmPassword,
+        }),
+      });
+
+      console.log('응답 상태:', response.status);
+      const data = await response.json();
+      console.log('응답 데이터:', data);
+
+      if (response.ok) {
+        setIsCompleted(true);
+      } else {
+        setError(data.message || data.error || '비밀번호 변경에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Password reset confirm error:', error);
+      setError('서버와 통신 중 오류가 발생했습니다.');
+    }
   };
 
   return (
