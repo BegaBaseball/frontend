@@ -76,18 +76,18 @@ export default function MateCreate() {
     }
   };
 
-  const canProceedToStep = (targetStep: number) => {
-    if (targetStep === 2) {
-      return formData.gameDate && formData.homeTeam && formData.awayTeam && formData.stadium;
-    }
-    if (targetStep === 3) {
-      return formData.section && formData.maxParticipants > 0;
-    }
-    if (targetStep === 4) {
-      return formData.description && !formErrors.description;
-    }
-    return true;
-  };
+const canProceedToStep = (targetStep: number) => {
+  if (targetStep === 2) {
+    return formData.gameDate && formData.homeTeam && formData.awayTeam && formData.stadium;
+  }
+  if (targetStep === 3) {
+    return formData.section && formData.maxParticipants > 0 && formData.ticketPrice > 0; // ✅ ticketPrice 검증 추가
+  }
+  if (targetStep === 4) {
+    return formData.description && !formErrors.description;
+  }
+  return true;
+};
 
   const handleSubmit = async () => {
     if (!formData.ticketFile) {
@@ -141,9 +141,11 @@ export default function MateCreate() {
         maxParticipants: formData.maxParticipants,
         description: formData.description,
         ticketImageUrl: null,
+        ticketPrice: formData.ticketPrice,
       };
 
-      console.log('파티 생성 요청:', partyData);
+      console.log('🎫 프론트엔드 - formData.ticketPrice:', formData.ticketPrice);
+      console.log('📤 프론트엔드 - 전송할 데이터:', partyData);
 
       const response = await fetch('http://localhost:8080/api/parties', {
         method: 'POST',
@@ -156,13 +158,13 @@ export default function MateCreate() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('파티 생성 실패:', errorText);
+        console.error('❌ 파티 생성 실패:', errorText);
         alert('파티 생성에 실패했습니다.');
         return;
       }
 
       const createdParty = await response.json();
-      console.log('파티 생성 성공:', createdParty);
+      console.log('✅ 파티 생성 성공:', createdParty);
 
       // 4. 프론트엔드 형식으로 변환
       const mappedParty = {
@@ -183,6 +185,7 @@ export default function MateCreate() {
         description: createdParty.description,
         ticketVerified: createdParty.ticketVerified,
         status: createdParty.status,
+        ticketPrice: createdParty.ticketPrice, // ✅ 추가
         createdAt: createdParty.createdAt,
       };
 
@@ -193,11 +196,10 @@ export default function MateCreate() {
       setCurrentView('mateDetail');
 
     } catch (error) {
-      console.error('파티 생성 중 오류:', error);
+      console.error('❌ 파티 생성 중 오류:', error);
       alert('파티 생성 중 오류가 발생했습니다.');
     }
   };
-
   const handleBack = () => {
     if (createStep === 1) {
       resetForm();
@@ -380,12 +382,38 @@ export default function MateCreate() {
                     <SelectItem value="4">4명 (본인 포함)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-gray-500">
-                  본인을 포함한 총 인원수입니다
-                </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ticketPrice">티켓 가격 (1인당) *</Label>
+                  <div className="relative">
+                    <Input
+                      id="ticketPrice"
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={formData.ticketPrice || ''}
+                      onChange={(e) => updateFormData({ ticketPrice: parseInt(e.target.value) || 0 })}
+                      placeholder="예: 12000"
+                      className="pr-12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                      원
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    예매한 티켓의 1인당 가격을 입력해주세요
+                  </p>
+                  {formData.ticketPrice > 0 && (
+                    <Alert>
+                      <AlertCircle className="w-4 h-4" />
+                      <AlertDescription className="text-sm">
+                        참여자는 티켓 가격 <span style={{ color: '#2d5f4f' }}>{formData.ticketPrice.toLocaleString()}원</span> + 보증금 10,000원을 결제합니다.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Step 3: 소개글 */}
           {createStep === 3 && (

@@ -52,6 +52,7 @@ export default function Mate() {
             ticketImageUrl: party.ticketImageUrl,
             status: party.status,
             price: party.price,
+            ticketPrice: party.ticketPrice || 0,
             createdAt: party.createdAt,
           }));
           
@@ -98,23 +99,28 @@ export default function Mate() {
   };
 
   // 검색 필터링
-  const filterParties = (partyList: any[]) => {
-    if (!searchQuery.trim()) return partyList;
+const filterParties = (partyList: any[]) => {
+  // ✅ 체크인 완료 및 완료된 파티는 목록에서 제외
+  const activeParties = partyList.filter(party => 
+    party.status !== 'CHECKED_IN' && party.status !== 'COMPLETED'
+  );
+
+  if (!searchQuery.trim()) return activeParties;
+  
+  const query = searchQuery.toLowerCase();
+  return activeParties.filter(party => {
+    const homeTeamName = teamIdToName[party.homeTeam] || party.homeTeam;
+    const awayTeamName = teamIdToName[party.awayTeam] || party.awayTeam;
     
-    const query = searchQuery.toLowerCase();
-    return partyList.filter(party => {
-      const homeTeamName = teamIdToName[party.homeTeam] || party.homeTeam;
-      const awayTeamName = teamIdToName[party.awayTeam] || party.awayTeam;
-      
-      return (
-        party.stadium.toLowerCase().includes(query) ||
-        homeTeamName.toLowerCase().includes(query) ||
-        awayTeamName.toLowerCase().includes(query) ||
-        party.section.toLowerCase().includes(query) ||
-        party.hostName.toLowerCase().includes(query)
-      );
-    });
-  };
+    return (
+      party.stadium.toLowerCase().includes(query) ||
+      homeTeamName.toLowerCase().includes(query) ||
+      awayTeamName.toLowerCase().includes(query) ||
+      party.section.toLowerCase().includes(query) ||
+      party.hostName.toLowerCase().includes(query)
+    );
+  });
+};
 
   const renderPartyCard = (party: any) => (
     <Card
@@ -170,13 +176,23 @@ export default function Mate() {
 
       <p className="text-sm text-gray-600 mb-3 line-clamp-2">{party.description}</p>
 
-      {party.price && (
-        <div className="text-right">
-          <span style={{ color: '#2d5f4f' }}>
-            {party.price.toLocaleString()}원
-          </span>
-        </div>
-      )}
+      <div className="pt-3 border-t">
+        {party.status === 'SELLING' && party.price ? (
+          <div className="flex justify-between">
+            <span className="text-sm text-gray-600">티켓 판매가</span>
+            <span style={{ color: '#2d5f4f' }}>
+              {party.price.toLocaleString()}원
+            </span>
+          </div>
+        ) : (
+          <div className="flex justify-between">
+            <span className="text-sm text-gray-600">참가비</span>
+            <span style={{ color: '#2d5f4f' }}>
+              {((party.ticketPrice || 0) + 10000).toLocaleString()}원
+            </span>
+          </div>
+        )}
+      </div>
     </Card>
   );
 

@@ -58,7 +58,7 @@ useEffect(() => {
   }
 }, [selectedParty]);
 
-  // ✅ 사용자 정보 가져오기
+  // 사용자 정보 가져오기
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
@@ -90,7 +90,7 @@ useEffect(() => {
     fetchCurrentUser();
   }, []);
 
-  // ✅ 내 신청 정보 가져오기 (하나만 유지)
+  // 내 신청 정보 가져오기 (하나만 유지)
   useEffect(() => {
     if (!selectedParty || !currentUserId) return;
 
@@ -116,7 +116,7 @@ useEffect(() => {
     fetchMyApplication();
   }, [selectedParty, currentUserId]);
 
-  // ✅ 파티 신청 목록 가져오기 (호스트인 경우)
+  // 파티 신청 목록 가져오기 (호스트인 경우)
   useEffect(() => {
     if (!selectedParty || !currentUserId) return;
 
@@ -264,7 +264,7 @@ useEffect(() => {
         <Button
             variant="ghost"
             onClick={() => {
-              localStorage.removeItem('selectedParty'); // ✅ 추가
+              localStorage.removeItem('selectedParty'); 
               setCurrentView('mate');
             }}
             className="mb-4"
@@ -387,17 +387,44 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Price (if selling) */}
-          {selectedParty.price && (
-            <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-orange-700">티켓 판매가</span>
-                <span className="text-orange-900">
-                  {selectedParty.price.toLocaleString()}원
-                </span>
-              </div>
+          {/* Price Info */}
+            <div className="mb-6">
+              {selectedParty.status === 'SELLING' && selectedParty.price ? (
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-orange-700">티켓 판매가</span>
+                    <span className="text-orange-900" style={{ fontWeight: 'bold' }}>
+                      {selectedParty.price.toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-blue-700">티켓 가격</span>
+                      <span className="text-blue-900">
+                        {(selectedParty.ticketPrice || 0).toLocaleString()}원
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-blue-700">보증금</span>
+                      <span className="text-blue-900">10,000원</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-blue-700" style={{ fontWeight: 'bold' }}>총 결제 금액</span>
+                      <span className="text-lg text-blue-900" style={{ fontWeight: 'bold' }}>
+                        {((selectedParty.ticketPrice || 0) + 10000).toLocaleString()}원
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-3">
+                    티켓 가격은 경기 1일 후 자정에 호스트에게 정산됩니다 (수수료 10%)
+                  </p>
+                </div>
+              )}
             </div>
-          )}
 
           {/* Warnings */}
           {selectedParty.status === 'MATCHED' && (
