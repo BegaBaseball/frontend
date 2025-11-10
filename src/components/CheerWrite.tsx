@@ -106,9 +106,9 @@ export default function CheerWrite() {
             onClick={handleSubmit}
             className="text-white"
             style={{ backgroundColor: '#2d5f4f' }}
-            disabled={createMutation.isLoading || !favoriteTeam}
+            disabled={createMutation.isPending || !favoriteTeam}
           >
-            {createMutation.isLoading ? '등록 중...' : '등록'}
+            {createMutation.isPending ? '등록 중...' : '등록'}
           </Button>
         </div>
       </div>
@@ -149,7 +149,7 @@ export default function CheerWrite() {
               onImagesSelected={handleImagesSelected}
               selectedFiles={selectedFiles}
               onRemoveFile={handleRemoveFile}
-              disabled={createMutation.isLoading}
+              disabled={createMutation.isPending}
             />
           </div>
         </div>
@@ -157,4 +157,3 @@ export default function CheerWrite() {
     </div>
   );
 }
-
