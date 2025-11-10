@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Image as ImageIcon, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, MessageSquare, X, Upload } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
@@ -10,6 +10,7 @@ import { useNavigationStore } from '../store/navigationStore';
 import { getTeamNameById, useCheerStore } from '../store/cheerStore';
 import { useAuthStore } from '../store/authStore';
 import { getPost, updatePost } from '../api/cheer';
+import { listPostImages, deleteImage, uploadPostImages, renewSignedUrl, PostImageInfo } from '../api/images';
 import { toast } from 'sonner';
 
 export default function CheerEdit() {
@@ -30,15 +31,66 @@ export default function CheerEdit() {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [images, setImages] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<PostImageInfo[]>([]);
+  const [imageUrls, setImageUrls] = useState<Map<number, string>>(new Map()); // 이미지 ID -> 서명된 URL
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
+  const [loadingImages, setLoadingImages] = useState(false);
 
   useEffect(() => {
-    if (post) {
+    if (!post || !selectedPostId) return;
+
+    let cancelled = false;
+
+    (async () => {
       setTitle(post.title);
       setContent(post.content ?? '');
-      setImages(post.images ?? []);
-    }
-  }, [post]);
+      setLoadingImages(true);
+
+      try {
+        console.log('[CheerEdit] 이미지 목록 로드 시작, postId:', selectedPostId);
+        const images = await listPostImages(selectedPostId);
+        console.log('[CheerEdit] 이미지 목록 조회 완료:', images.length, '개');
+
+        if (cancelled) return;
+        setExistingImages(images);
+
+        if (images.length === 0) {
+          console.log('[CheerEdit] 이미지가 없습니다');
+          if (!cancelled) setLoadingImages(false);
+          return;
+        }
+
+        // 병렬로 서명된 URL 가져오기
+        const entries = await Promise.all(
+          images.map(async (img) => {
+            try {
+              console.log(`[CheerEdit] 이미지 ${img.id} URL 생성 시도...`);
+              const { signedUrl } = await renewSignedUrl(img.id);
+              console.log(`[CheerEdit] 이미지 ${img.id} URL 생성 성공:`, signedUrl?.substring(0, 50) + '...');
+              return [img.id, signedUrl] as const;
+            } catch (error) {
+              console.error(`[CheerEdit] 이미지 ${img.id} URL 생성 실패:`, error);
+              return [img.id, ''] as const;
+            }
+          })
+        );
+
+        if (!cancelled) {
+          setImageUrls(new Map(entries.filter(([, url]) => url)));
+        }
+      } catch (error) {
+        console.error('[CheerEdit] 이미지 로드 실패:', error);
+        toast.error('이미지 로드 실패');
+      } finally {
+        if (!cancelled) setLoadingImages(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [post, selectedPostId]);
 
   const hasAccess = post
     ? favoriteTeam
@@ -47,8 +99,20 @@ export default function CheerEdit() {
     : false;
 
   const updateMutation = useMutation({
-    mutationFn: (payload: { title: string; content: string }) =>
-      updatePost(post!.id, payload),
+    mutationFn: async (payload: { title: string; content: string; files: File[] }) => {
+      // 1. 게시글 내용 업데이트
+      const updated = await updatePost(post!.id, {
+        title: payload.title,
+        content: payload.content
+      });
+
+      // 2. 이미지 삭제/업로드 병렬 처리
+      if (payload.files.length > 0) {
+        await uploadPostImages(updated.id, payload.files);
+      }
+
+      return updated;
+    },
     onSuccess: (updated) => {
       upsertPost(updated);
       queryClient.invalidateQueries({ queryKey: ['cheerPost', updated.id] });
@@ -61,12 +125,73 @@ export default function CheerEdit() {
     },
   });
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const newImages = Array.from(files).map((file) => URL.createObjectURL(file));
-    setImages((prev) => [...prev, ...newImages]);
+
+    const totalImages = existingImages.length + newFiles.length;
+    const maxImages = 10;
+    const maxSizeMB = 5;
+
+    const validFiles = Array.from(files).filter((file) => {
+      if (file.size > maxSizeMB * 1024 * 1024) {
+        toast.error(`${file.name} 파일이 ${maxSizeMB}MB 제한을 초과했습니다.`);
+        return false;
+      }
+      return true;
+    });
+
+    if (totalImages + validFiles.length > maxImages) {
+      toast.error(`이미지는 최대 ${maxImages}개까지 선택할 수 있습니다.`);
+      return;
+    }
+
+    setNewFiles((prev) => [...prev, ...validFiles]);
+    e.target.value = '';
   };
+
+  const handleDeleteExistingImage = async (imageId: number) => {
+    if (!post) return;
+    const confirmed = window.confirm('이 이미지를 즉시 삭제할까요? 삭제하면 복구할 수 없습니다.');
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingImageId(imageId);
+      await deleteImage(imageId);
+      setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
+      setImageUrls((prev) => {
+        const next = new Map(prev);
+        next.delete(imageId);
+        return next;
+      });
+      toast.success('이미지를 삭제했습니다.');
+    } catch (error) {
+      console.error('이미지 즉시 삭제 실패:', error);
+      toast.error(error instanceof Error ? error.message : '이미지 삭제에 실패했습니다.');
+    } finally {
+      setDeletingImageId(null);
+    }
+  };
+
+  const handleRemoveNewFile = (index: number) => {
+    setNewFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // 새로 추가된 파일 미리보기 URL 관리
+  const newFilePreviews = useMemo(() => {
+    return newFiles.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+  }, [newFiles]);
+
+  useEffect(() => {
+    return () => {
+      newFilePreviews.forEach(({ url }) => URL.revokeObjectURL(url));
+    };
+  }, [newFilePreviews]);
 
   const handleSubmit = () => {
     if (!post) return;
@@ -74,7 +199,11 @@ export default function CheerEdit() {
       toast.error('제목과 내용을 입력해주세요.');
       return;
     }
-    updateMutation.mutate({ title: title.trim(), content: content.trim() });
+    updateMutation.mutate({
+      title: title.trim(),
+      content: content.trim(),
+      files: newFiles,
+    });
   };
 
   const handleCancel = () => {
@@ -212,23 +341,112 @@ export default function CheerEdit() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm" style={{ color: '#2d5f4f' }}>
-                    첨부 이미지
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm" style={{ color: '#2d5f4f' }}>
+                      첨부 이미지
+                    </label>
+                    <span className="text-xs text-gray-500">
+                      최대 10개, 파일당 5MB 이하
+                    </span>
+                  </div>
+
+                  <label className="flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400">
+                    <Upload className="h-6 w-6" />
+                    <span>이미지 추가</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileSelect}
+                      disabled={updateMutation.isPending}
+                    />
                   </label>
-                  <label className="flex h-48 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400">
-                    <ImageIcon className="h-6 w-6" />
-                    이미지 추가 (미리보기용)
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
-                  </label>
-                  {images.length > 0 && (
-                    <div className="grid grid-cols-3 gap-3">
-                      {images.map((image, index) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt={`preview-${index}`}
-                          className="h-24 w-full rounded-lg object-cover"
-                        />
+
+                  {loadingImages && (
+                    <div className="text-center py-4 text-gray-500">
+                      이미지를 불러오는 중...
+                    </div>
+                  )}
+
+                  {!loadingImages && existingImages.length === 0 && newFiles.length === 0 && (
+                    <div className="text-center py-4 text-gray-400 text-sm">
+                      첨부된 이미지가 없습니다
+                    </div>
+                  )}
+
+                  {!loadingImages && (existingImages.length > 0 || newFiles.length > 0) && (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {/* 기존 이미지 (서버에서 불러온 것) */}
+                      {existingImages.map((image, idx) => {
+                        const imageUrl = imageUrls.get(image.id);
+                        return (
+                          <div
+                            key={`existing-${image.id}`}
+                            className="group relative h-32 w-full overflow-hidden rounded-lg border border-gray-300"
+                          >
+                            {imageUrl && (
+                              <img
+                                src={imageUrl}
+                                alt={`이미지 ${idx + 1}`}
+                                className="absolute inset-0 z-0 h-full w-full select-none object-cover pointer-events-none"
+                                onError={(e) => {
+                                  console.warn('[CheerEdit] 이미지 로드 실패 URL:', imageUrl);
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <div
+                              className={`absolute inset-0 z-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 ${
+                                imageUrl ? 'hidden' : ''
+                              }`}
+                            >
+                              <ImageIcon className="h-8 w-8" />
+                              <span className="mt-1 text-xs">로딩 중...</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteExistingImage(image.id)}
+                              className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60"
+                              disabled={updateMutation.isPending || deletingImageId === image.id}
+                              title="이미지 삭제"
+                            >
+                              {deletingImageId === image.id ? (
+                                <span className="text-[10px] font-semibold">삭제</span>
+                              ) : (
+                                <X className="h-4 w-4" />
+                              )}
+                            </button>
+                            <div className="absolute bottom-0 left-0 right-0 z-10 bg-black/60 px-2 py-1 text-center text-xs text-white">
+                              이미지 {idx + 1}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* 새로 추가된 파일 (아직 업로드 안 됨) */}
+                      {newFilePreviews.map(({ file, url }, index) => (
+                        <div
+                          key={`new-${index}`}
+                          className="group relative h-32 w-full overflow-hidden rounded-lg border border-green-300"
+                        >
+                          <img
+                            src={url}
+                            alt={file.name}
+                            className="absolute inset-0 z-0 h-full w-full select-none object-cover pointer-events-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveNewFile(index)}
+                            className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm transition hover:bg-red-700"
+                            disabled={updateMutation.isPending}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                          <div className="absolute top-2 left-2 z-10 rounded bg-green-600 px-2 py-0.5 text-xs text-white">
+                            새 이미지
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -241,4 +459,3 @@ export default function CheerEdit() {
     </div>
   );
 }
-

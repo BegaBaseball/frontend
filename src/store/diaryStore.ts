@@ -7,6 +7,8 @@ import angryEmoji from 'figma:asset/01cb53a9197c5457e6d7dd7460bdf1cd27b5440b.png
 import happyEmoji from 'figma:asset/e2bd5a0f58df48e435d03f049811638d849de606.png';
 
 export interface DiaryEntry {
+  id: number;
+  gameId: number;
   date: string;
   team: string;
   emoji: string;
@@ -16,6 +18,7 @@ export interface DiaryEntry {
   score: string;
   memo: string;
   photos: string[];
+  winningName: string | null;
 }
 
 interface DiaryState {
@@ -43,6 +46,7 @@ interface DiaryState {
   updateDiaryEntry: (date: string, entry: DiaryEntry) => void;
   deleteDiaryEntry: (date: string) => void;
   resetNewEntry: () => void;
+  setDiaryEntries: (entries: DiaryEntry[]) => void;
 }
 
 const initialEntries: DiaryEntry[] = [];
@@ -76,6 +80,7 @@ export const useDiaryStore = create<DiaryState>()(
       setIsDialogOpen: (open) => set({ isDialogOpen: open }),
       setIsEditMode: (mode) => set({ isEditMode: mode }),
       setEditedEntry: (entry) => set({ editedEntry: entry }),
+      setDiaryEntries: (entries) => set({ diaryEntries: entries }),
       setEditPhotos: (photos) => set({ editPhotos: photos }),
       setIsCreateMode: (mode) => set({ isCreateMode: mode }),
       setNewEntry: (entry) => set((state) => ({ newEntry: { ...state.newEntry, ...entry } })),

@@ -72,6 +72,10 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
     },
      define: {
         global: 'globalThis',
+         'import.meta.env.VITE_KAKAO_MAP_KEY': JSON.stringify(process.env.VITE_KAKAO_MAP_KEY),
+        'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL),
+        'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL),
+        'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY),
       },
       optimizeDeps: {
         include: ['sockjs-client'],
@@ -88,8 +92,10 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
     proxy: {
       '/api': {
         target: proxyTarget,
+        // target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
+        // cookieDomainRewrite: 'localhost',
       },
     },
     },
