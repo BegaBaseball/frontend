@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Camera, Save, User, Edit, BarChart3, ChevronLeft, ChevronRight, X, TrendingUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -78,6 +78,49 @@ const formatDate = (dateString: string | null): string => {
 type ViewMode = 'diary' | 'stats' | 'editProfile';
 
 export default function MyPage() {
+  const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
+  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const [profileImage, setProfileImage] = useState('https://placehold.co/100x100/374151/ffffff?text=User');
+  const [name, setName] = useState('로딩 중...');
+  const [email, setEmail] = useState('loading@...');
+  const [savedFavoriteTeam, setSavedFavoriteTeam] = useState('없음');
+  const [editingFavoriteTeam, setEditingFavoriteTeam] = useState('없음');
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showTeamTest, setShowTeamTest] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('diary');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [isEditMode, setIsEditMode] = useState(false);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const { diaryEntries, addDiaryEntry, updateDiaryEntry, deleteDiaryEntry, setDiaryEntries } = useDiaryStore();
+
+  const emojiStats = useMemo(() => {
+    const stats = {
+      최악: 0,
+      배부름: 0,
+      최고: 0,
+      분노: 0,
+      즐거움: 0
+    };
+    
+    diaryEntries.forEach(entry => {
+      if (entry.emojiName && stats.hasOwnProperty(entry.emojiName)) {
+        stats[entry.emojiName]++;
+      }
+    });
+    
+    return [
+      { name: '최악', emoji: worstEmoji, count: stats.최악 },
+      { name: '배부름', emoji: fullEmoji, count: stats.배부름 },
+      { name: '최고', emoji: bestEmoji, count: stats.최고 },
+      { name: '분노', emoji: angryEmoji, count: stats.분노 },
+      { name: '즐거움', emoji: happyEmoji, count: stats.즐거움 }
+    ];
+  }, [diaryEntries]);
+
+  const totalCount = emojiStats.reduce((sum, item) => sum + item.count, 0);
     const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
     const setCurrentView = useNavigationStore((state) => state.setCurrentView);
     const [profileImage, setProfileImage] = useState(DEFAULT_PROFILE_IMAGE);
@@ -234,6 +277,50 @@ export default function MyPage() {
             showCustomAlert('이미지 미리보기 적용됨. 저장을 눌러 서버에 반영하세요.');
         }
     }
+  }, [navigateToLogin]);
+
+  const fetchUserDiaries = useCallback(async () => {
+    try {
+      const response = await fetch('/api/diary/entries', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const diaries = await response.json();
+        setDiaryEntries(diaries);
+      } else if (response.status === 401) {
+        showCustomAlert('로그인이 필요합니다.');
+        navigateToLogin();
+      }
+    } catch (error) {
+      console.error('다이어리 로드 실패:', error)
+    }
+  }, [navigateToLogin]);
+
+  useEffect(() => {
+    fetchUserProfile();
+    // 컴포넌트 언마운트 시 로컬 URL 객체 해제
+    fetchUserDiaries();
+    return () => {
+      if (profileImage.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImage);
+      }
+    };
+  }, [fetchUserProfile, fetchUserDiaries]);
+
+
+  // 프로필 이미지 로컬 업로드 미리보기
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // 이전 blob URL 해제
+      if (profileImage.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImage);
+      }
+
+      const imageUrl = URL.createObjectURL(file);
+      setProfileImage(imageUrl);
+      // 실제 환경에서는 이미지 파일을 서버에 업로드하고 URL을 받아와야 합니다.
+      showCustomAlert('이미지 미리보기 적용됨. 저장을 눌러 서버에 반영하세요.');
 
     function getJwtFromCookie(): string | null {
     // 1. document.cookie 문자열을 가져옵니다.
@@ -399,117 +486,248 @@ export default function MyPage() {
             
             setNewProfileImageFile(null);
 
+  const goToPreviousMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+  };
 
-                // 성공 알림
-                showCustomAlert(apiResponse.message || '프로필이 성공적으로 저장되었습니다!');
-                alert('변경사항이 적용되었습니다.')
-                setViewMode('diary');
-                console.log('프로필 저장 성공. 알림 표시 및 뷰 전환 실행 완료.');
+  const goToNextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+  };
+// ====================================================================================
+  const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+  const selectedDiary = diaryEntries.find(e => e.date === selectedDateStr);
 
-                return;
-            } else {
-                showCustomAlert(apiResponse.message || '프로필 저장에 실패했습니다. (API 응답 실패)');
-                return; // catch 블록 진입 방지
-            }
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+  const [diaryForm, setDiaryForm] = useState({
+    type: 'attended' as 'attended' | 'scheduled',
+    emoji: happyEmoji,
+    emojiName: '즐거움',
+    winningName: '',
+    gameId: '',
+    memo: '',
+    photos: [] as string[]
+  });
 
-            // 실제 오류(통신 오류, HTTP 4xx/5xx 등)만 처리
-            console.error('프로필 저장 오류:', err);
-            setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
-            showCustomAlert(`프로필 저장 중 오류 발생: ${errorMessage}`); // 이 부분이 실제 오류를 띄웁니다.
-        } finally {
-            setLoading(false);
-        }
+  const [availableGames, setAvailableGames] = useState<any[]>([]);
+
+  const handleDateSelect = useCallback(async (date: Date) => {
+  setSelectedDate(date);
+  setIsEditMode(false);
+  
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  
+  try {
+    const response = await fetch(`/api/diary/games?date=${dateStr}`, {
+      credentials: 'include'
+    });
+    
+    if (response.ok) {
+      const games = await response.json();
+      setAvailableGames(games);
+    }
+  } catch (error) {
+    console.error('경기 정보 불러오기 실패:', error);
+    setAvailableGames([]);
+  }
+  
+  const entry = diaryEntries.find(e => e.date === dateStr);
+  if (entry) {
+    setDiaryForm({
+      type: entry.type || 'attended',
+      emoji: entry.emoji,
+      emojiName: entry.emojiName,
+      winningName: entry.winningName,
+      gameId: entry.gameId ? String(entry.gameId) : '',
+      memo: entry.memo || '',
+      photos: entry.photos || []
+    });
+  } else {
+    setIsEditMode(true);
+    setDiaryForm({
+      type: 'attended',
+      emoji: happyEmoji,
+      emojiName: '즐거움',
+      winningName: '',
+      gameId: '',
+      memo: '',
+      photos: []
+    });
+  }
+}, [diaryEntries]);
+
+  useEffect(() => {
+    handleDateSelect(selectedDate);
+  }, [selectedDate]);
+
+  const handleSaveDiary = async () => {
+    const isUpdate = !!selectedDiary;
+    const entry = {
+      date: selectedDateStr,
+      type: diaryForm.type,
+      emoji: diaryForm.emoji,
+      emojiName: diaryForm.emojiName,
+      winningName: diaryForm.winningName,
+      gameId: diaryForm.gameId,
+      memo: diaryForm.memo,
+      photos: diaryForm.photos,
+      team: (() => {
+        const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+        return game ? `${game.homeTeam} vs ${game.awayTeam}` : '';
+      })(),
+      stadium: (() => {
+        const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+        return game?.stadium || '';
+      })()
+    };
+
+    const entryPayload = isUpdate ? { ...entry, id: selectedDiary!.id } : entry;
+    const method = 'POST';
+    const apiPath = isUpdate ? `/api/diary/${selectedDiary!.id}/modify` : '/api/diary/save'
+
+    try {
+      const response = await fetch(apiPath, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(entryPayload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`다이어리 ${isUpdate ? '수정' : '작성'} 실패`);
+      }
+      
+      const result = await response.json();
+
+      const finalEntry = {
+      ...entryPayload,
+      id: result.data?.id || result.id || (isUpdate ? selectedDiary!.id : undefined)
+      };
+
+      if (isUpdate) {
+          updateDiaryEntry(selectedDateStr, finalEntry as any);
+      } else {
+          addDiaryEntry(finalEntry as any);
+      }
+      
+      showCustomAlert(`다이어리가 ${isUpdate ? '수정' : '작성'}되었습니다!`);
+      setIsEditMode(false);
+
+    } catch (error) {
+      showCustomAlert(`다이어리 ${isUpdate ? '수정' : '작성'}에 실패했습니다.`);
+    }
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newPhotos = Array.from(files).map(file => URL.createObjectURL(file));
+      setDiaryForm({ ...diaryForm, photos: [...diaryForm.photos, ...newPhotos] });
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    const updatedPhotos = diaryForm.photos.filter((_, i) => i !== index);
+    setDiaryForm({ ...diaryForm, photos: updatedPhotos });
+  };
+
+  const handleDeleteDiary = async () => {
+    if (!selectedDiary) {
+      showCustomAlert('삭제할 다이어리가 없습니다');
+      return;
     }
 
+    const diaryId = selectedDiary?.id;
+    if(!diaryId) {
+      showCustomAlert('다이어리를 찾을 수 없습니다.');
+      return;
+    }
 
-    const goToPreviousMonth = () => {
-        setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
-    };
+    if (!window.confirm('정말로 이 다이어리를 삭제하시겠습니까?\n삭제된 다이어리는 복구할 수 없습니다.')) {
+      return;
+    }
 
-    const goToNextMonth = () => {
-        setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
-    };
-    // ====================================================================================
-    // 선택된 날짜의 다이어리 엔트리 찾기
-    const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-    const selectedDiary = diaryEntries.find(e => e.date === selectedDateStr);
+    try {
+      
+      const response = await fetch(`/api/diary/${diaryId}/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
 
-    // 다이어리 폼 상태
-    const [diaryForm, setDiaryForm] = useState({
-        type: 'attended' as 'attended' | 'scheduled',
-        emoji: happyEmoji,
-        emojiName: '즐거움',
-        gameId: '',
-        memo: '',
-        photos: [] as string[]
-    });
-
-    // 선택된 날짜의 경기 목록
-    const [availableGames, setAvailableGames] = useState<any[]>([]);
-
-    const TEAMS = [
-        'KIA',
-        'LG',
-        'NC',
-        'SSG',
-        '두산',
-        'KT',
-        '롯데',
-        '삼성',
-        '한화',
-        '키움'
-    ];
-
-    // 날짜 선택 시 해당 다이어리 로드 및 경기 정보 불러오기
-    const handleDateSelect = async (date: Date) => {
-        setSelectedDate(date);
-        setIsEditMode(false); // 날짜 변경 시 편집 모드 해제
-        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        const entry = diaryEntries.find(e => e.date === dateStr);
-
-        // 해당 날짜의 경기 정보 불러오기
-        try {
-            const response = await fetch(`/api/diary/games?date=${dateStr}`);
-            if (response.ok) {
-                const games = await response.json();
-                setAvailableGames(games);
-            } else {
-                setAvailableGames([]);
-            }
-        } catch (error) {
-            console.error('경기 정보 불러오기 실패:', error);
-            setAvailableGames([]);
+      if (!response.ok) {
+        if (response.status === 401) {
+          showCustomAlert('로그인이 필요합니다.');
+          navigateToLogin();
+          return;
         }
-
-        if (entry) {
-            setDiaryForm({
-                type: entry.type || 'attended',
-                emoji: entry.emoji,
-                emojiName: entry.emojiName,
-                gameId: entry.gameId || '',
-                memo: entry.memo || '',
-                photos: entry.photos || []
-            });
-        } else {
-            // 새 다이어리
-            setIsEditMode(true); // 새 다이어리는 바로 편집 모드
-            setDiaryForm({
-                type: 'attended',
-                emoji: happyEmoji,
-                emojiName: '즐거움',
-                gameId: '',
-                memo: '',
-                photos: []
-            });
+        if (response.status === 404) {
+          showCustomAlert('다이어리를 찾을 수 없습니다.');
+          return;
         }
+        throw new Error('다이어리 삭제 실패');
+      }
+        // Store에서 삭제 (날짜로 찾아서 삭제)
+        deleteDiaryEntry(selectedDateStr);
+        
+        showCustomAlert('다이어리가 삭제되었습니다.');
+        setIsEditMode(false);
+        
+        // 폼 초기화
+        setDiaryForm({
+          type: 'attended',
+          emoji: happyEmoji,
+          emojiName: '즐거움',
+          winningName: '',
+          gameId: '',
+          memo: '',
+          photos: []
+        });
+        
+      } catch (error) {
+        console.error('❌ 다이어리 삭제 오류:', error);
+        showCustomAlert('다이어리 삭제에 실패했습니다.');
+      }
     };
 
-    useEffect(() => {
-        // selectedDate가 변경될 때마다 폼 업데이트
-        handleDateSelect(selectedDate);
-    }, [selectedDate]);
+  return (
+    <div className="min-h-screen bg-white">
+      <Navbar currentPage="mypage" />
+
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 상단 회원 정보 섹션 */}
+        <Card className="p-8 mb-8">
+          <div className="flex items-start justify-between">
+            {/* 프로필 정보 */}
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden">
+                  {profileImage ? (
+                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h2 style={{ color: '#2d5f4f' }}>{name}</h2>
+                  <div className="flex items-center gap-2">
+                    {savedFavoriteTeam !== '없음' && (
+                      <div className="w-6 h-6">
+                        <TeamLogo team={savedFavoriteTeam} size="sm" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-gray-600 mb-1">{name}</p>
+                <p className="text-sm text-gray-500">{email}</p>
+              </div>
+            </div>
 
     const handleSaveDiary = () => {
         const entry = {
@@ -535,6 +753,175 @@ export default function MyPage() {
         }
     };
 
+            <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">
+              <Button variant="outline" className="flex-1" onClick={() => setViewMode('diary')}>취소</Button>
+              <Button onClick={handleSave} className="flex-1 text-white flex items-center justify-center gap-2" style={{ backgroundColor: '#2d5f4f' }}>
+                <Save className="w-5 h-5" />
+                저장하기
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* 통계 보기 뷰 */}
+        {viewMode === 'stats' && (
+          <div className="space-y-8">
+            {/* 월간 통계 */}
+            <Card className="p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <TrendingUp className="w-7 h-7" style={{ color: '#2d5f4f' }} />
+                <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>월간 기분 통계</h2>
+              </div>
+
+              <div className="flex items-center justify-around mb-6">
+                {emojiStats.map((item, index) => (
+                  <div key={index} className="text-center">
+                    <img src={item.emoji} alt={item.name} className="w-20 h-20 mx-auto mb-2 object-contain" />
+                    <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                      {item.count}
+                    </div>
+                    <div className="text-sm text-gray-600">{item.name}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t pt-6 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">총 직관 횟수</span>
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontWeight: 900, fontSize: '20px', color: '#2d5f4f' }}>
+                      {totalCount}회
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">응원팀 승률</span>
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                      60% (3승 2패)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* 연간 통계 */}
+            <Card className="p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <BarChart3 className="w-7 h-7" style={{ color: '#2d5f4f' }} />
+                <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>연간 직관 통계</h2>
+              </div>
+
+              <div className="grid grid-cols-3 gap-6 mb-6">
+                <div className="bg-green-50 p-6 rounded-xl text-center">
+                  <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                    24
+                  </div>
+                  <div className="text-sm text-gray-600">총 직관 횟수</div>
+                </div>
+                <div className="bg-green-50 p-6 rounded-xl text-center">
+                  <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                    15승
+                  </div>
+                  <div className="text-sm text-gray-600">응원팀 승리</div>
+                </div>
+                <div className="bg-green-50 p-6 rounded-xl text-center">
+                  <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                    62.5%
+                  </div>
+                  <div className="text-sm text-gray-600">연간 승률</div>
+                </div>
+              </div>
+
+              <div className="border-t pt-6 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">가장 많이 간 구장</span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>광주 KIA 챔피언스 필드 (8회)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">가장 행복했던 달</span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>7월 (좋음 12회)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">첫 직관</span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>2024년 3월 23일</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* 다이어리 뷰 */}
+        {viewMode === 'diary' && (
+          <div className="rounded-3xl p-8" style={{ backgroundColor: '#2d5f4f' }}>
+            <div className="grid grid-cols-20 gap-8">
+            {/* 왼쪽: 캘린더 */}
+            <Card className="p-8 col-span-13">
+              <div className="flex items-center justify-between mb-6">
+                <button onClick={goToPreviousMonth} className="p-2 hover:bg-gray-100 rounded-full">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <h3 style={{ fontWeight: 900 }}>
+                  {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
+                </h3>
+                <button onClick={goToNextMonth} className="p-2 hover:bg-gray-100 rounded-full">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-7 gap-3">
+                {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+                  <div key={day} className="text-center py-2 text-sm text-gray-500">
+                    {day}
+                  </div>
+                ))}
+
+                {Array.from({ length: 35 }, (_, i) => {
+                  const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+                  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+                  const dayNumber = i - firstDay + 1;
+                  const isValidDay = dayNumber > 0 && dayNumber <= daysInMonth;
+                  
+                  const dateStr = isValidDay 
+                    ? `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
+                    : '';
+                  
+                  const entry = diaryEntries.find(e => e.date === dateStr);
+                  const isSelected = selectedDateStr === dateStr;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => isValidDay && handleDateSelect(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayNumber))}
+                      className={`border rounded-lg p-2 flex flex-col min-h-[110px] ${
+                        isValidDay ? 'bg-white hover:bg-gray-50' : 'bg-gray-50'
+                      } ${isSelected ? 'ring-2 ring-offset-1' : ''}`}
+                      style={{
+                        borderColor: entry 
+                          ? entry.type === 'attended' 
+                            ? '#2d5f4f' 
+                            : '#fbbf24'
+                          : '#e5e7eb',
+                        backgroundColor: entry 
+                          ? entry.type === 'attended'
+                            ? '#e8f5f0'
+                            : '#fef3c7'
+                          : isValidDay ? 'white' : '#f9fafb',
+                        ringColor: isSelected ? '#2d5f4f' : undefined
+                      }}
+                      disabled={!isValidDay}
+                    >
+                      {isValidDay && (
+                        <>
+                          <div className="text-sm text-center w-full mb-2">{dayNumber}</div>
+                          {entry && (
+                            <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
+                              {entry.team && (
+                                <div className="text-[10px] text-gray-700 font-semibold text-center leading-snug px-1 line-clamp-2">
+                                  {entry.team}
+                                </div>
+                              )}
+                              <img src={entry.emoji} alt={entry.emojiName} className="w-10 h-10 flex-shrink-0" />
     const removePhoto = (index: number) => {
         const updatedPhotos = diaryForm.photos.filter((_, i) => i !== index);
         setDiaryForm({ ...diaryForm, photos: updatedPhotos });
@@ -578,6 +965,41 @@ export default function MyPage() {
                                 <p className="text-sm text-gray-500">{email}</p>
                             </div>
                         </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 경기 정보 */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-[80px_1fr] gap-2">
+                      <div className="text-sm text-gray-600">경기</div>
+                      <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                        {(() => {
+                          const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+                          if (game) {
+                            return `${game.homeTeam} vs ${game.awayTeam}`;
+                          }
+                          return selectedDiary?.team || '경기 정보 없음';
+                        })()}
+                      </div>
+                    </div>
+                    
+                    {/* 스코어 표시 - game에서 가져오거나 selectedDiary에서 가져옴 */}
+                    {(() => {
+                      const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+                      const score = game?.score || selectedDiary?.score;
+                      if (score) {
+                        return (
+                          <div className="grid grid-cols-[80px_1fr] gap-2">
+                            <div className="text-sm text-gray-600">스코어</div>
+                            <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                              {score}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
 
                         {/* 버튼들 */}
                         <div className="flex items-center gap-3">
@@ -600,6 +1022,22 @@ export default function MyPage() {
                         </div>
                     </div>
 
+
+                    {diaryForm.winningName && (
+                      <div className="grid grid-cols-[80px_1fr] gap-2">
+                        <div className="text-sm text-gray-600">승패</div>
+                        <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                          {diaryForm.winningName === 'WIN' ? '승리' : 
+                          diaryForm.winningName === 'DRAW' ? '무승부' : '패배'}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedDiary?.score && (
+                      <div className="grid grid-cols-[80px_1fr] gap-2">
+                        <div className="text-sm text-gray-600">스코어</div>
+                        <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                          {selectedDiary.score}
                     {/* 간단한 통계 정보 */}
                     <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t">
                         <div className="text-center">
@@ -614,6 +1052,56 @@ export default function MyPage() {
                             </div>
                             <div className="text-sm text-gray-600">응원글</div>
                         </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 수정하기 버튼 */}
+                  <div className="flex gap-3 justify-center">
+                    <Button
+                      onClick={() => setIsEditMode(true)}
+                      className="text-white"
+                      style={{ backgroundColor: '#2d5f4f' }}
+                    >
+                      수정하기
+                    </Button>
+                    <Button
+                      onClick={() => {handleDeleteDiary();}}
+                      className="text-white"
+                      style={{ backgroundColor: '#EF4444' }}
+                    >
+                      삭제
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* 편집 모드 또는 새 다이어리 작성 */
+                <div className="space-y-4">
+                  {/* Type Selection */}
+                  <div>
+                    <label className="text-sm text-gray-600 mb-3 block">직관 유형</label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setDiaryForm({ ...diaryForm, type: 'attended' })}
+                        className={`flex-1 rounded-lg transition-all transform group ${
+                          diaryForm.type === 'attended'
+                            ? 'shadow-md scale-105'
+                            : 'bg-gray-100 hover:bg-gray-200 active:scale-95'
+                        }`}
+                        style={diaryForm.type === 'attended' ? {
+                          backgroundColor: 'rgb(45, 95, 79)',
+                          padding: '10px'
+                        } : {
+                          padding: '10px'
+                        }}
+                      >
+                        <div className={`font-bold ${
+                          diaryForm.type === 'attended' 
+                            ? 'text-white' 
+                            : 'text-gray-700 group-hover:text-[rgb(45,95,79)]'
+                        }`}>
+                          직관 완료
                         <div className="text-center">
                             <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
                                 60%
@@ -798,6 +1286,148 @@ export default function MyPage() {
                             </div>
                         </Card>
                     </div>
+                    
+
+                    {diaryForm.type === 'attended' && (
+                      <div className="space-y-2">
+                        <label className="block text-sm text-gray-500 mb-2">
+                          응원 팀 승패
+                        </label>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setDiaryForm(prev => ({ ...prev, winningName: 'WIN' }))}
+                            className={`flex-1 py-4 px-4 rounded-xl transition-all transform border-2 ${
+                              diaryForm.winningName === 'WIN'
+                                ? 'shadow-lg scale-105'
+                                : 'hover:scale-105 active:scale-95'
+                            }`}
+                            style={diaryForm.winningName === 'WIN' ? {
+                              backgroundColor: '#22c55e',
+                              color: 'white',
+                              borderColor: '#22c55e'
+                            } : {
+                              backgroundColor: '#f0fdf4',
+                              color: '#166534',
+                              borderColor: '#f0fdf4'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (diaryForm.winningName !== 'WIN') {
+                                e.currentTarget.style.borderColor = '#22c55e';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (diaryForm.winningName !== 'WIN') {
+                                e.currentTarget.style.borderColor = '#f0fdf4';
+                              }
+                            }}
+                          >
+                            <div className="font-bold text-lg">승</div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDiaryForm(prev => ({ ...prev, winningName: 'DRAW' }))}
+                            className={`flex-1 py-4 px-4 rounded-xl transition-all transform border-2 ${
+                              diaryForm.winningName === 'DRAW'
+                                ? 'shadow-lg scale-105'
+                                : 'hover:scale-105 active:scale-95'
+                            }`}
+                            style={diaryForm.winningName === 'DRAW' ? {
+                              backgroundColor: '#eab308',
+                              color: 'white',
+                              borderColor: '#eab308'
+                            } : {
+                              backgroundColor: '#fefce8',
+                              color: '#854d0e',
+                              borderColor: '#fefce8'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (diaryForm.winningName !== 'DRAW') {
+                                e.currentTarget.style.borderColor = '#eab308';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (diaryForm.winningName !== 'DRAW') {
+                                e.currentTarget.style.borderColor = '#fefce8';
+                              }
+                            }}
+                          >
+                            <div className="font-bold text-lg">무</div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDiaryForm(prev => ({ ...prev, winningName: 'LOSE' }))}
+                            className={`flex-1 py-4 px-4 rounded-xl transition-all transform border-2 ${
+                              diaryForm.winningName === 'LOSE'
+                                ? 'shadow-lg scale-105'
+                                : 'hover:scale-105 active:scale-95'
+                            }`}
+                            style={diaryForm.winningName === 'LOSE' ? {
+                              backgroundColor: '#ef4444',
+                              color: 'white',
+                              borderColor: '#ef4444'
+                            } : {
+                              backgroundColor: '#fef2f2',
+                              color: '#991b1b',
+                              borderColor: '#fef2f2'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (diaryForm.winningName !== 'LOSE') {
+                                e.currentTarget.style.borderColor = '#ef4444';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (diaryForm.winningName !== 'LOSE') {
+                                e.currentTarget.style.borderColor = '#fef2f2';
+                              }
+                            }}
+                          >
+                            <div className="font-bold text-lg">패</div>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-sm text-gray-500 mb-1 block">메모</label>
+                      <textarea
+                        disabled={diaryForm.type === 'scheduled'}
+                        value={diaryForm.memo}
+                        onChange={(e) => setDiaryForm({ ...diaryForm, memo: e.target.value })}
+                        placeholder={diaryForm.type === 'attended' ? "오늘의 직관 경험을 기록해보세요" : "경기 후 입력 가능"}
+                        rows={4}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    {selectedDiary && (
+                      <Button 
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setIsEditMode(false);
+                          handleDateSelect(selectedDate); // 원래 데이터로 복원
+                        }}
+                      >
+                        취소
+                      </Button>
+                    )}
+                    <Button 
+                      className={`${selectedDiary ? 'flex-1' : 'w-full'} text-white`}
+                      style={{ backgroundColor: '#2d5f4f' }}
+                      onClick={() => {
+                        handleSaveDiary();
+                      }}
+                    >
+                      {selectedDiary ? '저장하기' : '작성하기'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
                 )}
 
                 {/* 다이어리 뷰 */}
