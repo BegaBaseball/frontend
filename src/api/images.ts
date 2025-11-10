@@ -89,3 +89,32 @@ export async function renewSignedUrl(imageId: number): Promise<{ signedUrl: stri
     expiresAt: json.expiresAt
   };
 }
+
+// ============================================
+// 🔥 프로필 이미지 직접 업로드 (Edge Function 없이)
+// ============================================
+export async function uploadProfileImage(userId: string, file: File): Promise<string[]> {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}-${Date.now()}.${fileExt}`;
+    const filePath = fileName;
+    //const filePath = `profiles/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('profile-images')
+      .upload(filePath, file, {
+        upsert: true,
+      });
+
+    if (error) throw error;
+
+    const { data: publicData } = supabase.storage
+      .from('profile-images')
+      .getPublicUrl(filePath);
+
+    return [publicData.publicUrl];
+  } catch (error) {
+    console.error('프로필 이미지 업로드 실패:', error);
+    throw error;
+  }
+}
