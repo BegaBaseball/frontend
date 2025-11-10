@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Navbar from './Navbar';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -11,13 +12,69 @@ import TeamLogo, { teamIdToName } from './TeamLogo';
 import { Input } from './ui/input';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import ChatBot from './ChatBot';
+import { useAuthStore } from '../store/authStore';
 
 export default function Mate() {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  const { parties, setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
+  const { parties, setParties, setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
+
+  const currentUser = useAuthStore((state) => state.user);
+
+  // 컴포넌트 마운트 시 파티 목록 불러오기
+  useEffect(() => {
+    const fetchParties = async () => {
+      try {
+        console.log('파티 목록 불러오는 중...');
+        
+        const response = await fetch('http://localhost:8080/api/parties', {
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const backendParties = await response.json();
+          console.log('파티 목록 불러오기 성공:', backendParties.length + '개');
+          
+          // Response 구조를 프론트엔드 구조로 변환
+          const mappedParties = backendParties.map((party: any) => ({
+            id: party.id.toString(),
+            hostId: party.hostId.toString(),
+            hostName: party.hostName,
+            hostProfileImageUrl: party.hostProfileImageUrl,
+            hostBadge: party.hostBadge.toLowerCase(), // NEW → new
+            hostRating: party.hostRating,
+            teamId: party.teamId,
+            gameDate: party.gameDate,
+            gameTime: party.gameTime,
+            stadium: party.stadium,
+            homeTeam: party.homeTeam,
+            awayTeam: party.awayTeam,
+            section: party.section,
+            maxParticipants: party.maxParticipants,
+            currentParticipants: party.currentParticipants,
+            description: party.description,
+            ticketVerified: party.ticketVerified,
+            ticketImageUrl: party.ticketImageUrl,
+            status: party.status,
+            price: party.price,
+            ticketPrice: party.ticketPrice || 0,
+            createdAt: party.createdAt,
+          }));
+          
+          setParties(mappedParties);
+        } else {
+          console.error('파티 목록 불러오기 실패:', response.status);
+        }
+      } catch (error) {
+        console.error('파티 목록 불러오기 오류:', error);
+      }
+    };
+
+    fetchParties();
+  }, [setParties]);
 
   const handlePartyClick = (party: any) => {
     setSelectedParty(party);
+    localStorage.setItem('selectedParty', JSON.stringify(party)); // ✅ 추가
     setCurrentView('mateDetail');
   };
 
@@ -46,87 +103,124 @@ export default function Mate() {
   };
 
   // 검색 필터링
-  const filterParties = (partyList: any[]) => {
-    if (!searchQuery.trim()) return partyList;
-    
-    const query = searchQuery.toLowerCase();
-    return partyList.filter(party => {
-      const homeTeamName = teamIdToName[party.homeTeam] || party.homeTeam;
-      const awayTeamName = teamIdToName[party.awayTeam] || party.awayTeam;
-      
-      return (
-        party.stadium.toLowerCase().includes(query) ||
-        homeTeamName.toLowerCase().includes(query) ||
-        awayTeamName.toLowerCase().includes(query) ||
-        party.section.toLowerCase().includes(query) ||
-        party.hostName.toLowerCase().includes(query)
-      );
-    });
-  };
+const filterParties = (partyList: any[]) => {
+  // ✅ 체크인 완료 및 완료된 파티는 목록에서 제외
+  const activeParties = partyList.filter(party => 
+    party.status !== 'CHECKED_IN' && party.status !== 'COMPLETED'
+  );
 
-  const renderPartyCard = (party: any) => (
-    <Card
-      key={party.id}
-      className="p-5 hover:shadow-lg transition-shadow cursor-pointer border-2"
-      onClick={() => handlePartyClick(party)}
-    >
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-3">
-          <Avatar className="w-12 h-12">
-            <AvatarFallback className="text-white" style={{ backgroundColor: '#2d5f4f' }}>
-              {party.hostName.slice(0, 2)}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-gray-900">{party.hostName}</span>
-              {getBadgeIcon(party.hostBadge)}
-              <TeamLogo teamId={party.teamId} size="sm" />
-            </div>
-            <div className="flex items-center gap-1 text-sm text-gray-500">
-              <TrendingUp className="w-3 h-3" style={{ color: '#2d5f4f' }} />
-              <span>신뢰도 {party.hostRating}</span>
+  if (!searchQuery.trim()) return activeParties;
+  
+  const query = searchQuery.toLowerCase();
+  return activeParties.filter(party => {
+    const homeTeamName = teamIdToName[party.homeTeam] || party.homeTeam;
+    const awayTeamName = teamIdToName[party.awayTeam] || party.awayTeam;
+    
+    return (
+      party.stadium.toLowerCase().includes(query) ||
+      homeTeamName.toLowerCase().includes(query) ||
+      awayTeamName.toLowerCase().includes(query) ||
+      party.section.toLowerCase().includes(query) ||
+      party.hostName.toLowerCase().includes(query)
+    );
+  });
+};
+
+   const renderPartyCard = (party: any) => {
+    const isMyParty = currentUser && party.hostName === currentUser.name;
+    
+    // 프로필 이미지 URL 처리
+    let profileImageUrl = isMyParty 
+      ? currentUser.profileImageUrl 
+      : party.hostProfileImageUrl;
+    
+    // blob URL 무시
+    if (profileImageUrl?.startsWith('blob:')) {
+      profileImageUrl = null;
+    }
+    
+    console.log('🎭 파티:', party.hostName, '이미지:', profileImageUrl);
+    
+    return (
+      <Card
+        key={party.id}
+        className="p-5 hover:shadow-lg transition-shadow cursor-pointer border-2"
+        onClick={() => handlePartyClick(party)}
+      >
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex items-center gap-3">
+            <Avatar className="w-12 h-12">
+              {profileImageUrl && (
+                <img 
+                  src={profileImageUrl} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover rounded-full"
+                />
+              )}
+              <AvatarFallback className="text-white" style={{ backgroundColor: '#2d5f4f' }}>
+                {party.hostName.slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-gray-900">{party.hostName}</span>
+                {getBadgeIcon(party.hostBadge)}
+                <TeamLogo teamId={party.teamId} size="sm" />
+              </div>
+              <div className="flex items-center gap-1 text-sm text-gray-500">
+                <TrendingUp className="w-3 h-3" style={{ color: '#2d5f4f' }} />
+                <span>신뢰도 {party.hostRating}</span>
+              </div>
             </div>
           </div>
+          {getStatusBadge(party.status)}
         </div>
-        {getStatusBadge(party.status)}
-      </div>
 
-      <div className="space-y-2 mb-3">
-        {/* 팀 매치업 - 날짜 위에 */}
-        <div className="flex items-center gap-2 mb-1">
-          <TeamLogo teamId={party.homeTeam} size="md" />
-          <span className="text-sm text-gray-400">VS</span>
-          <TeamLogo teamId={party.awayTeam} size="md" />
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center gap-2 mb-1">
+            <TeamLogo teamId={party.homeTeam} size="md" />
+            <span className="text-sm text-gray-400">VS</span>
+            <TeamLogo teamId={party.awayTeam} size="md" />
+          </div>
+          
+          <div className="flex items-center gap-2 text-gray-700">
+            <Calendar className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            <span className="text-sm">{party.gameDate} {party.gameTime}</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-700">
+            <MapPin className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            <span className="text-sm">{party.stadium} • {party.section}</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-700">
+            <Users className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            <span className="text-sm">
+              {party.currentParticipants}/{party.maxParticipants}명
+            </span>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-2 text-gray-700">
-          <Calendar className="w-4 h-4" style={{ color: '#2d5f4f' }} />
-          <span className="text-sm">{party.gameDate} {party.gameTime}</span>
-        </div>
-        <div className="flex items-center gap-2 text-gray-700">
-          <MapPin className="w-4 h-4" style={{ color: '#2d5f4f' }} />
-          <span className="text-sm">{party.stadium} • {party.section}</span>
-        </div>
-        <div className="flex items-center gap-2 text-gray-700">
-          <Users className="w-4 h-4" style={{ color: '#2d5f4f' }} />
-          <span className="text-sm">
-            {party.currentParticipants}/{party.maxParticipants}명
-          </span>
-        </div>
-      </div>
 
-      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{party.description}</p>
+        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{party.description}</p>
 
-      {party.price && (
-        <div className="text-right">
-          <span style={{ color: '#2d5f4f' }}>
-            {party.price.toLocaleString()}원
-          </span>
+        <div className="pt-3 border-t">
+          {party.status === 'SELLING' && party.price ? (
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">티켓 판매가</span>
+              <span style={{ color: '#2d5f4f' }}>
+                {party.price.toLocaleString()}원
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">참가비</span>
+              <span style={{ color: '#2d5f4f' }}>
+                {((party.ticketPrice || 0) + 10000).toLocaleString()}원
+              </span>
+            </div>
+          )}
         </div>
-      )}
-    </Card>
-  );
+      </Card>
+    );
+  };
 
   const filteredParties = filterParties(parties);
   const pendingParties = filterParties(parties.filter((p) => p.status === 'PENDING'));

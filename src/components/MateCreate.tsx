@@ -76,52 +76,130 @@ export default function MateCreate() {
     }
   };
 
-  const canProceedToStep = (targetStep: number) => {
-    if (targetStep === 2) {
-      return formData.gameDate && formData.homeTeam && formData.awayTeam && formData.stadium;
-    }
-    if (targetStep === 3) {
-      return formData.section && formData.maxParticipants > 0;
-    }
-    if (targetStep === 4) {
-      return formData.description && !formErrors.description;
-    }
-    return true;
-  };
+const canProceedToStep = (targetStep: number) => {
+  if (targetStep === 2) {
+    return formData.gameDate && formData.homeTeam && formData.awayTeam && formData.stadium;
+  }
+  if (targetStep === 3) {
+    return formData.section && formData.maxParticipants > 0 && formData.ticketPrice > 0; // ✅ ticketPrice 검증 추가
+  }
+  if (targetStep === 4) {
+    return formData.description && !formErrors.description;
+  }
+  return true;
+};
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.ticketFile) {
       setFormError('ticketFile', '예매내역 인증이 필요합니다.');
       return;
     }
 
-    const newParty = {
-      id: Date.now().toString(),
-      hostId: 'currentUser',
-      hostName: '나',
-      hostBadge: 'new' as const,
-      hostRating: 5.0,
-      teamId: formData.homeTeam,
-      gameDate: formData.gameDate,
-      gameTime: formData.gameTime || '18:30',
-      stadium: formData.stadium,
-      homeTeam: formData.homeTeam,
-      awayTeam: formData.awayTeam,
-      section: formData.section,
-      maxParticipants: formData.maxParticipants,
-      currentParticipants: 1,
-      description: formData.description,
-      ticketVerified: true,
-      status: 'PENDING' as const,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      // 1. 현재 사용자 정보 가져오기
+      const userResponse = await fetch('http://localhost:8080/api/auth/mypage', {
+        credentials: 'include',
+      });
+      
+      if (!userResponse.ok) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+      
+      const userData = await userResponse.json();
+      console.log('사용자 정보:', userData);
+      
+      // 2. userId 조회
+      const userIdResponse = await fetch(
+        `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(userData.data.email)}`,
+        { credentials: 'include' }
+      );
+      
+      if (!userIdResponse.ok) {
+        alert('사용자 정보를 가져올 수 없습니다.');
+        return;
+      }
+      
+      const userIdData = await userIdResponse.json();
+      const currentUserId = userIdData.data || userIdData;
+      
+      console.log('사용자 ID:', currentUserId);
 
-    addParty(newParty);
-    setSelectedParty(newParty);
-    resetForm();
-    setCurrentView('mateDetail');
+      // 3. 백엔드 API 구조에 맞춰 데이터 생성
+      const partyData = {
+        hostId: currentUserId,
+        hostName: userData.data.name,
+        hostBadge: 'NEW',
+        hostRating: 5.0,
+        teamId: formData.homeTeam,
+        gameDate: formData.gameDate,
+        gameTime: formData.gameTime || '18:30:00',
+        stadium: formData.stadium,
+        homeTeam: formData.homeTeam,
+        awayTeam: formData.awayTeam,
+        section: formData.section,
+        maxParticipants: formData.maxParticipants,
+        description: formData.description,
+        ticketImageUrl: null,
+        ticketPrice: formData.ticketPrice,
+      };
+
+      console.log('🎫 프론트엔드 - formData.ticketPrice:', formData.ticketPrice);
+      console.log('📤 프론트엔드 - 전송할 데이터:', partyData);
+
+      const response = await fetch('http://localhost:8080/api/parties', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(partyData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ 파티 생성 실패:', errorText);
+        alert('파티 생성에 실패했습니다.');
+        return;
+      }
+
+      const createdParty = await response.json();
+      console.log('✅ 파티 생성 성공:', createdParty);
+
+      // 4. 프론트엔드 형식으로 변환
+      const mappedParty = {
+        id: createdParty.id.toString(),
+        hostId: createdParty.hostId.toString(),
+        hostName: createdParty.hostName,
+        hostBadge: createdParty.hostBadge.toLowerCase(),
+        hostRating: createdParty.hostRating,
+        teamId: createdParty.teamId,
+        gameDate: createdParty.gameDate,
+        gameTime: createdParty.gameTime,
+        stadium: createdParty.stadium,
+        homeTeam: createdParty.homeTeam,
+        awayTeam: createdParty.awayTeam,
+        section: createdParty.section,
+        maxParticipants: createdParty.maxParticipants,
+        currentParticipants: createdParty.currentParticipants,
+        description: createdParty.description,
+        ticketVerified: createdParty.ticketVerified,
+        status: createdParty.status,
+        ticketPrice: createdParty.ticketPrice, // ✅ 추가
+        createdAt: createdParty.createdAt,
+      };
+
+      addParty(mappedParty);
+      setSelectedParty(mappedParty);
+      resetForm();
+      alert('파티가 생성되었습니다!');
+      setCurrentView('mateDetail');
+
+    } catch (error) {
+      console.error('❌ 파티 생성 중 오류:', error);
+      alert('파티 생성 중 오류가 발생했습니다.');
+    }
   };
-
   const handleBack = () => {
     if (createStep === 1) {
       resetForm();
@@ -304,12 +382,38 @@ export default function MateCreate() {
                     <SelectItem value="4">4명 (본인 포함)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-gray-500">
-                  본인을 포함한 총 인원수입니다
-                </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ticketPrice">티켓 가격 (1인당) *</Label>
+                  <div className="relative">
+                    <Input
+                      id="ticketPrice"
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={formData.ticketPrice || ''}
+                      onChange={(e) => updateFormData({ ticketPrice: parseInt(e.target.value) || 0 })}
+                      placeholder="예: 12000"
+                      className="pr-12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                      원
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    예매한 티켓의 1인당 가격을 입력해주세요
+                  </p>
+                  {formData.ticketPrice > 0 && (
+                    <Alert>
+                      <AlertCircle className="w-4 h-4" />
+                      <AlertDescription className="text-sm">
+                        참여자는 티켓 가격 <span style={{ color: '#2d5f4f' }}>{formData.ticketPrice.toLocaleString()}원</span> + 보증금 10,000원을 결제합니다.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Step 3: 소개글 */}
           {createStep === 3 && (
