@@ -48,15 +48,12 @@ export default function CheerEdit() {
       setLoadingImages(true);
 
       try {
-        console.log('[CheerEdit] 이미지 목록 로드 시작, postId:', selectedPostId);
         const images = await listPostImages(selectedPostId);
-        console.log('[CheerEdit] 이미지 목록 조회 완료:', images.length, '개');
 
         if (cancelled) return;
         setExistingImages(images);
 
         if (images.length === 0) {
-          console.log('[CheerEdit] 이미지가 없습니다');
           if (!cancelled) setLoadingImages(false);
           return;
         }
@@ -65,12 +62,9 @@ export default function CheerEdit() {
         const entries = await Promise.all(
           images.map(async (img) => {
             try {
-              console.log(`[CheerEdit] 이미지 ${img.id} URL 생성 시도...`);
               const { signedUrl } = await renewSignedUrl(img.id);
-              console.log(`[CheerEdit] 이미지 ${img.id} URL 생성 성공:`, signedUrl?.substring(0, 50) + '...');
               return [img.id, signedUrl] as const;
             } catch (error) {
-              console.error(`[CheerEdit] 이미지 ${img.id} URL 생성 실패:`, error);
               return [img.id, ''] as const;
             }
           })
@@ -80,7 +74,6 @@ export default function CheerEdit() {
           setImageUrls(new Map(entries.filter(([, url]) => url)));
         }
       } catch (error) {
-        console.error('[CheerEdit] 이미지 로드 실패:', error);
         toast.error('이미지 로드 실패');
       } finally {
         if (!cancelled) setLoadingImages(false);
@@ -391,11 +384,10 @@ export default function CheerEdit() {
                                 alt={`이미지 ${idx + 1}`}
                                 className="absolute inset-0 z-0 h-full w-full select-none object-cover pointer-events-none"
                                 onError={(e) => {
-                                  console.warn('[CheerEdit] 이미지 로드 실패 URL:', imageUrl);
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                            )}
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          )}
                             <div
                               className={`absolute inset-0 z-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 ${
                                 imageUrl ? 'hidden' : ''
