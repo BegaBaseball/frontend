@@ -92,7 +92,7 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
     proxy: {
       '/api': {
         target: proxyTarget,
-        // target: 'http://localhost:8080',
+        // target: 'http://backend:8080',
         changeOrigin: true,
         secure: false,
         // cookieDomainRewrite: 'localhost',

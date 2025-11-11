@@ -18,6 +18,7 @@ import { useDiaryStore } from '../store/diaryStore';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useAuthStore } from '../store/authStore';
 import { useNavigationStore } from '../store/navigationStore';
+import { DiaryStatistics } from '../store/diaryStore';
 import { Users } from 'lucide-react';
 
 const API_URL = 'http://localhost:8080/api/auth/mypage';
@@ -94,6 +95,22 @@ export default function MyPage() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const [mateHistoryTab, setMateHistoryTab] = useState<'all' | 'completed' | 'ongoing'>('all');
   const { diaryEntries, addDiaryEntry, updateDiaryEntry, deleteDiaryEntry, setDiaryEntries } = useDiaryStore();
+  const [statistics, setStatistics] = useState<DiaryStatistics>({
+    totalCount: 0,
+    totalWins: 0,
+    totalLosses: 0,
+    totalDraws: 0,
+    winRate: 0,
+    yearlyCount: 0,
+    yearlyWins: 0,
+    yearlyWinRate: 0,
+    mostVisitedStadium: null,
+    mostVisitedCount: 0,
+    happiestMonth: null,
+    happiestCount: 0,
+    firstDiaryDate: null,
+  });
+
 
   const emojiStats = useMemo(() => {
     
@@ -390,59 +407,121 @@ const updatedProfile = {
     winningName: '',
     gameId: '',
     memo: '',
-    photos: [] as string[]
+    photos: [] as string[],
+    photoFiles: [] as File[]
   });
 
   const [availableGames, setAvailableGames] = useState<any[]>([]);
 
   const handleDateSelect = useCallback(async (date: Date) => {
-  setSelectedDate(date);
-  setIsEditMode(false);
+    setSelectedDate(date);
+    setIsEditMode(false);
   
-  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   
-  try {
-    const response = await fetch(`/api/diary/games?date=${dateStr}`, {
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      const games = await response.json();
-      setAvailableGames(games);
+    try {
+      const response = await fetch(`/api/diary/games?date=${dateStr}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const games = await response.json();
+        setAvailableGames(games);
+      }
+    } catch (error) {
+      console.error('경기 정보 불러오기 실패:', error);
+      setAvailableGames([]);
     }
-  } catch (error) {
-    console.error('경기 정보 불러오기 실패:', error);
-    setAvailableGames([]);
-  }
-  
-  const entry = diaryEntries.find(e => e.date === dateStr);
-  if (entry) {
-    setDiaryForm({
-      type: entry.type || 'attended',
-      emoji: entry.emoji,
-      emojiName: entry.emojiName,
-      winningName: entry.winningName || '',
-      gameId: entry.gameId ? String(entry.gameId) : '',
-      memo: entry.memo || '',
-      photos: entry.photos || []
-    });
-  } else {
-    setIsEditMode(true);
-    setDiaryForm({
-      type: 'attended',
-      emoji: happyEmoji,
-      emojiName: '즐거움',
-      winningName: '',
-      gameId: '',
-      memo: '',
-      photos: []
-    });
-  }
-}, [diaryEntries]);
+    
+    const entry = diaryEntries.find(e => e.date === dateStr);
+    if (entry) {
+      setDiaryForm({
+        type: entry.type || 'attended',
+        emoji: entry.emoji,
+        emojiName: entry.emojiName,
+        winningName: entry.winningName,
+        gameId: entry.gameId ? String(entry.gameId) : '',
+        memo: entry.memo || '',
+        photos: entry.photos || [],
+        photoFiles: []
+      });
+    } else {
+      setIsEditMode(true);
+      setDiaryForm({
+        type: 'attended',
+        emoji: happyEmoji,
+        emojiName: '즐거움',
+        winningName: '',
+        gameId: '',
+        memo: '',
+        photos: [],
+        photoFiles: []
+      });
+    }
+  }, [diaryEntries]);
 
   useEffect(() => {
     handleDateSelect(selectedDate);
   }, [selectedDate]);
+
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+      if (files) {
+        const fileArray = Array.from(files);
+
+        const MAX_FILE_SIZE = 10 * 1024 * 1024;
+        const oversizedFiles = fileArray.filter(file => file.size > MAX_FILE_SIZE);
+        
+        if (oversizedFiles.length > 0) {
+          alert(`파일 크기가 너무 큽니다. 각 파일은 10MB 이하여야 합니다.\n큰 파일: ${oversizedFiles.map(f => f.name).join(', ')}`);
+          return;
+        }
+        
+        const totalSize = fileArray.reduce((sum, file) => sum + file.size, 0);
+        if (totalSize > 60 * 1024 * 1024) {
+          alert('전체 파일 크기가 60MB를 초과합니다.');
+          return;
+        }
+
+        const newPhotoPromises = fileArray.map(file => {
+          return new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              resolve(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+          });
+        });
+
+        Promise.all(newPhotoPromises).then(newPhotos => {
+          setDiaryForm(prev => ({
+            ...prev,
+            photos: [...prev.photos, ...newPhotos],
+            photoFiles: [...prev.photoFiles, ...fileArray]
+          }));
+        });
+    } 
+  };
+
+  // const removePhoto = (index: number) => {
+  //   const updatedPhotos = diaryForm.photos.filter((_, i) => i !== index);
+  //   const updatedFiles = diaryForm.photoFiles.filter((_, i) => i !== index);
+  
+  //   setDiaryForm({ 
+  //     ...diaryForm, 
+  //     photos: updatedPhotos,
+  //     photoFiles: updatedFiles
+  //   });
+  // };
+
+  const removePhoto = (index: number) => {
+  setDiaryForm(prev => ({ 
+    ...prev, 
+    photos: prev.photos.filter((_, i) => i !== index),
+    photoFiles: prev.photoFiles.filter((_, i) => i !== index)
+  }));
+  };
 
   const handleSaveDiary = async () => {
     const isUpdate = !!selectedDiary;
@@ -454,7 +533,7 @@ const updatedProfile = {
       winningName: diaryForm.winningName,
       gameId: diaryForm.gameId,
       memo: diaryForm.memo,
-      photos: diaryForm.photos,
+      photos: [],
       team: (() => {
         const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
         return game ? `${game.homeTeam} vs ${game.awayTeam}` : '';
@@ -484,10 +563,33 @@ const updatedProfile = {
       }
       
       const result = await response.json();
+      const diaryId = result.id || result.data?.id || (isUpdate ? selectedDiary!.id : undefined);
+      let finalPhotos: string[] = [];
+
+      if (diaryForm.photoFiles.length > 0) {
+      const formData = new FormData();
+      diaryForm.photoFiles.forEach(file => {
+        formData.append('images', file);
+      });
+
+      // 백그라운드로 이미지 업로드
+      const imageResponse = await fetch(`/api/diary/${diaryId}/images`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+
+      if (imageResponse.ok) {
+        const imageResult = await imageResponse.json();
+        finalPhotos = imageResult.photos || imageResult.data?.photos || [];
+      } else {
+        throw new Error('이미지 업로드 실패');
+      }
 
       const finalEntry = {
-      ...entryPayload,
-      id: result.data?.id || result.id || (isUpdate ? selectedDiary!.id : undefined)
+        ...entryPayload,
+        id: diaryId,
+        photos: finalPhotos
       };
 
       if (isUpdate) {
@@ -499,6 +601,8 @@ const updatedProfile = {
       showCustomAlert(`다이어리가 ${isUpdate ? '수정' : '작성'}되었습니다!`);
       setIsEditMode(false);
 
+      await handleDateSelect(selectedDate);
+    }
     } catch (error) {
       showCustomAlert(`다이어리 ${isUpdate ? '수정' : '작성'}에 실패했습니다.`);
     }
@@ -679,19 +783,14 @@ const updatedProfile = {
       showCustomAlert('삭제할 다이어리가 없습니다');
       return;
     }
-
     const diaryId = selectedDiary?.id;
     if(!diaryId) {
       showCustomAlert('다이어리를 찾을 수 없습니다.');
       return;
     }
-
-    if (!window.confirm('정말로 이 다이어리를 삭제하시겠습니까?\n삭제된 다이어리는 복구할 수 없습니다.')) {
-      return;
-    }
+    if (!window.confirm('정말로 이 다이어리를 삭제하시겠습니까?\n삭제된 다이어리는 복구할 수 없습니다.')) {return;}
 
     try {
-      
       const response = await fetch(`/api/diary/${diaryId}/delete`, {
         method: 'POST',
         headers: {
@@ -699,7 +798,6 @@ const updatedProfile = {
         },
         credentials: 'include'
       });
-
       if (!response.ok) {
         if (response.status === 401) {
           showCustomAlert('로그인이 필요합니다.');
@@ -714,7 +812,6 @@ const updatedProfile = {
       }
         // Store에서 삭제 (날짜로 찾아서 삭제)
         deleteDiaryEntry(selectedDateStr);
-        
         showCustomAlert('다이어리가 삭제되었습니다.');
         setIsEditMode(false);
         
@@ -726,7 +823,8 @@ const updatedProfile = {
           winningName: '',
           gameId: '',
           memo: '',
-          photos: []
+          photos: [],
+          photoFiles: []
         });
         
       } catch (error) {
@@ -734,6 +832,42 @@ const updatedProfile = {
         showCustomAlert('다이어리 삭제에 실패했습니다.');
       }
     };
+
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const BUCKET_NAME = import.meta.env.SUPABASE_STORAGE_DIARY_BUCKET || 'diary-images';
+  const getFullImageUrl = (imagePath: string) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+
+    return `${SUPABASE_URL}/storage/v1/object/${BUCKET_NAME}/${imagePath}`
+  }
+
+  // 사용자 통계
+  useEffect(() => {
+    const fetchStatistics = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/diary/statistics', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if(!response.ok) {
+          throw new Error('통계 조회 실패');
+        }
+        const data: DiaryStatistics = await response.json();
+        setStatistics(data);
+      } catch(error) {
+        showCustomAlert('통계를 불러오는데 실패했습니다.')
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStatistics();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -806,7 +940,7 @@ const updatedProfile = {
           <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t">
             <div className="text-center">
               <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                {totalCount}
+                {statistics.totalCount}
               </div>
               <div className="text-sm text-gray-600">직관 횟수</div>
             </div>
@@ -818,7 +952,7 @@ const updatedProfile = {
             </div>
             <div className="text-center">
               <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                60%
+                {statistics.winRate.toFixed(1)}
               </div>
               <div className="text-sm text-gray-600">승률</div>
             </div>
@@ -1000,7 +1134,7 @@ const updatedProfile = {
                   <span className="text-gray-700">총 직관 횟수</span>
                   <div className="flex items-center gap-2">
                     <span style={{ fontWeight: 900, fontSize: '20px', color: '#2d5f4f' }}>
-                      {totalCount}회
+                      {statistics.monthlyCount || 0}회
                     </span>
                   </div>
                 </div>
@@ -1008,7 +1142,7 @@ const updatedProfile = {
                   <span className="text-gray-700">응원팀 승률</span>
                   <div className="flex items-center gap-2">
                     <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                      60% (3승 2패)
+                      {statistics?.winRate?.toFixed(1) || 0}% ({statistics?.totalWins || 0}승 {statistics?.totalDraws || 0}무 {statistics?.totalLosses || 0}패)
                     </span>
                   </div>
                 </div>
@@ -1025,19 +1159,19 @@ const updatedProfile = {
               <div className="grid grid-cols-3 gap-6 mb-6">
                 <div className="bg-green-50 p-6 rounded-xl text-center">
                   <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                    24
+                    {statistics?.yearlyCount || 0}
                   </div>
                   <div className="text-sm text-gray-600">총 직관 횟수</div>
                 </div>
                 <div className="bg-green-50 p-6 rounded-xl text-center">
                   <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                    15승
+                    {statistics?.yearlyWins || 0}승
                   </div>
                   <div className="text-sm text-gray-600">응원팀 승리</div>
                 </div>
                 <div className="bg-green-50 p-6 rounded-xl text-center">
                   <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                    62.5%
+                    {statistics?.yearlyWinRate?.toFixed(1) || 0}%
                   </div>
                   <div className="text-sm text-gray-600">연간 승률</div>
                 </div>
@@ -1046,15 +1180,27 @@ const updatedProfile = {
               <div className="border-t pt-6 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700">가장 많이 간 구장</span>
-                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>광주 KIA 챔피언스 필드 (8회)</span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                    {statistics?.mostVisitedStadium || '없음'} ({statistics?.mostVisitedCount || 0}회)
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700">가장 행복했던 달</span>
-                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>7월 (좋음 12회)</span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                    {statistics?.happiestMonth || '없음'} (최고 {statistics?.happiestCount || 0}회)
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700">첫 직관</span>
-                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>2024년 3월 23일</span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
+                    {statistics?.firstDiaryDate 
+                    ? new Date(statistics.firstDiaryDate).toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })
+                    : '없음'}
+                  </span>
                 </div>
               </div>
             </Card>
@@ -1188,18 +1334,26 @@ const updatedProfile = {
                       </div>
                       {diaryForm.photos.length === 1 ? (
                         <img 
-                          src={diaryForm.photos[0]} 
+                          src={getFullImageUrl(diaryForm.photos[0])} 
                           alt="직관 사진" 
                           className="w-full rounded-xl object-cover max-h-64"
+                          onError={(e) => {
+                          console.error('이미지 로드 실패:', diaryForm.photos[0]);
+                          e.currentTarget.style.display = 'none';
+                        }}
                         />
                       ) : (
                         <div className="grid grid-cols-2 gap-2">
                           {diaryForm.photos.slice(0, 4).map((photo: string, index: number) => (
                             <div key={index} className="aspect-square relative rounded-xl overflow-hidden">
                               <img 
-                                src={photo} 
+                                src={getFullImageUrl(photo)} 
                                 alt={`사진 ${index + 1}`} 
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                console.error('이미지 로드 실패:', photo);
+                                e.currentTarget.style.display = 'none';
+                              }}
                               />
                               {index === 3 && diaryForm.photos.length > 4 && (
                                 <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
