@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -23,13 +24,98 @@ import { Alert, AlertDescription } from './ui/alert';
 
 export default function MateManage() {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  const { selectedParty, getPartyApplications, approveApplication, rejectApplication, currentUserId } = useMateStore();
+  const { selectedParty } = useMateStore();
+
+  const [applications, setApplications] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  // ✅ 현재 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const userResponse = await fetch('http://localhost:8080/api/auth/mypage', {
+          credentials: 'include',
+        });
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          
+          const userIdResponse = await fetch(
+            `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(userData.data.email)}`,
+            { credentials: 'include' }
+          );
+          
+          if (userIdResponse.ok) {
+            const userIdData = await userIdResponse.json();
+            const userId = userIdData.data || userIdData;
+            setCurrentUserId(userId);
+            console.log('👤 MateManage - 현재 사용자 ID:', userId);
+          }
+        }
+      } catch (error) {
+        console.error('사용자 정보 가져오기 실패:', error);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  // ✅ 신청 목록 불러오기
+  useEffect(() => {
+    if (!selectedParty) return;
+
+    const fetchApplications = async () => {
+      setIsLoading(true);
+      try {
+        console.log(`📋 신청 목록 불러오는 중... (파티 ID: ${selectedParty.id})`);
+        
+        const response = await fetch(
+          `http://localhost:8080/api/applications/party/${selectedParty.id}`,
+          { credentials: 'include' }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ 신청 목록 불러오기 성공:', data.length + '개');
+          setApplications(data);
+        } else {
+          console.error('❌ 신청 목록 불러오기 실패:', response.status);
+        }
+      } catch (error) {
+        console.error('❌ 신청 목록 불러오기 오류:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, [selectedParty]);
 
   if (!selectedParty) {
     return null;
   }
 
-  const isHost = selectedParty.hostId === currentUserId;
+  if (!currentUserId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar currentPage="mate" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Alert>
+            <AlertDescription>사용자 정보를 불러오는 중...</AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  const isHost = String(selectedParty.hostId) === String(currentUserId);
+
+  console.log('🏠 호스트 체크:', {
+    partyHostId: selectedParty.hostId,
+    currentUserId: currentUserId,
+    isHost: isHost
+  });
 
   if (!isHost) {
     return (
@@ -47,17 +133,80 @@ export default function MateManage() {
     );
   }
 
-  const applications = getPartyApplications(selectedParty.id);
-  const pendingApplications = applications.filter(app => !app.isApproved && !app.isRejected);
-  const approvedApplications = applications.filter(app => app.isApproved);
-  const rejectedApplications = applications.filter(app => app.isRejected);
+  // ✅ 신청 승인 (POST 메서드)
+  const handleApprove = async (applicationId: string) => {
+    try {
+      console.log(`✅ 신청 승인 중... (신청 ID: ${applicationId})`);
+      
+      const response = await fetch(
+        `http://localhost:8080/api/applications/${applicationId}/approve`,
+        {
+          method: 'POST', // ✅ POST 메서드 사용
+          credentials: 'include',
+        }
+      );
 
-  const handleApprove = (applicationId: string) => {
-    approveApplication(applicationId, selectedParty.id);
+      if (response.ok) {
+        console.log('✅ 신청 승인 성공');
+        alert('신청이 승인되었습니다!');
+        
+        // 신청 목록 다시 불러오기
+        const listResponse = await fetch(
+          `http://localhost:8080/api/applications/party/${selectedParty.id}`,
+          { credentials: 'include' }
+        );
+        
+        if (listResponse.ok) {
+          const data = await listResponse.json();
+          setApplications(data);
+        }
+      } else {
+        const error = await response.text();
+        console.error('❌ 신청 승인 실패:', error);
+        alert('신청 승인에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('❌ 신청 승인 중 오류:', error);
+      alert('신청 승인 중 오류가 발생했습니다.');
+    }
   };
 
-  const handleReject = (applicationId: string) => {
-    rejectApplication(applicationId);
+  // ✅ 신청 거절 (POST 메서드)
+  const handleReject = async (applicationId: string) => {
+    try {
+      console.log(`❌ 신청 거절 중... (신청 ID: ${applicationId})`);
+      
+      const response = await fetch(
+        `http://localhost:8080/api/applications/${applicationId}/reject`,
+        {
+          method: 'POST', // ✅ POST 메서드 사용
+          credentials: 'include',
+        }
+      );
+
+      if (response.ok) {
+        console.log('✅ 신청 거절 완료');
+        alert('신청이 거절되었습니다.');
+        
+        // 신청 목록 다시 불러오기
+        const listResponse = await fetch(
+          `http://localhost:8080/api/applications/party/${selectedParty.id}`,
+          { credentials: 'include' }
+        );
+        
+        if (listResponse.ok) {
+          const data = await listResponse.json();
+          setApplications(data);
+        }
+      } else {
+        const error = await response.text();
+        console.error('❌ 신청 거절 실패:', error);
+        alert('신청 거절에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('❌ 신청 거절 중 오류:', error);
+      alert('신청 거절 중 오류가 발생했습니다.');
+    }
   };
 
   const handleOpenChat = () => {
@@ -65,8 +214,8 @@ export default function MateManage() {
   };
 
   const getBadgeIcon = (badge: string) => {
-    if (badge === 'verified') return <Shield className="w-4 h-4 text-blue-500" />;
-    if (badge === 'trusted') return <Star className="w-4 h-4 text-yellow-500" />;
+    if (badge === 'verified' || badge === 'VERIFIED') return <Shield className="w-4 h-4 text-blue-500" />;
+    if (badge === 'trusted' || badge === 'TRUSTED') return <Star className="w-4 h-4 text-yellow-500" />;
     return null;
   };
 
@@ -93,8 +242,11 @@ export default function MateManage() {
       </div>
 
       <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-        <span>보증금:</span>
+        <span>결제 금액:</span>
         <span style={{ color: '#2d5f4f' }}>{app.depositAmount.toLocaleString()}원</span>
+        <Badge variant="outline" className="ml-2">
+          {app.paymentType === 'DEPOSIT' ? '보증금' : '전액결제'}
+        </Badge>
       </div>
 
       {showActions && (
@@ -119,6 +271,24 @@ export default function MateManage() {
       )}
     </Card>
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar currentPage="mate" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
+            <p className="text-gray-600">신청 목록을 불러오는 중...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const pendingApplications = applications.filter(app => !app.isApproved && !app.isRejected);
+  const approvedApplications = applications.filter(app => app.isApproved);
+  const rejectedApplications = applications.filter(app => app.isRejected);
 
   return (
     <div className="min-h-screen bg-gray-50">
