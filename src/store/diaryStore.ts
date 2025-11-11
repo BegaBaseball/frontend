@@ -13,11 +13,29 @@ export interface DiaryEntry {
   team: string;
   emoji: string;
   emojiName: string;
+  winningName: string;
   type: 'attended' | 'scheduled';
   stadium: string;
   score: string;
   memo: string;
   photos: string[];
+}
+
+export interface DiaryStatistics {
+  totalCount: number;
+  totalWins: number;
+  totalLosses: number;
+  totalDraws: number;
+  winRate: number;
+  monthlyCount: number;
+  yearlyCount: number;
+  yearlyWins: number;
+  yearlyWinRate: number;
+  mostVisitedStadium: string | null;
+  mostVisitedCount: number;
+  happiestMonth: string | null;
+  happiestCount: number;
+  firstDiaryDate: string | null;
 }
 
 interface DiaryState {
