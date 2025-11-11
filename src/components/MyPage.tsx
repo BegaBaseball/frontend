@@ -875,7 +875,7 @@ const updatedProfile = {
                   <span className="text-gray-700">응원팀 승률</span>
                   <div className="flex items-center gap-2">
                     <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                      {statistics?.winRate?.toFixed(1) || 0}% ({statistics?.totalWins || 0}승 {statistics?.totalLosses || 0}패)
+                      {statistics?.winRate?.toFixed(1) || 0}% ({statistics?.totalWins || 0}승 {statistics?.totalDraws || 0}무 {statistics?.totalLosses || 0}패)
                     </span>
                   </div>
                 </div>
