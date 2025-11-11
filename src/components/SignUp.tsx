@@ -7,16 +7,34 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { User, Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useNavigationStore } from '../store/navigationStore';
+import TeamRecommendationTest from './TeamRecommendationTest';
+import TeamLogo from './TeamLogo';
 
 interface SignUpProps {
   onBackToLogin: () => void;
 }
+
+const TEAM_DATA: { [key: string]: { name: string, fullName: string } } = {
+  '없음': { name: '없음', fullName: '없음' },
+  'LG': { name: 'LG', fullName: 'LG 트윈스' },
+  'OB': { name: '두산', fullName: '두산 베어스' },
+  'SK': { name: 'SSG', fullName: 'SSG 랜더스' },
+  'KT': { name: 'KT', fullName: 'KT 위즈' },
+  'WO': { name: '키움', fullName: '키움 히어로즈' },
+  'NC': { name: 'NC', fullName: 'NC 다이노스' },
+  'SS': { name: '삼성', fullName: '삼성 라이온즈' },
+  'LT': { name: '롯데', fullName: '롯데 자이언츠' },
+  'HT': { name: '기아', fullName: '기아 타이거즈' },
+  'HH': { name: '한화', fullName: '한화 이글스' },
+};
+
 
 export default function SignUp({ onBackToLogin }: SignUpProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const currentView = useNavigationStore((state) => state.currentView);
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const [showTeamTest, setShowTeamTest] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -49,6 +67,9 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
     setIsLoading(true);
 
     try {
+      // 🔥 풀네임 → DB 약어 변환
+      const teamId = getTeamId(formData.favoriteTeam);
+      
       const response = await fetch('http://localhost:8080/api/auth/signup', {
         method: 'POST',
         headers: {
@@ -59,21 +80,16 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
           email: formData.email,
           password: formData.password,
           confirmPassword: formData.confirmPassword, 
-          favoriteTeam: formData.favoriteTeam === '없음' ? null : formData.favoriteTeam,
-          // provider 및 providerId는 일반 가입 시 누락되거나 null로 전송해도 DTO가 처리
+          favoriteTeam: teamId === '없음' ? null : teamId,  // 🔥 약어로 전송
         }),
       });
       
-      // HTTP 상태 코드가 2xx가 아닌 경우 에러 처리
       if (!response.ok) {
-        // 응답 본문에서 에러 메시지 추출 시도 
         const errorData = await response.json();
-        // 에러 응답이 JSON이 아닐 경우 (예: plain text) 대비
         const errorMessage = errorData.message || (typeof errorData === 'string' ? errorData : `회원가입 실패: ${response.statusText}`);
         throw new Error(errorMessage);
       }
 
-      // 성공 시 처리
       alert('회원가입 성공! 로그인 화면으로 이동합니다.');
       setCurrentView('login')
       onBackToLogin();
@@ -89,16 +105,25 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
   const teams = [
     '없음',
     'LG 트윈스',
-    'KT 위즈',
-    'SSG 랜더스',
     '두산 베어스',
+    'SSG 랜더스',
+    'KT 위즈',
     '키움 히어로즈',
-    '한화 이글스',
-    '롯데 자이언츠',
-    '삼성 라이온즈',
     'NC 다이노스',
-    '기아 타이거즈'
+    '삼성 라이온즈',
+    '롯데 자이언츠',
+    '기아 타이거즈',
+    '한화 이글스'
   ];
+
+  const getFullTeamName = (teamId: string): string => {
+  return TEAM_DATA[teamId]?.fullName || teamId;
+};
+
+const getTeamId = (fullName: string): string => {
+  const entry = Object.entries(TEAM_DATA).find(([_, data]) => data.fullName === fullName);
+  return entry ? entry[0] : fullName;
+};
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
@@ -304,7 +329,27 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-sm text-gray-500">응원구단은 응원게시판에서 사용됩니다</p>
+                        <Button type="button" variant="ghost" onClick={() => setShowTeamTest(true)} className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50" style={{ color: '#2d5f4f' }}>
+                          구단 테스트 해보기
+                        </Button>
+                    </div>
+                          <TeamRecommendationTest
+                            isOpen={showTeamTest}
+                            onClose={() => setShowTeamTest(false)}
+                            onSelectTeam={(team) => {
+                              // 🔥 DB 약어를 받아서 풀네임으로 변환하여 폼에 설정
+                              const fullName = getFullTeamName(team);
+                              setFormData({ ...formData, favoriteTeam: fullName });
+                              setShowTeamTest(false);
+                              
+                              const teamName = TEAM_DATA[team]?.name || team;
+                              alert(`${teamName} 팀이 선택되었습니다!`);
+                            }}
+                          />
                 </div>
+
 
                 <Button 
                   type="submit" 

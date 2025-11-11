@@ -1114,7 +1114,16 @@ const handleSave = async () => {
                 <Label htmlFor="team" className="text-gray-700">응원구단 *</Label>
                 <Select value={editingFavoriteTeam} onValueChange={setEditingFavoriteTeam}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="응원하는 팀을 선택하세요" />
+                    <div className="flex items-center gap-2">
+                      {/* 팀 로고 */}
+                      {editingFavoriteTeam !== '없음' && (
+                        <div className="w-6 h-6">
+                          <TeamLogo team={editingFavoriteTeam} size="sm" />
+                        </div>
+                      )}
+                      {/* 팀 이름 */}
+                      <span>{TEAM_DATA[editingFavoriteTeam]?.name || '응원하는 팀을 선택하세요'}</span>
+                    </div>
                   </SelectTrigger>
                   <SelectContent>
                     {Object.keys(TEAM_DATA).map(teamId => (
@@ -1784,7 +1793,7 @@ const handleSave = async () => {
         isOpen={showTeamTest}
         onClose={() => setShowTeamTest(false)}
         onSelectTeam={(team) => {
-          setSavedFavoriteTeam(team);
+          setEditingFavoriteTeam(team);
           setShowTeamTest(false);
         }}
       />

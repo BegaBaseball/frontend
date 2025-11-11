@@ -138,7 +138,7 @@ export default function Navbar({ currentPage }: NavbarProps) {
               
                 
                 <span 
-                  className="font-bold cursor-pointer text-sm py-1 px-3 rounded-full"
+                  className="font-bold text-sm py-1 px-3 rounded-full"
                   style={{ color: '#2d5f4f', backgroundColor: '#e0f2f1' }}
                  // onClick={() => setCurrentView('mypage')}
                 >
