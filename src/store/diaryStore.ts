@@ -37,6 +37,7 @@ export interface DiaryStatistics {
   happiestMonth: string | null;
   happiestCount: number;
   firstDiaryDate: string | null;
+  cheerPostCount: number;
 }
 
 interface DiaryState {
