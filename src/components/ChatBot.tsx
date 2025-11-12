@@ -23,6 +23,7 @@ export default function ChatBot() {
   const [inputMessage, setInputMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,16 +89,58 @@ export default function ChatBot() {
   };
 
   const handleMicClick = () => {
-    if (isRecording) {
-      // 녹음 중지
-      setIsRecording(false);
-      // TODO: 실제 STT API 연동 시 여기서 음성을 텍스트로 변환
-      setInputMessage('음성 입력 기능 준비 중입니다.');
-    } else {
-      // 녹음 시작
-      setIsRecording(true);
-      // TODO: 실제 STT API 연동 시 여기서 녹음 시작
+    // 마이크 허용 x인 사용자 로직
+    if(!navigator.mediaDevices) {
+        alert("마이크 허용 안 함") // 사용자에게 표시되는 메세지
+        return;
+    } 
+    // 마이크 허용 o && 녹음 중지 버튼 누른 사용자 로직
+    if (isRecording && mediaRecorder) {
+        setIsRecording(false);
+        setInputMessage('텍스트로 변환 중입니다.');
+        mediaRecorder.stop();
+        return;
     }
+    const constraints = { audio: true };
+        
+    navigator.mediaDevices
+    .getUserMedia({ audio: true })
+    .then((stream) => {
+        const recorder = new MediaRecorder(stream);
+
+        const chunks: Blob[] = [];
+        recorder.ondataavailable = (e) => {
+            chunks.push(e.data);
+        }
+
+        recorder.onstop = async () => {
+            const blob = new Blob(chunks, { type: "audio/webm" });
+            const formData = new FormData();
+            formData.append('file', blob, 'audio.webm');
+            try {
+                const response = await fetch('/api/chat/voice', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                setInputMessage(result.text);
+            } catch (error) {
+                setInputMessage('변환에 실패했습니다.');
+            }
+
+            stream.getTracks().forEach(track => track.stop());
+        };
+        
+        recorder.start();
+        setMediaRecorder(recorder);
+        setIsRecording(true);
+        setInputMessage('🎤 음성 녹음 중... (다시 클릭하여 중지)');
+    })
+    .catch((error) => {
+        alert('마이크 권한이 필요합니다.');
+    });
+
   };
 
   return (

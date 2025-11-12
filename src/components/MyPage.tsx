@@ -737,7 +737,7 @@ const updatedProfile = {
             </div>
             <div className="text-center">
               <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                12
+                {statistics?.cheerPostCount || 0}
               </div>
               <div className="text-sm text-gray-600">응원글</div>
             </div>
