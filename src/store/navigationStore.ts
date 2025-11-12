@@ -25,14 +25,16 @@ export type ViewType =
 
 type NavigationOptions = {
   postId?: number;
+  token?: string; // 🔥 토큰 추가
+  [key: string]: any; // 🔥 다른 파라미터들
 };
 
 const viewToPath: Record<ViewType, string> = {
   home: '/',
   login: '/login',
   signup: '/signup',
-  passwordReset: '/password/reset',
-  passwordResetConfirm: '/password/reset/confirm',
+  passwordReset: '/password-reset', // 🔥 수정
+  passwordResetConfirm: '/password-reset/confirm', // 🔥 수정
   stadium: '/stadium',
   prediction: '/prediction',
   cheer: '/cheer',
@@ -56,6 +58,7 @@ const pathToView = Object.fromEntries(
 
 const isBrowser = typeof window !== 'undefined';
 const cheerDetailPattern = /^\/cheer\/detail\/(\d+)$/;
+const cheerEditPattern = /^\/cheer\/edit\/(\d+)$/;
 let lastCheerDetailId: number | null = null;
 
 const getViewFromLocation = (): ViewType => {
@@ -64,6 +67,7 @@ const getViewFromLocation = (): ViewType => {
   }
   const currentPath = window.location.pathname || '/';
 
+  // cheerDetail 패턴 체크
   const detailMatch = cheerDetailPattern.exec(currentPath);
   if (detailMatch) {
     const postId = Number(detailMatch[1]);
@@ -71,6 +75,17 @@ const getViewFromLocation = (): ViewType => {
       lastCheerDetailId = postId;
       useCheerStore.getState().setSelectedPostId(postId);
       return 'cheerDetail';
+    }
+  }
+
+  // cheerEdit 패턴 체크
+  const editMatch = cheerEditPattern.exec(currentPath);
+  if (editMatch) {
+    const postId = Number(editMatch[1]);
+    if (!Number.isNaN(postId)) {
+      lastCheerDetailId = postId;
+      useCheerStore.getState().setSelectedPostId(postId);
+      return 'cheerEdit';
     }
   }
 
@@ -93,6 +108,15 @@ const navigate = (view: ViewType, options?: NavigationOptions) => {
       targetPath = `/cheer/detail/${postId}`;
       lastCheerDetailId = postId;
     }
+  } else if (view === 'cheerEdit') {
+    const postId =
+      options?.postId ??
+      useCheerStore.getState().selectedPostId ??
+      lastCheerDetailId;
+    if (postId != null) {
+      targetPath = `/cheer/edit/${postId}`;
+      lastCheerDetailId = postId;
+    }
   } else {
     lastCheerDetailId = null;
   }
@@ -106,6 +130,7 @@ let popstateRegistered = false;
 
 interface NavigationState {
   currentView: ViewType;
+  params?: NavigationOptions; // 🔥 추가
   setCurrentView: (view: ViewType, options?: NavigationOptions) => void;
   navigateToLogin: () => void;
 }
@@ -113,32 +138,40 @@ interface NavigationState {
 export const useNavigationStore = create<NavigationState>((set) => {
   if (isBrowser && !popstateRegistered) {
     window.addEventListener('popstate', () => {
-      set({ currentView: getViewFromLocation() });
+      set({ currentView: getViewFromLocation(), params: undefined }); // 🔥 params 초기화
     });
     popstateRegistered = true;
   }
 
   return {
     currentView: getViewFromLocation(),
+    params: undefined, // 🔥 추가
     setCurrentView: (view, options) => {
-      if (view === 'cheerDetail') {
-        const postId =
-          options?.postId ??
-          useCheerStore.getState().selectedPostId ??
-          lastCheerDetailId;
-        if (postId != null) {
-          useCheerStore.getState().setSelectedPostId(postId);
-          lastCheerDetailId = postId;
-        }
-        navigate(view, { postId });
-      } else {
-        navigate(view);
-      }
-      set({ currentView: view });
-    },
+  // 🔥 비밀번호 재설정 확인 페이지는 URL 변경하지 않음 (토큰 유지)
+  if (view === 'passwordResetConfirm' || view === 'passwordReset') {
+    set({ currentView: view, params: options });
+    return;
+  }
+
+  if (view === 'cheerDetail' || view === 'cheerEdit') {
+    const postId =
+      options?.postId ??
+      useCheerStore.getState().selectedPostId ??
+      lastCheerDetailId;
+    if (postId != null) {
+      useCheerStore.getState().setSelectedPostId(postId);
+      lastCheerDetailId = postId;
+    }
+    navigate(view, { postId });
+    set({ currentView: view, params: { postId } });
+  } else {
+    navigate(view);
+    set({ currentView: view, params: options });
+  }
+},
     navigateToLogin: () => {
       navigate('login');
-      set({ currentView: 'login' });
+      set({ currentView: 'login', params: undefined }); // 🔥 params 초기화
     },
   };
 });
