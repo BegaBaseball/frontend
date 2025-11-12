@@ -67,10 +67,7 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
     setIsLoading(true);
 
     try {
-      // 🔥 풀네임 → DB 약어 변환
-      const teamId = getTeamId(formData.favoriteTeam);
-      
-      const response = await fetch('http://localhost:8080/api/auth/signup', {
+       const response = await fetch('http://localhost:8080/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +77,7 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
           email: formData.email,
           password: formData.password,
           confirmPassword: formData.confirmPassword, 
-          favoriteTeam: teamId === '없음' ? null : teamId,  // 🔥 약어로 전송
+          favoriteTeam: formData.favoriteTeam === '없음' ? null : formData.favoriteTeam,  // 🔥 풀네임 그대로 전송
         }),
       });
       
@@ -339,7 +336,7 @@ const getTeamId = (fullName: string): string => {
                             isOpen={showTeamTest}
                             onClose={() => setShowTeamTest(false)}
                             onSelectTeam={(team) => {
-                              // 🔥 DB 약어를 받아서 풀네임으로 변환하여 폼에 설정
+                              // DB 약어를 받아서 풀네임으로 변환하여 폼에 설정
                               const fullName = getFullTeamName(team);
                               setFormData({ ...formData, favoriteTeam: fullName });
                               setShowTeamTest(false);
@@ -348,6 +345,9 @@ const getTeamId = (fullName: string): string => {
                               alert(`${teamName} 팀이 선택되었습니다!`);
                             }}
                           />
+                          <label className="text-sm text-red-500 hover:text-red-600">
+                            응원구단은 한번 선택시 변경이 불가합니다.
+                          </label>
                 </div>
 
 

@@ -648,19 +648,6 @@ const handleSave = async () => {
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newPhotos = Array.from(files).map(file => URL.createObjectURL(file));
-      setDiaryForm({ ...diaryForm, photos: [...diaryForm.photos, ...newPhotos] });
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    const updatedPhotos = diaryForm.photos.filter((_, i) => i !== index);
-    setDiaryForm({ ...diaryForm, photos: updatedPhotos });
-  };
-
   const MateHistoryContent = ({ tab }: { tab: 'all' | 'completed' | 'ongoing' }) => {
     const [myParties, setMyParties] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);

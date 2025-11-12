@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 const LOGOUT_API_URL = '/api/auth/logout'; 
 
+
 interface NavbarProps {
   currentPage: 'home' | 'cheer' | 'stadium' | 'prediction' | 'mate' | 'mypage';
 }
@@ -18,11 +19,15 @@ export default function Navbar({ currentPage }: NavbarProps) {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
   const { isNotificationOpen, setIsNotificationOpen } = useUIStore();
   const { isLoggedIn, user, logout, fetchProfileAndAuthenticate, isAdmin } = useAuthStore();
+  
 
    // 컴포넌트 마운트 시 인증 상태를 확인 (쿠키 존재 여부)
   useEffect(() => {
+  // 🔥 이미 로그인되어 있으면 fetchProfile 호출 안 함
+  if (!isLoggedIn) {
     fetchProfileAndAuthenticate();
-}, [fetchProfileAndAuthenticate]);
+  }
+}, [fetchProfileAndAuthenticate, isLoggedIn]);
 
  const handleLogout = async () => {
     try {

@@ -66,71 +66,93 @@ export default function App() {
 }, [setCurrentView]);
 
   const handleLogin = useCallback(async (e) => {
-        // 폼 제출 기본 동작 방지
-        if (e && typeof e.preventDefault === 'function') {
-            e.preventDefault();
-        }
-        
-        setError('');
-        setIsLoading(true);
+    if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+    }
+    
+    setError('');
+    setIsLoading(true);
 
-        const backendUrl = '/api/auth/login'; 
+    const backendUrl = '/api/auth/login'; 
 
-        try {
-            const response = await fetch(backendUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ email, password }),
-            });
+    try {
+        const response = await fetch(backendUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ email, password }),
+        });
 
-            if (!response.ok) {
-                let errorMessage = '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.';
-                
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.error || errorMessage;
-                } catch (jsonError) {
-                    if (response.status === 401) {
-                        errorMessage = '인증 정보가 올바르지 않습니다.';
-                    } else {
-                        errorMessage = `서버 오류: ${response.status} (${response.statusText})`;
-                    }
-                }
-                
-                throw new Error(errorMessage);
-            }
-
-            const data = await response.json();
-
-            const userDisplayName = data.name || data.email; 
+        if (!response.ok) {
+            let errorMessage = '로그인에 실패했습니다.';
             
-            if (userDisplayName) {
-                console.log('로그인 응답에 사용자 이름(또는 이메일) 포함:', userDisplayName);
-            } else {
-                console.warn('경고: 로그인 응답에 username 필드가 포함되어 있지 않습니다.');
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error || errorMessage;
+            } catch (jsonError) {
+                if (response.status === 401) {
+                    errorMessage = '이메일 또는 비밀번호가 일치하지 않습니다.';
+                } else if (response.status === 400) {
+                    errorMessage = '입력 정보를 확인해주세요.';
+                } else {
+                    errorMessage = `서버 오류: ${response.status}`;
+                }
             }
-
-            const finalDisplayName = userDisplayName || '사용자'; 
-            setIsLoggedIn(true);
-            console.log('로그인 성공! ' + finalDisplayName + '님 환영합니다. 메인 페이지로 이동합니다.'); 
-            login(email, finalDisplayName); 
-
-            if (email === 'admin' || email === 'admin@bega.com') {
-                setCurrentView('admin');
-            } else {
-                setCurrentView('home');
-            }
-
-        } catch (err) {
-            setError((err as Error).message || '네트워크 오류로 로그인에 실패했습니다.');
-            console.error('Login Error:', err);
-        } finally {
-            setIsLoading(false);
+            
+            throw new Error(errorMessage);
         }
-    }, [email, password, setCurrentView, login]);
+
+        const apiResponse = await response.json();
+        
+        if (apiResponse.success) {
+    const data = apiResponse.data;
+    
+    const userDisplayName = data.name || data.email; 
+    const userRole = data.role;
+    
+    // 🔥 디버깅
+    console.log('📦 백엔드 응답 데이터:', data);
+    console.log('👤 사용자 이름:', userDisplayName);
+    console.log('🔑 사용자 역할:', userRole);
+    console.log('📧 이메일:', email);
+
+    const finalDisplayName = userDisplayName || '사용자'; 
+    setIsLoggedIn(true);
+    
+        // 🔥 login 함수 호출 전 로그
+        console.log('🚀 login 함수 호출 시도:', {
+            email,
+            name: finalDisplayName,
+            profileImageUrl: undefined,
+            role: userRole
+        });
+        
+        login(email, finalDisplayName, undefined, userRole);
+        
+        // 🔥 login 함수 호출 후 상태 확인
+        setTimeout(() => {
+            const state = useAuthStore.getState();
+            console.log('✅ 로그인 후 authStore 상태:', state);
+        }, 100);
+
+        if (userRole === 'ROLE_ADMIN') {
+            setCurrentView('admin');
+        } else {
+            setCurrentView('home');
+        }
+        } else {
+            throw new Error(apiResponse.message || '로그인 실패');
+        }
+
+    } catch (err) {
+        setError((err as Error).message || '네트워크 오류로 로그인에 실패했습니다.');
+        console.error('Login Error:', err);
+    } finally {
+        setIsLoading(false);
+    }
+}, [email, password, setCurrentView, login]);
 
     const handleLogout = useCallback(() => {
         localStorage.removeItem('authToken'); 
@@ -316,6 +338,13 @@ export default function App() {
               <h2 className="text-center mb-8">SIGN IN</h2>
 
               <form onSubmit={handleLogin} className="space-y-6">
+                {/* 🔥 에러 메시지 */}
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700 text-center">{error}</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
                     <Mail className="w-4 h-4" style={{ color: '#2d5f4f' }} />
@@ -326,10 +355,10 @@ export default function App() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="bg-gray-50 border-gray-200 focus:ring-[#2d5f4f]"
-                    style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+                    className="bg-gray-50 border-gray-200 focus:ring-2 focus:ring-[#2d5f4f]"
                     placeholder="이메일을 입력하세요"
                     required
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -344,40 +373,54 @@ export default function App() {
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] pr-10"
-                      style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+                      className="bg-gray-50 border-gray-200 focus:ring-2 focus:ring-[#2d5f4f] pr-10"
                       placeholder="비밀번호를 입력하세요"
                       required
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      disabled={isLoading}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 text-sm text-gray-600">
-                      <input type="checkbox" className="rounded border-gray-300" />
+                      <input type="checkbox" className="rounded border-gray-300" disabled={isLoading} />
                       저장
                     </label>
                     <button
                       type="button"
                       onClick={() => setCurrentView('passwordReset')}
-                      className="text-sm text-red-500 hover:text-red-600"
+                      className="text-sm text-red-500 hover:text-red-600 disabled:opacity-50"
+                      disabled={isLoading}
                     >
                       비밀번호를 잊으셨나요?
                     </button>
                   </div>
                 </div>
 
+                {/* 🔥 로그인 버튼 */}
                 <Button 
                   type="submit" 
-                  className="w-full text-white py-6 rounded-full hover:opacity-90"
+                  className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: '#2d5f4f' }}
+                  disabled={isLoading}
                 >
-                  로그인
+                  {isLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      로그인 중...
+                    </span>
+                  ) : (
+                    '로그인'
+                  )}
                 </Button>
 
                 <p className="text-center text-sm text-gray-600">
@@ -385,8 +428,9 @@ export default function App() {
                   <button 
                     type="button"
                     onClick={() => setCurrentView('signup')}
-                    className="hover:underline" 
+                    className="hover:underline disabled:opacity-50"
                     style={{ color: '#2d5f4f' }}
+                    disabled={isLoading}
                   >
                     회원가입
                   </button>
@@ -403,22 +447,34 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Social Login Buttons */}
+             {/* Social Login Buttons */}
               <div className="space-y-3">
-                <a
-                  href="http://localhost:8080/oauth2/authorization/kakao"
-                  className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium ring-offset-background transition-colors hover:opacity-90"
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isLoading) {
+                      window.location.href = 'http://localhost:8080/oauth2/authorization/kakao';
+                    }
+                  }}
+                  disabled={isLoading}
+                  className={`w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium ring-offset-background transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed`}
                   style={{ backgroundColor: '#FEE500', color: '#000000' }}
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M10 3C5.589 3 2 5.792 2 9.22c0 2.155 1.396 4.046 3.505 5.146-.15.554-.976 3.505-1.122 4.045-.174.646.237.637.501.463.21-.138 3.429-2.282 3.996-2.657.373.053.754.08 1.12.08 4.411 0 8-2.792 8-6.22C18 5.793 14.411 3 10 3z" fill="currentColor"/>
                   </svg>
                   카카오로 로그인
-                </a>
+                </button>
 
-                <a
-                  href="http://localhost:8080/oauth2/authorization/google"
-                  className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium ring-offset-background transition-colors bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:opacity-90"
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isLoading) {
+                      window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+                    }
+                  }}
+                  disabled={isLoading}
+                  className={`w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium ring-offset-background transition-colors bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18.17 8.36h-8.04v3.45h4.62c-.39 2.11-2.26 3.45-4.62 3.45a5.26 5.26 0 1 1 3.42-9.25l2.58-2.58A8.76 8.76 0 1 0 10.13 18.7c4.35 0 8.23-3.02 8.04-10.34z" fill="#4285F4"/>
@@ -427,7 +483,7 @@ export default function App() {
                     <path d="M10.13 4.96c1.39 0 2.63.48 3.61 1.42l2.71-2.71A8.76 8.76 0 0 0 2.15 4.35l2.99 2.31a5.26 5.26 0 0 1 5.14-1.7z" fill="#EA4335"/>
                   </svg>
                   Google로 로그인
-                </a>
+                </button>
               </div>
             </div>
           </div>
