@@ -1,6 +1,6 @@
 import begaCharacter from 'figma:asset/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
-import { useState, useCallback, useEffect } from 'react'; // 🔥 useEffect 추가
+import { useState, useCallback, useEffect } from 'react'; 
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Label } from './components/ui/label';
@@ -52,11 +52,11 @@ export default function App() {
     const token = params.get('token');
     console.log('토큰 감지:', token);
     if (token) {
-      setCurrentView('passwordResetConfirm', { token }); // ✅ 완벽!
+      setCurrentView('passwordResetConfirm', { token }); 
     } else {
       alert('유효하지 않은 링크입니다.');
     }
-    return; // 🔥 여기서 return 추가 (아래 조건 실행 방지)
+    return; 
   }
   
   // 비밀번호 재설정 요청 페이지

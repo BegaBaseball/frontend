@@ -20,6 +20,7 @@ import { useAuthStore } from '../store/authStore';
 import { useNavigationStore } from '../store/navigationStore';
 import { DiaryStatistics } from '../store/diaryStore';
 import { Users } from 'lucide-react';
+import { uploadProfileImage } from '../api/profile';
 
 const API_URL = 'http://localhost:8080/api/auth/mypage';
 
@@ -77,9 +78,11 @@ const formatDate = (dateString: string | null): string => {
 type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory';
 
 export default function MyPage() {
+  const DEFAULT_PROFILE_IMAGE = 'https://placehold.co/100x100/374151/ffffff?text=User';
   const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  const [profileImage, setProfileImage] = useState('https://placehold.co/100x100/374151/ffffff?text=User');
+  const [profileImage, setProfileImage] = useState(DEFAULT_PROFILE_IMAGE); 
+  const [newProfileImageFile, setNewProfileImageFile] = useState<File | null>(null); 
   const [name, setName] = useState('로딩 중...');
   const [email, setEmail] = useState('loading@...');
   const [savedFavoriteTeam, setSavedFavoriteTeam] = useState('없음');
@@ -272,121 +275,158 @@ const fetchUserProfile = useCallback(async () => {
 
 
   // 프로필 이미지 로컬 업로드 미리보기
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // 이전 blob URL 해제
-      if (profileImage.startsWith('blob:')) {
-        URL.revokeObjectURL(profileImage);
-      }
+    if (!file) return;
 
-      const imageUrl = URL.createObjectURL(file);
-      setProfileImage(imageUrl);
-      // 실제 환경에서는 이미지 파일을 서버에 업로드하고 URL을 받아와야 합니다.
-      showCustomAlert('이미지 미리보기 적용됨. 저장을 눌러 서버에 반영하세요.');
+    // 🔥 파일 크기 검증 (5MB)
+    const maxSizeMB = 5;
+    if (file.size > maxSizeMB * 1024 * 1024) {
+        showCustomAlert(`파일 크기가 ${maxSizeMB}MB를 초과합니다.`);
+        return;
     }
-  };
+
+    // 🔥 파일 형식 검증
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        showCustomAlert('JPG, PNG, WEBP 형식의 이미지만 업로드 가능합니다.');
+        return;
+    }
+
+    try {
+        // 🔥 로컬 미리보기
+        if (profileImage.startsWith('blob:')) {
+            URL.revokeObjectURL(profileImage);
+        }
+        const imageUrl = URL.createObjectURL(file);
+        setProfileImage(imageUrl);
+        
+        // 🔥 파일을 상태에 저장 (저장 버튼 클릭 시 업로드)
+        setNewProfileImageFile(file);
+        
+        showCustomAlert('이미지가 선택되었습니다. 저장 버튼을 눌러주세요.');
+    } catch (error) {
+        console.error('이미지 미리보기 오류:', error);
+        showCustomAlert('이미지 처리 중 오류가 발생했습니다.');
+    }
+}
 
   // 3. 프로필 정보 저장 (PUT)
 const handleSave = async () => {
-  setLoading(true);
-  setError(null);
+    setLoading(true);
+    setError(null);
 
-  // 닉네임이 비어있는지 확인
-  if (!name.trim()) {
-    showCustomAlert('이름(닉네임)은 필수로 입력해야 합니다.');
-    setLoading(false);
-    return;
-  }
-  
-// 요청 본문(Body)의 키를 'name'으로 사용하고 favoriteTeam을 포함
-const updatedProfile = {
-  name: name.trim(), 
-  profileImageUrl: profileImage,
-  favoriteTeam: editingFavoriteTeam === '없음' ? null : editingFavoriteTeam,
-  email: email // 기존 이메일 값을 그대로 포함
-  };
-
-  try {
-    const response = await fetch(API_URL, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', 
-      body: JSON.stringify(updatedProfile),
-    });
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      showCustomAlert('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
-      navigateToLogin();
-      return;
+    // 닉네임 유효성 검사
+    if (!name.trim()) {
+        showCustomAlert('이름(닉네임)은 필수로 입력해야 합니다.');
+        setLoading(false);
+        return;
     }
-    throw new Error(`Failed to save profile: ${response.statusText}`);
-  }
 
-  const apiResponse = await response.json();
-  console.log('API 응답 확인:', apiResponse);
-    if (apiResponse.isSuccess) {
-          // 새로운 JWT 토큰 처리
-          const newToken = apiResponse.data.token;
-          console.log(newToken)
-          if (newToken) { 
-            // 백엔드에서 받은 새 토큰을 localStorage의 기존 토큰과 교체
-            localStorage.setItem('authToken', newToken); 
-            console.log('새로운 JWT 토큰으로 교체 완료. 권한이 즉시 적용됩니다.');
-          }
-            
-          // 상태 업데이트: 업데이트된 프로필 정보로 UI 상태를 갱신
-          const updatedProfileData = apiResponse.data;
-          setName(updatedProfileData.name);
-          setSavedFavoriteTeam(editingFavoriteTeam);
-          setProfileImage(updatedProfileData.profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User');
-          
-          const setUserProfile = useAuthStore.getState().setUserProfile;
-          setUserProfile({
-            email: email,
-            name: updatedProfileData.name,
-            profileImageUrl: updatedProfileData.profileImageUrl || profileImage,
-            favoriteTeam: editingFavoriteTeam === '없음' ? undefined : editingFavoriteTeam
-          });
+    let finalImageUrl: string | undefined = undefined;
 
-          // 성공 알림
-          showCustomAlert(apiResponse.message || '프로필이 성공적으로 저장되었습니다!');
-          setViewMode('diary');
-          console.log('프로필 저장 성공. 알림 표시 및 뷰 전환 실행 완료.');
-          return; 
-        } else {
-          // isSuccess가 false인 경우 또는 data 구조가 예상과 다른 경우
-          throw new Error(apiResponse.message || '프로필 저장에 실패했습니다. (isSuccess: false)');
+    // 🔥 1. 프로필 이미지가 새로 선택된 경우 백엔드로 업로드
+    if (newProfileImageFile) {
+        try {
+            console.log('프로필 이미지 업로드 시작...');
+            const uploadResult = await uploadProfileImage(newProfileImageFile);
+            finalImageUrl = uploadResult.publicUrl;
+            console.log('✅ 프로필 이미지 업로드 성공:', finalImageUrl);
+        } catch (uploadError) {
+            console.error('이미지 업로드 오류:', uploadError);
+            showCustomAlert(uploadError instanceof Error ? uploadError.message : '이미지 업로드에 실패했습니다.');
+            setLoading(false);
+            return;
         }
-      } catch (err) {
-        // err가 Error 객체이고, 메시지에 '프로필 수정 성공'이 포함되어 있다면 성공으로 간주
-        const isSuccessMessageError = err instanceof Error && err.message.includes('프로필 수정 성공');
+    }
 
-        if (isSuccessMessageError) {
-          // DB에 저장된 상태이므로, 성공으로 간주하고 오류 메시지를 띄우지 않습니다.
-          // console.log('프로필 저장 성공 (에러 처리 필터링됨)'); 
-          setSavedFavoriteTeam(editingFavoriteTeam);
-          const setUserProfile = useAuthStore.getState().setUserProfile;
-          setUserProfile({
-            email: email,
-            name: name,
-            profileImageUrl: profileImage,
-            favoriteTeam: editingFavoriteTeam === '없음' ? undefined : editingFavoriteTeam
-          });
-          return; 
+    // 🔥 2. 프로필 정보 업데이트 (이미지 URL 포함)
+    const updatedProfile: {
+        name: string;
+        favoriteTeam: string | null;
+        email: string;
+        profileImageUrl?: string;
+    } = {
+        name: name.trim(),
+        favoriteTeam: editingFavoriteTeam === '없음' ? null : editingFavoriteTeam,
+        email: email,
+    };
+
+    // 새로 업로드한 이미지 URL이 있으면 추가
+    if (finalImageUrl) {
+        updatedProfile.profileImageUrl = finalImageUrl;
+    } else if (newProfileImageFile === null && profileImage !== DEFAULT_PROFILE_IMAGE) {
+        // 이미지를 변경하지 않았으나 기존 URL이 있다면 유지
+        updatedProfile.profileImageUrl = profileImage;
+    }
+
+    console.log('📤 전송할 프로필 데이터:', updatedProfile);
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(updatedProfile),
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                showCustomAlert('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
+                navigateToLogin();
+                return;
+            }
+            throw new Error(`Failed to save profile: ${response.statusText}`);
         }
+
+        const apiResponse = await response.json();
         
-        // 실제 오류(통신 오류, HTTP 4xx/5xx 등)만 처리
-        console.error('프로필 저장 오류:', err); 
-        setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해 주세요.'); 
+        if (apiResponse.success) {
+            const newToken = apiResponse.data.token;
+            if (newToken) {
+                localStorage.setItem('authToken', newToken);
+            }
 
+            const updatedProfileData = apiResponse.data;
+            setName(updatedProfileData.name);
+            setSavedFavoriteTeam(editingFavoriteTeam);
+            
+            // 이미지 URL 업데이트
+            if (profileImage.startsWith('blob:')) {
+                URL.revokeObjectURL(profileImage); // 기존 blob URL 해제
+            }
+            
+            if (finalImageUrl) {
+                setProfileImage(finalImageUrl);
+                console.log('✅ 프로필 이미지 상태 업데이트:', finalImageUrl);
+            } else if (updatedProfileData.profileImageUrl) {
+                setProfileImage(updatedProfileData.profileImageUrl);
+                console.log('✅ 프로필 이미지 상태 업데이트:', updatedProfileData.profileImageUrl);
+            }
+            
+            setNewProfileImageFile(null);
+
+            showCustomAlert(apiResponse.message || '프로필이 성공적으로 저장되었습니다!');
+            alert('변경사항이 적용되었습니다.');
+            setViewMode('diary');
+            console.log('프로필 저장 성공!');
+            
+            return;
+        } else {
+            showCustomAlert(apiResponse.message || '프로필 저장에 실패했습니다.');
+            return;
+        }
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+        console.error('프로필 저장 오류:', err);
+        setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
+        showCustomAlert(`프로필 저장 중 오류 발생: ${errorMessage}`);
     } finally {
         setLoading(false);
     }
-};
+}
 
 
   const goToPreviousMonth = () => {
@@ -882,7 +922,7 @@ const updatedProfile = {
               <div className="relative">
                 <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden">
                   {profileImage ? (
-                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    <img src={profileImage}  alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <User className="w-12 h-12 text-gray-400" />
@@ -1034,7 +1074,7 @@ const updatedProfile = {
               <div className="relative">
                 <div className="w-32 h-32 rounded-full bg-gray-200 overflow-hidden">
                   {profileImage ? (
-                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    <img src={profileImage}  alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <User className="w-16 h-16 text-gray-400" />
@@ -1074,7 +1114,16 @@ const updatedProfile = {
                 <Label htmlFor="team" className="text-gray-700">응원구단 *</Label>
                 <Select value={editingFavoriteTeam} onValueChange={setEditingFavoriteTeam}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="응원하는 팀을 선택하세요" />
+                    <div className="flex items-center gap-2">
+                      {/* 팀 로고 */}
+                      {editingFavoriteTeam !== '없음' && (
+                        <div className="w-6 h-6">
+                          <TeamLogo team={editingFavoriteTeam} size="sm" />
+                        </div>
+                      )}
+                      {/* 팀 이름 */}
+                      <span>{TEAM_DATA[editingFavoriteTeam]?.name || '응원하는 팀을 선택하세요'}</span>
+                    </div>
                   </SelectTrigger>
                   <SelectContent>
                     {Object.keys(TEAM_DATA).map(teamId => (
@@ -1744,7 +1793,7 @@ const updatedProfile = {
         isOpen={showTeamTest}
         onClose={() => setShowTeamTest(false)}
         onSelectTeam={(team) => {
-          setSavedFavoriteTeam(team);
+          setEditingFavoriteTeam(team);
           setShowTeamTest(false);
         }}
       />

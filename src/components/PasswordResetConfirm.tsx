@@ -9,9 +9,9 @@ import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png
 
 export default function PasswordResetConfirm() {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  const params = useNavigationStore((state) => state.params); // 🔥 store에서 params 가져오기
+  const params = useNavigationStore((state) => state.params); 
   
-  // 🔥 useState 초기화 함수로 토큰 설정
+  // useState 초기화 함수로 토큰 설정
   const [token, setToken] = useState(() => {
     console.log('===== 토큰 초기화 =====');
     
@@ -42,7 +42,7 @@ export default function PasswordResetConfirm() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState('');
 
-  // 🔥 params가 변경되면 토큰 업데이트
+  // params가 변경되면 토큰 업데이트
   useEffect(() => {
     if (params?.token && params.token !== token) {
       console.log('Params에서 토큰 업데이트:', params.token);
@@ -50,7 +50,7 @@ export default function PasswordResetConfirm() {
     }
   }, [params, token]);
 
-  // 🔥 토큰 없으면 에러 표시
+  // 토큰 없으면 에러 표시
   useEffect(() => {
     if (!token) {
       console.warn('토큰이 없습니다!');
