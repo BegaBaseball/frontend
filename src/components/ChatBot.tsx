@@ -44,6 +44,7 @@ export default function ChatBot() {
   const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null); // Keep for cleanup, though not used for new requests
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,6 +60,8 @@ export default function ChatBot() {
       eventSourceRef.current?.close();
     };
   }, []);
+
+  const [isTyping, setIsTyping] = useState(false);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +90,8 @@ export default function ChatBot() {
 
     const apiUrl = import.meta.env.VITE_AI_API_URL || 'http://localhost:8001';
     const historyPayload = buildHistoryPayload(conversationForHistory); // This now returns raw array
+
+    setIsTyping(true);
 
     try {
       const response = await fetch(`${apiUrl}/chat/stream`, {
@@ -168,19 +173,75 @@ export default function ChatBot() {
             : msg
         )
       );
+    } finally {
+      setIsTyping(false);
     }
   };
 
-  const handleMicClick = () => {
-    if (isRecording) {
-      // 녹음 중지
+  const handleMicClick = async () => {
+    if (!navigator.mediaDevices) {
+      alert("이 브라우저는 마이크를 지원하지 않습니다.");
+      return;
+    }
+
+    if (isRecording && mediaRecorder) {
       setIsRecording(false);
-      // TODO: 실제 STT API 연동 시 여기서 음성을 텍스트로 변환
-      setInputMessage('음성 입력 기능 준비 중입니다.');
-    } else {
+      setInputMessage('텍스트로 변환 중입니다...');
+      mediaRecorder.stop();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        chunks.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const formData = new FormData();
+        formData.append('file', blob, 'audio.webm');
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+          const response = await fetch(`${apiUrl}/chat/voice`, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error('음성 변환 실패');
+          }
+
+          const result = await response.json();
+          setInputMessage(result?.text || '');
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            setInputMessage('변환 시간이 초과되었습니다. 다시 시도해주세요.');
+          } else {
+            setInputMessage('변환에 실패했습니다.');
+          }
+        } finally {
+          // 스트림 정리
+          stream.getTracks().forEach(track => track.stop());
+        }
+      };
+
       // 녹음 시작
+      recorder.start();
+      setMediaRecorder(recorder);
       setIsRecording(true);
-      // TODO: 실제 STT API 연동 시 여기서 녹음 시작
+      setInputMessage('음성 녹음 중... (다시 클릭하여 중지)');
+    } catch (error) {
+      alert('마이크 권한이 필요합니다. 브라우저 설정에서 마이크를 허용해주세요.');
     }
   };
 
@@ -276,6 +337,23 @@ export default function ChatBot() {
                 </div>
               </div>
             ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div 
+                  className="max-w-[80%] rounded-2xl px-4 py-3 text-white"
+                  style={{ backgroundColor: '#2d5f4f' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-green-100 rounded-full animate-bounce" />
+                      <span className="w-2 h-2 bg-green-100 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <span className="w-2 h-2 bg-green-100 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                    </div>
+                    <p className="text-sm text-green-100">답변 생성 중...</p>
+                  </div>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
