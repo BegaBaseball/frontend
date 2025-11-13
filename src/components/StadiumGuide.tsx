@@ -42,9 +42,6 @@ export default function StadiumGuide() {
   const KAKAO_API_KEY = import.meta.env.VITE_KAKAO_MAP_KEY as string;
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:8080/api';
 
-  // 디버깅용 로그
-  console.log(' Kakao API Key:', KAKAO_API_KEY);
-  console.log(' API Base URL:', API_BASE_URL);
   // 상태 관리
   const [stadiums, setStadiums] = useState<Stadium[]>([]);
   const [selectedStadium, setSelectedStadium] = useState<Stadium | null>(null);
@@ -54,28 +51,28 @@ export default function StadiumGuide() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [map, setMap] = useState<any>(null);
+  const [isKakaoLoaded, setIsKakaoLoaded] = useState(false);
 
   // Refs
   const mapContainer = useRef<HTMLDivElement>(null);
   const markersRef = useRef<any[]>([]);
   const stadiumMarkerRef = useRef<any>(null);
   const infowindowsRef = useRef<any[]>([]);
+  
 
   // 카카오맵 스크립트 로드
   useEffect(() => {
     if (!KAKAO_API_KEY) {
-      console.error('카카오 API 키가 없습니다');
       return;
     }
 
     if (window.kakao && window.kakao.maps) {
-      console.log('카카오맵 이미 로드됨');
+      setIsKakaoLoaded(true);
       return;
     }
 
     const existingScript = document.querySelector(`script[src*="dapi.kakao.com"]`);
     if (existingScript) {
-      console.log('카카오맵 스크립트 로딩 중...');
       return;
     }
 
@@ -86,13 +83,13 @@ export default function StadiumGuide() {
     script.onload = () => {
       if (window.kakao && window.kakao.maps) {
         window.kakao.maps.load(() => {
-          console.log('카카오맵 완전히 로드됨');
+          setIsKakaoLoaded(true);
         });
       }
     };
     
     script.onerror = () => {
-      console.error('카카오맵 스크립트 로드 실패');
+      setError('지도를 불러오는데 실패했습니다.');
     };
     
     document.head.appendChild(script);
@@ -103,43 +100,16 @@ export default function StadiumGuide() {
     fetchStadiums();
   }, []);
 
-  // 선택된 구장이 변경될 때 지도 초기화
+ // 선택된 구장이 변경될 때 지도 초기화
   useEffect(() => {
-    if (!selectedStadium || !mapContainer.current) return;
-
-    let mounted = true;
-    let checkCount = 0;
-    const maxChecks = 50;
-
-    const checkAndInit = setInterval(() => {
-      checkCount++;
-      
-      if (!mounted) {
-        clearInterval(checkAndInit);
-        return;
-      }
-
-      if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
-        clearInterval(checkAndInit);
-        console.log('카카오맵 준비 완료, 지도 초기화 시작');
-        
-        setTimeout(() => {
-          if (mounted) {
-            initializeMap();
-          }
-        }, 100);
-      } else if (checkCount >= maxChecks) {
-        clearInterval(checkAndInit);
-        console.error('카카오맵 로드 타임아웃');
-        setError('지도를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
-      }
+    if (!selectedStadium || !isKakaoLoaded || !mapContainer.current) return;
+    
+    const timer = setTimeout(() => {
+      initializeMap();
     }, 100);
 
-    return () => {
-      mounted = false;
-      clearInterval(checkAndInit);
-    };
-  }, [selectedStadium]);
+    return () => clearTimeout(timer);
+}, [selectedStadium, isKakaoLoaded]);
 
   // 선택된 구장과 카테고리가 변경될 때 장소 목록 가져오기
   useEffect(() => {
@@ -150,63 +120,28 @@ export default function StadiumGuide() {
     infowindowsRef.current = [];
     
     if (selectedCategory === 'store') {
-      const checkMapReady = setInterval(() => {
-        if (mapContainer.current && window.kakao && window.kakao.maps) {
-          clearInterval(checkMapReady);
-          searchNearbyPlaces('편의점', 'store');
-        }
-      }, 100);
-      
-      return () => clearInterval(checkMapReady);
+      if (isKakaoLoaded && mapContainer.current) { 
+        searchNearbyPlaces('편의점', 'store');
+      }
     } else if (selectedCategory === 'parking') {
-      const checkMapReady = setInterval(() => {
-        if (mapContainer.current && window.kakao && window.kakao.maps) {
-          clearInterval(checkMapReady);
-          searchNearbyPlaces('주차장', 'parking');
-        }
-      }, 100);
-      
-      return () => clearInterval(checkMapReady);
+      if (isKakaoLoaded && mapContainer.current) {
+        searchNearbyPlaces('주차장', 'parking');
+      }
     } else {
       fetchPlaces(selectedStadium.stadiumId, selectedCategory);
     }
-  }, [selectedStadium, selectedCategory]);
+  }, [selectedStadium, selectedCategory, isKakaoLoaded]); 
 
   // 장소 목록이 변경되거나 선택된 장소가 변경될 때 마커 업데이트
-  useEffect(() => {
-    if (!mapContainer.current) return;
-
-    let mounted = true;
-    let checkCount = 0;
-    const maxChecks = 50;
-
-    const checkAndUpdate = setInterval(() => {
-      checkCount++;
-      
-      if (!mounted) {
-        clearInterval(checkAndUpdate);
-        return;
-      }
-
-      if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
-        clearInterval(checkAndUpdate);
-        
-        setTimeout(() => {
-          if (mounted) {
-            updateMarkers();
-          }
-        }, 100);
-      } else if (checkCount >= maxChecks) {
-        clearInterval(checkAndUpdate);
-        console.error('마커 업데이트 타임아웃');
-      }
+    useEffect(() => {
+    if (!map || !isKakaoLoaded) return;
+    
+    const timer = setTimeout(() => {
+      updateMarkers();
     }, 100);
 
-    return () => {
-      mounted = false;
-      clearInterval(checkAndUpdate);
-    };
-  }, [places, selectedPlace]);
+    return () => clearTimeout(timer);
+  }, [places, selectedPlace, map, isKakaoLoaded]);
 
   // API 함수들
   const fetchStadiums = async () => {
@@ -219,14 +154,12 @@ export default function StadiumGuide() {
       }
       
       const data = await response.json();
-      console.log('Fetched stadiums:', data);
       setStadiums(data);
       
       if (data.length > 0) {
         setSelectedStadium(data[0]);
       }
     } catch (error) {
-      console.error('구장 목록 로드 실패:', error);
       setError('구장 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -243,10 +176,8 @@ export default function StadiumGuide() {
       }
       
       const data = await response.json();
-      console.log(`Fetched places for ${category}:`, data);
       setPlaces(data);
     } catch (error) {
-      console.error('장소 목록 로드 실패:', error);
       setPlaces([]);
     } finally {
       setLoading(false);
@@ -255,7 +186,6 @@ export default function StadiumGuide() {
 
   const searchNearbyPlaces = (keyword: string, category: string) => {
     if (!window.kakao || !window.kakao.maps || !selectedStadium || !map) {
-      console.error('검색 준비 미완료');
       return;
     }
 
@@ -292,10 +222,8 @@ export default function StadiumGuide() {
               closeTime: ''
             }));
 
-          console.log(`${keyword} 검색 결과:`, nearbyPlaces);
           setPlaces(nearbyPlaces);
         } else {
-          console.error(`${keyword} 검색 실패:`, status);
           setPlaces([]);
         }
       },
@@ -321,17 +249,14 @@ export default function StadiumGuide() {
 
   const initializeMap = () => {
     if (!mapContainer.current || !selectedStadium) {
-      console.error('지도 초기화 실패: 컨테이너 또는 구장 정보 없음');
       return;
     }
 
     if (!window.kakao || !window.kakao.maps) {
-      console.error('카카오맵 SDK 로드 안됨');
       return;
     }
 
     try {
-      console.log('지도 초기화 중...', selectedStadium);
       
       const container = mapContainer.current;
       const options = {
@@ -360,16 +285,13 @@ export default function StadiumGuide() {
       });
       infowindow.open(newMap, marker);
 
-      console.log('지도 초기화 완료');
     } catch (error) {
-      console.error('지도 초기화 중 오류:', error);
       setError('지도를 초기화하는데 실패했습니다.');
     }
   };
 
   const updateMarkers = () => {
     if (!map || !window.kakao || !window.kakao.maps) {
-      console.error('마커 업데이트 실패: 지도 또는 카카오맵 SDK 없음');
       return;
     }
 
@@ -432,9 +354,8 @@ export default function StadiumGuide() {
         }
       }
 
-      console.log(`${places.length}개 마커 업데이트 완료`);
     } catch (error) {
-      console.error('마커 업데이트 중 오류:', error);
+      
     }
   };
 

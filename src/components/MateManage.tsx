@@ -50,7 +50,7 @@ export default function MateManage() {
             const userIdData = await userIdResponse.json();
             const userId = userIdData.data || userIdData;
             setCurrentUserId(userId);
-            console.log('👤 MateManage - 현재 사용자 ID:', userId);
+            
           }
         }
       } catch (error) {
@@ -68,7 +68,7 @@ export default function MateManage() {
     const fetchApplications = async () => {
       setIsLoading(true);
       try {
-        console.log(`📋 신청 목록 불러오는 중... (파티 ID: ${selectedParty.id})`);
+        
         
         const response = await fetch(
           `http://localhost:8080/api/applications/party/${selectedParty.id}`,
@@ -77,7 +77,7 @@ export default function MateManage() {
 
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ 신청 목록 불러오기 성공:', data.length + '개');
+          
           setApplications(data);
         } else {
           console.error('❌ 신청 목록 불러오기 실패:', response.status);
@@ -111,7 +111,7 @@ export default function MateManage() {
 
   const isHost = String(selectedParty.hostId) === String(currentUserId);
 
-  console.log('🏠 호스트 체크:', {
+  console.log(' 호스트 체크:', {
     partyHostId: selectedParty.hostId,
     currentUserId: currentUserId,
     isHost: isHost
@@ -136,7 +136,7 @@ export default function MateManage() {
   // ✅ 신청 승인 (POST 메서드)
   const handleApprove = async (applicationId: string) => {
     try {
-      console.log(`✅ 신청 승인 중... (신청 ID: ${applicationId})`);
+      
       
       const response = await fetch(
         `http://localhost:8080/api/applications/${applicationId}/approve`,
@@ -147,7 +147,7 @@ export default function MateManage() {
       );
 
       if (response.ok) {
-        console.log('✅ 신청 승인 성공');
+      
         alert('신청이 승인되었습니다!');
         
         // 신청 목록 다시 불러오기
@@ -174,7 +174,7 @@ export default function MateManage() {
   // ✅ 신청 거절 (POST 메서드)
   const handleReject = async (applicationId: string) => {
     try {
-      console.log(`❌ 신청 거절 중... (신청 ID: ${applicationId})`);
+      
       
       const response = await fetch(
         `http://localhost:8080/api/applications/${applicationId}/reject`,
@@ -185,7 +185,7 @@ export default function MateManage() {
       );
 
       if (response.ok) {
-        console.log('✅ 신청 거절 완료');
+        
         alert('신청이 거절되었습니다.');
         
         // 신청 목록 다시 불러오기

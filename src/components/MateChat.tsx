@@ -41,7 +41,7 @@ export default function MateChat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const handleMessageReceived = useCallback((message: ChatMessage) => {
-    console.log('메시지 수신:', message);
+    
     setMessages((prev) => {
       if (prev.some(m => m.id === message.id)) {
         return prev;
@@ -60,7 +60,7 @@ export default function MateChat() {
 
         if (response.ok) {
           const result = await response.json();
-          console.log('👤 사용자 정보:', result);
+          
           
           if (result.success && result.data) {
             const userIdResponse = await fetch(
@@ -75,7 +75,6 @@ export default function MateChat() {
               userId = userIdData.data || userIdData;
             }
             
-            console.log('사용자 ID:', userId);
             
             setCurrentUser({
               id: typeof userId === 'number' ? userId : parseInt(userId),
@@ -114,7 +113,6 @@ export default function MateChat() {
         });
         if (response.ok) {
           const data = await response.json();
-          console.log('기존 메시지 개수:', data.length);
           setMessages(data);
         }
       } catch (error) {
@@ -159,8 +157,7 @@ export default function MateChat() {
           const myApp = applications.find((app: any) => 
             String(app.partyId) === String(selectedParty.id)
           );
-          console.log('채팅방 - 내 신청 정보:', myApp);
-          console.log('승인 여부:', myApp?.isApproved);
+          
           setMyApplication(myApp);
         }
       } catch (error) {
@@ -231,7 +228,7 @@ export default function MateChat() {
     );
   }
 
-  console.log('🏠 호스트 여부:', {
+  console.log(' 호스트 여부:', {
     partyHostId: selectedParty.hostId,
     currentUserId: currentUser.id,
     isHost
@@ -288,7 +285,6 @@ export default function MateChat() {
       message: messageText,
     };
 
-    console.log('📤 메시지 전송:', newMessage);
     sendWebSocketMessage(newMessage);
     setMessageText('');
   };

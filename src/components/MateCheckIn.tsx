@@ -102,7 +102,6 @@ export default function MateCheckIn() {
         location: selectedParty.stadium,
       };
 
-      console.log('🎫 체크인 요청:', checkInData);
 
       const response = await fetch('http://localhost:8080/api/checkin', {
         method: 'POST',
@@ -115,7 +114,6 @@ export default function MateCheckIn() {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ 체크인 완료:', result);
         
         // 체크인 현황 다시 불러오기
         const statusResponse = await fetch(
