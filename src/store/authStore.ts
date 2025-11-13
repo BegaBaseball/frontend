@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import Cookies from 'js-cookie'; // npm install js-cookie 필요!
 
-const MYPAGE_API_URL = 'http://localhost:8080/api/auth/mypage'; 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const MYPAGE_API_URL = `${API_BASE_URL}/auth/mypage`; 
 const AUTH_COOKIE_NAME = 'Authorization';
 
 interface User {
@@ -12,7 +13,7 @@ interface User {
   favoriteTeamColor?: string;
   isAdmin?: boolean;
   profileImageUrl?: string;
-
+  role?: string;
 }
 
 interface AuthState {
@@ -31,7 +32,7 @@ interface AuthState {
   setPassword: (password: string) => void;
   setShowPassword: (show: boolean) => void;
   // login 시 닉네임(name)을 DTO에서 받아와야 함
-  login: (email: string, name: string) => void; 
+  login: (email: string, name: string, profileImageUrl?: string, role?: string) => void; 
   logout: () => void;
   setFavoriteTeam: (team: string, color: string) => void;
 }
@@ -52,58 +53,67 @@ export const useAuthStore = create<AuthState>()(
           const response = await fetch(MYPAGE_API_URL, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include', // JWT 쿠키를 포함하여 요청
+            credentials: 'include',
           });
 
           if (response.ok) {
             const result = await response.json();
-            const profile = result.data as { name: string, email: string }; 
+            const profile = result.data as { 
+              name: string, 
+              email: string, 
+              profileImageUrl?: string,
+              role?: string  
+            }; 
             
-            // 인증 성공: 상태 업데이트
+            
+            const isAdminUser = profile.role === 'ROLE_ADMIN';
+            
+            
             set((state) => ({
-              user: { ...state.user, ...profile, name: profile.name, email: profile.email },
+              user: { 
+                ...state.user, 
+                ...profile, 
+                name: profile.name, 
+                email: profile.email,
+                role: profile.role,
+                isAdmin: isAdminUser  
+              },
               isLoggedIn: true,
+              isAdmin: isAdminUser,  
             }));
             
           } else {
-            // 인증 실패: 쿠키 만료/없음 -> 로그아웃 처리
             Cookies.remove(AUTH_COOKIE_NAME, { path: '/' }); 
-            set({ user: null, isLoggedIn: false });
+            set({ user: null, isLoggedIn: false, isAdmin: false });
           }
         } catch (error) {
           console.error('인증 상태 확인 중 오류 발생:', error);
-          set({ user: null, isLoggedIn: false });
+          set({ user: null, isLoggedIn: false, isAdmin: false });
         }
       },
       
-      // 마이페이지에서 프로필 수정 후 상태 업데이트
       setUserProfile: (profile) => {
         set((state) => ({
           user: state.user ? { 
             ...state.user, 
             ...profile, 
             name: profile.name,
-            profileImageUrl: profile.profileImageUrl || state.user.profileImageUrl // ✅ 추가
+            profileImageUrl: profile.profileImageUrl || state.user.profileImageUrl
           } : null,
         }));
       },
       
-      //   set({
-      //     user: { email, name }, // name 필드에 닉네임 저장
-      //     isLoggedIn: true, 
-      //     email: '',
-      //     password: '',
-      //   });
-      // },
-      // 로그인
-      login: (email, name, profileImageUrl) => { 
-        const isAdminUser = email === 'admin' || email === 'admin@bega.com';
+      
+      login: (email, name, profileImageUrl, role) => { 
+        const isAdminUser = role === 'ROLE_ADMIN';
+        
         set({
           user: { 
             email: email, 
             name: name,
             isAdmin: isAdminUser,
-            profileImageUrl: profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User' // ✅ 추가
+            profileImageUrl: profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User',
+            role: role
           },
           isLoggedIn: true,
           isAdmin: isAdminUser,
