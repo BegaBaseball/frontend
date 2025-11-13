@@ -31,7 +31,7 @@ interface AuthState {
   setPassword: (password: string) => void;
   setShowPassword: (show: boolean) => void;
   // login 시 닉네임(name)을 DTO에서 받아와야 함
-  login: (email: string, name: string) => void; 
+  login: (email: string, name: string, profileImageUrl?: string) => void; 
   logout: () => void;
   setFavoriteTeam: (team: string, color: string) => void;
 }

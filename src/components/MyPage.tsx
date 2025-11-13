@@ -18,9 +18,7 @@ import { useDiaryStore } from '../store/diaryStore';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useAuthStore } from '../store/authStore';
 import { useNavigationStore } from '../store/navigationStore';
-import { DiaryStatistics } from '../store/diaryStore';
 import { Users } from 'lucide-react';
-import { uploadProfileImage } from '../api/profile';
 
 const API_URL = 'http://localhost:8080/api/auth/mypage';
 
@@ -78,11 +76,9 @@ const formatDate = (dateString: string | null): string => {
 type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory';
 
 export default function MyPage() {
-  const DEFAULT_PROFILE_IMAGE = 'https://placehold.co/100x100/374151/ffffff?text=User';
   const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  const [profileImage, setProfileImage] = useState(DEFAULT_PROFILE_IMAGE); 
-  const [newProfileImageFile, setNewProfileImageFile] = useState<File | null>(null); 
+  const [profileImage, setProfileImage] = useState('https://placehold.co/100x100/374151/ffffff?text=User');
   const [name, setName] = useState('로딩 중...');
   const [email, setEmail] = useState('loading@...');
   const [savedFavoriteTeam, setSavedFavoriteTeam] = useState('없음');
@@ -98,22 +94,6 @@ export default function MyPage() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const [mateHistoryTab, setMateHistoryTab] = useState<'all' | 'completed' | 'ongoing'>('all');
   const { diaryEntries, addDiaryEntry, updateDiaryEntry, deleteDiaryEntry, setDiaryEntries } = useDiaryStore();
-  const [statistics, setStatistics] = useState<DiaryStatistics>({
-    totalCount: 0,
-    totalWins: 0,
-    totalLosses: 0,
-    totalDraws: 0,
-    winRate: 0,
-    yearlyCount: 0,
-    yearlyWins: 0,
-    yearlyWinRate: 0,
-    mostVisitedStadium: null,
-    mostVisitedCount: 0,
-    happiestMonth: null,
-    happiestCount: 0,
-    firstDiaryDate: null,
-  });
-
 
   const emojiStats = useMemo(() => {
     
@@ -275,158 +255,121 @@ const fetchUserProfile = useCallback(async () => {
 
 
   // 프로필 이미지 로컬 업로드 미리보기
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (file) {
+      // 이전 blob URL 해제
+      if (profileImage.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImage);
+      }
 
-    // 🔥 파일 크기 검증 (5MB)
-    const maxSizeMB = 5;
-    if (file.size > maxSizeMB * 1024 * 1024) {
-        showCustomAlert(`파일 크기가 ${maxSizeMB}MB를 초과합니다.`);
-        return;
+      const imageUrl = URL.createObjectURL(file);
+      setProfileImage(imageUrl);
+      // 실제 환경에서는 이미지 파일을 서버에 업로드하고 URL을 받아와야 합니다.
+      showCustomAlert('이미지 미리보기 적용됨. 저장을 눌러 서버에 반영하세요.');
     }
-
-    // 🔥 파일 형식 검증
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-        showCustomAlert('JPG, PNG, WEBP 형식의 이미지만 업로드 가능합니다.');
-        return;
-    }
-
-    try {
-        // 🔥 로컬 미리보기
-        if (profileImage.startsWith('blob:')) {
-            URL.revokeObjectURL(profileImage);
-        }
-        const imageUrl = URL.createObjectURL(file);
-        setProfileImage(imageUrl);
-        
-        // 🔥 파일을 상태에 저장 (저장 버튼 클릭 시 업로드)
-        setNewProfileImageFile(file);
-        
-        showCustomAlert('이미지가 선택되었습니다. 저장 버튼을 눌러주세요.');
-    } catch (error) {
-        console.error('이미지 미리보기 오류:', error);
-        showCustomAlert('이미지 처리 중 오류가 발생했습니다.');
-    }
-}
+  };
 
   // 3. 프로필 정보 저장 (PUT)
 const handleSave = async () => {
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  setError(null);
 
-    // 닉네임 유효성 검사
-    if (!name.trim()) {
-        showCustomAlert('이름(닉네임)은 필수로 입력해야 합니다.');
-        setLoading(false);
-        return;
+  // 닉네임이 비어있는지 확인
+  if (!name.trim()) {
+    showCustomAlert('이름(닉네임)은 필수로 입력해야 합니다.');
+    setLoading(false);
+    return;
+  }
+  
+// 요청 본문(Body)의 키를 'name'으로 사용하고 favoriteTeam을 포함
+const updatedProfile = {
+  name: name.trim(), 
+  profileImageUrl: profileImage,
+  favoriteTeam: editingFavoriteTeam === '없음' ? null : editingFavoriteTeam,
+  email: email // 기존 이메일 값을 그대로 포함
+  };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', 
+      body: JSON.stringify(updatedProfile),
+    });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      showCustomAlert('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
+      navigateToLogin();
+      return;
     }
+    throw new Error(`Failed to save profile: ${response.statusText}`);
+  }
 
-    let finalImageUrl: string | undefined = undefined;
-
-    // 🔥 1. 프로필 이미지가 새로 선택된 경우 백엔드로 업로드
-    if (newProfileImageFile) {
-        try {
-            console.log('프로필 이미지 업로드 시작...');
-            const uploadResult = await uploadProfileImage(newProfileImageFile);
-            finalImageUrl = uploadResult.publicUrl;
-            console.log('✅ 프로필 이미지 업로드 성공:', finalImageUrl);
-        } catch (uploadError) {
-            console.error('이미지 업로드 오류:', uploadError);
-            showCustomAlert(uploadError instanceof Error ? uploadError.message : '이미지 업로드에 실패했습니다.');
-            setLoading(false);
-            return;
-        }
-    }
-
-    // 🔥 2. 프로필 정보 업데이트 (이미지 URL 포함)
-    const updatedProfile: {
-        name: string;
-        favoriteTeam: string | null;
-        email: string;
-        profileImageUrl?: string;
-    } = {
-        name: name.trim(),
-        favoriteTeam: editingFavoriteTeam === '없음' ? null : editingFavoriteTeam,
-        email: email,
-    };
-
-    // 새로 업로드한 이미지 URL이 있으면 추가
-    if (finalImageUrl) {
-        updatedProfile.profileImageUrl = finalImageUrl;
-    } else if (newProfileImageFile === null && profileImage !== DEFAULT_PROFILE_IMAGE) {
-        // 이미지를 변경하지 않았으나 기존 URL이 있다면 유지
-        updatedProfile.profileImageUrl = profileImage;
-    }
-
-    console.log('📤 전송할 프로필 데이터:', updatedProfile);
-
-    try {
-        const response = await fetch(API_URL, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify(updatedProfile),
-        });
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                showCustomAlert('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
-                navigateToLogin();
-                return;
-            }
-            throw new Error(`Failed to save profile: ${response.statusText}`);
-        }
-
-        const apiResponse = await response.json();
-        
-        if (apiResponse.success) {
-            const newToken = apiResponse.data.token;
-            if (newToken) {
-                localStorage.setItem('authToken', newToken);
-            }
-
-            const updatedProfileData = apiResponse.data;
-            setName(updatedProfileData.name);
-            setSavedFavoriteTeam(editingFavoriteTeam);
+  const apiResponse = await response.json();
+  console.log('API 응답 확인:', apiResponse);
+    if (apiResponse.isSuccess) {
+          // 새로운 JWT 토큰 처리
+          const newToken = apiResponse.data.token;
+          console.log(newToken)
+          if (newToken) { 
+            // 백엔드에서 받은 새 토큰을 localStorage의 기존 토큰과 교체
+            localStorage.setItem('authToken', newToken); 
+            console.log('새로운 JWT 토큰으로 교체 완료. 권한이 즉시 적용됩니다.');
+          }
             
-            // 이미지 URL 업데이트
-            if (profileImage.startsWith('blob:')) {
-                URL.revokeObjectURL(profileImage); // 기존 blob URL 해제
-            }
-            
-            if (finalImageUrl) {
-                setProfileImage(finalImageUrl);
-                console.log('✅ 프로필 이미지 상태 업데이트:', finalImageUrl);
-            } else if (updatedProfileData.profileImageUrl) {
-                setProfileImage(updatedProfileData.profileImageUrl);
-                console.log('✅ 프로필 이미지 상태 업데이트:', updatedProfileData.profileImageUrl);
-            }
-            
-            setNewProfileImageFile(null);
+          // 상태 업데이트: 업데이트된 프로필 정보로 UI 상태를 갱신
+          const updatedProfileData = apiResponse.data;
+          setName(updatedProfileData.name);
+          setSavedFavoriteTeam(editingFavoriteTeam);
+          setProfileImage(updatedProfileData.profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User');
+          
+          const setUserProfile = useAuthStore.getState().setUserProfile;
+          setUserProfile({
+            email: email,
+            name: updatedProfileData.name,
+            profileImageUrl: updatedProfileData.profileImageUrl || profileImage,
+            favoriteTeam: editingFavoriteTeam === '없음' ? undefined : editingFavoriteTeam
+          });
 
-            showCustomAlert(apiResponse.message || '프로필이 성공적으로 저장되었습니다!');
-            alert('변경사항이 적용되었습니다.');
-            setViewMode('diary');
-            console.log('프로필 저장 성공!');
-            
-            return;
+          // 성공 알림
+          showCustomAlert(apiResponse.message || '프로필이 성공적으로 저장되었습니다!');
+          setViewMode('diary');
+          console.log('프로필 저장 성공. 알림 표시 및 뷰 전환 실행 완료.');
+          return; 
         } else {
-            showCustomAlert(apiResponse.message || '프로필 저장에 실패했습니다.');
-            return;
+          // isSuccess가 false인 경우 또는 data 구조가 예상과 다른 경우
+          throw new Error(apiResponse.message || '프로필 저장에 실패했습니다. (isSuccess: false)');
         }
-    } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
-        console.error('프로필 저장 오류:', err);
-        setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
-        showCustomAlert(`프로필 저장 중 오류 발생: ${errorMessage}`);
+      } catch (err) {
+        // err가 Error 객체이고, 메시지에 '프로필 수정 성공'이 포함되어 있다면 성공으로 간주
+        const isSuccessMessageError = err instanceof Error && err.message.includes('프로필 수정 성공');
+
+        if (isSuccessMessageError) {
+          // DB에 저장된 상태이므로, 성공으로 간주하고 오류 메시지를 띄우지 않습니다.
+          // console.log('프로필 저장 성공 (에러 처리 필터링됨)'); 
+          setSavedFavoriteTeam(editingFavoriteTeam);
+          const setUserProfile = useAuthStore.getState().setUserProfile;
+          setUserProfile({
+            email: email,
+            name: name,
+            profileImageUrl: profileImage,
+            favoriteTeam: editingFavoriteTeam === '없음' ? undefined : editingFavoriteTeam
+          });
+          return; 
+        }
+        
+        // 실제 오류(통신 오류, HTTP 4xx/5xx 등)만 처리
+        console.error('프로필 저장 오류:', err); 
+        setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해 주세요.'); 
+
     } finally {
         setLoading(false);
     }
-}
+};
 
 
   const goToPreviousMonth = () => {
@@ -447,121 +390,59 @@ const handleSave = async () => {
     winningName: '',
     gameId: '',
     memo: '',
-    photos: [] as string[],
-    photoFiles: [] as File[]
+    photos: [] as string[]
   });
 
   const [availableGames, setAvailableGames] = useState<any[]>([]);
 
   const handleDateSelect = useCallback(async (date: Date) => {
-    setSelectedDate(date);
-    setIsEditMode(false);
+  setSelectedDate(date);
+  setIsEditMode(false);
   
-    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   
-    try {
-      const response = await fetch(`/api/diary/games?date=${dateStr}`, {
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        const games = await response.json();
-        setAvailableGames(games);
-      }
-    } catch (error) {
-      console.error('경기 정보 불러오기 실패:', error);
-      setAvailableGames([]);
-    }
+  try {
+    const response = await fetch(`/api/diary/games?date=${dateStr}`, {
+      credentials: 'include'
+    });
     
-    const entry = diaryEntries.find(e => e.date === dateStr);
-    if (entry) {
-      setDiaryForm({
-        type: entry.type || 'attended',
-        emoji: entry.emoji,
-        emojiName: entry.emojiName,
-        winningName: entry.winningName,
-        gameId: entry.gameId ? String(entry.gameId) : '',
-        memo: entry.memo || '',
-        photos: entry.photos || [],
-        photoFiles: []
-      });
-    } else {
-      setIsEditMode(true);
-      setDiaryForm({
-        type: 'attended',
-        emoji: happyEmoji,
-        emojiName: '즐거움',
-        winningName: '',
-        gameId: '',
-        memo: '',
-        photos: [],
-        photoFiles: []
-      });
+    if (response.ok) {
+      const games = await response.json();
+      setAvailableGames(games);
     }
-  }, [diaryEntries]);
+  } catch (error) {
+    console.error('경기 정보 불러오기 실패:', error);
+    setAvailableGames([]);
+  }
+  
+  const entry = diaryEntries.find(e => e.date === dateStr);
+  if (entry) {
+    setDiaryForm({
+      type: entry.type || 'attended',
+      emoji: entry.emoji,
+      emojiName: entry.emojiName,
+      winningName: entry.winningName || '',
+      gameId: entry.gameId ? String(entry.gameId) : '',
+      memo: entry.memo || '',
+      photos: entry.photos || []
+    });
+  } else {
+    setIsEditMode(true);
+    setDiaryForm({
+      type: 'attended',
+      emoji: happyEmoji,
+      emojiName: '즐거움',
+      winningName: '',
+      gameId: '',
+      memo: '',
+      photos: []
+    });
+  }
+}, [diaryEntries]);
 
   useEffect(() => {
     handleDateSelect(selectedDate);
   }, [selectedDate]);
-
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-      if (files) {
-        const fileArray = Array.from(files);
-
-        const MAX_FILE_SIZE = 10 * 1024 * 1024;
-        const oversizedFiles = fileArray.filter(file => file.size > MAX_FILE_SIZE);
-        
-        if (oversizedFiles.length > 0) {
-          alert(`파일 크기가 너무 큽니다. 각 파일은 10MB 이하여야 합니다.\n큰 파일: ${oversizedFiles.map(f => f.name).join(', ')}`);
-          return;
-        }
-        
-        const totalSize = fileArray.reduce((sum, file) => sum + file.size, 0);
-        if (totalSize > 60 * 1024 * 1024) {
-          alert('전체 파일 크기가 60MB를 초과합니다.');
-          return;
-        }
-
-        const newPhotoPromises = fileArray.map(file => {
-          return new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              resolve(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-          });
-        });
-
-        Promise.all(newPhotoPromises).then(newPhotos => {
-          setDiaryForm(prev => ({
-            ...prev,
-            photos: [...prev.photos, ...newPhotos],
-            photoFiles: [...prev.photoFiles, ...fileArray]
-          }));
-        });
-    } 
-  };
-
-  // const removePhoto = (index: number) => {
-  //   const updatedPhotos = diaryForm.photos.filter((_, i) => i !== index);
-  //   const updatedFiles = diaryForm.photoFiles.filter((_, i) => i !== index);
-  
-  //   setDiaryForm({ 
-  //     ...diaryForm, 
-  //     photos: updatedPhotos,
-  //     photoFiles: updatedFiles
-  //   });
-  // };
-
-  const removePhoto = (index: number) => {
-  setDiaryForm(prev => ({ 
-    ...prev, 
-    photos: prev.photos.filter((_, i) => i !== index),
-    photoFiles: prev.photoFiles.filter((_, i) => i !== index)
-  }));
-  };
 
   const handleSaveDiary = async () => {
     const isUpdate = !!selectedDiary;
@@ -573,7 +454,7 @@ const handleSave = async () => {
       winningName: diaryForm.winningName,
       gameId: diaryForm.gameId,
       memo: diaryForm.memo,
-      photos: [],
+      photos: diaryForm.photos,
       team: (() => {
         const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
         return game ? `${game.homeTeam} vs ${game.awayTeam}` : '';
@@ -603,33 +484,10 @@ const handleSave = async () => {
       }
       
       const result = await response.json();
-      const diaryId = result.id || result.data?.id || (isUpdate ? selectedDiary!.id : undefined);
-      let finalPhotos: string[] = [];
-
-      if (diaryForm.photoFiles.length > 0) {
-      const formData = new FormData();
-      diaryForm.photoFiles.forEach(file => {
-        formData.append('images', file);
-      });
-
-      // 백그라운드로 이미지 업로드
-      const imageResponse = await fetch(`/api/diary/${diaryId}/images`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-
-      if (imageResponse.ok) {
-        const imageResult = await imageResponse.json();
-        finalPhotos = imageResult.photos || imageResult.data?.photos || [];
-      } else {
-        throw new Error('이미지 업로드 실패');
-      }
 
       const finalEntry = {
-        ...entryPayload,
-        id: diaryId,
-        photos: finalPhotos
+      ...entryPayload,
+      id: result.data?.id || result.id || (isUpdate ? selectedDiary!.id : undefined)
       };
 
       if (isUpdate) {
@@ -641,8 +499,6 @@ const handleSave = async () => {
       showCustomAlert(`다이어리가 ${isUpdate ? '수정' : '작성'}되었습니다!`);
       setIsEditMode(false);
 
-      await handleDateSelect(selectedDate);
-    }
     } catch (error) {
       showCustomAlert(`다이어리 ${isUpdate ? '수정' : '작성'}에 실패했습니다.`);
     }
@@ -823,14 +679,19 @@ const handleSave = async () => {
       showCustomAlert('삭제할 다이어리가 없습니다');
       return;
     }
+
     const diaryId = selectedDiary?.id;
     if(!diaryId) {
       showCustomAlert('다이어리를 찾을 수 없습니다.');
       return;
     }
-    if (!window.confirm('정말로 이 다이어리를 삭제하시겠습니까?\n삭제된 다이어리는 복구할 수 없습니다.')) {return;}
+
+    if (!window.confirm('정말로 이 다이어리를 삭제하시겠습니까?\n삭제된 다이어리는 복구할 수 없습니다.')) {
+      return;
+    }
 
     try {
+      
       const response = await fetch(`/api/diary/${diaryId}/delete`, {
         method: 'POST',
         headers: {
@@ -838,6 +699,7 @@ const handleSave = async () => {
         },
         credentials: 'include'
       });
+
       if (!response.ok) {
         if (response.status === 401) {
           showCustomAlert('로그인이 필요합니다.');
@@ -852,6 +714,7 @@ const handleSave = async () => {
       }
         // Store에서 삭제 (날짜로 찾아서 삭제)
         deleteDiaryEntry(selectedDateStr);
+        
         showCustomAlert('다이어리가 삭제되었습니다.');
         setIsEditMode(false);
         
@@ -863,8 +726,7 @@ const handleSave = async () => {
           winningName: '',
           gameId: '',
           memo: '',
-          photos: [],
-          photoFiles: []
+          photos: []
         });
         
       } catch (error) {
@@ -872,42 +734,6 @@ const handleSave = async () => {
         showCustomAlert('다이어리 삭제에 실패했습니다.');
       }
     };
-
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const BUCKET_NAME = import.meta.env.SUPABASE_STORAGE_DIARY_BUCKET || 'diary-images';
-  const getFullImageUrl = (imagePath: string) => {
-    if (!imagePath) return '';
-    if (imagePath.startsWith('http')) return imagePath;
-
-    return `${SUPABASE_URL}/storage/v1/object/${BUCKET_NAME}/${imagePath}`
-  }
-
-  // 사용자 통계
-  useEffect(() => {
-    const fetchStatistics = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/diary/statistics', {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if(!response.ok) {
-          throw new Error('통계 조회 실패');
-        }
-        const data: DiaryStatistics = await response.json();
-        setStatistics(data);
-      } catch(error) {
-        showCustomAlert('통계를 불러오는데 실패했습니다.')
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStatistics();
-  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -922,7 +748,7 @@ const handleSave = async () => {
               <div className="relative">
                 <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden">
                   {profileImage ? (
-                    <img src={profileImage}  alt="Profile" className="w-full h-full object-cover" />
+                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <User className="w-12 h-12 text-gray-400" />
@@ -980,7 +806,7 @@ const handleSave = async () => {
           <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t">
             <div className="text-center">
               <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                {statistics.totalCount}
+                {totalCount}
               </div>
               <div className="text-sm text-gray-600">직관 횟수</div>
             </div>
@@ -992,7 +818,7 @@ const handleSave = async () => {
             </div>
             <div className="text-center">
               <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                {statistics.winRate.toFixed(1)}
+                60%
               </div>
               <div className="text-sm text-gray-600">승률</div>
             </div>
@@ -1074,7 +900,7 @@ const handleSave = async () => {
               <div className="relative">
                 <div className="w-32 h-32 rounded-full bg-gray-200 overflow-hidden">
                   {profileImage ? (
-                    <img src={profileImage}  alt="Profile" className="w-full h-full object-cover" />
+                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <User className="w-16 h-16 text-gray-400" />
@@ -1114,16 +940,7 @@ const handleSave = async () => {
                 <Label htmlFor="team" className="text-gray-700">응원구단 *</Label>
                 <Select value={editingFavoriteTeam} onValueChange={setEditingFavoriteTeam}>
                   <SelectTrigger className="w-full">
-                    <div className="flex items-center gap-2">
-                      {/* 팀 로고 */}
-                      {editingFavoriteTeam !== '없음' && (
-                        <div className="w-6 h-6">
-                          <TeamLogo team={editingFavoriteTeam} size="sm" />
-                        </div>
-                      )}
-                      {/* 팀 이름 */}
-                      <span>{TEAM_DATA[editingFavoriteTeam]?.name || '응원하는 팀을 선택하세요'}</span>
-                    </div>
+                    <SelectValue placeholder="응원하는 팀을 선택하세요" />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.keys(TEAM_DATA).map(teamId => (
@@ -1183,7 +1000,7 @@ const handleSave = async () => {
                   <span className="text-gray-700">총 직관 횟수</span>
                   <div className="flex items-center gap-2">
                     <span style={{ fontWeight: 900, fontSize: '20px', color: '#2d5f4f' }}>
-                      {statistics.monthlyCount || 0}회
+                      {totalCount}회
                     </span>
                   </div>
                 </div>
@@ -1191,7 +1008,7 @@ const handleSave = async () => {
                   <span className="text-gray-700">응원팀 승률</span>
                   <div className="flex items-center gap-2">
                     <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                      {statistics?.winRate?.toFixed(1) || 0}% ({statistics?.totalWins || 0}승 {statistics?.totalDraws || 0}무 {statistics?.totalLosses || 0}패)
+                      60% (3승 2패)
                     </span>
                   </div>
                 </div>
@@ -1208,19 +1025,19 @@ const handleSave = async () => {
               <div className="grid grid-cols-3 gap-6 mb-6">
                 <div className="bg-green-50 p-6 rounded-xl text-center">
                   <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                    {statistics?.yearlyCount || 0}
+                    24
                   </div>
                   <div className="text-sm text-gray-600">총 직관 횟수</div>
                 </div>
                 <div className="bg-green-50 p-6 rounded-xl text-center">
                   <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                    {statistics?.yearlyWins || 0}승
+                    15승
                   </div>
                   <div className="text-sm text-gray-600">응원팀 승리</div>
                 </div>
                 <div className="bg-green-50 p-6 rounded-xl text-center">
                   <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                    {statistics?.yearlyWinRate?.toFixed(1) || 0}%
+                    62.5%
                   </div>
                   <div className="text-sm text-gray-600">연간 승률</div>
                 </div>
@@ -1229,27 +1046,15 @@ const handleSave = async () => {
               <div className="border-t pt-6 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700">가장 많이 간 구장</span>
-                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                    {statistics?.mostVisitedStadium || '없음'} ({statistics?.mostVisitedCount || 0}회)
-                  </span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>광주 KIA 챔피언스 필드 (8회)</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700">가장 행복했던 달</span>
-                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                    {statistics?.happiestMonth || '없음'} (최고 {statistics?.happiestCount || 0}회)
-                  </span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>7월 (좋음 12회)</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700">첫 직관</span>
-                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                    {statistics?.firstDiaryDate 
-                    ? new Date(statistics.firstDiaryDate).toLocaleDateString('ko-KR', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })
-                    : '없음'}
-                  </span>
+                  <span style={{ fontWeight: 700, color: '#2d5f4f' }}>2024년 3월 23일</span>
                 </div>
               </div>
             </Card>
@@ -1383,26 +1188,18 @@ const handleSave = async () => {
                       </div>
                       {diaryForm.photos.length === 1 ? (
                         <img 
-                          src={getFullImageUrl(diaryForm.photos[0])} 
+                          src={diaryForm.photos[0]} 
                           alt="직관 사진" 
                           className="w-full rounded-xl object-cover max-h-64"
-                          onError={(e) => {
-                          console.error('이미지 로드 실패:', diaryForm.photos[0]);
-                          e.currentTarget.style.display = 'none';
-                        }}
                         />
                       ) : (
                         <div className="grid grid-cols-2 gap-2">
                           {diaryForm.photos.slice(0, 4).map((photo: string, index: number) => (
                             <div key={index} className="aspect-square relative rounded-xl overflow-hidden">
                               <img 
-                                src={getFullImageUrl(photo)} 
+                                src={photo} 
                                 alt={`사진 ${index + 1}`} 
                                 className="w-full h-full object-cover"
-                                onError={(e) => {
-                                console.error('이미지 로드 실패:', photo);
-                                e.currentTarget.style.display = 'none';
-                              }}
                               />
                               {index === 3 && diaryForm.photos.length > 4 && (
                                 <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
@@ -1793,7 +1590,7 @@ const handleSave = async () => {
         isOpen={showTeamTest}
         onClose={() => setShowTeamTest(false)}
         onSelectTeam={(team) => {
-          setEditingFavoriteTeam(team);
+          setSavedFavoriteTeam(team);
           setShowTeamTest(false);
         }}
       />
