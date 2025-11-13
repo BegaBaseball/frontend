@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import Cookies from 'js-cookie'; // npm install js-cookie 필요!
 
-const MYPAGE_API_URL = 'http://localhost:8080/api/auth/mypage'; 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const MYPAGE_API_URL = `${API_BASE_URL}/auth/mypage`; 
 const AUTH_COOKIE_NAME = 'Authorization';
 
 interface User {
@@ -61,13 +62,12 @@ export const useAuthStore = create<AuthState>()(
               name: string, 
               email: string, 
               profileImageUrl?: string,
-              role?: string  // 🔥 role 추가
+              role?: string  
             }; 
             
-            // 🔥 role 기반 isAdmin 판단
+            
             const isAdminUser = profile.role === 'ROLE_ADMIN';
             
-            console.log('✅ 프로필 로드:', profile.name, 'role:', profile.role, 'isAdmin:', isAdminUser);
             
             set((state) => ({
               user: { 
@@ -76,10 +76,10 @@ export const useAuthStore = create<AuthState>()(
                 name: profile.name, 
                 email: profile.email,
                 role: profile.role,
-                isAdmin: isAdminUser  // 🔥 추가
+                isAdmin: isAdminUser  
               },
               isLoggedIn: true,
-              isAdmin: isAdminUser,  // 🔥 추가
+              isAdmin: isAdminUser,  
             }));
             
           } else {
@@ -103,16 +103,9 @@ export const useAuthStore = create<AuthState>()(
         }));
       },
       
-      // 🔥 로그인 함수 수정
+      
       login: (email, name, profileImageUrl, role) => { 
         const isAdminUser = role === 'ROLE_ADMIN';
-        
-        console.log('🔥 authStore.login 호출:', {
-          email,
-          name,
-          role,
-          isAdmin: isAdminUser
-        });
         
         set({
           user: { 

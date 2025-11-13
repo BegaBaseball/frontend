@@ -8,7 +8,8 @@ import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore'; 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
-const LOGOUT_API_URL = '/api/auth/logout'; 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`;
 
 
 interface NavbarProps {
