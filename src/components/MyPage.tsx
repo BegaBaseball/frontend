@@ -523,104 +523,6 @@ const updatedProfile = {
   }));
   };
 
-  const handleSaveDiary = async () => {
-    const isUpdate = !!selectedDiary;
-    const entry = {
-      date: selectedDateStr,
-      type: diaryForm.type,
-      emoji: diaryForm.emoji,
-      emojiName: diaryForm.emojiName,
-      winningName: diaryForm.winningName,
-      gameId: diaryForm.gameId,
-      memo: diaryForm.memo,
-      photos: [],
-      team: (() => {
-        const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
-        return game ? `${game.homeTeam} vs ${game.awayTeam}` : '';
-      })(),
-      stadium: (() => {
-        const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
-        return game?.stadium || '';
-      })()
-    };
-
-    const entryPayload = isUpdate ? { ...entry, id: selectedDiary!.id } : entry;
-    const method = 'POST';
-    const apiPath = isUpdate ? `/api/diary/${selectedDiary!.id}/modify` : '/api/diary/save'
-
-    try {
-      const response = await fetch(apiPath, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(entryPayload)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`다이어리 ${isUpdate ? '수정' : '작성'} 실패`);
-      }
-      
-      const result = await response.json();
-      const diaryId = result.id || result.data?.id || (isUpdate ? selectedDiary!.id : undefined);
-      let finalPhotos: string[] = [];
-
-      if (diaryForm.photoFiles.length > 0) {
-      const formData = new FormData();
-      diaryForm.photoFiles.forEach(file => {
-        formData.append('images', file);
-      });
-
-      // 백그라운드로 이미지 업로드
-      const imageResponse = await fetch(`/api/diary/${diaryId}/images`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-
-      if (imageResponse.ok) {
-        const imageResult = await imageResponse.json();
-        finalPhotos = imageResult.photos || imageResult.data?.photos || [];
-      } else {
-        throw new Error('이미지 업로드 실패');
-      }
-
-      const finalEntry = {
-        ...entryPayload,
-        id: diaryId,
-        photos: finalPhotos
-      };
-
-      if (isUpdate) {
-          updateDiaryEntry(selectedDateStr, finalEntry as any);
-      } else {
-          addDiaryEntry(finalEntry as any);
-      }
-      
-      showCustomAlert(`다이어리가 ${isUpdate ? '수정' : '작성'}되었습니다!`);
-      setIsEditMode(false);
-
-      await handleDateSelect(selectedDate);
-    }
-    } catch (error) {
-      showCustomAlert(`다이어리 ${isUpdate ? '수정' : '작성'}에 실패했습니다.`);
-    }
-  };
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newPhotos = Array.from(files).map(file => URL.createObjectURL(file));
-      setDiaryForm({ ...diaryForm, photos: [...diaryForm.photos, ...newPhotos] });
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    const updatedPhotos = diaryForm.photos.filter((_, i) => i !== index);
-    setDiaryForm({ ...diaryForm, photos: updatedPhotos });
-  };
-
   const MateHistoryContent = ({ tab }: { tab: 'all' | 'completed' | 'ongoing' }) => {
     const [myParties, setMyParties] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -775,6 +677,91 @@ const updatedProfile = {
         ))}
       </div>
     );
+  };
+
+  const handleSaveDiary = async () => {
+    const isUpdate = !!selectedDiary;
+    const entry = {
+      date: selectedDateStr,
+      type: diaryForm.type,
+      emoji: diaryForm.emoji,
+      emojiName: diaryForm.emojiName,
+      winningName: diaryForm.winningName,
+      gameId: diaryForm.gameId,
+      memo: diaryForm.memo,
+      photos: [],
+      team: (() => {
+        const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+        return game ? `${game.homeTeam} vs ${game.awayTeam}` : '';
+      })(),
+      stadium: (() => {
+        const game = availableGames.find(g => g.id === Number(diaryForm.gameId));
+        return game?.stadium || '';
+      })()
+    };
+
+    const entryPayload = isUpdate ? { ...entry, id: selectedDiary!.id } : entry;
+    const method = 'POST';
+    const apiPath = isUpdate ? `/api/diary/${selectedDiary!.id}/modify` : '/api/diary/save'
+
+    try {
+      const response = await fetch(apiPath, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(entryPayload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`다이어리 ${isUpdate ? '수정' : '작성'} 실패`);
+      }
+      
+      const result = await response.json();
+      const diaryId = result.id || result.data?.id || (isUpdate ? selectedDiary!.id : undefined);
+      let finalPhotos: string[] = [];
+
+      if (diaryForm.photoFiles.length > 0) {
+      const formData = new FormData();
+      diaryForm.photoFiles.forEach(file => {
+        formData.append('images', file);
+      });
+
+      // 백그라운드로 이미지 업로드
+      const imageResponse = await fetch(`/api/diary/${diaryId}/images`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+
+      if (imageResponse.ok) {
+        const imageResult = await imageResponse.json();
+        finalPhotos = imageResult.photos || imageResult.data?.photos || [];
+      } else {
+        throw new Error('이미지 업로드 실패');
+      }
+
+      const finalEntry = {
+        ...entryPayload,
+        id: diaryId,
+        photos: finalPhotos
+      };
+
+      if (isUpdate) {
+          updateDiaryEntry(selectedDateStr, finalEntry as any);
+      } else {
+          addDiaryEntry(finalEntry as any);
+      }
+      
+      showCustomAlert(`다이어리가 ${isUpdate ? '수정' : '작성'}되었습니다!`);
+      setIsEditMode(false);
+
+      await handleDateSelect(selectedDate);
+    }
+    } catch (error) {
+      showCustomAlert(`다이어리 ${isUpdate ? '수정' : '작성'}에 실패했습니다.`);
+    }
   };
 
 
@@ -958,7 +945,7 @@ const updatedProfile = {
             </div>
             <div className="text-center">
               <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                3
+                {statistics.mateParticipationCount || 0}
               </div>
               <div className="text-sm text-gray-600">메이트 참여</div>
             </div>
