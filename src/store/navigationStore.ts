@@ -25,16 +25,16 @@ export type ViewType =
 
 type NavigationOptions = {
   postId?: number;
-  token?: string; // 🔥 토큰 추가
-  [key: string]: any; // 🔥 다른 파라미터들
+  token?: string; 
+  [key: string]: any; 
 };
 
 const viewToPath: Record<ViewType, string> = {
   home: '/',
   login: '/login',
   signup: '/signup',
-  passwordReset: '/password-reset', // 🔥 수정
-  passwordResetConfirm: '/password-reset/confirm', // 🔥 수정
+  passwordReset: '/password-reset', 
+  passwordResetConfirm: '/password-reset/confirm', 
   stadium: '/stadium',
   prediction: '/prediction',
   cheer: '/cheer',
@@ -130,7 +130,7 @@ let popstateRegistered = false;
 
 interface NavigationState {
   currentView: ViewType;
-  params?: NavigationOptions; // 🔥 추가
+  params?: NavigationOptions; 
   setCurrentView: (view: ViewType, options?: NavigationOptions) => void;
   navigateToLogin: () => void;
 }
@@ -138,16 +138,15 @@ interface NavigationState {
 export const useNavigationStore = create<NavigationState>((set) => {
   if (isBrowser && !popstateRegistered) {
     window.addEventListener('popstate', () => {
-      set({ currentView: getViewFromLocation(), params: undefined }); // 🔥 params 초기화
+      set({ currentView: getViewFromLocation(), params: undefined }); 
     });
     popstateRegistered = true;
   }
 
   return {
     currentView: getViewFromLocation(),
-    params: undefined, // 🔥 추가
+    params: undefined,
     setCurrentView: (view, options) => {
-  // 🔥 비밀번호 재설정 확인 페이지는 URL 변경하지 않음 (토큰 유지)
   if (view === 'passwordResetConfirm' || view === 'passwordReset') {
     set({ currentView: view, params: options });
     return;
@@ -171,7 +170,7 @@ export const useNavigationStore = create<NavigationState>((set) => {
 },
     navigateToLogin: () => {
       navigate('login');
-      set({ currentView: 'login', params: undefined }); // 🔥 params 초기화
+      set({ currentView: 'login', params: undefined }); 
     },
   };
 });

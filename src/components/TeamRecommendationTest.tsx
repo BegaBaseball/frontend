@@ -124,6 +124,19 @@ const questions: Question[] = [
   },
 ];
 
+const TEAM_ID_MAP: { [key: string]: string } = {
+  'LG': 'LG',
+  '두산': 'OB',
+  'SSG': 'SK',
+  'KT': 'KT',
+  '키움': 'WO',
+  'NC': 'NC',
+  '삼성': 'SS',
+  '롯데': 'LT',
+  '기아': 'HT',
+  '한화': 'HH',
+};
+
 export default function TeamRecommendationTest({
   isOpen,
   onClose,
@@ -181,7 +194,8 @@ export default function TeamRecommendationTest({
   };
 
   const handleAcceptRecommendation = () => {
-    onSelectTeam(recommendedTeam);
+    const mappedTeamId = TEAM_ID_MAP[recommendedTeam] || recommendedTeam;
+    onSelectTeam(mappedTeamId);
     onClose();
   };
 
