@@ -1,7 +1,7 @@
 import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import React, { useEffect } from 'react'; 
 import { Button } from './ui/button';
-import { Bell, User, LogOut, ShieldAlert } from 'lucide-react';
+import { Bell, LogOut, ShieldAlert } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore'; 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -10,7 +10,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`;
 
-export default function Navbar({ currentPage }: NavbarProps) {
+export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
@@ -40,7 +40,7 @@ export default function Navbar({ currentPage }: NavbarProps) {
       if (response.ok) {
         logout();
         alert('로그아웃 되었습니다.');
-        navigate('/'); // 홈 화면으로 리디렉션
+        navigate('/');
       } else {
         console.error('Logout failed on server:', response.status);
         alert('로그아웃 처리 중 문제가 발생했습니다. (서버 오류)');
@@ -113,10 +113,9 @@ export default function Navbar({ currentPage }: NavbarProps) {
             {/* 로그인 상태에 따른 버튼 조건부 렌더링 */}
             {isLoggedIn ? (
               <div className="flex items-center gap-4">
-                {/* 관리자 버튼 */}
                 {isAdmin && (
                   <Button
-                    onClick={() => setCurrentView('admin')}
+                    onClick={() => navigate('/admin')}
                     variant="outline"
                     className="rounded-full px-4 text-sm flex items-center gap-1"
                     style={{ color: '#d32f2f', borderColor: '#d32f2f' }}
@@ -128,16 +127,6 @@ export default function Navbar({ currentPage }: NavbarProps) {
                 
                 {/* 내 정보 버튼 */}
                 <Button
-                  onClick={() => navigate('/admin')}
-                  variant="outline"
-                  className="rounded-full px-4 text-sm flex items-center gap-1"
-                  style={{ color: '#d32f2f', borderColor: '#d32f2f' }} // 관리자 버튼 (빨간색)
-                >
-                  <ShieldAlert className="w-4 h-4" />
-                  관리자
-                </Button>
-              )}
-              <Button
                   onClick={() => navigate('/mypage')}
                   variant="outline"
                   className="rounded-full px-6 border-2 bg-white hover:bg-gray-50"
