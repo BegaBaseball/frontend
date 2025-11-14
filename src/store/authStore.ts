@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import Cookies from 'js-cookie'; // npm install js-cookie 필요!
+import Cookies from 'js-cookie';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 const MYPAGE_API_URL = `${API_BASE_URL}/auth/mypage`; 
@@ -24,14 +24,12 @@ interface AuthState {
   password: string;
   showPassword: boolean;
   
-  // 쿠키 기반 인증 및 프로필 로드
   fetchProfileAndAuthenticate: () => Promise<void>; 
-  setUserProfile: (profile: Omit<User, 'email'> & { email: string, name: string }) => void; // 마이페이지에서 프로필 업데이트 시 사용
+  setUserProfile: (profile: Omit<User, 'email'> & { email: string, name: string }) => void;
   
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
   setShowPassword: (show: boolean) => void;
-  // login 시 닉네임(name)을 DTO에서 받아와야 함
   login: (email: string, name: string, profileImageUrl?: string, role?: string) => void; 
   logout: () => void;
   setFavoriteTeam: (team: string, color: string) => void;
@@ -46,51 +44,44 @@ export const useAuthStore = create<AuthState>()(
       email: '',
       password: '',
       showPassword: false,
-        
-      // 쿠키 검증 및 프로필 로드 로직
-      fetchProfileAndAuthenticate: async () => {
-        try {
-          const response = await fetch(MYPAGE_API_URL, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-          });
 
-          if (response.ok) {
-            const result = await response.json();
-            const profile = result.data as { 
-              name: string, 
-              email: string, 
-              profileImageUrl?: string,
-              role?: string  
-            }; 
-            
-            
-            const isAdminUser = profile.role === 'ROLE_ADMIN';
-            
-            
-            set((state) => ({
-              user: { 
-                ...state.user, 
-                ...profile, 
-                name: profile.name, 
-                email: profile.email,
-                role: profile.role,
-                isAdmin: isAdminUser  
-              },
-              isLoggedIn: true,
-              isAdmin: isAdminUser,  
-            }));
-            
-          } else {
-            Cookies.remove(AUTH_COOKIE_NAME, { path: '/' }); 
-            set({ user: null, isLoggedIn: false, isAdmin: false });
-          }
-        } catch (error) {
-          console.error('인증 상태 확인 중 오류 발생:', error);
-          set({ user: null, isLoggedIn: false, isAdmin: false });
-        }
-      },
+  fetchProfileAndAuthenticate: async () => {
+
+  try {
+    const response = await fetch(MYPAGE_API_URL, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',  
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      
+      const profile = result.data;
+      const isAdminUser = profile.role === 'ROLE_ADMIN';
+
+      set({
+        user: {
+          email: profile.email,
+          name: profile.name,
+          isAdmin: isAdminUser,
+          profileImageUrl: profile.profileImageUrl,
+          role: profile.role,
+        },
+        isLoggedIn: true,
+        isAdmin: isAdminUser,
+      });
+      
+      
+    } else if (response.status === 401) {
+      set({ user: null, isLoggedIn: false, isAdmin: false });
+    } else {
+      console.warn('⚠️ 프로필 조회 실패:', response.status);
+    }
+  } catch (error) {
+    console.error('❌ 프로필 조회 중 오류:', error);
+  }
+},
       
       setUserProfile: (profile) => {
         set((state) => ({
@@ -102,7 +93,6 @@ export const useAuthStore = create<AuthState>()(
           } : null,
         }));
       },
-      
       
       login: (email, name, profileImageUrl, role) => { 
         const isAdminUser = role === 'ROLE_ADMIN';
@@ -122,12 +112,9 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      
-      // 로그아웃 (클라이언트 쿠키 삭제)
       logout: () => {
-        // 서버에서 쿠키 만료 응답을 받더라도, 클라이언트에서 보조적으로 삭제
         Cookies.remove(AUTH_COOKIE_NAME, { path: '/' }); 
-        set({ user: null, isLoggedIn: false, isAdmin: false, email: '', password: '' }); // <-- isAdmin: false 추가
+        set({ user: null, isLoggedIn: false, isAdmin: false, email: '', password: '' });
       },
       
       setEmail: (email) => set({ email }),
@@ -141,17 +128,21 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      // partialize는 그대로 유지하여 필요한 데이터만 로컬 스토리지에 저장
       partialize: (state) => ({
         user: state.user,
         isLoggedIn: state.isLoggedIn,
         isAdmin: state.isAdmin,
       }),
-      // Hydration 완료 후 서버에 인증 상태 재검증 요청 (새로고침 시)
       onRehydrateStorage: () => (state) => {
         if (state?.isLoggedIn) {
-          // 인증 플래그가 true면, 쿠키가 유효한지 서버에 확인하도록 요청
-          state.fetchProfileAndAuthenticate();
+          // persist에서 복원 후 쿠키 확인
+          const authCookie = Cookies.get(AUTH_COOKIE_NAME);
+          if (authCookie) {
+            state.fetchProfileAndAuthenticate();
+          } else {
+            // 쿠키 없으면 로그아웃 처리
+            state.logout();
+          }
         }
       },
     }
