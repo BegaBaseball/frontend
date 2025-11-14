@@ -269,6 +269,10 @@ const getTeamId = (fullName: string): string => {
                       required
                       minLength={8}
                     />
+                    <p className="text-xs text-gray-500">
+                      • 8자 이상<br />
+                      • 대문자, 소문자, 숫자, 특수문자(@$!%*?&#) 각 1개 이상 포함
+                    </p>
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}

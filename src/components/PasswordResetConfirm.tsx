@@ -229,6 +229,10 @@ export default function PasswordResetConfirm() {
                           placeholder="새 비밀번호를 입력하세요 (최소 8자)"
                           required
                         />
+                      <p className="text-xs text-gray-500">
+                        • 8자 이상<br />
+                        • 대문자, 소문자, 숫자, 특수문자(@$!%*?&#) 각 1개 이상 포함
+                      </p>
                         <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
