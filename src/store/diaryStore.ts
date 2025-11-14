@@ -52,6 +52,8 @@ interface DiaryState {
   isCreateMode: boolean;
   newEntry: Partial<DiaryEntry>;
   diaryEntries: DiaryEntry[];
+  cheerPostCount: number;
+  mateParticipationCount: number;
   
   setDate: (date: Date | undefined) => void;
   setCurrentMonth: (month: Date) => void;
@@ -67,6 +69,8 @@ interface DiaryState {
   deleteDiaryEntry: (date: string) => void;
   resetNewEntry: () => void;
   setDiaryEntries: (entries: DiaryEntry[]) => void;
+  setCheerPostCount: (count: number) => void,
+  setMateParticipationCount: (count: number) => void
 }
 
 const initialEntries: DiaryEntry[] = [];
@@ -90,9 +94,11 @@ export const useDiaryStore = create<DiaryState>()(
         emoji: happyEmoji,
         emojiName: '즐거움',
         memo: '',
-        photos: []
+        photos: [],
       },
       diaryEntries: initialEntries,
+      cheerPostCount: 0,
+      mateParticipationCount: 0,
       
       setDate: (date) => set({ date }),
       setCurrentMonth: (month) => set({ currentMonth: month }),
@@ -129,6 +135,8 @@ export const useDiaryStore = create<DiaryState>()(
             photos: []
           },
         }),
+      setCheerPostCount: (count) => set({ cheerPostCount: count }),
+      setMateParticipationCount: (count) => set({ mateParticipationCount: count }),
     }),
     {
       name: 'diary-storage',
