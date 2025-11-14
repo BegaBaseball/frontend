@@ -1,84 +1,49 @@
 import begaCharacter from 'figma:asset/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
-import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useNavigationStore } from '../store/navigationStore';
 import { useAuthStore } from '../store/authStore';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-
+import { useMutation } from '@tanstack/react-query';
+import { loginUser, getSocialLoginUrl } from '../api/login';
 
 export default function Login() {
   const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  const { email, password, showPassword, setEmail, setPassword, setShowPassword, login } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const email = useAuthStore((state) => state.email);
+  const password = useAuthStore((state) => state.password);
+  const showPassword = useAuthStore((state) => state.showPassword);
+  const setEmail = useAuthStore((state) => state.setEmail);
+  const setPassword = useAuthStore((state) => state.setPassword);
+  const setShowPassword = useAuthStore((state) => state.setShowPassword);
+  const login = useAuthStore((state) => state.login);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  const loginMutation = useMutation({
+    mutationFn: loginUser,
+    onSuccess: (data) => {
+      // 로그인 성공 시
+      const { name, role } = data.data;
+      login(email, name, undefined, role);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        let errorMessage = '로그인에 실패했습니다.';
-        
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {
-          if (response.status === 401) {
-            errorMessage = '이메일 또는 비밀번호가 일치하지 않습니다.';
-          } else if (response.status === 400) {
-            errorMessage = '입력 정보를 확인해주세요.';
-          } else {
-            errorMessage = `서버 오류: ${response.status}`;
-          }
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const apiResponse = await response.json();
-      
-      if (apiResponse.success) {
-        const data = apiResponse.data;
-        const userDisplayName = data.name || data.email;
-        const userRole = data.role;
-
-        // authStore의 login 호출
-        login(email, userDisplayName, undefined, userRole);
-
-        // 역할에 따라 페이지 이동
-        if (userRole === 'ROLE_ADMIN') {
-          setCurrentView('admin');
-        } else {
-          setCurrentView('home');
-        }
+      // 페이지 이동
+      if (role === 'ROLE_ADMIN') {
+        setCurrentView('admin');
       } else {
-        throw new Error(apiResponse.message || '로그인 실패');
+        setCurrentView('home');
       }
-    } catch (err) {
-      setError((err as Error).message || '네트워크 오류로 로그인에 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
+    },
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    loginMutation.mutate({ email, password });
   };
 
   const handleSocialLogin = (provider: 'kakao' | 'google') => {
-    if (!isLoading) {
-      const baseUrl = API_BASE_URL.replace('/api', '');
-      window.location.href = `${baseUrl}/oauth2/authorization/${provider}`;
+    if (!loginMutation.isPending) {
+      window.location.href = getSocialLoginUrl(provider);
     }
   };
 
@@ -167,9 +132,11 @@ export default function Login() {
               <h2 className="text-center mb-8">SIGN IN</h2>
 
               <form onSubmit={handleLogin} className="space-y-6">
-                {error && (
+                {loginMutation.isError && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-700 text-center">{error}</p>
+                    <p className="text-sm text-red-700 text-center">
+                      {loginMutation.error.message}
+                    </p>
                   </div>
                 )}
 
@@ -186,7 +153,7 @@ export default function Login() {
                     className="bg-gray-50 border-gray-200 focus:ring-2 focus:ring-[#2d5f4f]"
                     placeholder="이메일을 입력하세요"
                     required
-                    disabled={isLoading}
+                    disabled={loginMutation.isPending}
                   />
                 </div>
 
@@ -204,27 +171,27 @@ export default function Login() {
                       className="bg-gray-50 border-gray-200 focus:ring-2 focus:ring-[#2d5f4f] pr-10"
                       placeholder="비밀번호를 입력하세요"
                       required
-                      disabled={isLoading}
+                      disabled={loginMutation.isPending}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                      disabled={isLoading}
+                      disabled={loginMutation.isPending}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 text-sm text-gray-600">
-                      <input type="checkbox" className="rounded border-gray-300" disabled={isLoading} />
+                      <input type="checkbox" className="rounded border-gray-300" disabled={loginMutation.isPending} />
                       저장
                     </label>
                     <button
                       type="button"
                       onClick={() => setCurrentView('passwordReset')}
                       className="text-sm text-red-500 hover:text-red-600 disabled:opacity-50"
-                      disabled={isLoading}
+                      disabled={loginMutation.isPending}
                     >
                       비밀번호를 잊으셨나요?
                     </button>
@@ -235,9 +202,9 @@ export default function Login() {
                   type="submit" 
                   className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: '#2d5f4f' }}
-                  disabled={isLoading}
+                  disabled={loginMutation.isPending}
                 >
-                  {isLoading ? (
+                  {loginMutation.isPending ? (
                     <span className="flex items-center justify-center gap-2">
                       <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -257,7 +224,7 @@ export default function Login() {
                     onClick={() => setCurrentView('signup')}
                     className="hover:underline disabled:opacity-50"
                     style={{ color: '#2d5f4f' }}
-                    disabled={isLoading}
+                    disabled={loginMutation.isPending}
                   >
                     회원가입
                   </button>
@@ -279,7 +246,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => handleSocialLogin('kakao')}
-                  disabled={isLoading}
+                  disabled={loginMutation.isPending}
                   className={`w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed`}
                   style={{ backgroundColor: '#FEE500', color: '#000000' }}
                 >
@@ -292,7 +259,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => handleSocialLogin('google')}
-                  disabled={isLoading}
+                  disabled={loginMutation.isPending}
                   className={`w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
