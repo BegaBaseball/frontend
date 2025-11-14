@@ -6,6 +6,7 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
 
   export default defineConfig({
     plugins: [react()],
+    
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {

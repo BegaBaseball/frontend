@@ -81,7 +81,7 @@ const canProceedToStep = (targetStep: number) => {
     return formData.gameDate && formData.homeTeam && formData.awayTeam && formData.stadium;
   }
   if (targetStep === 3) {
-    return formData.section && formData.maxParticipants > 0 && formData.ticketPrice > 0; // ✅ ticketPrice 검증 추가
+    return formData.section && formData.maxParticipants > 0 && formData.ticketPrice > 0; 
   }
   if (targetStep === 4) {
     return formData.description && !formErrors.description;
@@ -144,9 +144,7 @@ const canProceedToStep = (targetStep: number) => {
         ticketPrice: formData.ticketPrice,
       };
 
-      console.log('🎫 프론트엔드 - formData.ticketPrice:', formData.ticketPrice);
-      console.log('📤 프론트엔드 - 전송할 데이터:', partyData);
-
+      
       const response = await fetch('http://localhost:8080/api/parties', {
         method: 'POST',
         headers: {
@@ -158,13 +156,13 @@ const canProceedToStep = (targetStep: number) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ 파티 생성 실패:', errorText);
+        console.error('파티 생성 실패:', errorText);
         alert('파티 생성에 실패했습니다.');
         return;
       }
 
       const createdParty = await response.json();
-      console.log('✅ 파티 생성 성공:', createdParty);
+     
 
       // 4. 프론트엔드 형식으로 변환
       const mappedParty = {
@@ -196,7 +194,7 @@ const canProceedToStep = (targetStep: number) => {
       setCurrentView('mateDetail');
 
     } catch (error) {
-      console.error('❌ 파티 생성 중 오류:', error);
+      console.error('파티 생성 중 오류:', error);
       alert('파티 생성 중 오류가 발생했습니다.');
     }
   };

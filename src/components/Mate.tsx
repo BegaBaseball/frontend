@@ -24,7 +24,7 @@ export default function Mate() {
   useEffect(() => {
     const fetchParties = async () => {
       try {
-        console.log('파티 목록 불러오는 중...');
+       
         
         const response = await fetch('http://localhost:8080/api/parties', {
           credentials: 'include',
@@ -32,7 +32,7 @@ export default function Mate() {
         
         if (response.ok) {
           const backendParties = await response.json();
-          console.log('파티 목록 불러오기 성공:', backendParties.length + '개');
+          
           
           // Response 구조를 프론트엔드 구조로 변환
           const mappedParties = backendParties.map((party: any) => ({
@@ -139,7 +139,7 @@ const filterParties = (partyList: any[]) => {
       profileImageUrl = null;
     }
     
-    console.log('🎭 파티:', party.hostName, '이미지:', profileImageUrl);
+   
     
     return (
       <Card

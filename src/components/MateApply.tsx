@@ -90,7 +90,7 @@ export default function MateApply() {
         paymentType: isSelling ? 'FULL' : 'DEPOSIT',
       };
 
-      console.log('📤 신청 요청:', applicationData);
+    
 
       const response = await fetch('http://localhost:8080/api/applications', {
         method: 'POST',
@@ -103,7 +103,7 @@ export default function MateApply() {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ 신청 완료:', result);
+        
         
         // ✅ 판매 중인 경우만 즉시 승인 처리
         if (isSelling) {

@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { MapPin, Utensils, ShoppingBag, ParkingCircle, Truck } from 'lucide-react';
 import ChatBot from './ChatBot';
 import Navbar from './Navbar';
+import { ScrollArea } from './ui/scroll-area';
 
 // Kakao Maps 타입 선언
 declare global {
@@ -42,6 +43,7 @@ export default function StadiumGuide() {
   const KAKAO_API_KEY = import.meta.env.VITE_KAKAO_MAP_KEY as string;
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:8080/api';
 
+  
   // 상태 관리
   const [stadiums, setStadiums] = useState<Stadium[]>([]);
   const [selectedStadium, setSelectedStadium] = useState<Stadium | null>(null);
@@ -51,28 +53,28 @@ export default function StadiumGuide() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [map, setMap] = useState<any>(null);
-  const [isKakaoLoaded, setIsKakaoLoaded] = useState(false);
 
   // Refs
   const mapContainer = useRef<HTMLDivElement>(null);
   const markersRef = useRef<any[]>([]);
   const stadiumMarkerRef = useRef<any>(null);
   const infowindowsRef = useRef<any[]>([]);
-  
 
   // 카카오맵 스크립트 로드
   useEffect(() => {
     if (!KAKAO_API_KEY) {
+      console.error('카카오 API 키가 없습니다');
       return;
     }
 
     if (window.kakao && window.kakao.maps) {
-      setIsKakaoLoaded(true);
+      
       return;
     }
 
     const existingScript = document.querySelector(`script[src*="dapi.kakao.com"]`);
     if (existingScript) {
+      
       return;
     }
 
@@ -83,13 +85,13 @@ export default function StadiumGuide() {
     script.onload = () => {
       if (window.kakao && window.kakao.maps) {
         window.kakao.maps.load(() => {
-          setIsKakaoLoaded(true);
+          
         });
       }
     };
     
     script.onerror = () => {
-      setError('지도를 불러오는데 실패했습니다.');
+      console.error('카카오맵 스크립트 로드 실패');
     };
     
     document.head.appendChild(script);
@@ -100,16 +102,43 @@ export default function StadiumGuide() {
     fetchStadiums();
   }, []);
 
- // 선택된 구장이 변경될 때 지도 초기화
+  // 선택된 구장이 변경될 때 지도 초기화
   useEffect(() => {
-    if (!selectedStadium || !isKakaoLoaded || !mapContainer.current) return;
-    
-    const timer = setTimeout(() => {
-      initializeMap();
+    if (!selectedStadium || !mapContainer.current) return;
+
+    let mounted = true;
+    let checkCount = 0;
+    const maxChecks = 50;
+
+    const checkAndInit = setInterval(() => {
+      checkCount++;
+      
+      if (!mounted) {
+        clearInterval(checkAndInit);
+        return;
+      }
+
+      if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+        clearInterval(checkAndInit);
+        
+        
+        setTimeout(() => {
+          if (mounted) {
+            initializeMap();
+          }
+        }, 100);
+      } else if (checkCount >= maxChecks) {
+        clearInterval(checkAndInit);
+        console.error('카카오맵 로드 타임아웃');
+        setError('지도를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
+      }
     }, 100);
 
-    return () => clearTimeout(timer);
-}, [selectedStadium, isKakaoLoaded]);
+    return () => {
+      mounted = false;
+      clearInterval(checkAndInit);
+    };
+  }, [selectedStadium]);
 
   // 선택된 구장과 카테고리가 변경될 때 장소 목록 가져오기
   useEffect(() => {
@@ -120,28 +149,63 @@ export default function StadiumGuide() {
     infowindowsRef.current = [];
     
     if (selectedCategory === 'store') {
-      if (isKakaoLoaded && mapContainer.current) { 
-        searchNearbyPlaces('편의점', 'store');
-      }
+      const checkMapReady = setInterval(() => {
+        if (mapContainer.current && window.kakao && window.kakao.maps) {
+          clearInterval(checkMapReady);
+          searchNearbyPlaces('편의점', 'store');
+        }
+      }, 100);
+      
+      return () => clearInterval(checkMapReady);
     } else if (selectedCategory === 'parking') {
-      if (isKakaoLoaded && mapContainer.current) {
-        searchNearbyPlaces('주차장', 'parking');
-      }
+      const checkMapReady = setInterval(() => {
+        if (mapContainer.current && window.kakao && window.kakao.maps) {
+          clearInterval(checkMapReady);
+          searchNearbyPlaces('주차장', 'parking');
+        }
+      }, 100);
+      
+      return () => clearInterval(checkMapReady);
     } else {
       fetchPlaces(selectedStadium.stadiumId, selectedCategory);
     }
-  }, [selectedStadium, selectedCategory, isKakaoLoaded]); 
+  }, [selectedStadium, selectedCategory]);
 
   // 장소 목록이 변경되거나 선택된 장소가 변경될 때 마커 업데이트
-    useEffect(() => {
-    if (!map || !isKakaoLoaded) return;
-    
-    const timer = setTimeout(() => {
-      updateMarkers();
+  useEffect(() => {
+    if (!mapContainer.current) return;
+
+    let mounted = true;
+    let checkCount = 0;
+    const maxChecks = 50;
+
+    const checkAndUpdate = setInterval(() => {
+      checkCount++;
+      
+      if (!mounted) {
+        clearInterval(checkAndUpdate);
+        return;
+      }
+
+      if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+        clearInterval(checkAndUpdate);
+        
+        setTimeout(() => {
+          if (mounted) {
+            updateMarkers();
+          }
+        }, 100);
+      } else if (checkCount >= maxChecks) {
+        clearInterval(checkAndUpdate);
+        console.error('마커 업데이트 타임아웃');
+      }
     }, 100);
 
-    return () => clearTimeout(timer);
-  }, [places, selectedPlace, map, isKakaoLoaded]);
+    return () => {
+      mounted = false;
+      clearInterval(checkAndUpdate);
+    };
+  }, [places, selectedPlace]);
 
   // API 함수들
   const fetchStadiums = async () => {
@@ -154,12 +218,14 @@ export default function StadiumGuide() {
       }
       
       const data = await response.json();
+      
       setStadiums(data);
       
       if (data.length > 0) {
         setSelectedStadium(data[0]);
       }
     } catch (error) {
+      console.error('구장 목록 로드 실패:', error);
       setError('구장 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -176,8 +242,10 @@ export default function StadiumGuide() {
       }
       
       const data = await response.json();
+      
       setPlaces(data);
     } catch (error) {
+      console.error('장소 목록 로드 실패:', error);
       setPlaces([]);
     } finally {
       setLoading(false);
@@ -186,6 +254,7 @@ export default function StadiumGuide() {
 
   const searchNearbyPlaces = (keyword: string, category: string) => {
     if (!window.kakao || !window.kakao.maps || !selectedStadium || !map) {
+      console.error('검색 준비 미완료');
       return;
     }
 
@@ -222,8 +291,10 @@ export default function StadiumGuide() {
               closeTime: ''
             }));
 
+          
           setPlaces(nearbyPlaces);
         } else {
+          console.error(`${keyword} 검색 실패:`, status);
           setPlaces([]);
         }
       },
@@ -249,14 +320,17 @@ export default function StadiumGuide() {
 
   const initializeMap = () => {
     if (!mapContainer.current || !selectedStadium) {
+      console.error('지도 초기화 실패: 컨테이너 또는 구장 정보 없음');
       return;
     }
 
     if (!window.kakao || !window.kakao.maps) {
+      console.error('카카오맵 SDK 로드 안됨');
       return;
     }
 
     try {
+      
       
       const container = mapContainer.current;
       const options = {
@@ -285,13 +359,16 @@ export default function StadiumGuide() {
       });
       infowindow.open(newMap, marker);
 
+      
     } catch (error) {
+      console.error('지도 초기화 중 오류:', error);
       setError('지도를 초기화하는데 실패했습니다.');
     }
   };
 
   const updateMarkers = () => {
     if (!map || !window.kakao || !window.kakao.maps) {
+      
       return;
     }
 
@@ -354,8 +431,9 @@ export default function StadiumGuide() {
         }
       }
 
-    } catch (error) {
       
+    } catch (error) {
+      console.error('마커 업데이트 중 오류:', error);
     }
   };
 
@@ -410,6 +488,7 @@ export default function StadiumGuide() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* <style> 태그에서 사용되지 않는 .custom-scrollbar CSS 제거 */}
       <Navbar currentPage="stadium" />
 
       {/* Main Content */}
@@ -433,23 +512,54 @@ export default function StadiumGuide() {
             {/* Stadium Selector */}
             <div>
               <h3 className="mb-3" style={{ color: '#2d5f4f' }}>구장 선택</h3>
-              <select
-                value={selectedStadium?.stadiumId || ''}
-                onChange={(e) => {
-                  const stadium = stadiums.find(s => s.stadiumId === e.target.value);
-                  if (stadium) setSelectedStadium(stadium);
-                }}
-                className="w-full py-6 px-4 bg-white border-2 rounded-2xl text-base"
-                style={{ borderColor: '#2d5f4f' }}
-              >
-                {stadiums.map((stadium) => (
-                  <option key={stadium.stadiumId} value={stadium.stadiumId}>
-                    {stadium.stadiumName}
-                  </option>
-                ))}
-              </select>
+              <style>{`
+                select {
+                  -webkit-appearance: none;
+                  -moz-appearance: none;
+                  appearance: none;
+                }
+                select::-ms-expand {
+                  display: none;
+                }
+              `}</style>
+              <div className="relative">
+                <select
+                  value={selectedStadium?.stadiumId || ''}
+                  onChange={(e) => {
+                    const stadium = stadiums.find(s => s.stadiumId === e.target.value);
+                    if (stadium) setSelectedStadium(stadium);
+                  }}
+                  className="w-full py-6 px-4 pr-12 bg-white border-2 rounded-2xl text-base cursor-pointer"
+                  style={{ 
+                    borderColor: '#2d5f4f',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none'
+                  }}
+                >
+                  {stadiums.map((stadium) => (
+                    <option key={stadium.stadiumId} value={stadium.stadiumId}>
+                      {stadium.stadiumName}
+                    </option>
+                  ))}
+                </select>
+                {/* 커스텀 화살표 */}
+                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg 
+                    width="28" 
+                    height="28" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="#2d5f4f" 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              </div>
             </div>
-
             {/* Stadium Info & Map */}
             <div>
               <h3 className="mb-3" style={{ color: '#2d5f4f' }}>구장 위치</h3>
@@ -582,98 +692,141 @@ export default function StadiumGuide() {
             <div>
               <h3 className="mb-3" style={{ color: '#2d5f4f' }}>
                 {selectedCategory === 'food' ? '구장 먹거리' : 
-                 selectedCategory === 'delivery' ? '배달픽업존' : 
-                 selectedCategory === 'store' ? '편의점' : '주차장'} 목록
+                selectedCategory === 'delivery' ? '배달픽업존' : 
+                selectedCategory === 'store' ? '편의점' : '주차장'} 목록
               </h3>
 
+              <style>{`
+                .custom-scroll-area::-webkit-scrollbar {
+                  width: 8px;
+                }
+                .custom-scroll-area::-webkit-scrollbar-track {
+                  background: #e8f5f0;
+                  border-radius: 10px;
+                }
+                .custom-scroll-area::-webkit-scrollbar-thumb {
+                  background: #2d5f4f;
+                  border-radius: 10px;
+                }
+                .custom-scroll-area::-webkit-scrollbar-thumb:hover {
+                  background: #1f4438;
+                }
+              `}</style>
+
               {loading ? (
-                <div className="text-center py-8">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#2d5f4f' }}></div>
-                  <p className="mt-2 text-gray-600">로딩 중...</p>
+                <div 
+                  className="rounded-2xl border-2 flex items-center justify-center"
+                  style={{ 
+                    height: '550px',
+                    borderColor: '#e5e7eb', 
+                    backgroundColor: '#f9fafb' 
+                  }}
+                >
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#2d5f4f' }}></div>
+                    <p className="mt-2 text-gray-600">로딩 중...</p>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {places.length > 0 ? (
-                    places.map((place) => (
-                      <div 
-                        key={place.id}
-                        id={`place-${place.id}`}
-                        className="p-4 rounded-lg border-2 transition-shadow cursor-pointer hover:shadow-lg"
-                        style={{
-                          backgroundColor: selectedPlace?.id === place.id ? '#e8f5f0' : 'white',
-                          borderColor: selectedPlace?.id === place.id ? '#2d5f4f' : '#e5e7eb'
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div 
-                            className="flex-1"
-                            onClick={() => {
-                              setSelectedPlace(place);
-                              mapContainer.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                <div 
+                  className="rounded-2xl border-2 overflow-hidden" 
+                  style={{ 
+                    height: '550px',
+                    borderColor: '#e5e7eb', 
+                    backgroundColor: '#f9fafb'
+                  }}
+                >
+                  <div 
+                    className="h-full p-4 overflow-y-auto custom-scroll-area"
+                    style={{
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: '#2d5f4f #e8f5f0'
+                    }}
+                  >
+                    <div className="space-y-3 pr-2">
+                      {places.length > 0 ? (
+                        places.map((place) => (
+                          <Card 
+                            key={place.id}
+                            id={`place-${place.id}`}
+                            className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-2"
+                            style={{
+                              backgroundColor: selectedPlace?.id === place.id ? '#e8f5f0' : 'white',
+                              borderColor: selectedPlace?.id === place.id ? '#2d5f4f' : '#e5e7eb'
                             }}
                           >
-                            <div className="flex items-center gap-2 mb-2">
-                              {getCategoryIcon(place.category)}
-                              <h4 style={{ fontWeight: 700 }}>{place.name}</h4>
-                            </div>
-                            {place.description && (
-                              <p className="text-gray-600 text-sm mb-1">{place.description}</p>
-                            )}
-                            {place.address && (
-                              <p className="text-sm text-gray-600">📍 {place.address}</p>
-                            )}
-                            {place.phone && (
-                              <p className="text-sm text-gray-600">📞 {place.phone}</p>
-                            )}
-                            {place.openTime && place.closeTime && (
-                              <p className="text-sm text-gray-600">⏰ {place.openTime} - {place.closeTime}</p>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-3">
-                            {place.rating && (
-                              <div className="flex items-center gap-1">
-                                <span className="text-yellow-500">★</span>
-                                <span style={{ fontWeight: 700 }}>{place.rating.toFixed(1)}</span>
+                            <div className="flex items-center justify-between">
+                              <div 
+                                className="flex-1"
+                                onClick={() => {
+                                  setSelectedPlace(place);
+                                  mapContainer.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }}
+                              >
+                                <div className="flex items-center gap-2 mb-2">
+                                  {getCategoryIcon(place.category)}
+                                  <h4 style={{ fontWeight: 700 }}>{place.name}</h4>
+                                </div>
+                                {place.description && (
+                                  <p className="text-gray-600 text-sm mb-1">{place.description}</p>
+                                )}
+                                {place.address && (
+                                  <p className="text-sm text-gray-600">📍 {place.address}</p>
+                                )}
+                                {place.phone && (
+                                  <p className="text-sm text-gray-600">📞 {place.phone}</p>
+                                )}
+                                {place.openTime && place.closeTime && (
+                                  <p className="text-sm text-gray-600">⏰ {place.openTime} - {place.closeTime}</p>
+                                )}
                               </div>
-                            )}
-                            
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openKakaoMap(place);
-                              }}
-                              className="px-4 py-2 rounded-lg text-white transition-colors hover:opacity-90"
-                              style={{ backgroundColor: '#2d5f4f' }}
-                            >
-                              길찾기
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      {selectedStadium ? (
-                        selectedCategory === 'store' || selectedCategory === 'parking' ? (
-                          `주변 ${selectedCategory === 'store' ? '편의점' : '주차장'}을 검색 중입니다...`
-                        ) : (
-                          '해당 카테고리에 등록된 장소가 없습니다.'
-                        )
+                              
+                              <div className="flex items-center gap-3">
+                                {place.rating && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-yellow-500">★</span>
+                                    <span style={{ fontWeight: 700 }}>{place.rating.toFixed(1)}</span>
+                                  </div>
+                                )}
+                                
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openKakaoMap(place);
+                                  }}
+                                  className="px-4 py-2 rounded-lg text-white transition-colors hover:opacity-90 whitespace-nowrap"
+                                  style={{ backgroundColor: '#2d5f4f' }}
+                                >
+                                  길찾기
+                                </button>
+                              </div>
+                            </div>
+                          </Card>
+                        ))
                       ) : (
-                        '구장을 선택해주세요.'
+                        <div className="text-center py-8 text-gray-500">
+                          {selectedStadium ? (
+                            selectedCategory === 'store' || selectedCategory === 'parking' ? (
+                              `주변 ${selectedCategory === 'store' ? '편의점' : '주차장'}을 검색 중입니다...`
+                            ) : (
+                              '해당 카테고리에 등록된 장소가 없습니다.'
+                            )
+                          ) : (
+                            '구장을 선택해주세요.'
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
+                        </div> {/* Right Column 끝 */}
+                      </div> {/* 2 Column Layout 끝 */}
+                    </div> {/* Main Content 끝 */}
 
-      {/* ChatBot */}
-      <ChatBot />
-    </div>
-  );
-}
+                    {/* ChatBot */}
+                    <ChatBot />
+                  </div> 
+                );
+              }
