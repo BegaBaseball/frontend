@@ -20,10 +20,10 @@ import { Textarea } from './ui/textarea';
 import Navbar from './Navbar';
 import { Card } from './ui/card';
 import TeamLogo from './TeamLogo';
-import { useNavigationStore } from '../store/navigationStore';
 import { useCheerStore, Comment as CheerComment } from '../store/cheerStore';
 import { PageResponse } from '../api/cheer';
 import { useAuthStore } from '../store/authStore';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   addComment,
   addReply,
@@ -39,16 +39,23 @@ const COMMENTS_PAGE_SIZE = 10;
 
 export default function CheerDetail() {
   const queryClient = useQueryClient();
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();
+  const { postId: postIdParam } = useParams();
+  const selectedPostId = Number(postIdParam);
+
   const {
-    selectedPostId,
-    setSelectedPostId,
     upsertPost,
     removePost,
     setPostLikeState,
     setPostCommentCount,
   } = useCheerStore();
   const userFavoriteTeam = useAuthStore((state) => state.user?.favoriteTeam ?? null);
+
+  useEffect(() => {
+    if (isNaN(selectedPostId) || selectedPostId === 0) {
+      navigate('/cheer');
+    }
+  }, [selectedPostId, navigate]);
 
   const [commentInput, setCommentInput] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -64,7 +71,7 @@ export default function CheerDetail() {
   } = useQuery({
     queryKey: ['cheerPost', selectedPostId],
     queryFn: () => getPost(selectedPostId!),
-    enabled: !!selectedPostId,
+    enabled: !!selectedPostId && !isNaN(selectedPostId),
   });
 
   const {
@@ -75,7 +82,7 @@ export default function CheerDetail() {
   } = useQuery<PageResponse<CheerComment>>({
     queryKey: ['cheerPostComments', selectedPostId, commentPage, COMMENTS_PAGE_SIZE],
     queryFn: () => listComments(selectedPostId!, commentPage, COMMENTS_PAGE_SIZE),
-    enabled: !!selectedPostId,
+    enabled: !!selectedPostId && !isNaN(selectedPostId),
     placeholderData: (previousData) => previousData,
   });
 
@@ -164,9 +171,7 @@ export default function CheerDetail() {
       if (!post) return;
       toast.success('게시글이 삭제되었습니다.');
       removePost(post.id);
-      setSelectedPostId(null);
-      queryClient.invalidateQueries({ queryKey: ['cheerPosts'] });
-      setCurrentView('cheer');
+      navigate('/cheer');
     },
     onError: (error: Error) => {
       toast.error(error.message || '게시글 삭제 중 문제가 발생했습니다.');
@@ -286,11 +291,11 @@ export default function CheerDetail() {
 
   const handleEdit = () => {
     if (!post) return;
-    setCurrentView('cheerEdit', { postId: post.id });
+    navigate(`/cheer/edit/${post.id}`);
   };
 
   const handleBack = () => {
-    setCurrentView('cheer');
+    navigate('/cheer');
   };
 
   const handleChangeCommentPage = (nextPage: number) => {
@@ -388,20 +393,8 @@ export default function CheerDetail() {
     );
   };
 
-  if (!selectedPostId) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar currentPage="cheer" />
-        <div className="mx-auto max-w-4xl px-4 py-12 text-center text-gray-500">
-          선택된 게시글이 없습니다. 목록에서 게시글을 선택해주세요.
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar currentPage="cheer" />
 
       <div className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -639,4 +632,3 @@ export default function CheerDetail() {
     </div>
   );
 }
-

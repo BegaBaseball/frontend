@@ -1,22 +1,18 @@
 import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import React, { useEffect } from 'react'; 
 import { Button } from './ui/button';
-import { Bell, LogOut, ShieldAlert } from 'lucide-react';
-import { useNavigationStore } from '../store/navigationStore';
-import { ViewType } from '../store/navigationStore';
+import { Bell, User, LogOut, ShieldAlert } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore'; 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`;
 
-interface NavbarProps {
-  currentPage: 'home' | 'cheer' | 'stadium' | 'prediction' | 'mate' | 'mypage';
-}
-
 export default function Navbar({ currentPage }: NavbarProps) {
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();
+  const location = useLocation();
   const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
   const setIsNotificationOpen = useUIStore((state) => state.setIsNotificationOpen);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
@@ -44,18 +40,18 @@ export default function Navbar({ currentPage }: NavbarProps) {
       if (response.ok) {
         logout();
         alert('로그아웃 되었습니다.');
-        setCurrentView('home');
+        navigate('/'); // 홈 화면으로 리디렉션
       } else {
         console.error('Logout failed on server:', response.status);
         alert('로그아웃 처리 중 문제가 발생했습니다. (서버 오류)');
         logout();
-        setCurrentView('home');
+        navigate('/');
       }
     } catch (error) {
       console.error('Logout network error:', error);
       alert('네트워크 오류로 로그아웃 처리에 실패했습니다. (클라이언트 측 강제 로그아웃)');
       logout();
-      setCurrentView('home');
+      navigate('/');
     }
   };
   
@@ -73,7 +69,7 @@ export default function Navbar({ currentPage }: NavbarProps) {
         <div className="flex items-center h-16 gap-4 lg:gap-6">
           {/* Logo */}
           <button
-            onClick={() => setCurrentView('home')}
+            onClick={() => navigate('/')}
             className="flex items-center gap-3 shrink-0"
           >
             <img src={baseballLogo} alt="Baseball" className="w-10 h-10" />
@@ -88,9 +84,9 @@ export default function Navbar({ currentPage }: NavbarProps) {
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setCurrentView(item.id as ViewType)}
-                className={`${currentPage === item.id ? 'hover:opacity-70' : 'text-gray-700 hover:opacity-70'} whitespace-nowrap px-2 flex-shrink-0`}
-                style={currentPage === item.id ? { color: '#2d5f4f', fontWeight: 700 } : {}}
+                onClick={() => navigate(item.id === 'home' ? '/' : `/${item.id}`)}
+                className={`${location.pathname === (item.id === 'home' ? '/' : `/${item.id}`) ? 'hover:opacity-70' : 'text-gray-700 hover:opacity-70'} whitespace-nowrap px-2 flex-shrink-0`}
+                style={location.pathname === (item.id === 'home' ? '/' : `/${item.id}`) ? { color: '#2d5f4f', fontWeight: 700 } : {}}
               >
                 {item.label}
               </button>
@@ -132,7 +128,17 @@ export default function Navbar({ currentPage }: NavbarProps) {
                 
                 {/* 내 정보 버튼 */}
                 <Button
-                  onClick={() => setCurrentView('mypage')}
+                  onClick={() => navigate('/admin')}
+                  variant="outline"
+                  className="rounded-full px-4 text-sm flex items-center gap-1"
+                  style={{ color: '#d32f2f', borderColor: '#d32f2f' }} // 관리자 버튼 (빨간색)
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                  관리자
+                </Button>
+              )}
+              <Button
+                  onClick={() => navigate('/mypage')}
                   variant="outline"
                   className="rounded-full px-6 border-2 bg-white hover:bg-gray-50"
                   style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
@@ -161,7 +167,7 @@ export default function Navbar({ currentPage }: NavbarProps) {
               </div>
             ) : (
               <Button
-                onClick={() => setCurrentView('login')}
+                onClick={() => navigate('/login')}
                 className="rounded-full px-6"
                 style={{ backgroundColor: '#2d5f4f' }}
               >

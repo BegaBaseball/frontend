@@ -112,11 +112,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navbar */}
-      <Navbar 
-        currentPage="home" 
-      />
-
       {isOffSeason() ? (
         // 비시즌 화면
         <section className="py-12 bg-gray-50">

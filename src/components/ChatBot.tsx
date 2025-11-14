@@ -31,6 +31,8 @@ const buildHistoryPayload = (conversation: Message[]) => {
   return payload;
 };
 
+const apiUrl = import.meta.env.VITE_AI_API_URL || 'http://localhost:8001';
+
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -61,6 +63,8 @@ export default function ChatBot() {
     };
   }, []);
 
+  const [isTyping, setIsTyping] = useState(false);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
@@ -86,8 +90,9 @@ export default function ChatBot() {
     };
     setMessages((prev) => [...prev, botMessage]);
 
-    const apiUrl = import.meta.env.VITE_AI_API_URL || 'http://localhost:8001';
     const historyPayload = buildHistoryPayload(conversationForHistory); // This now returns raw array
+
+    setIsTyping(true);
 
     try {
       const response = await fetch(`${apiUrl}/chat/stream`, {
@@ -162,69 +167,87 @@ export default function ChatBot() {
       }
     } catch (error) {
       console.error('Chat Stream Error:', error);
+      let errorMessage = '알 수 없는 오류가 발생했습니다.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       setMessages((prev) =>
         prev.map((msg, index) =>
           index === prev.length - 1
-            ? { ...msg, text: `죄송합니다, 답변을 생성하는 중 오류가 발생했습니다: ${error.message || error}` }
+            ? { ...msg, text: `죄송합니다, 답변을 생성하는 중 오류가 발생했습니다: ${errorMessage}` }
             : msg
         )
       );
+    } finally {
+      setIsTyping(false);
     }
   };
 
-  const handleMicClick = () => {
-    // 마이크 허용 x인 사용자 로직
-    if(!navigator.mediaDevices) {
-        alert("마이크 허용 안 함") // 사용자에게 표시되는 메세지
-        return;
-    } 
-    // 마이크 허용 o && 녹음 중지 버튼 누른 사용자 로직
-    if (isRecording && mediaRecorder) {
-        setIsRecording(false);
-        setInputMessage('텍스트로 변환 중입니다.');
-        mediaRecorder.stop();
-        return;
+  const handleMicClick = async () => {
+    if (!navigator.mediaDevices) {
+      alert("이 브라우저는 마이크를 지원하지 않습니다.");
+      return;
     }
-    const constraints = { audio: true };
-        
-    navigator.mediaDevices
-    .getUserMedia({ audio: true })
-    .then((stream) => {
-        const recorder = new MediaRecorder(stream);
 
-        const chunks: Blob[] = [];
-        recorder.ondataavailable = (e) => {
-            chunks.push(e.data);
+    if (isRecording && mediaRecorder) {
+      setIsRecording(false);
+      setInputMessage('텍스트로 변환 중입니다...');
+      mediaRecorder.stop();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        chunks.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const formData = new FormData();
+        formData.append('file', blob, 'audio.webm');
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+          const response = await fetch(`${apiUrl}/chat/voice`, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error('음성 변환 실패');
+          }
+
+          const result = await response.json();
+          setInputMessage(result?.text || '');
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            setInputMessage('변환 시간이 초과되었습니다. 다시 시도해주세요.');
+          } else {
+            setInputMessage('변환에 실패했습니다.');
+          }
+        } finally {
+          // 스트림 정리
+          stream.getTracks().forEach(track => track.stop());
         }
+      };
 
-        recorder.onstop = async () => {
-            const blob = new Blob(chunks, { type: "audio/webm" });
-            const formData = new FormData();
-            formData.append('file', blob, 'audio.webm');
-            try {
-                const response = await fetch('/api/chat/voice', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-                setInputMessage(result.text);
-            } catch (error) {
-                setInputMessage('변환에 실패했습니다.');
-            }
-
-            stream.getTracks().forEach(track => track.stop());
-        };
-        
-        recorder.start();
-        setMediaRecorder(recorder);
-        setIsRecording(true);
-        setInputMessage('🎤 음성 녹음 중... (다시 클릭하여 중지)');
-    })
-    .catch((error) => {
-        alert('마이크 권한이 필요합니다.');
-    });
-
+      // 녹음 시작
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      setInputMessage('음성 녹음 중... (다시 클릭하여 중지)');
+    } catch (error) {
+      alert('마이크 권한이 필요합니다. 브라우저 설정에서 마이크를 허용해주세요.');
+    }
   };
 
   return (
@@ -319,6 +342,23 @@ export default function ChatBot() {
                 </div>
               </div>
             ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div 
+                  className="max-w-[80%] rounded-2xl px-4 py-3 text-white"
+                  style={{ backgroundColor: '#2d5f4f' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-green-100 rounded-full animate-bounce" />
+                      <span className="w-2 h-2 bg-green-100 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <span className="w-2 h-2 bg-green-100 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                    </div>
+                    <p className="text-sm text-green-100">답변 생성 중...</p>
+                  </div>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
