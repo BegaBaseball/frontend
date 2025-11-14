@@ -1,8 +1,7 @@
-import chatBotIcon from '/src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { useState, useRef, useEffect } from 'react';
+import chatBotIcon from '/src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Card } from './ui/card';
 import { X, Send, Mic } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -19,15 +18,11 @@ const buildHistoryPayload = (conversation: Message[]) => {
   const trimmed = conversation
     .filter((msg) => msg.text && msg.text.trim().length > 0)
     .slice(-HISTORY_MESSAGE_LIMIT);
-
   if (!trimmed.length) return null;
-
   const payload = trimmed.map((msg) => ({
     role: msg.sender === 'user' ? 'user' : 'assistant',
     content: msg.text,
   }));
-
-  // Return the raw payload, not Base64 encoded
   return payload;
 };
 
@@ -45,120 +40,91 @@ export default function ChatBot() {
   const [inputMessage, setInputMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null); // Keep for cleanup, though not used for new requests
+  const eventSourceRef = useRef<EventSource | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isOpen) {
+      scrollToBottom();
+    }
+  }, [messages, isOpen]);
 
-  // Cleanup EventSource on unmount
   useEffect(() => {
     return () => {
       eventSourceRef.current?.close();
     };
   }, []);
 
-  const [isTyping, setIsTyping] = useState(false);
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
-
-    // Close any existing EventSource before creating a new one
-    eventSourceRef.current?.close(); // Still close if it was EventSource
-
-    const userMessage: Message = {
-      text: inputMessage,
-      sender: 'user',
-      timestamp: new Date(),
-    };
-
+    eventSourceRef.current?.close();
+    const userMessage: Message = { text: inputMessage, sender: 'user', timestamp: new Date() };
     const conversationForHistory = [...messages, userMessage];
     setMessages((prev) => [...prev, userMessage]);
     const currentInput = inputMessage;
     setInputMessage('');
-
-    const botMessage: Message = {
-      text: '',
-      sender: 'bot',
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, botMessage]);
-
-    const historyPayload = buildHistoryPayload(conversationForHistory); // This now returns raw array
-
+    const historyPayload = buildHistoryPayload(conversationForHistory);
     setIsTyping(true);
 
     try {
       const response = await fetch(`${apiUrl}/chat/stream`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          question: currentInput, // Use 'question' as per backend's POST /stream expects 'question' in payload
-          history: historyPayload,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: currentInput, history: historyPayload }),
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
-
       const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('Failed to get readable stream from response.');
-      }
-
+      if (!reader) throw new Error('Failed to get readable stream from response.');
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
-      let currentEvent = 'message'; // Default event type if not specified
+      let currentEvent = 'message';
+      let botMessageCreated = false;
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
+        if (done) break;
         buffer += decoder.decode(value, { stream: true });
-
         const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
+        buffer = lines.pop() || '';
         for (const line of lines) {
           if (line.startsWith('event:')) {
             currentEvent = line.substring(6).trim();
           } else if (line.startsWith('data:')) {
             const dataString = line.substring(5).trim();
-            if (dataString === '[DONE]') {
-              break; // Explicitly handle done event
-            }
+            if (dataString === '[DONE]') break;
             try {
               const data = JSON.parse(dataString);
               if (currentEvent === 'message' && data.delta) {
-                setMessages((prev) =>
-                  prev.map((msg, index) =>
-                    index === prev.length - 1
-                      ? { ...msg, text: msg.text + data.delta }
-                      : msg
-                  )
-                );
+                if (!botMessageCreated) {
+                  // 첫 번째 델타가 도착할 때 봇 메시지 생성
+                  const botMessage: Message = { text: data.delta, sender: 'bot', timestamp: new Date() };
+                  setMessages((prev) => [...prev, botMessage]);
+                  botMessageCreated = true;
+                  setIsTyping(false);
+                } else {
+                  setMessages((prev) => prev.map((msg, index) => index === prev.length - 1 ? { ...msg, text: msg.text + data.delta } : msg));
+                }
               } else if (currentEvent === 'error') {
                 console.error('SSE Error:', data);
-                setMessages((prev) =>
-                  prev.map((msg, index) =>
-                    index === prev.length - 1
-                      ? { ...msg, text: `오류: ${data.message || '알 수 없는 오류'}` }
-                      : msg
-                  )
-                );
+                setIsTyping(false);
+                const errorMsg: Message = {
+                  text: `오류: ${data.message || '알 수 없는 오류'}`,
+                  sender: 'bot',
+                  timestamp: new Date()
+                };
+                setMessages((prev) => [...prev, errorMsg]);
+                botMessageCreated = true;
               }
-              currentEvent = 'message'; // Reset for next event block
+              currentEvent = 'message';
             } catch (parseError) {
               console.warn('Failed to parse SSE data:', line, parseError);
             }
@@ -168,16 +134,14 @@ export default function ChatBot() {
     } catch (error) {
       console.error('Chat Stream Error:', error);
       let errorMessage = '알 수 없는 오류가 발생했습니다.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      setMessages((prev) =>
-        prev.map((msg, index) =>
-          index === prev.length - 1
-            ? { ...msg, text: `죄송합니다, 답변을 생성하는 중 오류가 발생했습니다: ${errorMessage}` }
-            : msg
-        )
-      );
+      if (error instanceof Error) errorMessage = error.message;
+      setIsTyping(false);
+      const errorMsg: Message = {
+        text: `죄송합니다, 답변을 생성하는 중 오류가 발생했습니다: ${errorMessage}`,
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsTyping(false);
     }
@@ -188,65 +152,41 @@ export default function ChatBot() {
       alert("이 브라우저는 마이크를 지원하지 않습니다.");
       return;
     }
-
     if (isRecording && mediaRecorder) {
       setIsRecording(false);
       setInputMessage('텍스트로 변환 중입니다...');
       mediaRecorder.stop();
       return;
     }
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       const chunks: Blob[] = [];
-
-      recorder.ondataavailable = (e) => {
-        chunks.push(e.data);
-      };
-
+      recorder.ondataavailable = (e) => chunks.push(e.data);
       recorder.onstop = async () => {
         const blob = new Blob(chunks, { type: "audio/webm" });
         const formData = new FormData();
         formData.append('file', blob, 'audio.webm');
-
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-          const response = await fetch(`${apiUrl}/chat/voice`, {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal,
-          });
-
+          const response = await fetch(`${apiUrl}/chat/voice`, { method: 'POST', body: formData, signal: controller.signal });
           clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            throw new Error('음성 변환 실패');
-          }
-
+          if (!response.ok) throw new Error('음성 변환 실패');
           const result = await response.json();
           setInputMessage(result?.text || '');
         } catch (error) {
-          if (error instanceof Error && error.name === 'AbortError') {
-            setInputMessage('변환 시간이 초과되었습니다. 다시 시도해주세요.');
-          } else {
-            setInputMessage('변환에 실패했습니다.');
-          }
+          setInputMessage(error instanceof Error && error.name === 'AbortError' ? '변환 시간이 초과되었습니다.' : '변환에 실패했습니다.');
         } finally {
-          // 스트림 정리
           stream.getTracks().forEach(track => track.stop());
         }
       };
-
-      // 녹음 시작
       recorder.start();
       setMediaRecorder(recorder);
       setIsRecording(true);
       setInputMessage('음성 녹음 중... (다시 클릭하여 중지)');
     } catch (error) {
-      alert('마이크 권한이 필요합니다. 브라우저 설정에서 마이크를 허용해주세요.');
+      alert('마이크 권한이 필요합니다.');
     }
   };
 
@@ -258,24 +198,37 @@ export default function ChatBot() {
         className="fixed bottom-8 right-8 w-20 h-20 rounded-full shadow-2xl hover:scale-110 transition-transform duration-200 z-50"
         style={{ backgroundColor: '#2d5f4f' }}
       >
-        <img 
-          src={chatBotIcon} 
-          alt="BEGA Chat Bot" 
+        <img
+          src={chatBotIcon}
+          alt="BEGA Chat Bot"
           className="w-full h-full rounded-full p-2"
         />
       </button>
 
-      {/* Backdrop Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      {/* Chat Window */}
-      {isOpen && (
-        <Card className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[700px] shadow-2xl flex flex-col z-50 overflow-hidden">
+      {/* Chat Window - Popup from bottom right */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: '140px',
+          right: '32px',
+          width: '500px',
+          height: '750px',
+          backgroundColor: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 9999,
+          borderRadius: '24px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          overflow: 'hidden',
+          border: '2px solid #e5e7eb',
+          opacity: isOpen ? 1 : 0,
+          transform: isOpen ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)',
+          transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
+          pointerEvents: isOpen ? 'auto' : 'none',
+          visibility: isOpen ? 'visible' : 'hidden',
+          fontSize: '15px',
+        }}
+      >
           {/* Header */}
           <div className="p-4 flex items-center justify-between border-b" style={{ backgroundColor: '#2d5f4f' }}>
             <div className="flex items-center gap-3">
@@ -301,37 +254,37 @@ export default function ChatBot() {
                 className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                  className={`rounded-2xl px-4 py-2 ${
                     message.sender === 'user'
-                      ? 'bg-white text-gray-900'
-                      : 'text-white markdown-content'
+                      ? 'bg-white text-gray-900 max-w-[80%]'
+                      : 'text-white markdown-content max-w-[95%]'
                   }`}
                   style={message.sender === 'bot' ? { backgroundColor: '#2d5f4f' } : {}}
                 >
                   {message.sender === 'bot' ? (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
-                      className="text-sm prose prose-invert max-w-none"
+                      className="text-[15px] prose prose-invert max-w-none"
                       components={{
                         table: ({node, ...props}) => (
-                          <div className="overflow-x-auto my-2">
-                            <table className="min-w-full border-collapse border border-green-300" {...props} />
+                          <div className="overflow-x-auto my-2 -mx-2" style={{ maxWidth: '100%' }}>
+                            <table className="border-collapse border border-green-300 text-sm" style={{ minWidth: '300px' }} {...props} />
                           </div>
                         ),
                         thead: ({node, ...props}) => <thead className="bg-green-700" {...props} />,
-                        th: ({node, ...props}) => <th className="border border-green-300 px-3 py-2 text-left font-semibold" {...props} />,
-                        td: ({node, ...props}) => <td className="border border-green-300 px-3 py-2" {...props} />,
+                        th: ({node, ...props}) => <th className="border border-green-300 px-2 py-1 text-left font-semibold whitespace-nowrap" {...props} />,
+                        td: ({node, ...props}) => <td className="border border-green-300 px-2 py-1 whitespace-nowrap" {...props} />,
                         tr: ({node, ...props}) => <tr className="hover:bg-green-600/20" {...props} />,
-                        p: ({node, ...props}) => <p className="text-sm mb-2" {...props} />,
+                        p: ({node, ...props}) => <p className="text-[15px] mb-2 break-words" {...props} />,
                         strong: ({node, ...props}) => <strong className="font-bold text-green-100" {...props} />,
-                        ul: ({node, ...props}) => <ul className="list-disc list-inside text-sm my-2" {...props} />,
-                        ol: ({node, ...props}) => <ol className="list-decimal list-inside text-sm my-2" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc list-inside text-[15px] my-2" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal list-inside text-[15px] my-2" {...props} />,
                       }}
                     >
                       {message.text}
                     </ReactMarkdown>
                   ) : (
-                    <p className="text-sm">{message.text}</p>
+                    <p className="text-[15px]">{message.text}</p>
                   )}
                   <p className={`text-xs mt-1 ${message.sender === 'user' ? 'text-gray-500' : 'text-green-100'}`}>
                     {message.timestamp.toLocaleTimeString('ko-KR', {
@@ -344,7 +297,7 @@ export default function ChatBot() {
             ))}
             {isTyping && (
               <div className="flex justify-start">
-                <div 
+                <div
                   className="max-w-[80%] rounded-2xl px-4 py-3 text-white"
                   style={{ backgroundColor: '#2d5f4f' }}
                 >
@@ -354,7 +307,7 @@ export default function ChatBot() {
                       <span className="w-2 h-2 bg-green-100 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                       <span className="w-2 h-2 bg-green-100 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
                     </div>
-                    <p className="text-sm text-green-100">답변 생성 중...</p>
+                    <p className="text-[15px] text-green-100">답변 생성 중...</p>
                   </div>
                 </div>
               </div>
@@ -370,26 +323,31 @@ export default function ChatBot() {
                 onClick={handleMicClick}
                 className={`text-white ${isRecording ? 'animate-pulse' : ''}`}
                 style={{ backgroundColor: '#2d5f4f' }}
+                aria-label="음성 입력"
               >
                 <Mic className="w-4 h-4" />
               </Button>
               <Input
+                id="chatbot-message-input"
+                name="message"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="메시지를 입력하세요..."
                 className="flex-1"
+                autoComplete="off"
+                aria-label="메시지 입력"
               />
               <Button
                 type="submit"
                 className="text-white"
                 style={{ backgroundColor: '#2d5f4f' }}
+                aria-label="메시지 전송"
               >
                 <Send className="w-4 h-4" />
               </Button>
             </div>
           </form>
-        </Card>
-      )}
+      </div>
     </>
   );
 }
