@@ -31,6 +31,8 @@ const buildHistoryPayload = (conversation: Message[]) => {
   return payload;
 };
 
+const apiUrl = import.meta.env.VITE_AI_API_URL || 'http://localhost:8001';
+
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -88,7 +90,6 @@ export default function ChatBot() {
     };
     setMessages((prev) => [...prev, botMessage]);
 
-    const apiUrl = import.meta.env.VITE_AI_API_URL || 'http://localhost:8001';
     const historyPayload = buildHistoryPayload(conversationForHistory); // This now returns raw array
 
     setIsTyping(true);
@@ -166,10 +167,14 @@ export default function ChatBot() {
       }
     } catch (error) {
       console.error('Chat Stream Error:', error);
+      let errorMessage = '알 수 없는 오류가 발생했습니다.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       setMessages((prev) =>
         prev.map((msg, index) =>
           index === prev.length - 1
-            ? { ...msg, text: `죄송합니다, 답변을 생성하는 중 오류가 발생했습니다: ${error.message || error}` }
+            ? { ...msg, text: `죄송합니다, 답변을 생성하는 중 오류가 발생했습니다: ${errorMessage}` }
             : msg
         )
       );
@@ -224,7 +229,7 @@ export default function ChatBot() {
           const result = await response.json();
           setInputMessage(result?.text || '');
         } catch (error) {
-          if (error.name === 'AbortError') {
+          if (error instanceof Error && error.name === 'AbortError') {
             setInputMessage('변환 시간이 초과되었습니다. 다시 시도해주세요.');
           } else {
             setInputMessage('변환에 실패했습니다.');

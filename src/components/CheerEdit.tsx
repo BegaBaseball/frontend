@@ -6,7 +6,7 @@ import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import Navbar from './Navbar';
-import { useNavigationStore } from '../store/navigationStore';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getTeamNameById, useCheerStore } from '../store/cheerStore';
 import { useAuthStore } from '../store/authStore';
 import { getPost, updatePost } from '../api/cheer';
@@ -15,18 +15,26 @@ import { toast } from 'sonner';
 
 export default function CheerEdit() {
   const queryClient = useQueryClient();
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
-  const { selectedPostId, upsertPost } = useCheerStore();
+  const navigate = useNavigate();
+  const { postId: postIdParam } = useParams();
+  const postId = Number(postIdParam);
+  const { upsertPost } = useCheerStore();
   const favoriteTeam = useAuthStore((state) => state.user?.favoriteTeam) ?? null;
+
+  useEffect(() => {
+    if (isNaN(postId) || postId === 0) {
+      navigate('/cheer');
+    }
+  }, [postId, navigate]);
 
   const {
     data: post,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['cheerPost', selectedPostId],
-    queryFn: () => getPost(selectedPostId!),
-    enabled: !!selectedPostId,
+    queryKey: ['cheerPost', postId],
+    queryFn: () => getPost(postId!),
+    enabled: !!postId,
   });
 
   const [title, setTitle] = useState('');
@@ -38,7 +46,7 @@ export default function CheerEdit() {
   const [loadingImages, setLoadingImages] = useState(false);
 
   useEffect(() => {
-    if (!post || !selectedPostId) return;
+    if (!post || !postId) return;
 
     let cancelled = false;
 
@@ -48,7 +56,7 @@ export default function CheerEdit() {
       setLoadingImages(true);
 
       try {
-        const images = await listPostImages(selectedPostId);
+        const images = await listPostImages(postId);
 
         if (cancelled) return;
         setExistingImages(images);
@@ -83,7 +91,7 @@ export default function CheerEdit() {
     return () => {
       cancelled = true;
     };
-  }, [post, selectedPostId]);
+  }, [post, postId]);
 
   const hasAccess = post
     ? favoriteTeam
@@ -111,7 +119,7 @@ export default function CheerEdit() {
       queryClient.invalidateQueries({ queryKey: ['cheerPost', updated.id] });
       queryClient.invalidateQueries({ queryKey: ['cheerPosts'] });
       toast.success('게시글이 수정되었습니다.');
-      setCurrentView('cheerDetail', { postId: updated.id });
+      navigate(`/cheer/detail/${updated.id}`);
     },
     onError: (error: Error) => {
       toast.error(error.message || '게시글 수정 중 문제가 발생했습니다.');
@@ -200,23 +208,12 @@ export default function CheerEdit() {
   };
 
   const handleCancel = () => {
-    if (selectedPostId) {
-      setCurrentView('cheerDetail', { postId: selectedPostId });
+    if (postId) {
+      navigate(`/cheer/detail/${postId}`);
     } else {
-      setCurrentView('cheer');
+      navigate('/cheer');
     }
   };
-
-  if (!selectedPostId) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navbar currentPage="cheer" />
-        <div className="mx-auto max-w-3xl px-4 py-12 text-center text-gray-500">
-          수정할 게시글이 선택되지 않았습니다.
-        </div>
-      </div>
-    );
-  }
 
   if (isError) {
     return (
@@ -231,7 +228,6 @@ export default function CheerEdit() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar currentPage="cheer" />
 
       <div className="border-b bg-gray-50">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">

@@ -5,14 +5,14 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { useNavigationStore } from '../store/navigationStore';
 import { useAuthStore } from '../store/authStore';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 
 export default function Login() {
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();
   const { email, password, showPassword, setEmail, setPassword, setShowPassword, login } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -61,9 +61,9 @@ export default function Login() {
 
         // 역할에 따라 페이지 이동
         if (userRole === 'ROLE_ADMIN') {
-          setCurrentView('admin');
+          navigate('/admin');
         } else {
-          setCurrentView('home');
+          navigate('/');
         }
       } else {
         throw new Error(apiResponse.message || '로그인 실패');
@@ -222,7 +222,7 @@ export default function Login() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => setCurrentView('passwordReset')}
+                      onClick={() => navigate('/password/reset')}
                       className="text-sm text-red-500 hover:text-red-600 disabled:opacity-50"
                       disabled={isLoading}
                     >
@@ -254,7 +254,7 @@ export default function Login() {
                   계정이 없으신가요?{' '}
                   <button 
                     type="button"
-                    onClick={() => setCurrentView('signup')}
+                    onClick={() => navigate('/signup')}
                     className="hover:underline disabled:opacity-50"
                     style={{ color: '#2d5f4f' }}
                     disabled={isLoading}
