@@ -5,15 +5,12 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { useNavigate } from 'react-router-dom';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-
+import { useNavigate } from 'react-router-dom';  
 import { useMutation } from '@tanstack/react-query';
 import { loginUser, getSocialLoginUrl } from '../api/login';
 
 export default function Login() {
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();  
   const email = useAuthStore((state) => state.email);
   const password = useAuthStore((state) => state.password);
   const showPassword = useAuthStore((state) => state.showPassword);
@@ -25,22 +22,20 @@ export default function Login() {
   const loginMutation = useMutation({
     mutationFn: loginUser,
     onSuccess: (data) => {
-      // 로그인 성공 시
       const { name, role } = data.data;
       login(email, name, undefined, role);
 
-      // 페이지 이동
+      // 🔥 페이지 이동
       if (role === 'ROLE_ADMIN') {
-        setCurrentView('admin');
+        navigate('/admin');
       } else {
-        setCurrentView('home');
+        navigate('/');
       }
     },
   });
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
     loginMutation.mutate({ email, password });
   };
 
@@ -250,7 +245,7 @@ export default function Login() {
                   type="button"
                   onClick={() => handleSocialLogin('kakao')}
                   disabled={loginMutation.isPending}
-                  className={`w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: '#FEE500', color: '#000000' }}
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -263,7 +258,7 @@ export default function Login() {
                   type="button"
                   onClick={() => handleSocialLogin('google')}
                   disabled={loginMutation.isPending}
-                  className={`w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18.17 8.36h-8.04v3.45h4.62c-.39 2.11-2.26 3.45-4.62 3.45a5.26 5.26 0 1 1 3.42-9.25l2.58-2.58A8.76 8.76 0 1 0 10.13 18.7c4.35 0 8.23-3.02 8.04-10.34z" fill="#4285F4"/>
