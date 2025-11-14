@@ -5,6 +5,7 @@ import path from 'path';
 const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
 
   export default defineConfig({
+    appType: 'spa',
     plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -92,7 +93,7 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
     proxy: {
       '/api': {
         target: proxyTarget,
-        // target: 'http://backend:8080',
+        // target: 'http://localhost:8001',
         changeOrigin: true,
         secure: false,
         // cookieDomainRewrite: 'localhost',

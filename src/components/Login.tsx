@@ -4,8 +4,11 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { useNavigationStore } from '../store/navigationStore';
 import { useAuthStore } from '../store/authStore';
+import { useNavigate } from 'react-router-dom';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
 import { useMutation } from '@tanstack/react-query';
 import { loginUser, getSocialLoginUrl } from '../api/login';
 
@@ -189,7 +192,7 @@ export default function Login() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => setCurrentView('passwordReset')}
+                      onClick={() => navigate('/password/reset')}
                       className="text-sm text-red-500 hover:text-red-600 disabled:opacity-50"
                       disabled={loginMutation.isPending}
                     >
@@ -221,7 +224,7 @@ export default function Login() {
                   계정이 없으신가요?{' '}
                   <button 
                     type="button"
-                    onClick={() => setCurrentView('signup')}
+                    onClick={() => navigate('/signup')}
                     className="hover:underline disabled:opacity-50"
                     style={{ color: '#2d5f4f' }}
                     disabled={loginMutation.isPending}

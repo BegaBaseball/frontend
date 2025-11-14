@@ -13,12 +13,12 @@ export interface DiaryEntry {
   team: string;
   emoji: string;
   emojiName: string;
-  winningName: string;
   type: 'attended' | 'scheduled';
   stadium: string;
   score: string;
   memo: string;
   photos: string[];
+  photoFiles: File[];
   winningName: string | null;
 }
 
@@ -38,6 +38,7 @@ export interface DiaryStatistics {
   happiestCount: number;
   firstDiaryDate: string | null;
   cheerPostCount: number;
+  mateParticipationCount: number;
 }
 
 interface DiaryState {

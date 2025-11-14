@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import Navbar from './Navbar';
-import { useNavigationStore } from '../store/navigationStore';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { getFallbackTeamColor, useCheerStore } from '../store/cheerStore';
 import ImagePicker from './ImagePicker';
@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 export default function CheerWrite() {
   const queryClient = useQueryClient();
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();
   const { setSelectedPostId, upsertPost } = useCheerStore();
   const user = useAuthStore((state) => state.user);
   const favoriteTeam = user?.favoriteTeam ?? null;
@@ -54,7 +54,7 @@ export default function CheerWrite() {
       setTitle('');
       setContent('');
       setSelectedFiles([]);
-      setCurrentView('cheerDetail', { postId: createdPost.id });
+      navigate(`/cheer/detail/${createdPost.id}`);
     },
     onError: (error: Error) => {
       toast.error(error.message || '게시글 작성에 실패했습니다.');
@@ -89,13 +89,12 @@ export default function CheerWrite() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar currentPage="cheer" />
 
       <div className="border-b bg-gray-50">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setCurrentView('cheer')}
+              onClick={() => navigate('/cheer')}
               className="text-gray-600 transition-colors hover:text-gray-900"
             >
               <ArrowLeft className="h-6 w-6" />

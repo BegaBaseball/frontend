@@ -7,8 +7,8 @@ import Navbar from './Navbar';
 import TeamLogo from './TeamLogo';
 import { listPosts } from '../api/cheer';
 import { useCheerStore } from '../store/cheerStore';
-import { useNavigationStore } from '../store/navigationStore';
 import { useAuthStore } from '../store/authStore';
+import { useNavigate } from 'react-router-dom';
 
 type TabType = 'all' | 'myTeam';
 
@@ -20,7 +20,7 @@ export default function Cheer() {
     setPosts,
     setSelectedPostId,
   } = useCheerStore();
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();
   const favoriteTeam = useAuthStore((state) => state.user?.favoriteTeam ?? null);
 
   const teamFilter = activeTab === 'myTeam' ? favoriteTeam ?? undefined : undefined;
@@ -68,7 +68,7 @@ export default function Cheer() {
 
   const handlePostClick = (postId: number) => {
     setSelectedPostId(postId);
-    setCurrentView('cheerDetail', { postId });
+    navigate(`/cheer/detail/${postId}`);
   };
 
   const handleTabChange = (tab: TabType) => {
@@ -77,7 +77,6 @@ export default function Cheer() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar currentPage="cheer" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6 flex items-center justify-between">
@@ -96,7 +95,7 @@ export default function Cheer() {
               새로고침
             </Button>
             <Button
-              onClick={() => setCurrentView('cheerWrite')}
+              onClick={() => navigate('/cheer/write')}
               className="text-white"
               style={{ backgroundColor: '#2d5f4f' }}
             >
@@ -231,7 +230,7 @@ export default function Cheer() {
                 {hotPosts.slice(0, 5).map((post) => (
                   <div
                     key={`hot-${post.id}`}
-                    onClick={() => handlePostClick(post.id)}
+                    onClick={() => navigate(`/cheer/detail/${post.id}`)}
                     className="bg-white rounded-xl p-3 hover:shadow-md transition-shadow cursor-pointer border border-red-100"
                   >
                     <div className="flex items-center justify-between text-sm text-gray-600">

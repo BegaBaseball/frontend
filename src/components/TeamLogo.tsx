@@ -32,11 +32,8 @@ const teamLogoImages: Record<string, string> = {
   '기아': kiaLogo,
   SK: ssgLogo,
   'SSG': ssgLogo,
-  NC: ncLogo,
   'NC': ncLogo,
-  LG: lgLogo,
   'LG': lgLogo,
-  KT: ktLogo,
   'KT': ktLogo,
 };
 
