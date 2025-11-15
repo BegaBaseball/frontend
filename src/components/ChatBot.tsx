@@ -40,9 +40,12 @@ export default function ChatBot() {
   const [inputMessage, setInputMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+
+  // --- 순차 처리를 위한 상태 추가 ---
+  const [messageQueue, setMessageQueue] = useState<Message[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,36 +57,27 @@ export default function ChatBot() {
     }
   }, [messages, isOpen]);
 
-  useEffect(() => {
-    return () => {
-      eventSourceRef.current?.close();
-    };
-  }, []);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
-    eventSourceRef.current?.close();
-    const userMessage: Message = { text: inputMessage, sender: 'user', timestamp: new Date() };
-    const conversationForHistory = [...messages, userMessage];
-    setMessages((prev) => [...prev, userMessage]);
-    const currentInput = inputMessage;
-    setInputMessage('');
-    const historyPayload = buildHistoryPayload(conversationForHistory);
+  // --- API 호출 및 스트리밍 로직을 별도 함수로 분리 ---
+  const processMessage = async (messageToProcess: Message) => {
     setIsTyping(true);
+    // 전체 대화 기록을 기반으로 history payload 생성
+    const conversationForHistory = [...messages];
+    const historyPayload = buildHistoryPayload(conversationForHistory);
 
     try {
       const response = await fetch(`${apiUrl}/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: currentInput, history: historyPayload }),
+        body: JSON.stringify({ question: messageToProcess.text, history: historyPayload }),
       });
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
       const reader = response.body?.getReader();
       if (!reader) throw new Error('Failed to get readable stream from response.');
+      
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
       let currentEvent = 'message';
@@ -95,6 +89,7 @@ export default function ChatBot() {
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
+
         for (const line of lines) {
           if (line.startsWith('event:')) {
             currentEvent = line.substring(6).trim();
@@ -105,7 +100,6 @@ export default function ChatBot() {
               const data = JSON.parse(dataString);
               if (currentEvent === 'message' && data.delta) {
                 if (!botMessageCreated) {
-                  // 첫 번째 델타가 도착할 때 봇 메시지 생성
                   const botMessage: Message = { text: data.delta, sender: 'bot', timestamp: new Date() };
                   setMessages((prev) => [...prev, botMessage]);
                   botMessageCreated = true;
@@ -114,13 +108,7 @@ export default function ChatBot() {
                   setMessages((prev) => prev.map((msg, index) => index === prev.length - 1 ? { ...msg, text: msg.text + data.delta } : msg));
                 }
               } else if (currentEvent === 'error') {
-                console.error('SSE Error:', data);
-                setIsTyping(false);
-                const errorMsg: Message = {
-                  text: `오류: ${data.message || '알 수 없는 오류'}`,
-                  sender: 'bot',
-                  timestamp: new Date()
-                };
+                const errorMsg: Message = { text: `오류: ${data.message || '알 수 없는 오류'}`, sender: 'bot', timestamp: new Date() };
                 setMessages((prev) => [...prev, errorMsg]);
                 botMessageCreated = true;
               }
@@ -133,18 +121,37 @@ export default function ChatBot() {
       }
     } catch (error) {
       console.error('Chat Stream Error:', error);
-      let errorMessage = '알 수 없는 오류가 발생했습니다.';
-      if (error instanceof Error) errorMessage = error.message;
-      setIsTyping(false);
       const errorMsg: Message = {
-        text: `죄송합니다, 답변을 생성하는 중 오류가 발생했습니다: ${errorMessage}`,
+        text: `죄송합니다, 답변을 생성하는 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
         sender: 'bot',
         timestamp: new Date()
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsTyping(false);
+      setIsProcessing(false); // 현재 메시지 처리 완료
     }
+  };
+
+  // --- 대기열(Queue) 처리를 위한 useEffect ---
+  useEffect(() => {
+    if (!isProcessing && messageQueue.length > 0) {
+      const nextMessage = messageQueue[0];
+      setMessageQueue((prev) => prev.slice(1));
+      setIsProcessing(true);
+      processMessage(nextMessage);
+    }
+  }, [messageQueue, isProcessing, processMessage]);
+
+  // --- handleSendMessage는 메시지를 UI와 대기열에 추가하는 역할만 수행 ---
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMessage.trim()) return;
+
+    const userMessage: Message = { text: inputMessage, sender: 'user', timestamp: new Date() };
+    setMessages((prev) => [...prev, userMessage]);
+    setMessageQueue((prev) => [...prev, userMessage]);
+    setInputMessage('');
   };
 
   const handleMicClick = async () => {
@@ -189,6 +196,7 @@ export default function ChatBot() {
       alert('마이크 권한이 필요합니다.');
     }
   };
+
 
   return (
     <>
@@ -324,6 +332,7 @@ export default function ChatBot() {
                 className={`text-white ${isRecording ? 'animate-pulse' : ''}`}
                 style={{ backgroundColor: '#2d5f4f' }}
                 aria-label="음성 입력"
+                disabled={isProcessing}
               >
                 <Mic className="w-4 h-4" />
               </Button>
@@ -332,16 +341,18 @@ export default function ChatBot() {
                 name="message"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="메시지를 입력하세요..."
+                placeholder={isProcessing ? "답변을 기다리는 중입니다..." : "메시지를 입력하세요..."}
                 className="flex-1"
                 autoComplete="off"
                 aria-label="메시지 입력"
+                disabled={isProcessing}
               />
               <Button
                 type="submit"
                 className="text-white"
                 style={{ backgroundColor: '#2d5f4f' }}
                 aria-label="메시지 전송"
+                disabled={isProcessing}
               >
                 <Send className="w-4 h-4" />
               </Button>
