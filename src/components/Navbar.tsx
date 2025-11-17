@@ -1,7 +1,7 @@
 import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import React, { useEffect } from 'react'; 
 import { Button } from './ui/button';
-import { Bell, User, LogOut, ShieldAlert } from 'lucide-react';
+import { Bell, LogOut, ShieldAlert } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore'; 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -13,39 +13,37 @@ const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`;
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isNotificationOpen, setIsNotificationOpen } = useUIStore();
-  const { isLoggedIn, user, logout, fetchProfileAndAuthenticate, isAdmin } = useAuthStore();
-  
+  const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
+  const setIsNotificationOpen = useUIStore((state) => state.setIsNotificationOpen);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
 
-   // 컴포넌트 마운트 시 인증 상태를 확인 (쿠키 존재 여부)
   useEffect(() => {
-  // 🔥 이미 로그인되어 있으면 fetchProfile 호출 안 함
-  if (!isLoggedIn) {
-    fetchProfileAndAuthenticate();
-  }
-}, [fetchProfileAndAuthenticate, isLoggedIn]);
+    if (!isLoggedIn) {
+      fetchProfileAndAuthenticate();
+    }
+  }, [isLoggedIn, fetchProfileAndAuthenticate]);
 
- const handleLogout = async () => {
+  const handleLogout = async () => {
     try {
       const response = await fetch(LOGOUT_API_URL, {
-        method: 'POST', // POST 또는 DELETE를 사용 (GET은 권장되지 않음)
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // 쿠키를 요청에 포함
+        credentials: 'include',
       });
 
-      // 백엔드가 쿠키를 삭제하거나 만료시켰다고 가정
       if (response.ok) {
-        // 프론트엔드 상태 초기화
         logout();
         alert('로그아웃 되었습니다.');
-        navigate('/'); // 홈 화면으로 리디렉션
+        navigate('/');
       } else {
-        // 서버에서 쿠키 삭제 실패 (400, 500 등)
         console.error('Logout failed on server:', response.status);
         alert('로그아웃 처리 중 문제가 발생했습니다. (서버 오류)');
-        // 강제로 상태는 초기화
         logout();
         navigate('/');
       }
@@ -114,21 +112,21 @@ export default function Navbar() {
 
             {/* 로그인 상태에 따른 버튼 조건부 렌더링 */}
             {isLoggedIn ? (
-              // 닉네임과 로그아웃 버튼 표시
               <div className="flex items-center gap-4">
-                {/* ⬇️ 관리자(Admin)일 경우에만 이 버튼이 보이도록 추가 */}
-              {isAdmin && (
+                {isAdmin && (
+                  <Button
+                    onClick={() => navigate('/admin')}
+                    variant="outline"
+                    className="rounded-full px-4 text-sm flex items-center gap-1"
+                    style={{ color: '#d32f2f', borderColor: '#d32f2f' }}
+                  >
+                    <ShieldAlert className="w-4 h-4" />
+                    관리자
+                  </Button>
+                )}
+                
+                {/* 내 정보 버튼 */}
                 <Button
-                  onClick={() => navigate('/admin')}
-                  variant="outline"
-                  className="rounded-full px-4 text-sm flex items-center gap-1"
-                  style={{ color: '#d32f2f', borderColor: '#d32f2f' }} // 관리자 버튼 (빨간색)
-                >
-                  <ShieldAlert className="w-4 h-4" />
-                  관리자
-                </Button>
-              )}
-              <Button
                   onClick={() => navigate('/mypage')}
                   variant="outline"
                   className="rounded-full px-6 border-2 bg-white hover:bg-gray-50"
@@ -136,17 +134,18 @@ export default function Navbar() {
                 >
                   내 정보
                 </Button>
-              
                 
+                {/* 사용자 이름 */}
                 <span 
                   className="font-bold text-sm py-1 px-3 rounded-full"
                   style={{ color: '#2d5f4f', backgroundColor: '#e0f2f1' }}
-                 // onClick={() => setCurrentView('mypage')}
                 >
                   {user?.name || '회원'} 님 
                 </span>
+                
+                {/* 로그아웃 버튼 */}
                 <Button
-                  onClick={handleLogout} // 로그아웃 함수
+                  onClick={handleLogout}
                   className="rounded-full px-4 text-sm flex items-center gap-1"
                   variant="outline"
                   style={{ color: '#2d5f4f', borderColor: '#2d5f4f' }}
@@ -156,7 +155,6 @@ export default function Navbar() {
                 </Button>
               </div>
             ) : (
-              // 로그인 버튼 표시
               <Button
                 onClick={() => navigate('/login')}
                 className="rounded-full px-6"
