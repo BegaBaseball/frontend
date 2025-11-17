@@ -64,6 +64,8 @@ export const useAuthStore = create<AuthState>()(
         user: {
           email: profile.email,
           name: profile.name,
+          favoriteTeam: profile.favoriteTeam,
+          favoriteTeamColor: profile.favoriteTeamColor,
           isAdmin: isAdminUser,
           profileImageUrl: profile.profileImageUrl,
           role: profile.role,
