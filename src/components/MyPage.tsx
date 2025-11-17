@@ -6,6 +6,7 @@ import ChatBot from './ChatBot';
 import TeamLogo from './TeamLogo';
 import Navbar from './Navbar';
 import { useAuthStore } from '../store/authStore';
+import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import { useNavigationStore } from '../store/navigationStore';
 
 // 분리된 컴포넌트들

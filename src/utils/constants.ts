@@ -64,6 +64,8 @@ export const THEME_COLORS = {
   gray: '#4b5563',
 } as const;
 
+export const DEFAULT_PROFILE_IMAGE = 'https://via.placeholder.com/150';
+
 export const STADIUMS = [
   '잠실야구장',
   '고척스카이돔',
