@@ -54,6 +54,8 @@ function AdminRoute() {
   return <Outlet />;
 }
 
+import ChatBot from './components/ChatBot';
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -98,6 +100,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      <ChatBot />
     </BrowserRouter>
   );
 }
