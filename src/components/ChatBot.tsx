@@ -2,9 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import chatBotIcon from '/src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { X, Send, Mic } from 'lucide-react';
+import { X, Send, Mic, LogIn } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Cookies from 'js-cookie';
+import { useAuthStore } from '../store/authStore';
+import { useNavigationStore } from '../store/navigationStore';
 
 interface Message {
   text: string;
@@ -27,8 +30,17 @@ const buildHistoryPayload = (conversation: Message[]) => {
 };
 
 const apiUrl = import.meta.env.VITE_AI_API_URL || 'http://localhost:8001';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://zyofzvnkputevakepbdm.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1`;
+
 
 export default function ChatBot() {
+  // 로그인 상태 확인
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const user = useAuthStore((state) => state.user);
+  const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
+  
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -57,7 +69,7 @@ export default function ChatBot() {
     }
   }, [messages, isOpen]);
 
-  // --- API 호출 및 스트리밍 로직을 별도 함수로 분리 ---
+  // --- Edge Function API 호출 로직을 별도 함수로 분리 ---
   const processMessage = async (messageToProcess: Message) => {
     setIsTyping(true);
     // 전체 대화 기록을 기반으로 history payload 생성
@@ -65,62 +77,113 @@ export default function ChatBot() {
     const historyPayload = buildHistoryPayload(conversationForHistory);
 
     try {
-      const response = await fetch(`${apiUrl}/chat/stream`, {
+      // Edge Function 사용 설정 (API 키 보안을 위해 Edge Function 사용)
+      const useEdgeFunction = true; // Edge Function 활성화
+      
+      const endpoint = useEdgeFunction 
+        ? `${EDGE_FUNCTION_URL}/ai-chat`
+        : `${apiUrl}/chat/stream`;
+        
+        
+      const payload = useEdgeFunction
+        ? { query: messageToProcess.text, history: historyPayload, style: 'markdown' }
+        : { question: messageToProcess.text, history: historyPayload };
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      
+      // Edge Function 사용 시 인증 헤더 추가
+      if (useEdgeFunction) {
+        // 커스텀 JWT 토큰 가져오기
+        const authToken = Cookies.get('Authorization');
+        
+        if (authToken) {
+          // 사용자 JWT 토큰 사용
+          headers['Authorization'] = `Bearer ${authToken}`;
+        } else if (SUPABASE_ANON_KEY) {
+          // 로그인되지 않은 경우 Anon Key 사용
+          headers['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`;
+        } else {
+          throw new Error('Supabase anon key가 설정되지 않았습니다. 환경변수를 확인해주세요.');
+        }
+      }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: messageToProcess.text, history: historyPayload }),
+        headers,
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('Failed to get readable stream from response.');
       
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
-      let currentEvent = 'message';
-      let botMessageCreated = false;
+      if (useEdgeFunction) {
+        // Edge Function JSON 응답 처리
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const botMessage: Message = { 
+          text: data.answer || '죄송합니다. 답변을 생성할 수 없습니다.', 
+          sender: 'bot', 
+          timestamp: new Date() 
+        };
+        
+        setMessages((prev) => [...prev, botMessage]);
+        setIsTyping(false);
+      } else {
+        // FastAPI SSE 스트리밍 응답 처리
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('Failed to get readable stream from response.');
+        
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        let currentEvent = 'message';
+        let botMessageCreated = false;
 
-        for (const line of lines) {
-          if (line.startsWith('event:')) {
-            currentEvent = line.substring(6).trim();
-          } else if (line.startsWith('data:')) {
-            const dataString = line.substring(5).trim();
-            if (dataString === '[DONE]') break;
-            try {
-              const data = JSON.parse(dataString);
-              if (currentEvent === 'message' && data.delta) {
-                if (!botMessageCreated) {
-                  const botMessage: Message = { text: data.delta, sender: 'bot', timestamp: new Date() };
-                  setMessages((prev) => [...prev, botMessage]);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              currentEvent = line.substring(6).trim();
+            } else if (line.startsWith('data:')) {
+              const dataString = line.substring(5).trim();
+              if (dataString === '[DONE]') break;
+              try {
+                const data = JSON.parse(dataString);
+                if (currentEvent === 'message' && data.delta) {
+                  if (!botMessageCreated) {
+                    const botMessage: Message = { text: data.delta, sender: 'bot', timestamp: new Date() };
+                    setMessages((prev) => [...prev, botMessage]);
+                    botMessageCreated = true;
+                    setIsTyping(false);
+                  } else {
+                    setMessages((prev) => prev.map((msg, index) => index === prev.length - 1 ? { ...msg, text: msg.text + data.delta } : msg));
+                  }
+                } else if (currentEvent === 'error') {
+                  const errorMsg: Message = { text: `오류: ${data.message || '알 수 없는 오류'}`, sender: 'bot', timestamp: new Date() };
+                  setMessages((prev) => [...prev, errorMsg]);
                   botMessageCreated = true;
-                  setIsTyping(false);
-                } else {
-                  setMessages((prev) => prev.map((msg, index) => index === prev.length - 1 ? { ...msg, text: msg.text + data.delta } : msg));
                 }
-              } else if (currentEvent === 'error') {
-                const errorMsg: Message = { text: `오류: ${data.message || '알 수 없는 오류'}`, sender: 'bot', timestamp: new Date() };
-                setMessages((prev) => [...prev, errorMsg]);
-                botMessageCreated = true;
+                currentEvent = 'message';
+              } catch (parseError) {
+                console.warn('Failed to parse SSE data:', line, parseError);
               }
-              currentEvent = 'message';
-            } catch (parseError) {
-              console.warn('Failed to parse SSE data:', line, parseError);
             }
           }
         }
       }
+      
     } catch (error) {
-      console.error('Chat Stream Error:', error);
+      console.error('Chat Edge Function Error:', error);
       const errorMsg: Message = {
         text: `죄송합니다, 답변을 생성하는 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
         sender: 'bot',
@@ -147,6 +210,12 @@ export default function ChatBot() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
+
+    // 로그인 체크 (개발 완료 후 활성화용)
+    // if (!isLoggedIn) {
+    //   alert('로그인 후 이용해주세요.');
+    //   return;
+    // }
 
     const userMessage: Message = { text: inputMessage, sender: 'user', timestamp: new Date() };
     setMessages((prev) => [...prev, userMessage]);
@@ -256,6 +325,31 @@ export default function ChatBot() {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            {/* 로그인하지 않은 사용자용 UI (개발 완료 후 활성화) */}
+            {/* {!isLoggedIn ? (
+              <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                <LogIn className="w-16 h-16 mb-4" style={{ color: '#2d5f4f' }} />
+                <h3 className="text-lg font-semibold mb-2" style={{ color: '#2d5f4f' }}>
+                  로그인이 필요합니다
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  야구 가이드 BEGA를 이용하시려면<br />
+                  로그인해주세요.
+                </p>
+                <Button
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigateToLogin();
+                  }}
+                  className="text-white px-6 py-2"
+                  style={{ backgroundColor: '#2d5f4f' }}
+                >
+                  로그인 하러가기
+                </Button>
+              </div>
+            ) : (
+              <>
+            */}
             {messages.map((message, index) => (
               <div
                 key={index}
@@ -321,6 +415,11 @@ export default function ChatBot() {
               </div>
             )}
             <div ref={messagesEndRef} />
+            {/* 로그인 체크 닫는 태그 */}
+            {/* 
+              </>
+            )}
+            */}
           </div>
 
           {/* Input */}
@@ -345,14 +444,14 @@ export default function ChatBot() {
                 className="flex-1"
                 autoComplete="off"
                 aria-label="메시지 입력"
-                disabled={isProcessing}
+                disabled={isProcessing /* || !isLoggedIn */}
               />
               <Button
                 type="submit"
                 className="text-white"
                 style={{ backgroundColor: '#2d5f4f' }}
                 aria-label="메시지 전송"
-                disabled={isProcessing}
+                disabled={isProcessing /* || !isLoggedIn */}
               >
                 <Send className="w-4 h-4" />
               </Button>
