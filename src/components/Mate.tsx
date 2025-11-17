@@ -254,7 +254,9 @@ export default function Mate() {
                 </p>
               </div>
             ) : (
-              filteredParties.map(renderPartyCard)
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredParties.map(renderPartyCard)}
+              </div>
             )}
           </TabsContent>
 
@@ -265,7 +267,9 @@ export default function Mate() {
                 <p className="text-gray-500">모집 중인 파티가 없습니다</p>
               </div>
             ) : (
-              pendingParties.map(renderPartyCard)
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pendingParties.map(renderPartyCard)}
+              </div>
             )}
           </TabsContent>
 
@@ -276,7 +280,9 @@ export default function Mate() {
                 <p className="text-gray-500">매칭된 파티가 없습니다</p>
               </div>
             ) : (
-              matchedParties.map(renderPartyCard)
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {matchedParties.map(renderPartyCard)}
+              </div>
             )}
           </TabsContent>
 
@@ -287,7 +293,9 @@ export default function Mate() {
                 <p className="text-gray-500">판매 중인 티켓이 없습니다</p>
               </div>
             ) : (
-              sellingParties.map(renderPartyCard)
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sellingParties.map(renderPartyCard)}
+              </div>
             )}
           </TabsContent>
         </Tabs>
