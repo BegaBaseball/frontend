@@ -3,7 +3,7 @@ import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Home } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';  
 import { useMutation } from '@tanstack/react-query';
@@ -25,7 +25,6 @@ export default function Login() {
       const { name, role } = data.data;
       login(email, name, undefined, role);
 
-      // 🔥 페이지 이동
       if (role === 'ROLE_ADMIN') {
         navigate('/admin');
       } else {
@@ -104,6 +103,23 @@ export default function Login() {
 
       {/* Login Card */}
       <div className="w-full max-w-5xl relative z-20">
+        {/* 🔥 홈 버튼 */}
+        <button
+          onClick={() => navigate('/')}
+          className="absolute z-50 flex items-center gap-2 bg-white rounded-full px-3 py-2 shadow-lg hover:shadow-xl transition-all hover:scale-105"
+          style={{ 
+            border: '2px solid #2d5f4f',
+            top: '5%',      
+            left: '51.5%'      
+          }}
+        >
+          <div className="hidden sm:block">
+            <h1 className="text-[11px] tracking-wider leading-tight" style={{ fontWeight: 900, color: '#2d5f4f' }}>BEGA</h1>
+            <p className="text-[9px] leading-tight" style={{ color: '#2d5f4f' }}>BASEBALL GUIDE</p>
+          </div>
+          <Home className="w-5 h-5 sm:hidden" style={{ color: '#2d5f4f' }} />
+        </button>
+
         <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden">
           <div className="grid md:grid-cols-2">
             {/* Left - Character */}

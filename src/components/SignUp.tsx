@@ -38,7 +38,6 @@ export default function SignUp() {
     favoriteTeam: ''
   });
   
-  // 🔥 각 필드별 에러 메시지
   const [fieldErrors, setFieldErrors] = useState({
     name: '',
     email: '',
@@ -50,7 +49,6 @@ export default function SignUp() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔥 필드별 유효성 검사
   const validateField = (fieldName: string, value: string) => {
     switch (fieldName) {
       case 'name':
@@ -102,7 +100,6 @@ export default function SignUp() {
     }
   };
 
-  // 🔥 필드 변경 시 실시간 검증
   const handleFieldChange = (fieldName: string, value: string) => {
     setFormData({ ...formData, [fieldName]: value });
     
@@ -112,7 +109,6 @@ export default function SignUp() {
     }
   };
 
-  // 🔥 포커스 벗어날 때 검증
   const handleFieldBlur = (fieldName: string) => {
     const value = formData[fieldName as keyof typeof formData];
     const errorMessage = validateField(fieldName, value);
@@ -123,7 +119,7 @@ export default function SignUp() {
     e.preventDefault();
     setError(null);
     
-    // 🔥 모든 필드 검증
+    // 필드 검증
     const errors = {
       name: validateField('name', formData.name),
       email: validateField('email', formData.email),
@@ -134,7 +130,7 @@ export default function SignUp() {
     
     setFieldErrors(errors);
     
-    // 🔥 에러가 하나라도 있으면 제출 중단
+    // 에러가 하나라도 있으면 제출 중단
     if (Object.values(errors).some(error => error !== '')) {
       return;
     }
@@ -275,7 +271,7 @@ export default function SignUp() {
               <h2 className="text-center mb-8">SIGN UP</h2>
 
               <form onSubmit={handleSignUp} className="space-y-5" noValidate>
-                {/* 🔥 서버 에러 메시지 */}
+                {/* 서버 에러 메시지 */}
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-700 text-center">{error}</p>
@@ -299,7 +295,7 @@ export default function SignUp() {
                     placeholder="홍길동"
                     disabled={isLoading}
                   />
-                  {/* 🔥 에러 메시지 */}
+                  {/* 에러 메시지 */}
                   {fieldErrors.name && (
                     <p className="text-sm text-red-500">* {fieldErrors.name}</p>
                   )}
@@ -322,7 +318,7 @@ export default function SignUp() {
                     placeholder="example@email.com"
                     disabled={isLoading}
                   />
-                  {/* 🔥 에러 메시지 */}
+                  {/* 에러 메시지 */}
                   {fieldErrors.email && (
                     <p className="text-sm text-red-500">* {fieldErrors.email}</p>
                   )}
@@ -355,7 +351,7 @@ export default function SignUp() {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  {/* 🔥 에러 메시지 */}
+                  {/* 에러 메시지 */}
                   {fieldErrors.password ? (
                     <p className="text-sm text-red-500">* {fieldErrors.password}</p>
                   ) : (
@@ -393,7 +389,7 @@ export default function SignUp() {
                       {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  {/* 🔥 에러 메시지 */}
+                  {/* 에러 메시지 */}
                   {fieldErrors.confirmPassword && (
                     <p className="text-sm text-red-500">* {fieldErrors.confirmPassword}</p>
                   )}
@@ -423,10 +419,22 @@ export default function SignUp() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {/* 🔥 에러 메시지 */}
+                  
+                  {/* 에러 메시지 */}
                   {fieldErrors.favoriteTeam && (
                     <p className="text-sm text-red-500">* {fieldErrors.favoriteTeam}</p>
                   )}
+                  
+                  {/* 🔥 "없음" 선택 시 경고 메시지 */}
+                  {formData.favoriteTeam === '없음' && (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        ⚠️ 응원구단을 선택하지 않으면 <strong>응원게시판을 이용할 수 없습니다.</strong><br />
+                        <span className="text-xs">나중에 마이페이지 &gt; 내 정보 수정에서 변경 가능합니다.</span>
+                      </p>
+                    </div>
+                  )}
+                  
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-sm text-gray-500">응원구단은 응원게시판에서 사용됩니다</p>
                     <Button 
@@ -440,6 +448,7 @@ export default function SignUp() {
                       구단 테스트 해보기
                     </Button>
                   </div>
+                  
                   <TeamRecommendationTest
                     isOpen={showTeamTest}
                     onClose={() => setShowTeamTest(false)}
