@@ -12,9 +12,9 @@ import { useNavigationStore } from '../store/navigationStore';
 import ProfileEditSection from './mypage/ProfileEditSection';
 import DiaryViewSection from './mypage/Diaryform';
 import DiaryStatistics from './mypage/Diarystatistics';
-// import MateHistorySection from './mypage/MateHistorySection';
+import MateHistorySection from './mypage/MateHistorySection';
 
-const API_URL = 'http://localhost:8080/api/auth/mypage';
+const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory';
 
@@ -35,7 +35,7 @@ export default function MyPage() {
   const fetchUserProfile = async () => {
     setLoading(true);
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(`/api/auth/mypage`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -173,9 +173,9 @@ export default function MyPage() {
           <DiaryStatistics />
         )}
 
-        {/* {viewMode === 'mateHistory' && (
+        {viewMode === 'mateHistory' && (
           <MateHistorySection />
-        )} */}
+        )}
       </div>
 
       <ChatBot />
