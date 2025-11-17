@@ -78,7 +78,7 @@ export default function ChatBot() {
 
     try {
       // Edge Function 사용 설정 (API 키 보안을 위해 Edge Function 사용)
-      const useEdgeFunction = true; // Edge Function 활성화
+      const useEdgeFunction = false;
       
       const endpoint = useEdgeFunction 
         ? `${EDGE_FUNCTION_URL}/ai-chat`

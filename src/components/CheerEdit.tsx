@@ -218,7 +218,7 @@ export default function CheerEdit() {
   if (isError) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar currentPage="cheer" />
+        <Navbar />
         <div className="mx-auto max-w-3xl px-4 py-12 text-center text-red-600">
           게시글 정보를 불러오는 중 문제가 발생했습니다.
         </div>
