@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MessageSquare, Heart, Flame, PenSquare, RotateCw, Info } from 'lucide-react';
 import { Button } from './ui/button';
-import ChatBot from './ChatBot';
 import Navbar from './Navbar';
 import TeamLogo from './TeamLogo';
 import { listPosts } from '../api/cheer';
@@ -262,7 +261,7 @@ export default function Cheer() {
               </div>
             </div>
 
-            <ChatBot />
+
           </aside>
         </div>
       </div>
