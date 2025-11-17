@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
 import LoadingSpinner from './components/LoadingSpinner';
 import Layout from './components/Layout';
@@ -57,6 +57,13 @@ function AdminRoute() {
 import ChatBot from './components/ChatBot';
 
 export default function App() {
+  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
+
+  useEffect(() => {
+    // 앱 시작 시 인증 상태 확인
+    fetchProfileAndAuthenticate();
+  }, [fetchProfileAndAuthenticate]);
+
   return (
     <BrowserRouter>
       <Suspense fallback={<LoadingSpinner />}>

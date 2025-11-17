@@ -21,11 +21,7 @@ export default function Navbar() {
   const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
   const isAdmin = useAuthStore((state) => state.isAdmin);
 
-  useEffect(() => {
-    if (!isLoggedIn) {
-      fetchProfileAndAuthenticate();
-    }
-  }, [isLoggedIn, fetchProfileAndAuthenticate]);
+  // App.tsx에서 초기 인증 처리하므로 중복 코드 제거
 
   const handleLogout = async () => {
     try {

@@ -105,7 +105,12 @@ export default function CheerWrite() {
             onClick={handleSubmit}
             className="text-white"
             style={{ backgroundColor: '#2d5f4f' }}
-            disabled={createMutation.isPending || !favoriteTeam}
+            disabled={
+              createMutation.isPending || 
+              !favoriteTeam || 
+              !title.trim() || 
+              !content.trim()
+            }
           >
             {createMutation.isPending ? '등록 중...' : '등록'}
           </Button>
