@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import Navbar from './Navbar';
+import { useNavigate, useParams } from 'react-router-dom';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Separator } from './ui/separator';
 import {
   ChevronLeft,
   Users,
@@ -17,42 +16,29 @@ import {
   Calendar,
   MapPin,
 } from 'lucide-react';
-import { useNavigationStore } from '../store/navigationStore';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
+import ChatBot from './ChatBot';
+import { api } from '../utils/api';
+import { Application } from '../types/mate';
 
 export default function MateManage() {
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { selectedParty } = useMateStore();
 
-  const [applications, setApplications] = useState<any[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
-  // ✅ 현재 사용자 정보 가져오기
+  // 현재 사용자 정보 가져오기
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const userResponse = await fetch('http://localhost:8080/api/auth/mypage', {
-          credentials: 'include',
-        });
-        
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          
-          const userIdResponse = await fetch(
-            `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(userData.data.email)}`,
-            { credentials: 'include' }
-          );
-          
-          if (userIdResponse.ok) {
-            const userIdData = await userIdResponse.json();
-            const userId = userIdData.data || userIdData;
-            setCurrentUserId(userId);
-            
-          }
-        }
+        const userData = await api.getCurrentUser();
+        const userId = await api.getUserIdByEmail(userData.data.email);
+        setCurrentUserId(userId.data || userId);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
       }
@@ -61,29 +47,17 @@ export default function MateManage() {
     fetchCurrentUser();
   }, []);
 
-  // ✅ 신청 목록 불러오기
+  // 신청 목록 불러오기
   useEffect(() => {
     if (!selectedParty) return;
 
     const fetchApplications = async () => {
       setIsLoading(true);
       try {
-       
-        
-        const response = await fetch(
-          `http://localhost:8080/api/applications/party/${selectedParty.id}`,
-          { credentials: 'include' }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          
-          setApplications(data);
-        } else {
-          console.error('❌ 신청 목록 불러오기 실패:', response.status);
-        }
+        const data = await api.getApplicationsByParty(selectedParty.id);
+        setApplications(data);
       } catch (error) {
-        console.error('❌ 신청 목록 불러오기 오류:', error);
+        console.error('신청 목록 불러오기 오류:', error);
       } finally {
         setIsLoading(false);
       }
@@ -99,7 +73,6 @@ export default function MateManage() {
   if (!currentUserId) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar currentPage="mate" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Alert>
             <AlertDescription>사용자 정보를 불러오는 중...</AlertDescription>
@@ -111,21 +84,14 @@ export default function MateManage() {
 
   const isHost = String(selectedParty.hostId) === String(currentUserId);
 
-  console.log('호스트 체크:', {
-    partyHostId: selectedParty.hostId,
-    currentUserId: currentUserId,
-    isHost: isHost
-  });
-
   if (!isHost) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar currentPage="mate" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Alert>
             <AlertDescription>호스트만 접근할 수 있는 페이지입니다.</AlertDescription>
           </Alert>
-          <Button onClick={() => setCurrentView('mateDetail')} className="mt-4">
+          <Button onClick={() => navigate(`/mate/${id}`)} className="mt-4">
             뒤로 가기
           </Button>
         </div>
@@ -133,84 +99,38 @@ export default function MateManage() {
     );
   }
 
-  // ✅ 신청 승인 (POST 메서드)
+  // 신청 승인
   const handleApprove = async (applicationId: string) => {
     try {
+      await api.approveApplication(applicationId);
+      alert('신청이 승인되었습니다!');
       
-      
-      const response = await fetch(
-        `http://localhost:8080/api/applications/${applicationId}/approve`,
-        {
-          method: 'POST', // ✅ POST 메서드 사용
-          credentials: 'include',
-        }
-      );
-
-      if (response.ok) {
-        
-        alert('신청이 승인되었습니다!');
-        
-        // 신청 목록 다시 불러오기
-        const listResponse = await fetch(
-          `http://localhost:8080/api/applications/party/${selectedParty.id}`,
-          { credentials: 'include' }
-        );
-        
-        if (listResponse.ok) {
-          const data = await listResponse.json();
-          setApplications(data);
-        }
-      } else {
-        const error = await response.text();
-        console.error('❌ 신청 승인 실패:', error);
-        alert('신청 승인에 실패했습니다.');
-      }
+      // 신청 목록 다시 불러오기
+      const data = await api.getApplicationsByParty(selectedParty.id);
+      setApplications(data);
     } catch (error) {
-      console.error('❌ 신청 승인 중 오류:', error);
-      alert('신청 승인 중 오류가 발생했습니다.');
+      console.error('신청 승인 중 오류:', error);
+      alert('신청 승인에 실패했습니다.');
     }
   };
 
-  // ✅ 신청 거절 (POST 메서드)
+  // 신청 거절
   const handleReject = async (applicationId: string) => {
     try {
+      await api.rejectApplication(applicationId);
+      alert('신청이 거절되었습니다.');
       
-      
-      const response = await fetch(
-        `http://localhost:8080/api/applications/${applicationId}/reject`,
-        {
-          method: 'POST', // ✅ POST 메서드 사용
-          credentials: 'include',
-        }
-      );
-
-      if (response.ok) {
-        
-        alert('신청이 거절되었습니다.');
-        
-        // 신청 목록 다시 불러오기
-        const listResponse = await fetch(
-          `http://localhost:8080/api/applications/party/${selectedParty.id}`,
-          { credentials: 'include' }
-        );
-        
-        if (listResponse.ok) {
-          const data = await listResponse.json();
-          setApplications(data);
-        }
-      } else {
-        const error = await response.text();
-        console.error('❌ 신청 거절 실패:', error);
-        alert('신청 거절에 실패했습니다.');
-      }
+      // 신청 목록 다시 불러오기
+      const data = await api.getApplicationsByParty(selectedParty.id);
+      setApplications(data);
     } catch (error) {
-      console.error('❌ 신청 거절 중 오류:', error);
-      alert('신청 거절 중 오류가 발생했습니다.');
+      console.error('신청 거절 중 오류:', error);
+      alert('신청 거절에 실패했습니다.');
     }
   };
 
   const handleOpenChat = () => {
-    setCurrentView('mateChat');
+    navigate(`/mate/${id}/chat`);
   };
 
   const getBadgeIcon = (badge: string) => {
@@ -219,7 +139,7 @@ export default function MateManage() {
     return null;
   };
 
-  const renderApplication = (app: any, showActions: boolean = false) => (
+  const renderApplication = (app: Application, showActions: boolean = false) => (
     <Card key={app.id} className="p-5 mb-4">
       <div className="flex justify-between items-start mb-4">
         <div>
@@ -275,7 +195,6 @@ export default function MateManage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar currentPage="mate" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
@@ -292,8 +211,6 @@ export default function MateManage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar currentPage="mate" />
-
       <img
         src={grassDecor}
         alt=""
@@ -303,7 +220,7 @@ export default function MateManage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <Button
           variant="ghost"
-          onClick={() => setCurrentView('mateDetail')}
+          onClick={() => navigate(`/mate/${id}`)}
           className="mb-4"
         >
           <ChevronLeft className="w-4 h-4 mr-2" />
@@ -408,6 +325,8 @@ export default function MateManage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <ChatBot />
     </div>
   );
 }

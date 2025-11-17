@@ -1,21 +1,24 @@
 import { useState, useEffect } from 'react';
-import Navbar from './Navbar';
+import { useNavigate, useParams } from 'react-router-dom';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Separator } from './ui/separator';
-import { CheckCircle, MapPin, Calendar, Users, ChevronLeft, Loader2, User } from 'lucide-react';
-import { useNavigationStore } from '../store/navigationStore';
+import { CheckCircle, MapPin, Calendar, Users, ChevronLeft, Loader2 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
+import ChatBot from './ChatBot';
+import { api } from '../utils/api';
+import { CheckIn } from '../types/mate';
 
 export default function MateCheckIn() {
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { selectedParty } = useMateStore();
 
   const [isChecking, setIsChecking] = useState(false);
-  const [checkInStatus, setCheckInStatus] = useState<any[]>([]);
+  const [checkInStatus, setCheckInStatus] = useState<CheckIn[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserName, setCurrentUserName] = useState('');
 
@@ -23,24 +26,11 @@ export default function MateCheckIn() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const userResponse = await fetch('http://localhost:8080/api/auth/mypage', {
-          credentials: 'include',
-        });
+        const userData = await api.getCurrentUser();
+        setCurrentUserName(userData.data.name);
         
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          setCurrentUserName(userData.data.name);
-          
-          const userIdResponse = await fetch(
-            `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(userData.data.email)}`,
-            { credentials: 'include' }
-          );
-          
-          if (userIdResponse.ok) {
-            const userIdData = await userIdResponse.json();
-            setCurrentUserId(userIdData.data || userIdData);
-          }
-        }
+        const userId = await api.getUserIdByEmail(userData.data.email);
+        setCurrentUserId(userId.data || userId);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
       }
@@ -55,15 +45,8 @@ export default function MateCheckIn() {
 
     const fetchCheckInStatus = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:8080/api/checkin/party/${selectedParty.id}`,
-          { credentials: 'include' }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          setCheckInStatus(data);
-        }
+        const data = await api.getCheckInsByParty(selectedParty.id);
+        setCheckInStatus(data);
       } catch (error) {
         console.error('체크인 현황 불러오기 실패:', error);
       }
@@ -102,36 +85,13 @@ export default function MateCheckIn() {
         location: selectedParty.stadium,
       };
 
+      await api.createCheckIn(checkInData);
 
-      const response = await fetch('http://localhost:8080/api/checkin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(checkInData),
-      });
+      // 체크인 현황 다시 불러오기
+      const data = await api.getCheckInsByParty(selectedParty.id);
+      setCheckInStatus(data);
 
-      if (response.ok) {
-        const result = await response.json();
-        
-        // 체크인 현황 다시 불러오기
-        const statusResponse = await fetch(
-          `http://localhost:8080/api/checkin/party/${selectedParty.id}`,
-          { credentials: 'include' }
-        );
-
-        if (statusResponse.ok) {
-          const data = await statusResponse.json();
-          setCheckInStatus(data);
-        }
-
-        alert('체크인이 완료되었습니다!');
-      } else {
-        const error = await response.text();
-        console.error('체크인 실패:', error);
-        alert('체크인에 실패했습니다.');
-      }
+      alert('체크인이 완료되었습니다!');
     } catch (error) {
       console.error('체크인 중 오류:', error);
       alert('체크인 중 오류가 발생했습니다.');
@@ -142,13 +102,11 @@ export default function MateCheckIn() {
 
   const handleComplete = () => {
     alert('경기 관람이 완료되었습니다!');
-    setCurrentView('mate');
+    navigate('/mate');
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar currentPage="mate" />
-
       <img
         src={grassDecor}
         alt=""
@@ -158,7 +116,7 @@ export default function MateCheckIn() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <Button
           variant="ghost"
-          onClick={() => setCurrentView('mateDetail')}
+          onClick={() => navigate(`/mate/${id}`)}
           className="mb-4"
         >
           <ChevronLeft className="w-4 h-4 mr-2" />
@@ -373,6 +331,8 @@ export default function MateCheckIn() {
           </>
         )}
       </div>
+
+      <ChatBot />
     </div>
   );
 }
