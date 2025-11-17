@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Navbar from './Navbar';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -11,17 +10,8 @@ import { Search, Users, MessageSquare, Calendar, Trash2, ShieldAlert } from 'luc
 import { useCheerStore } from '../store/cheerStore';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from './ui/alert-dialog';
+import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,} from './ui/alert-dialog';
 
 // 🔥 타입 정의
 interface AdminUser {
@@ -332,7 +322,6 @@ const formatGameDate = (dateString: string): string => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar currentPage="home" />
 
       {/* Grass decoration */}
       <img

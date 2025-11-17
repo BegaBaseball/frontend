@@ -5,14 +5,9 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { User, Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
-import { useNavigationStore } from '../store/navigationStore';
+import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';  
 import TeamRecommendationTest from './TeamRecommendationTest';
-import TeamLogo from './TeamLogo';
-
-interface SignUpProps {
-  onBackToLogin: () => void;
-}
 
 const TEAM_DATA: { [key: string]: { name: string, fullName: string } } = {
   '없음': { name: '없음', fullName: '없음' },
@@ -28,12 +23,12 @@ const TEAM_DATA: { [key: string]: { name: string, fullName: string } } = {
   'HH': { name: '한화', fullName: '한화 이글스' },
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
-export default function SignUp({ onBackToLogin }: SignUpProps) {
+export default function SignUp() {  
+  const navigate = useNavigate();  
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const currentView = useNavigationStore((state) => state.currentView);
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
   const [showTeamTest, setShowTeamTest] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -43,31 +38,111 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
     favoriteTeam: ''
   });
   
-  // 로딩 및 에러 상태 추가 (선택 사항이지만 유용함)
+  // 🔥 각 필드별 에러 메시지
+  const [fieldErrors, setFieldErrors] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    favoriteTeam: ''
+  });
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
+  // 🔥 필드별 유효성 검사
+  const validateField = (fieldName: string, value: string) => {
+    switch (fieldName) {
+      case 'name':
+        if (!value.trim()) {
+          return '이름을 입력해주세요';
+        }
+        return '';
+      
+      case 'email':
+        if (!value.trim()) {
+          return '이메일을 입력해주세요';
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          return '올바른 이메일 형식이 아닙니다';
+        }
+        return '';
+      
+      case 'password':
+        if (!value) {
+          return '비밀번호를 입력해주세요';
+        }
+        if (value.length < 8) {
+          return '비밀번호는 8자 이상이어야 합니다';
+        }
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+        if (!passwordRegex.test(value)) {
+          return '대문자, 소문자, 숫자, 특수문자를 각 1개 이상 포함해야 합니다';
+        }
+        return '';
+      
+      case 'confirmPassword':
+        if (!value) {
+          return '비밀번호 확인을 입력해주세요';
+        }
+        if (value !== formData.password) {
+          return '비밀번호가 일치하지 않습니다';
+        }
+        return '';
+      
+      case 'favoriteTeam':
+        if (!value) {
+          return '응원팀을 선택해주세요';
+        }
+        return '';
+      
+      default:
+        return '';
+    }
+  };
+
+  // 🔥 필드 변경 시 실시간 검증
+  const handleFieldChange = (fieldName: string, value: string) => {
+    setFormData({ ...formData, [fieldName]: value });
+    
+    // 에러 메시지 업데이트 (입력 중일 때는 에러 표시 안 함)
+    if (fieldErrors[fieldName as keyof typeof fieldErrors]) {
+      setFieldErrors({ ...fieldErrors, [fieldName]: '' });
+    }
+  };
+
+  // 🔥 포커스 벗어날 때 검증
+  const handleFieldBlur = (fieldName: string) => {
+    const value = formData[fieldName as keyof typeof formData];
+    const errorMessage = validateField(fieldName, value);
+    setFieldErrors({ ...fieldErrors, [fieldName]: errorMessage });
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
-    // 비밀번호 일치 확인 (프론트엔드 유효성 검사)
-    if (formData.password !== formData.confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.');
-      return;
-    }
+    // 🔥 모든 필드 검증
+    const errors = {
+      name: validateField('name', formData.name),
+      email: validateField('email', formData.email),
+      password: validateField('password', formData.password),
+      confirmPassword: validateField('confirmPassword', formData.confirmPassword),
+      favoriteTeam: validateField('favoriteTeam', formData.favoriteTeam),
+    };
     
-    // 비밀번호 길이 확인 (프론트엔드 유효성 검사)
-    if (formData.password.length < 8) {
-      setError('비밀번호는 8자 이상이어야 합니다.');
+    setFieldErrors(errors);
+    
+    // 🔥 에러가 하나라도 있으면 제출 중단
+    if (Object.values(errors).some(error => error !== '')) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-       const response = await fetch('http://localhost:8080/api/auth/signup', {
+      const response = await fetch(`${API_BASE_URL}/auth/signup`, { 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +152,7 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
           email: formData.email,
           password: formData.password,
           confirmPassword: formData.confirmPassword, 
-          favoriteTeam: formData.favoriteTeam === '없음' ? null : formData.favoriteTeam,  // 🔥 풀네임 그대로 전송
+          favoriteTeam: formData.favoriteTeam === '없음' ? null : formData.favoriteTeam,
         }),
       });
       
@@ -88,9 +163,7 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
       }
 
       alert('회원가입 성공! 로그인 화면으로 이동합니다.');
-      setCurrentView('login')
-      onBackToLogin();
-
+      navigate('/login');  
     } catch (err) {
       console.error('Sign up error:', err);
       setError((err as Error).message || '네트워크 오류로 회원가입에 실패했습니다.');
@@ -114,19 +187,13 @@ export default function SignUp({ onBackToLogin }: SignUpProps) {
   ];
 
   const getFullTeamName = (teamId: string): string => {
-  return TEAM_DATA[teamId]?.fullName || teamId;
-};
-
-const getTeamId = (fullName: string): string => {
-  const entry = Object.entries(TEAM_DATA).find(([_, data]) => data.fullName === fullName);
-  return entry ? entry[0] : fullName;
-};
+    return TEAM_DATA[teamId]?.fullName || teamId;
+  };
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorative shapes - Fixed positioning */}
+      {/* Background decorative shapes */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {/* Top right green shape */}
         <div 
           className="fixed rounded-full opacity-90"
           style={{ 
@@ -138,8 +205,6 @@ const getTeamId = (fullName: string): string => {
             transform: 'rotate(-15deg)'
           }}
         />
-        
-        {/* Top left green shape */}
         <div 
           className="fixed rounded-full opacity-80"
           style={{ 
@@ -151,8 +216,6 @@ const getTeamId = (fullName: string): string => {
             transform: 'rotate(25deg)'
           }}
         />
-        
-        {/* Bottom left green shape */}
         <div 
           className="fixed rounded-full opacity-85"
           style={{ 
@@ -164,8 +227,6 @@ const getTeamId = (fullName: string): string => {
             transform: 'rotate(-20deg)'
           }}
         />
-        
-        {/* Bottom right green shape */}
         <div 
           className="fixed rounded-full opacity-75"
           style={{ 
@@ -179,7 +240,7 @@ const getTeamId = (fullName: string): string => {
         />
       </div>
 
-      {/* Grass decorations at bottom */}
+      {/* Grass decorations */}
       <img 
         src={grassDecor} 
         alt="" 
@@ -192,7 +253,6 @@ const getTeamId = (fullName: string): string => {
           <div className="grid md:grid-cols-2">
             {/* Left - Character */}
             <div className="p-12 flex flex-col items-center justify-center relative overflow-hidden" style={{ backgroundColor: '#2d5f4f' }}>
-              {/* Grass decoration at bottom of left panel */}
               <img 
                 src={grassDecor} 
                 alt="" 
@@ -214,7 +274,14 @@ const getTeamId = (fullName: string): string => {
             <div className="p-12 bg-white">
               <h2 className="text-center mb-8">SIGN UP</h2>
 
-              <form onSubmit={handleSignUp} className="space-y-5">
+              <form onSubmit={handleSignUp} className="space-y-5" noValidate>
+                {/* 🔥 서버 에러 메시지 */}
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700 text-center">{error}</p>
+                  </div>
+                )}
+
                 {/* 이름 */}
                 <div className="space-y-2">
                   <Label htmlFor="name" className="flex items-center gap-2 text-gray-700">
@@ -225,12 +292,17 @@ const getTeamId = (fullName: string): string => {
                     id="name"
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="bg-gray-50 border-gray-200 focus:ring-[#2d5f4f]"
+                    onChange={(e) => handleFieldChange('name', e.target.value)}
+                    onBlur={() => handleFieldBlur('name')}
+                    className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] ${fieldErrors.name ? 'border-red-500' : ''}`}
                     style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
                     placeholder="홍길동"
-                    required
+                    disabled={isLoading}
                   />
+                  {/* 🔥 에러 메시지 */}
+                  {fieldErrors.name && (
+                    <p className="text-sm text-red-500">* {fieldErrors.name}</p>
+                  )}
                 </div>
 
                 {/* 이메일 */}
@@ -243,12 +315,17 @@ const getTeamId = (fullName: string): string => {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="bg-gray-50 border-gray-200 focus:ring-[#2d5f4f]"
+                    onChange={(e) => handleFieldChange('email', e.target.value)}
+                    onBlur={() => handleFieldBlur('email')}
+                    className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] ${fieldErrors.email ? 'border-red-500' : ''}`}
                     style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
                     placeholder="example@email.com"
-                    required
+                    disabled={isLoading}
                   />
+                  {/* 🔥 에러 메시지 */}
+                  {fieldErrors.email && (
+                    <p className="text-sm text-red-500">* {fieldErrors.email}</p>
+                  )}
                 </div>
 
                 {/* 비밀번호 */}
@@ -262,21 +339,31 @@ const getTeamId = (fullName: string): string => {
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] pr-10"
+                      onChange={(e) => handleFieldChange('password', e.target.value)}
+                      onBlur={() => handleFieldBlur('password')}
+                      className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
                       style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
                       placeholder="8자 이상 입력"
-                      required
-                      minLength={8}
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      disabled={isLoading}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  {/* 🔥 에러 메시지 */}
+                  {fieldErrors.password ? (
+                    <p className="text-sm text-red-500">* {fieldErrors.password}</p>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      • 8자 이상<br />
+                      • 대문자, 소문자, 숫자, 특수문자(@$!%*?&#) 각 1개 이상 포함
+                    </p>
+                  )}
                 </div>
 
                 {/* 비밀번호 확인 */}
@@ -290,20 +377,26 @@ const getTeamId = (fullName: string): string => {
                       id="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      className="bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] pr-10"
+                      onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
+                      onBlur={() => handleFieldBlur('confirmPassword')}
+                      className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
                       style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
                       placeholder="비밀번호 재입력"
-                      required
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      disabled={isLoading}
                     >
                       {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  {/* 🔥 에러 메시지 */}
+                  {fieldErrors.confirmPassword && (
+                    <p className="text-sm text-red-500">* {fieldErrors.confirmPassword}</p>
+                  )}
                 </div>
 
                 {/* 응원팀 선택 */}
@@ -313,9 +406,13 @@ const getTeamId = (fullName: string): string => {
                   </Label>
                   <Select 
                     value={formData.favoriteTeam} 
-                    onValueChange={(value) => setFormData({ ...formData, favoriteTeam: value })}
+                    onValueChange={(value) => {
+                      handleFieldChange('favoriteTeam', value);
+                      setFieldErrors({ ...fieldErrors, favoriteTeam: '' });
+                    }}
+                    disabled={isLoading}
                   >
-                    <SelectTrigger className="bg-gray-50 border-gray-200 focus:ring-[#2d5f4f]">
+                    <SelectTrigger className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] ${fieldErrors.favoriteTeam ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="팀을 선택하세요" />
                     </SelectTrigger>
                     <SelectContent>
@@ -326,46 +423,57 @@ const getTeamId = (fullName: string): string => {
                       ))}
                     </SelectContent>
                   </Select>
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-sm text-gray-500">응원구단은 응원게시판에서 사용됩니다</p>
-                        <Button type="button" variant="ghost" onClick={() => setShowTeamTest(true)} className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50" style={{ color: '#2d5f4f' }}>
-                          구단 테스트 해보기
-                        </Button>
-                    </div>
-                          <TeamRecommendationTest
-                            isOpen={showTeamTest}
-                            onClose={() => setShowTeamTest(false)}
-                            onSelectTeam={(team) => {
-                              // DB 약어를 받아서 풀네임으로 변환하여 폼에 설정
-                              const fullName = getFullTeamName(team);
-                              setFormData({ ...formData, favoriteTeam: fullName });
-                              setShowTeamTest(false);
-                              
-                              const teamName = TEAM_DATA[team]?.name || team;
-                              alert(`${teamName} 팀이 선택되었습니다!`);
-                            }}
-                          />
-                          <label className="text-sm text-red-500 hover:text-red-600">
-                            응원구단은 한번 선택시 변경이 불가합니다.
-                          </label>
+                  {/* 🔥 에러 메시지 */}
+                  {fieldErrors.favoriteTeam && (
+                    <p className="text-sm text-red-500">* {fieldErrors.favoriteTeam}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-sm text-gray-500">응원구단은 응원게시판에서 사용됩니다</p>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      onClick={() => setShowTeamTest(true)} 
+                      className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50" 
+                      style={{ color: '#2d5f4f' }}
+                      disabled={isLoading}
+                    >
+                      구단 테스트 해보기
+                    </Button>
+                  </div>
+                  <TeamRecommendationTest
+                    isOpen={showTeamTest}
+                    onClose={() => setShowTeamTest(false)}
+                    onSelectTeam={(team) => {
+                      const fullName = getFullTeamName(team);
+                      handleFieldChange('favoriteTeam', fullName);
+                      setShowTeamTest(false);
+                      
+                      const teamName = TEAM_DATA[team]?.name || team;
+                      alert(`${teamName} 팀이 선택되었습니다!`);
+                    }}
+                  />
+                  <label className="text-sm text-red-500">
+                    응원구단은 한번 선택시 변경이 불가합니다.
+                  </label>
                 </div>
-
 
                 <Button 
                   type="submit" 
-                  className="w-full text-white py-6 rounded-full hover:opacity-90"
+                  className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: '#2d5f4f' }}
+                  disabled={isLoading}
                 >
-                  회원가입
+                  {isLoading ? '처리 중...' : '회원가입'}
                 </Button>
 
                 <p className="text-center text-sm text-gray-600">
                   이미 계정이 있으신가요?{' '}
                   <button 
                     type="button"
-                    onClick={() => setCurrentView('login')}
-                    className="hover:underline" 
+                    onClick={() => navigate('/login')}  
+                    className="hover:underline disabled:opacity-50" 
                     style={{ color: '#2d5f4f' }}
+                    disabled={isLoading}
                   >
                     로그인
                   </button>
