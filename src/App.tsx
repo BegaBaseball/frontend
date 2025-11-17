@@ -83,17 +83,16 @@ export default function App() {
             <Route path="/cheer" element={<Cheer />} />
             <Route path="/cheer/detail/:postId" element={<CheerDetail />} />
             <Route path="/mate" element={<Mate />} />
-            <Route path="/mate/detail/:partyId" element={<MateDetail />} />
-            
+            <Route path="/mate/:id" element={<MateDetail />} />
             {/* 로그인 필요한 라우트 */}
             <Route element={<ProtectedRoute />}>
               <Route path="/cheer/write" element={<CheerWrite />} />
               <Route path="/cheer/edit/:postId" element={<CheerEdit />} />
               <Route path="/mate/create" element={<MateCreate />} />
-              <Route path="/mate/apply/:partyId" element={<MateApply />} />
-              <Route path="/mate/check-in/:partyId" element={<MateCheckIn />} />
-              <Route path="/mate/chat/:partyId" element={<MateChat />} />
-              <Route path="/mate/manage" element={<MateManage />} />
+              <Route path="/mate/:id/apply" element={<MateApply />} />  
+              <Route path="/mate/:id/checkin" element={<MateCheckIn />} /> 
+              <Route path="/mate/:id/chat" element={<MateChat />} />  
+              <Route path="/mate/:id/manage" element={<MateManage />} /> 
               <Route path="/mypage" element={<MyPage />} />
             </Route>
             

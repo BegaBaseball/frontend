@@ -6,6 +6,7 @@ import ChatBot from './ChatBot';
 import TeamLogo from './TeamLogo';
 import Navbar from './Navbar';
 import { useAuthStore } from '../store/authStore';
+import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import { useNavigationStore } from '../store/navigationStore';
 
 // 분리된 컴포넌트들
@@ -19,7 +20,6 @@ const API_URL = import.meta.env.VITE_API_BASE_URL;
 type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory';
 
 export default function MyPage() {
-  const DEFAULT_PROFILE_IMAGE = 'https://placehold.co/100x100/374151/ffffff?text=User';
   const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   
