@@ -1,29 +1,8 @@
 import { create } from 'zustand';
+import { Party, PartyStatus, ChatMessage } from '../types/mate';
 
-export type PartyStatus = 'PENDING' | 'MATCHED' | 'FAILED' | 'SELLING' | 'SOLD' | 'CHECKED_IN' | 'COMPLETED';
 
-export interface Party {
-  id: string;
-  hostId: string;
-  hostName: string;
-  hostBadge: 'verified' | 'trusted' | 'new';
-  hostRating: number;
-  teamId: string;
-  gameDate: string;
-  gameTime: string;
-  stadium: string;
-  homeTeam: string;
-  awayTeam: string;
-  section: string;
-  maxParticipants: number;
-  currentParticipants: number;
-  description: string;
-  ticketVerified: boolean;
-  status: PartyStatus;
-  price?: number; // 판매 전환 시
-  createdAt: string;
-  ticketPrice?: number;
-}
+
 
 export interface PartyApplication {
   id: string;
@@ -47,14 +26,6 @@ export interface CheckInRecord {
   location: string;
 }
 
-export interface ChatMessage {
-  id: string;
-  partyId: string;
-  senderId: string;
-  senderName: string;
-  message: string;
-  createdAt: string;
-}
 
 export interface ChatRoom {
   partyId: string;

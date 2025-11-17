@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Navbar from './Navbar';
+import { useNavigate, useParams } from 'react-router-dom';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -19,13 +19,16 @@ import {
   MessageSquare,
   Settings,
 } from 'lucide-react';
-import { useNavigationStore } from '../store/navigationStore';
 import { useMateStore } from '../store/mateStore';
+import ChatBot from './ChatBot';
 import TeamLogo from './TeamLogo';
+import { api } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
+import { DEPOSIT_AMOUNT } from '../utils/constants'; 
 
 export default function MateDetail() {
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();  
+  const { id } = useParams<{ id: string }>();  
   const selectedParty = useMateStore((state) => state.selectedParty);
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
   const updateParty = useMateStore((state) => state.updateParty);
@@ -58,28 +61,13 @@ useEffect(() => {
   }
 }, [selectedParty]);
 
-  // 사용자 정보 가져오기
+ // 사용자 정보 가져오기
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const userResponse = await fetch('http://localhost:8080/api/auth/mypage', {
-          credentials: 'include',
-        });
-        
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          
-          const userIdResponse = await fetch(
-            `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(userData.data.email)}`,
-            { credentials: 'include' }
-          );
-          
-          if (userIdResponse.ok) {
-            const userIdData = await userIdResponse.json();
-            const userId = userIdData.data || userIdData;
-            setCurrentUserId(userId);
-          }
-        }
+        const userData = await api.getCurrentUser();  
+        const userId = await api.getUserIdByEmail(userData.data.email);  // 변경
+        setCurrentUserId(userId.data || userId);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
       } finally {
@@ -90,24 +78,17 @@ useEffect(() => {
     fetchCurrentUser();
   }, []);
 
-  // 내 신청 정보 가져오기 (하나만 유지)
+  // 내 신청 정보 가져오기
   useEffect(() => {
     if (!selectedParty || !currentUserId) return;
 
     const fetchMyApplication = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:8080/api/applications/applicant/${currentUserId}`,
-          { credentials: 'include' }
+        const applicationsData = await api.getApplicationsByApplicant(currentUserId);  // ✅ 변경
+        const myApp = applicationsData.find((app: any) => 
+          String(app.partyId) === String(selectedParty.id)
         );
-        
-        if (response.ok) {
-          const applicationsData = await response.json();
-          const myApp = applicationsData.find((app: any) => 
-            String(app.partyId) === String(selectedParty.id)
-          );
-          setMyApplication(myApp);
-        }
+        setMyApplication(myApp);
       } catch (error) {
         console.error('내 신청 정보 가져오기 실패:', error);
       }
@@ -125,15 +106,8 @@ useEffect(() => {
 
     const fetchApplications = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:8080/api/applications/party/${selectedParty.id}`,
-          { credentials: 'include' }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          setApplications(data);
-        }
+        const data = await api.getApplicationsByParty(selectedParty.id);  
+        setApplications(data);
       } catch (error) {
         console.error('신청 목록 가져오기 실패:', error);
       }
@@ -228,7 +202,7 @@ useEffect(() => {
   };
 
   const handleApply = () => {
-    setCurrentView('mateApply');
+    navigate(`/mate/${id}/apply`);  
   };
 
   const handleConvertToSale = () => {
@@ -239,39 +213,37 @@ useEffect(() => {
   };
 
   const handleCheckIn = () => {
-    setCurrentView('mateCheckIn');
+    navigate(`/mate/${id}/checkin`);  
   };
 
   const handleManageParty = () => {
-    setCurrentView('mateManage');
+    navigate(`/mate/${id}/manage`); 
   };
 
   const handleOpenChat = () => {
-    setCurrentView('mateChat');
+    navigate(`/mate/${id}/chat`);  
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar currentPage="mate" />
+  <div className="min-h-screen bg-gray-50">
+    <img
+      src={grassDecor}
+      alt=""
+      className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+    />
 
-      <img
-        src={grassDecor}
-        alt=""
-        className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
-      />
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        <Button
-            variant="ghost"
-            onClick={() => {
-              localStorage.removeItem('selectedParty'); 
-              setCurrentView('mate');
-            }}
-            className="mb-4"
-          >
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          목록으로
-        </Button>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <Button
+        variant="ghost"
+        onClick={() => {
+          localStorage.removeItem('selectedParty'); 
+          navigate('/mate');  
+        }}
+        className="mb-4"
+      >
+        <ChevronLeft className="w-4 h-4 mr-2" />
+        목록으로
+      </Button>
 
         <Card className="p-8">
           {/* Header */}
@@ -559,6 +531,7 @@ useEffect(() => {
           </div>
         </Card>
       </div>
+      <ChatBot />
     </div>
   );
 }
