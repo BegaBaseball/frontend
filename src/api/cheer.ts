@@ -19,6 +19,7 @@ export interface PostSummaryRes {
   teamColor: string | null;
   title: string;
   author: string;
+  authorProfileImageUrl?: string | null;
   createdAt: string;
   comments: number;
   likes: number;
@@ -37,6 +38,7 @@ export interface PostDetailRes {
   content: string;
   author: string;
   authorEmail: string;
+  authorProfileImageUrl?: string | null;
   createdAt: string;
   comments: number;
   likes: number;
@@ -52,6 +54,7 @@ export interface CommentRes {
   author: string;
   authorEmail: string;
   authorTeamId: string | null;
+  authorProfileImageUrl?: string | null;
   content: string;
   createdAt: string;
   likeCount: number;
@@ -204,6 +207,7 @@ const mapSummaryToPost = (summary: PostSummaryRes): Post => ({
   teamColor: summary.teamColor ?? getFallbackTeamColor(summary.teamShortName ?? summary.teamId ?? summary.teamName ?? ''),
   title: summary.title,
   author: summary.author,
+  authorProfileImageUrl: summary.authorProfileImageUrl,
   createdAt: summary.createdAt,
   timeAgo: formatTimeAgo(summary.createdAt),
   comments: summary.comments,
@@ -224,6 +228,7 @@ const mapDetailToPost = (detail: PostDetailRes): Post => ({
   content: detail.content,
   author: detail.author,
   authorEmail: detail.authorEmail,
+  authorProfileImageUrl: detail.authorProfileImageUrl,
   createdAt: detail.createdAt,
   timeAgo: formatTimeAgo(detail.createdAt),
   comments: detail.comments,
@@ -239,6 +244,7 @@ const mapDetailToPost = (detail: PostDetailRes): Post => ({
 const mapCommentRes = (comment: CommentRes): Comment => ({
   id: comment.id,
   author: comment.author,
+  authorProfileImageUrl: comment.authorProfileImageUrl,
   content: comment.content,
   timeAgo: formatTimeAgo(comment.createdAt),
   authorEmail: comment.authorEmail,

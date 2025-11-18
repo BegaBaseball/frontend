@@ -349,11 +349,10 @@ export default function Home() {
             <div>
               <h4 className="mb-4">서비스</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><button onClick={() => onNavigate('home')} className="hover:text-white">홈</button></li>
-                <li><button onClick={() => onNavigate('cheer')} className="hover:text-white">응원게시판</button></li>
-                <li><button onClick={() => onNavigate('stadium')} className="hover:text-white">구장가이드</button></li>
-                <li><button onClick={() => onNavigate('prediction')} className="hover:text-white">승부예측</button></li>
-                <li><button onClick={() => onNavigate('diary')} className="hover:text-white">직관다이어리</button></li>
+                <li><a href="/cheer" className="hover:text-white">응원게시판</a></li>
+                <li><a href="/stadium" className="hover:text-white">구장가이드</a></li>
+                <li><a href="/prediction" className="hover:text-white">승부예측</a></li>
+                <li><a href="/mate" className="hover:text-white">메이트</a></li>
               </ul>
             </div>
             <div>

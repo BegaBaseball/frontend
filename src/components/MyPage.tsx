@@ -4,7 +4,6 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import ChatBot from './ChatBot';
 import TeamLogo from './TeamLogo';
-import Navbar from './Navbar';
 import { useAuthStore } from '../store/authStore';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import { useNavigationStore } from '../store/navigationStore';
@@ -29,6 +28,7 @@ export default function MyPage() {
   const [name, setName] = useState('로딩 중...');
   const [email, setEmail] = useState('loading@...');
   const [savedFavoriteTeam, setSavedFavoriteTeam] = useState('없음');
+  const user = useAuthStore((state) => state.user);
   const [loading, setLoading] = useState(true);
 
   // 프로필 정보만 가져오기
@@ -79,8 +79,6 @@ export default function MyPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar currentPage="mypage" />
-
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 상단 프로필 카드 */}
         <Card className="p-8 mb-8">
@@ -157,6 +155,7 @@ export default function MyPage() {
             name={name}
             email={email}
             savedFavoriteTeam={savedFavoriteTeam}
+            userRole={user?.role}
             onCancel={() => setViewMode('diary')}
             onSave={(data) => {
               setViewMode('diary');
@@ -177,7 +176,7 @@ export default function MyPage() {
           <MateHistorySection />
         )}
       </div>
-
+      
       <ChatBot />
     </div>
   );

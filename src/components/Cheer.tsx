@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MessageSquare, Heart, Flame, PenSquare, RotateCw, Info } from 'lucide-react';
 import { Button } from './ui/button';
-import Navbar from './Navbar';
 import TeamLogo from './TeamLogo';
 import { listPosts } from '../api/cheer';
 import { useCheerStore } from '../store/cheerStore';

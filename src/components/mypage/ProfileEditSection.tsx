@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
 import TeamLogo from '../TeamLogo';
 import TeamRecommendationTest from '../TeamRecommendationTest';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
 const TEAM_DATA: { [key: string]: { name: string, color: string } } = {
   '없음': { name: '없음', color: '#9ca3af' },
   'LG': { name: 'LG 트윈스', color: '#C30452' },
@@ -25,6 +27,7 @@ interface ProfileEditSectionProps {
   profileImage: string;
   name: string;
   email: string;
+  userRole?: string;
   savedFavoriteTeam: string;
   onCancel: () => void;
   onSave: (data: {
@@ -40,6 +43,7 @@ export default function ProfileEditSection({
   name: initialName,
   email: initialEmail,
   savedFavoriteTeam: initialFavoriteTeam,
+  userRole,
   onCancel,
   onSave
 }: ProfileEditSectionProps) {
@@ -96,11 +100,9 @@ export default function ProfileEditSection({
 
     if (newProfileImageFile) {
         try {
-            console.log('프로필 이미지 업로드 시작...');
             const { uploadProfileImage } = await import('../../api/profile');
             const uploadResult = await uploadProfileImage(newProfileImageFile);
             finalImageUrl = uploadResult.publicUrl;
-            console.log('✅ 프로필 이미지 업로드 성공:', finalImageUrl);
         } catch (uploadError) {
             console.error('이미지 업로드 오류:', uploadError);
             alert(uploadError instanceof Error ? uploadError.message : '이미지 업로드에 실패했습니다.');
@@ -127,11 +129,8 @@ export default function ProfileEditSection({
         updatedProfile.profileImageUrl = profileImage;
     }
 
-    console.log('📤 전송할 프로필 데이터:', updatedProfile);
-
     try {
-        const API_URL = 'http://localhost:8080/api/auth/mypage';
-        const response = await fetch(API_URL, {
+        const response = await fetch(`${API_BASE_URL}/auth/mypage`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -165,16 +164,13 @@ export default function ProfileEditSection({
             let updatedImageUrl = profileImage;
             if (finalImageUrl) {
                 updatedImageUrl = finalImageUrl;
-                console.log('✅ 프로필 이미지 상태 업데이트:', finalImageUrl);
             } else if (apiResponse.data.profileImageUrl) {
                 updatedImageUrl = apiResponse.data.profileImageUrl;
-                console.log('✅ 프로필 이미지 상태 업데이트:', apiResponse.data.profileImageUrl);
             }
             
             setNewProfileImageFile(null);
 
             alert('변경사항이 적용되었습니다.');
-            console.log('프로필 저장 성공!');
             
             onSave({
                 name: name.trim(),
@@ -253,52 +249,55 @@ export default function ProfileEditSection({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="team" className="text-gray-700">응원구단 *</Label>
-            <Select value={editingFavoriteTeam} onValueChange={setEditingFavoriteTeam}>
-              <SelectTrigger className="w-full">
-                <div className="flex items-center gap-2">
-                  {editingFavoriteTeam !== '없음' && (
-                    <div className="w-6 h-6">
-                      <TeamLogo team={editingFavoriteTeam} size="sm" />
-                    </div>
-                  )}
-                  <span>{TEAM_DATA[editingFavoriteTeam]?.name || '응원하는 팀을 선택하세요'}</span>
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                {Object.keys(TEAM_DATA).map(teamId => (
-                  <SelectItem key={teamId} value={teamId}>
-                    <div className="flex items-center gap-2">
-                      {teamId !== '없음' && (
-                        <div className="w-6 h-6">
-                          <TeamLogo team={teamId} size="sm" />
-                        </div>
-                      )}
-                      {teamId === '없음' && (
-                        <div 
-                          className="w-6 h-6 rounded-full" 
-                          style={{ backgroundColor: TEAM_DATA[teamId]?.color || TEAM_DATA['없음'].color }} 
-                        />
-                      )}
-                      {TEAM_DATA[teamId].name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-sm text-gray-500">응원구단은 응원게시판에서 사용됩니다</p>
-              <Button 
-                variant="ghost" 
-                onClick={() => setShowTeamTest(true)} 
-                className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50" 
-                style={{ color: '#2d5f4f' }}
-              >
-                구단 테스트 해보기
-              </Button>
+          {/* 🔥 ROLE_USER일 때만 응원구단 섹션 표시 */}
+          {userRole === 'ROLE_USER' && (
+            <div className="space-y-2">
+              <Label htmlFor="team" className="text-gray-700">응원구단 *</Label>
+              <Select value={editingFavoriteTeam} onValueChange={setEditingFavoriteTeam}>
+                <SelectTrigger className="w-full">
+                  <div className="flex items-center gap-2">
+                    {editingFavoriteTeam !== '없음' && (
+                      <div className="w-6 h-6">
+                        <TeamLogo team={editingFavoriteTeam} size="sm" />
+                      </div>
+                    )}
+                    <span>{TEAM_DATA[editingFavoriteTeam]?.name || '응원하는 팀을 선택하세요'}</span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(TEAM_DATA).map(teamId => (
+                    <SelectItem key={teamId} value={teamId}>
+                      <div className="flex items-center gap-2">
+                        {teamId !== '없음' && (
+                          <div className="w-6 h-6">
+                            <TeamLogo team={teamId} size="sm" />
+                          </div>
+                        )}
+                        {teamId === '없음' && (
+                          <div 
+                            className="w-6 h-6 rounded-full" 
+                            style={{ backgroundColor: TEAM_DATA[teamId]?.color || TEAM_DATA['없음'].color }} 
+                          />
+                        )}
+                        {TEAM_DATA[teamId].name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-sm text-gray-500">응원구단은 응원게시판에서 사용됩니다</p>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowTeamTest(true)} 
+                  className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50" 
+                  style={{ color: '#2d5f4f' }}
+                >
+                  구단 테스트 해보기
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">
