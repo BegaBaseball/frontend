@@ -15,7 +15,8 @@ ENV VITE_PROXY_TARGET=$VITE_PROXY_TARGET
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
-COPY package.json package-lock.json ./
+COPY package.json ./
+COPY package-lock.json* ./
 RUN npm install
 
 COPY . ./
