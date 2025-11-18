@@ -200,3 +200,35 @@ html {
 .animate-bounce-slow {
   animation: bounce-slow 3s ease-in-out infinite;
 }
+
+/* 햄버거 메뉴 버튼 - 768px 이상에서 숨김 */
+@media (min-width: 768px) {
+  .hamburger-menu-btn {
+    display: none !important;
+  }
+}
+
+/* 모바일 메뉴 팝업 스타일 - 햄버거 버튼 아래 드롭다운 형태 */
+.mobile-menu-popup {
+  width: 380px;
+  animation: dropdownSlideIn 0.25s ease-out;
+}
+
+/* 작은 화면에서는 화면 폭에 맞게 조정 */
+@media (max-width: 420px) {
+  .mobile-menu-popup {
+    width: calc(100vw - 32px);
+  }
+}
+
+/* 드롭다운 슬라이드인 애니메이션 */
+@keyframes dropdownSlideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
