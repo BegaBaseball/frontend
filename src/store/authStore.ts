@@ -20,6 +20,7 @@ interface AuthState {
   user: User | null;
   isLoggedIn: boolean; 
   isAdmin: boolean;
+  isAuthLoading: boolean;  
   email: string;
   password: string;
   showPassword: boolean;
@@ -41,47 +42,61 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoggedIn: false, 
       isAdmin: false,
+      isAuthLoading: true, 
       email: '',
       password: '',
       showPassword: false,
 
-  fetchProfileAndAuthenticate: async () => {
+      fetchProfileAndAuthenticate: async () => {
+        set({ isAuthLoading: true }); 
 
-  try {
-    const response = await fetch(MYPAGE_API_URL, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',  
-    });
+        try {
+          const response = await fetch(MYPAGE_API_URL, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',  
+          });
 
-    if (response.ok) {
-      const result = await response.json();
-      
-      const profile = result.data;
-      const isAdminUser = profile.role === 'ROLE_ADMIN';
+          if (response.ok) {
+            const result = await response.json();  
 
-      set({
-        user: {
-          email: profile.email,
-          name: profile.name,
-          isAdmin: isAdminUser,
-          profileImageUrl: profile.profileImageUrl,
-          role: profile.role,
-        },
-        isLoggedIn: true,
-        isAdmin: isAdminUser,
-      });
-      
-      
-    } else if (response.status === 401) {
-      set({ user: null, isLoggedIn: false, isAdmin: false });
-    } else {
-      console.warn('⚠️ 프로필 조회 실패:', response.status);
-    }
-  } catch (error) {
-    console.error('❌ 프로필 조회 중 오류:', error);
-  }
-},
+            const profile = result.data;
+            const isAdminUser = profile.role === 'ROLE_ADMIN';
+
+            set({
+              user: {
+                email: profile.email,
+                name: profile.name,
+                favoriteTeam: profile.favoriteTeam,
+                favoriteTeamColor: profile.favoriteTeamColor,
+                isAdmin: isAdminUser,
+                profileImageUrl: profile.profileImageUrl,
+                role: profile.role,
+              },
+              isLoggedIn: true,
+              isAdmin: isAdminUser,
+              isAuthLoading: false,  
+            });
+            
+          } else if (response.status === 401) {
+            set({ 
+              user: null, 
+              isLoggedIn: false, 
+              isAdmin: false,
+              isAuthLoading: false  
+            });
+          } else {
+            set({ isAuthLoading: false });  
+          }
+        } catch (error) {
+          set({ 
+            user: null, 
+            isLoggedIn: false, 
+            isAdmin: false,
+            isAuthLoading: false  
+          });
+        }
+      },
       
       setUserProfile: (profile) => {
         set((state) => ({
@@ -107,6 +122,7 @@ export const useAuthStore = create<AuthState>()(
           },
           isLoggedIn: true,
           isAdmin: isAdminUser,
+          isAuthLoading: false,  
           email: '',
           password: '',
         });
@@ -114,7 +130,14 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         Cookies.remove(AUTH_COOKIE_NAME, { path: '/' }); 
-        set({ user: null, isLoggedIn: false, isAdmin: false, email: '', password: '' });
+        set({ 
+          user: null, 
+          isLoggedIn: false, 
+          isAdmin: false, 
+          isAuthLoading: false,  
+          email: '', 
+          password: '' 
+        });
       },
       
       setEmail: (email) => set({ email }),
@@ -134,16 +157,15 @@ export const useAuthStore = create<AuthState>()(
         isAdmin: state.isAdmin,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state?.isLoggedIn) {
-          // persist에서 복원 후 쿠키 확인
-          const authCookie = Cookies.get(AUTH_COOKIE_NAME);
-          if (authCookie) {
+        
+        return () => {
+          
+          if (state?.isLoggedIn) {
             state.fetchProfileAndAuthenticate();
           } else {
-            // 쿠키 없으면 로그아웃 처리
-            state.logout();
+            state.isAuthLoading = false;
           }
-        }
+        };
       },
     }
   )

@@ -10,6 +10,7 @@ export interface Post {
   title: string;
   content?: string;
   author: string;
+  authorProfileImageUrl?: string | null;
   authorEmail?: string | null;
   createdAt?: string;
   timeAgo: string;
@@ -28,6 +29,7 @@ export interface Post {
 export interface Comment {
   id: number;
   author: string;
+  authorProfileImageUrl?: string | null;
   content: string;
   timeAgo: string;
   authorEmail?: string;

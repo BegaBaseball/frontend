@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Navbar from './Navbar';
+import { useNavigate, useParams } from 'react-router-dom';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -16,14 +16,15 @@ import {
   Info,
   AlertCircle,
 } from 'lucide-react';
-import { useNavigationStore } from '../store/navigationStore';
 import { useMateStore, ChatMessage } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { api } from '../utils/api';
 
 export default function MateChat() {
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { selectedParty } = useMateStore();
 
   // 모든 useState를 최상단에 선언
@@ -41,7 +42,6 @@ export default function MateChat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const handleMessageReceived = useCallback((message: ChatMessage) => {
-    console.log('메시지 수신:', message);
     setMessages((prev) => {
       if (prev.some(m => m.id === message.id)) {
         return prev;
@@ -54,37 +54,17 @@ export default function MateChat() {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/auth/mypage', {
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log('👤 사용자 정보:', result);
+        const result = await api.getCurrentUser();
+        
+        if (result.success && result.data) {
+          const userIdData = await api.getUserIdByEmail(result.data.email);
+          const userId = userIdData.data || userIdData;
           
-          if (result.success && result.data) {
-            const userIdResponse = await fetch(
-              `http://localhost:8080/api/users/email-to-id?email=${encodeURIComponent(result.data.email)}`,
-              { credentials: 'include' }
-            );
-            
-            let userId = result.data.email;
-            
-            if (userIdResponse.ok) {
-              const userIdData = await userIdResponse.json();
-              userId = userIdData.data || userIdData;
-            }
-            
-            console.log('사용자 ID:', userId);
-            
-            setCurrentUser({
-              id: typeof userId === 'number' ? userId : parseInt(userId),
-              email: result.data.email,
-              name: result.data.name,
-            });
-          }
-        } else {
-          console.error('인증 실패:', response.status);
+          setCurrentUser({
+            id: typeof userId === 'number' ? userId : parseInt(userId),
+            email: result.data.email,
+            name: result.data.name,
+          });
         }
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
@@ -109,16 +89,10 @@ export default function MateChat() {
 
     const fetchMessages = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/chat/party/${selectedParty.id}`, {
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const data = await response.json();
-          console.log('기존 메시지 개수:', data.length);
-          setMessages(data);
-        }
+        const data = await api.getChatMessages(selectedParty.id);
+        setMessages(data);
       } catch (error) {
-        console.error('Failed to fetch messages:', error);
+        console.error('메시지 불러오기 실패:', error);
       }
     };
 
@@ -149,20 +123,12 @@ export default function MateChat() {
 
     const checkMyApproval = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:8080/api/applications/applicant/${currentUser.id}`,
-          { credentials: 'include' }
+        const applications = await api.getApplicationsByApplicant(currentUser.id);
+        const myApp = applications.find((app: any) => 
+          String(app.partyId) === String(selectedParty.id)
         );
         
-        if (response.ok) {
-          const applications = await response.json();
-          const myApp = applications.find((app: any) => 
-            String(app.partyId) === String(selectedParty.id)
-          );
-          console.log('채팅방 - 내 신청 정보:', myApp);
-          console.log('승인 여부:', myApp?.isApproved);
-          setMyApplication(myApp);
-        }
+        setMyApplication(myApp);
       } catch (error) {
         console.error('신청 정보 확인 실패:', error);
       } finally {
@@ -188,7 +154,6 @@ export default function MateChat() {
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar currentPage="mate" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Alert className="border-red-200 bg-red-50">
             <AlertCircle className="w-4 h-4 text-red-600" />
@@ -211,7 +176,6 @@ export default function MateChat() {
   if (!selectedParty) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar currentPage="mate" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Alert>
             <Info className="w-4 h-4" />
@@ -220,7 +184,7 @@ export default function MateChat() {
             </AlertDescription>
           </Alert>
           <Button
-            onClick={() => setCurrentView('mate')}
+            onClick={() => navigate('/mate')}
             className="mt-4 text-white"
             style={{ backgroundColor: '#2d5f4f' }}
           >
@@ -230,12 +194,6 @@ export default function MateChat() {
       </div>
     );
   }
-
-  console.log('🏠 호스트 여부:', {
-    partyHostId: selectedParty.hostId,
-    currentUserId: currentUser.id,
-    isHost
-  });
 
   // 승인 체크 중
   if (isCheckingApproval) {
@@ -253,11 +211,10 @@ export default function MateChat() {
   if (!isHost && !myApplication?.isApproved) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar currentPage="mate" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Button
             variant="ghost"
-            onClick={() => setCurrentView('mateDetail')}
+            onClick={() => navigate(`/mate/${id}`)}
             className="mb-4"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
@@ -288,7 +245,6 @@ export default function MateChat() {
       message: messageText,
     };
 
-    console.log('📤 메시지 전송:', newMessage);
     sendWebSocketMessage(newMessage);
     setMessageText('');
   };
@@ -332,8 +288,6 @@ export default function MateChat() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar currentPage="mate" />
-
       <img
         src={grassDecor}
         alt=""
@@ -344,7 +298,7 @@ export default function MateChat() {
         <div className="mb-4">
           <Button
             variant="ghost"
-            onClick={() => setCurrentView(isHost ? 'mateManage' : 'mateDetail')}
+            onClick={() => navigate(isHost ? `/mate/${id}/manage` : `/mate/${id}`)}
             className="mb-2"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />

@@ -344,6 +344,43 @@ export default function Home() {
                                 <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>{currentSeasonYear} 시즌 팀 순위</h2>
                                 {isRankingsLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin text-gray-500" />}
                             </div>
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 mb-6">
+            <img src={baseballLogo} alt="Baseball" className="w-10 h-10" />
+            <div>
+              <h3 className="tracking-wider" style={{ fontWeight: 900 }}>BEGA</h3>
+              <p className="text-xs text-gray-400">BASEBALL GUIDE</p>
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <h4 className="mb-4">서비스</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="/cheer" className="hover:text-white">응원게시판</a></li>
+                <li><a href="/stadium" className="hover:text-white">구장가이드</a></li>
+                <li><a href="/prediction" className="hover:text-white">승부예측</a></li>
+                <li><a href="/mate" className="hover:text-white">메이트</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="mb-4">정보</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">공지사항</a></li>
+                <li><a href="#" className="hover:text-white">이용약관</a></li>
+                <li><a href="#" className="hover:text-white">개인정보처리방침</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="mb-4">고객센터</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>이메일: support@bega.com</li>
+                <li>운영시간: 평일 09:00-18:00</li>
+              </ul>
+            </div>
+          </div>
 
                             <Card className="overflow-hidden">
                                 {teamRankings.length === 0 && !isRankingsLoading ? (

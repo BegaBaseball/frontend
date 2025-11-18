@@ -1,81 +1,47 @@
 import { useEffect } from 'react';
-import Navbar from './Navbar';
+import { useNavigate } from 'react-router-dom';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Plus, Users, MapPin, Calendar, Shield, Star, Search, TrendingUp } from 'lucide-react';
-import { useNavigationStore } from '../store/navigationStore';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { Input } from './ui/input';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import ChatBot from './ChatBot';
 import { useAuthStore } from '../store/authStore';
+import { api } from '../utils/api';
+import { mapBackendPartyToFrontend, filterActiveParties } from '../utils/mate';
+import { Party } from '../types/mate';
 
 export default function Mate() {
-  const setCurrentView = useNavigationStore((state) => state.setCurrentView);
+  const navigate = useNavigate();
   const { parties, setParties, setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
-
   const currentUser = useAuthStore((state) => state.user);
 
   // 컴포넌트 마운트 시 파티 목록 불러오기
   useEffect(() => {
-    const fetchParties = async () => {
-      try {
-        console.log('파티 목록 불러오는 중...');
-        
-        const response = await fetch('http://localhost:8080/api/parties', {
-          credentials: 'include',
-        });
-        
-        if (response.ok) {
-          const backendParties = await response.json();
-          console.log('파티 목록 불러오기 성공:', backendParties.length + '개');
-          
-          // Response 구조를 프론트엔드 구조로 변환
-          const mappedParties = backendParties.map((party: any) => ({
-            id: party.id.toString(),
-            hostId: party.hostId.toString(),
-            hostName: party.hostName,
-            hostProfileImageUrl: party.hostProfileImageUrl,
-            hostBadge: party.hostBadge.toLowerCase(), // NEW → new
-            hostRating: party.hostRating,
-            teamId: party.teamId,
-            gameDate: party.gameDate,
-            gameTime: party.gameTime,
-            stadium: party.stadium,
-            homeTeam: party.homeTeam,
-            awayTeam: party.awayTeam,
-            section: party.section,
-            maxParticipants: party.maxParticipants,
-            currentParticipants: party.currentParticipants,
-            description: party.description,
-            ticketVerified: party.ticketVerified,
-            ticketImageUrl: party.ticketImageUrl,
-            status: party.status,
-            price: party.price,
-            ticketPrice: party.ticketPrice || 0,
-            createdAt: party.createdAt,
-          }));
-          
+      const fetchParties = async () => {
+        try {
+          // api 유틸리티 사용
+          const backendParties = await api.getParties();
+          const mappedParties = backendParties.map(mapBackendPartyToFrontend);
           setParties(mappedParties);
-        } else {
-          console.error('파티 목록 불러오기 실패:', response.status);
+        } catch (error) {
+          console.error('파티 목록 불러오기 오류:', error);
         }
-      } catch (error) {
-        console.error('파티 목록 불러오기 오류:', error);
-      }
-    };
+      };
 
-    fetchParties();
-  }, [setParties]);
+      fetchParties();
+    }, [setParties]);
 
-  const handlePartyClick = (party: any) => {
+
+  const handlePartyClick = (party: Party) => {
     setSelectedParty(party);
-    localStorage.setItem('selectedParty', JSON.stringify(party)); // ✅ 추가
-    setCurrentView('mateDetail');
+    localStorage.setItem('selectedParty', JSON.stringify(party));
+    navigate(`/mate/${party.id}`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -103,43 +69,37 @@ export default function Mate() {
   };
 
   // 검색 필터링
-const filterParties = (partyList: any[]) => {
-  // ✅ 체크인 완료 및 완료된 파티는 목록에서 제외
-  const activeParties = partyList.filter(party => 
-    party.status !== 'CHECKED_IN' && party.status !== 'COMPLETED'
-  );
+  const filterParties = (partyList: Party[]) => {
+    // 유틸리티 함수 사용
+    const activeParties = filterActiveParties(partyList);
 
-  if (!searchQuery.trim()) return activeParties;
-  
-  const query = searchQuery.toLowerCase();
-  return activeParties.filter(party => {
-    const homeTeamName = teamIdToName[party.homeTeam] || party.homeTeam;
-    const awayTeamName = teamIdToName[party.awayTeam] || party.awayTeam;
+    if (!searchQuery.trim()) return activeParties;
     
-    return (
-      party.stadium.toLowerCase().includes(query) ||
-      homeTeamName.toLowerCase().includes(query) ||
-      awayTeamName.toLowerCase().includes(query) ||
-      party.section.toLowerCase().includes(query) ||
-      party.hostName.toLowerCase().includes(query)
-    );
-  });
-};
+    const query = searchQuery.toLowerCase();
+    return activeParties.filter(party => {
+      const homeTeamName = teamIdToName[party.homeTeam] || party.homeTeam;
+      const awayTeamName = teamIdToName[party.awayTeam] || party.awayTeam;
+      
+      return (
+        party.stadium.toLowerCase().includes(query) ||
+        homeTeamName.toLowerCase().includes(query) ||
+        awayTeamName.toLowerCase().includes(query) ||
+        party.section.toLowerCase().includes(query) ||
+        party.hostName.toLowerCase().includes(query)
+      );
+    });
+  };
 
-   const renderPartyCard = (party: any) => {
+  const renderPartyCard = (party: Party) => {
     const isMyParty = currentUser && party.hostName === currentUser.name;
     
-    // 프로필 이미지 URL 처리
     let profileImageUrl = isMyParty 
       ? currentUser.profileImageUrl 
       : party.hostProfileImageUrl;
     
-    // blob URL 무시
     if (profileImageUrl?.startsWith('blob:')) {
       profileImageUrl = null;
     }
-    
-    console.log('🎭 파티:', party.hostName, '이미지:', profileImageUrl);
     
     return (
       <Card
@@ -229,9 +189,8 @@ const filterParties = (partyList: any[]) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar currentPage="mate" />
+      
 
-      {/* Grass decoration at bottom */}
       <img
         src={grassDecor}
         alt=""
@@ -239,7 +198,6 @@ const filterParties = (partyList: any[]) => {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 style={{ color: '#2d5f4f' }} className="mb-2">
@@ -248,7 +206,7 @@ const filterParties = (partyList: any[]) => {
             <p className="text-gray-600">함께 야구를 즐길 메이트를 찾아보세요</p>
           </div>
           <Button
-            onClick={() => setCurrentView('mateCreate')}
+            onClick={() => navigate('/mate/create')} 
             className="rounded-full px-6"
             style={{ backgroundColor: '#2d5f4f' }}
           >
@@ -257,7 +215,6 @@ const filterParties = (partyList: any[]) => {
           </Button>
         </div>
 
-        {/* Info Card */}
         <Card className="p-4 mb-8 border-2" style={{ backgroundColor: '#f0f7f4', borderColor: '#2d5f4f' }}>
           <div>
             <h3 className="mb-1" style={{ color: '#2d5f4f' }}>직관메이트 이용 가이드</h3>
@@ -269,7 +226,6 @@ const filterParties = (partyList: any[]) => {
           </div>
         </Card>
 
-        {/* Search */}
         <div className="mb-6 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <Input
@@ -281,7 +237,6 @@ const filterParties = (partyList: any[]) => {
           />
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue="all" className="mb-6">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="all">전체</TabsTrigger>
@@ -299,7 +254,9 @@ const filterParties = (partyList: any[]) => {
                 </p>
               </div>
             ) : (
-              filteredParties.map(renderPartyCard)
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredParties.map(renderPartyCard)}
+              </div>
             )}
           </TabsContent>
 
@@ -310,7 +267,9 @@ const filterParties = (partyList: any[]) => {
                 <p className="text-gray-500">모집 중인 파티가 없습니다</p>
               </div>
             ) : (
-              pendingParties.map(renderPartyCard)
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pendingParties.map(renderPartyCard)}
+              </div>
             )}
           </TabsContent>
 
@@ -321,7 +280,9 @@ const filterParties = (partyList: any[]) => {
                 <p className="text-gray-500">매칭된 파티가 없습니다</p>
               </div>
             ) : (
-              matchedParties.map(renderPartyCard)
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {matchedParties.map(renderPartyCard)}
+              </div>
             )}
           </TabsContent>
 
@@ -332,13 +293,14 @@ const filterParties = (partyList: any[]) => {
                 <p className="text-gray-500">판매 중인 티켓이 없습니다</p>
               </div>
             ) : (
-              sellingParties.map(renderPartyCard)
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sellingParties.map(renderPartyCard)}
+              </div>
             )}
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* ChatBot */}
       <ChatBot />
     </div>
   );
