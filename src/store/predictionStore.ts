@@ -135,6 +135,8 @@ export const usePredictionStore = create<PredictionState>()(
           }
         });
         
+        
+
         set({
           stats: {
             total: finishedPredictions.length,
@@ -144,6 +146,8 @@ export const usePredictionStore = create<PredictionState>()(
           },
         });
       },
+      
+      setRankings: (newRankings: (Team | null)[]) => set({ rankings: newRankings }),
       
       // 순위 예측 함수들
       addTeamToRanking: (team) => {
