@@ -26,10 +26,17 @@ const MateManage = lazy(() => import('./components/MateManage'));
 const MyPage = lazy(() => import('./components/MyPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 
-// 🔥 인증이 필요한 라우트를 보호하는 컴포넌트
+// 인증이 필요한 라우트를 보호하는 컴포넌트
 function ProtectedRoute() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   
+  // 로딩 중이면 스피너 표시
+  if (isAuthLoading) {
+    return <LoadingSpinner />;
+  }
+  
+  // 로딩 완료 후 로그인 체크
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
@@ -37,11 +44,15 @@ function ProtectedRoute() {
   return <Outlet />;
 }
 
-// 🔥 관리자 전용 라우트 - Selector 패턴으로 수정
+// 관리자 전용 라우트 - Selector 패턴으로 수정
 function AdminRoute() {
-  // 🔥 각각 따로 구독 (객체를 반환하지 않음)
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
+  
+  if (isAuthLoading) {
+    return <LoadingSpinner />;
+  }
   
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;

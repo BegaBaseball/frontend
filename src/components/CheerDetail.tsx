@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CornerDownRight,
+  User,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -36,6 +37,51 @@ import {
 import { toast } from 'sonner';
 
 const COMMENTS_PAGE_SIZE = 10;
+
+// 🔥 프로필 아바타 컴포넌트
+interface ProfileAvatarProps {
+  src?: string | null;
+  alt: string;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+function ProfileAvatar({ src, alt, size = 'md', className = '' }: ProfileAvatarProps) {
+  const [imageError, setImageError] = useState(false);
+  
+  const sizeClasses = {
+    sm: 'h-10 w-10',
+    md: 'h-12 w-12',
+    lg: 'h-14 w-14',
+  };
+
+  const iconSizes = {
+    sm: 'h-5 w-5',
+    md: 'h-6 w-6',
+    lg: 'h-7 w-7',
+  };
+
+  // 프로필 이미지가 있고 에러가 없으면 이미지 표시
+  if (src && !imageError) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className={`${sizeClasses[size]} rounded-full object-cover ${className}`}
+        onError={() => setImageError(true)}
+      />
+    );
+  }
+
+  // 프로필 이미지가 없거나 에러가 발생하면 기본 아바타
+  return (
+    <div
+      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ${className}`}
+    >
+      <User className={`${iconSizes[size]} text-gray-500`} />
+    </div>
+  );
+}
 
 export default function CheerDetail() {
   const queryClient = useQueryClient();
@@ -320,9 +366,11 @@ export default function CheerDetail() {
         <div className="flex gap-4">
           <div className="flex flex-col items-center gap-2">
             {isReply ? <CornerDownRight className="h-4 w-4 text-gray-300" /> : null}
-            <div
-              className={`${isReply ? 'h-10 w-10' : 'h-12 w-12'} rounded-full bg-gradient-to-br from-gray-200 to-gray-300`}
-            />
+            <ProfileAvatar 
+            src={comment.authorProfileImageUrl} 
+            alt={comment.author}
+            size={isReply ? 'sm' : 'md'}
+          />
           </div>
           <div className="flex-1">
             <div className="flex items-center justify-between">
@@ -440,7 +488,11 @@ export default function CheerDetail() {
               <>
                 <div className="mb-6 flex items-center justify-between border-b pb-6">
                   <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-300" />
+                    <ProfileAvatar 
+                      src={post.authorProfileImageUrl} 
+                      alt={post.author}
+                      size="lg"
+                    />
                     <div className="flex-1">
                       <h2 className="mb-2 text-gray-900">{post.title}</h2>
                       <div className="mb-2 flex items-center gap-2">
@@ -545,7 +597,12 @@ export default function CheerDetail() {
 
             <div className="mb-8 border-b pb-8">
               <div className="flex gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gray-200 to-gray-300" />
+                <ProfileAvatar 
+                  src={useAuthStore.getState().user?.profileImageUrl} 
+                  alt={useAuthStore.getState().user?.name || '사용자'}
+                  size="md"
+                  className="flex-shrink-0"
+                />
                 <div className="flex-1">
                   <Textarea
                     value={commentInput}
