@@ -62,6 +62,7 @@ interface PredictionState {
   // 순위 예측 관련
   rankings: (Team | null)[];
   availableTeams: Team[];
+  allTeams: Team[]; // ← 추가
   isPredictionSaved: boolean;
   
   // 경기 예측 함수들
@@ -78,6 +79,7 @@ interface PredictionState {
   resetRankings: () => void;
   completePrediction: () => void;
   setIsPredictionSaved: (saved: boolean) => void;
+  setRankings: (rankings: (Team | null)[]) => void; // ← 추가
 }
 
 export const usePredictionStore = create<PredictionState>()(
@@ -97,6 +99,7 @@ export const usePredictionStore = create<PredictionState>()(
       // 순위 예측 초기 상태
       rankings: Array(10).fill(null),
       availableTeams: [...initialTeams],
+      allTeams: [...initialTeams], // ← 추가
       isPredictionSaved: false,
       
       // 경기 예측 함수들
@@ -135,8 +138,6 @@ export const usePredictionStore = create<PredictionState>()(
           }
         });
         
-        
-
         set({
           stats: {
             total: finishedPredictions.length,
@@ -147,7 +148,17 @@ export const usePredictionStore = create<PredictionState>()(
         });
       },
       
-      setRankings: (newRankings: (Team | null)[]) => set({ rankings: newRankings }),
+      // ← 추가: 순위를 직접 설정하는 함수
+      setRankings: (newRankings: (Team | null)[]) => {
+        // 새로운 rankings에 있는 팀들을 availableTeams에서 제거
+        const usedTeamIds = newRankings.filter(team => team !== null).map(team => team!.id);
+        const newAvailableTeams = initialTeams.filter(team => !usedTeamIds.includes(team.id));
+        
+        set({ 
+          rankings: newRankings,
+          availableTeams: newAvailableTeams
+        });
+      },
       
       // 순위 예측 함수들
       addTeamToRanking: (team) => {
