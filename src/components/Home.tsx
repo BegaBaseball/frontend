@@ -1,8 +1,6 @@
-import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Calendar, Trophy, Home as HomeIcon, Heart, MapPin, TrendingUp, BookOpen, ChevronLeft, ChevronRight, CalendarDays, Loader2 } from 'lucide-react';
@@ -11,7 +9,9 @@ import ChatBot from './ChatBot';
 import TeamLogo from './TeamLogo';
 import GameCard from './GameCard';
 import OffSeasonHome from './OffSeasonHome';
-import { useState, useEffect } from 'react'; 
+import { useState, useEffect } from 'react';
+
+// Note: grassDecor와 baseballLogo 이미지는 CSS로 대체됨
 
 // 백엔드 API 응답과 일치하는 타입 정의
 interface Game {
@@ -26,6 +26,8 @@ interface Game {
     homeTeamFull: string; 
     awayTeam: string; 
     awayTeamFull: string; 
+    homeScore?: number;  
+    awayScore?: number;  
 }
 
 // 순위 데이터 타입
@@ -40,16 +42,20 @@ interface Ranking {
     games: number;
 }
 
-export default function Home() {
-    const [selectedDate, setSelectedDate] = useState(new Date(2025, 9, 22)); 
+interface HomeProps {
+    onNavigate: (page: string) => void;
+}
+
+export default function Home({ onNavigate }: HomeProps) {
+    const [selectedDate, setSelectedDate] = useState(new Date(2025, 9, 26)); // 2025년 10월 26일
     const [showCalendar, setShowCalendar] = useState(false);
-    
     const [games, setGames] = useState<Game[]>([]);
     const [rankings, setRankings] = useState<Ranking[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isRankingsLoading, setIsRankingsLoading] = useState(false);
-    
+
     const currentSeasonYear = 2025;
+    // 브라우저에서 접근: localhost 사용 (도커 호스트의 8080 포트로 매핑됨)
     const API_BASE_URL = "http://localhost:8080"; 
 
     const formatDateForAPI = (date: Date): string => {
@@ -58,65 +64,6 @@ export default function Home() {
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
-
-    const loadGamesData = async (date: Date) => {
-        if (isOffSeasonForUI(date)) {
-            setGames([]);
-            return;
-        }
-
-        const apiDate = formatDateForAPI(date);
-        setIsLoading(true);
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/kbo/schedule?date=${apiDate}`);
-            
-            if (!response.ok) {
-                console.error(`[경기] API 요청 실패: ${response.status} ${response.statusText}`);
-                setGames([]);
-                return;
-            }
-            
-            const gamesData: Game[] = await response.json();
-            setGames(gamesData);
-
-        } catch (error) {
-            console.error('[경기] 데이터 로드 중 오류 발생:', error);
-            setGames([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    const loadRankingsData = async () => {
-        setIsRankingsLoading(true);
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/2025`);
-            
-            if (!response.ok) {
-                console.error(`[순위] API 요청 실패: ${response.status} ${response.statusText}`);
-                setRankings([]);
-                return;
-            }
-            
-            const rankingsData: Ranking[] = await response.json();
-            setRankings(rankingsData);
-            
-        } catch (error) {
-            console.error('[순위] 데이터 로드 중 오류 발생:', error);
-            setRankings([]);
-        } finally {
-            setIsRankingsLoading(false);
-        }
-    }
-    
-    useEffect(() => {
-        loadGamesData(selectedDate);
-    }, [selectedDate]); 
-
-    useEffect(() => {
-        loadRankingsData();
-    }, []); 
 
     const formatDate = (date: Date) => {
         const days = ['일', '월', '화', '수', '목', '금', '토'];
@@ -136,18 +83,77 @@ export default function Home() {
     const isOffSeasonForUI = (date: Date) => {
         const month = date.getMonth() + 1;
         const day = date.getDate();
-        
+
+        // 11월 15일 ~ 3월 21일은 비시즌
         if (month >= 11 || month <= 2 || (month === 3 && day < 22)) {
             return true;
         }
         return false;
-    }
+    };
+
+    const loadGamesData = async (date: Date) => {
+        if (isOffSeasonForUI(date)) {
+            setGames([]);
+            return;
+        }
+
+        const apiDate = formatDateForAPI(date);
+        setIsLoading(true);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/kbo/schedule?date=${apiDate}`);
+
+            if (!response.ok) {
+                console.error(`[경기] API 요청 실패: ${response.status} ${response.statusText}`);
+                setGames([]);
+                return;
+            }
+
+            const gamesData: Game[] = await response.json();
+            setGames(gamesData);
+
+        } catch (error) {
+            console.error('[경기] 데이터 로드 중 오류 발생:', error);
+            setGames([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const loadRankingsData = async () => {
+        setIsRankingsLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/2025`);
+
+            if (!response.ok) {
+                console.error(`[순위] API 요청 실패: ${response.status} ${response.statusText}`);
+                setRankings([]);
+                return;
+            }
+
+            const rankingsData: Ranking[] = await response.json();
+            setRankings(rankingsData);
+
+        } catch (error) {
+            console.error('[순위] 데이터 로드 중 오류 발생:', error);
+            setRankings([]);
+        } finally {
+            setIsRankingsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadGamesData(selectedDate);
+    }, [selectedDate]); 
+
+    useEffect(() => {
+        loadRankingsData();
+    }, []); 
 
     // 3개 리그만 필터링
     const regularSeasonGames = games.filter(g => g.leagueType === 'REGULAR');
     const postSeasonGames = games.filter(g => g.leagueType === 'POSTSEASON');
     const koreanSeriesGames = games.filter(g => g.leagueType === 'KOREAN_SERIES');
-
     const teamRankings = rankings;
 
     return (
@@ -162,10 +168,11 @@ export default function Home() {
                 <>
                     {/* Hero Banner */}
                     <section className="relative overflow-hidden" style={{ backgroundColor: '#2d5f4f' }}>
-                        <img 
-                            src={grassDecor} 
-                            alt="" 
-                            className="absolute bottom-0 left-0 w-full h-20 object-cover object-top opacity-30"
+                        <div 
+                            className="absolute bottom-0 left-0 w-full h-20 opacity-30"
+                            style={{
+                                background: 'linear-gradient(to top, rgba(34, 139, 34, 0.3) 0%, transparent 100%)'
+                            }}
                         />
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
                             <div className="flex items-center justify-between">
@@ -344,43 +351,6 @@ export default function Home() {
                                 <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>{currentSeasonYear} 시즌 팀 순위</h2>
                                 {isRankingsLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin text-gray-500" />}
                             </div>
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 mb-6">
-            <img src={baseballLogo} alt="Baseball" className="w-10 h-10" />
-            <div>
-              <h3 className="tracking-wider" style={{ fontWeight: 900 }}>BEGA</h3>
-              <p className="text-xs text-gray-400">BASEBALL GUIDE</p>
-            </div>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
-            <div>
-              <h4 className="mb-4">서비스</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="/cheer" className="hover:text-white">응원게시판</a></li>
-                <li><a href="/stadium" className="hover:text-white">구장가이드</a></li>
-                <li><a href="/prediction" className="hover:text-white">승부예측</a></li>
-                <li><a href="/mate" className="hover:text-white">메이트</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="mb-4">정보</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">공지사항</a></li>
-                <li><a href="#" className="hover:text-white">이용약관</a></li>
-                <li><a href="#" className="hover:text-white">개인정보처리방침</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="mb-4">고객센터</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>이메일: support@bega.com</li>
-                <li>운영시간: 평일 09:00-18:00</li>
-              </ul>
-            </div>
-          </div>
 
                             <Card className="overflow-hidden">
                                 {teamRankings.length === 0 && !isRankingsLoading ? (
@@ -434,9 +404,54 @@ export default function Home() {
                 </>
             )}
 
+            {/* Footer */}
             <footer className="bg-gray-900 text-white py-12">
-                {/* Footer content */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2d5f4f' }}>
+                            <span className="text-white text-xl font-bold">⚾</span>
+                        </div>
+                        <div>
+                            <h3 className="tracking-wider" style={{ fontWeight: 900 }}>BEGA</h3>
+                            <p className="text-xs text-gray-400">BASEBALL GUIDE</p>
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-8 mb-8">
+                        <div>
+                            <h4 className="mb-4">서비스</h4>
+                            <ul className="space-y-2 text-gray-400">
+                                <li><button onClick={() => onNavigate('home')} className="hover:text-white">홈</button></li>
+                                <li><button onClick={() => onNavigate('cheer')} className="hover:text-white">응원게시판</button></li>
+                                <li><button onClick={() => onNavigate('stadium')} className="hover:text-white">구장가이드</button></li>
+                                <li><button onClick={() => onNavigate('prediction')} className="hover:text-white">승부예측</button></li>
+                                <li><button onClick={() => onNavigate('diary')} className="hover:text-white">직관다이어리</button></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="mb-4">정보</h4>
+                            <ul className="space-y-2 text-gray-400">
+                                <li><a href="#" className="hover:text-white">공지사항</a></li>
+                                <li><a href="#" className="hover:text-white">이용약관</a></li>
+                                <li><a href="#" className="hover:text-white">개인정보처리방침</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="mb-4">고객센터</h4>
+                            <ul className="space-y-2 text-gray-400">
+                                <li>이메일: support@bega.com</li>
+                                <li>운영시간: 평일 09:00-18:00</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-800 pt-8 text-center text-gray-400 text-sm">
+                        <p>© 2025 BEGA (BASEBALL GUIDE). All rights reserved.</p>
+                    </div>
+                </div>
             </footer>
+
+            {/* ChatBot */}
             <ChatBot />
         </div>
     );
