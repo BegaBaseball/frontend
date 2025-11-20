@@ -27,24 +27,19 @@ export default function RankingPrediction() {
   const [alreadySaved, setAlreadySaved] = useState(false);
   const [currentSeason, setCurrentSeason] = useState<number | null>(null);
   const [isPredictionPeriod, setIsPredictionPeriod] = useState(true);
-  const [isLoading, setIsLoading] = useState(true); // ← 추가: 로딩 상태
+  const [isLoading, setIsLoading] = useState(true);
   
   const rankings = usePredictionStore((state) => state.rankings);
   const availableTeams = usePredictionStore((state) => state.availableTeams);
   const isPredictionSaved = usePredictionStore((state) => state.isPredictionSaved);
-  const allTeams = usePredictionStore((state) => state.allTeams); // ← 추가: 전체 팀 목록
+  const allTeams = usePredictionStore((state) => state.allTeams);
   
   const addTeamToRanking = usePredictionStore((state) => state.addTeamToRanking);
   const removeTeamFromRanking = usePredictionStore((state) => state.removeTeamFromRanking);
   const moveTeam = usePredictionStore((state) => state.moveTeam);
   const resetRankings = usePredictionStore((state) => state.resetRankings);
   const completePrediction = usePredictionStore((state) => state.completePrediction);
-  const setRankings = usePredictionStore((state) => state.setRankings); // ← 추가: 순위 직접 설정
-
-  // 초기화는 한 번만
-  useEffect(() => {
-    resetRankings();
-  }, []);
+  const setRankings = usePredictionStore((state) => state.setRankings);
 
   // ===== 페이지 로드 시 현재 시즌 & 기존 예측 불러오기 =====
   useEffect(() => {
@@ -76,6 +71,9 @@ export default function RankingPrediction() {
             loadSavedPrediction(savedPrediction.teamIdsInOrder);
             
             toast.info(`${seasonData.seasonYear} 시즌 순위 예측을 불러왔습니다.`);
+          } else {
+            // 저장된 예측이 없으면 초기화
+            resetRankings();
           }
         } else {
           // 예측 불가 기간
@@ -95,15 +93,32 @@ export default function RankingPrediction() {
 
   // ===== 저장된 예측을 화면에 복원하는 함수 =====
   const loadSavedPrediction = (teamIdsInOrder: string[]) => {
+    console.log('복원할 팀 IDs:', teamIdsInOrder);
+    console.log('사용 가능한 전체 팀:', allTeams);
+    
     // teamIdsInOrder는 ['두산', '삼성', 'LG', ...] 형태
-    // 이걸 Team 객체 배열로 변환해야 함
+    // 이걸 Team 객체 배열로 변환
     
     const restoredRankings = teamIdsInOrder.map(teamId => {
       // allTeams에서 해당 팀 찾기
-      // teamId가 shortName인지, id인지, name인지에 따라 조정 필요
-      const team = allTeams.find(t => t.shortName === teamId || t.name === teamId || t.id === teamId);
+      // shortName으로 매칭 (백엔드에서 shortName을 저장하고 있음)
+      const team = allTeams.find(t => 
+        t.shortName === teamId || 
+        t.name === teamId || 
+        t.id === teamId
+      );
+      
+      if (!team) {
+        console.warn(`팀을 찾을 수 없습니다: ${teamId}`, {
+          availableShortNames: allTeams.map(t => t.shortName),
+          availableNames: allTeams.map(t => t.name)
+        });
+      }
+      
       return team || null;
     });
+
+    console.log('복원된 순위:', restoredRankings);
 
     // Zustand store에 복원된 순위 설정
     if (setRankings) {
@@ -223,7 +238,7 @@ export default function RankingPrediction() {
     const [{ isDragging }, drag] = useDrag({
       type: 'TEAM',
       item: { index },
-      canDrag: team !== null && !alreadySaved, // ← 저장된 경우 드래그 불가
+      canDrag: team !== null && !alreadySaved,
       collect: (monitor) => ({
         isDragging: monitor.isDragging(),
       }),
@@ -232,7 +247,7 @@ export default function RankingPrediction() {
     const [, drop] = useDrop({
       accept: 'TEAM',
       hover: (item: { index: number }) => {
-        if (!ref.current || alreadySaved) return; // ← 저장된 경우 드롭 불가
+        if (!ref.current || alreadySaved) return;
         const dragIndex = item.index;
         const hoverIndex = index;
         if (dragIndex === hoverIndex) return;
@@ -291,19 +306,6 @@ export default function RankingPrediction() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      {currentSeason && (
-        <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold" style={{ color: '#2d5f4f' }}>
-            {currentSeason} 시즌 순위 예측
-          </h1>
-          {alreadySaved && (
-            <p className="text-sm text-gray-600 mt-2">
-              ✅ 저장된 예측입니다 (수정 불가)
-            </p>
-          )}
-        </div>
-      )}
-
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -353,7 +355,15 @@ export default function RankingPrediction() {
         </div>
 
         {/* Team Selection Area - 오른쪽 */}
-        <div style={{ marginTop: '140px' }}>
+        <div style={{ marginTop: '60px' }}>
+          {alreadySaved && (
+            <div className="mb-4 px-6 py-8 rounded-lg" style={{ backgroundColor: '#f0f9f4', color: '#2d5f4f' }}>
+              <p className="text-base font-bold text-center">
+                저장된 예측입니다 
+              </p>
+            </div>
+          )}
+
           <h2 className="mb-4" style={{ color: '#2d5f4f' }}>
             팀 선택
             <span className="text-sm text-gray-500 ml-2">
@@ -408,9 +418,6 @@ export default function RankingPrediction() {
                   </Button>
                 ) : alreadySaved ? (
                   <div className="space-y-2">
-                    <div className="text-sm text-gray-600 mb-2">
-                      ✅ 예측이 저장되었습니다
-                    </div>
                     <Button
                       onClick={handleShare}
                       variant="outline"
