@@ -11,13 +11,59 @@ interface GameCardProps {
     awayTeamFull: string;
     time: string;
     stadium: string;
-    status: string;
+    status?: string;
+    gameStatus?: string;
+    gameStatusKr?: string;
     gameInfo: string;
+    homeScore?: number;
+    awayScore?: number;
   };
   featured?: boolean;
 }
 
 export default function GameCard({ game, featured = false }: GameCardProps) {
+  // 경기 상태에 따른 뱃지 스타일
+  const getStatusBadgeStyle = (status?: string) => {
+    if (!status) return null;
+    
+    switch (status) {
+      case 'SCHEDULED':
+        return {
+          bg: '#e3f2fd',
+          color: '#1976d2',
+          text: '경기 예정'
+        };
+      case 'COMPLETED':
+        return {
+          bg: '#e8f5e9',
+          color: '#388e3c',
+          text: '경기 종료'
+        };
+      case 'CANCELLED':
+        return {
+          bg: '#ffebee',
+          color: '#d32f2f',
+          text: '경기 취소'
+        };
+      case 'POSTPONED':
+        return {
+          bg: '#fff3e0',
+          color: '#f57c00',
+          text: '경기 연기'
+        };
+      case 'DRAW':
+        return {
+          bg: '#f3e5f5',
+          color: '#7b1fa2',
+          text: '무승부'
+        };
+      default:
+        return null;
+    }
+  };
+
+  const statusStyle = getStatusBadgeStyle(game.gameStatus || game.status);
+
   return (
     <Card 
       className={`overflow-hidden ${featured ? 'border-2 hover:shadow-lg' : 'border'} transition-shadow`} 
@@ -34,7 +80,21 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
             >
               {game.stadium.replace('구장', '')}
             </Badge>
-            <span className="text-gray-600 text-sm">⚾ {game.time}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-600 text-sm">⚾ {game.time}</span>
+              {/* 상태 뱃지 추가 */}
+              {statusStyle && (
+                <span 
+                  className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                  style={{ 
+                    backgroundColor: statusStyle.bg,
+                    color: statusStyle.color
+                  }}
+                >
+                  {statusStyle.text}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -47,18 +107,6 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
           </div>
         )}
 
-        {/* Status Badge */}
-        {game.status && (
-          <div className="flex justify-center mb-4">
-            <Badge 
-              className="text-white px-4 py-1" 
-              style={{ backgroundColor: featured ? '#2d5f4f' : '#3b82f6' }}
-            >
-              {game.status}
-            </Badge>
-          </div>
-        )}
-
         {/* Teams */}
         <div className="flex items-center justify-between mb-6">
           <div className="text-center flex-1">
@@ -68,6 +116,12 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
             <p className="text-sm" style={{ color: '#2d5f4f', fontWeight: 600 }}>
               {game.homeTeamFull.split(' ')[0]}
             </p>
+            {/* 경기 종료 시 점수 표시 */}
+            {game.gameStatus === 'COMPLETED' && game.homeScore !== undefined && (
+              <p className="text-2xl font-bold mt-1" style={{ color: '#2d5f4f' }}>
+                {game.homeScore}
+              </p>
+            )}
           </div>
 
           <div 
@@ -84,16 +138,24 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
             <p className="text-sm" style={{ color: '#2d5f4f', fontWeight: 600 }}>
               {game.awayTeamFull.split(' ')[0]}
             </p>
+            {/* 경기 종료 시 점수 표시 */}
+            {game.gameStatus === 'COMPLETED' && game.awayScore !== undefined && (
+              <p className="text-2xl font-bold mt-1" style={{ color: '#2d5f4f' }}>
+                {game.awayScore}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Action Button */}
-        <Button 
-          className="text-white hover:opacity-90 w-full"
-          style={{ backgroundColor: '#2d5f4f' }}
-        >
-          TICKET
-        </Button>
+        {/* Action Button - 경기 예정일 때만 표시 */}
+        {(!game.gameStatus || game.gameStatus === 'SCHEDULED') && (
+          <Button 
+            className="text-white hover:opacity-90 w-full"
+            style={{ backgroundColor: '#2d5f4f' }}
+          >
+            TICKET
+          </Button>
+        )}
       </div>
     </Card>
   );
