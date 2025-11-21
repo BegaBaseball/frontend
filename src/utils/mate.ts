@@ -1,5 +1,6 @@
 // src/utils/mate.ts
 import { Party, PartyStatus } from '../types/mate';
+import { MateParty, MateHistoryTab, MateStatus } from '../types/mate';
 
 export const mapBackendPartyToFrontend = (backendParty: any): Party => ({
   id: backendParty.id.toString(),
@@ -63,4 +64,61 @@ export const formatMessageDate = (dateString: string): string => {
       day: 'numeric',
     });
   }
+};
+
+
+/**
+ * 탭에 따라 파티 필터링
+ */
+export const filterPartiesByTab = (
+  parties: MateParty[],
+  tab: MateHistoryTab
+): MateParty[] => {
+  if (tab === 'completed') {
+    return parties.filter(
+      (p) => p.status === 'COMPLETED' || p.status === 'CHECKED_IN'
+    );
+  }
+  
+  if (tab === 'ongoing') {
+    return parties.filter(
+      (p) => p.status === 'PENDING' || p.status === 'MATCHED'
+    );
+  }
+  
+  return parties; // 'all'
+};
+
+/**
+ * 상태별 라벨 가져오기
+ */
+export const getStatusLabel = (status: MateStatus): string => {
+  const labels: Record<MateStatus, string> = {
+    PENDING: '모집 중',
+    MATCHED: '매칭 완료',
+    CHECKED_IN: '체크인 완료',
+    COMPLETED: '완료',
+    FAILED: '매칭 실패',
+    SELLING: '티켓 판매',
+    SOLD: '판매 완료',
+  };
+  
+  return labels[status] || status;
+};
+
+/**
+ * 상태별 스타일 가져오기
+ */
+export const getStatusStyle = (status: MateStatus) => {
+  const styles: Record<MateStatus, { bg: string; text: string }> = {
+    PENDING: { bg: 'bg-blue-100', text: 'text-blue-700' },
+    MATCHED: { bg: 'bg-blue-100', text: 'text-blue-700' },
+    CHECKED_IN: { bg: 'bg-blue-100', text: 'text-blue-700' },
+    COMPLETED: { bg: 'bg-green-100', text: 'text-green-700' },
+    FAILED: { bg: 'bg-red-100', text: 'text-red-700' },
+    SELLING: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
+    SOLD: { bg: 'bg-gray-100', text: 'text-gray-700' },
+  };
+  
+  return styles[status] || styles.PENDING;
 };

@@ -1,224 +1,52 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+// CheerEdit.tsx
 import { ArrowLeft, Image as ImageIcon, MessageSquare, X, Upload } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
-import Navbar from './Navbar';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getTeamNameById, useCheerStore } from '../store/cheerStore';
+import { getTeamNameById } from '../store/cheerStore';
 import { useAuthStore } from '../store/authStore';
-import { getPost, updatePost } from '../api/cheer';
-import { listPostImages, deleteImage, uploadPostImages, renewSignedUrl, PostImageInfo } from '../api/images';
-import { toast } from 'sonner';
+import { useCheerEdit } from '../hooks/useCheerEdit';
 
 export default function CheerEdit() {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { postId: postIdParam } = useParams();
   const postId = Number(postIdParam);
-  const { upsertPost } = useCheerStore();
   const favoriteTeam = useAuthStore((state) => state.user?.favoriteTeam) ?? null;
 
-  useEffect(() => {
-    if (isNaN(postId) || postId === 0) {
-      navigate('/cheer');
-    }
-  }, [postId, navigate]);
-
   const {
-    data: post,
+    post,
     isLoading,
     isError,
-  } = useQuery({
-    queryKey: ['cheerPost', postId],
-    queryFn: () => getPost(postId!),
-    enabled: !!postId,
-  });
+    hasAccess,
+    title,
+    setTitle,
+    content,
+    setContent,
+    existingImages,
+    imageUrls,
+    newFiles,
+    newFilePreviews,
+    loadingImages,
+    deletingImageId,
+    isSubmitting,
+    handleFileSelect,
+    handleDeleteExistingImage,
+    handleRemoveNewFile,
+    handleSubmit,
+    handleCancel,
+  } = useCheerEdit(postId, favoriteTeam);
 
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [existingImages, setExistingImages] = useState<PostImageInfo[]>([]);
-  const [imageUrls, setImageUrls] = useState<Map<number, string>>(new Map()); // 이미지 ID -> 서명된 URL
-  const [newFiles, setNewFiles] = useState<File[]>([]);
-  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
-  const [loadingImages, setLoadingImages] = useState(false);
-
-  useEffect(() => {
-    if (!post || !postId) return;
-
-    let cancelled = false;
-
-    (async () => {
-      setTitle(post.title);
-      setContent(post.content ?? '');
-      setLoadingImages(true);
-
-      try {
-        const images = await listPostImages(postId);
-
-        if (cancelled) return;
-        setExistingImages(images);
-
-        if (images.length === 0) {
-          if (!cancelled) setLoadingImages(false);
-          return;
-        }
-
-        // 병렬로 서명된 URL 가져오기
-        const entries = await Promise.all(
-          images.map(async (img) => {
-            try {
-              const { signedUrl } = await renewSignedUrl(img.id);
-              return [img.id, signedUrl] as const;
-            } catch (error) {
-              return [img.id, ''] as const;
-            }
-          })
-        );
-
-        if (!cancelled) {
-          setImageUrls(new Map(entries.filter(([, url]) => url)));
-        }
-      } catch (error) {
-        toast.error('이미지 로드 실패');
-      } finally {
-        if (!cancelled) setLoadingImages(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [post, postId]);
-
-  const hasAccess = post
-    ? favoriteTeam
-      ? (post.teamId ? post.teamId === favoriteTeam : (post.team ?? '') === favoriteTeam)
-      : false
-    : false;
-
-  const updateMutation = useMutation({
-    mutationFn: async (payload: { title: string; content: string; files: File[] }) => {
-      // 1. 게시글 내용 업데이트
-      const updated = await updatePost(post!.id, {
-        title: payload.title,
-        content: payload.content
-      });
-
-      // 2. 이미지 삭제/업로드 병렬 처리
-      if (payload.files.length > 0) {
-        await uploadPostImages(updated.id, payload.files);
-      }
-
-      return updated;
-    },
-    onSuccess: (updated) => {
-      upsertPost(updated);
-      queryClient.invalidateQueries({ queryKey: ['cheerPost', updated.id] });
-      queryClient.invalidateQueries({ queryKey: ['cheerPosts'] });
-      toast.success('게시글이 수정되었습니다.');
-      navigate(`/cheer/detail/${updated.id}`);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || '게시글 수정 중 문제가 발생했습니다.');
-    },
-  });
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const totalImages = existingImages.length + newFiles.length;
-    const maxImages = 10;
-    const maxSizeMB = 5;
-
-    const validFiles = Array.from(files).filter((file) => {
-      if (file.size > maxSizeMB * 1024 * 1024) {
-        toast.error(`${file.name} 파일이 ${maxSizeMB}MB 제한을 초과했습니다.`);
-        return false;
-      }
-      return true;
-    });
-
-    if (totalImages + validFiles.length > maxImages) {
-      toast.error(`이미지는 최대 ${maxImages}개까지 선택할 수 있습니다.`);
-      return;
-    }
-
-    setNewFiles((prev) => [...prev, ...validFiles]);
-    e.target.value = '';
-  };
-
-  const handleDeleteExistingImage = async (imageId: number) => {
-    if (!post) return;
-    const confirmed = window.confirm('이 이미지를 즉시 삭제할까요? 삭제하면 복구할 수 없습니다.');
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      setDeletingImageId(imageId);
-      await deleteImage(imageId);
-      setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
-      setImageUrls((prev) => {
-        const next = new Map(prev);
-        next.delete(imageId);
-        return next;
-      });
-      toast.success('이미지를 삭제했습니다.');
-    } catch (error) {
-      console.error('이미지 즉시 삭제 실패:', error);
-      toast.error(error instanceof Error ? error.message : '이미지 삭제에 실패했습니다.');
-    } finally {
-      setDeletingImageId(null);
-    }
-  };
-
-  const handleRemoveNewFile = (index: number) => {
-    setNewFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // 새로 추가된 파일 미리보기 URL 관리
-  const newFilePreviews = useMemo(() => {
-    return newFiles.map((file) => ({
-      file,
-      url: URL.createObjectURL(file),
-    }));
-  }, [newFiles]);
-
-  useEffect(() => {
-    return () => {
-      newFilePreviews.forEach(({ url }) => URL.revokeObjectURL(url));
-    };
-  }, [newFilePreviews]);
-
-  const handleSubmit = () => {
-    if (!post) return;
-    if (!title.trim() || !content.trim()) {
-      toast.error('제목과 내용을 입력해주세요.');
-      return;
-    }
-    updateMutation.mutate({
-      title: title.trim(),
-      content: content.trim(),
-      files: newFiles,
-    });
-  };
-
-  const handleCancel = () => {
-    if (postId) {
-      navigate(`/cheer/detail/${postId}`);
-    } else {
-      navigate('/cheer');
-    }
-  };
+  // Redirect if invalid postId
+  if (isNaN(postId) || postId === 0) {
+    navigate('/cheer');
+    return null;
+  }
 
   if (isError) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
         <div className="mx-auto max-w-3xl px-4 py-12 text-center text-red-600">
           게시글 정보를 불러오는 중 문제가 발생했습니다.
         </div>
@@ -228,7 +56,7 @@ export default function CheerEdit() {
 
   return (
     <div className="min-h-screen bg-white">
-
+      {/* Header */}
       <div className="border-b bg-gray-50">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
@@ -252,15 +80,16 @@ export default function CheerEdit() {
               onClick={handleSubmit}
               className="text-white"
               style={{ backgroundColor: '#2d5f4f' }}
-              disabled={updateMutation.isPending || !title.trim() || !content.trim()}
+              disabled={isSubmitting || !title.trim() || !content.trim()}
             >
-              {updateMutation.isPending ? '수정 중...' : '수정 완료'}
+              {isSubmitting ? '수정 중...' : '수정 완료'}
             </Button>
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Loading Skeleton */}
         {isLoading && (
           <div className="space-y-4">
             <div className="h-6 w-1/3 animate-pulse rounded bg-gray-200" />
@@ -268,8 +97,10 @@ export default function CheerEdit() {
           </div>
         )}
 
+        {/* Content */}
         {!isLoading && post && (
           <>
+            {/* No Access */}
             {!hasAccess ? (
               <Card className="rounded-xl bg-white p-12 text-center shadow-sm">
                 <div className="mx-auto w-20 rounded-full bg-red-100 p-6">
@@ -304,7 +135,9 @@ export default function CheerEdit() {
                 </Button>
               </Card>
             ) : (
+              /* Edit Form */
               <div className="space-y-6">
+                {/* Title */}
                 <div className="space-y-2">
                   <label className="block text-sm" style={{ color: '#2d5f4f' }}>
                     제목 *
@@ -317,6 +150,7 @@ export default function CheerEdit() {
                   />
                 </div>
 
+                {/* Content */}
                 <div className="space-y-2">
                   <label className="block text-sm" style={{ color: '#2d5f4f' }}>
                     내용 *
@@ -329,6 +163,7 @@ export default function CheerEdit() {
                   />
                 </div>
 
+                {/* Images */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-sm" style={{ color: '#2d5f4f' }}>
@@ -339,6 +174,7 @@ export default function CheerEdit() {
                     </span>
                   </div>
 
+                  {/* Upload Area */}
                   <label className="flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400">
                     <Upload className="h-6 w-6" />
                     <span>이미지 추가</span>
@@ -348,25 +184,28 @@ export default function CheerEdit() {
                       multiple
                       className="hidden"
                       onChange={handleFileSelect}
-                      disabled={updateMutation.isPending}
+                      disabled={isSubmitting}
                     />
                   </label>
 
+                  {/* Loading */}
                   {loadingImages && (
                     <div className="text-center py-4 text-gray-500">
                       이미지를 불러오는 중...
                     </div>
                   )}
 
+                  {/* Empty State */}
                   {!loadingImages && existingImages.length === 0 && newFiles.length === 0 && (
                     <div className="text-center py-4 text-gray-400 text-sm">
                       첨부된 이미지가 없습니다
                     </div>
                   )}
 
+                  {/* Image Grid */}
                   {!loadingImages && (existingImages.length > 0 || newFiles.length > 0) && (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {/* 기존 이미지 (서버에서 불러온 것) */}
+                      {/* Existing Images */}
                       {existingImages.map((image, idx) => {
                         const imageUrl = imageUrls.get(image.id);
                         return (
@@ -380,10 +219,10 @@ export default function CheerEdit() {
                                 alt={`이미지 ${idx + 1}`}
                                 className="absolute inset-0 z-0 h-full w-full select-none object-cover pointer-events-none"
                                 onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          )}
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            )}
                             <div
                               className={`absolute inset-0 z-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 ${
                                 imageUrl ? 'hidden' : ''
@@ -396,7 +235,7 @@ export default function CheerEdit() {
                               type="button"
                               onClick={() => handleDeleteExistingImage(image.id)}
                               className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60"
-                              disabled={updateMutation.isPending || deletingImageId === image.id}
+                              disabled={isSubmitting || deletingImageId === image.id}
                               title="이미지 삭제"
                             >
                               {deletingImageId === image.id ? (
@@ -412,7 +251,7 @@ export default function CheerEdit() {
                         );
                       })}
 
-                      {/* 새로 추가된 파일 (아직 업로드 안 됨) */}
+                      {/* New Files */}
                       {newFilePreviews.map(({ file, url }, index) => (
                         <div
                           key={`new-${index}`}
@@ -427,7 +266,7 @@ export default function CheerEdit() {
                             type="button"
                             onClick={() => handleRemoveNewFile(index)}
                             className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm transition hover:bg-red-700"
-                            disabled={updateMutation.isPending}
+                            disabled={isSubmitting}
                           >
                             <X className="h-4 w-4" />
                           </button>
