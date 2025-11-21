@@ -204,14 +204,29 @@ html {
 /* 햄버거 메뉴 버튼 - 768px 이상에서 숨김 */
 @media (min-width: 768px) {
   .hamburger-menu-btn {
-    display: none !important;
+    display: none;
   }
 }
 
-/* 모바일 메뉴 팝업 스타일 - 햄버거 버튼 아래 드롭다운 형태 */
+/* 모바일 메뉴 애니메이션 */
+.mobile-menu-container {
+  animation: slideInFade 0.3s ease-out !important;
+}
+
+@keyframes slideInFade {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 모바일 메뉴 팝업 스타일 */
 .mobile-menu-popup {
   width: 380px;
-  animation: dropdownSlideIn 0.25s ease-out;
 }
 
 /* 작은 화면에서는 화면 폭에 맞게 조정 */
@@ -221,14 +236,3 @@ html {
   }
 }
 
-/* 드롭다운 슬라이드인 애니메이션 */
-@keyframes dropdownSlideIn {
-  from {
-    transform: translateY(-10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
