@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+// AdminPage.tsx
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -7,322 +7,42 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { Search, Users, MessageSquare, Calendar, Trash2, ShieldAlert } from 'lucide-react';
-import { useCheerStore } from '../store/cheerStore';
-import { useMateStore } from '../store/mateStore';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from './ui/alert-dialog';
 import TeamLogo from './TeamLogo';
-import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,} from './ui/alert-dialog';
-
-// 🔥 타입 정의
-interface AdminUser {
-  id: number;
-  email: string;
-  name: string;
-  favoriteTeam: string | null;
-  createdAt: string;
-  postCount: number;
-  role: string;
-}
-
-interface AdminStats {
-  totalUsers: number;
-  totalPosts: number;
-  totalMates: number;
-}
-
-interface AdminPost {
-  id: number;
-  team: string;
-  title: string;
-  author: string;
-  createdAt: string;
-  likeCount: number;
-  commentCount: number;
-  views: number;
-  isHot: boolean;
-}
-
-interface AdminMate {
-  id: number;
-  teamId: string;
-  title: string;
-  stadium: string;
-  gameDate: string;
-  currentMembers: number;
-  maxMembers: number;
-  status: string;
-  createdAt: string;
-  hostName: string;
-  homeTeam: string;
-  awayTeam: string;
-  section: string;
-}
-
-// 🔥 팀 이름 매핑
-const TEAM_NAMES: { [key: string]: string } = {
-  'LG': 'LG',
-  'OB': '두산',
-  'SK': 'SSG',
-  'KT': 'KT',
-  'WO': '키움',
-  'NC': 'NC',
-  'SS': '삼성',
-  'LT': '롯데',
-  'HT': '기아',
-  'HH': '한화',
-};
+import { useAdminData } from '../hooks/useAdminData';
+import { TEAM_DATA } from '../constants/teams';
+import { formatDate, formatGameDate, getTimeAgo } from '../utils/formatters';
 
 export default function AdminPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('users');
-  const { parties } = useMateStore();
-  const { removePost } = useCheerStore();
-  
-
-  // 🔥 백엔드 데이터 상태
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [backendPosts, setBackendPosts] = useState<AdminPost[]>([]);
-  const [backendMates, setBackendMates] = useState<AdminMate[]>([]);
-
-  const [stats, setStats] = useState<AdminStats>({
-    totalUsers: 0,
-    totalPosts: 0,
-    totalMates: 0,
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // 🔥 통계 데이터 가져오기
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('/api/admin/stats', {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('통계 조회 실패');
-      }
-
-      const apiResponse = await response.json();
-      if (apiResponse.success) {
-        setStats(apiResponse.data);
-      }
-    } catch (err) {
-      console.error('통계 조회 오류:', err);
-      setError('통계를 불러오는데 실패했습니다.');
-    }
-  };
-
-  // 🔥 유저 목록 가져오기
-  const fetchUsers = async (search?: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const url = search 
-        ? `/api/admin/users?search=${encodeURIComponent(search)}`
-        : '/api/admin/users';
-
-      const response = await fetch(url, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error('관리자 권한이 필요합니다.');
-        }
-        throw new Error('유저 목록 조회 실패');
-      }
-
-      const apiResponse = await response.json();
-      if (apiResponse.success) {
-        setUsers(apiResponse.data);
-      }
-    } catch (err) {
-      console.error('유저 조회 오류:', err);
-      setError(err instanceof Error ? err.message : '유저 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🔥 유저 삭제
-  const handleDeleteUser = async (userId: number) => {
-    try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('유저 삭제 실패');
-      }
-
-      const apiResponse = await response.json();
-      if (apiResponse.success) {
-        alert('유저가 삭제되었습니다.');
-        // 목록 새로고침
-        fetchUsers(searchTerm || undefined);
-        fetchStats(); // 통계도 갱신
-      }
-    } catch (err) {
-      console.error('유저 삭제 오류:', err);
-      alert('유저 삭제에 실패했습니다.');
-    }
-  };
-
-  const fetchPosts = async () => {
-    try {
-      const response = await fetch('/api/admin/posts', {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('게시글 조회 실패');
-      }
-
-      const apiResponse = await response.json();
-      if (apiResponse.success) {
-        setBackendPosts(apiResponse.data);
-        console.log('✅ 게시글 로드 성공:', apiResponse.data.length, '개');
-      }
-    } catch (err) {
-      console.error('게시글 조회 오류:', err);
-      setError('게시글을 불러오는데 실패했습니다.');
-    }
-  };
-
-  // 🔥 게시글 삭제
-   const handleDeletePost = async (postId: number) => {
-    try {
-      const response = await fetch(`/api/admin/posts/${postId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('게시글 삭제 실패');
-      }
-
-      const apiResponse = await response.json();
-      if (apiResponse.success) {
-        alert('게시글이 삭제되었습니다.');
-        
-        // 🔥 Store에서도 삭제
-        removePost(postId);
-        
-        // 백엔드 목록에서도 삭제
-        setBackendPosts(prev => prev.filter(p => p.id !== postId));
-        
-        // 통계 갱신
-        fetchStats();
-      }
-    } catch (err) {
-      console.error('게시글 삭제 오류:', err);
-      alert('게시글 삭제에 실패했습니다.');
-    }
-  };
-
-  const getTimeAgo = (createdAt: string): string => {
-  const now = new Date();
-  const created = new Date(createdAt);
-  const diffMs = now.getTime() - created.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  
-  if (diffMins < 1) return '방금 전';
-  if (diffMins < 60) return `${diffMins}분 전`;
-  
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}시간 전`;
-  
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}일 전`;
-  
-  return `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}-${String(created.getDate()).padStart(2, '0')}`;
-};
-
-// 🔥 경기 날짜 포맷 함수 추가
-const formatGameDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  return `${year}년 ${month}월 ${day}일`;
-};
-
-  const fetchMates = async () => {
-  try {
-    const response = await fetch('/api/admin/mates', {
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error('메이트 조회 실패');
-    }
-
-    const apiResponse = await response.json();
-    if (apiResponse.success) {
-      setBackendMates(apiResponse.data);
-      console.log('✅ 메이트 로드 성공:', apiResponse.data.length, '개');
-    }
-  } catch (err) {
-    console.error('메이트 조회 오류:', err);
-    setError('메이트를 불러오는데 실패했습니다.');
-  }
-};
-
-  // 🔥 메이트 삭제
-  const handleDeleteParty = async (partyId: number) => {
-    try {
-      const response = await fetch(`/api/admin/mates/${partyId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('메이트 삭제 실패');
-      }
-
-      const apiResponse = await response.json();
-      if (apiResponse.success) {
-        alert('메이트 모임이 삭제되었습니다.');
-        fetchStats(); // 통계 갱신
-        // TODO: mateStore에서도 삭제하는 함수가 있다면 호출
-      }
-    } catch (err) {
-      console.error('메이트 삭제 오류:', err);
-      alert('메이트 삭제에 실패했습니다.');
-    }
-  };
-
-  // 🔥 검색어 변경 시 디바운싱
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (activeTab === 'users') {
-        fetchUsers(searchTerm || undefined);
-      }
-    }, 500); // 500ms 디바운싱
-
-    return () => clearTimeout(timer);
-  }, [searchTerm, activeTab]);
-
-  // 🔥 초기 데이터 로드
-  useEffect(() => {
-    fetchStats();
-    fetchUsers();
-    fetchPosts();
-    fetchMates();
-  }, []);
-
-  // 🔥 날짜 포맷 함수
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  };
+  const {
+    searchTerm,
+    setSearchTerm,
+    activeTab,
+    setActiveTab,
+    users,
+    posts,
+    mates,
+    stats,
+    loading,
+    error,
+    successMessage,
+    handleDeleteUser,
+    handleDeletePost,
+    handleDeleteMate,
+  } = useAdminData();
 
   return (
     <div className="min-h-screen bg-gray-50">
-
       {/* Grass decoration */}
       <img
         src={grassDecor}
@@ -340,7 +60,14 @@ const formatGameDate = (dateString: string): string => {
           <p className="text-gray-600">BEGA 플랫폼의 유저, 게시글, 메이트를 관리합니다</p>
         </div>
 
-        {/* 🔥 에러 메시지 */}
+        {/* 성공 메시지 */}
+        {successMessage && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+            {successMessage}
+          </div>
+        )}
+
+        {/* 에러 메시지 */}
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}
@@ -443,7 +170,7 @@ const formatGameDate = (dateString: string): string => {
                               {user.favoriteTeam ? (
                                 <div className="flex items-center gap-2">
                                   <TeamLogo team={user.favoriteTeam} size={24} />
-                                  <span>{TEAM_NAMES[user.favoriteTeam] || user.favoriteTeam}</span>
+                                  <span>{TEAM_DATA[user.favoriteTeam]?.name || user.favoriteTeam}</span>
                                 </div>
                               ) : (
                                 <span className="text-gray-400">없음</span>
@@ -453,14 +180,14 @@ const formatGameDate = (dateString: string): string => {
                             <TableCell>{user.postCount}</TableCell>
                             <TableCell>
                               {user.role?.includes('ROLE_ADMIN') ? (
-                                <Badge 
+                                <Badge
                                   className="bg-red-100 text-red-700"
                                   style={{ backgroundColor: '#fee2e2', color: '#b91c1c' }}
                                 >
                                   관리자
                                 </Badge>
                               ) : (
-                                <Badge 
+                                <Badge
                                   className="bg-green-100 text-green-700"
                                   style={{ backgroundColor: '#dcfce7', color: '#15803d' }}
                                 >
@@ -475,7 +202,7 @@ const formatGameDate = (dateString: string): string => {
                                     variant="ghost"
                                     size="sm"
                                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    disabled={user.role === 'ROLE_ADMIN'} // 🔥 관리자는 삭제 불가
+                                    disabled={user.role === 'ROLE_ADMIN'}
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -494,7 +221,7 @@ const formatGameDate = (dateString: string): string => {
                                     <AlertDialogAction
                                       onClick={() => handleDeleteUser(user.id)}
                                       className="bg-red-600 hover:bg-red-700"
-                                      style={{ backgroundColor: '#dc2626', color: '#ffffff' }}  // 🔥 강제 적용
+                                      style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
                                     >
                                       삭제
                                     </AlertDialogAction>
@@ -528,20 +255,20 @@ const formatGameDate = (dateString: string): string => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {backendPosts.length === 0 ? (
+                    {posts.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                           게시글이 없습니다.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      backendPosts.map((post) => (
+                      posts.map((post) => (
                         <TableRow key={post.id}>
                           <TableCell>{post.id}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <TeamLogo team={post.team} size={24} />
-                              <span>{TEAM_NAMES[post.team] || post.team}</span>
+                              <span>{TEAM_DATA[post.team]?.name || post.team}</span>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -561,7 +288,11 @@ const formatGameDate = (dateString: string): string => {
                           <TableCell className="text-right">
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -573,13 +304,11 @@ const formatGameDate = (dateString: string): string => {
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>
-                                    취소
-                                  </AlertDialogCancel>
+                                  <AlertDialogCancel>취소</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={() => handleDeletePost(post.id)}
                                     className="bg-red-600 hover:bg-red-700"
-                                    style={{ backgroundColor: '#dc2626', color: '#ffffff' }}  // 🔥 강제 적용
+                                    style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
                                   >
                                     삭제
                                   </AlertDialogAction>
@@ -613,14 +342,14 @@ const formatGameDate = (dateString: string): string => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {backendMates.length === 0 ? (
+                    {mates.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                           메이트 모임이 없습니다.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      backendMates.map((mate) => (
+                      mates.map((mate) => (
                         <TableRow key={mate.id}>
                           <TableCell>{mate.id}</TableCell>
                           <TableCell>
@@ -630,9 +359,7 @@ const formatGameDate = (dateString: string): string => {
                               <TeamLogo team={mate.awayTeam} size={20} />
                             </div>
                           </TableCell>
-                          <TableCell className="max-w-[200px] truncate">
-                            {mate.title}
-                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate">{mate.title}</TableCell>
                           <TableCell>{mate.hostName}</TableCell>
                           <TableCell>{mate.stadium}</TableCell>
                           <TableCell>{formatGameDate(mate.gameDate)}</TableCell>
@@ -661,7 +388,11 @@ const formatGameDate = (dateString: string): string => {
                           <TableCell className="text-right">
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -677,7 +408,7 @@ const formatGameDate = (dateString: string): string => {
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>취소</AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => handleDeleteParty(mate.id)}
+                                    onClick={() => handleDeleteMate(mate.id)}
                                     className="bg-red-600 hover:bg-red-700"
                                     style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
                                   >
