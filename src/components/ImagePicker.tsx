@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { X, Upload } from 'lucide-react';
 
 interface ImagePickerProps {
@@ -19,6 +19,29 @@ export default function ImagePicker({
   disabled,
 }: ImagePickerProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+
+  // selectedFiles가 변경될 때 preview URLs 업데이트
+  useEffect(() => {
+    // 기존 URLs 정리
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    
+    // 새로운 URLs 생성
+    const newUrls = selectedFiles.map(file => URL.createObjectURL(file));
+    setPreviewUrls(newUrls);
+
+    // 컴포넌트 언마운트 시 정리
+    return () => {
+      newUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [selectedFiles]);
+
+  // 컴포넌트 언마운트 시 모든 URLs 정리
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   const handleSelectFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = event.target;
@@ -71,21 +94,18 @@ export default function ImagePicker({
 
       {selectedFiles.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {selectedFiles.map((file, index) => {
-            const preview = URL.createObjectURL(file);
-            return (
-              <div key={`${file.name}-${index}`} className="relative overflow-hidden rounded-lg border">
-                <img src={preview} alt={file.name} className="h-32 w-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => onRemoveFile(index)}
-                  className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            );
-          })}
+          {selectedFiles.map((file, index) => (
+            <div key={`${file.name}-${index}`} className="relative overflow-hidden rounded-lg border">
+              <img src={previewUrls[index]} alt={file.name} className="h-32 w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => onRemoveFile(index)}
+                className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -110,7 +110,7 @@ export async function getPost(postId: number): Promise<Post> {
   return mapDetailToPost(data);
 }
 
-export async function createPost(payload: { teamId: string; title: string; content: string; postType?: string }): Promise<Post> {
+export async function createPost(payload: { teamId: string | null; title: string; content: string; postType?: string }): Promise<Post> {
   const data = await request<PostDetailRes>(`${API_BASE_URL}/posts`, {
     method: 'POST',
     headers: {
