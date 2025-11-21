@@ -30,7 +30,7 @@ export default function MyPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ marginBottom: '100px' }}>
         {/* 상단 프로필 카드 */}
         <Card className="p-8 mb-8">
           <div className="flex items-start justify-between">

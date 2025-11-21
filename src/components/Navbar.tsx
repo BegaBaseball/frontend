@@ -93,8 +93,8 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="border-b sticky top-0 z-40 transition-colors duration-300"
-    style={{ 
+    <header className="border-b border-gray-200 sticky top-0 z-40 transition-colors duration-300"
+    style={{
       backgroundColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff',
       borderColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff'
     }}
@@ -157,12 +157,19 @@ export default function Navbar() {
               <div className="flex items-center gap-1 md:gap-2 lg:gap-3 xl:gap-4">
                 {isLoggedIn ? (
                   <>
-                    <span 
-                      className="font-bold text-xs md:text-sm py-1 px-2 md:px-3 rounded-full"
-                      style={{ color: '#2d5f4f', backgroundColor: '#e0f2f1' }}
+                    <button
+                      onClick={() => navigate('/mypage')}
+                      className="user-profile-button flex items-center justify-center rounded-full transition-all duration-200 font-bold text-xs md:text-sm px-3 md:px-4 lg:px-6 h-9"
                     >
-                      {user?.name || '회원'} 님 
-                    </span>
+                      <span className="relative inline-block">
+                        <span className="user-name">
+                          {user?.name || '회원'} 님
+                        </span>
+                        <span className="mypage-text absolute inset-0 flex items-center justify-center">
+                          마이페이지
+                        </span>
+                      </span>
+                    </button>
                     {isAdmin && (
                       <Button
                         onClick={() => navigate('/admin')}
@@ -174,14 +181,6 @@ export default function Navbar() {
                         관리자
                       </Button>
                     )}
-                    <Button
-                      onClick={() => navigate('/mypage')}
-                      variant="outline"
-                      className="rounded-full px-3 md:px-4 lg:px-6 border-2 bg-white hover:bg-gray-50 text-xs md:text-sm"
-                      style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
-                    >
-                      내 정보
-                    </Button>
                     <Button
                       onClick={handleLogout}
                       className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1"
@@ -220,17 +219,6 @@ export default function Navbar() {
       {/* 6. 모바일 풀스크린 메뉴 */}
       {isMenuOpen && !isDesktop && (
         <div className="mobile-menu-container fixed inset-0 bg-white z-50 overflow-y-auto">
-          {/* 메뉴 헤더 */}
-          {/* <div className="flex items-center justify-between p-4 border-b border-gray-200" style={{ backgroundColor: '#2d5f4f' }}>
-            <h2 className="text-white font-bold text-lg">BEGA 메뉴</h2>
-            <button
-              onClick={() => setIsMenuOpen(false)}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
-            >
-              {/* <X className="w-6 h-6" /> */}
-            {/* </button>
-          </div> */}
-          
           {/* 메뉴 컨텐츠 */}
           <div className="px-6 py-6 space-y-2">
             {navItems.map((item) => (
@@ -261,37 +249,35 @@ export default function Navbar() {
             <div className="border-t border-gray-200 my-6 pt-6 space-y-3">
               {isLoggedIn ? (
                 <>
-                  <div className="flex items-center justify-center py-3">
-                    <span 
-                      className="font-bold text-base py-2 px-4 rounded-full"
-                      style={{ color: '#2d5f4f', backgroundColor: '#e0f2f1' }}
-                    >
-                      {user?.name || '회원'} 님
+                  <button
+                    onClick={() => navigate('/mypage')}
+                    className="user-profile-button2 items-center justify-center py-3 w-full rounded-full transition-all duration-200 group font-bold text-base"
+                  >
+                    <span className="py-2 px-4 relative">
+                      <span className="user-name">
+                        {user?.name || '회원'} 님
+                      </span>
+                      <span className="mypage-text">
+                        마이페이지
+                      </span>
                     </span>
-                  </div>
+                  </button>
+
                   {isAdmin && (
                     <Button 
                       onClick={() => navigate('/admin')} 
                       variant="outline" 
-                      className="w-full justify-start py-6 text-base font-semibold" 
+                      className="hover:bg-red-50 w-full justify-start py-6 text-base font-semibold" 
                       style={{ color: '#d32f2f', borderColor: '#d32f2f' }}
                     >
-                      <ShieldAlert className="w-5 h-5 mr-2" /> 관리자
+                      <ShieldAlert className="w-5 h-5 mr-2" /> 관리자 페이지
                     </Button>
                   )}
                   <Button 
-                    onClick={() => navigate('/mypage')} 
-                    variant="outline" 
-                    className="w-full justify-start py-6 text-base font-semibold" 
-                    style={{ color: '#2d5f4f', borderColor: '#2d5f4f' }}
-                  >
-                    내 정보
-                  </Button>
-                  <Button 
                     onClick={handleLogout} 
-                    className="w-full justify-start py-6 text-base font-semibold" 
+                    className="hover:scale-110 w-full justify-center py-6 text-base font-semibold" 
                     variant="ghost" 
-                    style={{ color: '#d32f2f' }}
+                    style={{ color: '#d32f2f', backgroundColor: '#ffffff' }}
                   >
                     <LogOut className="w-5 h-5 mr-2" /> 로그아웃
                   </Button>
