@@ -3901,3 +3901,67 @@ html {
   border-color: #2d5f4f !important;
   opacity: 90%;
 }
+
+/* 유저 프로필 버튼 스타일 */
+.user-profile-button {
+  color: #2d5f4f;
+  background-color: #e0f2f1;
+}
+
+.user-profile-button:hover {
+  background-color: #2d5f4f;
+  color: white;
+}
+
+/* 기본 상태: 이름 보이기, 마이페이지 숨기기 */
+.user-profile-button .user-name {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+
+.user-profile-button .mypage-text {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+/* 호버 상태: 이름 숨기기, 마이페이지 보이기 */
+.user-profile-button:hover .user-name {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.user-profile-button:hover .mypage-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* 유저 프로필 버튼 스타일 */
+.user-profile-button2 {
+  color: #2d5f4f;
+  background-color: #e0f2f1;
+}
+
+.user-profile-button2:hover {
+  background-color: #2d5f4f;
+  color: white;
+}
+
+/* 기본 상태: 이름 보이기, 마이페이지 숨기기 */
+.user-profile-button2 .user-name {
+  display: inline;
+}
+
+.user-profile-button2 .mypage-text {
+  display: none;
+}
+
+/* 호버 상태: 이름 숨기기, 마이페이지 보이기 */
+.user-profile-button2:hover .user-name {
+  display: none;
+}
+
+.user-profile-button2:hover .mypage-text {
+  display: inline;
+}
