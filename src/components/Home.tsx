@@ -47,16 +47,38 @@ interface HomeProps {
 }
 
 export default function Home({ onNavigate }: HomeProps) {
-    const [selectedDate, setSelectedDate] = useState(new Date(2025, 9, 26)); // 2025년 10월 26일
+    const [selectedDate, setSelectedDate] = useState(new Date(2025, 9, 26)); // 2025년 10월 26일 (한국시리즈 시작일)
     const [showCalendar, setShowCalendar] = useState(false);
     const [games, setGames] = useState<Game[]>([]);
     const [rankings, setRankings] = useState<Ranking[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isRankingsLoading, setIsRankingsLoading] = useState(false);
+    const [activeLeagueTab, setActiveLeagueTab] = useState('koreanseries'); // 활성 탭 상태 추가
 
     const currentSeasonYear = 2025;
     // 브라우저에서 접근: localhost 사용 (도커 호스트의 8080 포트로 매핑됨)
     const API_BASE_URL = "http://localhost:8080"; 
+
+    // 각 리그별 시작 날짜 정의
+    const leagueStartDates = {
+        regular: new Date(2025, 2, 22),        // 2025년 3월 22일 (월은 0부터 시작)
+        postseason: new Date(2025, 9, 6),      // 2025년 10월 6일
+        koreanseries: new Date(2025, 9, 26)    // 2025년 10월 26일 ✅ 수정
+    };
+
+    // 탭 변경 핸들러
+    const handleTabChange = (value: string) => {
+        setActiveLeagueTab(value);
+        
+        // 해당 리그의 시작일로 날짜 변경
+        if (value === 'regular') {
+            setSelectedDate(leagueStartDates.regular);
+        } else if (value === 'postseason') {
+            setSelectedDate(leagueStartDates.postseason);
+        } else if (value === 'koreanseries') {
+            setSelectedDate(leagueStartDates.koreanseries);
+        }
+    };
 
     const formatDateForAPI = (date: Date): string => {
         const year = date.getFullYear();
@@ -259,8 +281,8 @@ export default function Home({ onNavigate }: HomeProps) {
                                 </DialogContent>
                             </Dialog>
 
-                            {/* League Tabs - 3개만 */}
-                            <Tabs defaultValue="koreanseries" className="w-full">
+                            {/* League Tabs - 탭 변경 핸들러 추가 */}
+                            <Tabs value={activeLeagueTab} onValueChange={handleTabChange} className="w-full">
                                 <style>{`
                                     [data-state=active] {
                                         border-bottom: 3px solid #2d5f4f !important;
