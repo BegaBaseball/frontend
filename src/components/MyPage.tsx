@@ -83,23 +83,23 @@ export default function MyPage() {
                 <span className="text-sm md:text-base">메이트 내역</span>
               </Button>
               <Button
-                onClick={() => setViewMode('editProfile')}
+                onClick={handleToggleStats}
                 className="flex items-center justify-center gap-2 bg-white border-2 hover:bg-gray-50 h-10 md:h-11 px-4 whitespace-nowrap"
                 style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
-              >
-                <Edit className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm md:text-base">내 정보 수정</span>
-              </Button>
-
-              <Button
-                onClick={handleToggleStats}
-                className={`flex items-center justify-center gap-2 text-white h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
-                style={{ backgroundColor: '#2d5f4f' }}
               >
                 <BarChart3 className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">
                   {viewMode === 'stats' ? '다이어리 보기' : '통계 보기'}
                 </span>
+              </Button>
+
+              <Button
+                onClick={() => setViewMode('editProfile')}
+                className={`flex items-center justify-center gap-2 text-white h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
+                style={{ backgroundColor: '#2d5f4f' }}
+              >
+                <Edit className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm md:text-base">내 정보 수정</span>
               </Button>
             </div>
           </div>
