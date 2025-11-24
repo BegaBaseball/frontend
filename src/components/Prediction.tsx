@@ -2,12 +2,8 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import ChatBot from './ChatBot';
-import { useState, useEffect } from 'react';
 import TeamLogo from './TeamLogo';
 import RankingPrediction from './RankingPrediction';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,390 +14,64 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
-
-// KBO 팀 색상 매핑 (DB 팀 ID 기준)
-const teamColors: { [key: string]: string } = {
-  'LG': '#C8102E',
-  'OB': '#131230',
-  'HT': '#EA0029',
-  'NC': '#1D467C',
-  'SS': '#074CA1',
-  'SK': '#CE0E2D',
-  'LT': '#041E42',
-  'WO': '#570514',
-  'KT': '#000000',
-  'HH': '#FF6600'
-};
-
-// 백엔드 API 기본 URL
-const API_BASE_URL = 'http://localhost:8080/api';
-
-// 타입 정의
-interface Game {
-  gameId: string;
-  gameDate: string;
-  homeTeam: string;
-  awayTeam: string;
-  stadium: string;
-  homeScore?: number;
-  awayScore?: number;
-  winner?: string | null;
-}
-
-interface DateGames {
-  date: string;
-  games: Game[];
-}
+import { usePrediction } from '../hooks/usePrediction';
+import { 
+  formatDate, 
+  getFullTeamName, 
+  calculateVotePercentages,
+  calculateVoteAccuracy,
+  getGameStatus,
+  getTodayString
+} from '../utils/prediction';
+import { TEAM_COLORS, GAME_TIME } from '../constants/prediction';
+import { VoteTeam } from '../types/prediction';
 
 export default function Prediction() {
-  const navigate = useNavigate();
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
-
-  const [activeTab, setActiveTab] = useState<'match' | 'ranking'>('match');
-  const [selectedGame, setSelectedGame] = useState(0);
-  
-  // 날짜별 경기 데이터
-  const [allDatesData, setAllDatesData] = useState<DateGames[]>([]);
-  const [currentDateIndex, setCurrentDateIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  
-  // 투표 현황
-  const [votes, setVotes] = useState<{ [key: string]: { home: number; away: number } }>({});
-  
-  // 사용자 투표
-  const [userVote, setUserVote] = useState<{ [key: string]: 'home' | 'away' | null }>({});
-
-  // 다이얼로그 상태
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [confirmDialogData, setConfirmDialogData] = useState<{
-    title: string;
-    description: string;
-    onConfirm: () => void;
-  }>({
-    title: '',
-    description: '',
-    onConfirm: () => {},
-  });
-
-  // 로그인 필요 알럿 다이얼로그 
-  const [showLoginRequiredDialog, setShowLoginRequiredDialog] = useState(false);
-
-  // 로그인 체크 
-  useEffect(() => {
-    if (!isAuthLoading && !isLoggedIn) {
-      setLoading(false); // 로딩 상태 해제
-      setShowLoginRequiredDialog(true); // 다이얼로그 표시
-    } else if (!isAuthLoading && isLoggedIn) {
-      // 인증 로딩 완료 & 로그인 상태일 경우에만 데이터 로드 시작
-      fetchAllGames();
-    }
-  }, [isLoggedIn, isAuthLoading]);
-
-  // 로그인 페이지로 이동 핸들러
-  const handleGoToLogin = () => {
-    setShowLoginRequiredDialog(false);
-    navigate('/login');
-  };
-
-
-  // 인증 헤더 생성 함수
-  const getAuthHeaders = () => {
-    return {
-      'Content-Type': 'application/json',
-    };
-  };
-
-  // 날짜별로 그룹화 (오래된 날짜부터 최신 날짜 순)
-  const groupByDate = (games: Game[]): DateGames[] => {
-    const grouped: { [key: string]: Game[] } = {};
-    
-    games.forEach(game => {
-      if (!grouped[game.gameDate]) {
-        grouped[game.gameDate] = [];
-      }
-      grouped[game.gameDate].push(game);
-    });
-
-    return Object.keys(grouped)
-      .sort((a, b) => a.localeCompare(b))
-      .map(date => ({ date, games: grouped[date] }));
-  };
-
-  // 모든 경기 데이터 가져오기 
-  const fetchAllGames = async () => {
-    try {
-      setLoading(true);
-
-      const pastRes = await fetch(`${API_BASE_URL}/games/past`, {
-        headers: getAuthHeaders(),
-        credentials: 'include'
-      });
-      const pastData: Game[] = await pastRes.json();
-
-      const today = new Date().toISOString().split('T')[0];
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-      
-      // 오늘 날짜로 더미 데이터 가져오기
-      const todayRes = await fetch(`${API_BASE_URL}/matches?date=${today}`, {
-        headers: getAuthHeaders(),
-        credentials: 'include'
-      });
-      const todayData: Game[] = await todayRes.json();
-
-      const groupedPastGames = groupByDate(pastData);
-      
-      // 오늘 날짜는 항상 경기 없음으로 추가
-      const todayGroup: DateGames = { date: today, games: [] };
-      
-      // 오늘 API에서 가져온 더미 데이터를 내일 날짜로 표시
-      const allDates = [...groupedPastGames, todayGroup];
-      if (todayData.length > 0) {
-        const tomorrowGroup: DateGames = { date: tomorrow, games: todayData };
-        allDates.push(tomorrowGroup);
-      }
-      
-      setAllDatesData(allDates);
-      
-      // 오늘 날짜의 인덱스 찾기
-      const todayIndex = allDates.findIndex(d => d.date === today);
-      setCurrentDateIndex(todayIndex !== -1 ? todayIndex : 0);
-
-      await fetchAllUserVotes([...pastData, ...todayData]);
-
-    } catch (error) {
-      console.error('경기 데이터를 불러오는데 실패했습니다:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 모든 경기의 사용자 투표 불러오기
-  const fetchAllUserVotes = async (games: Game[]) => {
-    const votes: { [key: string]: 'home' | 'away' | null } = {};
-    
-    for (const game of games) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/predictions/my-vote/${game.gameId}`, {
-          headers: getAuthHeaders(),
-          credentials: 'include'
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          votes[game.gameId] = data.votedTeam || null;
-        }
-      } catch (error) {
-        console.error(`투표 기록 불러오기 실패 (${game.gameId}):`, error);
-      }
-    }
-    
-    setUserVote(votes);
-  };
-
-  // 현재 날짜의 경기 목록
-  const currentDateGames = allDatesData[currentDateIndex]?.games || [];
-  const currentDate = allDatesData[currentDateIndex]?.date || new Date().toISOString().split('T')[0];
-
-  // 경기 타입 확인
-  const isPastGame = currentDateGames.length > 0 && currentDateGames[0].homeScore != null;
-  const today = new Date().toISOString().split('T')[0];
-  const isFutureGame = currentDate > today;
-  const isToday = currentDate === today;
-
-  // 날짜가 변경될 때마다 첫 번째 경기로 리셋
-  useEffect(() => {
-    setSelectedGame(0);
-  }, [currentDateIndex]);
-
-  // 경기가 변경될 때마다 투표 현황 가져오기
-  useEffect(() => {
-    if (currentDateGames.length > 0) {
-      const currentGameId = currentDateGames[selectedGame]?.gameId;
-      if (currentGameId) {
-        fetchVoteStatus(currentGameId);
-      }
-    }
-  }, [selectedGame, currentDateGames]);
-
-  // 투표 현황 가져오기
-  const fetchVoteStatus = async (gameId: string) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/predictions/status/${gameId}`, {
-        headers: getAuthHeaders(),
-        credentials: 'include'
-      });
-      const data = await response.json();
-      setVotes(prev => ({
-        ...prev,
-        [gameId]: { home: data.homeVotes, away: data.awayVotes }
-      }));
-    } catch (error) {
-      console.error('투표 현황을 불러오는데 실패했습니다:', error);
-      setVotes(prev => ({
-        ...prev,
-        [gameId]: { home: 0, away: 0 }
-      }));
-    }
-  };
-
-  // 투표하기
-  const handleVote = async (team: 'home' | 'away') => {
-    const currentGameId = currentDateGames[selectedGame]?.gameId;
-    if (!currentGameId) return;
-
-    if (isPastGame) {
-      toast.error('이미 종료된 경기는 투표할 수 없습니다.');
-      return;
-    }
-
-    // 이미 투표했는데 다른 팀 클릭 시 확인
-    if (userVote[currentGameId] && userVote[currentGameId] !== team) {
-      const currentTeamName = userVote[currentGameId] === 'home' 
-        ? getFullTeamName(currentGame!.homeTeam) 
-        : getFullTeamName(currentGame!.awayTeam);
-      const newTeamName = team === 'home' 
-        ? getFullTeamName(currentGame!.homeTeam) 
-        : getFullTeamName(currentGame!.awayTeam);
-      
-      setConfirmDialogData({
-        title: '투표 변경',
-        description: `현재 ${currentTeamName} 승리로 투표하셨습니다.\n${newTeamName}(으)로 변경하시겠습니까?`,
-        onConfirm: () => {
-          setShowConfirmDialog(false);
-          executeVote(currentGameId, team);
-        },
-      });
-      setShowConfirmDialog(true);
-      return;
-    }
-
-    // 같은 팀 두 번 클릭 시 취소 확인
-    if (userVote[currentGameId] === team) {
-      setConfirmDialogData({
-        title: '투표 취소',
-        description: '투표를 취소하시겠습니까?',
-        onConfirm: () => {
-          setShowConfirmDialog(false);
-          executeCancelVote(currentGameId);
-        },
-      });
-      setShowConfirmDialog(true);
-      return;
-    }
-
-    // 새로운 투표
-    executeVote(currentGameId, team);
-  };
-
-  // 투표 실행
-  const executeVote = async (gameId: string, team: 'home' | 'away') => {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/predictions/vote`,
-        {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          credentials: 'include',
-          body: JSON.stringify({ gameId, votedTeam: team })
-        }
-      );
-      if (response.ok) {
-        setUserVote(prev => ({ ...prev, [gameId]: team }));
-        fetchVoteStatus(gameId);
-        
-        const game = currentDateGames.find(g => g.gameId === gameId);
-        if (game) {
-          const teamName = team === 'home' 
-            ? getFullTeamName(game.homeTeam) 
-            : getFullTeamName(game.awayTeam);
-          toast.success(`${teamName} 승리 예측이 저장되었습니다! ⚾`);
-        }
-      } else {
-        const errorText = await response.text();
-        toast.error(errorText || '투표에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('투표 실패:', error);
-      toast.error('투표에 실패했습니다.');
-    }
-  };
-
-  // 투표 취소 실행
-  const executeCancelVote = async (gameId: string) => {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/predictions/${gameId}`,
-        { 
-          method: 'DELETE',
-          headers: getAuthHeaders(),
-          credentials: 'include'
-        }
-      );
-      if (response.ok) {
-        setUserVote(prev => ({ ...prev, [gameId]: null }));
-        fetchVoteStatus(gameId);
-        toast.success('투표가 취소되었습니다.');
-      }
-    } catch (error) {
-      console.error('투표 취소 실패:', error);
-      toast.error('투표 취소에 실패했습니다.');
-    }
-  };
-
-  // 팀명 매핑
-  const getFullTeamName = (shortName: string) => {
-    const teamNames: { [key: string]: string } = {
-      'LG': 'LG 트윈스',
-      'OB': '두산 베어스',
-      'KT': 'KT 위즈',
-      'SK': 'SSG 랜더스',
-      'NC': 'NC 다이노스',
-      'HT': '기아 타이거즈',
-      'SS': '삼성 라이온즈',
-      'HH': '한화 이글스',
-      'LT': '롯데 자이언츠',
-      'WO': '키움 히어로즈'
-    };
-    return teamNames[shortName] || shortName;
-  };
-
-  // 날짜 포맷팅
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${days[date.getDay()]}요일`;
-  };
-
-  // 이전/다음 날짜로 이동
-  const goToPreviousDate = () => {
-    if (currentDateIndex > 0) {
-      setCurrentDateIndex(currentDateIndex - 1);
-    }
-  };
-
-  const goToNextDate = () => {
-    if (currentDateIndex < allDatesData.length - 1) {
-      setCurrentDateIndex(currentDateIndex + 1);
-    }
-  };
+  const {
+    activeTab,
+    setActiveTab,
+    selectedGame,
+    setSelectedGame,
+    currentDateGames,
+    currentDate,
+    loading,
+    votes,
+    userVote,
+    isAuthLoading,
+    isLoggedIn,
+    showConfirmDialog,
+    setShowConfirmDialog,
+    confirmDialogData,
+    showLoginRequiredDialog,
+    setShowLoginRequiredDialog,
+    allDatesData,
+    currentDateIndex,
+    handleVote,
+    goToPreviousDate,
+    goToNextDate,
+    handleGoToLogin,
+  } = usePrediction();
 
   // 현재 경기 정보
   const currentGame = currentDateGames.length > 0 ? currentDateGames[selectedGame] : null;
   const currentGameId = currentGame?.gameId;
+  
+  // 투표 현황 계산
   const currentVotes = currentGameId ? votes[currentGameId] || { home: 0, away: 0 } : { home: 0, away: 0 };
-  const totalVotes = currentVotes.home + currentVotes.away;
-  const homePercentage = totalVotes > 0 ? Math.round((currentVotes.home / totalVotes) * 100) : 0;
-  const awayPercentage = totalVotes > 0 ? Math.round((currentVotes.away / totalVotes) * 100) : 0;
+  const { homePercentage, awayPercentage, totalVotes } = calculateVotePercentages(
+    currentVotes.home,
+    currentVotes.away
+  );
+  
+  // 경기 상태 확인
+  const { isPastGame, isFutureGame, isToday } = getGameStatus(currentGame, currentDate);
+  
+  // 투표 정확도
+  const voteAccuracy = currentGame 
+    ? calculateVoteAccuracy(currentGame.winner, currentVotes.home, currentVotes.away)
+    : null;
 
-  // 투표 정확도 계산
-  const getVoteAccuracy = () => {
-    if (!isPastGame || !currentGame?.winner || currentGame.winner === 'draw') return null;
-    const winningTeam = currentGame.winner;
-    const winningVotes = winningTeam === 'home' ? currentVotes.home : currentVotes.away;
-    return totalVotes > 0 ? Math.round((winningVotes / totalVotes) * 100) : 0;
-  };
-
+  // 로딩 중
   if (isAuthLoading || loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -431,7 +101,7 @@ export default function Prediction() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => navigate('/')}>취소</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => window.history.back()}>취소</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleGoToLogin}
                 className="text-white"
@@ -445,7 +115,6 @@ export default function Prediction() {
       </div>
     );
   }
-
 
   return (
     <div className="min-h-screen bg-white">
@@ -579,11 +248,11 @@ export default function Prediction() {
 
                       {isPastGame ? (
                         <div className="flex items-center gap-8">
-                          <span className="text-6xl font-bold" style={{ color: teamColors[currentGame.awayTeam] }}>
+                          <span className="text-6xl font-bold" style={{ color: TEAM_COLORS[currentGame.awayTeam] }}>
                             {currentGame.awayScore}
                           </span>
                           <span style={{ fontSize: '2rem', fontWeight: 900, color: '#2d5f4f' }}>VS</span>
-                          <span className="text-6xl font-bold" style={{ color: teamColors[currentGame.homeTeam] }}>
+                          <span className="text-6xl font-bold" style={{ color: TEAM_COLORS[currentGame.homeTeam] }}>
                             {currentGame.homeScore}
                           </span>
                         </div>
@@ -594,7 +263,7 @@ export default function Prediction() {
                             className="px-4 py-2 rounded-full text-white"
                             style={{ backgroundColor: '#2d5f4f' }}
                           >
-                            18:30
+                            {GAME_TIME}
                           </div>
                         </div>
                       )}
@@ -610,10 +279,10 @@ export default function Prediction() {
                     {isFutureGame && !isToday && (
                       <div className="flex gap-4 mb-6">
                         <Button
-                          onClick={() => handleVote('away')}
+                          onClick={() => handleVote('away' as VoteTeam, currentGame, isPastGame)}
                           className="flex-1 py-6 text-white text-lg rounded-lg hover:opacity-90 transition-opacity"
                           style={{ 
-                            backgroundColor: teamColors[currentGame.awayTeam],
+                            backgroundColor: TEAM_COLORS[currentGame.awayTeam],
                             fontWeight: 700,
                             opacity: userVote[currentGameId!] === 'away' ? 1 : userVote[currentGameId!] === 'home' ? 0.5 : 1
                           }}
@@ -621,10 +290,10 @@ export default function Prediction() {
                           {getFullTeamName(currentGame.awayTeam)} {userVote[currentGameId!] === 'away' && '✓'}
                         </Button>
                         <Button
-                          onClick={() => handleVote('home')}
+                          onClick={() => handleVote('home' as VoteTeam, currentGame, isPastGame)}
                           className="flex-1 py-6 text-white text-lg rounded-lg hover:opacity-90 transition-opacity"
                           style={{ 
-                            backgroundColor: teamColors[currentGame.homeTeam],
+                            backgroundColor: TEAM_COLORS[currentGame.homeTeam],
                             fontWeight: 700,
                             opacity: userVote[currentGameId!] === 'home' ? 1 : userVote[currentGameId!] === 'away' ? 0.5 : 1
                           }}
@@ -644,9 +313,9 @@ export default function Prediction() {
                         </span>
                       </div>
                       
-                      {isPastGame && currentGame.winner !== 'draw' && getVoteAccuracy() !== null && (
+                      {isPastGame && currentGame.winner !== 'draw' && voteAccuracy !== null && (
                         <div className="mb-3 text-center text-sm" style={{ color: '#2d5f4f' }}>
-                          <span className="font-bold">{getVoteAccuracy()}%</span>의 팬들이 승리팀을 정확히 예측했습니다!
+                          <span className="font-bold">{voteAccuracy}%</span>의 팬들이 승리팀을 정확히 예측했습니다!
                         </div>
                       )}
 
@@ -671,7 +340,7 @@ export default function Prediction() {
                             className="flex items-center justify-center text-white transition-all duration-500"
                             style={{ 
                               width: `${awayPercentage}%`,
-                              backgroundColor: teamColors[currentGame.awayTeam],
+                              backgroundColor: TEAM_COLORS[currentGame.awayTeam],
                               fontWeight: 700,
                               fontSize: '1.125rem',
                               opacity: isPastGame && currentGame.winner === 'away' ? 1 : isPastGame ? 0.6 : 1
@@ -683,7 +352,7 @@ export default function Prediction() {
                             className="flex items-center justify-center text-white transition-all duration-500"
                             style={{ 
                               width: `${homePercentage}%`,
-                              backgroundColor: teamColors[currentGame.homeTeam],
+                              backgroundColor: TEAM_COLORS[currentGame.homeTeam],
                               fontWeight: 700,
                               fontSize: '1.125rem',
                               opacity: isPastGame && currentGame.winner === 'home' ? 1 : isPastGame ? 0.6 : 1
