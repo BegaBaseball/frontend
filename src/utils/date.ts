@@ -13,7 +13,8 @@ export const formatDateForAPI = (date: Date): string => {
 /**
  * Date 객체를 한국어 형식으로 변환 (2025.10.26(토))
  */
-export const formatDate = (date: Date): string => {
+export const formatDate = (date: Date | null): string => {
+  if (!date) return '';
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
