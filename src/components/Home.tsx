@@ -1,49 +1,19 @@
+// Home.tsx
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
-import { Calendar, Trophy, Home as HomeIcon, Heart, MapPin, TrendingUp, BookOpen, ChevronLeft, ChevronRight, CalendarDays, Loader2 } from 'lucide-react';
+import { Trophy, ChevronLeft, ChevronRight, CalendarDays, Loader2 } from 'lucide-react';
 import { Calendar as CalendarComponent } from './ui/calendar';
 import ChatBot from './ChatBot';
-import TeamLogo from './TeamLogo';
 import GameCard from './GameCard';
 import OffSeasonHome from './OffSeasonHome';
-import { useState, useEffect } from 'react';
-
-// Note: grassDecor와 baseballLogo 이미지는 CSS로 대체됨
-
-// 백엔드 API 응답과 일치하는 타입 정의
-interface Game {
-    gameId: string;
-    time: string;
-    stadium: string;
-    gameStatus: string; 
-    gameStatusKr: string;
-    gameInfo: string; 
-    leagueType: 'REGULAR' | 'POSTSEASON' | 'KOREAN_SERIES' | 'OFFSEASON';
-    homeTeam: string; 
-    homeTeamFull: string; 
-    awayTeam: string; 
-    awayTeamFull: string; 
-    homeScore?: number;  
-    awayScore?: number;  
-}
-
-// 순위 데이터 타입
-interface Ranking {
-    rank: number;
-    teamId: string; 
-    teamName: string; 
-    wins: number;
-    losses: number;
-    draws: number;
-    winRate: string;
-    games: number;
-}
+import { useHome } from '../hooks/useHome';
+import { formatDate } from '../utils/date';
 
 interface HomeProps {
-    onNavigate: (page: string) => void;
+  onNavigate: (page: string) => void;
 }
 
 export default function Home({ onNavigate }: HomeProps) {
@@ -450,31 +420,208 @@ export default function Home({ onNavigate }: HomeProps) {
                                 <li><button onClick={() => onNavigate('diary')} className="hover:text-white">직관다이어리</button></li>
                             </ul>
                         </div>
-                        <div>
-                            <h4 className="mb-4">정보</h4>
-                            <ul className="space-y-2 text-gray-400">
-                                <li><a href="#" className="hover:text-white">공지사항</a></li>
-                                <li><a href="#" className="hover:text-white">이용약관</a></li>
-                                <li><a href="#" className="hover:text-white">개인정보처리방침</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="mb-4">고객센터</h4>
-                            <ul className="space-y-2 text-gray-400">
-                                <li>이메일: support@bega.com</li>
-                                <li>운영시간: 평일 09:00-18:00</li>
-                            </ul>
-                        </div>
-                    </div>
+                      )}
+                    </TabsContent>
 
-                    <div className="border-t border-gray-800 pt-8 text-center text-gray-400 text-sm">
-                        <p>© 2025 BEGA (BASEBALL GUIDE). All rights reserved.</p>
-                    </div>
-                </div>
-            </footer>
+                    <TabsContent value="postseason" className="mt-8">
+                      {filteredGames.postseason.length === 0 ? (
+                        <p className="text-center py-8 text-gray-500">
+                          해당 날짜에 포스트시즌 경기가 없습니다.
+                        </p>
+                      ) : (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {filteredGames.postseason.map((game, index) => (
+                            <GameCard key={index} game={game} featured={true} />
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
 
-            {/* ChatBot */}
-            <ChatBot />
+                    <TabsContent value="koreanseries" className="mt-8">
+                      {filteredGames.koreanSeries.length === 0 ? (
+                        <p className="text-center py-8 text-gray-500">
+                          해당 날짜에 한국시리즈 경기가 없습니다.
+                        </p>
+                      ) : (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {filteredGames.koreanSeries.map((game, index) => (
+                            <GameCard key={index} game={game} featured={true} />
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
+                  </>
+                )}
+              </Tabs>
+
+              <div className="mt-8 flex justify-between items-center text-sm text-gray-600">
+                <p>*경기별 티켓 예매 날짜는 구단별 판매처에서 확인하실 수 있습니다.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Team Rankings Section */}
+          <section className="py-16 bg-white relative">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center gap-3 mb-8">
+                <Trophy className="w-6 h-6" style={{ color: '#2d5f4f' }} />
+                <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>
+                  {currentSeason} 시즌 팀 순위
+                </h2>
+                {isRankingsLoading && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin text-gray-500" />
+                )}
+              </div>
+
+              <Card className="overflow-hidden">
+                {rankings.length === 0 && !isRankingsLoading ? (
+                  <p className="text-center py-8 text-gray-500">
+                    {currentSeason} 시즌 순위 데이터를 불러올 수 없습니다.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr
+                          className="border-b border-gray-200"
+                          style={{ backgroundColor: '#f8f9fa' }}
+                        >
+                          <th className="text-left py-4 px-6 text-gray-700">순위</th>
+                          <th className="text-left py-4 px-6 text-gray-700">팀명</th>
+                          <th className="text-right py-4 px-6 text-gray-700">경기</th>
+                          <th className="text-right py-4 px-6 text-gray-700">승률</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rankings.map((team) => (
+                          <tr
+                            key={team.teamId}
+                            className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                          >
+                            <td className="py-4 px-6">
+                              <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-white"
+                                style={{
+                                  backgroundColor: team.rank <= 5 ? '#2d5f4f' : '#9ca3af',
+                                  fontWeight: 900,
+                                }}
+                              >
+                                {team.rank}
+                              </div>
+                            </td>
+                            <td
+                              className="py-4 px-6"
+                              style={{ fontWeight: team.rank <= 5 ? 700 : 400 }}
+                            >
+                              {team.teamName}
+                            </td>
+                            <td className="py-4 px-6 text-right text-gray-600">
+                              {`${team.wins}승 ${team.losses}패 ${team.draws}무 (${team.games}경기)`}
+                            </td>
+                            <td
+                              className="py-4 px-6 text-right"
+                              style={{ color: '#2d5f4f', fontWeight: 700 }}
+                            >
+                              {parseFloat(team.winRate).toFixed(3)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: '#2d5f4f' }}
+            >
+              <span className="text-white text-xl font-bold">⚾</span>
+            </div>
+            <div>
+              <h3 className="tracking-wider" style={{ fontWeight: 900 }}>
+                BEGA
+              </h3>
+              <p className="text-xs text-gray-400">BASEBALL GUIDE</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <h4 className="mb-4">서비스</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>
+                  <button onClick={() => onNavigate('home')} className="hover:text-white">
+                    홈
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => onNavigate('cheer')} className="hover:text-white">
+                    응원게시판
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => onNavigate('stadium')} className="hover:text-white">
+                    구장가이드
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => onNavigate('prediction')} className="hover:text-white">
+                    승부예측
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => onNavigate('diary')} className="hover:text-white">
+                    직관다이어리
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="mb-4">정보</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>
+                  <a href="#" className="hover:text-white">
+                    공지사항
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white">
+                    이용약관
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white">
+                    개인정보처리방침
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="mb-4">고객센터</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>이메일: support@bega.com</li>
+                <li>운영시간: 평일 09:00-18:00</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800 pt-8 text-center text-gray-400 text-sm">
+            <p>© 2025 BEGA (BASEBALL GUIDE). All rights reserved.</p>
+          </div>
         </div>
-    );
+      </footer>
+
+      {/* ChatBot */}
+      <ChatBot />
+    </div>
+  );
 }
