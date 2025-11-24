@@ -31,6 +31,18 @@ export default function Home({ onNavigate }: HomeProps) {
     // 리그별 경기 필터링
     const { regular, postseason, koreanseries } = filterGamesByLeague(games);
 
+    // // 리그 시작 날짜 로딩 중
+    // if (!leagueStartDates || !selectedDate) {
+    //     return (
+    //         <div className="min-h-screen bg-white flex items-center justify-center">
+    //             <div className="flex flex-col items-center gap-4">
+    //                 <Loader2 className="w-12 h-12 animate-spin" style={{ color: '#2d5f4f' }} />
+    //                 <p className="text-gray-500">리그 정보를 불러오는 중...</p>
+    //             </div>
+    //         </div>
+    //     );
+    // }
+
     return (
         <div className="min-h-screen bg-white">
             {selectedDate && isOffSeasonForUI(selectedDate) && games.length === 0 ? (
@@ -69,39 +81,20 @@ export default function Home({ onNavigate }: HomeProps) {
                     <section className="py-12 bg-gray-50">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             {/* Date Navigation */}
-                            {selectedDate && (
-                                <div className="flex items-center justify-between mb-8">
-                                    <div className="flex-1"></div>
-                                    <div className="flex items-center gap-4">
-                                        <button 
-                                            onClick={() => changeDate(-1)}
-                                            className="p-2 hover:opacity-70 rounded-lg transition-colors text-white"
-                                            style={{ backgroundColor: '#2d5f4f' }}
-                                        >
-                                            <ChevronLeft className="w-5 h-5" />
-                                        </button>
-                                        <div className="min-w-[200px] text-center bg-white rounded-lg py-2 px-4 border-2" style={{ borderColor: '#2d5f4f' }}>
-                                            <h2 style={{ fontWeight: 900, fontSize: '18px', color: '#2d5f4f' }}>{formatDate(selectedDate)}</h2>
-                                        </div>
-                                        <button 
-                                            onClick={() => changeDate(1)}
-                                            className="p-2 hover:opacity-70 rounded-lg transition-colors text-white"
-                                            style={{ backgroundColor: '#2d5f4f' }}
-                                        >
-                                            <ChevronRight className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 flex justify-end">
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm"
-                                            className="bg-white hover:opacity-70"
-                                            style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
-                                            onClick={() => setShowCalendar(true)}
-                                        >
-                                            <CalendarDays className="w-4 h-4 mr-2" />
-                                            캘린더
-                                        </Button>
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex-1"></div>
+                                <div className="flex items-center gap-4">
+                                    <button 
+                                        onClick={() => changeDate(-1)}
+                                        className="p-2 hover:opacity-70 rounded-lg transition-colors text-white"
+                                        style={{ backgroundColor: '#2d5f4f' }}
+                                    >
+                                        <ChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    <div className="min-w-[200px] text-center bg-white rounded-lg py-2 px-4 border-2" style={{ borderColor: '#2d5f4f' }}>
+                                    <h2 style={{ fontWeight: 900, fontSize: '18px', color: '#2d5f4f' }}>
+                                        {formatDate(selectedDate)} {/* ✅ 이제 안전! */}
+                                    </h2>
                                     </div>
                                     <button 
                                         onClick={() => changeDate(1)}
@@ -133,7 +126,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                         캘린더
                                     </Button>
                                 </div>
-                            )}
+                            </div>
 
                             {/* Calendar Dialog */}
                             <Dialog open={showCalendar} onOpenChange={setShowCalendar}>
