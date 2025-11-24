@@ -2,7 +2,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
-import { Trophy, ChevronLeft, ChevronRight, CalendarDays, Loader2 } from 'lucide-react';
+import { Flame, Trophy, ChevronLeft, ChevronRight, CalendarDays, Loader2 } from 'lucide-react';
 import { Calendar as CalendarComponent } from './ui/calendar';
 import ChatBot from './ChatBot';
 import GameCard from './GameCard';
@@ -103,6 +103,35 @@ export default function Home({ onNavigate }: HomeProps) {
                                             캘린더
                                         </Button>
                                     </div>
+                                    <button 
+                                        onClick={() => changeDate(1)}
+                                        className="p-2 hover:opacity-70 rounded-lg transition-colors text-white"
+                                        style={{ backgroundColor: '#2d5f4f' }}
+                                    >
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="flex-1 flex justify-end">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        className="bg-white hover:opacity-70 animate-pulse"
+                                        style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+                                        onClick={() => setSelectedDate(new Date(2025, 11, 30))}
+                                    >
+                                        <Flame className="w-4 h-4 mr-2" />
+                                        스토브리그
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        className="bg-white hover:opacity-70"
+                                        style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+                                        onClick={() => setShowCalendar(true)}
+                                    >
+                                        <CalendarDays className="w-4 h-4 mr-2" />
+                                        캘린더
+                                    </Button>
                                 </div>
                             )}
 
