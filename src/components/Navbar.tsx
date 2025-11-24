@@ -6,6 +6,7 @@ import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore'; 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`;
@@ -15,7 +16,6 @@ export default function Navbar() {
   const location = useLocation();
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
   const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
   const setIsNotificationOpen = useUIStore((state) => state.setIsNotificationOpen);
@@ -23,26 +23,12 @@ export default function Navbar() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   // 페이지 이동 시 모바일 메뉴 닫기
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname]);
-
-  // 화면 크기 감지
-  useEffect(() => {
-    const handleResize = () => {
-      const desktop = window.innerWidth >= 768;
-      setIsDesktop(desktop);
-      if (desktop) { 
-        setIsMenuOpen(false);
-      }
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // 메뉴 외부 클릭 시 닫기
   useEffect(() => {
