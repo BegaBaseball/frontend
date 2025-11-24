@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
-import LoadingSpinner from './components/LoadingSpinner';
+// import LoadingSpinner from './components/LoadingSpinner';
 import Layout from './components/Layout';
 import ChatBot from './components/ChatBot';
 
@@ -35,12 +35,12 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 // 인증이 필요한 라우트를 보호하는 컴포넌트
 function ProtectedRoute() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
+  // const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   
   // 로딩 중이면 스피너 표시
-  if (isAuthLoading) {
-    return <LoadingSpinner />;
-  }
+  // if (isAuthLoading) {
+  //   return <LoadingSpinner />;
+  // }
   
   // 로딩 완료 후 로그인 체크
   if (!isLoggedIn) {
@@ -56,9 +56,9 @@ function AdminRoute() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   
-  if (isAuthLoading) {
-    return <LoadingSpinner />;
-  }
+  // if (isAuthLoading) {
+  //   return <LoadingSpinner />;
+  // }
   
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
@@ -104,7 +104,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingSpinner />}>
+      {/* <Suspense fallback={<LoadingSpinner />}> */}
         <Routes>
           {/* 공개 라우트 - 로그인 필요 없음 */}
           <Route path="/login" element={<Login />} />
@@ -148,7 +148,7 @@ export default function App() {
           {/* 404 처리 */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Suspense>
+      {/* </Suspense> */}
       <ChatBot />
     </BrowserRouter>
   );

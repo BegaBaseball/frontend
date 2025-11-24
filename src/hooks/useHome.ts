@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Game, Ranking, LeagueStartDates } from '../types/home';
 import { fetchGamesData, fetchRankingsData, fetchLeagueStartDates } from '../api/home';
 import { changeDate as changeDateUtil } from '../utils/home';
-import { CURRENT_SEASON_YEAR } from '../constants/home';
+import { CURRENT_SEASON_YEAR, DEFAULT_LEAGUE_START_DATES } from '../constants/home';
 
 export const useHome = () => {
     // 초기값을 null로 설정 (리그 날짜 로드 후 설정)
@@ -12,9 +12,10 @@ export const useHome = () => {
     const [games, setGames] = useState<Game[]>([]);
     const [rankings, setRankings] = useState<Ranking[]>([]);
     const [leagueStartDates, setLeagueStartDates] = useState<LeagueStartDates | null>(null); 
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [isRankingsLoading, setIsRankingsLoading] = useState(false);
     const [activeLeagueTab, setActiveLeagueTab] = useState('koreanseries');
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // 리그 시작 날짜 로드
     const loadLeagueStartDates = async () => {
@@ -42,14 +43,15 @@ export const useHome = () => {
     const handleTabChange = (value: string) => {
         setActiveLeagueTab(value);
         
-        if (!leagueStartDates) return;
+        // if (!leagueStartDates) return;
+        const dates = leagueStartDates || DEFAULT_LEAGUE_START_DATES;
         
         if (value === 'regular') {
-            setSelectedDate(new Date(leagueStartDates.regularSeasonStart));
+            setSelectedDate(new Date(dates.regularSeasonStart));
         } else if (value === 'postseason') {
-            setSelectedDate(new Date(leagueStartDates.postseasonStart));
+            setSelectedDate(new Date(dates.postseasonStart));
         } else if (value === 'koreanseries') {
-            setSelectedDate(new Date(leagueStartDates.koreanSeriesStart));
+            setSelectedDate(new Date(dates.koreanSeriesStart));
         }
     };
 
@@ -62,24 +64,27 @@ export const useHome = () => {
 
     // 1. 컴포넌트 마운트 시 리그 시작 날짜 먼저 로드
     useEffect(() => {
-        loadLeagueStartDates();
+        const initializeHome = async () => {
+            const dates = await fetchLeagueStartDates();
+            setLeagueStartDates(dates);
+            
+            // DB 날짜 로드 완료 후 초기 날짜 설정
+            const initialDate = new Date(dates.koreanSeriesStart);
+            setSelectedDate(initialDate);
+            setIsInitialized(true);
+        };
+        
+        initializeHome();
     }, []);
 
-    // 2. 리그 시작 날짜 로드 완료 후 초기 날짜 설정
+    // ✅ 2. 초기화 완료 후 경기 데이터 로드
     useEffect(() => {
-        if (leagueStartDates) {
-            setSelectedDate(new Date(leagueStartDates.koreanSeriesStart));
-        }
-    }, [leagueStartDates]);
-
-    // 3. 선택된 날짜가 변경되면 경기 데이터 다시 로드
-    useEffect(() => {
-        if (selectedDate) {
+        if (isInitialized && selectedDate) {
             loadGamesData(selectedDate);
         }
-    }, [selectedDate]);
+     }, [isInitialized, selectedDate]);
 
-    // 4. 컴포넌트 마운트 시 순위 데이터 로드
+    // ✅ 3. 컴포넌트 마운트 시 순위 데이터 로드
     useEffect(() => {
         loadRankingsData();
     }, []);
