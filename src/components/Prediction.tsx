@@ -42,6 +42,51 @@ export default function Prediction() {
     return TEAM_DATA[teamId]?.color || '#2d5f4f';
   };
 
+  if (isAuthLoading || loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
+          <p style={{ color: '#2d5f4f' }}>
+            {isAuthLoading ? '로그인 확인 중...' : '경기 데이터를 불러오는 중...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 로그인 안 되어 있으면 다이얼로그만 표시
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-white">
+        <AlertDialog open={showLoginRequiredDialog} onOpenChange={setShowLoginRequiredDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle style={{ color: '#2d5f4f' }}>
+                로그인 필요
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-base">
+                로그인이 필요한 서비스입니다.<br />
+                로그인 페이지로 이동하시겠습니까?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => navigate('/')}>취소</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleGoToLogin}
+                className="text-white"
+                style={{ backgroundColor: '#2d5f4f' }}
+              >
+                로그인하러 가기
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
+
+
   return (
     <div className="min-h-screen bg-white">
       {/* Main Content */}
@@ -80,10 +125,9 @@ export default function Prediction() {
 
         {activeTab === 'match' ? (
           <>
-            {/* Date and Description */}
+            {/* Date Navigation */}
             <Card className="p-6 mb-6" style={{ backgroundColor: '#f0f9f6' }}>
               <div className="flex items-center justify-between">
-                {/* 왼쪽 화살표 */}
                 <button
                   onClick={goToPreviousDate}
                   disabled={!canGoPrevious}
@@ -93,7 +137,6 @@ export default function Prediction() {
                   <ChevronLeft size={28} />
                 </button>
 
-                {/* 중앙 날짜 및 설명 */}
                 <div className="flex-1 text-center">
                   <p className="mb-2" style={{ color: '#2d5f4f', fontWeight: 700 }}>
                     {formatDateWithDay(currentDate)}
@@ -103,11 +146,12 @@ export default function Prediction() {
                       ? '과거 경기 결과와 투표 결과를 확인해보세요!'
                       : isFutureGame
                       ? '여러분의 예측에 투표해주세요!'
+                      : isToday && currentDateGames.length === 0
+                      ? '오늘은 예정된 경기가 없습니다.'
                       : '여러분의 예측에 투표해주세요!'}
                   </p>
                 </div>
 
-                {/* 오른쪽 화살표 */}
                 <button
                   onClick={goToNextDate}
                   disabled={!canGoNext}
@@ -119,11 +163,10 @@ export default function Prediction() {
               </div>
             </Card>
 
-            {/* 경기가 있는 경우 */}
             {currentDateGames.length > 0 ? (
               <>
                 {/* Game Selection Tabs */}
-                <div className="flex gap-3 mb-8">
+                <div className="flex gap-3 mb-8 flex-wrap">
                   {currentDateGames.map((_, index) => (
                     <Button
                       key={index}
@@ -372,14 +415,13 @@ export default function Prediction() {
                 }}
               >
                 <h3 className="text-xl font-bold" style={{ color: '#2d5f4f' }}>
-                  예정된 경기 일정이 없습니다.
+                  {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
                 </h3>
               </Card>
             )}
           </>
         ) : (
           <>
-            {/* Ranking Prediction Description */}
             <Card className="p-6 mb-6" style={{ backgroundColor: '#f0f9f6' }}>
               <p className="text-center mb-2" style={{ color: '#2d5f4f', fontWeight: 700 }}>
                 2026 시즌 순위 예측
@@ -388,14 +430,11 @@ export default function Prediction() {
                 팀을 드래그해서 내년 시즌 순위를 예측해보세요
               </p>
             </Card>
-
-            {/* Ranking Prediction Component */}
             <RankingPrediction />
           </>
         )}
       </div>
 
-      {/* ChatBot */}
       <ChatBot />
     </div>
   );

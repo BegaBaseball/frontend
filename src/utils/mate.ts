@@ -7,6 +7,7 @@ export const mapBackendPartyToFrontend = (backendParty: any): Party => ({
   hostId: backendParty.hostId.toString(),
   hostName: backendParty.hostName,
   hostProfileImageUrl: backendParty.hostProfileImageUrl,
+  hostFavoriteTeam: backendParty.hostFavoriteTeam,
   hostBadge: backendParty.hostBadge.toLowerCase(),
   hostRating: backendParty.hostRating,
   teamId: backendParty.teamId,

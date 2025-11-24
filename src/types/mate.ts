@@ -4,6 +4,7 @@ export interface Party {
   hostId: string;
   hostName: string;
   hostProfileImageUrl?: string;
+  hostFavoriteTeam?: string;
   hostBadge: string;
   hostRating: number;
   teamId: string;
