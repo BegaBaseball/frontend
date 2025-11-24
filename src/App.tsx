@@ -116,7 +116,7 @@ export default function App() {
           <Route element={<Layout />}>
             {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
             <Route path="/" element={<Home />} />
-            <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date(2025, 11, 30)}/>} />
+            <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()}/>} />
             <Route path="/stadium" element={<StadiumGuide />} />
             <Route path="/prediction" element={<Prediction />} />
             <Route path="/cheer" element={<Cheer />} />
