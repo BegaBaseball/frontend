@@ -31,6 +31,7 @@ export default function MateManage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
@@ -128,6 +129,53 @@ export default function MateManage() {
       alert('신청 거절에 실패했습니다.');
     }
   };
+
+  // 파티 삭제 핸들러
+  const handleDeleteParty = async () => {
+    if (!selectedParty || !currentUserId) return;
+
+    // 승인된 신청자 확인
+    const approvedCount = applications.filter(app => app.isApproved).length;
+    
+    if (approvedCount > 0) {
+      alert(
+        '승인된 참여자가 있어 파티를 삭제할 수 없습니다.\n' +
+        '참여자가 취소하거나 거절 후 삭제해주세요.'
+      );
+      return;
+    }
+
+    const pendingCount = applications.filter(
+      app => !app.isApproved && !app.isRejected
+    ).length;
+
+    let confirmMessage = '파티를 삭제하시겠습니까?\n\n';
+    
+    if (pendingCount > 0) {
+      confirmMessage += `⚠️ 대기 중인 신청 ${pendingCount}건도 함께 삭제됩니다.`;
+    } else {
+      confirmMessage += '이 작업은 되돌릴 수 없습니다.';
+    }
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await api.deleteParty(selectedParty.id, currentUserId);
+      alert('파티가 삭제되었습니다.');
+      navigate('/mate');
+    } catch (error: any) {
+      console.error('파티 삭제 중 오류:', error);
+      const errorMessage = error.message || '파티 삭제에 실패했습니다.';
+      alert(errorMessage);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   const handleOpenChat = () => {
     navigate(`/mate/${id}/chat`);
@@ -257,18 +305,29 @@ export default function MateManage() {
             </div>
           </div>
 
-          {approvedApplications.length > 0 && (
+          <div className="flex gap-2 mt-4">
+            {approvedApplications.length > 0 && (
+              <Button
+                onClick={handleOpenChat}
+                className="flex-1 text-white"
+                style={{ backgroundColor: '#2d5f4f' }}
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                채팅방 입장
+              </Button>
+            )}
+            
+            {/* 삭제 버튼 */}
             <Button
-              onClick={handleOpenChat}
-              className="w-full text-white mt-4"
-              style={{ backgroundColor: '#2d5f4f' }}
+              onClick={handleDeleteParty}
+              disabled={isDeleting}
+              variant="outline"
+              className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
             >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              채팅방 입장
+              {isDeleting ? '삭제 중...' : '파티 삭제'}
             </Button>
-          )}
-        </Card>
-
+          </div>
+        </Card>  
         {/* Applications Tabs */}
         <Tabs defaultValue="pending">
           <TabsList className="grid w-full grid-cols-3 mb-6">

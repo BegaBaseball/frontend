@@ -35,10 +35,11 @@ export async function fetchUserIdByEmail(email: string): Promise<number> {
 }
 
 /**
- * 전체 파티 목록 조회
+ * 전체 파티 목록 조회 (페이징 - 최대 1000개)
  */
 export async function fetchAllParties(): Promise<MateParty[]> {
-  const response = await fetch(`${API_BASE}/parties`, {
+  // 페이징 파라미터 추가
+  const response = await fetch(`${API_BASE}/parties?page=0&size=1000`, {
     credentials: 'include',
   });
 
@@ -46,7 +47,8 @@ export async function fetchAllParties(): Promise<MateParty[]> {
     throw new Error('파티 목록 조회 실패');
   }
 
-  return response.json();
+  const data = await response.json();
+  return data.content || [];
 }
 
 /**
@@ -73,7 +75,7 @@ export async function fetchMyParties(): Promise<MateParty[]> {
     const userData = await fetchCurrentUser();
     const userId = await fetchUserIdByEmail(userData.data.email);
 
-    // 2. 전체 파티
+    // 2. 전체 파티 (이제 content 배열 반환)
     const allParties = await fetchAllParties();
 
     // 3. 신청 내역
