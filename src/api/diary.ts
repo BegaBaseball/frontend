@@ -1,5 +1,4 @@
 import { Game, SaveDiaryRequest, DiaryStatistics } from '../types/diary';
-
 // const API_BASE = '/api/diary';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
@@ -17,6 +16,27 @@ export async function fetchGames(date: string): Promise<Game[]> {
 
   return response.json();
 }
+
+export const fetchDiaries = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/diary/entries`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API 요청 실패: ${response.status}`);
+  }
+    const data = await response.json();
+    console.log(data);
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
 
 /**
  * 다이어리 저장
