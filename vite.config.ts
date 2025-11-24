@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 
 const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';

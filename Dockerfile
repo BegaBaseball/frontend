@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -15,15 +15,25 @@ ENV VITE_PROXY_TARGET=$VITE_PROXY_TARGET
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
-COPY package.json ./
-COPY package-lock.json* ./
+COPY package.json package-lock.json* .npmrc ./
+
+# Install dependencies with optional packages
 RUN npm install
 
 COPY . ./
+
+# Install platform-specific rollup binary if needed
+RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
+      npm install @rollup/rollup-linux-arm64-gnu --save-dev || true; \
+    elif [ "$(uname -m)" = "x86_64" ]; then \
+      npm install @rollup/rollup-linux-x64-gnu --save-dev || true; \
+    fi
+
+# Build the project
 RUN npm run build
 
 # Stage 2: Runtime (serve with Vite dev server)
-FROM node:20-alpine AS runner
+FROM --platform=$TARGETPLATFORM node:20-slim AS runner
 
 WORKDIR /app
 
@@ -39,9 +49,14 @@ ENV VITE_PROXY_TARGET=$VITE_PROXY_TARGET
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
+# Copy built node_modules and source files
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app .
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/docs ./docs
+COPY --from=builder /app/index.html ./index.html
+COPY --from=builder /app/vite.config.ts ./vite.config.ts
+COPY --from=builder /app/tsconfig*.json ./
 
 EXPOSE 3000
 

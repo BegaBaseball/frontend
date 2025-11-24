@@ -27,6 +27,9 @@ const MateManage = lazy(() => import('./components/MateManage'));
 const MyPage = lazy(() => import('./components/MyPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const RankingPredictionShare = lazy(() => import('./components/RankingPredictionShare'));
+const NoticePage = lazy(() => import('./components/NoticePage'));
+const TermsOfService = lazy(() => import('./components/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 
 // 인증이 필요한 라우트를 보호하는 컴포넌트
 function ProtectedRoute() {
@@ -119,6 +122,9 @@ export default function App() {
             <Route path="/mate" element={<Mate />} />
             <Route path="/mate/:id" element={<MateDetail />} />
             <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
+            <Route path="/notice" element={<NoticePage />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             {/* 로그인 필요한 라우트 */}
             <Route element={<ProtectedRoute />}>
               <Route path="/cheer/write" element={<CheerWrite />} />

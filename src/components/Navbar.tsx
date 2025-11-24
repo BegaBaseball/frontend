@@ -19,7 +19,6 @@ export default function Navbar() {
   const location = useLocation();
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   const [userId, setUserId] = useState<number | null>(null);
 
   const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
@@ -30,6 +29,7 @@ export default function Navbar() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
   
 
 
