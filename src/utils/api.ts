@@ -1,6 +1,4 @@
 // src/utils/api.ts
-import { Party, Application, CheckIn, ChatMessage } from '../types/mate';
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 export const api = {
@@ -18,7 +16,16 @@ export const api = {
       throw new Error(`API Error: ${response.status}`);
     }
 
-    return response.json();
+    if (response.status === 204) {
+      return {};
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    }
+
+    return {};
   },
 
   // Stadium
@@ -40,14 +47,37 @@ export const api = {
   },
 
   // Party
-  async getParties() {
-    return this.request('/parties');
+  async getParties(teamId?: string, stadium?: string, page = 0, size = 9): Promise<{
+    content: any[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+  }> {
+    const params = new URLSearchParams();
+    if (teamId) params.append('teamId', teamId);
+    if (stadium) params.append('stadium', stadium);
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+    
+    return this.request(`/parties?${params}`);
   },
 
     async createParty(data: any) {
     return this.request('/parties', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+
+ async getPartyById(partyId: string) {
+    return this.request(`/parties/${partyId}`);
+  },
+
+  // 파티 삭제 추가
+  async deleteParty(partyId: string, hostId: number) {
+    return this.request(`/parties/${partyId}?hostId=${hostId}`, {
+      method: 'DELETE',
     });
   },
 
@@ -78,6 +108,13 @@ export const api = {
     });
   },
 
+  // 신청 취소 추가
+  async cancelApplication(applicationId: string, applicantId: number) {
+    return this.request(`/applications/${applicationId}?applicantId=${applicantId}`, {
+      method: 'DELETE',
+    });
+  },
+
   // CheckIn
   async getCheckInsByParty(partyId: string) {
     return this.request(`/checkin/party/${partyId}`);
@@ -105,6 +142,27 @@ export const api = {
     return this.request('/posts', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+
+  // Notification
+  async getNotifications(userId: number) {
+    return this.request(`/notifications/user/${userId}`);
+  },
+
+  async getUnreadCount(userId: number) {
+    return this.request(`/notifications/user/${userId}/unread-count`);
+  },
+
+  async markAsRead(notificationId: number) {
+    return this.request(`/notifications/${notificationId}/read`, {
+      method: 'POST',
+    });
+  },
+
+  async deleteNotification(notificationId: number) {
+    return this.request(`/notifications/${notificationId}`, {
+      method: 'DELETE',
     });
   },
 };

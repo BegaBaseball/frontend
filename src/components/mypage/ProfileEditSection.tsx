@@ -1,8 +1,9 @@
-import { Camera, Save, User } from 'lucide-react';
+import { Camera, Save, User, AlertCircle } from 'lucide-react'; 
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert'; 
 import TeamLogo from '../TeamLogo';
 import TeamRecommendationTest from '../TeamRecommendationTest';
 import { useProfileEdit } from '../../hooks/useProfileEdit';
@@ -31,6 +32,7 @@ export default function ProfileEditSection({
     profileImage,
     name,
     setName,
+    nameError, // ✅ 이미 받아오고 있음
     email,
     setEmail,
     editingFavoriteTeam,
@@ -55,6 +57,15 @@ export default function ProfileEditSection({
         <div className="flex items-center justify-between mb-6">
           <h2 style={{ color: '#2d5f4f' }}>내 정보 수정</h2>
         </div>
+
+        {/* ✅ 에러 Alert 추가 */}
+        {nameError && (
+          <Alert variant="destructive" className="mb-6 animate-in fade-in">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>입력 오류</AlertTitle>
+            <AlertDescription>{nameError}</AlertDescription>
+          </Alert>
+        )}
 
         {/* Profile Image */}
         <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gray-200">
@@ -90,7 +101,7 @@ export default function ProfileEditSection({
 
         {/* Form Fields */}
         <div className="space-y-6">
-          {/* Name */}
+          {/* Name - ✅ 수정된 부분 */}
           <div className="space-y-2">
             <Label htmlFor="name" className="text-gray-700">
               이름 *
@@ -99,10 +110,18 @@ export default function ProfileEditSection({
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full"
+              className={`w-full ${nameError ? 'border-red-500' : ''}`} // ✅ 에러 시 빨간 테두리
               placeholder="이름을 입력하세요"
+              maxLength={21} // ✅ 최대 21자 (20자 + 1)
               disabled={isLoading}
             />
+            {/* ✅ 글자 수 표시 추가 */}
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">닉네임은 20자 이하로 입력해주세요</p>
+              <p className={`text-xs ${name.length > 20 ? 'text-red-500' : 'text-gray-500'}`}>
+                {name.length}/20
+              </p>
+            </div>
           </div>
 
           {/* Email */}

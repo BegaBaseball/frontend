@@ -1,4 +1,3 @@
-// hooks/useProfileEdit.ts
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { uploadProfileImage, updateProfile } from '../api/profile';
@@ -15,6 +14,7 @@ interface UseProfileEditProps {
 
 const MAX_FILE_SIZE_MB = 5;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_NAME_LENGTH = 20;  // ✅ 추가
 
 export const useProfileEdit = ({
   initialProfileImage,
@@ -30,6 +30,7 @@ export const useProfileEdit = ({
   const [editingFavoriteTeam, setEditingFavoriteTeam] = useState(initialFavoriteTeam);
   const [newProfileImageFile, setNewProfileImageFile] = useState<File | null>(null);
   const [showTeamTest, setShowTeamTest] = useState(false);
+  const [nameError, setNameError] = useState('');  // ✅ 추가
 
   // ========== Image Upload Mutation ==========
   const imageUploadMutation = useMutation({
@@ -56,6 +57,7 @@ export const useProfileEdit = ({
       }
 
       setNewProfileImageFile(null);
+      setNameError('');  // ✅ 추가: 성공 시 에러 초기화
       toast.success('변경사항이 적용되었습니다.');
       onSave();
     },
@@ -99,13 +101,32 @@ export const useProfileEdit = ({
     }
   };
 
+  // ========== Name Change Handler ✅ 추가 ==========
+  const handleNameChange = (value: string) => {
+    setName(value);
+    // 입력 중 에러 초기화
+    if (nameError) {
+      setNameError('');
+    }
+  };
+
   // ========== Save Handler ==========
   const handleSave = async () => {
-    // 유효성 검사
+    // ✅ 닉네임 유효성 검사
     if (!name.trim()) {
+      setNameError('이름(닉네임)은 필수로 입력해야 합니다.');
       toast.error('이름(닉네임)은 필수로 입력해야 합니다.');
       return;
     }
+
+    if (name.trim().length > MAX_NAME_LENGTH) {
+      setNameError(`닉네임은 ${MAX_NAME_LENGTH}자 이하로 입력해주세요.`);
+      toast.error(`닉네임은 ${MAX_NAME_LENGTH}자 이하로 입력해주세요.`);
+      return;
+    }
+
+    // ✅ 검증 통과 시 에러 초기화
+    setNameError('');
 
     try {
       let finalImageUrl: string | undefined = undefined;
@@ -148,13 +169,14 @@ export const useProfileEdit = ({
     // State
     profileImage,
     name,
-    setName,
+    setName: handleNameChange,  // ✅ 수정
     email,
     setEmail,
     editingFavoriteTeam,
     setEditingFavoriteTeam,
     showTeamTest,
     setShowTeamTest,
+    nameError,  // ✅ 추가
 
     // Loading
     isLoading: imageUploadMutation.isPending || updateMutation.isPending,

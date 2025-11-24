@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useDiaryStore } from '../store/diaryStore';
-import { fetchGames, saveDiary, updateDiary, deleteDiary, uploadDiaryImages } from '../api/diary';
+import { fetchGames, fetchDiaries, saveDiary, updateDiary, deleteDiary, uploadDiaryImages } from '../api/diary';
 import { DiaryEntry, Game } from '../types/diary';
 import { formatDateString } from '../utils/diary';
 import { useDiaryForm } from './useDiaryForm';
@@ -9,7 +8,6 @@ import { toast } from 'sonner';
 
 export const useDiaryView = () => {
   const queryClient = useQueryClient();
-  const { diaryEntries, addDiaryEntry, updateDiaryEntry, deleteDiaryEntry } = useDiaryStore();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -27,8 +25,16 @@ export const useDiaryView = () => {
   // ========== Computed Values ==========
   const dateStr = useMemo(() => formatDateString(selectedDate), [selectedDate]);
 
+  // ========== Fetch Diaries from DB ==========
+  const { data: diaryEntries = [], isLoading: entriesLoading } = useQuery({
+    queryKey: ['diaries'],
+    queryFn: fetchDiaries,
+    staleTime: 1 * 60 * 1000, // 1분
+    gcTime: 5 * 60 * 1000, // 5분
+  });
+
   const selectedDiary = useMemo(() => {
-    return diaryEntries.find((e) => e.date === dateStr);
+    return diaryEntries.find((e: DiaryEntry) => e.date === dateStr);
   }, [diaryEntries, dateStr]);
 
   // ========== Fetch Games ==========
@@ -45,7 +51,7 @@ export const useDiaryView = () => {
     setIsEditMode(false);
 
     const newDateStr = formatDateString(date);
-    const entry = diaryEntries.find((e) => e.date === newDateStr);
+    const entry = diaryEntries.find((e: DiaryEntry) => e.date === newDateStr);
 
     if (entry) {
       resetForm(entry);
@@ -78,32 +84,14 @@ export const useDiaryView = () => {
       console.log('💾 다이어리 저장 성공, ID:', diaryId);
 
       // 이미지 업로드
-      const finalPhotos = await handleImageUpload(diaryId, diaryForm.photoFiles);
+      await handleImageUpload(diaryId, diaryForm.photoFiles);
 
-      // 최종 데이터 구성
-      const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
-      const finalEntry: DiaryEntry = {
-        id: diaryId,
-        date: dateStr,
-        type: diaryForm.type,
-        emoji: diaryForm.emoji,
-        emojiName: diaryForm.emojiName,
-        winningName: diaryForm.winningName,
-        gameId: diaryForm.gameId,
-        memo: diaryForm.memo,
-        photos: finalPhotos,
-        team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
-        stadium: game?.stadium || '',
-      };
-
-      console.log('📝 최종 저장 데이터:', finalEntry);
-
-      addDiaryEntry(finalEntry);
+      // DB 데이터 다시 조회
+      queryClient.invalidateQueries({ queryKey: ['diaries'] });
       queryClient.invalidateQueries({ queryKey: ['statistics'] });
 
       toast.success('다이어리가 작성되었습니다!');
       setIsEditMode(false);
-      handleDateSelect(selectedDate);
     },
     onError: (error) => {
       console.error('❌ 저장 실패:', error);
@@ -117,35 +105,17 @@ export const useDiaryView = () => {
     onSuccess: async (result, variables) => {
       const diaryId = variables.id;
 
-      // 기존 사진 유지 + 새 사진 업로드
-      let finalPhotos = [...diaryForm.photos];
+      // 새 사진이 있으면 업로드
       if (diaryForm.photoFiles.length > 0) {
-        const newPhotos = await handleImageUpload(diaryId, diaryForm.photoFiles);
-        finalPhotos = [...finalPhotos, ...newPhotos];
+        await handleImageUpload(diaryId, diaryForm.photoFiles);
       }
 
-      // 최종 데이터 구성
-      const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
-      const finalEntry: DiaryEntry = {
-        id: diaryId,
-        date: dateStr,
-        type: diaryForm.type,
-        emoji: diaryForm.emoji,
-        emojiName: diaryForm.emojiName,
-        winningName: diaryForm.winningName,
-        gameId: diaryForm.gameId,
-        memo: diaryForm.memo,
-        photos: finalPhotos,
-        team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
-        stadium: game?.stadium || '',
-      };
-
-      updateDiaryEntry(dateStr, finalEntry);
+      // DB 데이터 다시 조회
+      queryClient.invalidateQueries({ queryKey: ['diaries'] });
       queryClient.invalidateQueries({ queryKey: ['statistics'] });
 
       toast.success('다이어리가 수정되었습니다!');
       setIsEditMode(false);
-      handleDateSelect(selectedDate);
     },
     onError: () => {
       toast.error('다이어리 수정에 실패했습니다.');
@@ -156,11 +126,13 @@ export const useDiaryView = () => {
   const deleteMutation = useMutation({
     mutationFn: deleteDiary,
     onSuccess: () => {
-      deleteDiaryEntry(dateStr);
+      // DB 데이터 다시 조회
+      queryClient.invalidateQueries({ queryKey: ['diaries'] });
       queryClient.invalidateQueries({ queryKey: ['statistics'] });
+      
       toast.success('다이어리가 삭제되었습니다.');
       setIsEditMode(false);
-      handleDateSelect(selectedDate);
+      resetForm();
     },
     onError: () => {
       toast.error('다이어리 삭제에 실패했습니다.');
@@ -185,7 +157,7 @@ export const useDiaryView = () => {
       winningName: diaryForm.winningName,
       gameId: diaryForm.gameId,
       memo: diaryForm.memo,
-      photos: [],
+      photos: diaryForm.photos, // 기존 사진 URL 유지
       team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
       stadium: game?.stadium || '',
     };
@@ -237,7 +209,8 @@ export const useDiaryView = () => {
     updateMutation,
     deleteMutation,
 
-    // Diary Entries
+    // Diary Entries (DB에서 조회)
     diaryEntries,
+    entriesLoading,
   };
 };

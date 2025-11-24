@@ -1,108 +1,201 @@
+// hooks/usePrediction.ts
 import { useState, useEffect } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { fetchVoteStatus, submitVote, cancelVote } from '../api/prediction';
-import { VoteData, DateGames, PredictionTab } from '../types/prediction';
-import { generateAllDatesData, PAST_GAMES_DATA } from '../constants/mockData';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-
-const USER_ID = 1; // TODO: 실제 로그인 유저 ID로 교체
+import { useAuthStore } from '../store/authStore';
+import { Game, DateGames, VoteStatus, ConfirmDialogData, VoteTeam, PredictionTab } from '../types/prediction';
+import { 
+  fetchPastGames, 
+  fetchMatchesByDate, 
+  fetchAllUserVotes as fetchAllUserVotesAPI,
+  fetchVoteStatus,
+  submitVote,
+  cancelVote 
+} from '../api/prediction';
+import { 
+  groupByDate, 
+  getTodayString, 
+  getTomorrowString,
+  getFullTeamName 
+} from '../utils/prediction';
 
 export const usePrediction = () => {
+  const navigate = useNavigate();
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
+
+  // 탭 관리
   const [activeTab, setActiveTab] = useState<PredictionTab>('match');
   const [selectedGame, setSelectedGame] = useState(0);
-  const [currentDateIndex, setCurrentDateIndex] = useState(PAST_GAMES_DATA.length);
-  const [votes, setVotes] = useState<{ [key: string]: VoteData }>({});
-  const [userVote, setUserVote] = useState<{ [key: string]: 'home' | 'away' | null }>({});
+  
+  // 날짜별 경기 데이터
+  const [allDatesData, setAllDatesData] = useState<DateGames[]>([]);
+  const [currentDateIndex, setCurrentDateIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  
+  // 투표 현황
+  const [votes, setVotes] = useState<{ [key: string]: VoteStatus }>({});
+  
+  // 사용자 투표
+  const [userVote, setUserVote] = useState<{ [key: string]: VoteTeam | null }>({});
 
-  const allDatesData = generateAllDatesData();
-  const currentDateGames = allDatesData[currentDateIndex]?.games || [];
-  const currentDate = allDatesData[currentDateIndex]?.date || new Date().toISOString().split('T')[0];
-  const currentGame = currentDateGames[selectedGame] || null;
-  const currentGameId = currentGame?.gameId;
+  // 다이얼로그 상태
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmDialogData, setConfirmDialogData] = useState<ConfirmDialogData>({
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
+  const [showLoginRequiredDialog, setShowLoginRequiredDialog] = useState(false);
 
-  // 경기 타입 확인
-  const isPastGame = currentDateIndex < PAST_GAMES_DATA.length;
-  const isFutureGame = currentDateIndex > PAST_GAMES_DATA.length;
+  // 로그인 체크
+  useEffect(() => {
+    if (!isAuthLoading && !isLoggedIn) {
+      setLoading(false);
+      setShowLoginRequiredDialog(true);
+    } else if (!isAuthLoading && isLoggedIn) {
+      fetchAllGames();
+    }
+  }, [isLoggedIn, isAuthLoading]);
 
-  // ========== Fetch Vote Status ==========
-  const loadVoteStatus = async (gameId: string) => {
-    try {
-      const data = await fetchVoteStatus(gameId);
-      setVotes(prev => ({
-        ...prev,
-        [gameId]: { home: data.homeVotes, away: data.awayVotes }
-      }));
-    } catch (error) {
-      console.error('투표 현황 조회 실패:', error);
-      // 과거 경기는 더미 데이터, 미래 경기는 0
-      if (isPastGame) {
-        setVotes(prev => ({
-          ...prev,
-          [gameId]: {
-            home: Math.floor(Math.random() * 100) + 50,
-            away: Math.floor(Math.random() * 100) + 50
-          }
-        }));
-      } else {
-        setVotes(prev => ({
-          ...prev,
-          [gameId]: { home: 0, away: 0 }
-        }));
+  // 날짜가 변경될 때마다 첫 번째 경기로 리셋
+  useEffect(() => {
+    setSelectedGame(0);
+  }, [currentDateIndex]);
+
+  // 경기가 변경될 때마다 투표 현황 가져오기
+  useEffect(() => {
+    const currentDateGames = allDatesData[currentDateIndex]?.games || [];
+    if (currentDateGames.length > 0) {
+      const currentGameId = currentDateGames[selectedGame]?.gameId;
+      if (currentGameId) {
+        loadVoteStatus(currentGameId);
       }
+    }
+  }, [selectedGame, allDatesData, currentDateIndex]);
+
+  // 모든 경기 데이터 가져오기
+  const fetchAllGames = async () => {
+    try {
+      setLoading(true);
+
+      const pastData = await fetchPastGames();
+      const today = getTodayString();
+      const tomorrow = getTomorrowString();
+      
+      const todayData = await fetchMatchesByDate(today);
+
+      const groupedPastGames = groupByDate(pastData);
+      const todayGroup: DateGames = { date: today, games: [] };
+      
+      const allDates = [...groupedPastGames, todayGroup];
+      if (todayData.length > 0) {
+        const tomorrowGroup: DateGames = { date: tomorrow, games: todayData };
+        allDates.push(tomorrowGroup);
+      }
+      
+      setAllDatesData(allDates);
+      
+      const todayIndex = allDates.findIndex(d => d.date === today);
+      setCurrentDateIndex(todayIndex !== -1 ? todayIndex : 0);
+
+      const allGames = [...pastData, ...todayData];
+      const userVotes = await fetchAllUserVotesAPI(allGames);
+      setUserVote(userVotes);
+
+    } catch (error) {
+      console.error('경기 데이터를 불러오는데 실패했습니다:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ========== Vote Mutation ==========
-  const voteMutation = useMutation({
-    mutationFn: async ({ gameId, team }: { gameId: string; team: 'home' | 'away' }) => {
-      await submitVote(USER_ID, { gameId, votedTeam: team });
-    },
-    onSuccess: (_, variables) => {
-      setUserVote(prev => ({ ...prev, [variables.gameId]: variables.team }));
-      loadVoteStatus(variables.gameId);
-      toast.success('투표가 완료되었습니다.');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || '투표에 실패했습니다.');
-    },
-  });
+  // 투표 현황 가져오기
+  const loadVoteStatus = async (gameId: string) => {
+    const status = await fetchVoteStatus(gameId);
+    setVotes(prev => ({
+      ...prev,
+      [gameId]: { home: status.homeVotes, away: status.awayVotes }
+    }));
+  };
 
-  // ========== Cancel Vote Mutation ==========
-  const cancelVoteMutation = useMutation({
-    mutationFn: async (gameId: string) => {
-      await cancelVote(gameId, USER_ID);
-    },
-    onSuccess: (_, gameId) => {
-      setUserVote(prev => ({ ...prev, [gameId]: null }));
-      loadVoteStatus(gameId);
-      toast.success('투표가 취소되었습니다.');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || '투표 취소에 실패했습니다.');
-    },
-  });
+  // 투표하기
+  const handleVote = async (team: VoteTeam, game: Game, isPastGame: boolean) => {
+    const gameId = game.gameId;
 
-  // ========== Vote Handler ==========
-  const handleVote = (team: 'home' | 'away') => {
-    if (!currentGameId) return;
-
-    // 이미 투표한 팀을 다시 클릭하면 취소
-    if (userVote[currentGameId] === team) {
-      cancelVoteMutation.mutate(currentGameId);
+    if (isPastGame) {
+      toast.error('이미 종료된 경기는 투표할 수 없습니다.');
       return;
     }
 
-    // 다른 팀에 이미 투표한 경우
-    if (userVote[currentGameId] && userVote[currentGameId] !== team) {
-      toast.error('이미 다른 팀에 투표하셨습니다. 먼저 투표를 취소해주세요.');
+    // 이미 투표했는데 다른 팀 클릭 시 확인
+    if (userVote[gameId] && userVote[gameId] !== team) {
+      const currentTeamName = userVote[gameId] === 'home' 
+        ? getFullTeamName(game.homeTeam) 
+        : getFullTeamName(game.awayTeam);
+      const newTeamName = team === 'home' 
+        ? getFullTeamName(game.homeTeam) 
+        : getFullTeamName(game.awayTeam);
+      
+      setConfirmDialogData({
+        title: '투표 변경',
+        description: `현재 ${currentTeamName} 승리로 투표하셨습니다.\n${newTeamName}(으)로 변경하시겠습니까?`,
+        onConfirm: () => {
+          setShowConfirmDialog(false);
+          executeVote(gameId, team, game);
+        },
+      });
+      setShowConfirmDialog(true);
+      return;
+    }
+
+    // 같은 팀 두 번 클릭 시 취소 확인
+    if (userVote[gameId] === team) {
+      setConfirmDialogData({
+        title: '투표 취소',
+        description: '투표를 취소하시겠습니까?',
+        onConfirm: () => {
+          setShowConfirmDialog(false);
+          executeCancelVote(gameId);
+        },
+      });
+      setShowConfirmDialog(true);
       return;
     }
 
     // 새로운 투표
-    voteMutation.mutate({ gameId: currentGameId, team });
+    executeVote(gameId, team, game);
   };
 
-  // ========== Date Navigation ==========
+  // 투표 실행
+  const executeVote = async (gameId: string, team: VoteTeam, game: Game) => {
+    try {
+      await submitVote(gameId, team);
+      setUserVote(prev => ({ ...prev, [gameId]: team }));
+      loadVoteStatus(gameId);
+      
+      const teamName = team === 'home' 
+        ? getFullTeamName(game.homeTeam) 
+        : getFullTeamName(game.awayTeam);
+      toast.success(`${teamName} 승리 예측이 저장되었습니다! ⚾`);
+    } catch (error: any) {
+      toast.error(error.message || '투표에 실패했습니다.');
+    }
+  };
+
+  // 투표 취소 실행
+  const executeCancelVote = async (gameId: string) => {
+    const success = await cancelVote(gameId);
+    if (success) {
+      setUserVote(prev => ({ ...prev, [gameId]: null }));
+      loadVoteStatus(gameId);
+      toast.success('투표가 취소되었습니다.');
+    } else {
+      toast.error('투표 취소에 실패했습니다.');
+    }
+  };
+
+  // 이전/다음 날짜로 이동
   const goToPreviousDate = () => {
     if (currentDateIndex > 0) {
       setCurrentDateIndex(currentDateIndex - 1);
@@ -115,76 +208,43 @@ export const usePrediction = () => {
     }
   };
 
-  // ========== Effects ==========
-  useEffect(() => {
-    // 모든 경기의 투표 현황 로드
-    allDatesData.forEach((dateData) => {
-      dateData.games.forEach((game) => {
-        loadVoteStatus(game.gameId);
-      });
-    });
-  }, []);
-
-  useEffect(() => {
-    // 날짜 변경 시 첫 번째 경기로 리셋
-    setSelectedGame(0);
-  }, [currentDateIndex]);
-
-  useEffect(() => {
-    // 경기 변경 시 투표 현황 로드
-    if (currentGameId) {
-      loadVoteStatus(currentGameId);
-    }
-  }, [selectedGame, currentGameId]);
-
-  // ========== Computed Values ==========
-  const currentVotes = currentGameId ? votes[currentGameId] || { home: 0, away: 0 } : { home: 0, away: 0 };
-  const totalVotes = currentVotes.home + currentVotes.away;
-  const homePercentage = totalVotes > 0 ? Math.round((currentVotes.home / totalVotes) * 100) : 0;
-  const awayPercentage = totalVotes > 0 ? Math.round((currentVotes.away / totalVotes) * 100) : 0;
-
-  const getVoteAccuracy = () => {
-    if (!isPastGame || !currentGame?.winner || currentGame.winner === 'draw') return null;
-    const winningTeam = currentGame.winner;
-    const winningVotes = winningTeam === 'home' ? currentVotes.home : currentVotes.away;
-    return totalVotes > 0 ? Math.round((winningVotes / totalVotes) * 100) : 0;
+  // 로그인 페이지로 이동
+  const handleGoToLogin = () => {
+    setShowLoginRequiredDialog(false);
+    navigate('/login');
   };
 
+  // 현재 날짜의 경기 정보
+  const currentDateGames = allDatesData[currentDateIndex]?.games || [];
+  const currentDate = allDatesData[currentDateIndex]?.date || getTodayString();
+
   return {
-    // Tab
+    // State
     activeTab,
     setActiveTab,
-
-    // Game Selection
     selectedGame,
     setSelectedGame,
-    currentDateGames,
-
-    // Date Navigation
-    currentDate,
+    allDatesData,
     currentDateIndex,
+    currentDateGames,
+    currentDate,
+    loading,
+    votes,
+    userVote,
+    isAuthLoading,
+    isLoggedIn,
+    
+    // Dialog
+    showConfirmDialog,
+    setShowConfirmDialog,
+    confirmDialogData,
+    showLoginRequiredDialog,
+    setShowLoginRequiredDialog,
+    
+    // Handlers
+    handleVote,
     goToPreviousDate,
     goToNextDate,
-    canGoPrevious: currentDateIndex > 0,
-    canGoNext: currentDateIndex < allDatesData.length - 1,
-
-    // Current Game
-    currentGame,
-    currentGameId,
-    isPastGame,
-    isFutureGame,
-
-    // Votes
-    votes,
-    currentVotes,
-    totalVotes,
-    homePercentage,
-    awayPercentage,
-    userVote,
-    getVoteAccuracy,
-
-    // Actions
-    handleVote,
-    isVoting: voteMutation.isPending || cancelVoteMutation.isPending,
+    handleGoToLogin,
   };
 };

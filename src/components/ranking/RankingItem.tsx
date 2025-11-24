@@ -4,22 +4,15 @@ import { useDrag, useDrop } from 'react-dnd';
 import { Button } from '../ui/button';
 import { X, GripVertical } from 'lucide-react';
 import TeamLogo from '../TeamLogo';
-import { Team } from '../../types/ranking';
+import { RankingItemProps } from '../../types/ranking';
+import { PLAYOFF_TEAMS } from '../../constants/ranking';
 
-interface RankingItemProps {
-  team: Team | null;
-  index: number;
-  alreadySaved: boolean;
-  moveTeam: (dragIndex: number, hoverIndex: number) => void;
-  onRemove: (index: number) => void;
-}
-
-export default function RankingItem({
-  team,
-  index,
-  alreadySaved,
-  moveTeam,
+export default function RankingItem({ 
+  team, 
+  index, 
+  alreadySaved, 
   onRemove,
+  onMove 
 }: RankingItemProps) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -39,22 +32,22 @@ export default function RankingItem({
       const dragIndex = item.index;
       const hoverIndex = index;
       if (dragIndex === hoverIndex) return;
-
-      moveTeam(dragIndex, hoverIndex);
+      
+      onMove(dragIndex, hoverIndex);
       item.index = hoverIndex;
     },
   });
 
   drag(drop(ref));
 
-  const backgroundColor = index < 5 ? '#2d5f4f' : '#9ca3af';
+  const backgroundColor = index < PLAYOFF_TEAMS ? '#2d5f4f' : '#9ca3af';
 
   return (
     <div
       ref={ref}
       className={`border-2 rounded-xl p-3 transition-all ${
-        team
-          ? `border-transparent bg-white shadow-sm ${!alreadySaved && 'cursor-move'}`
+        team 
+          ? `border-transparent bg-white shadow-sm ${!alreadySaved && 'cursor-move'}` 
           : 'border-dashed border-gray-300 bg-gray-50'
       } ${isDragging ? 'opacity-50' : 'opacity-100'}`}
     >
@@ -68,13 +61,9 @@ export default function RankingItem({
 
         {team ? (
           <div className="flex items-center gap-3 flex-1">
-            {!alreadySaved && (
-              <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            )}
+            {!alreadySaved && <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />}
             <TeamLogo team={team.shortName} size={40} />
-            <span style={{ fontWeight: 700 }} className="flex-1">
-              {team.name}
-            </span>
+            <span style={{ fontWeight: 700 }} className="flex-1">{team.name}</span>
             {!alreadySaved && (
               <Button
                 onClick={() => onRemove(index)}
@@ -87,7 +76,9 @@ export default function RankingItem({
             )}
           </div>
         ) : (
-          <div className="flex-1 text-center text-gray-400 text-sm">팀을 선택하세요</div>
+          <div className="flex-1 text-center text-gray-400 text-sm">
+            팀을 선택하세요
+          </div>
         )}
       </div>
     </div>
