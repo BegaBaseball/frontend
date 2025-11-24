@@ -31,7 +31,6 @@ export const fetchDiaries = async () => {
     throw new Error(`API 요청 실패: ${response.status}`);
   }
     const data = await response.json();
-    console.log(data);
     return data;
   } catch (error) {
     throw error;
