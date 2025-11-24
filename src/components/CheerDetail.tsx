@@ -1,4 +1,4 @@
-import { JSX, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -13,13 +13,12 @@ import {
   Pencil,
   ChevronLeft,
   ChevronRight,
-  CornerDownRight,
-  User,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import Navbar from './Navbar';
 import { Card } from './ui/card';
+import { ProfileAvatar } from './ui/ProfileAvatar';
+import { CommentItem } from './cheer/CommentItem';
 import TeamLogo from './TeamLogo';
 import { useCheerStore, Comment as CheerComment } from '../store/cheerStore';
 import { PageResponse } from '../api/cheer';
@@ -37,51 +36,6 @@ import {
 import { toast } from 'sonner';
 
 const COMMENTS_PAGE_SIZE = 10;
-
-// 🔥 프로필 아바타 컴포넌트
-interface ProfileAvatarProps {
-  src?: string | null;
-  alt: string;
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-}
-
-function ProfileAvatar({ src, alt, size = 'md', className = '' }: ProfileAvatarProps) {
-  const [imageError, setImageError] = useState(false);
-  
-  const sizeClasses = {
-    sm: 'h-10 w-10',
-    md: 'h-12 w-12',
-    lg: 'h-14 w-14',
-  };
-
-  const iconSizes = {
-    sm: 'h-5 w-5',
-    md: 'h-6 w-6',
-    lg: 'h-7 w-7',
-  };
-
-  // 프로필 이미지가 있고 에러가 없으면 이미지 표시
-  if (src && !imageError) {
-    return (
-      <img
-        src={src}
-        alt={alt}
-        className={`${sizeClasses[size]} rounded-full object-cover ${className}`}
-        onError={() => setImageError(true)}
-      />
-    );
-  }
-
-  // 프로필 이미지가 없거나 에러가 발생하면 기본 아바타
-  return (
-    <div
-      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ${className}`}
-    >
-      <User className={`${iconSizes[size]} text-gray-500`} />
-    </div>
-  );
-}
 
 export default function CheerDetail() {
   const queryClient = useQueryClient();
@@ -109,6 +63,7 @@ export default function CheerDetail() {
   const [activeReplyId, setActiveReplyId] = useState<number | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<number, string>>({});
 
+  // ========== React Query ==========
   const {
     data: post,
     isLoading,
@@ -144,6 +99,7 @@ export default function CheerDetail() {
     setReplyDrafts({});
   }, [selectedPostId]);
 
+  // ========== Mutations ==========
   const likeMutation = useMutation({
     mutationFn: () => togglePostLike(post!.id),
     onSuccess: ({ liked, likes }) => {
@@ -190,7 +146,8 @@ export default function CheerDetail() {
   });
 
   const replyMutation = useMutation({
-    mutationFn: ({ commentId, content }: { commentId: number; content: string }) => addReply(post!.id, commentId, content),
+    mutationFn: ({ commentId, content }: { commentId: number; content: string }) =>
+      addReply(post!.id, commentId, content),
     onSuccess: (_, variables) => {
       if (!post) {
         return;
@@ -224,11 +181,13 @@ export default function CheerDetail() {
     },
   });
 
+  // ========== Computed Values ==========
   const comments = useMemo(() => commentsData?.content ?? [], [commentsData]);
   const totalCommentCount = commentsData?.totalElements ?? post?.comments ?? 0;
   const totalCommentPages = commentsData?.totalPages ?? 0;
   const canPrevCommentPage = commentPage > 0;
   const canNextCommentPage = commentPage + 1 < totalCommentPages;
+  
   const sameTeamAsUser = useMemo(() => {
     if (!post || !userFavoriteTeam) {
       return false;
@@ -241,6 +200,7 @@ export default function CheerDetail() {
     }
     return post.team === userFavoriteTeam;
   }, [post, userFavoriteTeam]);
+
   const canInteract = Boolean(userFavoriteTeam && sameTeamAsUser);
 
   const interactionWarning = useMemo(() => {
@@ -254,6 +214,7 @@ export default function CheerDetail() {
     return '';
   }, [post, userFavoriteTeam, sameTeamAsUser]);
 
+  // ========== Event Handlers ==========
   const handleLike = () => {
     if (!post) return;
     if (!canInteract) {
@@ -329,7 +290,9 @@ export default function CheerDetail() {
 
   const handleDelete = () => {
     if (!post) return;
-    const confirmed = window.confirm('게시글을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.');
+    const confirmed = window.confirm(
+      '게시글을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.'
+    );
     if (confirmed) {
       deleteMutation.mutate();
     }
@@ -351,99 +314,10 @@ export default function CheerDetail() {
     setCommentPage(nextPage);
   };
 
-  const renderComment = (comment: CheerComment, depth = 0): JSX.Element => {
-    const isReply = depth > 0;
-    const likeCount = comment.likeCount ?? 0;
-    const replyDraft = replyDrafts[comment.id] ?? '';
-    const isReplyOpen = activeReplyId === comment.id;
-    const isCommentLiked = Boolean(comment.likedByMe);
-
-    return (
-      <div
-        key={comment.id}
-        className={`${depth === 0 ? 'border-b border-gray-100 pb-6 last:border-b-0 last:pb-0' : 'pl-10 pt-4'}`}
-      >
-        <div className="flex gap-4">
-          <div className="flex flex-col items-center gap-2">
-            {isReply ? <CornerDownRight className="h-4 w-4 text-gray-300" /> : null}
-            <ProfileAvatar 
-            src={comment.authorProfileImageUrl} 
-            alt={comment.author}
-            size={isReply ? 'sm' : 'md'}
-          />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-900">{comment.author}</p>
-                <p className="text-xs text-gray-500">{comment.timeAgo}</p>
-              </div>
-            </div>
-            <p className="mt-2 whitespace-pre-wrap text-gray-700 leading-relaxed">{comment.content}</p>
-            <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
-              <button
-                onClick={() => handleCommentLike(comment.id)}
-                disabled={!canInteract || commentLikeMutation.isPending}
-                className={`flex items-center gap-1 transition-colors hover:text-red-500 ${
-                  isCommentLiked ? 'text-red-500' : ''
-                } ${!canInteract ? 'cursor-not-allowed text-gray-400 hover:text-gray-400' : ''}`}
-              >
-                <Heart className={`h-4 w-4 ${isCommentLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                <span>{likeCount}</span>
-              </button>
-              <button
-                onClick={() => handleReplyToggle(comment.id)}
-                disabled={!canInteract}
-                className="flex items-center gap-1 transition-colors hover:text-gray-700 disabled:cursor-not-allowed disabled:text-gray-400"
-              >
-                답글 달기
-              </button>
-            </div>
-
-            {isReplyOpen && (
-              <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <Textarea
-                  value={replyDraft}
-                  onChange={(e) => handleReplyChange(comment.id, e.target.value)}
-                  placeholder="답글을 입력하세요"
-                  className="min-h-[80px]"
-                  disabled={!canInteract || replyMutation.isPending}
-                />
-                <div className="mt-3 flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setActiveReplyId(null)}
-                    disabled={replyMutation.isPending}
-                  >
-                    취소
-                  </Button>
-                  <Button
-                    onClick={() => handleReplySubmit(comment.id)}
-                    disabled={!canInteract || replyMutation.isPending || replyDraft.trim().length === 0}
-                    className="flex items-center gap-2 text-white"
-                    style={{ backgroundColor: '#2d5f4f' }}
-                  >
-                    <Send className="h-4 w-4" />
-                    답글 작성
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {comment.replies && comment.replies.length > 0 && (
-              <div className="mt-4 space-y-4">
-                {comment.replies.map((reply) => renderComment(reply, depth + 1))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
+  // ========== Render ==========
   return (
     <div className="min-h-screen bg-gray-50">
-
+      {/* Header */}
       <div className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <button
@@ -460,6 +334,7 @@ export default function CheerDetail() {
       </div>
 
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Error Message */}
         {isError && (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             게시글을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
@@ -467,7 +342,9 @@ export default function CheerDetail() {
         )}
 
         <div className="space-y-6">
+          {/* Post Card */}
           <Card className="rounded-xl bg-white p-8 shadow-sm">
+            {/* Loading Skeleton */}
             {isLoading && (
               <div className="animate-pulse space-y-4">
                 <div className="flex items-center gap-4">
@@ -484,12 +361,14 @@ export default function CheerDetail() {
               </div>
             )}
 
+            {/* Post Content */}
             {!isLoading && post && (
               <>
+                {/* Post Header */}
                 <div className="mb-6 flex items-center justify-between border-b pb-6">
                   <div className="flex items-center gap-4">
-                    <ProfileAvatar 
-                      src={post.authorProfileImageUrl} 
+                    <ProfileAvatar
+                      src={post.authorProfileImageUrl}
                       alt={post.author}
                       size="lg"
                     />
@@ -497,7 +376,10 @@ export default function CheerDetail() {
                       <h2 className="mb-2 text-gray-900">{post.title}</h2>
                       <div className="mb-2 flex items-center gap-2">
                         <span className="text-sm text-gray-600">{post.author}</span>
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full" style={{ backgroundColor: '#f3f4f6' }}>
+                        <div
+                          className="flex h-6 w-6 items-center justify-center rounded-full"
+                          style={{ backgroundColor: '#f3f4f6' }}
+                        >
                           <TeamLogo team={post.team} size={24} />
                         </div>
                       </div>
@@ -542,10 +424,12 @@ export default function CheerDetail() {
                   </div>
                 </div>
 
+                {/* Post Body */}
                 <div className="mb-8 whitespace-pre-wrap text-gray-700 leading-relaxed">
                   {post.content}
                 </div>
 
+                {/* Post Images */}
                 {post.images && post.images.length > 0 && (
                   <div className="mb-8 grid grid-cols-2 gap-3">
                     {post.images.map((image, index) => (
@@ -559,6 +443,7 @@ export default function CheerDetail() {
                   </div>
                 )}
 
+                {/* Post Actions */}
                 <div className="flex items-center justify-between border-t pt-6">
                   <div className="flex items-center gap-6">
                     <button
@@ -567,7 +452,9 @@ export default function CheerDetail() {
                       disabled={!canInteract || likeMutation.isPending}
                     >
                       <Heart
-                        className={`h-6 w-6 ${post.likedByUser ? 'fill-red-500 text-red-500' : ''}`}
+                        className={`h-6 w-6 ${
+                          post.likedByUser ? 'fill-red-500 text-red-500' : ''
+                        }`}
                       />
                       <span className="font-medium">{post.likes}</span>
                     </button>
@@ -581,7 +468,9 @@ export default function CheerDetail() {
                     className="flex items-center gap-2 text-gray-600 transition-colors hover:text-yellow-500"
                   >
                     <Bookmark
-                      className={`h-6 w-6 ${isBookmarked ? 'fill-yellow-500 text-yellow-500' : ''}`}
+                      className={`h-6 w-6 ${
+                        isBookmarked ? 'fill-yellow-500 text-yellow-500' : ''
+                      }`}
                     />
                   </button>
                 </div>
@@ -589,16 +478,18 @@ export default function CheerDetail() {
             )}
           </Card>
 
+          {/* Comments Card */}
           <Card className="rounded-xl bg-white p-8 shadow-sm">
             <h3 className="mb-6 flex items-center gap-2" style={{ color: '#2d5f4f' }}>
               <MessageSquare className="h-6 w-6" />
               댓글 <span className="ml-1">{totalCommentCount}</span>
             </h3>
 
+            {/* Comment Input */}
             <div className="mb-8 border-b pb-8">
               <div className="flex gap-4">
-                <ProfileAvatar 
-                  src={useAuthStore.getState().user?.profileImageUrl} 
+                <ProfileAvatar
+                  src={useAuthStore.getState().user?.profileImageUrl}
                   alt={useAuthStore.getState().user?.name || '사용자'}
                   size="md"
                   className="flex-shrink-0"
@@ -616,7 +507,11 @@ export default function CheerDetail() {
                       onClick={handleCommentSubmit}
                       className="flex items-center gap-2 text-white"
                       style={{ backgroundColor: '#2d5f4f' }}
-                      disabled={!canInteract || commentMutation.isPending || commentInput.trim().length === 0}
+                      disabled={
+                        !canInteract ||
+                        commentMutation.isPending ||
+                        commentInput.trim().length === 0
+                      }
                     >
                       <Send className="h-4 w-4" />
                       등록
@@ -631,6 +526,7 @@ export default function CheerDetail() {
               )}
             </div>
 
+            {/* Comments Loading */}
             {isCommentsLoading && (
               <div className="space-y-4">
                 {Array.from({ length: 3 }).map((_, idx) => (
@@ -642,22 +538,41 @@ export default function CheerDetail() {
               </div>
             )}
 
+            {/* Empty State */}
             {!isCommentsLoading && comments.length === 0 && (
               <div className="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center text-gray-500">
                 아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
               </div>
             )}
 
+            {/* Comments List */}
             {!isCommentsLoading && comments.length > 0 && (
               <div className="space-y-6">
-                {comments.map((comment: CheerComment) => renderComment(comment))}
+                {comments.map((comment: CheerComment) => (
+                  <CommentItem
+                    key={comment.id}
+                    comment={comment}
+                    canInteract={canInteract}
+                    activeReplyId={activeReplyId}
+                    replyDraft={replyDrafts[comment.id] ?? ''}
+                    isReplyPending={replyMutation.isPending}
+                    isCommentLikePending={commentLikeMutation.isPending}
+                    onCommentLike={handleCommentLike}
+                    onReplyToggle={handleReplyToggle}
+                    onReplyChange={handleReplyChange}
+                    onReplySubmit={handleReplySubmit}
+                    onReplyCancel={() => setActiveReplyId(null)}
+                  />
+                ))}
               </div>
             )}
 
+            {/* Fetching Indicator */}
             {isCommentsFetching && !isCommentsLoading && (
               <div className="mt-4 text-sm text-gray-400">댓글을 불러오는 중입니다...</div>
             )}
 
+            {/* Pagination */}
             {totalCommentPages > 1 && (
               <div className="mt-8 flex items-center justify-between border-t pt-4">
                 <Button

@@ -169,7 +169,11 @@ export default function Cheer() {
                 <div
                   key={post.id}
                   onClick={() => handlePostClick(post.id)}
-                  className="cursor-pointer rounded-xl border bg-white p-4 transition-shadow hover:shadow-md"
+                  className={`cursor-pointer rounded-xl border p-4 transition-shadow hover:shadow-md ${
+                    post.postType === 'NOTICE'
+                      ? 'border-blue-300 bg-blue-50'
+                      : 'bg-white'
+                  }`}
                 >
                   <div className="flex gap-4">
                     <div className="flex-shrink-0">
@@ -180,6 +184,19 @@ export default function Cheer() {
 
                     <div className="flex-1">
                       <div className="mb-1 flex items-center gap-2">
+                        {post.postType === 'NOTICE' && (
+                          <span 
+                            className="rounded-full px-2 py-1 text-xs font-semibold border-2" 
+                            style={{ 
+                              backgroundColor: '#16a34a',
+                              borderColor: '#15803d',
+                              color: 'white',
+                              display: 'inline-block'
+                            }}
+                          >
+                            공지
+                          </span>
+                        )}
                         <h3 className="text-base">{post.title}</h3>
                         {post.isHot && (
                           <span className="flex items-center gap-1 rounded-full bg-red-500 px-2 py-1 text-xs text-white">

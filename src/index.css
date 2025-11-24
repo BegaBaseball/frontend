@@ -2511,6 +2511,17 @@
     z-index: 20;
   }
 
+  /* 모바일 메뉴 애니메이션 */
+  .mobile-menu-container {
+    animation: slideDownFull 0.3s ease-out !important;
+    top: 64px;
+  }
+
+  /* 모바일 메뉴 팝업 스타일 */
+  .mobile-menu-popup {
+    width: 380px;
+  }
+
   @media (hover: hover) {
     .hover\:-translate-y-1:hover {
       --tw-translate-y: calc(var(--spacing) * -1);
@@ -3865,4 +3876,92 @@ html {
     opacity: var(--tw-exit-opacity, 1);
     transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
   }
+}
+
+@keyframes slideDownFull {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* 작은 화면에서는 화면 폭에 맞게 조정 */
+@media (max-width: 420px) {
+  .mobile-menu-popup {
+    width: calc(100vw - 32px);
+  }
+}
+
+/* 로그인 버튼 호버 스타일 */
+.menu-click-mobile:hover {
+  background-color: #2d5f4f !important;
+  color: white !important;
+  border-color: #2d5f4f !important;
+  opacity: 90%;
+}
+
+/* 유저 프로필 버튼 스타일 */
+.user-profile-button {
+  color: #2d5f4f;
+  background-color: #e0f2f1;
+}
+
+.user-profile-button:hover {
+  background-color: #2d5f4f;
+  color: white;
+}
+
+/* 기본 상태: 이름 보이기, 마이페이지 숨기기 */
+.user-profile-button .user-name {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+
+.user-profile-button .mypage-text {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+/* 호버 상태: 이름 숨기기, 마이페이지 보이기 */
+.user-profile-button:hover .user-name {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.user-profile-button:hover .mypage-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* 유저 프로필 버튼 스타일 */
+.user-profile-button2 {
+  color: #2d5f4f;
+  background-color: #e0f2f1;
+}
+
+.user-profile-button2:hover {
+  background-color: #2d5f4f;
+  color: white;
+}
+
+/* 기본 상태: 이름 보이기, 마이페이지 숨기기 */
+.user-profile-button2 .user-name {
+  display: inline;
+}
+
+.user-profile-button2 .mypage-text {
+  display: none;
+}
+
+/* 호버 상태: 이름 숨기기, 마이페이지 보이기 */
+.user-profile-button2:hover .user-name {
+  display: none;
+}
+
+.user-profile-button2:hover .mypage-text {
+  display: inline;
 }

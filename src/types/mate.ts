@@ -67,3 +67,37 @@ export interface ChatMessage {
 }
 
 export type BadgeType = 'new' | 'verified' | 'trusted';
+
+export type MateStatus = 
+  | 'PENDING' 
+  | 'MATCHED' 
+  | 'CHECKED_IN' 
+  | 'COMPLETED' 
+  | 'FAILED' 
+  | 'SELLING' 
+  | 'SOLD';
+
+export interface MateParty {
+  id: number;
+  hostId: number;
+  teamId: string;
+  stadium: string;
+  gameDate: string;
+  gameTime: string;
+  section: string;
+  currentParticipants: number;
+  maxParticipants: number;
+  status: MateStatus;
+  description?: string;
+  homeTeam: string;
+  awayTeam: string;
+}
+
+export interface MateApplication {
+  id: number;
+  partyId: number;
+  applicantId: number;
+  status: string;
+}
+
+export type MateHistoryTab = 'all' | 'completed' | 'ongoing';
