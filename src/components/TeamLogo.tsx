@@ -73,7 +73,7 @@ const sizeMap: Record<string, number> = {
 
 export default function TeamLogo({ team, teamId, size = 64, className = '' }: TeamLogoProps) {
   // teamId가 있으면 한글 이름으로 변환
-  const teamName = teamId ? teamIdToName[teamId] : team;
+  const teamName = teamId ? teamIdToName[teamId.toLowerCase()] : team;
   const canonicalKey = normalizeTeamLabel(teamName ?? team);
   
   // size가 문자열이면 숫자로 변환

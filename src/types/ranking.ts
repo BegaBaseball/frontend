@@ -1,17 +1,23 @@
+// types/ranking.ts (기존 파일에 추가)
 export interface Team {
   id: string;
   name: string;
   shortName: string;
+  fullName: string;
+  color: string;
+  description: string;
 }
 
-export interface RankingPredictionResponse {
+export interface SeasonResponse {
+  seasonYear: number;
+}
+
+export interface SavedPredictionResponse {
+  id: number;
+  userId: number;
   seasonYear: number;
   teamIdsInOrder: string[];
   createdAt: string;
-}
-
-export interface CurrentSeasonResponse {
-  seasonYear: number;
 }
 
 export interface SaveRankingRequest {

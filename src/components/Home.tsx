@@ -254,7 +254,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                     <p className="text-white/80">실시간 경기 정보와 티켓 예매를 확인하세요</p>
                                 </div>
                                 <div className="text-white text-right">
-                                    <div className="text-sm text-white/80 mb-1">{currentSeasonYear} 시즌</div>
+                                    <div className="text-sm text-white/80 mb-1">{CURRENT_SEASON_YEAR} 시즌</div>
                                     <div className="text-2xl" style={{ fontWeight: 900 }}>{formatDate(selectedDate)}</div>
                                 </div>
                             </div>
@@ -372,11 +372,11 @@ export default function Home({ onNavigate }: HomeProps) {
                                 ) : (
                                     <>
                                         <TabsContent value="regular" className="mt-8">
-                                            {regularSeasonGames.length === 0 ? (
+                                            {regular.length === 0 ? (
                                                 <p className="text-center py-8 text-gray-500">해당 날짜에 정규시즌 경기가 없습니다.</p>
                                             ) : (
                                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                    {regularSeasonGames.map((game, index) => (
+                                                    {regular.map((game, index) => (
                                                         <GameCard key={index} game={game} />
                                                     ))}
                                                 </div>
@@ -384,11 +384,11 @@ export default function Home({ onNavigate }: HomeProps) {
                                         </TabsContent>
 
                                         <TabsContent value="postseason" className="mt-8">
-                                            {postSeasonGames.length === 0 ? (
+                                            {postseason.length === 0 ? (
                                                 <p className="text-center py-8 text-gray-500">해당 날짜에 포스트시즌 경기가 없습니다.</p>
                                             ) : (
                                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                    {postSeasonGames.map((game, index) => (
+                                                    {postseason.map((game, index) => (
                                                         <GameCard key={index} game={game} featured={true} />
                                                     ))}
                                                 </div>
@@ -396,11 +396,11 @@ export default function Home({ onNavigate }: HomeProps) {
                                         </TabsContent>
 
                                         <TabsContent value="koreanseries" className="mt-8">
-                                            {koreanSeriesGames.length === 0 ? (
+                                            {koreanseries.length === 0 ? (
                                                 <p className="text-center py-8 text-gray-500">해당 날짜에 한국시리즈 경기가 없습니다.</p>
                                             ) : (
                                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                    {koreanSeriesGames.map((game, index) => (
+                                                    {koreanseries.map((game, index) => (
                                                         <GameCard key={index} game={game} featured={true} />
                                                     ))}
                                                 </div>
@@ -421,13 +421,13 @@ export default function Home({ onNavigate }: HomeProps) {
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="flex items-center gap-3 mb-8">
                                 <Trophy className="w-6 h-6" style={{ color: '#2d5f4f' }} />
-                                <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>{currentSeasonYear} 시즌 팀 순위</h2>
+                                <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>{CURRENT_SEASON_YEAR} 시즌 팀 순위</h2>
                                 {isRankingsLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin text-gray-500" />}
                             </div>
 
                             <Card className="overflow-hidden">
-                                {teamRankings.length === 0 && !isRankingsLoading ? (
-                                    <p className="text-center py-8 text-gray-500">{currentSeasonYear} 시즌 순위 데이터를 불러올 수 없습니다.</p>
+                                {rankings.length === 0 && !isRankingsLoading ? (
+                                    <p className="text-center py-8 text-gray-500">{CURRENT_SEASON_YEAR} 시즌 순위 데이터를 불러올 수 없습니다.</p>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <table className="w-full">
@@ -440,7 +440,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {teamRankings.map((team) => (
+                                                {rankings.map((team) => (
                                                     <tr 
                                                         key={team.teamId} 
                                                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
