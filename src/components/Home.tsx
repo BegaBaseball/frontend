@@ -11,6 +11,7 @@ import { useHome } from '../hooks/useHome';
 import { formatDate, isOffSeasonForUI, filterGamesByLeague } from '../utils/home';
 import { CURRENT_SEASON_YEAR } from '../constants/home';
 import { HomeProps } from '../types/home';
+import { useNavigate } from 'react-router-dom';
 
 export default function Home({ onNavigate }: HomeProps) {
     const {
@@ -27,6 +28,8 @@ export default function Home({ onNavigate }: HomeProps) {
         handleTabChange,
         changeDate,
     } = useHome();
+
+    const navigate = useNavigate();
 
     // 리그별 경기 필터링
     const { regular, postseason, koreanseries } = filterGamesByLeague(games);
@@ -104,13 +107,13 @@ export default function Home({ onNavigate }: HomeProps) {
                                         <ChevronRight className="w-5 h-5" />
                                     </button>
                                 </div>
-                                <div className="flex-1 flex justify-end">
+                                <div className="flex-1 flex justify-end gap-3">
                                     <Button 
                                         variant="outline" 
                                         size="sm"
-                                        className="bg-white hover:opacity-70 animate-pulse"
-                                        style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
-                                        onClick={() => setSelectedDate(new Date(2025, 11, 30))}
+                                        className="shiny-button rounded-md"
+                                        style={{ borderColor: '#2d5f4f', color: '#fff' }}
+                                        onClick={() => navigate('/offseason')}
                                     >
                                         <Flame className="w-4 h-4 mr-2" />
                                         스토브리그
