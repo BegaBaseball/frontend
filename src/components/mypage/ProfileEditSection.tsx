@@ -136,8 +136,8 @@ export default function ProfileEditSection({
               onChange={(e) => setEmail(e.target.value)}
               className="w-full"
               placeholder="이메일을 입력하세요"
-              disabled={true} // ✅ 항상 비활성화
-              readOnly // ✅ 읽기 전용
+              disabled={true} 
+              readOnly 
             />
           </div>
 
