@@ -34,6 +34,13 @@ import {
   togglePostLike,
 } from '../api/cheer';
 import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from './ui/dropdown-menu';
 
 const COMMENTS_PAGE_SIZE = 10;
 
@@ -394,33 +401,31 @@ export default function CheerDetail() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {post.isOwner && (
-                      <>
-                        <Button
-                          onClick={handleEdit}
-                          className="flex items-center gap-2 text-white"
-                          style={{ backgroundColor: '#2d5f4f' }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          수정
-                        </Button>
-                        <Button
-                          onClick={handleDelete}
-                          variant="outline"
-                          className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50"
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          삭제
-                        </Button>
-                      </>
-                    )}
                     <button className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600">
                       <Share2 className="h-5 w-5" />
                     </button>
-                    <button className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600">
-                      <MoreVertical className="h-5 w-5" />
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        {post.isOwner && (
+                          <>
+                            <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
+                              <Pencil className="mr-2 h-4 w-4" />
+                              수정
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleDelete} className="text-red-600 cursor-pointer">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              삭제
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 

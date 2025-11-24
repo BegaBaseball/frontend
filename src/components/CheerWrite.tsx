@@ -67,6 +67,13 @@ export default function CheerWrite() {
       queryClient.invalidateQueries({ queryKey: ['cheerPosts'] });
       queryClient.invalidateQueries({ queryKey: ['cheerPost', createdPost.id] });
       
+      // If it's a notice post, also invalidate notice-related queries
+      if (isAnnouncement) {
+        queryClient.invalidateQueries({ queryKey: ['sidebarNoticePosts'] });
+        // Also invalidate notice tab query
+        queryClient.invalidateQueries({ queryKey: ['cheerPosts', 'notice'] });
+      }
+      
       navigate(`/cheer/detail/${createdPost.id}`);
     },
     onError: (error: Error) => {
