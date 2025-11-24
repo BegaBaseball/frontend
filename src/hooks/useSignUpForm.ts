@@ -27,11 +27,11 @@ export const useSignUpForm = () => {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>(initialFieldErrors);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);  // ✅ 성공 상태 추가
 
   const handleFieldChange = (fieldName: FieldName, value: string) => {
     setFormData({ ...formData, [fieldName]: value });
     
-    // 에러 메시지 초기화
     if (fieldErrors[fieldName]) {
       setFieldErrors({ ...fieldErrors, [fieldName]: '' });
     }
@@ -46,12 +46,11 @@ export const useSignUpForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsSuccess(false);  // ✅ 초기화
     
-    // 필드 검증
     const errors = validateAllFields(formData);
     setFieldErrors(errors);
     
-    // 에러가 하나라도 있으면 제출 중단
     if (Object.values(errors).some(error => error !== '')) {
       return;
     }
@@ -67,8 +66,12 @@ export const useSignUpForm = () => {
         favoriteTeam: formData.favoriteTeam === '없음' ? null : formData.favoriteTeam,
       });
 
-      alert('회원가입 성공! 로그인 화면으로 이동합니다.');
-      navigate('/login');
+      setIsSuccess(true);  // ✅ 성공 상태 설정
+      
+      // ✅ 3초 후 로그인 페이지로 이동
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
     } catch (err) {
       console.error('Sign up error:', err);
       setError((err as Error).message || '네트워크 오류로 회원가입에 실패했습니다.');
@@ -81,6 +84,7 @@ export const useSignUpForm = () => {
     formData,
     fieldErrors,
     isLoading,
+    isSuccess,  // ✅ 성공 상태 반환
     error,
     handleFieldChange,
     handleFieldBlur,

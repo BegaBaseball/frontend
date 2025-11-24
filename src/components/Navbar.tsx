@@ -120,7 +120,7 @@ export default function Navbar() {
       logout();
       navigate('/');
       if (!response.ok) console.error('Server logout failed');
-      else alert('로그아웃 되었습니다.');
+      // else alert('로그아웃 되었습니다.');
     } catch (error) {
       logout();
       navigate('/');
