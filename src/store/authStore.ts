@@ -48,6 +48,14 @@ export const useAuthStore = create<AuthState>()(
       showPassword: false,
 
       fetchProfileAndAuthenticate: async () => {
+        const currentState = get();
+        
+        if (!currentState.isLoggedIn) {
+          console.info('🔒 비로그인 상태 - 프로필 조회 건너뜀');
+          set({ isAuthLoading: false });
+          return;
+        }
+
         set({ isAuthLoading: true }); 
 
         try {
@@ -157,9 +165,7 @@ export const useAuthStore = create<AuthState>()(
         isAdmin: state.isAdmin,
       }),
       onRehydrateStorage: () => (state) => {
-        
         return () => {
-          
           if (state?.isLoggedIn) {
             state.fetchProfileAndAuthenticate();
           } else {
