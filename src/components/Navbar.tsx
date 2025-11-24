@@ -9,6 +9,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotificationStore } from '../store/notificationStore'; 
 import NotificationPanel from './NotificationPanel';  
 import { useNotificationWebSocket } from '../hooks/useNotificationWebSocket';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`; 
@@ -29,6 +30,7 @@ export default function Navbar() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
+  
 
 
     // 사용자 ID 가져오기
@@ -82,21 +84,6 @@ export default function Navbar() {
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname]);
-
-  // 화면 크기 감지
-  useEffect(() => {
-    const handleResize = () => {
-      const desktop = window.innerWidth >= 768;
-      setIsDesktop(desktop);
-      if (desktop) { 
-        setIsMenuOpen(false);
-      }
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // 메뉴 외부 클릭 시 닫기
   useEffect(() => {

@@ -141,10 +141,13 @@ export default function Mate() {
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-gray-900">{party.hostName}</span>
                 {getBadgeIcon(party.hostBadge)}
-                <TeamLogo 
-                  teamId={party.hostFavoriteTeam || party.teamId} 
-                  size="sm" 
-                />
+                {/* 조건부 렌더링 추가 */}
+                {party.hostFavoriteTeam && party.hostFavoriteTeam !== '없음' && (
+                  <TeamLogo 
+                    teamId={party.hostFavoriteTeam} 
+                    size="sm" 
+                  />
+                )}
               </div>
               <div className="flex items-center gap-1 text-sm text-gray-500">
                 <TrendingUp className="w-3 h-3" style={{ color: '#2d5f4f' }} />
