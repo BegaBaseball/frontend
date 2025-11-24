@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Camera, X } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { EMOJI_STATS, WINNING_OPTIONS, MAX_PHOTOS } from '../../constants/diary';
 import { getFullImageUrl, formatDateString, getWinningLabel } from '../../utils/diary';
 import { useDiaryView } from '../../hooks/useDiaryView';
+import { useWeekCalendar } from '../../hooks/useWeekCalendar';
+import { useMonthCalendar } from '../../hooks/useMonthCalendar';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 export default function DiaryViewSection() {
   const {
@@ -29,177 +32,282 @@ export default function DiaryViewSection() {
     deleteMutation,
     diaryEntries,
     entriesLoading,
-  } = useDiaryView()
-  ;
+  } = useDiaryView();
+
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const weekCalendar = useWeekCalendar(selectedDate);
+  const monthCalendar = useMonthCalendar(currentMonth);
 
   return (
-    <div className="rounded-3xl p-8" style={{ backgroundColor: '#2d5f4f' }}>
-      <div className="grid grid-cols-20 gap-8">
-        {/* 왼쪽: 캘린더 */}
-        <Card className="p-8 col-span-13">
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={() =>
-                setCurrentMonth(
-                  new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
-                )
-              }
-              className="p-2 hover:bg-gray-100 rounded-full"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <h3 style={{ fontWeight: 900 }}>
-              {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
-            </h3>
-            <button
-              onClick={() =>
-                setCurrentMonth(
-                  new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
-                )
-              }
-              className="p-2 hover:bg-gray-100 rounded-full"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-7 gap-3">
-            {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
-              <div key={day} className="text-center py-2 text-sm text-gray-500">
-                {day}
-              </div>
-            ))}
-
-            {Array.from({ length: 35 }, (_, i) => {
-              const firstDay = new Date(
-                currentMonth.getFullYear(),
-                currentMonth.getMonth(),
-                1
-              ).getDay();
-              const daysInMonth = new Date(
-                currentMonth.getFullYear(),
-                currentMonth.getMonth() + 1,
-                0
-              ).getDate();
-              const dayNumber = i - firstDay + 1;
-              const isValidDay = dayNumber > 0 && dayNumber <= daysInMonth;
-
-              const dayDateStr = isValidDay
-                ? formatDateString(
-                    new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayNumber)
+    <div className="rounded-3xl p-4 md:p-8" style={{ backgroundColor: '#2d5f4f' }}>
+      {isDesktop ? (
+        // 데스크톱: 기존 월간 뷰
+        <div className="grid grid-cols-20 gap-8">
+          {/* 왼쪽: 캘린더 */}
+          <Card className="p-8 col-span-13">
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={() =>
+                  setCurrentMonth(
+                    new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
                   )
-                : '';
-
-              const selectedDateStr = formatDateString(selectedDate);
-              const entry = diaryEntries.find((e) => e.date === dayDateStr);
-              const isSelected = selectedDateStr === dayDateStr;
-
-              return (
-                <button
-                  key={i}
-                  onClick={() =>
-                    isValidDay &&
-                    handleDateSelect(
-                      new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayNumber)
-                    )
-                  }
-                  className={`border rounded-lg p-2 flex flex-col min-h-[110px] ${
-                    isValidDay ? 'bg-white hover:bg-gray-50' : 'bg-gray-50'
-                  } ${isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f]' : ''}`}
-                  style={{
-                    borderColor: entry
-                      ? entry.type === 'attended'
-                        ? '#2d5f4f'
-                        : '#fbbf24'
-                      : '#e5e7eb',
-                    backgroundColor: entry
-                      ? entry.type === 'attended'
-                        ? '#e8f5f0'
-                        : '#fef3c7'
-                      : isValidDay
-                      ? 'white'
-                      : '#f9fafb',
-                  }}
-                  disabled={!isValidDay}
-                >
-                  {isValidDay && (
-                    <>
-                      <div className="text-sm text-center w-full mb-2">{dayNumber}</div>
-                      {entry && (
-                        <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
-                          {entry.team && (
-                            <div className="text-[10px] text-gray-700 font-semibold text-center leading-snug px-1 line-clamp-2">
-                              {entry.team}
-                            </div>
-                          )}
-                          <img
-                            src={entry.emoji}
-                            alt={entry.emojiName}
-                            className="w-10 h-10 flex-shrink-0"
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-6 mt-6 justify-center">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-4 h-4 rounded"
-                style={{ backgroundColor: '#e8f5f0', border: '2px solid #2d5f4f' }}
-              />
-              <span className="text-sm text-gray-600">직관 완료</span>
+                }
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <h3 style={{ fontWeight: 900 }}>
+                {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
+              </h3>
+              <button
+                onClick={() =>
+                  setCurrentMonth(
+                    new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
+                  )
+                }
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-4 h-4 rounded"
-                style={{ backgroundColor: '#fef3c7', border: '2px solid #fbbf24' }}
-              />
-              <span className="text-sm text-gray-600">직관 예정</span>
+
+            <div className="grid grid-cols-7 gap-3">
+              {monthCalendar.weekDays.map((day) => (
+                <div key={day} className="text-center py-2 text-sm text-gray-500">
+                  {day}
+                </div>
+              ))}
+
+              {monthCalendar.calendarDays.map((day, i) => {
+                const selectedDateStr = formatDateString(selectedDate);
+                const entry = diaryEntries.find((e) => e.date === day.dateString);
+                const isSelected = selectedDateStr === day.dateString;
+
+                return (
+                  <button
+                    key={i}
+                    onClick={() =>
+                      day.isValidDay &&
+                      handleDateSelect(
+                        new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day.dayNumber, 12, 0, 0)
+                      )
+                    }
+                    className={`border rounded-lg p-2 flex flex-col min-h-[110px] ${
+                      day.isValidDay ? 'bg-white hover:bg-gray-50' : 'bg-gray-50'
+                    } ${isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f]' : ''}`}
+                    style={{
+                      borderColor: entry
+                        ? entry.type === 'attended'
+                          ? '#2d5f4f'
+                          : '#fbbf24'
+                        : '#e5e7eb',
+                      backgroundColor: entry
+                        ? entry.type === 'attended'
+                          ? '#e8f5f0'
+                          : '#fef3c7'
+                        : day.isValidDay
+                        ? 'white'
+                        : '#f9fafb',
+                    }}
+                    disabled={!day.isValidDay}
+                  >
+                    {day.isValidDay && (
+                      <>
+                        <div className="text-sm text-center w-full mb-2">{day.dayNumber}</div>
+                        {entry && (
+                          <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
+                            {entry.team && (
+                              <div className="text-[10px] text-gray-700 font-semibold text-center leading-snug px-1 line-clamp-2">
+                                {entry.team}
+                              </div>
+                            )}
+                            <img
+                              src={entry.emoji}
+                              alt={entry.emojiName}
+                              className="w-10 h-10 flex-shrink-0"
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          </div>
-        </Card>
 
-        {/* 오른쪽: 다이어리 폼 */}
-        <Card className="p-6 col-span-7">
-          <div className="mb-6">
-            <h3 style={{ color: '#2d5f4f', fontWeight: 900 }}>
-              {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 직관 기록
-            </h3>
-          </div>
+            <div className="flex items-center gap-6 mt-6 justify-center">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded"
+                  style={{ backgroundColor: '#e8f5f0', border: '2px solid #2d5f4f' }}
+                />
+                <span className="text-sm text-gray-600">직관 완료</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded"
+                  style={{ backgroundColor: '#fef3c7', border: '2px solid #fbbf24' }}
+                />
+                <span className="text-sm text-gray-600">직관 예정</span>
+              </div>
+            </div>
+          </Card>
 
-          {/* 읽기 모드 */}
-          {selectedDiary && !isEditMode ? (
-            <DiaryReadMode
-              diaryForm={diaryForm}
-              selectedDiary={selectedDiary}
-              setIsEditMode={setIsEditMode}
-              handleDeleteDiary={handleDeleteDiary}
-              deleteMutation={deleteMutation}
-            />
-          ) : (
-            /* 편집 모드 */
-            <DiaryEditMode
-              diaryForm={diaryForm}
-              updateForm={updateForm}
-              handlePhotoUpload={handlePhotoUpload}
-              removePhoto={removePhoto}
-              availableGames={availableGames}
-              selectedDiary={selectedDiary}
-              setIsEditMode={setIsEditMode}
-              handleDateSelect={handleDateSelect}
-              selectedDate={selectedDate}
-              handleSaveDiary={handleSaveDiary}
-              saveMutation={saveMutation}
-              updateMutation={updateMutation}
-            />
-          )}
-        </Card>
-      </div>
+          {/* 오른쪽: 다이어리 폼 */}
+          <Card className="p-6 col-span-7">
+            <div className="mb-6">
+              <h3 style={{ color: '#2d5f4f', fontWeight: 900 }}>
+                {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 직관 기록
+              </h3>
+            </div>
+
+            {selectedDiary && !isEditMode ? (
+              <DiaryReadMode
+                diaryForm={diaryForm}
+                selectedDiary={selectedDiary}
+                setIsEditMode={setIsEditMode}
+                handleDeleteDiary={handleDeleteDiary}
+                deleteMutation={deleteMutation}
+              />
+            ) : (
+              <DiaryEditMode
+                diaryForm={diaryForm}
+                updateForm={updateForm}
+                handlePhotoUpload={handlePhotoUpload}
+                removePhoto={removePhoto}
+                availableGames={availableGames}
+                selectedDiary={selectedDiary}
+                setIsEditMode={setIsEditMode}
+                handleDateSelect={handleDateSelect}
+                selectedDate={selectedDate}
+                handleSaveDiary={handleSaveDiary}
+                saveMutation={saveMutation}
+                updateMutation={updateMutation}
+              />
+            )}
+          </Card>
+        </div>
+      ) : (
+        // 모바일: 주간 뷰 (기존 코드 그대로)
+        <div className="space-y-4">
+          {/* 주간 캘린더 */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={weekCalendar.goToPrevWeek} className="p-2 hover:bg-gray-100 rounded-full">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <h3 style={{ fontWeight: 900, fontSize: '16px' }}>
+                {weekCalendar.getWeekDays()[0].getMonth() + 1}월{' '}
+                {weekCalendar.getWeekDays()[0].getDate()}일 -{' '}
+                {weekCalendar.getWeekDays()[6].getMonth() + 1}월{' '}
+                {weekCalendar.getWeekDays()[6].getDate()}일
+              </h3>
+              <button onClick={weekCalendar.goToNextWeek} className="p-2 hover:bg-gray-100 rounded-full">
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-2">
+              {weekCalendar.weekDays.map((day) => (
+                <div key={day} className="text-center py-1 text-xs text-gray-500">
+                  {day}
+                </div>
+              ))}
+
+              {weekCalendar.getWeekDays().map((date: Date, index: number) => {
+                const dayDateStr = formatDateString(date);
+                const selectedDateStr = formatDateString(selectedDate);
+                const entry = diaryEntries.find((e: any) => e.date === dayDateStr);
+                const isSelected = selectedDateStr === dayDateStr;
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleDateSelect(date)}
+                    className={`border rounded-lg p-2 flex flex-col min-h-[100px] bg-white hover:bg-gray-50 ${
+                      isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f]' : ''
+                    }`}
+                    style={{
+                      borderColor: entry
+                        ? entry.type === 'attended'
+                          ? '#2d5f4f'
+                          : '#fbbf24'
+                        : '#e5e7eb',
+                      backgroundColor: entry
+                        ? entry.type === 'attended'
+                          ? '#e8f5f0'
+                          : '#fef3c7'
+                        : 'white',
+                    }}
+                  >
+                    <div className="text-sm text-center w-full mb-1">{date.getDate()}</div>
+                    {entry && (
+                      <div className="flex-1 flex flex-col items-center justify-center">
+                        <img
+                          src={entry.emoji}
+                          alt={entry.emojiName}
+                          className="w-8 h-8 flex-shrink-0"
+                        />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-4 mt-4 justify-center text-xs">
+              <div className="flex items-center gap-1">
+                <div
+                  className="w-3 h-3 rounded"
+                  style={{ backgroundColor: '#e8f5f0', border: '2px solid #2d5f4f' }}
+                />
+                <span className="text-gray-600">직관 완료</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div
+                  className="w-3 h-3 rounded"
+                  style={{ backgroundColor: '#fef3c7', border: '2px solid #fbbf24' }}
+                />
+                <span className="text-gray-600">직관 예정</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* 다이어리 폼 */}
+          <Card className="p-4">
+            <div className="mb-6">
+              <h3 style={{ color: '#2d5f4f', fontWeight: 900 }}>
+                {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 직관 기록
+              </h3>
+            </div>
+
+            {selectedDiary && !isEditMode ? (
+              <DiaryReadMode
+                diaryForm={diaryForm}
+                selectedDiary={selectedDiary}
+                setIsEditMode={setIsEditMode}
+                handleDeleteDiary={handleDeleteDiary}
+                deleteMutation={deleteMutation}
+              />
+            ) : (
+              <DiaryEditMode
+                diaryForm={diaryForm}
+                updateForm={updateForm}
+                handlePhotoUpload={handlePhotoUpload}
+                removePhoto={removePhoto}
+                availableGames={availableGames}
+                selectedDiary={selectedDiary}
+                setIsEditMode={setIsEditMode}
+                handleDateSelect={handleDateSelect}
+                selectedDate={selectedDate}
+                handleSaveDiary={handleSaveDiary}
+                saveMutation={saveMutation}
+                updateMutation={updateMutation}
+              />
+            )}
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
