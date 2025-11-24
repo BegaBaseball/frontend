@@ -4,7 +4,6 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
-import Navbar from './Navbar';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { getFallbackTeamColor, useCheerStore } from '../store/cheerStore';
@@ -12,28 +11,37 @@ import ImagePicker from './ImagePicker';
 import { uploadPostImages } from '../api/images';
 import { createPost } from '../api/cheer';
 import { toast } from 'sonner';
+import { Checkbox } from './ui/checkbox';
 
 export default function CheerWrite() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { setSelectedPostId, upsertPost } = useCheerStore();
+  const isAdmin = useAuthStore((state) => state.isAdmin);
   const user = useAuthStore((state) => state.user);
   const favoriteTeam = user?.favoriteTeam ?? null;
+  const { upsertPost, setSelectedPostId } = useCheerStore();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isAnnouncement, setIsAnnouncement] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: async (payload: { title: string; content: string; files: File[] }) => {
-      if (!favoriteTeam) {
+      let teamIdForPayload: string | null = favoriteTeam;
+      if (isAdmin && isAnnouncement && (!favoriteTeam || favoriteTeam === '없음')) {
+        teamIdForPayload = null;
+      }
+
+      if (!teamIdForPayload && !(isAdmin && isAnnouncement)) {
         throw new Error('응원 구단을 먼저 설정해주세요.');
       }
 
       const created = await createPost({
-        teamId: favoriteTeam,
+        teamId: teamIdForPayload,
         title: payload.title,
         content: payload.content,
+        ...(isAnnouncement && { postType: 'NOTICE' }),
       });
 
       if (payload.files.length > 0) {
@@ -49,11 +57,16 @@ export default function CheerWrite() {
         ...createdPost,
         teamColor: createdPost.teamColor ?? getFallbackTeamColor(createdPost.teamId ?? createdPost.team),
       });
-      queryClient.invalidateQueries({ queryKey: ['cheerPosts'] });
-      queryClient.invalidateQueries({ queryKey: ['cheerPost', createdPost.id] });
+      
+      // Clear form data first to avoid blob URL references
       setTitle('');
       setContent('');
       setSelectedFiles([]);
+      
+      // Then invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['cheerPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['cheerPost', createdPost.id] });
+      
       navigate(`/cheer/detail/${createdPost.id}`);
     },
     onError: (error: Error) => {
@@ -75,7 +88,7 @@ export default function CheerWrite() {
       return;
     }
 
-    if (!favoriteTeam) {
+    if (!favoriteTeam && !(isAdmin && isAnnouncement)) {
       toast.error('마이페이지에서 응원 구단을 설정한 후 게시글을 작성할 수 있습니다.');
       return;
     }
@@ -89,7 +102,7 @@ export default function CheerWrite() {
 
   return (
     <div className="min-h-screen bg-white">
-
+      {/* Header */}
       <div className="border-b bg-gray-50">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
@@ -107,9 +120,8 @@ export default function CheerWrite() {
             style={{ backgroundColor: '#2d5f4f' }}
             disabled={
               createMutation.isPending || 
-              !favoriteTeam || 
-              !title.trim() || 
-              !content.trim()
+              (!title.trim() || !content.trim()) ||
+              ((!isAdmin || (isAdmin && !isAnnouncement)) && !favoriteTeam)
             }
           >
             {createMutation.isPending ? '등록 중...' : '등록'}
@@ -117,8 +129,10 @@ export default function CheerWrite() {
         </div>
       </div>
 
+      {/* Form */}
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
+          {/* Title */}
           <div className="space-y-2">
             <label className="block text-sm" style={{ color: '#2d5f4f' }}>
               제목 *
@@ -131,6 +145,7 @@ export default function CheerWrite() {
             />
           </div>
 
+          {/* Content */}
           <div className="space-y-2">
             <label className="block text-sm" style={{ color: '#2d5f4f' }}>
               내용 *
@@ -143,6 +158,25 @@ export default function CheerWrite() {
             />
           </div>
 
+          {/* Admin Announcement Checkbox */}
+          {isAdmin && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isAnnouncement"
+                checked={isAnnouncement}
+                onCheckedChange={setIsAnnouncement}
+              />
+              <label
+                htmlFor="isAnnouncement"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                style={{ color: '#2d5f4f' }}
+              >
+                공지사항으로 등록
+              </label>
+            </div>
+          )}
+
+          {/* Images */}
           <div className="space-y-2">
             <label className="block text-sm" style={{ color: '#2d5f4f' }}>
               이미지 (선택사항)

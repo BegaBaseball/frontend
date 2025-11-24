@@ -11,8 +11,6 @@ import GameCard from './GameCard';
 import OffSeasonHome from './OffSeasonHome';
 import { useState, useEffect } from 'react';
 
-// Note: grassDecor와 baseballLogo 이미지는 CSS로 대체됨
-
 // 백엔드 API 응답과 일치하는 타입 정의
 interface Game {
     gameId: string;
@@ -42,41 +40,77 @@ interface Ranking {
     games: number;
 }
 
+// 리그 시작 날짜 타입 
+interface LeagueStartDates {
+    regularSeasonStart: string;
+    postseasonStart: string;
+    koreanSeriesStart: string;
+}
+
 interface HomeProps {
     onNavigate: (page: string) => void;
 }
 
 export default function Home({ onNavigate }: HomeProps) {
-    const [selectedDate, setSelectedDate] = useState(new Date(2025, 9, 26)); // 2025년 10월 26일 (한국시리즈 시작일)
+    const [selectedDate, setSelectedDate] = useState(new Date(2025, 9, 26));
     const [showCalendar, setShowCalendar] = useState(false);
     const [games, setGames] = useState<Game[]>([]);
     const [rankings, setRankings] = useState<Ranking[]>([]);
+    const [leagueStartDates, setLeagueStartDates] = useState<LeagueStartDates | null>(null); // 새로 추가
     const [isLoading, setIsLoading] = useState(false);
     const [isRankingsLoading, setIsRankingsLoading] = useState(false);
-    const [activeLeagueTab, setActiveLeagueTab] = useState('koreanseries'); // 활성 탭 상태 추가
+    const [activeLeagueTab, setActiveLeagueTab] = useState('koreanseries');
 
     const currentSeasonYear = 2025;
-    // 브라우저에서 접근: localhost 사용 (도커 호스트의 8080 포트로 매핑됨)
     const API_BASE_URL = "http://localhost:8080"; 
 
-    // 각 리그별 시작 날짜 정의
-    const leagueStartDates = {
-        regular: new Date(2025, 2, 22),        // 2025년 3월 22일 (월은 0부터 시작)
-        postseason: new Date(2025, 9, 6),      // 2025년 10월 6일
-        koreanseries: new Date(2025, 9, 26)    // 2025년 10월 26일 ✅ 수정
+    /**
+      리그 시작 날짜를 DB에서 불러오기 
+     */
+    const loadLeagueStartDates = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/kbo/league-start-dates`);
+
+            if (!response.ok) {
+                console.error(`[리그 시작 날짜] API 요청 실패: ${response.status}`);
+                // 기본값 설정
+                setLeagueStartDates({
+                    regularSeasonStart: '2025-03-22',
+                    postseasonStart: '2025-10-06',
+                    koreanSeriesStart: '2025-10-26'
+                });
+                return;
+            }
+
+            const data: LeagueStartDates = await response.json();
+            console.log('[리그 시작 날짜] 로드 성공:', data);
+            setLeagueStartDates(data);
+
+        } catch (error) {
+            console.error('[리그 시작 날짜] 로드 중 오류:', error);
+            // 기본값 설정
+            setLeagueStartDates({
+                regularSeasonStart: '2025-03-22',
+                postseasonStart: '2025-10-06',
+                koreanSeriesStart: '2025-10-26'
+            });
+        }
     };
 
-    // 탭 변경 핸들러
+    /**
+     * 탭 변경 핸들러 (수정됨 - DB 날짜 사용)
+     */
     const handleTabChange = (value: string) => {
         setActiveLeagueTab(value);
         
-        // 해당 리그의 시작일로 날짜 변경
+        if (!leagueStartDates) return;
+        
         if (value === 'regular') {
-            setSelectedDate(leagueStartDates.regular);
+            setSelectedDate(new Date(leagueStartDates.regularSeasonStart));
         } else if (value === 'postseason') {
-            setSelectedDate(leagueStartDates.postseason);
+            setSelectedDate(new Date(leagueStartDates.postseasonStart));
         } else if (value === 'koreanseries') {
-            setSelectedDate(leagueStartDates.koreanseries);
+            setSelectedDate(new Date(leagueStartDates.koreanSeriesStart));
         }
     };
 
@@ -106,7 +140,6 @@ export default function Home({ onNavigate }: HomeProps) {
         const month = date.getMonth() + 1;
         const day = date.getDate();
 
-        // 11월 15일 ~ 3월 21일은 비시즌
         if (month >= 11 || month <= 2 || (month === 3 && day < 22)) {
             return true;
         }
@@ -114,11 +147,6 @@ export default function Home({ onNavigate }: HomeProps) {
     };
 
     const loadGamesData = async (date: Date) => {
-        if (isOffSeasonForUI(date)) {
-            setGames([]);
-            return;
-        }
-
         const apiDate = formatDateForAPI(date);
         setIsLoading(true);
 
@@ -164,6 +192,18 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
+    // 컴포넌트 마운트 시 리그 시작 날짜 먼저 로드 
+    useEffect(() => {
+        loadLeagueStartDates();
+    }, []);
+
+    // 리그 시작 날짜 로드 완료 후 초기 날짜 설정 
+    useEffect(() => {
+        if (leagueStartDates) {
+            setSelectedDate(new Date(leagueStartDates.koreanSeriesStart));
+        }
+    }, [leagueStartDates]);
+
     useEffect(() => {
         loadGamesData(selectedDate);
     }, [selectedDate]); 
@@ -172,15 +212,26 @@ export default function Home({ onNavigate }: HomeProps) {
         loadRankingsData();
     }, []); 
 
-    // 3개 리그만 필터링
     const regularSeasonGames = games.filter(g => g.leagueType === 'REGULAR');
     const postSeasonGames = games.filter(g => g.leagueType === 'POSTSEASON');
     const koreanSeriesGames = games.filter(g => g.leagueType === 'KOREAN_SERIES');
     const teamRankings = rankings;
 
+    // 리그 시작 날짜 로딩 중이면 로딩 표시 
+    if (!leagueStartDates) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-12 h-12 animate-spin" style={{ color: '#2d5f4f' }} />
+                    <p className="text-gray-500">리그 정보를 불러오는 중...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-white">
-            {isOffSeasonForUI(selectedDate) ? (
+            {isOffSeasonForUI(selectedDate) && games.length === 0 ? (
                 <section className="py-12 bg-gray-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <OffSeasonHome selectedDate={selectedDate} />
@@ -281,7 +332,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                 </DialogContent>
                             </Dialog>
 
-                            {/* League Tabs - 탭 변경 핸들러 추가 */}
+                            {/* League Tabs */}
                             <Tabs value={activeLeagueTab} onValueChange={handleTabChange} className="w-full">
                                 <style>{`
                                     [data-state=active] {
