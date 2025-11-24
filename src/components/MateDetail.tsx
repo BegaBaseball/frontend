@@ -33,10 +33,12 @@ export default function MateDetail() {
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
   const updateParty = useMateStore((state) => state.updateParty);
 
+  
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [myApplication, setMyApplication] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // localStorage에서 파티 정보 복원
 useEffect(() => {
@@ -84,7 +86,7 @@ useEffect(() => {
 
     const fetchMyApplication = async () => {
       try {
-        const applicationsData = await api.getApplicationsByApplicant(currentUserId);  // ✅ 변경
+        const applicationsData = await api.getApplicationsByApplicant(currentUserId);  // 변경
         const myApp = applicationsData.find((app: any) => 
           String(app.partyId) === String(selectedParty.id)
         );
@@ -115,6 +117,83 @@ useEffect(() => {
 
     fetchApplications();
   }, [selectedParty, currentUserId]);
+
+  const isGameTomorrow = () => {
+    if (!selectedParty) return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const gameDate = new Date(selectedParty.gameDate);
+    gameDate.setHours(0, 0, 0, 0);
+    
+    const daysDiff = Math.floor((gameDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // 경기가 오늘이거나 내일이면 true (취소 불가)
+    return daysDiff < 1;
+  };
+
+  // 취소 가능 여부 체크
+  const canCancel = () => {
+    if (!myApplication) return false;
+    if (myApplication.isRejected) return false;
+    if (selectedParty.status === 'CHECKED_IN' || selectedParty.status === 'COMPLETED') {
+      return false;
+    }
+    // 승인 전에는 항상 취소 가능
+    if (!myApplication.isApproved) return true;
+    // 승인 후에는 경기 D-1까지만 취소 가능
+    return !isGameTomorrow();
+  };
+
+  // 신청 취소 핸들러
+  const handleCancelApplication = async () => {
+    if (!myApplication || !currentUserId) return;
+
+    const isApproved = myApplication.isApproved;
+    
+    let confirmMessage = '';
+    if (isApproved) {
+      confirmMessage = 
+        '참여를 취소하시겠습니까?\n\n' +
+        '⚠️ 승인 후 취소 시:\n' +
+        '- 보증금 10,000원은 환불되지 않습니다\n' +
+        '- 티켓 가격만 환불됩니다\n' +
+        '- 취소는 경기 하루 전까지만 가능합니다';
+    } else {
+      confirmMessage = '신청을 취소하시겠습니까?\n\n전액 환불됩니다.';
+    }
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setIsCancelling(true);
+
+    try {
+      await api.cancelApplication(myApplication.id, currentUserId);
+      
+      if (isApproved) {
+        alert('참여가 취소되었습니다.\n티켓 가격만 환불되며, 보증금은 환불되지 않습니다.');
+      } else {
+        alert('신청이 취소되었습니다.\n결제 금액이 전액 환불됩니다.');
+      }
+      
+      // 내 신청 정보 초기화
+      setMyApplication(null);
+      
+      // 파티 정보 다시 불러오기
+      const updatedParty = await api.getPartyById(selectedParty.id);
+      setSelectedParty(updatedParty);
+      
+    } catch (error: any) {
+      console.error('신청 취소 중 오류:', error);
+      const errorMessage = error.response?.data?.message || '신청 취소 중 오류가 발생했습니다.';
+      alert(errorMessage);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   if (isLoadingUser) {
     return (
@@ -453,18 +532,42 @@ useEffect(() => {
             {/* Participant Actions */}
             {!isHost && (
               <>
+                {/* 승인됨 - 채팅 + 취소 버튼 */}
                 {isApproved && (
-                  <Button
-                    onClick={handleOpenChat}
-                    className="w-full text-white"
-                    size="lg"
-                    style={{ backgroundColor: '#2d5f4f' }}
-                  >
-                    <MessageSquare className="w-5 h-5 mr-2" />
-                    채팅방 입장
-                  </Button>
+                  <>
+                    <Button
+                      onClick={handleOpenChat}
+                      className="w-full text-white"
+                      size="lg"
+                      style={{ backgroundColor: '#2d5f4f' }}
+                    >
+                      <MessageSquare className="w-5 h-5 mr-2" />
+                      채팅방 입장
+                    </Button>
+                    
+                    {canCancel() && (
+                      <>
+                        <Alert className="border-yellow-200 bg-yellow-50">
+                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                          <AlertDescription className="text-yellow-800 text-sm">
+                            승인 후 취소 시 보증금 10,000원은 환불되지 않습니다.
+                          </AlertDescription>
+                        </Alert>
+                        <Button
+                          onClick={handleCancelApplication}
+                          disabled={isCancelling}
+                          variant="outline"
+                          className="w-full text-red-600 border-red-300 hover:bg-red-50"
+                          size="lg"
+                        >
+                          {isCancelling ? '취소 중...' : '참여 취소'}
+                        </Button>
+                      </>
+                    )}
+                  </>
                 )}
 
+                {/* 아직 신청 안 함 */}
                 {selectedParty.status === 'PENDING' && !myApplication && (
                   <Button
                     onClick={handleApply}
@@ -476,15 +579,28 @@ useEffect(() => {
                   </Button>
                 )}
 
+                {/* 승인 대기 중 - 취소 가능 */}
                 {myApplication && !myApplication.isApproved && !myApplication.isRejected && (
-                  <Alert>
-                    <Clock className="w-4 h-4" />
-                    <AlertDescription>
-                      신청이 완료되었습니다. 호스트의 승인을 기다려주세요.
-                    </AlertDescription>
-                  </Alert>
+                  <div className="space-y-3">
+                    <Alert>
+                      <Clock className="w-4 h-4" />
+                      <AlertDescription>
+                        신청이 완료되었습니다. 호스트의 승인을 기다려주세요.
+                      </AlertDescription>
+                    </Alert>
+                    <Button
+                      onClick={handleCancelApplication}
+                      disabled={isCancelling}
+                      variant="outline"
+                      className="w-full text-red-600 border-red-300 hover:bg-red-50"
+                      size="lg"
+                    >
+                      {isCancelling ? '취소 중...' : '신청 취소'}
+                    </Button>
+                  </div>
                 )}
 
+                {/* 거절됨 */}
                 {myApplication && myApplication.isRejected && (
                   <Alert className="border-red-200 bg-red-50">
                     <AlertTriangle className="w-4 h-4 text-red-600" />
@@ -493,9 +609,20 @@ useEffect(() => {
                     </AlertDescription>
                   </Alert>
                 )}
+
+                {/* 경기 D-1 이후 취소 불가 안내 */}
+                {myApplication && myApplication.isApproved && isGameTomorrow() && (
+                  <Alert className="border-yellow-200 bg-yellow-50">
+                    <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                    <AlertDescription className="text-yellow-800">
+                      경기 하루 전부터는 참여를 취소할 수 없습니다.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </>
             )}
 
+            {/* 체크인 버튼 - 기존 코드 유지 */}
             {selectedParty.status === 'MATCHED' && (isHost || isApproved) && (
               <Button
                 onClick={handleCheckIn}

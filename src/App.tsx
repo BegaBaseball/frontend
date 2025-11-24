@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
 import LoadingSpinner from './components/LoadingSpinner';
 import Layout from './components/Layout';
+import ChatBot from './components/ChatBot';
 
 // 페이지 컴포넌트를 lazy loading
 const Home = lazy(() => import('./components/Home'));
@@ -65,15 +66,23 @@ function AdminRoute() {
   return <Outlet />;
 }
 
-import ChatBot from './components/ChatBot';
 
 export default function App() {
   const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
   useEffect(() => {
     // 앱 시작 시 인증 상태 확인
     fetchProfileAndAuthenticate();
   }, [fetchProfileAndAuthenticate]);
+
+  // 로그인 시 알림 권한 요청 (한 번만)
+  useEffect(() => {
+    if (isLoggedIn && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, [isLoggedIn]);
+
 
   return (
     <BrowserRouter>

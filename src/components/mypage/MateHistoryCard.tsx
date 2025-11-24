@@ -1,19 +1,31 @@
 // components/MyPage/MateHistoryCard.tsx
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import TeamLogo from '../TeamLogo';
 import { MateParty } from '../../types/mate';
 import { getStatusLabel, getStatusStyle } from '../../utils/mate';
+import { useMateStore } from '../../store/mateStore';
 
 interface MateHistoryCardProps {
   party: MateParty;
 }
 
 export default function MateHistoryCard({ party }: MateHistoryCardProps) {
+  const navigate = useNavigate();
+  const setSelectedParty = useMateStore((state) => state.setSelectedParty);
+
   const statusStyle = getStatusStyle(party.status);
   const statusLabel = getStatusLabel(party.status);
 
+  // 클릭 핸들러 추가
+  const handleClick = () => {
+    setSelectedParty(party);
+    localStorage.setItem('selectedParty', JSON.stringify(party));
+    navigate(`/mate/${party.id}`);
+  };
+
   return (
-    <Card className="p-6 cursor-pointer hover:shadow-md transition-shadow">
+    <Card className="p-6 cursor-pointer hover:shadow-md transition-shadow" onClick={handleClick}>
       <div className="flex items-start gap-4">
         <TeamLogo teamId={party.teamId} size="lg" />
 
@@ -54,6 +66,12 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
               </p>
             </div>
           )}
+          {/* 상세보기 힌트 추가 */}
+          <div className="mt-3 pt-3 border-t">
+            <span className="text-sm" style={{ color: '#2d5f4f' }}>
+              상세보기 →
+            </span>
+          </div>
         </div>
       </div>
     </Card>

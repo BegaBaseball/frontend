@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Plus, Users, MapPin, Calendar, Shield, Star, Search, TrendingUp } from 'lucide-react';
+import { Plus, Users, MapPin, Calendar, Shield, Star, Search, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';  
 import { useMateStore } from '../store/mateStore';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { Input } from './ui/input';
@@ -13,30 +13,41 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import ChatBot from './ChatBot';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
-import { mapBackendPartyToFrontend, filterActiveParties } from '../utils/mate';
+import { mapBackendPartyToFrontend } from '../utils/mate';  
 import { Party } from '../types/mate';
 
 export default function Mate() {
   const navigate = useNavigate();
-  const { parties, setParties, setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
+  const { setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
   const currentUser = useAuthStore((state) => state.user);
+
+  // 상태 변경
+  const [parties, setParties] = useState<Party[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 9;
 
   // 컴포넌트 마운트 시 파티 목록 불러오기
   useEffect(() => {
-      const fetchParties = async () => {
-        try {
-          // api 유틸리티 사용
-          const backendParties = await api.getParties();
-          const mappedParties = backendParties.map(mapBackendPartyToFrontend);
-          setParties(mappedParties);
-        } catch (error) {
-          console.error('파티 목록 불러오기 오류:', error);
-        }
-      };
+    const fetchParties = async () => {
+      setIsLoading(true);
+      try {
+        const data = await api.getParties(undefined, undefined, currentPage, pageSize);
+        const mappedParties = data.content.map(mapBackendPartyToFrontend);
+        setParties(mappedParties);
+        setTotalPages(data.totalPages);
+        setTotalElements(data.totalElements);
+      } catch (error) {
+        console.error('파티 목록 불러오기 오류:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      fetchParties();
-    }, [setParties]);
-
+    fetchParties();
+  }, [currentPage]);
 
   const handlePartyClick = (party: Party) => {
     setSelectedParty(party);
@@ -69,26 +80,31 @@ export default function Mate() {
   };
 
   // 검색 필터링
-  const filterParties = (partyList: Party[]) => {
-    // 유틸리티 함수 사용
-    const activeParties = filterActiveParties(partyList);
+  const filteredParties = parties.filter((party) => {
+    // COMPLETED, FAILED 제외
+    if (party.status === 'COMPLETED' || party.status === 'FAILED') {
+      return false;
+    }
 
-    if (!searchQuery.trim()) return activeParties;
+    // 검색 필터
+    if (!searchQuery.trim()) return true;
     
     const query = searchQuery.toLowerCase();
-    return activeParties.filter(party => {
-      const homeTeamName = teamIdToName[party.homeTeam] || party.homeTeam;
-      const awayTeamName = teamIdToName[party.awayTeam] || party.awayTeam;
-      
-      return (
-        party.stadium.toLowerCase().includes(query) ||
-        homeTeamName.toLowerCase().includes(query) ||
-        awayTeamName.toLowerCase().includes(query) ||
-        party.section.toLowerCase().includes(query) ||
-        party.hostName.toLowerCase().includes(query)
-      );
-    });
-  };
+    const homeTeamName = teamIdToName[party.homeTeam] || party.homeTeam;
+    const awayTeamName = teamIdToName[party.awayTeam] || party.awayTeam;
+    
+    return (
+      party.stadium.toLowerCase().includes(query) ||
+      homeTeamName.toLowerCase().includes(query) ||
+      awayTeamName.toLowerCase().includes(query) ||
+      party.section.toLowerCase().includes(query) ||
+      party.hostName.toLowerCase().includes(query)
+    );
+  });
+
+  const pendingParties = filteredParties.filter((p) => p.status === 'PENDING');
+  const matchedParties = filteredParties.filter((p) => p.status === 'MATCHED');
+  const sellingParties = filteredParties.filter((p) => p.status === 'SELLING');
 
   const renderPartyCard = (party: Party) => {
     const isMyParty = currentUser && party.hostName === currentUser.name;
@@ -125,7 +141,10 @@ export default function Mate() {
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-gray-900">{party.hostName}</span>
                 {getBadgeIcon(party.hostBadge)}
-                <TeamLogo teamId={party.teamId} size="sm" />
+                <TeamLogo 
+                  teamId={party.hostFavoriteTeam || party.teamId} 
+                  size="sm" 
+                />
               </div>
               <div className="flex items-center gap-1 text-sm text-gray-500">
                 <TrendingUp className="w-3 h-3" style={{ color: '#2d5f4f' }} />
@@ -182,15 +201,8 @@ export default function Mate() {
     );
   };
 
-  const filteredParties = filterParties(parties);
-  const pendingParties = filterParties(parties.filter((p) => p.status === 'PENDING'));
-  const matchedParties = filterParties(parties.filter((p) => p.status === 'MATCHED'));
-  const sellingParties = filterParties(parties.filter((p) => p.status === 'SELLING'));
-
   return (
     <div className="min-h-screen bg-gray-50">
-      
-
       <img
         src={grassDecor}
         alt=""
@@ -246,7 +258,11 @@ export default function Mate() {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            {filteredParties.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-16">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto"></div>
+              </div>
+            ) : filteredParties.length === 0 ? (
               <div className="text-center py-16">
                 <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                 <p className="text-gray-500">
@@ -254,9 +270,73 @@ export default function Mate() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredParties.map(renderPartyCard)}
-              </div>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredParties.map(renderPartyCard)}
+                </div>
+
+                {/* 페이징 추가 */}
+                {!searchQuery && totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-4 mt-8">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
+                      disabled={currentPage === 0}
+                      className="flex items-center gap-2"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      이전
+                    </Button>
+
+                    <div className="flex items-center gap-2">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i;
+                        } else if (currentPage < 3) {
+                          pageNum = i;
+                        } else if (currentPage > totalPages - 3) {
+                          pageNum = totalPages - 5 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? 'default' : 'outline'}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className="w-10 h-10"
+                            style={
+                              currentPage === pageNum
+                                ? { backgroundColor: '#2d5f4f' }
+                                : {}
+                            }
+                          >
+                            {pageNum + 1}
+                          </Button>
+                        );
+                      })}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                      disabled={currentPage === totalPages - 1}
+                      className="flex items-center gap-2"
+                    >
+                      다음
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+
+                {!searchQuery && (
+                  <p className="text-center text-sm text-gray-500 mt-4">
+                    총 {totalElements}개의 파티 (페이지 {currentPage + 1} / {totalPages})
+                  </p>
+                )}
+              </>
             )}
           </TabsContent>
 
