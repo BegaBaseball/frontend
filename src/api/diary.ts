@@ -83,7 +83,7 @@ export async function deleteDiary(id: number): Promise<void> {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ id }), // ✅ Body 추가
+    body: JSON.stringify({ id }),
   });
 
   if (!response.ok) {
@@ -102,7 +102,6 @@ export async function uploadDiaryImages(
   const formData = new FormData();
   files.forEach((file) => {
     formData.append('images', file);
-    console.log('📤 업로드 대기:', file.name);
   });
 
   const response = await fetch(`${API_BASE_URL}/diary/${diaryId}/images`, {
@@ -111,19 +110,11 @@ export async function uploadDiaryImages(
     body: formData,
   });
 
-  console.log('📡 이미지 업로드 응답:', response.status);
-
   if (!response.ok) {
-    console.error('❌ 이미지 업로드 실패:', response.statusText);
     throw new Error('이미지 업로드 실패');
   }
-
   const result = await response.json();
-  console.log('🔍 이미지 업로드 서버 응답 JSON 전체:', result);
-
   const photos = result.photos || result.data?.photos || [];
-  console.log('✅ 업로드 완료, 사진 경로:', photos);
-
   return photos;
 }
 

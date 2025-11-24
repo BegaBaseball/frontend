@@ -43,7 +43,10 @@ export const useDiaryForm = () => {
 
   // ========== 사진 업로드 ==========
   const handlePhotoUpload = async (files: FileList | null) => {
-    if (!files) return;
+    
+    if (!files) {
+      return;
+    }
 
     const fileArray = Array.from(files);
 
@@ -54,27 +57,43 @@ export const useDiaryForm = () => {
       return;
     }
 
-    // Base64 변환
-    const newPhotos = await convertFilesToBase64(fileArray);
 
-    setDiaryForm((prev) => ({
-      ...prev,
-      photos: [...prev.photos, ...newPhotos],
-      photoFiles: [...prev.photoFiles, ...fileArray],
-    }));
+    setDiaryForm((prev) => {
+      const newPhotoFiles = [...prev.photoFiles, ...fileArray];
+      return {
+        ...prev,
+        photoFiles: newPhotoFiles,
+      };
+    });
+
   };
 
   // ========== 사진 삭제 ==========
   const removePhoto = (index: number) => {
-    setDiaryForm((prev) => ({
-      ...prev,
-      photos: prev.photos.filter((_, i) => i !== index),
-      photoFiles: prev.photoFiles.filter((_, i) => i !== index),
-    }));
+    
+    setDiaryForm((prev) => {
+      const existingPhotosCount = prev.photos.length;
+
+      if (index < existingPhotosCount) {
+        // 기존 사진 삭제 (DB URL)
+        return {
+          ...prev,
+          photos: prev.photos.filter((_, i) => i !== index),
+        };
+      } else {
+        // 새 사진 삭제 (File 객체)
+        const fileIndex = index - existingPhotosCount;
+        return {
+          ...prev,
+          photoFiles: prev.photoFiles.filter((_, i) => i !== fileIndex),
+        };
+      }
+    });
   };
 
   // ========== 폼 검증 ==========
   const validateForm = (): { valid: boolean; error?: string } => {
+    
     if (!diaryForm.gameId) {
       return { valid: false, error: '경기를 선택해주세요.' };
     }
