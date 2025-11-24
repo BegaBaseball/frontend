@@ -6,9 +6,12 @@ import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore'; 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useNotificationStore } from '../store/notificationStore'; 
+import NotificationPanel from './NotificationPanel';  
+import { useNotificationWebSocket } from '../hooks/useNotificationWebSocket';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`;
+const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`; 
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -16,6 +19,7 @@ export default function Navbar() {
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  const [userId, setUserId] = useState<number | null>(null);
 
   const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
   const setIsNotificationOpen = useUIStore((state) => state.setIsNotificationOpen);
@@ -23,7 +27,57 @@ export default function Navbar() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
 
+
+    // 사용자 ID 가져오기
+  useEffect(() => {
+    if (!user) {
+      setUserId(null);
+      return;
+    }
+
+    const fetchUserId = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/users/email-to-id?email=${encodeURIComponent(user.email)}`, {
+          credentials: 'include',
+        });
+        const data = await response.json();
+        const id = data.data || data;
+        setUserId(typeof id === 'number' ? id : parseInt(id));
+      } catch (error) {
+        console.error('사용자 ID 조회 오류:', error);
+      }
+    };
+
+    fetchUserId();
+  }, [user]);
+
+  // 알림 WebSocket 연결
+  useNotificationWebSocket({
+    userId,
+    enabled: !!userId,
+  });
+
+  // 초기 알림 개수만 가져오기 (WebSocket이 실시간으로 업데이트)
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchInitialUnreadCount = async () => {
+      try {
+        const countResponse = await fetch(`${API_BASE_URL}/notifications/user/${userId}/unread-count`, {
+          credentials: 'include',
+        });
+        const count = await countResponse.json();
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('읽지 않은 알림 개수 조회 오류:', error);
+      }
+    };
+
+    fetchInitialUnreadCount();
+  }, [userId, setUnreadCount]);
   // 페이지 이동 시 모바일 메뉴 닫기
   useEffect(() => {
     setIsMenuOpen(false);
@@ -68,6 +122,7 @@ export default function Navbar() {
     };
   }, [isMenuOpen]);
 
+  
   const handleLogout = async () => {
     try {
       const response = await fetch(LOGOUT_API_URL, {
@@ -143,11 +198,20 @@ export default function Navbar() {
               <PopoverTrigger asChild>
                 <button className={`relative p-1 transition-colors ${isMenuOpen && !isDesktop ? 'text-white hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}>
                   <Bell className="w-6 h-6" />
-                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-xs text-white font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-6 bg-gray-900 border-gray-800" align="end">
-                <p className="text-white text-center">내용 없음</p>
+              <PopoverContent className="w-96 p-0 bg-white border-gray-200" align="end">
+                <div className="p-4 border-b bg-white">
+                  <h3 className="font-bold" style={{ color: '#2d5f4f' }}>
+                    알림
+                  </h3>
+                </div>
+                <NotificationPanel />
               </PopoverContent>
             </Popover>
 
