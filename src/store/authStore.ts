@@ -42,7 +42,8 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoggedIn: false, 
       isAdmin: false,
-      isAuthLoading: true, 
+      // isAuthLoading: true,
+      isAuthLoading: false,
       email: '',
       password: '',
       showPassword: false,
@@ -51,7 +52,6 @@ export const useAuthStore = create<AuthState>()(
         const currentState = get();
         
         if (!currentState.isLoggedIn) {
-          console.info('🔒 비로그인 상태 - 프로필 조회 건너뜀');
           set({ isAuthLoading: false });
           return;
         }
@@ -83,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
               },
               isLoggedIn: true,
               isAdmin: isAdminUser,
-              isAuthLoading: false,  
+              // isAuthLoading: false,  
             });
             
           } else if (response.status === 401) {
@@ -91,10 +91,10 @@ export const useAuthStore = create<AuthState>()(
               user: null, 
               isLoggedIn: false, 
               isAdmin: false,
-              isAuthLoading: false  
+              // isAuthLoading: false  
             });
           } else {
-            set({ isAuthLoading: false });  
+            // set({ isAuthLoading: false });  
           }
         } catch (error) {
           set({ 
@@ -130,7 +130,7 @@ export const useAuthStore = create<AuthState>()(
           },
           isLoggedIn: true,
           isAdmin: isAdminUser,
-          isAuthLoading: false,  
+          // isAuthLoading: false,  
           email: '',
           password: '',
         });
@@ -142,7 +142,7 @@ export const useAuthStore = create<AuthState>()(
           user: null, 
           isLoggedIn: false, 
           isAdmin: false, 
-          isAuthLoading: false,  
+          // isAuthLoading: false,  
           email: '', 
           password: '' 
         });
