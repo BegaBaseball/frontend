@@ -25,6 +25,7 @@ const MateChat = lazy(() => import('./components/MateChat'));
 const MateManage = lazy(() => import('./components/MateManage'));
 const MyPage = lazy(() => import('./components/MyPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
+const RankingPredictionShare = lazy(() => import('./components/RankingPredictionShare'));
 
 // 인증이 필요한 라우트를 보호하는 컴포넌트
 function ProtectedRoute() {
@@ -75,6 +76,21 @@ export default function App() {
     fetchProfileAndAuthenticate();
   }, [fetchProfileAndAuthenticate]);
 
+  // 카카오 SDK 초기화 로직 
+  useEffect(() => {
+    // 환경 변수에서 Key를 가져옴
+    const KAKAO_KEY = import.meta.env.VITE_KAKAO_API_KEY;
+
+    // window 객체에 Kakao SDK가 로드되었고, Key가 있으며, 아직 초기화되지 않았다면 초기화
+    if (window.Kakao && KAKAO_KEY) {
+      if (!window.Kakao.isInitialized()) {
+        window.Kakao.init(KAKAO_KEY);
+        console.log('카카오 SDK 초기화 완료');
+      }
+    }
+  }, []); // 빈 배열을 넣어 컴포넌트가 마운트될 때 단 한 번만 실행되도록 함
+
+
   return (
     <BrowserRouter>
       <Suspense fallback={<LoadingSpinner />}>
@@ -95,6 +111,7 @@ export default function App() {
             <Route path="/cheer/detail/:postId" element={<CheerDetail />} />
             <Route path="/mate" element={<Mate />} />
             <Route path="/mate/:id" element={<MateDetail />} />
+            <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
             {/* 로그인 필요한 라우트 */}
             <Route element={<ProtectedRoute />}>
               <Route path="/cheer/write" element={<CheerWrite />} />
