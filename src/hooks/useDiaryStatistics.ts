@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useDiaryStore } from '../store/diaryStore';
-import { fetchDiaryStatistics } from '../api/diary';
+import { fetchDiaries, fetchDiaryStatistics } from '../api/diary';
 import { calculateEmojiStats } from '../utils/diary';
 import { DiaryStatistics } from '../types/diary';
 import { toast } from 'sonner';
@@ -26,7 +25,13 @@ const getInitialStatistics = (): DiaryStatistics => ({
 });
 
 export const useDiaryStatistics = () => {
-  const { diaryEntries, cheerPostCount, mateParticipationCount } = useDiaryStore();
+
+  const { data: diaryEntries = [] } = useQuery({
+    queryKey: ['diaries'],
+    queryFn: fetchDiaries,
+    staleTime: 1 * 60 * 1000,
+  });
+  // const { diaryEntries, cheerPostCount, mateParticipationCount } = useDiaryStore();
 
   // ========== Fetch Statistics ==========
   const {
@@ -34,7 +39,7 @@ export const useDiaryStatistics = () => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['diaryStatistics', diaryEntries.length, cheerPostCount, mateParticipationCount],
+    queryKey: ['statistics'],
     queryFn: fetchDiaryStatistics,
     staleTime: 5 * 60 * 1000, // 5분
     gcTime: 30 * 60 * 1000, // 30분
