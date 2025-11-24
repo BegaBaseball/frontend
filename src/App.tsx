@@ -7,6 +7,7 @@ import ChatBot from './components/ChatBot';
 
 // 페이지 컴포넌트를 lazy loading
 const Home = lazy(() => import('./components/Home'));
+const OffSeasonHome = lazy(() => import('./components/OffSeasonHome'));
 const Login = lazy(() => import('./components/Login'));
 const SignUp = lazy(() => import('./components/SignUp'));
 const PasswordReset = lazy(() => import('./components/PasswordReset'));
@@ -115,6 +116,7 @@ export default function App() {
           <Route element={<Layout />}>
             {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
             <Route path="/" element={<Home />} />
+            <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date(2025, 11, 30)}/>} />
             <Route path="/stadium" element={<StadiumGuide />} />
             <Route path="/prediction" element={<Prediction />} />
             <Route path="/cheer" element={<Cheer />} />
