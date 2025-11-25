@@ -1,12 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
-import LoadingSpinner from './components/LoadingSpinner';
+// import LoadingSpinner from './components/LoadingSpinner';
 import Layout from './components/Layout';
 import ChatBot from './components/ChatBot';
 
 // 페이지 컴포넌트를 lazy loading
 const Home = lazy(() => import('./components/Home'));
+const OffSeasonHome = lazy(() => import('./components/OffSeasonHome'));
 const Login = lazy(() => import('./components/Login'));
 const SignUp = lazy(() => import('./components/SignUp'));
 const PasswordReset = lazy(() => import('./components/PasswordReset'));
@@ -27,16 +28,19 @@ const MateManage = lazy(() => import('./components/MateManage'));
 const MyPage = lazy(() => import('./components/MyPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const RankingPredictionShare = lazy(() => import('./components/RankingPredictionShare'));
+const NoticePage = lazy(() => import('./components/NoticePage'));
+const TermsOfService = lazy(() => import('./components/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 
 // 인증이 필요한 라우트를 보호하는 컴포넌트
 function ProtectedRoute() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
+  // const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   
   // 로딩 중이면 스피너 표시
-  if (isAuthLoading) {
-    return <LoadingSpinner />;
-  }
+  // if (isAuthLoading) {
+  //   return <LoadingSpinner />;
+  // }
   
   // 로딩 완료 후 로그인 체크
   if (!isLoggedIn) {
@@ -52,9 +56,9 @@ function AdminRoute() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   
-  if (isAuthLoading) {
-    return <LoadingSpinner />;
-  }
+  // if (isAuthLoading) {
+  //   return <LoadingSpinner />;
+  // }
   
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
@@ -99,7 +103,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingSpinner />}>
+      {/* <Suspense fallback={<LoadingSpinner />}> */}
         <Routes>
           {/* 공개 라우트 - 로그인 필요 없음 */}
           <Route path="/login" element={<Login />} />
@@ -111,6 +115,7 @@ export default function App() {
           <Route element={<Layout />}>
             {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
             <Route path="/" element={<Home />} />
+            <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()}/>} />
             <Route path="/stadium" element={<StadiumGuide />} />
             <Route path="/prediction" element={<Prediction />} />
             <Route path="/cheer" element={<Cheer />} />
@@ -118,6 +123,9 @@ export default function App() {
             <Route path="/mate" element={<Mate />} />
             <Route path="/mate/:id" element={<MateDetail />} />
             <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
+            <Route path="/notice" element={<NoticePage />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             {/* 로그인 필요한 라우트 */}
             <Route element={<ProtectedRoute />}>
               <Route path="/cheer/write" element={<CheerWrite />} />
@@ -139,7 +147,7 @@ export default function App() {
           {/* 404 처리 */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Suspense>
+      {/* </Suspense> */}
       <ChatBot />
     </BrowserRouter>
   );
