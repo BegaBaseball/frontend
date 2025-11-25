@@ -3,13 +3,15 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
-import { Calendar, Trophy, Home as HomeIcon, Heart, MapPin, TrendingUp, BookOpen, ChevronLeft, ChevronRight, CalendarDays, Loader2 } from 'lucide-react';
+import { Calendar, Trophy, Home as HomeIcon, Heart, MapPin, TrendingUp, BookOpen, ChevronLeft, ChevronRight, CalendarDays, Loader2, Flame } from 'lucide-react';
 import { Calendar as CalendarComponent } from './ui/calendar';
 import ChatBot from './ChatBot';
 import TeamLogo from './TeamLogo';
 import GameCard from './GameCard';
 import OffSeasonHome from './OffSeasonHome';
 import { useState, useEffect } from 'react';
+import { CURRENT_SEASON_YEAR } from '../constants/home';
+import { useNavigate } from 'react-router-dom';
 
 // 백엔드 API 응답과 일치하는 타입 정의
 interface Game {
@@ -48,20 +50,20 @@ interface LeagueStartDates {
 }
 
 interface HomeProps {
-    onNavigate: (page: string) => void;
+    onNavigate?: (page: string) => void;
 }
 
 export default function Home({ onNavigate }: HomeProps) {
+    const navigate = useNavigate();
     const [selectedDate, setSelectedDate] = useState(new Date(2025, 9, 26));
     const [showCalendar, setShowCalendar] = useState(false);
     const [games, setGames] = useState<Game[]>([]);
     const [rankings, setRankings] = useState<Ranking[]>([]);
-    const [leagueStartDates, setLeagueStartDates] = useState<LeagueStartDates | null>(null); // 새로 추가
+    const [leagueStartDates, setLeagueStartDates] = useState<LeagueStartDates | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isRankingsLoading, setIsRankingsLoading] = useState(false);
     const [activeLeagueTab, setActiveLeagueTab] = useState('koreanseries');
 
-    const currentSeasonYear = 2025;
     const API_BASE_URL = "http://localhost:8080"; 
 
     /**
@@ -83,7 +85,6 @@ export default function Home({ onNavigate }: HomeProps) {
             }
 
             const data: LeagueStartDates = await response.json();
-            console.log('[리그 시작 날짜] 로드 성공:', data);
             setLeagueStartDates(data);
 
         } catch (error) {
@@ -173,7 +174,7 @@ export default function Home({ onNavigate }: HomeProps) {
     const loadRankingsData = async () => {
         setIsRankingsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/2025`);
+            const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/${CURRENT_SEASON_YEAR}`);
 
             if (!response.ok) {
                 console.error(`[순위] API 요청 실패: ${response.status} ${response.statusText}`);
@@ -215,7 +216,6 @@ export default function Home({ onNavigate }: HomeProps) {
     const regularSeasonGames = games.filter(g => g.leagueType === 'REGULAR');
     const postSeasonGames = games.filter(g => g.leagueType === 'POSTSEASON');
     const koreanSeriesGames = games.filter(g => g.leagueType === 'KOREAN_SERIES');
-    const teamRankings = rankings;
 
     // 리그 시작 날짜 로딩 중이면 로딩 표시 
     if (!leagueStartDates) {
@@ -279,7 +279,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                     </button>
                                     <div className="min-w-[200px] text-center bg-white rounded-lg py-2 px-4 border-2" style={{ borderColor: '#2d5f4f' }}>
                                     <h2 style={{ fontWeight: 900, fontSize: '18px', color: '#2d5f4f' }}>
-                                        {formatDate(selectedDate)} {/* ✅ 이제 안전! */}
+                                        {formatDate(selectedDate)}
                                     </h2>
                                     </div>
                                     <button 
@@ -386,11 +386,11 @@ export default function Home({ onNavigate }: HomeProps) {
                                 ) : (
                                     <>
                                         <TabsContent value="regular" className="mt-8">
-                                            {regular.length === 0 ? (
+                                            {regularSeasonGames.length === 0 ? (
                                                 <p className="text-center py-8 text-gray-500">해당 날짜에 정규시즌 경기가 없습니다.</p>
                                             ) : (
                                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                    {regular.map((game, index) => (
+                                                    {regularSeasonGames.map((game, index) => (
                                                         <GameCard key={index} game={game} />
                                                     ))}
                                                 </div>
@@ -398,11 +398,11 @@ export default function Home({ onNavigate }: HomeProps) {
                                         </TabsContent>
 
                                         <TabsContent value="postseason" className="mt-8">
-                                            {postseason.length === 0 ? (
+                                            {postSeasonGames.length === 0 ? (
                                                 <p className="text-center py-8 text-gray-500">해당 날짜에 포스트시즌 경기가 없습니다.</p>
                                             ) : (
                                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                    {postseason.map((game, index) => (
+                                                    {postSeasonGames.map((game, index) => (
                                                         <GameCard key={index} game={game} featured={true} />
                                                     ))}
                                                 </div>
@@ -410,11 +410,11 @@ export default function Home({ onNavigate }: HomeProps) {
                                         </TabsContent>
 
                                         <TabsContent value="koreanseries" className="mt-8">
-                                            {koreanseries.length === 0 ? (
+                                            {koreanSeriesGames.length === 0 ? (
                                                 <p className="text-center py-8 text-gray-500">해당 날짜에 한국시리즈 경기가 없습니다.</p>
                                             ) : (
                                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                    {koreanseries.map((game, index) => (
+                                                    {koreanSeriesGames.map((game, index) => (
                                                         <GameCard key={index} game={game} featured={true} />
                                                     ))}
                                                 </div>
