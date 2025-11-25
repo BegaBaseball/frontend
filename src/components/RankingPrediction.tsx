@@ -5,8 +5,12 @@ import { RotateCcw, Award, X, GripVertical } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
-import RankingItem from './ranking/RankingItem';
 import firstPlaceImage from 'figma:asset/f552d9266ac817e0c86b657dead0069395c6da11.png';
+import { useRankingPrediction } from '../hooks/useRankingPrediction';
+import { useDrag, useDrop } from 'react-dnd';
+import { Team } from '../store/predictionStore';
+
+
 import {
   AlertDialog,
   AlertDialogAction,
