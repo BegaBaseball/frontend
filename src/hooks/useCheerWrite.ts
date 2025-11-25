@@ -1,69 +1,111 @@
-import { useState } from 'react';
+// hooks/useCheerWrite.ts
+import { useState, useMemo, useEffect, DragEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPost } from '../api/cheer';
 import { uploadPostImages } from '../api/images';
-import { useAuthStore } from '../store/authStore';
-import { getFallbackTeamColor, useCheerStore } from '../store/cheerStore';
+import { useCheerStore } from '../store/cheerStore';
 import { toast } from 'sonner';
 
-export const useCheerWrite = () => {
+const MAX_IMAGES = 10;
+const MAX_FILE_SIZE_MB = 5;
+
+export const useCheerWrite = (favoriteTeam: string | null) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { setSelectedPostId, upsertPost } = useCheerStore();
-  const user = useAuthStore((state) => state.user);
-  const favoriteTeam = user?.favoriteTeam ?? null;
+  const { addPost } = useCheerStore();
 
-  // ========== States ==========
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
-  // ========== Mutation ==========
+  const newFilePreviews = useMemo(() => {
+    return newFiles.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+  }, [newFiles]);
+
+  useEffect(() => {
+    return () => {
+      newFilePreviews.forEach(({ url }) => URL.revokeObjectURL(url));
+    };
+  }, [newFilePreviews]);
+
   const createMutation = useMutation({
-    mutationFn: async (payload: { title: string; content: string; files: File[] }) => {
-      if (!favoriteTeam) {
-        throw new Error('응원 구단을 먼저 설정해주세요.');
-      }
-
-      const created = await createPost({
-        teamId: favoriteTeam,
+    mutationFn: async (payload: { title: string; content: string; teamId: string | null; files: File[] }) => {
+      const newPost = await createPost({
         title: payload.title,
         content: payload.content,
+        teamId: payload.teamId,
+        postType: 'NORMAL',
       });
 
       if (payload.files.length > 0) {
-        await uploadPostImages(created.id, payload.files);
+        await uploadPostImages(newPost.id, payload.files);
       }
 
-      return created;
+      return newPost;
     },
-    onSuccess: (createdPost) => {
-      toast.success('게시글이 작성되었습니다.');
-      setSelectedPostId(createdPost.id);
-      upsertPost({
-        ...createdPost,
-        teamColor: createdPost.teamColor ?? getFallbackTeamColor(createdPost.teamId ?? createdPost.team),
-      });
+    onSuccess: (newPost) => {
+      addPost(newPost);
       queryClient.invalidateQueries({ queryKey: ['cheerPosts'] });
-      queryClient.invalidateQueries({ queryKey: ['cheerPost', createdPost.id] });
-      setTitle('');
-      setContent('');
-      setSelectedFiles([]);
-      navigate(`/cheer/detail/${createdPost.id}`);
+      toast.success('게시글이 성공적으로 등록되었습니다.');
+      navigate(`/cheer/detail/${newPost.id}`);
     },
     onError: (error: Error) => {
-      toast.error(error.message || '게시글 작성에 실패했습니다.');
+      toast.error(error.message || '게시글 등록 중 문제가 발생했습니다.');
     },
   });
 
-  // ========== Handlers ==========
-  const handleImagesSelected = (files: File[]) => {
-    setSelectedFiles((prev) => [...prev, ...files]);
+  const processFiles = (files: File[]) => {
+    const totalImages = newFiles.length;
+
+    const validFiles = files.filter((file) => {
+      if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        toast.error(`${file.name} 파일이 ${MAX_FILE_SIZE_MB}MB 제한을 초과했습니다.`);
+        return false;
+      }
+      return true;
+    });
+
+    if (totalImages + validFiles.length > MAX_IMAGES) {
+      toast.error(`이미지는 최대 ${MAX_IMAGES}개까지 선택할 수 있습니다.`);
+      return;
+    }
+
+    setNewFiles((prev) => [...prev, ...validFiles]);
   };
 
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    processFiles(Array.from(files));
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files) {
+      processFiles(Array.from(files));
+    }
+  };
+  
+  const handleRemoveNewFile = (index: number) => {
+    setNewFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = () => {
@@ -71,41 +113,36 @@ export const useCheerWrite = () => {
       toast.error('제목과 내용을 입력해주세요.');
       return;
     }
-
-    if (!favoriteTeam) {
-      toast.error('마이페이지에서 응원 구단을 설정한 후 게시글을 작성할 수 있습니다.');
-      return;
-    }
-
     createMutation.mutate({
       title: title.trim(),
       content: content.trim(),
-      files: selectedFiles,
+      teamId: favoriteTeam,
+      files: newFiles,
     });
   };
 
   const handleCancel = () => {
-    navigate('/cheer');
+    const confirmed = window.confirm('작성을 취소하시겠습니까? 작성 중인 내용은 저장되지 않습니다.');
+    if (confirmed) {
+      navigate('/cheer');
+    }
   };
 
   return {
-    // Data
-    favoriteTeam,
-    
-    // Form State
     title,
     setTitle,
     content,
     setContent,
-    selectedFiles,
-    
-    // Mutation
+    newFiles,
+    newFilePreviews,
+    isDragging,
     isSubmitting: createMutation.isPending,
-    
-    // Handlers
-    handleImagesSelected,
-    handleRemoveFile,
+    handleFileSelect,
+    handleRemoveNewFile,
     handleSubmit,
     handleCancel,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
   };
 };

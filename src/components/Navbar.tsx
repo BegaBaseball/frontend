@@ -19,7 +19,6 @@ export default function Navbar() {
   const location = useLocation();
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   const [userId, setUserId] = useState<number | null>(null);
 
   const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
@@ -30,6 +29,7 @@ export default function Navbar() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
   
 
 
@@ -138,7 +138,7 @@ export default function Navbar() {
     <header className="border-b border-gray-200 sticky top-0 z-40 transition-colors duration-300"
     style={{
       backgroundColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff',
-      borderColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff'
+      // borderColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff'
     }}
   >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

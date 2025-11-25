@@ -231,7 +231,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     return (
         <div className="min-h-screen bg-white">
-            {isOffSeasonForUI(selectedDate) && games.length === 0 ? (
+            {selectedDate && isOffSeasonForUI(selectedDate) && games.length === 0 ? (
                 <section className="py-12 bg-gray-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <OffSeasonHome selectedDate={selectedDate} />
@@ -255,7 +255,9 @@ export default function Home({ onNavigate }: HomeProps) {
                                 </div>
                                 <div className="text-white text-right">
                                     <div className="text-sm text-white/80 mb-1">{CURRENT_SEASON_YEAR} 시즌</div>
-                                    <div className="text-2xl" style={{ fontWeight: 900 }}>{formatDate(selectedDate)}</div>
+                                    {selectedDate && (
+                                        <div className="text-2xl" style={{ fontWeight: 900 }}>{formatDate(selectedDate)}</div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -276,7 +278,9 @@ export default function Home({ onNavigate }: HomeProps) {
                                         <ChevronLeft className="w-5 h-5" />
                                     </button>
                                     <div className="min-w-[200px] text-center bg-white rounded-lg py-2 px-4 border-2" style={{ borderColor: '#2d5f4f' }}>
-                                        <h2 style={{ fontWeight: 900, fontSize: '18px', color: '#2d5f4f' }}>{formatDate(selectedDate)}</h2>
+                                    <h2 style={{ fontWeight: 900, fontSize: '18px', color: '#2d5f4f' }}>
+                                        {formatDate(selectedDate)} {/* ✅ 이제 안전! */}
+                                    </h2>
                                     </div>
                                     <button 
                                         onClick={() => changeDate(1)}
@@ -286,7 +290,17 @@ export default function Home({ onNavigate }: HomeProps) {
                                         <ChevronRight className="w-5 h-5" />
                                     </button>
                                 </div>
-                                <div className="flex-1 flex justify-end">
+                                <div className="flex-1 flex justify-end gap-3">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        className="shiny-button rounded-md"
+                                        style={{ borderColor: '#2d5f4f', color: '#fff' }}
+                                        onClick={() => navigate('/offseason')}
+                                    >
+                                        <Flame className="w-4 h-4 mr-2" />
+                                        스토브리그
+                                    </Button>
                                     <Button 
                                         variant="outline" 
                                         size="sm"
