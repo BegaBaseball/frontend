@@ -229,10 +229,10 @@ export default function CheerDetail() {
   const interactionWarning = useMemo(() => {
     if (!post) return '';
     if (!userFavoriteTeam) {
-      return '마이페이지에서 응원 구단을 설정한 후 댓글과 좋아요를 사용할 수 있습니다.';
+      return '마이페이지에서 응원 구단을 설정한 후 댓글을 작성할 수 있습니다.';
     }
     if (!sameTeamAsUser) {
-      return '다른 팀 게시글에는 댓글이나 좋아요를 남길 수 없습니다.';
+      return '다른 팀 게시글에는 댓글을 남길 수 없습니다.';
     }
     return '';
   }, [post, userFavoriteTeam, sameTeamAsUser]);
@@ -465,7 +465,7 @@ export default function CheerDetail() {
                               </DropdownMenuItem>
                               <AlertDialogTrigger asChild>
                                 <DropdownMenuItem
-                                  onSelect={(e) => e.preventDefault()}
+                                  onSelect={(e: Event) => e.preventDefault()}
                                   className="text-red-600 cursor-pointer"
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
