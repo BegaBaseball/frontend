@@ -24,6 +24,7 @@ interface AuthState {
   email: string;
   password: string;
   showPassword: boolean;
+  showLoginRequiredDialog: boolean;
   
   fetchProfileAndAuthenticate: () => Promise<void>; 
   setUserProfile: (profile: Omit<User, 'email'> & { email: string, name: string }) => void;
@@ -34,6 +35,8 @@ interface AuthState {
   login: (email: string, name: string, profileImageUrl?: string, role?: string) => void; 
   logout: () => void;
   setFavoriteTeam: (team: string, color: string) => void;
+  setShowLoginRequiredDialog: (show: boolean) => void;
+  requireLogin: (callback?: () => void) => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -47,6 +50,7 @@ export const useAuthStore = create<AuthState>()(
       email: '',
       password: '',
       showPassword: false,
+      showLoginRequiredDialog: false, 
 
       fetchProfileAndAuthenticate: async () => {
         const currentState = get();
@@ -155,6 +159,18 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           user: state.user ? { ...state.user, favoriteTeam: team, favoriteTeamColor: color } : null,
         })),
+
+      setShowLoginRequiredDialog: (show) => set({ showLoginRequiredDialog: show }),
+      
+      requireLogin: (callback) => {
+        const { isLoggedIn } = get();
+        if (!isLoggedIn) {
+          set({ showLoginRequiredDialog: true });
+          return false;
+        }
+        callback?.();
+        return true;
+      },
 
     }),
     {
