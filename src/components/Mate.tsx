@@ -216,7 +216,7 @@ export default function Mate() {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 style={{ color: '#2d5f4f' }} className="mb-2">
-              직관메이트 찾기
+              같이 갈 메이트 찾기
             </h1>
             <p className="text-gray-600">함께 야구를 즐길 메이트를 찾아보세요</p>
           </div>
@@ -232,7 +232,7 @@ export default function Mate() {
 
         <Card className="p-4 mb-8 border-2" style={{ backgroundColor: '#f0f7f4', borderColor: '#2d5f4f' }}>
           <div>
-            <h3 className="mb-1" style={{ color: '#2d5f4f' }}>직관메이트 이용 가이드</h3>
+            <h3 className="mb-1" style={{ color: '#2d5f4f' }}>'같이가요' 이용 가이드</h3>
             <ul className="text-sm space-y-1" style={{ color: '#1f4438' }}>
               <li>• <strong>내가 호스트인 파티:</strong> 신청 관리 → 승인/거절 → 채팅방 소통</li>
               <li>• <strong>참여 신청한 파티:</strong> 승인 대기 → 승인 후 채팅 가능</li>
