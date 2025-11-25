@@ -40,10 +40,10 @@ export interface Comment {
 }
 
 interface CheerState {
-  activeTab: 'all' | 'myTeam';
+  activeTab: 'all' | 'myTeam' | 'notice';
   posts: Post[];
   selectedPostId: number | null;
-  setActiveTab: (tab: 'all' | 'myTeam') => void;
+  setActiveTab: (tab: 'all' | 'myTeam' | 'notice') => void;
   setPosts: (posts: Post[]) => void;
   setSelectedPostId: (postId: number | null) => void;
   upsertPost: (post: Post) => void;

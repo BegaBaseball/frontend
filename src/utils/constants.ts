@@ -1,6 +1,7 @@
 // src/utils/constants.ts 생성
 import { Utensils, Truck, ShoppingBag, ParkingCircle } from 'lucide-react';
 import { CategoryConfig } from '../types/stadium';
+import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 
 export const KAKAO_API_KEY = import.meta.env.VITE_KAKAO_MAP_KEY as string;
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string || 'http://localhost:8080/api';
@@ -64,7 +65,7 @@ export const THEME_COLORS = {
   gray: '#4b5563',
 } as const;
 
-export const DEFAULT_PROFILE_IMAGE = 'https://via.placeholder.com/150';
+export const DEFAULT_PROFILE_IMAGE = baseballLogo;
 
 export const STADIUMS = [
   '잠실야구장',

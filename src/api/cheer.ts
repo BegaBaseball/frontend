@@ -85,7 +85,12 @@ async function request<T>(input: RequestInfo, init: RequestInit = {}): Promise<T
   return response.json() as Promise<T>;
 }
 
-export async function listPosts(teamId?: string | null, page = 0, size = 20): Promise<PageResponse<Post>> {
+export async function listPosts(
+  teamId?: string | null,
+  page = 0,
+  size = 20,
+  postType?: string,
+): Promise<PageResponse<Post>> {
   const params = new URLSearchParams({
     page: String(page),
     size: String(size),
@@ -94,9 +99,12 @@ export async function listPosts(teamId?: string | null, page = 0, size = 20): Pr
   if (teamId && teamId.trim().length > 0) {
     params.set('teamId', teamId);
   }
+  if (postType) {
+    params.set('postType', postType);
+  }
 
   const data = await request<PageResponse<PostSummaryRes>>(
-    `${API_BASE_URL}/posts?${params.toString()}`
+    `${API_BASE_URL}/posts?${params.toString()}`,
   );
 
   return {

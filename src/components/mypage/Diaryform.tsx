@@ -188,7 +188,7 @@ export default function DiaryViewSection() {
           </Card>
         </div>
       ) : (
-        // 모바일: 주간 뷰 (기존 코드 그대로)
+        // 모바일: 주간 뷰
         <div className="space-y-4">
           {/* 주간 캘린더 */}
           <Card className="p-4">
@@ -335,7 +335,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
       </div>
 
       {/* 사진 */}
-      {diaryForm.photos.length > 0 && (
+      {diaryForm.photos && diaryForm.photos.length > 0 && (
         <div>
           <div className="text-sm mb-3" style={{ color: '#2d5f4f', fontWeight: 700 }}>
             사진
@@ -422,6 +422,16 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
     </div>
   );
 }
+
+const getPhotoPreviewUrl = (photo: string | File): string => {
+  if (photo instanceof File) {
+    // File 객체면 임시 미리보기 URL 생성
+    return URL.createObjectURL(photo);
+  }
+  // 문자열이면 Supabase Storage URL
+  return getFullImageUrl(photo);
+};
+
 function DiaryEditMode({
   diaryForm,
   updateForm,
@@ -436,6 +446,11 @@ function DiaryEditMode({
   saveMutation,
   updateMutation,
 }: any) {
+  const allPhotos = [
+    ...diaryForm.photos,      // DB에 저장된 URL들
+    ...diaryForm.photoFiles,  // 새로 추가한 File 객체들
+  ];
+
   return (
     <div className="space-y-4">
       {/* 직관 유형 선택 */}
@@ -512,10 +527,10 @@ function DiaryEditMode({
         <div>
           <label className="text-sm text-gray-600 mb-3 block">사진 추가</label>
           <div className="grid grid-cols-3 gap-3">
-            {diaryForm.photos.map((photo: string, index: number) => (
+            {allPhotos.map((photo: string | File, index: number) => (
               <div key={index} className="relative aspect-square">
                 <img
-                  src={getFullImageUrl(photo)}
+                  src={getPhotoPreviewUrl(photo)}
                   alt={`업로드 ${index + 1}`}
                   className="w-full h-full object-cover rounded-lg"
                 />
@@ -528,7 +543,7 @@ function DiaryEditMode({
                 </button>
               </div>
             ))}
-            {diaryForm.photos.length < MAX_PHOTOS && (
+            {allPhotos.length < MAX_PHOTOS && (
               <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#2d5f4f] hover:bg-gray-50">
                 <Camera className="w-8 h-8 text-gray-400 mb-2" />
                 <span className="text-xs text-gray-500">사진 추가</span>

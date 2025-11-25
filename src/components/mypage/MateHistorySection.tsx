@@ -19,7 +19,7 @@ function MateHistoryContent({ tab }: MateHistoryContentProps) {
           className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4"
           style={{ borderColor: '#2d5f4f' }}
         ></div>
-        <p className="text-gray-600">로딩 중...</p>
+        <p className="text-gray-600">메이트 내역을 불러오는 중...</p>
       </div>
     );
   }

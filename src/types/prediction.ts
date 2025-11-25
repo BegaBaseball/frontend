@@ -1,18 +1,12 @@
 export interface Game {
   gameId: string;
-  time?: string;
-  stadium: string;
-  gameStatus?: string;
-  gameStatusKr?: string;
-  gameInfo?: string;
-  leagueType?: 'REGULAR' | 'POSTSEASON' | 'KOREAN_SERIES' | 'OFFSEASON';
+  gameDate: string;
   homeTeam: string;
-  homeTeamFull?: string;
   awayTeam: string;
-  awayTeamFull?: string;
+  stadium: string;
   homeScore?: number;
   awayScore?: number;
-  winner?: 'home' | 'away' | 'draw';
+  winner?: string | null;
 }
 
 export interface DateGames {
@@ -20,19 +14,16 @@ export interface DateGames {
   games: Game[];
 }
 
-export interface VoteData {
+export interface VoteStatus {
   home: number;
   away: number;
 }
 
-export interface VoteRequest {
-  gameId: string;
-  votedTeam: 'home' | 'away';
+export interface ConfirmDialogData {
+  title: string;
+  description: string;
+  onConfirm: () => void;
 }
 
-export interface VoteStatusResponse {
-  homeVotes: number;
-  awayVotes: number;
-}
-
+export type VoteTeam = 'home' | 'away';
 export type PredictionTab = 'match' | 'ranking';

@@ -42,12 +42,20 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoggedIn: false, 
       isAdmin: false,
-      isAuthLoading: true, 
+      // isAuthLoading: true,
+      isAuthLoading: false,
       email: '',
       password: '',
       showPassword: false,
 
       fetchProfileAndAuthenticate: async () => {
+        const currentState = get();
+        
+        if (!currentState.isLoggedIn) {
+          set({ isAuthLoading: false });
+          return;
+        }
+
         set({ isAuthLoading: true }); 
 
         try {
@@ -75,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
               },
               isLoggedIn: true,
               isAdmin: isAdminUser,
-              isAuthLoading: false,  
+              // isAuthLoading: false,  
             });
             
           } else if (response.status === 401) {
@@ -83,10 +91,10 @@ export const useAuthStore = create<AuthState>()(
               user: null, 
               isLoggedIn: false, 
               isAdmin: false,
-              isAuthLoading: false  
+              // isAuthLoading: false  
             });
           } else {
-            set({ isAuthLoading: false });  
+            // set({ isAuthLoading: false });  
           }
         } catch (error) {
           set({ 
@@ -122,7 +130,7 @@ export const useAuthStore = create<AuthState>()(
           },
           isLoggedIn: true,
           isAdmin: isAdminUser,
-          isAuthLoading: false,  
+          // isAuthLoading: false,  
           email: '',
           password: '',
         });
@@ -134,7 +142,7 @@ export const useAuthStore = create<AuthState>()(
           user: null, 
           isLoggedIn: false, 
           isAdmin: false, 
-          isAuthLoading: false,  
+          // isAuthLoading: false,  
           email: '', 
           password: '' 
         });
@@ -157,9 +165,7 @@ export const useAuthStore = create<AuthState>()(
         isAdmin: state.isAdmin,
       }),
       onRehydrateStorage: () => (state) => {
-        
         return () => {
-          
           if (state?.isLoggedIn) {
             state.fetchProfileAndAuthenticate();
           } else {
