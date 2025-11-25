@@ -52,7 +52,7 @@ export default function Landing() {
                 로그인
               </Button>
               <Button 
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/home')}
                 style={{ 
                   backgroundColor: '#2d5f4f', 
                   color: 'white',
@@ -96,7 +96,7 @@ export default function Landing() {
 
             <div className="flex gap-4 flex-wrap">
               <Button 
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/home')}
                 className="group"
                 style={{ 
                   backgroundColor: '#2d5f4f', 
@@ -319,7 +319,7 @@ export default function Landing() {
           </p>
           
           <Button 
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/home')}
             className="group"
             style={{ 
               backgroundColor: 'white',
