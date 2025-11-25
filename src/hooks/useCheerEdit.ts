@@ -1,5 +1,5 @@
 // hooks/useCheerEdit.ts
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, DragEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getPost, updatePost } from '../api/cheer';
@@ -15,7 +15,6 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
   const navigate = useNavigate();
   const { upsertPost } = useCheerStore();
 
-  // ========== States ==========
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [existingImages, setExistingImages] = useState<PostImageInfo[]>([]);
@@ -23,8 +22,8 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
   const [loadingImages, setLoadingImages] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  // ========== Queries ==========
   const {
     data: post,
     isLoading,
@@ -35,28 +34,21 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
     enabled: !!postId,
   });
 
-  // ========== Load Images ==========
   useEffect(() => {
     if (!post || !postId) return;
-
     let cancelled = false;
-
     (async () => {
       setTitle(post.title);
       setContent(post.content ?? '');
       setLoadingImages(true);
-
       try {
         const images = await listPostImages(postId);
-
         if (cancelled) return;
         setExistingImages(images);
-
         if (images.length === 0) {
           if (!cancelled) setLoadingImages(false);
           return;
         }
-
         const entries = await Promise.all(
           images.map(async (img) => {
             try {
@@ -67,7 +59,6 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
             }
           })
         );
-
         if (!cancelled) {
           setImageUrls(new Map(entries.filter(([, url]) => url)));
         }
@@ -77,13 +68,11 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
         if (!cancelled) setLoadingImages(false);
       }
     })();
-
     return () => {
       cancelled = true;
     };
   }, [post, postId]);
 
-  // ========== Computed Values ==========
   const hasAccess = post
     ? favoriteTeam
       ? (post.teamId ? post.teamId === favoriteTeam : (post.team ?? '') === favoriteTeam)
@@ -103,18 +92,15 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
     };
   }, [newFilePreviews]);
 
-  // ========== Mutations ==========
   const updateMutation = useMutation({
     mutationFn: async (payload: { title: string; content: string; files: File[] }) => {
       const updated = await updatePost(post!.id, {
         title: payload.title,
         content: payload.content
       });
-
       if (payload.files.length > 0) {
         await uploadPostImages(updated.id, payload.files);
       }
-
       return updated;
     },
     onSuccess: (updated) => {
@@ -129,37 +115,52 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
     },
   });
 
-  // ========== Handlers ==========
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
+  const processFiles = (files: File[]) => {
     const totalImages = existingImages.length + newFiles.length;
-
-    const validFiles = Array.from(files).filter((file) => {
+    const validFiles = files.filter((file) => {
       if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
         toast.error(`${file.name} 파일이 ${MAX_FILE_SIZE_MB}MB 제한을 초과했습니다.`);
         return false;
       }
       return true;
     });
-
     if (totalImages + validFiles.length > MAX_IMAGES) {
       toast.error(`이미지는 최대 ${MAX_IMAGES}개까지 선택할 수 있습니다.`);
       return;
     }
-
     setNewFiles((prev) => [...prev, ...validFiles]);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    processFiles(Array.from(files));
     e.target.value = '';
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files) {
+      processFiles(Array.from(files));
+    }
   };
 
   const handleDeleteExistingImage = async (imageId: number) => {
     if (!post) return;
     const confirmed = window.confirm('이 이미지를 즉시 삭제할까요? 삭제하면 복구할 수 없습니다.');
-    if (!confirmed) {
-      return;
-    }
-
+    if (!confirmed) return;
     try {
       setDeletingImageId(imageId);
       await deleteImage(imageId);
@@ -204,34 +205,29 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
   };
 
   return {
-    // Data
     post,
     isLoading,
     isError,
     hasAccess,
-    
-    // Form State
     title,
     setTitle,
     content,
     setContent,
-    
-    // Images
     existingImages,
     imageUrls,
     newFiles,
     newFilePreviews,
     loadingImages,
     deletingImageId,
-    
-    // Mutation
+    isDragging,
     isSubmitting: updateMutation.isPending,
-    
-    // Handlers
     handleFileSelect,
     handleDeleteExistingImage,
     handleRemoveNewFile,
     handleSubmit,
     handleCancel,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
   };
 };
