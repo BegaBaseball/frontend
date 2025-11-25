@@ -43,7 +43,7 @@ export const LANDING_FEATURES: Feature[] = [
   },
   {
     icon: TrendingUp,
-    title: '승부 예측',
+    title: '승리예측',
     description: '순위예측과 승부예측으로 경기를 더 재미있게 즐기세요',
     image: predictionScreenshot,
     guide: [
