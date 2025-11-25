@@ -1,69 +1,78 @@
-// api/ranking.ts
-import {
-  CurrentSeasonResponse,
-  RankingPredictionResponse,
-  SaveRankingRequest,
-} from '../types/ranking';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api/predictions/ranking`
-  : '/api/predictions/ranking';
+// api/ranking.ts (기존 파일에 추가/업데이트)
+import { SeasonResponse, SavedPredictionResponse, SaveRankingRequest } from '../types/ranking';
 
 /**
  * 현재 예측 가능한 시즌 조회
  */
-export async function fetchCurrentSeason(): Promise<CurrentSeasonResponse> {
-  const response = await fetch(`${API_BASE_URL}/current-season`, {
-    credentials: 'include',
+export const fetchCurrentSeason = async (): Promise<SeasonResponse> => {
+  const response = await fetch('/api/predictions/ranking/current-season', {
+    credentials: 'include'
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('UNAUTHORIZED');
+    }
     const errorData = await response.json();
-    throw new Error(errorData.error || '시즌 정보 조회 실패');
+    throw new Error(errorData.error || '시즌 정보를 불러올 수 없습니다.');
   }
 
   return await response.json();
-}
+};
 
 /**
- * 특정 시즌의 저장된 예측 조회
+ * 저장된 순위 예측 조회
  */
-export async function fetchSavedPrediction(seasonYear: number): Promise<RankingPredictionResponse | null> {
-  const response = await fetch(`${API_BASE_URL}?seasonYear=${seasonYear}`, {
-    credentials: 'include',
-  });
+export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPredictionResponse> => {
+  const response = await fetch(
+    `/api/predictions/ranking?seasonYear=${seasonYear}`, 
+    { credentials: 'include' }
+  );
 
   if (!response.ok) {
-    if (response.status === 404) {
-      return null; // 저장된 예측 없음
+    if (response.status === 401) {
+      throw new Error('UNAUTHORIZED');
     }
-    throw new Error('저장된 예측 조회 실패');
+    throw new Error('저장된 예측을 불러올 수 없습니다.');
   }
 
   return await response.json();
-}
+};
 
 /**
  * 순위 예측 저장
  */
-export async function saveRankingPrediction(seasonYear: number, teamIds: string[]): Promise<void> {
-  const data: SaveRankingRequest = {
-    seasonYear,
-    teamIdsInOrder: teamIds,
-  };
-
-  const response = await fetch(API_BASE_URL, {
+export const saveRankingPrediction = async (data: SaveRankingRequest): Promise<void> => {
+  const response = await fetch('/api/predictions/ranking', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify(data),
+    body: JSON.stringify(data)
   });
 
   if (!response.ok) {
     if (response.status === 409) {
       const errorData = await response.json();
-      throw new Error(errorData.error || '이미 예측이 저장되었습니다.');
+      throw new Error(errorData.error || '이미 예측을 저장하셨습니다.');
     }
     throw new Error('저장에 실패했습니다.');
   }
-}
+};
+
+/**
+ * 공유된 순위 예측 조회
+ */
+export const fetchSharedPrediction = async (
+  userId: string, 
+  seasonYear: string
+): Promise<SavedPredictionResponse> => {
+  const response = await fetch(
+    `/api/predictions/ranking/share/${userId}/${seasonYear}`
+  );
+
+  if (!response.ok) {
+    throw new Error('예측을 찾을 수 없습니다.');
+  }
+
+  return await response.json();
+};

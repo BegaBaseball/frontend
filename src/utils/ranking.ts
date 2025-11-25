@@ -1,45 +1,76 @@
-// utils/ranking.ts
+// utils/ranking.ts (기존 파일에 추가)
 import { Team } from '../types/ranking';
 
 /**
- * 저장된 팀 ID 배열을 Team 객체 배열로 복원
+ * 팀 ID 배열을 Team 객체 배열로 복원
  */
 export const restoreTeamsFromIds = (
-  teamIds: string[],
+  teamIdsInOrder: string[], 
   allTeams: Team[]
 ): (Team | null)[] => {
-  return teamIds.map((teamId) => {
-    // shortName, name, id 중 하나라도 일치하면 찾기
-    const team = allTeams.find(
-      (t) =>
-        t.shortName === teamId ||
-        t.name === teamId ||
-        t.id === teamId
+  console.log('복원할 팀 IDs:', teamIdsInOrder);
+  console.log('사용 가능한 전체 팀:', allTeams);
+  
+  const restoredRankings = teamIdsInOrder.map(teamId => {
+    const team = allTeams.find(t => 
+      t.shortName === teamId || 
+      t.name === teamId || 
+      t.id === teamId
     );
-
+    
     if (!team) {
       console.warn(`팀을 찾을 수 없습니다: ${teamId}`, {
-        availableShortNames: allTeams.map((t) => t.shortName),
-        availableNames: allTeams.map((t) => t.name),
+        availableShortNames: allTeams.map(t => t.shortName),
+        availableNames: allTeams.map(t => t.name)
       });
     }
-
+    
     return team || null;
   });
+
+  console.log('복원된 순위:', restoredRankings);
+  return restoredRankings;
 };
 
 /**
- * 순위가 완성되었는지 확인
+ * 순위 예측이 완료되었는지 확인 (10개 팀 모두 배치)
  */
 export const isRankingComplete = (rankings: (Team | null)[]): boolean => {
-  return rankings.every((team) => team !== null);
+  return rankings.every(team => team !== null);
 };
 
 /**
- * 순위에서 팀 ID 배열 추출
+ * Team 객체 배열을 팀 ID(shortName) 배열로 변환
  */
 export const extractTeamIds = (rankings: (Team | null)[]): string[] => {
   return rankings
-    .filter((team) => team !== null)
-    .map((team) => team!.shortName);
+    .filter(team => team !== null)
+    .map(team => team!.shortName);
+};
+
+/**
+ * 순위 텍스트 생성 (카카오 공유용)
+ */
+export const generateRankingText = (rankings: (Team | null)[]): string => {
+  return rankings
+    .filter(team => team !== null)
+    .map((team, index) => `${index + 1}위: ${team!.name}`)
+    .join('\n');
+};
+
+/**
+ * Kakao SDK 초기화 확인
+ */
+export const isKakaoSDKReady = (): boolean => {
+  return typeof window !== 'undefined' && !!window.Kakao;
+};
+
+/**
+ * Kakao SDK 초기화
+ */
+export const initializeKakaoSDK = (appKey: string): void => {
+  if (window.Kakao && !window.Kakao.isInitialized()) {
+    window.Kakao.init(appKey);
+    console.log('Kakao SDK 초기화 완료:', window.Kakao.isInitialized());
+  }
 };

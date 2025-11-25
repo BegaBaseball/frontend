@@ -70,7 +70,6 @@ export const useDiaryView = () => {
       toast.success(`${photos.length}장의 사진이 저장되었습니다.`);
       return photos;
     } catch (error) {
-      console.error('❌ 이미지 업로드 에러:', error);
       toast.error('일부 사진 업로드에 실패했습니다.');
       return [];
     }
@@ -81,20 +80,42 @@ export const useDiaryView = () => {
     mutationFn: saveDiary,
     onSuccess: async (result) => {
       const diaryId = result.id || result.data?.id;
-      console.log('💾 다이어리 저장 성공, ID:', diaryId);
 
       // 이미지 업로드
-      await handleImageUpload(diaryId, diaryForm.photoFiles);
+      const uploadedPhotos = await handleImageUpload(diaryId, diaryForm.photoFiles);
 
-      // DB 데이터 다시 조회
-      queryClient.invalidateQueries({ queryKey: ['diaries'] });
-      queryClient.invalidateQueries({ queryKey: ['statistics'] });
+      // 업로드된 사진이 있으면 다이어리 레코드 업데이트
+      if (uploadedPhotos.length > 0) {
+        const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
+        
+        await updateDiary({
+          id: diaryId,
+          data: {
+            date: dateStr,
+            type: diaryForm.type,
+            emoji: diaryForm.emoji,
+            emojiName: diaryForm.emojiName,
+            winningName: diaryForm.winningName,
+            gameId: diaryForm.gameId,
+            memo: diaryForm.memo,
+            photos: uploadedPhotos, 
+            team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
+            stadium: game?.stadium || '',
+          },
+        });
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // DB 데이터 다시 조회 (강제 리프레시)
+      await queryClient.invalidateQueries({ queryKey: ['diaries'], refetchType: 'all' });
+      await queryClient.refetchQueries({ queryKey: ['diaries'], type: 'active' });
+      await queryClient.invalidateQueries({ queryKey: ['statistics'] });
 
       toast.success('다이어리가 작성되었습니다!');
       setIsEditMode(false);
     },
     onError: (error) => {
-      console.error('❌ 저장 실패:', error);
       toast.error('다이어리 저장에 실패했습니다.');
     },
   });
@@ -107,12 +128,29 @@ export const useDiaryView = () => {
 
       // 새 사진이 있으면 업로드
       if (diaryForm.photoFiles.length > 0) {
-        await handleImageUpload(diaryId, diaryForm.photoFiles);
+        const uploadedPhotos = await handleImageUpload(diaryId, diaryForm.photoFiles);
+        
+        // 업로드 성공 시 기존 사진과 합쳐서 다시 업데이트
+        if (uploadedPhotos.length > 0) {
+          const allPhotos = [...(diaryForm.photos || []), ...uploadedPhotos];
+          const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
+          
+          await updateDiary({
+            id: diaryId,
+            data: {
+              ...variables.data,
+              photos: allPhotos, 
+            },
+          });
+        }
       }
 
-      // DB 데이터 다시 조회
-      queryClient.invalidateQueries({ queryKey: ['diaries'] });
-      queryClient.invalidateQueries({ queryKey: ['statistics'] });
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // DB 데이터 다시 조회 (강제 리프레시)
+      await queryClient.invalidateQueries({ queryKey: ['diaries'], refetchType: 'all' });
+      await queryClient.refetchQueries({ queryKey: ['diaries'], type: 'active' });
+      await queryClient.invalidateQueries({ queryKey: ['statistics'] });
 
       toast.success('다이어리가 수정되었습니다!');
       setIsEditMode(false);
@@ -125,10 +163,11 @@ export const useDiaryView = () => {
   // ========== Delete Mutation ==========
   const deleteMutation = useMutation({
     mutationFn: deleteDiary,
-    onSuccess: () => {
-      // DB 데이터 다시 조회
-      queryClient.invalidateQueries({ queryKey: ['diaries'] });
-      queryClient.invalidateQueries({ queryKey: ['statistics'] });
+    onSuccess: async () => {
+      // DB 데이터 다시 조회 (강제 리프레시)
+      await queryClient.invalidateQueries({ queryKey: ['diaries'], refetchType: 'active' });
+      await queryClient.refetchQueries({ queryKey: ['diaries'] });
+      await queryClient.invalidateQueries({ queryKey: ['statistics'] });
       
       toast.success('다이어리가 삭제되었습니다.');
       setIsEditMode(false);

@@ -8,7 +8,8 @@ import { Comment as CheerComment } from '../../store/cheerStore';
 interface CommentItemProps {
   comment: CheerComment;
   depth?: number;
-  canInteract: boolean;
+  canInteract: boolean; // For replies
+  canLike: boolean; // For likes
   activeReplyId: number | null;
   replyDraft: string;
   isReplyPending: boolean;
@@ -24,6 +25,7 @@ export function CommentItem({
   comment,
   depth = 0,
   canInteract,
+  canLike,
   activeReplyId,
   replyDraft,
   isReplyPending,
@@ -69,10 +71,10 @@ export function CommentItem({
           <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
             <button
               onClick={() => onCommentLike(comment.id)}
-              disabled={!canInteract || isCommentLikePending}
+              disabled={!canLike || isCommentLikePending}
               className={`flex items-center gap-1 transition-colors hover:text-red-500 ${
                 isCommentLiked ? 'text-red-500' : ''
-              } ${!canInteract ? 'cursor-not-allowed text-gray-400 hover:text-gray-400' : ''}`}
+              } ${!canLike ? 'cursor-not-allowed text-gray-400 hover:text-gray-400' : ''}`}
             >
               <Heart
                 className={`h-4 w-4 ${isCommentLiked ? 'fill-red-500 text-red-500' : ''}`}
@@ -128,6 +130,7 @@ export function CommentItem({
                   comment={reply}
                   depth={depth + 1}
                   canInteract={canInteract}
+                  canLike={canLike}
                   activeReplyId={activeReplyId}
                   replyDraft={replyDraft}
                   isReplyPending={isReplyPending}

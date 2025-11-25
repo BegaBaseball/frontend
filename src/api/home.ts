@@ -1,47 +1,71 @@
 // api/home.ts
-import { Game, Ranking } from '../types/home';
-import { formatDateForAPI } from '../utils/date';
+import { Game, Ranking, LeagueStartDates } from '../types/home';
+import { DEFAULT_LEAGUE_START_DATES } from '../constants/home';
+import { formatDateForAPI } from '../utils/home';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 /**
- * 특정 날짜의 경기 일정 조회
+ * 특정 날짜의 경기 데이터 조회
  */
-export async function fetchGames(date: Date): Promise<Game[]> {
-  const apiDate = formatDateForAPI(date);
+export const fetchGamesData = async (date: Date): Promise<Game[]> => {
+    const apiDate = formatDateForAPI(date);
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/kbo/schedule?date=${apiDate}`, {
+        credentials: 'include' 
+        });
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/kbo/schedule?date=${apiDate}`);
+        if (!response.ok) {
+            return [];
+        }
 
-    if (!response.ok) {
-      console.error(`[경기] API 요청 실패: ${response.status} ${response.statusText}`);
-      return [];
+        const gamesData: Game[] = await response.json();
+        return gamesData;
+
+    } catch (error) {
+        return [];
     }
-
-    const games: Game[] = await response.json();
-    return games;
-  } catch (error) {
-    console.error('[경기] 데이터 로드 중 오류 발생:', error);
-    return [];
-  }
-}
+};
 
 /**
- * 특정 시즌의 팀 순위 조회
+ * 시즌 순위 데이터 조회
  */
-export async function fetchRankings(seasonYear: number): Promise<Ranking[]> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/${seasonYear}`);
+export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/${year}`, {
+        credentials: 'include' 
+        });
 
-    if (!response.ok) {
-      console.error(`[순위] API 요청 실패: ${response.status} ${response.statusText}`);
-      return [];
+        if (!response.ok) {
+            return [];
+        }
+
+        const rankingsData: Ranking[] = await response.json();
+        return rankingsData;
+
+    } catch (error) {
+        return [];
     }
+};
 
-    const rankings: Ranking[] = await response.json();
-    return rankings;
-  } catch (error) {
-    console.error('[순위] 데이터 로드 중 오류 발생:', error);
-    return [];
-  }
-}
+/**
+ * 리그 시작 날짜 조회 
+ */
+export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/kbo/league-start-dates`, {
+        credentials: 'include'
+        });
+
+        if (!response.ok) {
+            return DEFAULT_LEAGUE_START_DATES;
+        }
+
+        const data: LeagueStartDates = await response.json();
+        return data;
+
+    } catch (error) {
+        return DEFAULT_LEAGUE_START_DATES;
+    }
+};

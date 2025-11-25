@@ -1,4 +1,4 @@
-import { TrendingUp, BarChart3 } from 'lucide-react';
+import { Trophy, TrendingUp, BarChart3 } from 'lucide-react';
 import { Card } from '../ui/card';
 import { useDiaryStatistics } from '../../hooks/useDiaryStatistics';
 import StatCard from './StatCard';
@@ -23,7 +23,12 @@ export default function DiaryStatistics() {
     <>
       {/* 간단한 통계 정보 */}
       <Card className="p-8">
-        <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t">
+        <div className="flex items-center gap-3">
+          <Trophy className="w-7 h-7" style={{ color: '#2d5f4f' }} />
+          <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>나의 야구 기록</h2>
+        </div>
+
+        <div className="grid grid-cols-4 gap-4 pt-6 border-t">
           <StatCard value={statistics.totalCount} label="직관 횟수" />
           <StatCard value={statistics.cheerPostCount || 0} label="응원글" />
           <StatCard value={`${statistics.winRate.toFixed(1)}%`} label="승률" />

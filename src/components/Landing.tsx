@@ -8,19 +8,20 @@ import screenshot3 from '/src/assets/stadium.png';
 import mateScreenshot1 from '/src/assets/mate.png';
 import { Button } from './ui/button';
 import { ArrowRight, Users, MapPin, TrendingUp, MessageCircle, BookOpen, Home, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Landing() {
   const [activeFeature, setActiveFeature] = useState(0);
   const [expandedFeature, setExpandedFeature] = useState<number | null>(null);
   const navigate = useNavigate();
+  const featureRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const features = [
     {
       icon: Home,
       title: 'KBO 경기일정 및 홈',
-      description: '실시간 경기 정보와 티켓 예매, 스토브리그 소식을 확인하세요',
+      description: '실시간 경기 정보, 스토브리그 소식을 확인하세요',
       image: homeScreenshot,
       guide: [
         '홈 화면에서 오늘의 경기 일정 확인',
@@ -52,7 +53,7 @@ export default function Landing() {
     },
     {
       icon: TrendingUp,
-      title: '승리요정',
+      title: '승부 예측',
       description: '순위예측과 승부예측으로 경기를 더 재미있게 즐기세요',
       image: predictionScreenshot,
       guide: [
@@ -85,6 +86,38 @@ export default function Landing() {
     }
   ];
 
+  // Intersection Observer로 스크롤 시 activeFeature 자동 변경
+  useEffect(() => {
+    const observers = featureRefs.current.map((ref, index) => {
+      if (!ref) return null;
+      
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              setActiveFeature(index);
+            }
+          });
+        },
+        {
+          threshold: 0.5, // 50% 이상 보이면 활성화
+          rootMargin: '-20% 0px -20% 0px' // 화면 중앙 근처에서 활성화
+        }
+      );
+
+      observer.observe(ref);
+      return observer;
+    });
+
+    return () => {
+      observers.forEach((observer, index) => {
+        if (observer && featureRefs.current[index]) {
+          observer.unobserve(featureRefs.current[index]!);
+        }
+      });
+    };
+  }, []);
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#ffffff' }}>
       {/* Fixed Header */}
@@ -111,7 +144,7 @@ export default function Landing() {
                 로그인
               </Button>
               <Button 
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate('/login')}
                 style={{ 
                   backgroundColor: '#2d5f4f', 
                   color: 'white',
@@ -171,7 +204,12 @@ export default function Landing() {
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button 
-                onClick={() => navigate('/service-info')}
+                onClick={() => {
+                  document.getElementById('features')?.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                  });
+                }}
                 variant="outline"
                 style={{ 
                   borderColor: '#2d5f4f', 
@@ -285,9 +323,9 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section className="py-32" style={{ backgroundColor: '#ffffff' ,  paddingTop: '8rem', paddingBottom: '12rem'}}>
+      <section id="features" className="py-32" style={{ backgroundColor: '#ffffff', paddingTop: '8rem', paddingBottom: '2rem'}}>
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-20">
+          <div className="text-center mb-32">
             <div 
               className="inline-block px-4 py-2 mb-6"
               style={{ 
@@ -306,197 +344,193 @@ export default function Landing() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-32 items-start">
-            {/* Feature List - 스크롤됨 */}
-            <div className="space-y-4" style={{ minHeight: '150vh' }}>
-              {features.map((feature, index) => {
-                const Icon = feature.icon;
-                const isActive = activeFeature === index;
-                const isExpanded = expandedFeature === index;
-                return (
-                  <div key={index}>
-                    <button
-                      onClick={() => {
-                        setActiveFeature(index);
-                        setExpandedFeature(isExpanded ? null : index);
-                      }}
-                      className="w-full text-left p-6 transition-all duration-300"
-                      style={{ 
-                        borderRadius: '1rem',
-                        backgroundColor: '#ffffff',
-                        boxShadow: isActive ? '0 4px 20px -5px rgba(0, 0, 0, 0.1)' : 'none',
-                        borderLeft: isActive ? '4px solid #10b981' : '4px solid transparent',
-                        border: isActive ? undefined : '1px solid #f3f4f6'
-                      }}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div 
-                          className="p-3 flex-shrink-0 transition-all duration-300"
-                          style={{ 
-                            borderRadius: '0.75rem',
-                            background: isActive 
-                              ? 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)' 
-                              : '#e5e7eb'
-                          }}
-                        >
-                          <Icon 
-                            className="w-6 h-6" 
-                            style={{ color: isActive ? 'white' : '#9ca3af' }}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h3 
-                              className="mb-2"
-                              style={{ 
-                                fontSize: '1.125rem',
-                                fontWeight: 700,
-                                color: '#1a1a1a'
-                              }}
-                            >
-                              {feature.title}
-                            </h3>
-                            <ChevronDown 
-                              className="w-5 h-5 transition-transform duration-300"
-                              style={{ 
-                                color: '#9ca3af',
-                                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
-                              }}
-                            />
-                          </div>
-                          <p style={{ 
-                            fontSize: '0.875rem',
-                            color: '#6b7280'
-                          }}>
-                            {feature.description}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                    
-                    {/* Expandable Guide */}
-                    {isExpanded && (
-                      <div 
-                        className="mt-4 p-6 animate-fade-in"
-                        style={{ 
-                          backgroundColor: '#ffffff',
-                          borderRadius: '0.75rem',
-                          border: '1px solid #e5e7eb',
-                          marginLeft: '0'
-                        }}
-                      >
-                        <h4 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 700, color: '#1a1a1a' }}>
-                          사용 가이드
-                        </h4>
-                        <ul className="space-y-4">
-                          {feature.guide.map((step, stepIndex) => (
-                            <li key={stepIndex} className="flex items-start gap-3" style={{ fontSize: '0.875rem', color: '#374151' }}>
-                              <span 
-                                className="flex-shrink-0 w-6 h-6 flex items-center justify-center"
-                                style={{ 
-                                  borderRadius: '9999px',
-                                  backgroundColor: '#10b981',
-                                  color: 'white',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 600
-                                }}
-                              >
-                                {stepIndex + 1}
-                              </span>
-                              <span style={{ paddingTop: '0.125rem', lineHeight: '1.5' }}>{step}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Browser Mockup - Feature Preview */}
-            <div style={{ position: 'relative' }} className="lg:sticky lg:top-24">
-              {/* Background decorative box - 뒤에 깔리는 민트색 박스 */}
-              <div 
-                style={{ 
-                  position: 'absolute',
-                  top: '2rem',
-                  right: '-1rem',
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: '1.5rem',
-                  backgroundColor: '#d1fae5',
-                  zIndex: 0
-                }} 
-              />
-              
-              {/* Laptop */}
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                {/* Screen */}
+          {/* Feature List - 전체 6개 */}
+          <div className="space-y-4" style={{ minHeight: '200vh' }}>
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              const isActive = activeFeature === index;
+              const isExpanded = expandedFeature === index;
+              return (
                 <div 
-                  className="relative p-3"
-                  style={{ 
-                    backgroundColor: '#1f2937', 
-                    borderRadius: '1rem 1rem 0 0',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-                  }}
+                  key={index}
+                  ref={(el) => (featureRefs.current[index] = el)}
                 >
-                  {/* Notch */}
-                  <div 
-                    className="absolute top-0 left-1/2 -translate-x-1/2"
-                    style={{ 
-                      width: '8rem', 
-                      height: '1.5rem', 
-                      backgroundColor: '#1f2937',
-                      borderRadius: '0 0 1rem 1rem',
-                      zIndex: 10
+                  <button
+                    onClick={() => {
+                      setActiveFeature(index);
+                      setExpandedFeature(isExpanded ? null : index);
                     }}
-                  />
-                  
-                  {/* Screen bezel */}
-                  <div 
-                    className="relative overflow-hidden" 
+                    className="w-full text-left p-6 transition-all duration-300"
                     style={{ 
-                      backgroundColor: '#ffffff', 
-                      borderRadius: '0.5rem',
-                      aspectRatio: '16/10'
+                      borderRadius: '1rem',
+                      backgroundColor: '#ffffff',
+                      boxShadow: isActive ? '0 4px 20px -5px rgba(0, 0, 0, 0.1)' : 'none',
+                      borderLeft: isActive ? '4px solid #10b981' : '4px solid transparent',
+                      border: isActive ? undefined : '1px solid #f3f4f6'
                     }}
                   >
-                    <img
-                      key={activeFeature}
-                      src={features[activeFeature].image}
-                      alt={features[activeFeature].title}
-                      className="w-full h-full object-contain animate-fade-in"
-                    />
-                  </div>
+                    <div className="flex items-start gap-4">
+                      <div 
+                        className="p-3 flex-shrink-0 transition-all duration-300"
+                        style={{ 
+                          borderRadius: '0.75rem',
+                          background: isActive 
+                            ? 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)' 
+                            : '#e5e7eb'
+                        }}
+                      >
+                        <Icon 
+                          className="w-6 h-6" 
+                          style={{ color: isActive ? 'white' : '#9ca3af' }}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <h3 
+                            className="mb-2"
+                            style={{ 
+                              fontSize: '1.125rem',
+                              fontWeight: 700,
+                              color: '#1a1a1a'
+                            }}
+                          >
+                            {feature.title}
+                          </h3>
+                          <ChevronDown 
+                            className="w-5 h-5 transition-transform duration-300"
+                            style={{ 
+                              color: '#9ca3af',
+                              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
+                            }}
+                          />
+                        </div>
+                        <p style={{ 
+                          fontSize: '0.875rem',
+                          color: '#6b7280'
+                        }}>
+                          {feature.description}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                  
+                  {isExpanded && (
+                    <div 
+                      className="mt-4 p-6 animate-fade-in"
+                      style={{ 
+                        backgroundColor: '#ffffff',
+                        borderRadius: '0.75rem',
+                        border: '1px solid #e5e7eb',
+                        marginLeft: '0'
+                      }}
+                    >
+                      <h4 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 700, color: '#1a1a1a' }}>
+                        사용 가이드
+                      </h4>
+                      <ul className="space-y-4">
+                        {feature.guide.map((step, stepIndex) => (
+                          <li key={stepIndex} className="flex items-start gap-3" style={{ fontSize: '0.875rem', color: '#374151' }}>
+                            <span 
+                              className="flex-shrink-0 w-6 h-6 flex items-center justify-center"
+                              style={{ 
+                                borderRadius: '9999px',
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                fontSize: '0.75rem',
+                                fontWeight: 600
+                              }}
+                            >
+                              {stepIndex + 1}
+                            </span>
+                            <span style={{ paddingTop: '0.125rem', lineHeight: '1.5' }}>{step}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-                
-                {/* Keyboard base */}
+              );
+            })}
+          </div>
+
+          {/* Browser Mockup - 조건부 sticky */}
+          <div className={`relative ${activeFeature < 4 ? 'lg:sticky lg:top-24' : ''}`}>
+            <div 
+              style={{ 
+                position: 'absolute',
+                top: '2rem',
+                right: '-1rem',
+                width: '100%',
+                height: '100%',
+                borderRadius: '1.5rem',
+                backgroundColor: '#d1fae5',
+                zIndex: 0
+              }} 
+            />
+            
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div 
+                className="relative p-3"
+                style={{ 
+                  backgroundColor: '#1f2937', 
+                  borderRadius: '1rem 1rem 0 0',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                }}
+              >
                 <div 
-                  className="relative"
+                  className="absolute top-0 left-1/2 -translate-x-1/2"
                   style={{ 
-                    height: '0.5rem',
-                    background: 'linear-gradient(to bottom, #d1d5db, #9ca3af)',
+                    width: '8rem', 
+                    height: '1.5rem', 
+                    backgroundColor: '#1f2937',
                     borderRadius: '0 0 1rem 1rem',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                    zIndex: 10
                   }}
                 />
                 
-                {/* Shadow under laptop */}
                 <div 
-                  className="absolute left-1/2 -translate-x-1/2"
+                  className="relative overflow-hidden" 
                   style={{ 
-                    bottom: '-1rem',
-                    width: '80%',
-                    height: '1rem',
-                    backgroundColor: 'rgba(17, 24, 39, 0.2)',
-                    filter: 'blur(12px)',
-                    borderRadius: '9999px'
+                    backgroundColor: '#ffffff', 
+                    borderRadius: '0.5rem',
+                    aspectRatio: '16/10'
                   }}
-                />
+                >
+                  <img
+                    key={activeFeature}
+                    src={features[activeFeature].image}
+                    alt={features[activeFeature].title}
+                    className="w-full h-full object-contain animate-fade-in"
+                  />
+                </div>
               </div>
+              
+              <div 
+                className="relative"
+                style={{ 
+                  height: '0.5rem',
+                  background: 'linear-gradient(to bottom, #d1d5db, #9ca3af)',
+                  borderRadius: '0 0 1rem 1rem',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }}
+              />
+              
+              <div 
+                className="absolute left-1/2 -translate-x-1/2"
+                style={{ 
+                  bottom: '-1rem',
+                  width: '80%',
+                  height: '1rem',
+                  backgroundColor: 'rgba(17, 24, 39, 0.2)',
+                  filter: 'blur(12px)',
+                  borderRadius: '9999px'
+                }}
+              />
             </div>
           </div>
         </div>
+      </div>
+    
       </section>
 
       {/* CTA Section */}
@@ -504,7 +538,7 @@ export default function Landing() {
         className="relative overflow-hidden"
         style={{ 
           background: 'linear-gradient(135deg, #059669 0%, #0d9488 50%, #047857 100%)',
-          paddingTop: '8rem',
+          paddingTop: '2rem',
           paddingBottom: '8rem'
         }}
       >
@@ -567,16 +601,16 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer style={{ backgroundColor: '#ffffff', borderTop: '1px solid #e5e7eb', padding: '3rem 0' }}>
+      <footer style={{ backgroundColor: '#f9fafb', borderTop: '1px solid #f3f4f6', padding: '4rem 0' }}>
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex flex-wrap justify-between items-start gap-8">
+          <div className="grid grid-cols-4 gap-24">
             {/* Logo Section */}
             <div>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-4">
                 <img src={baseballLogo} alt="BEGA" className="w-8 h-8" />
-                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1a1a1a' }}>BEGA</span>
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#2d5f4f' }}>BEGA</span>
               </div>
-              <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '1rem' }}>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.5rem', lineHeight: '1.75' }}>
                 KBO 야구 팬들을 위한 올인원 플랫폼
               </p>
               <div style={{ fontSize: '0.875rem', color: '#9ca3af' }}>
@@ -584,34 +618,34 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Links */}
-            <div className="flex gap-16">
-              <div>
-                <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem', fontWeight: 700, color: '#1a1a1a' }}>제품</h4>
-                <ul className="space-y-2" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  <li><a href="#" className="hover:text-gray-900 transition-colors">기능</a></li>
-                  <li><a href="#" className="hover:text-gray-900 transition-colors">가격</a></li>
-                  <li><a href="#" className="hover:text-gray-900 transition-colors">FAQ</a></li>
-                </ul>
-              </div>
+            {/* 제품 */}
+            <div>
+              <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem', fontWeight: 700, color: '#1a1a1a' }}>제품</h4>
+              <ul className="space-y-3" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">기능</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">가격</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">FAQ</a></li>
+              </ul>
+            </div>
 
-              <div>
-                <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem', fontWeight: 700, color: '#1a1a1a' }}>회사</h4>
-                <ul className="space-y-2" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  <li><a href="#" className="hover:text-gray-900 transition-colors">소개</a></li>
-                  <li><a href="#" className="hover:text-gray-900 transition-colors">블로그</a></li>
-                  <li><a href="#" className="hover:text-gray-900 transition-colors">채용</a></li>
-                </ul>
-              </div>
+            {/* 회사 */}
+            <div>
+              <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem', fontWeight: 700, color: '#1a1a1a' }}>회사</h4>
+              <ul className="space-y-3" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">소개</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">블로그</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">채용</a></li>
+              </ul>
+            </div>
 
-              <div>
-                <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem', fontWeight: 700, color: '#1a1a1a' }}>지원</h4>
-                <ul className="space-y-2" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  <li><a href="#" className="hover:text-gray-900 transition-colors">고객센터</a></li>
-                  <li><a href="#" className="hover:text-gray-900 transition-colors">이용약관</a></li>
-                  <li><a href="#" className="hover:text-gray-900 transition-colors">개인정보처리방침</a></li>
-                </ul>
-              </div>
+            {/* 지원 */}
+            <div>
+              <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem', fontWeight: 700, color: '#1a1a1a' }}>지원</h4>
+              <ul className="space-y-3" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">고객센터</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">이용약관</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">개인정보처리방침</a></li>
+              </ul>
             </div>
           </div>
         </div>
