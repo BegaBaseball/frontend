@@ -128,10 +128,10 @@ export default function Navbar() {
   };
   
   const navItems = [
-    { id: 'cheer', label: '응원' },
-    { id: 'stadium', label: '구장' },
-    { id: 'prediction', label: '예측' },
-    { id: 'mate', label: '메이트' }
+    { id: 'cheer', label: '게시판' },
+    { id: 'stadium', label: '구장가이드' },
+    { id: 'prediction', label: '승리예측' },
+    { id: 'mate', label: '같이가요' }
   ];
 
   return (

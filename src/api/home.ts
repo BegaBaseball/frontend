@@ -63,7 +63,6 @@ export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
         }
 
         const data: LeagueStartDates = await response.json();
-        
         return data;
 
     } catch (error) {
