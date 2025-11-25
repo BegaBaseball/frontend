@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { MapPin } from 'lucide-react';
@@ -21,6 +22,7 @@ export default function StadiumGuide() {
     handleStadiumChange,
     handlePlaceClick,
   } = useStadiumGuide();
+
 
   return (
     <div className="min-h-screen bg-white">
