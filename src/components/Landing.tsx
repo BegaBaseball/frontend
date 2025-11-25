@@ -1,122 +1,30 @@
 import begaCharacter from '/src/assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
 import baseballLogo from '/src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import homeScreenshot from '/src/assets/home.png';
-import predictionScreenshot from '/src/assets/prediction.png';
-import diaryScreenshot from '/src/assets/diary.png';
-import screenshot2 from '/src/assets/cheer.png';
-import screenshot3 from '/src/assets/stadium.png';
-import mateScreenshot1 from '/src/assets/mate.png';
 import { Button } from './ui/button';
-import { ArrowRight, Users, MapPin, TrendingUp, MessageCircle, BookOpen, Home, ChevronDown } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { ArrowRight } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLandingScroll } from '../hooks/useLandingScroll';
+import { LANDING_FEATURES } from '../constants/landing';
+import FeatureCard from './FeatureCard';
+import LaptopMockup from './LaptopMockup';
 
 export default function Landing() {
   const [activeFeature, setActiveFeature] = useState(0);
   const [expandedFeature, setExpandedFeature] = useState<number | null>(null);
   const navigate = useNavigate();
-  const featureRefs = useRef<(HTMLDivElement | null)[]>([]);
+  
+  const {
+    scrollProgress,
+    featureRefs,
+    laptopRef,
+    featuresContainerRef
+  } = useLandingScroll();
 
-  const features = [
-    {
-      icon: Home,
-      title: 'KBO 경기일정 및 홈',
-      description: '실시간 경기 정보, 스토브리그 소식을 확인하세요',
-      image: homeScreenshot,
-      guide: [
-        '홈 화면에서 오늘의 경기 일정 확인',
-        'KBO LIVE로 실시간 경기 현황 체크',
-        '팀별 랭킹과 티켓 예매 정보 한눈에'
-      ]
-    },
-    {
-      icon: MessageCircle,
-      title: '응원게시판',
-      description: '마이팀 설정으로 필터링하여 우리 팀 소식만 모아보세요',
-      image: screenshot2,
-      guide: [
-        '마이팀 설정 후 우리 팀 게시글만 필터링',
-        '응원 글 작성 및 다른 팬들과 소통',
-        '경기 후기와 응원 메시지 공유'
-      ]
-    },
-    {
-      icon: MapPin,
-      title: '구장 가이드',
-      description: '야구장 내부 맛집, 배달존 및 근처 편의점, 주차장 정보 제공',
-      image: screenshot3,
-      guide: [
-        '구장 선택 후 카테고리별 정보 확인',
-        '맛집, 배달존, 편의점, 주차장 정보 제공',
-        '구장 방문 전 필수 정보 미리 체크'
-      ]
-    },
-    {
-      icon: TrendingUp,
-      title: '승부 예측',
-      description: '순위예측과 승부예측으로 경기를 더 재미있게 즐기세요',
-      image: predictionScreenshot,
-      guide: [
-        '스토브리그 시즌: 순위 예측 활성화',
-        '시즌 중: 승부 예측 활성화',
-        '친구들과 예측 결과 저장하고 공유하기'
-      ]
-    },
-    {
-      icon: Users,
-      title: '같이가요',
-      description: '직관메이트를 구하고 함께 야구를 즐기세요',
-      image: mateScreenshot1,
-      guide: [
-        '내가 호스트인 파티: 신청 관리 → 승인/거절 → 채팅방 소통',
-        '참여 신청한 파티: 승인 대기 → 승인 후 채팅 가능',
-        '경기 당일 체크인으로 보증금 환불 받기'
-      ]
-    },
-    {
-      icon: BookOpen,
-      title: '다이어리',
-      description: '개인화된 페이지에서 나만의 야구 다이어리를 작성하세요',
-      image: diaryScreenshot,
-      guide: [
-        '직관 기록과 경기 후기 작성',
-        '사진과 메모로 추억 저장',
-        '나만의 야구 일정 관리'
-      ]
-    }
-  ];
-
-  // Intersection Observer로 스크롤 시 activeFeature 자동 변경
-  useEffect(() => {
-    const observers = featureRefs.current.map((ref, index) => {
-      if (!ref) return null;
-      
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              setActiveFeature(index);
-            }
-          });
-        },
-        {
-          threshold: 0.5, // 50% 이상 보이면 활성화
-          rootMargin: '-20% 0px -20% 0px' // 화면 중앙 근처에서 활성화
-        }
-      );
-
-      observer.observe(ref);
-      return observer;
-    });
-
-    return () => {
-      observers.forEach((observer, index) => {
-        if (observer && featureRefs.current[index]) {
-          observer.unobserve(featureRefs.current[index]!);
-        }
-      });
-    };
-  }, []);
+  const handleFeatureToggle = (index: number) => {
+    setActiveFeature(index);
+    setExpandedFeature(expandedFeature === index ? null : index);
+  };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#ffffff' }}>
@@ -162,7 +70,6 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        {/* Subtle gradient background */}
         <div 
           className="absolute inset-0" 
           style={{ 
@@ -170,7 +77,6 @@ export default function Landing() {
           }} 
         />
 
-        {/* Content */}
         <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-32 grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <div className="flex items-center gap-3 mb-8">
@@ -190,7 +96,7 @@ export default function Landing() {
 
             <div className="flex gap-4 flex-wrap">
               <Button 
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate('/login')}
                 className="group"
                 style={{ 
                   backgroundColor: '#2d5f4f', 
@@ -226,9 +132,8 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Laptop Mockup with Animation */}
+          {/* Hero Laptop Mockup */}
           <div style={{ position: 'relative' }}>
-            {/* Background decorative box - 뒤에 깔리는 민트색 박스 (고정) */}
             <div 
               style={{ 
                 position: 'absolute',
@@ -242,9 +147,7 @@ export default function Landing() {
               }} 
             />
             
-            {/* Laptop (고정) */}
             <div style={{ position: 'relative', zIndex: 1 }}>
-              {/* Screen */}
               <div 
                 className="relative p-3"
                 style={{ 
@@ -253,7 +156,6 @@ export default function Landing() {
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
                 }}
               >
-                {/* Notch */}
                 <div 
                   className="absolute top-0 left-1/2 -translate-x-1/2"
                   style={{ 
@@ -265,7 +167,6 @@ export default function Landing() {
                   }}
                 />
                 
-                {/* Screen bezel */}
                 <div 
                   className="relative overflow-hidden" 
                   style={{ 
@@ -274,7 +175,6 @@ export default function Landing() {
                     aspectRatio: '16/10'
                   }}
                 >
-                  {/* Green background with logo and text centered */}
                   <div 
                     className="absolute inset-0 flex flex-col items-center justify-center gap-2"
                     style={{ 
@@ -294,7 +194,6 @@ export default function Landing() {
                 </div>
               </div>
               
-              {/* Keyboard base */}
               <div 
                 className="relative"
                 style={{ 
@@ -305,7 +204,6 @@ export default function Landing() {
                 }}
               />
               
-              {/* Shadow under laptop */}
               <div 
                 className="absolute left-1/2 -translate-x-1/2"
                 style={{ 
@@ -323,9 +221,10 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-32" style={{ backgroundColor: '#ffffff', paddingTop: '8rem', paddingBottom: '2rem'}}>
+      <section id="features" className="py-32" style={{ backgroundColor: '#ffffff', paddingTop: '8rem', paddingBottom: '8rem'}}>
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-32">
+          {/* Title */}
+          <div className="text-center mb-24" style={{ marginBottom: '6rem' }}>
             <div 
               className="inline-block px-4 py-2 mb-6"
               style={{ 
@@ -343,194 +242,32 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-32 items-start">
-          {/* Feature List - 전체 6개 */}
-          <div className="space-y-4" style={{ minHeight: '200vh' }}>
-            {features.map((feature, index) => {
-              const Icon = feature.icon;
-              const isActive = activeFeature === index;
-              const isExpanded = expandedFeature === index;
-              return (
-                <div 
+          {/* Features Grid */}
+          <div className="grid lg:grid-cols-2 gap-16 items-start" ref={featuresContainerRef}>
+            {/* Feature Cards */}
+            <div className="space-y-8">
+              {LANDING_FEATURES.map((feature, index) => (
+                <FeatureCard
                   key={index}
-                  ref={(el) => (featureRefs.current[index] = el)}
-                >
-                  <button
-                    onClick={() => {
-                      setActiveFeature(index);
-                      setExpandedFeature(isExpanded ? null : index);
-                    }}
-                    className="w-full text-left p-6 transition-all duration-300"
-                    style={{ 
-                      borderRadius: '1rem',
-                      backgroundColor: '#ffffff',
-                      boxShadow: isActive ? '0 4px 20px -5px rgba(0, 0, 0, 0.1)' : 'none',
-                      borderLeft: isActive ? '4px solid #10b981' : '4px solid transparent',
-                      border: isActive ? undefined : '1px solid #f3f4f6'
-                    }}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div 
-                        className="p-3 flex-shrink-0 transition-all duration-300"
-                        style={{ 
-                          borderRadius: '0.75rem',
-                          background: isActive 
-                            ? 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)' 
-                            : '#e5e7eb'
-                        }}
-                      >
-                        <Icon 
-                          className="w-6 h-6" 
-                          style={{ color: isActive ? 'white' : '#9ca3af' }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h3 
-                            className="mb-2"
-                            style={{ 
-                              fontSize: '1.125rem',
-                              fontWeight: 700,
-                              color: '#1a1a1a'
-                            }}
-                          >
-                            {feature.title}
-                          </h3>
-                          <ChevronDown 
-                            className="w-5 h-5 transition-transform duration-300"
-                            style={{ 
-                              color: '#9ca3af',
-                              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
-                            }}
-                          />
-                        </div>
-                        <p style={{ 
-                          fontSize: '0.875rem',
-                          color: '#6b7280'
-                        }}>
-                          {feature.description}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                  
-                  {isExpanded && (
-                    <div 
-                      className="mt-4 p-6 animate-fade-in"
-                      style={{ 
-                        backgroundColor: '#ffffff',
-                        borderRadius: '0.75rem',
-                        border: '1px solid #e5e7eb',
-                        marginLeft: '0'
-                      }}
-                    >
-                      <h4 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 700, color: '#1a1a1a' }}>
-                        사용 가이드
-                      </h4>
-                      <ul className="space-y-4">
-                        {feature.guide.map((step, stepIndex) => (
-                          <li key={stepIndex} className="flex items-start gap-3" style={{ fontSize: '0.875rem', color: '#374151' }}>
-                            <span 
-                              className="flex-shrink-0 w-6 h-6 flex items-center justify-center"
-                              style={{ 
-                                borderRadius: '9999px',
-                                backgroundColor: '#10b981',
-                                color: 'white',
-                                fontSize: '0.75rem',
-                                fontWeight: 600
-                              }}
-                            >
-                              {stepIndex + 1}
-                            </span>
-                            <span style={{ paddingTop: '0.125rem', lineHeight: '1.5' }}>{step}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Browser Mockup - 조건부 sticky */}
-          <div className={`relative ${activeFeature < 4 ? 'lg:sticky lg:top-24' : ''}`}>
-            <div 
-              style={{ 
-                position: 'absolute',
-                top: '2rem',
-                right: '-1rem',
-                width: '100%',
-                height: '100%',
-                borderRadius: '1.5rem',
-                backgroundColor: '#d1fae5',
-                zIndex: 0
-              }} 
-            />
-            
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <div 
-                className="relative p-3"
-                style={{ 
-                  backgroundColor: '#1f2937', 
-                  borderRadius: '1rem 1rem 0 0',
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-                }}
-              >
-                <div 
-                  className="absolute top-0 left-1/2 -translate-x-1/2"
-                  style={{ 
-                    width: '8rem', 
-                    height: '1.5rem', 
-                    backgroundColor: '#1f2937',
-                    borderRadius: '0 0 1rem 1rem',
-                    zIndex: 10
-                  }}
+                  feature={feature}
+                  index={index}
+                  isActive={activeFeature === index}
+                  isExpanded={expandedFeature === index}
+                  onToggle={() => handleFeatureToggle(index)}
+                  featureRef={(el) => (featureRefs.current[index] = el)}
                 />
-                
-                <div 
-                  className="relative overflow-hidden" 
-                  style={{ 
-                    backgroundColor: '#ffffff', 
-                    borderRadius: '0.5rem',
-                    aspectRatio: '16/10'
-                  }}
-                >
-                  <img
-                    key={activeFeature}
-                    src={features[activeFeature].image}
-                    alt={features[activeFeature].title}
-                    className="w-full h-full object-contain animate-fade-in"
-                  />
-                </div>
-              </div>
-              
-              <div 
-                className="relative"
-                style={{ 
-                  height: '0.5rem',
-                  background: 'linear-gradient(to bottom, #d1d5db, #9ca3af)',
-                  borderRadius: '0 0 1rem 1rem',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                }}
-              />
-              
-              <div 
-                className="absolute left-1/2 -translate-x-1/2"
-                style={{ 
-                  bottom: '-1rem',
-                  width: '80%',
-                  height: '1rem',
-                  backgroundColor: 'rgba(17, 24, 39, 0.2)',
-                  filter: 'blur(12px)',
-                  borderRadius: '9999px'
-                }}
-              />
+              ))}
             </div>
+
+            {/* Laptop Mockup */}
+            <LaptopMockup
+              activeFeature={activeFeature}
+              features={LANDING_FEATURES}
+              scrollProgress={scrollProgress}
+              laptopRef={laptopRef}
+            />
           </div>
         </div>
-      </div>
-    
       </section>
 
       {/* CTA Section */}
@@ -538,7 +275,7 @@ export default function Landing() {
         className="relative overflow-hidden"
         style={{ 
           background: 'linear-gradient(135deg, #059669 0%, #0d9488 50%, #047857 100%)',
-          paddingTop: '2rem',
+          paddingTop: '8rem',
           paddingBottom: '8rem'
         }}
       >
@@ -571,18 +308,18 @@ export default function Landing() {
 
         <div className="relative max-w-4xl mx-auto px-6 lg:px-8 text-center">
           <div style={{ marginBottom: '2.5rem' }}>
-            <img src={begaCharacter} alt="BEGA Character" style={{ width: '7rem', height: '7rem', margin: '0 auto' }} />
+            <img src={baseballLogo} alt="BEGA Character" style={{ width: '7rem', height: '7rem', margin: '0 auto' }} />
           </div>
           
           <h2 style={{ color: 'white', marginBottom: '1.5rem', fontSize: '3rem', fontWeight: 900 }}>
             지금 바로 시작하세요
           </h2>
-          <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '1.125rem', marginBottom: '2.5rem', maxWidth: '32rem', marginLeft: 'auto', marginRight: 'auto', lineHeight: '1.75' }}>
+          <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '1.125rem', marginBottom: '2.5rem', marginLeft: 'auto', marginRight: 'auto', lineHeight: '1.75', whiteSpace: 'nowrap' }}>
             BEGA와 함께 KBO 야구의 모든 순간을 더욱 특별하게 만들어보세요
           </p>
           
           <Button 
-            onClick={() => navigate('/signup')}
+            onClick={() => navigate('/login')}
             className="group"
             style={{ 
               backgroundColor: 'white',
@@ -604,7 +341,6 @@ export default function Landing() {
       <footer style={{ backgroundColor: '#f9fafb', borderTop: '1px solid #f3f4f6', padding: '4rem 0' }}>
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-4 gap-24">
-            {/* Logo Section */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <img src={baseballLogo} alt="BEGA" className="w-8 h-8" />
@@ -618,7 +354,6 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* 제품 */}
             <div>
               <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem', fontWeight: 700, color: '#1a1a1a' }}>제품</h4>
               <ul className="space-y-3" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
@@ -628,7 +363,6 @@ export default function Landing() {
               </ul>
             </div>
 
-            {/* 회사 */}
             <div>
               <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem', fontWeight: 700, color: '#1a1a1a' }}>회사</h4>
               <ul className="space-y-3" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
@@ -638,7 +372,6 @@ export default function Landing() {
               </ul>
             </div>
 
-            {/* 지원 */}
             <div>
               <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem', fontWeight: 700, color: '#1a1a1a' }}>지원</h4>
               <ul className="space-y-3" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
