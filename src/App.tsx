@@ -117,18 +117,18 @@ export default function App() {
             {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
             <Route path="/" element={<Home />} />
             <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()}/>} />
-            <Route path="/stadium" element={<StadiumGuide />} />
-            <Route path="/prediction" element={<Prediction />} />
             <Route path="/cheer" element={<Cheer />} />
             <Route path="/cheer/detail/:postId" element={<CheerDetail />} />
-            <Route path="/mate" element={<Mate />} />
-            <Route path="/mate/:id" element={<MateDetail />} />
             <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
             <Route path="/notice" element={<NoticePage />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             {/* 로그인 필요한 라우트 */}
             <Route element={<ProtectedRoute />}>
+              <Route path="/stadium" element={<StadiumGuide />} />
+              <Route path="/prediction" element={<Prediction />} />
+              <Route path="/mate" element={<Mate />} />
+              <Route path="/mate/:id" element={<MateDetail />} />
               <Route path="/cheer/write" element={<CheerWrite />} />
               <Route path="/cheer/edit/:postId" element={<CheerEdit />} />
               <Route path="/mate/create" element={<MateCreate />} />
