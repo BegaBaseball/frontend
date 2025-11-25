@@ -10,12 +10,18 @@ interface OffSeasonHomeProps {
 
 export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
   // 2026 시즌 개막일 계산
-  const openingDay = new Date(2026, 2, 22); // 2026년 3월 22일
+  const openingDay = new Date(2026, 2, 28); // 2026년 3월 22일
   const diffTime = openingDay.getTime() - selectedDate.getTime();
   const daysUntilOpening = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   const navigate = useNavigate();
 
   const stoveLeagueNews = [
+    {
+      category: '이적',
+      team: 'KT',
+      title: '김현수 선수 FA 계약 3년 50억',
+      date: '2025.11.25'
+    },
     {
       category: '이적',
       team: '한화',
@@ -26,12 +32,6 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       category: '이적',
       team: '두산',
       title: '박찬호 선수 FA 계약',
-      date: '2025.11.08'
-    },
-    {
-      category: 'FA 자격취득',
-      team: 'LG',
-      title: '김현수 선수 FA 자격 취득',
       date: '2025.11.08'
     },
     {
@@ -167,7 +167,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                 D-{daysUntilOpening}
               </div>
             </div>
-            <p className="text-white/90 text-lg">2026년 3월 22일 개막 예정</p>
+            <p className="text-white/90 text-lg">2026년 3월 28일 개막 예정</p>
           </div>
         </div>
       </Card>
