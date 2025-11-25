@@ -8,8 +8,8 @@ export const restoreTeamsFromIds = (
   teamIdsInOrder: string[], 
   allTeams: Team[]
 ): (Team | null)[] => {
-  console.log('복원할 팀 IDs:', teamIdsInOrder);
-  console.log('사용 가능한 전체 팀:', allTeams);
+  
+  
   
   const restoredRankings = teamIdsInOrder.map(teamId => {
     const team = allTeams.find(t => 
@@ -28,7 +28,7 @@ export const restoreTeamsFromIds = (
     return team || null;
   });
 
-  console.log('복원된 순위:', restoredRankings);
+  
   return restoredRankings;
 };
 
@@ -71,6 +71,6 @@ export const isKakaoSDKReady = (): boolean => {
 export const initializeKakaoSDK = (appKey: string): void => {
   if (window.Kakao && !window.Kakao.isInitialized()) {
     window.Kakao.init(appKey);
-    console.log('Kakao SDK 초기화 완료:', window.Kakao.isInitialized());
+    
   }
 };
