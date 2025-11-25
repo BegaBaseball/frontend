@@ -33,5 +33,5 @@ export interface LeagueStartDates {
 }
 
 export interface HomeProps {
-    onNavigate: (page: string) => void;
+    onNavigate?: (page: string) => void;
 }
