@@ -12,10 +12,11 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
     const apiDate = formatDateForAPI(date);
     
     try {
-        const response = await fetch(`${API_BASE_URL}/api/kbo/schedule?date=${apiDate}`);
+        const response = await fetch(`${API_BASE_URL}/api/kbo/schedule?date=${apiDate}`, {
+        credentials: 'include' 
+        });
 
         if (!response.ok) {
-            console.error(`[경기] API 요청 실패: ${response.status} ${response.statusText}`);
             return [];
         }
 
@@ -23,7 +24,6 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
         return gamesData;
 
     } catch (error) {
-        console.error('[경기] 데이터 로드 중 오류 발생:', error);
         return [];
     }
 };
@@ -33,10 +33,11 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
  */
 export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/${year}`);
+        const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/${year}`, {
+        credentials: 'include' 
+        });
 
         if (!response.ok) {
-            console.error(`[순위] API 요청 실패: ${response.status} ${response.statusText}`);
             return [];
         }
 
@@ -44,7 +45,6 @@ export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
         return rankingsData;
 
     } catch (error) {
-        console.error('[순위] 데이터 로드 중 오류 발생:', error);
         return [];
     }
 };
@@ -54,19 +54,18 @@ export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
  */
 export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/kbo/league-start-dates`);
+        const response = await fetch(`${API_BASE_URL}/api/kbo/league-start-dates`, {
+        credentials: 'include'
+        });
 
         if (!response.ok) {
-            console.error(`[리그 시작 날짜] API 요청 실패: ${response.status}`);
             return DEFAULT_LEAGUE_START_DATES;
         }
 
         const data: LeagueStartDates = await response.json();
-        
         return data;
 
     } catch (error) {
-        console.error('[리그 시작 날짜] 로드 중 오류:', error);
         return DEFAULT_LEAGUE_START_DATES;
     }
 };

@@ -2,6 +2,7 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Trophy, TrendingUp, Award, Clock } from 'lucide-react';
 import TeamLogo from './TeamLogo';
+import { useNavigate } from 'react-router-dom';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
@@ -12,111 +13,122 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
   const openingDay = new Date(2026, 2, 22); // 2026년 3월 22일
   const diffTime = openingDay.getTime() - selectedDate.getTime();
   const daysUntilOpening = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const navigate = useNavigate();
 
   const stoveLeagueNews = [
     {
       category: '이적',
+      team: '한화',
+      title: '강백호 선수 FA 계약',
+      date: '2025.11.22'
+    },
+    {
+      category: '이적',
+      team: '두산',
+      title: '박찬호 선수 FA 계약',
+      date: '2025.11.08'
+    },
+    {
+      category: 'FA 자격취득',
       team: 'LG',
-      title: 'OO 선수 FA 계약',
-      date: '2025.11.15'
+      title: '김현수 선수 FA 자격 취득',
+      date: '2025.11.08'
     },
     {
-      category: '우승팀',
-      team: 'KT',
-      title: '챔피언 퍼레이드',
-      date: '2025.11.12'
+      category: '코치',
+      team: 'WO',
+      title: '박병호 선수 은퇴 후 선임 코치',
+      date: '2025.11.04'
     },
-    {
-      category: '구단',
-      team: 'NC',
-      title: '신인 드래프트',
-      date: '2025.11.18'
-    },
-    {
-      category: '감독',
-      team: 'SSG',
-      title: 'OO 신임 감독 선임',
-      date: '2025.11.20'
-    }
   ];
 
   const awards = [
     {
       award: 'MVP',
-      playerName: '홍길동',
-      team: 'LG',
-      stats: '타율 .347, 38홈런, 120타점'
+      playerName: '코디 폰세',
+      team: '한화',
+      stats: `17승 1패 평균자책점 1.89`
     },
     {
-      award: '신인왕',
-      playerName: '김철수',
+      award: '신인상',
+      playerName: '안현민',
       team: 'KT',
-      stats: '14승 6패, 평균자책점 3.45'
+      stats: '타율 .334 22홈런 80타점'
     },
     {
-      award: '타격왕',
-      playerName: '이영희',
+      award: '홈런상',
+      playerName: '르윈 디아즈',
+      team: '삼성',
+      stats: '역대 최초 50홈런 158타점'
+    },
+    {
+      award: '홀드상',
+      playerName: '노경은',
       team: 'SSG',
-      stats: '타율 .358, 144안타'
+      stats: '77경기 35홀드 최고령 홀드 갱신'
     },
     {
-      award: '홈런왕',
-      playerName: '박민수',
-      team: 'NC',
-      stats: '45홈런, 115타점'
+      award: '도루상',
+      playerName: '박해민',
+      team: 'LG',
+      stats: '6월 역대 최초 12시즌 연속 20도루'
     },
     {
-      award: '승리왕',
-      playerName: '최승리',
+      award: '타율상',
+      playerName: '양의지',
       team: '두산',
-      stats: '18승 7패, 평균자책점 2.98'
+      stats: '타율 .337 3번째 포수 타격왕'
     },
-    {
-      award: '세이브왕',
-      playerName: '강마무리',
-      team: '기아',
-      stats: '38세이브, 평균자책점 1.89'
-    }
   ];
 
   const postSeasonResults = [
     {
-      title: '우승',
-      result: 'KT 위즈',
-      detail: '한국시리즈 4-2 승'
-    },
-    {
-      title: '준우승',
-      result: 'SSG 랜더스',
-      detail: '한국시리즈 2-4 패'
+      title: '한국시리즈 우승',
+      result: 'LG 트윈스',
+      detail: '한화 이글스 KS 4-1 승'
     },
     {
       title: '플레이오프',
-      result: 'LG 트윈스',
-      detail: 'PO 2-3 패'
+      result: '한화 이글스',
+      detail: '삼성 라이온즈 PO 3-2 승'
+    },
+    {
+      title: '준플레이오프',
+      result: '삼성 라이온즈',
+      detail: 'SSG 랜더스 준PO 2-3 승'
     },
     {
       title: '와일드카드',
-      result: 'NC 다이노스',
-      detail: 'WC 2-1 승'
+      result: '삼성 라이온즈',
+      detail: 'NC 다이노스 WC 1-1 승'
     }
   ];
 
   const finalRankings = [
-    { rank: 1, team: 'LG 트윈스', logo: 'LG', games: '144', wins: '85', losses: '55', draws: '4', winRate: '0.607' },
-    { rank: 2, team: 'KT 위즈', logo: 'KT', games: '144', wins: '83', losses: '57', draws: '4', winRate: '0.593' },
+    { rank: 1, team: 'LG 트윈스', logo: 'LG', games: '144', wins: '85', losses: '56', draws: '3', winRate: '0.603' },
+    { rank: 2, team: '한화 이글스', logo: '한화', games: '144', wins: '83', losses: '57', draws: '4', winRate: '0.593' },
     { rank: 3, team: 'SSG 랜더스', logo: 'SSG', games: '144', wins: '75', losses: '65', draws: '4', winRate: '0.536' },
-    { rank: 4, team: 'NC 다이노스', logo: 'NC', games: '144', wins: '74', losses: '68', draws: '2', winRate: '0.521' },
-    { rank: 5, team: '두산 베어스', logo: '두산', games: '144', wins: '72', losses: '69', draws: '3', winRate: '0.511' },
-    { rank: 6, team: '기아 타이거즈', logo: '기아', games: '144', wins: '70', losses: '71', draws: '3', winRate: '0.496' },
-    { rank: 7, team: '삼성 라이온즈', logo: '삼성', games: '144', wins: '68', losses: '73', draws: '3', winRate: '0.482' },
-    { rank: 8, team: '롯데 자이언츠', logo: '롯데', games: '144', wins: '65', losses: '76', draws: '3', winRate: '0.461' },
-    { rank: 9, team: '한화 이글스', logo: '한화', games: '144', wins: '60', losses: '81', draws: '3', winRate: '0.426' },
-    { rank: 10, team: '키움 히어로즈', logo: '키움', games: '144', wins: '58', losses: '83', draws: '3', winRate: '0.411' }
+    { rank: 4, team: '삼성 라이온즈', logo: '삼성', games: '144', wins: '74', losses: '68', draws: '2', winRate: '0.521' },
+    { rank: 5, team: 'NC 다이노스', logo: 'NC', games: '144', wins: '71', losses: '67', draws: '6', winRate: '0.514' },
+    { rank: 6, team: 'KT 위즈', logo: 'KT', games: '144', wins: '71', losses: '68', draws: '5', winRate: '0.511' },
+    { rank: 7, team: '롯데 자이언츠', logo: '롯데', games: '144', wins: '66', losses: '72', draws: '6', winRate: '0.478' },
+    { rank: 8, team: 'KIA 타이거즈', logo: 'HT', games: '144', wins: '65', losses: '75', draws: '4', winRate: '0.464' },
+    { rank: 9, team: '두산 베어스', logo: '두산', games: '144', wins: '61', losses: '77', draws: '6', winRate: '0.442' },
+    { rank: 10, team: '키움 히어로즈', logo: '키움', games: '144', wins: '47', losses: '93', draws: '4', winRate: '0.336' }
   ];
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12" style ={{ margin: "30px" }}>
+      <button
+          onClick={() => navigate('/')}
+          className="text-sm mb-4 flex items-center gap-2 group transition-all border-2 px-3 py-1 rounded-[40px] hover:bg-gray-100"
+          style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+      >
+          <span className="w-6 h-6 rounded-full bg-white/20 group-hover:bg-white/30 flex items-center justify-center transition-all">
+              ←
+          </span>
+          <span className="group-hover:underline">메인페이지로 돌아가기</span>
+      </button>
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-2xl" style={{ backgroundColor: '#2d5f4f' }}>
         <div className="absolute inset-0 opacity-10">
@@ -165,7 +177,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
         <div className="flex items-center gap-2 mb-6">
           <TrendingUp className="w-5 h-5" style={{ color: '#2d5f4f' }} />
           <h3 style={{ fontWeight: 900, color: '#2d5f4f' }}>스토브리그 NOW</h3>
-          <Badge className="ml-2 text-white" style={{ backgroundColor: '#ef4444' }}>LIVE</Badge>
+          <Badge className="ml-2 text-white animate-pulse" style={{ backgroundColor: '#ef4444' }}>LIVE</Badge>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
@@ -206,10 +218,11 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div 
-                    className="w-14 h-14 rounded-xl flex items-center justify-center text-white shadow-lg" 
-                    style={{ backgroundColor: '#2d5f4f' }}
+                    className="w-14 h-14 rounded-xl flex items-center justify-center text-white" 
+                    style={{ backgroundColor: 'transparent' }}
                   >
-                    <Trophy className="w-7 h-7" />
+                    <TeamLogo team={award.team} size={50} />
+                    {/* <Trophy className="w-7 h-7" /> */}
                   </div>
                   <div className="flex-1">
                     <h4 className="mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>{award.award}</h4>
@@ -217,10 +230,9 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
-                  <TeamLogo team={award.team} size={28} />
-                  <span className="text-sm" style={{ color: '#2d5f4f', fontWeight: 600 }}>
+                  {/* <span className="text-sm" style={{ color: '#2d5f4f', fontWeight: 600 }}>
                     {award.team}
-                  </span>
+                  </span> */}
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed">{award.stats}</p>
               </div>
@@ -267,7 +279,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       <section>
         <div className="flex items-center gap-2 mb-6">
           <Trophy className="w-5 h-5" style={{ color: '#2d5f4f' }} />
-          <h3 style={{ fontWeight: 900, color: '#2d5f4f' }}>2025 시즌 최종 순위</h3>
+          <h3 style={{ fontWeight: 900, color: '#2d5f4f' }}>2025 정규시즌 최종 순위</h3>
         </div>
 
         <Card className="overflow-hidden shadow-lg border-0">
@@ -287,7 +299,9 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
               </thead>
               <tbody>
                 {finalRankings.map((team, index) => {
-                  const gameDiff = index === 0 ? '-' : ((parseFloat(finalRankings[0].winRate) - parseFloat(team.winRate)) * 144 / 2).toFixed(1);
+                const gameDiff = index === 0 
+                  ? '-' 
+                  : (((Number(finalRankings[0].wins) - Number(finalRankings[0].losses)) - (Number(team.wins) - Number(team.losses))) / 2).toFixed(1);
                   return (
                     <tr 
                       key={team.rank} 
