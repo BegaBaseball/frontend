@@ -244,7 +244,7 @@ export default function Cheer() {
                       <div className="flex-1 min-w-0 pr-8">
                         <div className="flex items-center gap-2">
                           {post.isHot && (
-                            <span className="flex-shrink-0 flex items-center gap-0.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] leading-none text-white">
+                            <span className="flex-shrink-0 flex items-center gap-0.5 rounded-full bg-red-500 px-1 py-1 text-[10px] leading-none text-white">
                               <Flame className="h-3 w-3 flex-shrink-0" fill="currentColor" />
                               <span className="pb-[1px]">HOT</span>
                             </span>
