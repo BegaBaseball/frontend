@@ -85,37 +85,6 @@ export default function Prediction() {
     );
   }
 
-  // 로그인 안 되어 있으면 다이얼로그만 표시
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-white">
-        <AlertDialog open={showLoginRequiredDialog} onOpenChange={setShowLoginRequiredDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle style={{ color: '#2d5f4f' }}>
-                로그인 필요
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-base">
-                로그인이 필요한 서비스입니다.<br />
-                로그인 페이지로 이동하시겠습니까?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => window.history.back()}>취소</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleGoToLogin}
-                className="text-white"
-                style={{ backgroundColor: '#2d5f4f' }}
-              >
-                로그인하러 가기
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-white">
       {/* 컨펌 다이얼로그 */}
