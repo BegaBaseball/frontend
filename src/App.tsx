@@ -29,6 +29,8 @@ const MateManage = lazy(() => import('./components/MateManage'));
 const MyPage = lazy(() => import('./components/MyPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const RankingPredictionShare = lazy(() => import('./components/RankingPredictionShare'));
+const Landing = lazy(() => import('./components/Landing'));
+
 const NoticePage = lazy(() => import('./components/NoticePage'));
 const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
@@ -125,11 +127,13 @@ export default function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/password/reset" element={<PasswordReset />} />
           <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
-          
+
+          {/* Landing & ServiceInfo - Layout 없이 독립 페이지 */}
+          <Route path="/" element={<Landing />} />
           {/* Layout 포함 라우트 */}
           <Route element={<Layout />}>
             {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
-            <Route path="/" element={<Home />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()}/>} />
             <Route path="/cheer" element={<Cheer />} />
             <Route path="/cheer/detail/:postId" element={<CheerDetail />} />
