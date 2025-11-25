@@ -13,7 +13,7 @@ const MAX_FILE_SIZE_MB = 5;
 export const useCheerWrite = (favoriteTeam: string | null) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { addPost } = useCheerStore();
+  const { upsertPost } = useCheerStore();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -49,7 +49,7 @@ export const useCheerWrite = (favoriteTeam: string | null) => {
       return newPost;
     },
     onSuccess: (newPost) => {
-      addPost(newPost);
+      upsertPost(newPost);
       queryClient.invalidateQueries({ queryKey: ['cheerPosts'] });
       toast.success('게시글이 성공적으로 등록되었습니다.');
       navigate(`/cheer/detail/${newPost.id}`);
@@ -113,6 +113,12 @@ export const useCheerWrite = (favoriteTeam: string | null) => {
       toast.error('제목과 내용을 입력해주세요.');
       return;
     }
+
+    if (!favoriteTeam) {
+      toast.error('마이페이지에서 응원 구단을 설정한 후 게시글을 작성할 수 있습니다.');
+      return;
+    }
+
     createMutation.mutate({
       title: title.trim(),
       content: content.trim(),

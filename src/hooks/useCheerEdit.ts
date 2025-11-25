@@ -98,6 +98,7 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
         title: payload.title,
         content: payload.content
       });
+
       if (payload.files.length > 0) {
         await uploadPostImages(updated.id, payload.files);
       }
