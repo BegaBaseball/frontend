@@ -99,9 +99,11 @@ export const usePrediction = () => {
       const todayIndex = allDates.findIndex(d => d.date === today);
       setCurrentDateIndex(todayIndex !== -1 ? todayIndex : 0);
 
-      const allGames = [...pastData, ...todayData];
-      const userVotes = await fetchAllUserVotesAPI(allGames);
-      setUserVote(userVotes);
+      // 미래 경기만 사용자 투표 조회
+      if (todayData.length > 0) {
+        const userVotes = await fetchAllUserVotesAPI(todayData);
+        setUserVote(userVotes);
+      }
 
     } catch (error) {
       console.error('경기 데이터를 불러오는데 실패했습니다:', error);
