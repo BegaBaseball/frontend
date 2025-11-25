@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 // import LoadingSpinner from './components/LoadingSpinner';
 import Layout from './components/Layout';
 import ChatBot from './components/ChatBot';
+
 import { LoginRequiredDialog } from './components/LoginRequiredDialog';
 
 // 페이지 컴포넌트를 lazy loading
@@ -168,6 +169,7 @@ export default function App() {
         </Routes>
       {/* </Suspense> */}
       <ChatBot />
+      
     </BrowserRouter>
   );
 }

@@ -32,7 +32,7 @@ export const loadKakaoMapScript = (onLoad?: () => void, onError?: () => void) =>
   script.onload = () => {
     if (window.kakao && window.kakao.maps) {
       window.kakao.maps.load(() => {
-        console.log('카카오맵 로드 완료');
+        
         onLoad?.();
       });
     }
