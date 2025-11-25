@@ -26,7 +26,10 @@ const MateChat = lazy(() => import('./components/MateChat'));
 const MateManage = lazy(() => import('./components/MateManage'));
 const MyPage = lazy(() => import('./components/MyPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
+const ServiceInfo = lazy(() => import('./components/ServiceInfo'));
 const RankingPredictionShare = lazy(() => import('./components/RankingPredictionShare'));
+const Landing = lazy(() => import('./components/Landing'));
+
 
 // 인증이 필요한 라우트를 보호하는 컴포넌트
 function ProtectedRoute() {
@@ -107,7 +110,10 @@ export default function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/password/reset" element={<PasswordReset />} />
           <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
-          
+
+          {/* Landing & ServiceInfo - Layout 없이 독립 페이지 */}
+          <Route path="/landing" element={<Landing />} />
+          <Route path="/service-info" element={<ServiceInfo />} />
           {/* Layout 포함 라우트 */}
           <Route element={<Layout />}>
             {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
