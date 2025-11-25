@@ -111,7 +111,6 @@ export default function App() {
     if (window.Kakao && KAKAO_KEY) {
       if (!window.Kakao.isInitialized()) {
         window.Kakao.init(KAKAO_KEY);
-        console.log('카카오 SDK 초기화 완료');
       }
     }
   }, []); // 빈 배열을 넣어 컴포넌트가 마운트될 때 단 한 번만 실행되도록 함
