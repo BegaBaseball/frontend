@@ -120,7 +120,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
   return (
     <div className="space-y-12" style ={{ margin: "30px" }}>
       <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           className="text-sm mb-4 flex items-center gap-2 group transition-all border-2 px-3 py-1 rounded-[40px] hover:bg-gray-100"
           style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
       >
