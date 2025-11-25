@@ -146,7 +146,7 @@ export default function Navbar() {
           
           {/* 1. 로고 */}
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/home')}
             className="flex items-center gap-3 shrink-0"
           >
             <img src={baseballLogo} alt="Baseball" className="w-10 h-10" />
