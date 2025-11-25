@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 // import LoadingSpinner from './components/LoadingSpinner';
 import Layout from './components/Layout';
 import ChatBot from './components/ChatBot';
+import { LoginRequiredDialog } from './components/LoginRequiredDialog';
 
 // 페이지 컴포넌트를 lazy loading
 const Home = lazy(() => import('./components/Home'));
@@ -36,17 +37,31 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 
 // 인증이 필요한 라우트를 보호하는 컴포넌트
 function ProtectedRoute() {
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const { isLoggedIn, showLoginRequiredDialog, setShowLoginRequiredDialog } = useAuthStore();
   // const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   
   // 로딩 중이면 스피너 표시
   // if (isAuthLoading) {
   //   return <LoadingSpinner />;
   // }
-  
+
+  // 로그인 체크
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setShowLoginRequiredDialog(true);
+    }
+  }, [isLoggedIn, setShowLoginRequiredDialog]);
+
   // 로딩 완료 후 로그인 체크
   if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
+    return (
+      <div className="min-h-screen bg-white">
+        <LoginRequiredDialog
+          open={showLoginRequiredDialog}
+          onOpenChange={setShowLoginRequiredDialog}
+        />
+      </div>
+    );
   }
   
   return <Outlet />;
@@ -98,7 +113,6 @@ export default function App() {
     if (window.Kakao && KAKAO_KEY) {
       if (!window.Kakao.isInitialized()) {
         window.Kakao.init(KAKAO_KEY);
-        console.log('카카오 SDK 초기화 완료');
       }
     }
   }, []); // 빈 배열을 넣어 컴포넌트가 마운트될 때 단 한 번만 실행되도록 함
@@ -121,18 +135,18 @@ export default function App() {
             {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
             <Route path="/" element={<Home />} />
             <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()}/>} />
-            <Route path="/stadium" element={<StadiumGuide />} />
-            <Route path="/prediction" element={<Prediction />} />
             <Route path="/cheer" element={<Cheer />} />
             <Route path="/cheer/detail/:postId" element={<CheerDetail />} />
-            <Route path="/mate" element={<Mate />} />
-            <Route path="/mate/:id" element={<MateDetail />} />
             <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
             <Route path="/notice" element={<NoticePage />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             {/* 로그인 필요한 라우트 */}
             <Route element={<ProtectedRoute />}>
+              <Route path="/mate/:id" element={<MateDetail />} />
+              <Route path="/mate" element={<Mate />} />
+              <Route path="/prediction" element={<Prediction />} />
+              <Route path="/stadium" element={<StadiumGuide />} />
               <Route path="/cheer/write" element={<CheerWrite />} />
               <Route path="/cheer/edit/:postId" element={<CheerEdit />} />
               <Route path="/mate/create" element={<MateCreate />} />
