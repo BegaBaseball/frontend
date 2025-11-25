@@ -195,6 +195,7 @@ export default function CheerDetail() {
       if (!post) return;
       toast.success('게시글이 삭제되었습니다.');
       removePost(post.id);
+      queryClient.invalidateQueries({ queryKey: ['cheerPosts'] });
       navigate('/cheer');
     },
     onError: (error: Error) => {
