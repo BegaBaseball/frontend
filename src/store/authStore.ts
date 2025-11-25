@@ -45,7 +45,6 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoggedIn: false, 
       isAdmin: false,
-      // isAuthLoading: true,
       isAuthLoading: false,
       email: '',
       password: '',
@@ -87,7 +86,7 @@ export const useAuthStore = create<AuthState>()(
               },
               isLoggedIn: true,
               isAdmin: isAdminUser,
-              // isAuthLoading: false,  
+              isAuthLoading: false,  
             });
             
           } else if (response.status === 401) {
@@ -95,10 +94,10 @@ export const useAuthStore = create<AuthState>()(
               user: null, 
               isLoggedIn: false, 
               isAdmin: false,
-              // isAuthLoading: false  
+              isAuthLoading: false  
             });
           } else {
-            // set({ isAuthLoading: false });  
+            set({ isAuthLoading: false });  
           }
         } catch (error) {
           set({ 
@@ -134,7 +133,7 @@ export const useAuthStore = create<AuthState>()(
           },
           isLoggedIn: true,
           isAdmin: isAdminUser,
-          // isAuthLoading: false,  
+          isAuthLoading: false,  
           email: '',
           password: '',
         });
@@ -146,7 +145,7 @@ export const useAuthStore = create<AuthState>()(
           user: null, 
           isLoggedIn: false, 
           isAdmin: false, 
-          // isAuthLoading: false,  
+          isAuthLoading: false,  
           email: '', 
           password: '' 
         });
