@@ -138,7 +138,7 @@ export default function Navbar() {
     <header className="border-b border-gray-200 sticky top-0 z-40 transition-colors duration-300"
     style={{
       backgroundColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff',
-      borderColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff'
+      // borderColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff'
     }}
   >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

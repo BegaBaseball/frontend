@@ -26,16 +26,19 @@ export default function CheerEdit() {
     setContent,
     existingImages,
     imageUrls,
-    newFiles,
     newFilePreviews,
     loadingImages,
     deletingImageId,
+    isDragging,
     isSubmitting,
     handleFileSelect,
     handleDeleteExistingImage,
     handleRemoveNewFile,
     handleSubmit,
     handleCancel,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
   } = useCheerEdit(postId, favoriteTeam);
 
   // Redirect if invalid postId
@@ -175,9 +178,16 @@ export default function CheerEdit() {
                   </div>
 
                   {/* Upload Area */}
-                  <label className="flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400">
+                  <label
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 transition-colors ${
+                      isDragging ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
                     <Upload className="h-6 w-6" />
-                    <span>이미지 추가</span>
+                    <span>클릭 또는 드래그하여 이미지 추가</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -194,16 +204,9 @@ export default function CheerEdit() {
                       이미지를 불러오는 중...
                     </div>
                   )}
-
-                  {/* Empty State */}
-                  {!loadingImages && existingImages.length === 0 && newFiles.length === 0 && (
-                    <div className="text-center py-4 text-gray-400 text-sm">
-                      첨부된 이미지가 없습니다
-                    </div>
-                  )}
-
+                  
                   {/* Image Grid */}
-                  {!loadingImages && (existingImages.length > 0 || newFiles.length > 0) && (
+                  {!loadingImages && (existingImages.length > 0 || newFilePreviews.length > 0) && (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       {/* Existing Images */}
                       {existingImages.map((image, idx) => {
@@ -234,14 +237,14 @@ export default function CheerEdit() {
                             <button
                               type="button"
                               onClick={() => handleDeleteExistingImage(image.id)}
-                              className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60"
+                              className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white shadow-sm transition-all hover:bg-black/75 disabled:opacity-60"
                               disabled={isSubmitting || deletingImageId === image.id}
                               title="이미지 삭제"
                             >
                               {deletingImageId === image.id ? (
                                 <span className="text-[10px] font-semibold">삭제</span>
                               ) : (
-                                <X className="h-4 w-4" />
+                                <X className="h-4 w-4" strokeWidth={3} />
                               )}
                             </button>
                             <div className="absolute bottom-0 left-0 right-0 z-10 bg-black/60 px-2 py-1 text-center text-xs text-white">
@@ -265,12 +268,12 @@ export default function CheerEdit() {
                           <button
                             type="button"
                             onClick={() => handleRemoveNewFile(index)}
-                            className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm transition hover:bg-red-700"
+                            className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white shadow-sm transition-all hover:bg-black/75"
                             disabled={isSubmitting}
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-4 w-4" strokeWidth={3} />
                           </button>
-                          <div className="absolute top-2 left-2 z-10 rounded bg-green-600 px-2 py-0.5 text-xs text-white">
+                          <div className="absolute top-1.5 left-1.5 z-10 rounded bg-green-600 px-2 py-0.5 text-xs text-white">
                             새 이미지
                           </div>
                         </div>
