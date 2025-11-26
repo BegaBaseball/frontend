@@ -1,13 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchGames, fetchDiaries, saveDiary, updateDiary, deleteDiary, uploadDiaryImages } from '../api/diary';
 import { DiaryEntry, Game } from '../types/diary';
 import { formatDateString } from '../utils/diary';
 import { useDiaryForm } from './useDiaryForm';
+import { useErrorModal } from '../components/contexts/ErrorModalContext'
 import { toast } from 'sonner';
 
 export const useDiaryView = () => {
   const queryClient = useQueryClient();
+  const { openErrorModal } = useErrorModal();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -28,7 +30,7 @@ export const useDiaryView = () => {
   // ========== Fetch Diaries from DB ==========
   const { data: diaryEntries = [], isLoading: entriesLoading } = useQuery({
     queryKey: ['diaries'],
-    queryFn: fetchDiaries,
+    queryFn: () => fetchDiaries(openErrorModal),
     staleTime: 1 * 60 * 1000, // 1분
     gcTime: 5 * 60 * 1000, // 5분
   });
@@ -40,7 +42,7 @@ export const useDiaryView = () => {
   // ========== Fetch Games ==========
   const { data: availableGames = [], isLoading: gamesLoading } = useQuery({
     queryKey: ['games', dateStr],
-    queryFn: () => fetchGames(dateStr),
+    queryFn: () => fetchGames(dateStr, openErrorModal),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
@@ -66,7 +68,7 @@ export const useDiaryView = () => {
     if (photoFiles.length === 0) return [];
 
     try {
-      const photos = await uploadDiaryImages(diaryId, photoFiles);
+      const photos = await uploadDiaryImages(diaryId, photoFiles, openErrorModal);
       toast.success(`${photos.length}장의 사진이 저장되었습니다.`);
       return photos;
     } catch (error) {
@@ -77,7 +79,7 @@ export const useDiaryView = () => {
 
   // ========== Save Mutation ==========
   const saveMutation = useMutation({
-    mutationFn: saveDiary,
+    mutationFn: (data: any) => saveDiary(data, openErrorModal),
     onSuccess: async (result) => {
       const diaryId = result.id || result.data?.id;
 
@@ -102,8 +104,10 @@ export const useDiaryView = () => {
             team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
             stadium: game?.stadium || '',
           },
-        });
-      }
+        },
+        openErrorModal
+      );
+    }
 
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -122,7 +126,7 @@ export const useDiaryView = () => {
 
   // ========== Update Mutation ==========
   const updateMutation = useMutation({
-    mutationFn: updateDiary,
+    mutationFn: (params: { id: number; data: any }) => updateDiary(params, openErrorModal),
     onSuccess: async (result, variables) => {
       const diaryId = variables.id;
 
@@ -136,12 +140,14 @@ export const useDiaryView = () => {
           const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
           
           await updateDiary({
-            id: diaryId,
-            data: {
-              ...variables.data,
-              photos: allPhotos, 
+              id: diaryId,
+              data: {
+                ...variables.data,
+                photos: allPhotos, 
+              },
             },
-          });
+            openErrorModal
+          );
         }
       }
 
@@ -162,7 +168,7 @@ export const useDiaryView = () => {
 
   // ========== Delete Mutation ==========
   const deleteMutation = useMutation({
-    mutationFn: deleteDiary,
+    mutationFn: (id: number) => deleteDiary(id, openErrorModal),
     onSuccess: async () => {
       // DB 데이터 다시 조회 (강제 리프레시)
       await queryClient.invalidateQueries({ queryKey: ['diaries'], refetchType: 'active' });
@@ -180,11 +186,11 @@ export const useDiaryView = () => {
 
   // ========== Handlers ==========
   const handleSaveDiary = async () => {
-    const validation = validateForm();
-    if (!validation.valid) {
-      toast.error(validation.error);
-      return;
-    }
+    // const validation = validateForm();
+    // if (!validation.valid) {
+    //   toast.error(validation.error);
+    //   return;
+    // }
 
     const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
 
