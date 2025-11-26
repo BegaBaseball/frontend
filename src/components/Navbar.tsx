@@ -118,9 +118,8 @@ export default function Navbar() {
         credentials: 'include',
       });
       logout();
-      navigate('/');
+      navigate('/home');
       if (!response.ok) console.error('Server logout failed');
-      // else alert('로그아웃 되었습니다.');
     } catch (error) {
       logout();
       navigate('/');

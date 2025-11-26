@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Camera, X } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { EMOJI_STATS, WINNING_OPTIONS, MAX_PHOTOS } from '../../constants/diary';
-import { getFullImageUrl, formatDateString, getWinningLabel } from '../../utils/diary';
+import { getEmojiByName, getFullImageUrl, formatDateString, getWinningLabel } from '../../utils/diary';
 import { useDiaryView } from '../../hooks/useDiaryView';
 import { useWeekCalendar } from '../../hooks/useWeekCalendar';
 import { useMonthCalendar } from '../../hooks/useMonthCalendar';
@@ -122,7 +122,7 @@ export default function DiaryViewSection() {
                               </div>
                             )}
                             <img
-                              src={entry.emoji}
+                              src={getEmojiByName(entry.emojiName)}
                               alt={entry.emojiName}
                               className="w-10 h-10 flex-shrink-0"
                             />
@@ -325,7 +325,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         className="flex items-center gap-6 p-6 rounded-2xl"
         style={{ backgroundColor: '#f8fcfb' }}
       >
-        <img src={diaryForm.emoji} alt={diaryForm.emojiName} className="w-20 h-20" />
+        <img src={getEmojiByName(diaryForm.emojiName)} alt={diaryForm.emojiName} className="w-20 h-20" />
         <div>
           <div className="text-sm text-gray-500 mb-1">오늘의 기분</div>
           <div className="text-2xl" style={{ fontWeight: 900, color: '#2d5f4f' }}>

@@ -32,7 +32,7 @@ interface AuthState {
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
   setShowPassword: (show: boolean) => void;
-  login: (email: string, name: string, profileImageUrl?: string, role?: string) => void; 
+  login: (email: string, name: string, profileImageUrl?: string, role?: string, favoriteTeam?: string) => void;
   logout: () => void;
   setFavoriteTeam: (team: string, color: string) => void;
   setShowLoginRequiredDialog: (show: boolean) => void;
@@ -52,25 +52,17 @@ export const useAuthStore = create<AuthState>()(
       showLoginRequiredDialog: false, 
 
       fetchProfileAndAuthenticate: async () => {
-        const currentState = get();
-        
-        if (!currentState.isLoggedIn) {
-          set({ isAuthLoading: false });
-          return;
-        }
-
         set({ isAuthLoading: true }); 
 
         try {
           const response = await fetch(MYPAGE_API_URL, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',  
+            credentials: 'include',
           });
 
           if (response.ok) {
             const result = await response.json();  
-
             const profile = result.data;
             const isAdminUser = profile.role === 'ROLE_ADMIN';
 
@@ -120,7 +112,7 @@ export const useAuthStore = create<AuthState>()(
         }));
       },
       
-      login: (email, name, profileImageUrl, role) => { 
+      login: (email, name, profileImageUrl, role, favoriteTeam) => { 
         const isAdminUser = role === 'ROLE_ADMIN';
         
         set({
@@ -129,7 +121,8 @@ export const useAuthStore = create<AuthState>()(
             name: name,
             isAdmin: isAdminUser,
             profileImageUrl: profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User',
-            role: role
+            role: role,
+            favoriteTeam: favoriteTeam || '없음', 
           },
           isLoggedIn: true,
           isAdmin: isAdminUser,
@@ -140,7 +133,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        Cookies.remove(AUTH_COOKIE_NAME, { path: '/' }); 
+        fetch(`${API_BASE_URL}/auth/logout`, {
+          method: 'POST',
+          credentials: 'include',
+        })
+        
         set({ 
           user: null, 
           isLoggedIn: false, 
