@@ -96,7 +96,7 @@ export async function listPosts(
     size: String(size),
   });
 
-  if (teamId && teamId.trim().length > 0) {
+  if (teamId && teamId.trim().length > 0 && teamId !== '없음') {
     params.set('teamId', teamId);
   }
   if (postType) {

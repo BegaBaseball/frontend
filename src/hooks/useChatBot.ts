@@ -22,11 +22,16 @@ export const useChatBot = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
+  const [position, setPosition] = useState({ x: window.innerWidth - 540, y: window.innerHeight - 900 });
+  const [size, setSize] = useState({ width: 500, height: 750 });
   // ========== Scroll to Bottom ==========
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
@@ -171,9 +176,14 @@ export const useChatBot = () => {
     isRecording,
     isTyping,
     isProcessing,
+    position,
+    setPosition,
+    size,
+    setSize,
 
     // Refs
     messagesEndRef,
+    messagesContainerRef,
 
     // Handlers
     handleSendMessage,
