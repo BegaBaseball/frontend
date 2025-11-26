@@ -1,6 +1,6 @@
 import { MAX_FILE_SIZE, MAX_TOTAL_SIZE } from '../constants/diary';
 import { DiaryEntry, EmojiStat } from '../types/diary';
-import { EMOJI_STATS } from '../constants/diary';
+import { EMOJI_STATS, DEFAULT_EMOJI } from '../constants/diary';
 
 /**
  * 전체 이미지 URL 가져오기
@@ -91,4 +91,9 @@ export const calculateEmojiStats = (entries: DiaryEntry[]): EmojiStat[] => {
     emoji: item.emoji,
     count: stats[item.name as keyof typeof stats] || 0,
   }));
+};
+
+export const getEmojiByName = (emojiName: string): string => {
+  const found = EMOJI_STATS.find(e => e.name === emojiName);
+  return found?.emoji || DEFAULT_EMOJI;
 };

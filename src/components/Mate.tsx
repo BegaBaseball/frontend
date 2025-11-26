@@ -127,13 +127,11 @@ export default function Mate() {
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12">
-              {profileImageUrl && (
-                <AvatarImage 
-                  src={profileImageUrl} 
-                  alt="Profile" 
-                  className="object-cover"
-                />
-              )}
+              <AvatarImage 
+                src={profileImageUrl || undefined} 
+                alt="Profile" 
+                className="object-cover"
+              />
               <AvatarFallback className="text-white" style={{ backgroundColor: '#2d5f4f' }}>
                 {party.hostName.slice(0, 2)}
               </AvatarFallback>

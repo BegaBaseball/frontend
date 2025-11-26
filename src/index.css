@@ -3979,40 +3979,37 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1; 
 }
 
 .shiny-button:before {
-  position: absolute;
   content: '';
-  display: inline-block;
-  top: -180px;
-  left: 0;
-  width: 30px;
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%; 
   height: 100%;
-  background-color: #fff;
-  animation: none;
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 100%);
+  transform: skewX(-25deg);
+  z-index: -1; 
+  transition: all 0.5s;
 }
 
 .shiny-button:hover:before {
-  animation: shiny-btn1 1s ease-in-out;
+  animation: shiny-btn1 0.75s;
 }
 
 @keyframes shiny-btn1 {
-  0% { 
-    transform: scale(0) rotate(45deg); 
-    opacity: 0; 
+  0% {
+    left: -100%;
+    opacity: 0;
   }
-  80% { 
-    transform: scale(0) rotate(45deg); 
-    opacity: 0.5; 
+  20% {
+    opacity: 1;
   }
-  81% { 
-    transform: scale(4) rotate(45deg); 
-    opacity: 1; 
-  }
-  100% { 
-    transform: scale(50) rotate(45deg); 
-    opacity: 0; 
+  100% {
+    left: 200%;
+    opacity: 0;
   }
   
 }
