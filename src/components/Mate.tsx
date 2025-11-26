@@ -9,7 +9,7 @@ import { Plus, Users, MapPin, Calendar, Shield, Star, Search, TrendingUp, Chevro
 import { useMateStore } from '../store/mateStore';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { Input } from './ui/input';
-import { Avatar, AvatarFallback } from './ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ChatBot from './ChatBot';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
@@ -126,13 +126,11 @@ export default function Mate() {
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12">
-              {profileImageUrl && (
-                <img 
-                  src={profileImageUrl} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover rounded-full"
-                />
-              )}
+              <AvatarImage 
+                src={profileImageUrl || undefined} 
+                alt="Profile" 
+                className="object-cover"
+              />
               <AvatarFallback className="text-white" style={{ backgroundColor: '#2d5f4f' }}>
                 {party.hostName.slice(0, 2)}
               </AvatarFallback>
