@@ -79,7 +79,7 @@ export default function Footer() {
           <div>
             <h4 className="mb-4">고객센터</h4>
             <ul className="space-y-2 text-gray-400">
-              <li>이메일: support@bega.com</li>
+              <li>이메일: baseballguide251021@gmail.com</li>
               <li>운영시간: 평일 09:00-18:00</li>
             </ul>
           </div>
