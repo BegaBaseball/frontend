@@ -12,6 +12,7 @@ import OffSeasonHome from './OffSeasonHome';
 import { useState, useEffect } from 'react';
 import { CURRENT_SEASON_YEAR } from '../constants/home';
 import { useNavigate } from 'react-router-dom';
+import WelcomeGuide from './WelcomeGuide';
 
 // 백엔드 API 응답과 일치하는 타입 정의
 interface Game {
@@ -230,6 +231,9 @@ export default function Home({ onNavigate }: HomeProps) {
     }
 
     return (
+        <>
+         <WelcomeGuide />
+
         <div className="min-h-screen bg-white">
             {selectedDate && isOffSeasonForUI(selectedDate) && games.length === 0 ? (
                 <section className="py-12 bg-gray-50">
@@ -492,5 +496,6 @@ export default function Home({ onNavigate }: HomeProps) {
             )}
             <ChatBot />
         </div>
+        </>
     );
 }

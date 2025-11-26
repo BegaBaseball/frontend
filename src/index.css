@@ -3990,7 +3990,11 @@ html {
   width: 30px;
   height: 100%;
   background-color: #fff;
-  animation: shiny-btn1 3s ease-in-out infinite;
+  animation: none;
+}
+
+.shiny-button:hover:before {
+  animation: shiny-btn1 1s ease-in-out;
 }
 
 @keyframes shiny-btn1 {
