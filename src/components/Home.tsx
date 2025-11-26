@@ -232,16 +232,16 @@ export default function Home({ onNavigate }: HomeProps) {
 
     return (
         <>
-         <WelcomeGuide />
+        <WelcomeGuide />
 
         <div className="min-h-screen bg-white">
-            {selectedDate && isOffSeasonForUI(selectedDate) && games.length === 0 ? (
+            {/* {selectedDate && isOffSeasonForUI(selectedDate) && games.length === 0 ? (
                 <section className="py-12 bg-gray-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <OffSeasonHome selectedDate={selectedDate} />
                     </div>
                 </section>
-            ) : (
+            ) : ( */}
                 <>
                     {/* Hero Banner */}
                     <section className="relative overflow-hidden" style={{ backgroundColor: '#2d5f4f' }}>
@@ -493,7 +493,6 @@ export default function Home({ onNavigate }: HomeProps) {
                         </div>
                     </section>
                 </>
-            )}
             <ChatBot />
         </div>
         </>
