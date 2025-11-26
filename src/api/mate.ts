@@ -75,19 +75,16 @@ export async function fetchMyParties(): Promise<MateParty[]> {
     const userData = await fetchCurrentUser();
     const userId = await fetchUserIdByEmail(userData.data.email);
 
-    // 2. 전체 파티 (이제 content 배열 반환)
-    const allParties = await fetchAllParties();
-
-    // 3. 신청 내역
-    const applications = await fetchUserApplications(userId);
-    const participatingPartyIds = applications.map((app) => app.partyId);
-
-    // 4. 필터링 (호스트 또는 참여자)
-    return allParties.filter((party) => {
-      const isHost = String(party.hostId) === String(userId);
-      const isParticipant = participatingPartyIds.includes(party.id);
-      return isHost || isParticipant;
+    // 2. 백엔드에서 필터링된 내 파티 목록 가져오기
+    const response = await fetch(`${API_BASE}/parties/my/${userId}`, {
+      credentials: 'include',
     });
+
+    if (!response.ok) {
+      throw new Error('내 파티 목록 조회 실패');
+    }
+
+    return response.json();
   } catch (error) {
     console.error('메이트 내역 조회 실패:', error);
     throw error;

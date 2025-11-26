@@ -1,16 +1,17 @@
 import { Link } from 'react-router-dom';
+import baseballLogo from '/src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+
 
 export default function Footer() {
   return (
     <footer className="bg-gray-900 text-white py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3 mb-6">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: '#2d5f4f' }}
-          >
-            <span className="text-white text-xl font-bold">⚾</span>
-          </div>
+          <img 
+              src={baseballLogo} 
+              alt="baseball" 
+              className="w-10 h-10"
+            />
           <div>
             <h3 className="tracking-wider" style={{ fontWeight: 900 }}>
               BEGA
@@ -24,7 +25,7 @@ export default function Footer() {
             <h4 className="mb-4">서비스</h4>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <Link to="/" className="hover:text-white">
+                <Link to="/home" className="hover:text-white">
                   홈
                 </Link>
               </li>
@@ -40,7 +41,12 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/prediction" className="hover:text-white">
-                  승부예측
+                  승리예측
+                </Link>
+              </li>
+              <li>
+                <Link to="/mate" className="hover:text-white">
+                  같이가요
                 </Link>
               </li>
               <li>
