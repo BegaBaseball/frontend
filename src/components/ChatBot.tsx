@@ -211,14 +211,17 @@ export default function ChatBot() {
                   >
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
-                        <span className="w-2 h-2 bg-green-100 rounded-full animate-bounce" />
-                        <span
-                          className="w-2 h-2 bg-green-100 rounded-full animate-bounce"
-                          style={{ animationDelay: '0.2s' }}
+                        <span 
+                          className="w-2 h-2 bg-green-100 rounded-full"
+                          style={{ animation: 'dotBounce 1.4s infinite ease-in-out' }}
                         />
                         <span
-                          className="w-2 h-2 bg-green-100 rounded-full animate-bounce"
-                          style={{ animationDelay: '0.4s' }}
+                          className="w-2 h-2 bg-green-100 rounded-full"
+                          style={{ animation: 'dotBounce 1.4s infinite ease-in-out 0.2s' }}
+                        />
+                        <span
+                          className="w-2 h-2 bg-green-100 rounded-full"
+                          style={{ animation: 'dotBounce 1.4s infinite ease-in-out 0.4s' }}
                         />
                       </div>
                       <p className="text-[15px] text-green-100">답변 생성 중...</p>
