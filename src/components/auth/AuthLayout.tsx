@@ -18,8 +18,8 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
         <div 
           className="fixed rounded-full opacity-90"
           style={{ 
-            top: '6.2%',
-            right: '9%',
+            top: '-100px',
+            right: '-80px',
             width: '600px',
             height: '400px',
             background: 'linear-gradient(135deg, #2d5f4f 0%, #3d7f5f 100%)',
