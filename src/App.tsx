@@ -1,10 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
-// import LoadingSpinner from './components/LoadingSpinner';
 import Layout from './components/Layout';
 import ChatBot from './components/ChatBot';
-
 import { LoginRequiredDialog } from './components/LoginRequiredDialog';
 import { ErrorModalProvider } from './components/contexts/ErrorModalContext';
 import GlobalErrorDialog from './components/GlobalErrorDialog';
@@ -33,29 +31,20 @@ const MyPage = lazy(() => import('./components/MyPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const RankingPredictionShare = lazy(() => import('./components/RankingPredictionShare'));
 const Landing = lazy(() => import('./components/Landing'));
-
 const NoticePage = lazy(() => import('./components/NoticePage'));
 const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
+const OAuthCallback = lazy(() => import('./components/OAuthCallback')); 
 
-// 인증이 필요한 라우트를 보호하는 컴포넌트
 function ProtectedRoute() {
   const { isLoggedIn, showLoginRequiredDialog, setShowLoginRequiredDialog } = useAuthStore();
-  // const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   
-  // 로딩 중이면 스피너 표시
-  // if (isAuthLoading) {
-  //   return <LoadingSpinner />;
-  // }
-
-  // 로그인 체크
   useEffect(() => {
     if (!isLoggedIn) {
       setShowLoginRequiredDialog(true);
     }
   }, [isLoggedIn, setShowLoginRequiredDialog]);
 
-  // 로딩 완료 후 로그인 체크
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-white">
@@ -70,15 +59,9 @@ function ProtectedRoute() {
   return <Outlet />;
 }
 
-// 관리자 전용 라우트 - Selector 패턴으로 수정
 function AdminRoute() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const isAdmin = useAuthStore((state) => state.isAdmin);
-  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
-  
-  // if (isAuthLoading) {
-  //   return <LoadingSpinner />;
-  // }
   
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
@@ -91,39 +74,32 @@ function AdminRoute() {
   return <Outlet />;
 }
 
-
 export default function App() {
   const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
   useEffect(() => {
-    // 앱 시작 시 인증 상태 확인
     fetchProfileAndAuthenticate();
   }, [fetchProfileAndAuthenticate]);
 
-  // 로그인 시 알림 권한 요청 (한 번만)
   useEffect(() => {
     if (isLoggedIn && 'Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, [isLoggedIn]);
-  // 카카오 SDK 초기화 로직 
+
   useEffect(() => {
-    // 환경 변수에서 Key를 가져옴
     const KAKAO_KEY = import.meta.env.VITE_KAKAO_API_KEY;
 
-    // window 객체에 Kakao SDK가 로드되었고, Key가 있으며, 아직 초기화되지 않았다면 초기화
     if (window.Kakao && KAKAO_KEY) {
       if (!window.Kakao.isInitialized()) {
         window.Kakao.init(KAKAO_KEY);
       }
     }
-  }, []); // 빈 배열을 넣어 컴포넌트가 마운트될 때 단 한 번만 실행되도록 함
-
+  }, []);
 
   return (
     <ErrorModalProvider>
-
       <BrowserRouter>
         {/* <Suspense fallback={<LoadingSpinner />}> */}
           <Routes>
@@ -132,6 +108,7 @@ export default function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/password/reset" element={<PasswordReset />} />
             <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
+            <Route path="/oauth/callback" element={<OAuthCallback />} />
 
             {/* Landing & ServiceInfo - Layout 없이 독립 페이지 */}
             <Route path="/" element={<Landing />} />

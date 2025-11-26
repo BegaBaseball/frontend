@@ -6,6 +6,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChatBot } from '../hooks/useChatBot';
 import { useAuthStore } from '../store/authStore';
+import { Rnd } from 'react-rnd';
+
 
 export default function ChatBot() {
   const { isLoggedIn } = useAuthStore();
@@ -19,77 +21,78 @@ export default function ChatBot() {
     isTyping,
     isProcessing,
     messagesEndRef,
+    messagesContainerRef, 
     handleSendMessage,
     handleMicClick,
+    position,
+    setPosition,
+    size,
+    setSize,
   } = useChatBot();
 
   return (
     <>
-      {/* Chat Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-8 right-8 w-20 h-20 rounded-full shadow-2xl hover:scale-110 transition-transform duration-200 z-50"
-        style={{ backgroundColor: '#2d5f4f' }}
-      >
-        <img
-          src={chatBotIcon}
-          alt="BEGA Chat Bot"
-          className="w-full h-full rounded-full p-2"
-        />
-      </button>
-
-      {/* Chat Window */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: '140px',
-          right: '32px',
-          width: '500px',
-          height: '750px',
-          backgroundColor: '#ffffff',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 9999,
-          borderRadius: '24px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          overflow: 'hidden',
-          border: '2px solid #e5e7eb',
-          opacity: isOpen ? 1 : 0,
-          transform: isOpen ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)',
-          transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
-          pointerEvents: isOpen ? 'auto' : 'none',
-          visibility: isOpen ? 'visible' : 'hidden',
-          fontSize: '15px',
-        }}
-      >
-        {/* Header */}
-        <div
-          className="p-4 flex items-center justify-between border-b"
-          style={{ backgroundColor: '#2d5f4f' }}
-        >
-          <div className="flex items-center gap-3">
-            <img
-              src={chatBotIcon}
-              alt="BEGA"
-              className="w-10 h-10 rounded-full bg-white p-1"
-            />
-            <div>
-              <h3 className="text-white" style={{ fontWeight: 900 }}>
-                야구 가이드 BEGA
-              </h3>
-              <p className="text-xs text-green-100">야구 정보 안내</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="text-white hover:bg-white/20 rounded-full p-1 transition-colors"
+        {/* Chat Window */}
+        {isOpen && (
+          <Rnd
+            position={position}
+            size={size}
+            onDragStop={(e, d) => setPosition({ x: d.x, y: d.y })}
+            onResizeStop={(e, direction, ref, delta, pos) => {
+              setSize({ width: parseInt(ref.style.width), height: parseInt(ref.style.height) });
+              setPosition(pos);
+            }}
+            minWidth={350}
+            minHeight={400}
+            maxWidth={800}
+            maxHeight={900}
+            bounds="window"
+            dragHandleClassName="chat-drag-handle"
+            style={{ zIndex: 9999 }}
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                backgroundColor: '#ffffff',
+                display: 'flex',
+                flexDirection: 'column',
+                borderRadius: '24px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                overflow: 'hidden',
+                border: '2px solid #e5e7eb',
+                fontSize: '15px',
+              }}
+            >
+              {/* Header */}
+              <div
+                className="chat-drag-handle p-4 flex items-center justify-between border-b cursor-move"
+                style={{ backgroundColor: '#2d5f4f' }}
+              >
+                <div className="flex items-center gap-3">
+                  <img
+                    src={chatBotIcon}
+                    alt="BEGA"
+                    className="w-10 h-10 rounded-full bg-white p-1"
+                  />
+                  <div>
+                    <h3 className="text-white" style={{ fontWeight: 900 }}>
+                      야구 가이드 BEGA
+                    </h3>
+                    <p className="text-xs text-green-100">야구 정보 안내</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-white hover:bg-white/20 rounded-full p-1 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
           {!isLoggedIn ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center p-6 rounded-2xl bg-white shadow-sm max-w-md">
@@ -211,14 +214,17 @@ export default function ChatBot() {
                   >
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
-                        <span className="w-2 h-2 bg-green-100 rounded-full animate-bounce" />
-                        <span
-                          className="w-2 h-2 bg-green-100 rounded-full animate-bounce"
-                          style={{ animationDelay: '0.2s' }}
+                        <span 
+                          className="w-2 h-2 bg-green-100 rounded-full"
+                          style={{ animation: 'dotBounce 1.4s infinite ease-in-out' }}
                         />
                         <span
-                          className="w-2 h-2 bg-green-100 rounded-full animate-bounce"
-                          style={{ animationDelay: '0.4s' }}
+                          className="w-2 h-2 bg-green-100 rounded-full"
+                          style={{ animation: 'dotBounce 1.4s infinite ease-in-out 0.2s' }}
+                        />
+                        <span
+                          className="w-2 h-2 bg-green-100 rounded-full"
+                          style={{ animation: 'dotBounce 1.4s infinite ease-in-out 0.4s' }}
                         />
                       </div>
                       <p className="text-[15px] text-green-100">답변 생성 중...</p>
@@ -232,47 +238,62 @@ export default function ChatBot() {
         </div>
 
         {/* Input */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t bg-white">
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              onClick={handleMicClick}
-              className={`text-white ${isRecording ? 'animate-pulse' : ''}`}
-              style={{ backgroundColor: '#2d5f4f' }}
-              aria-label="음성 입력"
-              disabled={!isLoggedIn || isProcessing}
-            >
-              <Mic className="w-4 h-4" />
-            </Button>
-            <Input
-              id="chatbot-message-input"
-              name="message"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder={
-                !isLoggedIn
-                  ? '로그인이 필요합니다...'
-                  : isProcessing
-                  ? '답변을 기다리는 중입니다...'
-                  : '메시지를 입력하세요...'
-              }
-              className="flex-1"
-              autoComplete="off"
-              aria-label="메시지 입력"
-              disabled={!isLoggedIn || isProcessing}
-            />
-            <Button
-              type="submit"
-              className="text-white"
-              style={{ backgroundColor: '#2d5f4f' }}
-              aria-label="메시지 전송"
-              disabled={!isLoggedIn || isProcessing}
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-        </form>
-      </div>
+            <form onSubmit={handleSendMessage} className="p-4 border-t bg-white">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={handleMicClick}
+                  className={`text-white ${isRecording ? 'animate-pulse' : ''}`}
+                  style={{ backgroundColor: '#2d5f4f' }}
+                  aria-label="음성 입력"
+                  disabled={!isLoggedIn || isProcessing}
+                >
+                  <Mic className="w-4 h-4" />
+                </Button>
+                <Input
+                  id="chatbot-message-input"
+                  name="message"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder={
+                    !isLoggedIn
+                      ? '로그인이 필요합니다...'
+                      : isProcessing
+                      ? '답변을 기다리는 중입니다...'
+                      : '메시지를 입력하세요...'
+                  }
+                  className="flex-1"
+                  autoComplete="off"
+                  aria-label="메시지 입력"
+                  disabled={!isLoggedIn || isProcessing}
+                />
+                <Button
+                  type="submit"
+                  className="text-white"
+                  style={{ backgroundColor: '#2d5f4f' }}
+                  aria-label="메시지 전송"
+                  disabled={!isLoggedIn || isProcessing}
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </form>
+          </div> 
+        </Rnd>  
+      )}
+
+      {/* Chat Button - 이거 추가! */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-8 right-8 w-20 h-20 rounded-full shadow-2xl hover:scale-110 transition-transform duration-200 z-50"
+        style={{ backgroundColor: '#2d5f4f' }}
+      >
+        <img
+          src={chatBotIcon}
+          alt="BEGA Chat Bot"
+          className="w-full h-full rounded-full p-2"
+        />
+      </button>
     </>
   );
 }

@@ -16,6 +16,7 @@ import { api } from '../utils/api';
 import { mapBackendPartyToFrontend } from '../utils/mate';  
 import { Party } from '../types/mate';
 
+
 export default function Mate() {
   const navigate = useNavigate();
   const { setSelectedParty, searchQuery, setSearchQuery } = useMateStore();

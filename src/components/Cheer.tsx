@@ -12,7 +12,7 @@ import { useAuthStore } from '../store/authStore';
 import { Link, useNavigate } from 'react-router-dom';
 
 type TabType = 'all' | 'notice' | 'myTeam';
-const ITEMS_PER_PAGE = 10; // 페이지당 게시글 수
+const ITEMS_PER_PAGE = 10;
 
 export default function Cheer() {
   const {
@@ -25,12 +25,15 @@ export default function Cheer() {
   const navigate = useNavigate();
   const favoriteTeam = useAuthStore((state) => state.user?.favoriteTeam ?? null);
 
-  // 페이징을 위한 로컬 상태
   const [currentPage, setCurrentPage] = useState(1);
 
-  const teamFilter = activeTab === 'myTeam' ? favoriteTeam ?? undefined : undefined;
+  const teamFilter = useMemo(() => {
+    if (activeTab !== 'myTeam') return undefined;
+    if (!favoriteTeam || favoriteTeam === '없음') return undefined;
+    return favoriteTeam;
+  }, [activeTab, favoriteTeam]);
 
-  // 메인 게시글 fetching (일반 응원글 or 공지사항)
+  // 메인 게시글 fetching
   const {
     data: cheerData,
     isLoading: isCheerLoading,
@@ -40,19 +43,19 @@ export default function Cheer() {
     queryKey: ['cheerPosts', activeTab, teamFilter ?? 'all'],
     queryFn: () => {
       if (activeTab === 'notice') {
-        return listPosts(undefined, 0, 100, 'NOTICE'); // 공지사항만
+        return listPosts(undefined, 0, 100, 'NOTICE');
       }
-      return listPosts(teamFilter, 0, 100, 'NORMAL'); // 일반 게시글만
+      return listPosts(teamFilter, 0, 100, 'NORMAL');
     },
-    enabled: !(activeTab === 'myTeam' && !favoriteTeam),
+    enabled: !(activeTab === 'myTeam' && (!favoriteTeam || favoriteTeam === '없음')),
   });
 
   // 사이드바 공지사항 fetching
   const { data: noticeData, isLoading: isNoticeLoading } = useQuery({
     queryKey: ['sidebarNoticePosts'],
     queryFn: () => listPosts(undefined, 0, 5, 'NOTICE'),
-    staleTime: 1000 * 60 * 1, // 1분으로 단축
-    enabled: activeTab !== 'notice', // 공지사항 탭이 아닐 때만
+    staleTime: 1000 * 60 * 1,
+    enabled: activeTab !== 'notice',
   });
 
   useEffect(() => {
@@ -60,10 +63,9 @@ export default function Cheer() {
       if (activeTab === 'notice') {
         setPosts(cheerData.content);
       } else {
-        // 'all' 또는 'myTeam' 탭에서는 공지사항을 제외하고 필터링
         setPosts(cheerData.content.filter(p => p.postType !== 'NOTICE'));
       }
-    } else if (activeTab === 'myTeam' && !favoriteTeam) {
+    } else if (activeTab === 'myTeam' && (!favoriteTeam || favoriteTeam === '없음')) { // ✅ 수정 3
       setPosts([]);
     }
     setCurrentPage(1);
@@ -71,12 +73,11 @@ export default function Cheer() {
 
   const isLoading = isCheerLoading;
 
-  // 1. 탭/팀 필터링된 전체 게시글
   const displayedPosts = useMemo(() => {
     if (activeTab === 'notice') {
       return posts;
     }
-    if (activeTab === 'all' || !favoriteTeam) {
+    if (activeTab === 'all' || !favoriteTeam || favoriteTeam === '없음') {
       return posts.filter(p => p.postType !== 'NOTICE');
     }
     return posts.filter((post) => {
@@ -87,20 +88,17 @@ export default function Cheer() {
     });
   }, [activeTab, posts, favoriteTeam]);
 
-  // 2. 페이징 처리된 게시글 (현재 페이지에 보여줄 것만 자름)
   const paginatedPosts = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     return displayedPosts.slice(startIndex, endIndex);
   }, [displayedPosts, currentPage]);
 
-  // 총 페이지 수 계산
   const totalPages = Math.ceil(displayedPosts.length / ITEMS_PER_PAGE);
 
-  // 3. HOT 게시글 (이제 cheerData 기반으로)
   const hotPosts = useMemo(() => {
     const sourcePosts = cheerData?.content ?? [];
-    if (activeTab === 'all' || !favoriteTeam) {
+    if (activeTab === 'all' || !favoriteTeam || favoriteTeam === '없음') {
       return sourcePosts.filter((post) => post.isHot);
     }
     return sourcePosts.filter((post) => {
@@ -116,12 +114,12 @@ export default function Cheer() {
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
-    setCurrentPage(1); // 탭 변경 시 1페이지로 이동
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // 페이지 변경 시 상단으로 스크롤
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -179,7 +177,6 @@ export default function Cheer() {
         </div>
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-          {/* 메인 게시글 목록 영역 */}
           <div className="lg:col-span-2">
             
             {isCheerError && (
@@ -188,11 +185,11 @@ export default function Cheer() {
               </div>
             )}
 
-            {activeTab === 'myTeam' && !favoriteTeam && (
+            {activeTab === 'myTeam' && (!favoriteTeam || favoriteTeam === '없음') && (
               <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
                 <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <div>
-                  응원구단을 설정하지 않으셨습니다. 마이팀 게시물은 <span className="font-semibold">내 정보 &gt; 응원구단</span>에서 팀을 선택한 후 확인할 수 있어요.
+                  응원구단을 설정하지 않으셨습니다. 마이팀 게시물은 <Link to="/mypage" className="font-semibold underline hover:text-amber-900">마이페이지</Link>에서 팀을 선택한 후 확인할 수 있어요.
                 </div>
               </div>
             )}
@@ -214,33 +211,23 @@ export default function Cheer() {
               </div>
             )}
 
-            {/* 게시글 리스트 */}
             <div className="space-y-3">
               {paginatedPosts.map((post) => (
                 <div
                   key={post.id}
                   onClick={() => handlePostClick(post.id)}
-                  // [수정 1] px-5 -> px-8 (32px) : 좌우 여백을 대폭 늘려 확실하게 안쪽으로 배치
-                  // [수정 2] py-4 -> py-5 : 상하 여백도 살짝 늘려 답답함 해소
                   className="cursor-pointer rounded-xl border bg-white px-8 py-5 transition-shadow hover:shadow-md"
                 >
-                  {/* 전체 컨테이너 */}
-                  {/* [수정 3] gap-4 -> gap-8 (32px) : 로고와 제목 사이를 시원하게 띄움 */}
                   <div className="flex items-center gap-8">
                     
-                    {/* [좌측] 팀 로고 (항상 고정) */}
                     <div className="flex-shrink-0">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
                         <TeamLogo team={post.team} size={36} />
                       </div>
                     </div>
 
-                    {/* [중앙 & 우측] 콘텐츠 영역 */}
-                    {/* 강제 가로 배치 (flex-row) 유지 */}
                     <div className="flex-1 min-w-0 flex flex-row items-center justify-between">
                       
-                      {/* [중앙] 제목 영역 (남는 공간 모두 차지 flex-1) */}
-                      {/* [수정 4] pr-6 -> pr-8 : 제목과 우측 정보 사이 간격도 확보 */}
                       <div className="flex-1 min-w-0 pr-8">
                         <div className="flex items-center gap-2">
                           {post.isHot && (
@@ -255,16 +242,12 @@ export default function Cheer() {
                         </div>
                       </div>
 
-                      {/* [우측] 정보 영역 */}
-                      {/* 강제 우측 정렬 유지 */}
                       <div className="flex flex-col items-end gap-1 flex-shrink-0 text-xs text-gray-500">
                         
-                        {/* 1번째 줄: 닉네임 */}
                         <span className="font-medium text-gray-700 text-sm text-right max-w-[120px] truncate">
                           {post.author}
                         </span>
 
-                        {/* 2번째 줄: 시간 | 댓글 | 좋아요 */}
                         <div className="flex items-center gap-3">
                           <span>{post.timeAgo}</span>
                           <span className="text-gray-300">|</span>
@@ -293,7 +276,6 @@ export default function Cheer() {
               )}
             </div>
 
-            {/* --- Pagination Controls --- */}
             {!isLoading && !isCheerError && displayedPosts.length > 0 && (
               <div className="mt-8 flex items-center justify-center gap-2">
                 <Button
@@ -353,10 +335,8 @@ export default function Cheer() {
             )}
           </div>
           
-          {/* 사이드바 영역 */}
           <aside className="space-y-6">
             
-            {/* HOT 게시물 */}
             <div 
               className="rounded-2xl p-4 border-2 bg-gradient-to-br from-red-50 to-orange-50 border-red-200"
             >
@@ -396,7 +376,6 @@ export default function Cheer() {
               </div>
             </div>
 
-            {/* 공지사항 영역 - 공지사항 탭이 아닐 때만 표시 */}
             {activeTab !== 'notice' && (
               <div 
                 className="rounded-2xl p-4 border-2 bg-gradient-to-br from-blue-50 to-sky-50 border-blue-200 sticky top-24"
