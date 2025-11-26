@@ -18,8 +18,8 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
         <div 
           className="fixed rounded-full opacity-90"
           style={{ 
-            top: '-80px',
-            right: '-160px',
+            top: '6.2%',
+            right: '9%',
             width: '600px',
             height: '400px',
             background: 'linear-gradient(135deg, #2d5f4f 0%, #3d7f5f 100%)',
@@ -94,7 +94,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
             <div className="p-12 bg-white relative">
               {showHomeButton && (
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/home')}
                   className="absolute flex items-center gap-2 bg-white rounded-full px-3 py-2 transition-all hover:scale-105 z-50"
                   style={{ 
                     border: '2px solid #2d5f4f',
