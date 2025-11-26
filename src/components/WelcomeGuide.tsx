@@ -66,58 +66,82 @@ export default function WelcomeGuide() {
     {
       title: 'BEGA에 오신 것을 환영합니다!',
       subtitle: 'BASEBALL GUIDE',
-      description: 'KBO 야구를 더욱 즐겁게 즐기는 방법, BEGA와 함께하세요',
+      description: 'KBO 야구 팬들을 위한 올인원 플랫폼, BEGA와 함께 모든 순간을 특별하게',
       icon: <img src={baseballLogo} alt="BEGA" className="w-32 h-32" />,
       color: '#2d5f4f',
       isIntro: true
     },
     {
-      title: '홈',
-      subtitle: '실시간 KBO 정보',
-      description: '오늘의 경기 일정, 실시간 스코어, 팀 순위를 한눈에 확인하세요. 시즌과 비시즌에 맞춘 다양한 정보를 제공합니다.',
+      title: 'KBO 경기일정 및 홈',
+      subtitle: '실시간 경기 정보',
+      description: '실시간 경기 정보, 스토브리그 소식을 확인하세요',
       icon: <Home className="w-16 h-16" />,
       color: '#2d5f4f',
-      features: ['실시간 경기 정보', 'KBO 팀 순위', '스토브리그 소식']
+      features: [
+        '홈 화면에서 오늘의 경기 일정 확인',
+        'KBO LIVE로 실시간 경기 현황 체크',
+        '팀별 랭킹과 티켓 예매 정보 한눈에'
+      ]
     },
     {
-      title: '응원',
+      title: '응원게시판',
       subtitle: '팬들과 함께하는 공간',
-      description: '우리 팀을 응원하고, 다른 팬들과 소통하며 야구의 즐거움을 나누세요. 팀별 게시판에서 열정을 공유하세요!',
+      description: '마이팀 설정으로 필터링하여 우리 팀 소식만 모아보세요',
       icon: <Heart className="w-16 h-16" />,
       color: '#ef4444',
-      features: ['팀별 응원 게시판', '게시글 작성 & 수정', '좋아요 & 댓글']
+      features: [
+        '마이팀 설정 후 우리 팀 게시글만 필터링',
+        '응원 글 작성 및 다른 팬들과 소통',
+        '경기 후기와 응원 메시지 공유'
+      ]
     },
     {
-      title: '구장',
+      title: '구장 가이드',
       subtitle: '야구장 완전 정복',
-      description: '전국 10개 구장의 좌석 정보, 맛집, 주차 정보까지! 직관 준비의 모든 것을 알려드립니다.',
+      description: '야구장 내부 맛집, 배달존 및 근처 편의점, 주차장 정보 제공',
       icon: <MapPin className="w-16 h-16" />,
       color: '#f59e0b',
-      features: ['좌석별 시야 정보', '구장 주변 맛집', '교통 & 주차 안내']
+      features: [
+        '구장 선택 후 카테고리별 정보 확인',
+        '맛집, 배달존, 편의점, 주차장 정보 제공',
+        '구장 방문 전 필수 정보 미리 체크'
+      ]
     },
     {
-      title: '예측',
+      title: '승리예측',
       subtitle: '나만의 예측으로 즐기기',
-      description: '오늘의 경기 결과를 예측하고, 시즌 최종 순위도 예상해보세요. 예측 통계와 랭킹으로 실력을 확인하세요!',
+      description: '순위예측과 승부예측으로 경기를 더 재미있게 즐기세요',
       icon: <TrendingUp className="w-16 h-16" />,
       color: '#8b5cf6',
-      features: ['경기 결과 예측', '시즌 순위 예측', '예측 통계 & 랭킹']
+      features: [
+        '스토브리그 시즌: 순위 예측 활성화',
+        '시즌 중: 승부 예측 활성화',
+        '친구들과 예측 결과 저장하고 공유하기'
+      ]
     },
     {
-      title: '메이트',
+      title: '같이가요',
       subtitle: '함께 야구 보러 가요',
-      description: '직관 메이트를 찾고 모임을 만들어보세요. 야구는 혼자보다 함께 볼 때 더 재미있으니까요!',
+      description: '직관메이트를 구하고 함께 야구를 즐기세요',
       icon: <Users className="w-16 h-16" />,
       color: '#ec4899',
-      features: ['직관 메이트 모집', '모임 관리', '실시간 채팅']
+      features: [
+        '내가 호스트인 파티: 신청 관리 → 승인/거절 → 채팅방 소통',
+        '참여 신청한 파티: 승인 대기 → 승인 후 채팅 가능',
+        '경기 당일 체크인으로 보증금 환불 받기'
+      ]
     },
     {
-      title: '마이페이지',
+      title: '다이어리',
       subtitle: '나의 야구 라이프',
-      description: '프로필 관리, 직관 다이어리 작성, 응원 통계를 확인하세요. 캘린더로 내 직관 기록을 한눈에 볼 수 있어요.',
+      description: '개인화된 페이지에서 나만의 야구 다이어리를 작성하세요',
       icon: <BookOpen className="w-16 h-16" />,
       color: '#06b6d4',
-      features: ['직관 다이어리 기록', '캘린더 뷰', '나의 통계']
+      features: [
+        '직관 기록과 경기 후기 작성',
+        '사진과 메모로 추억 저장',
+        '나만의 야구 일정 관리'
+      ]
     },
     {
       title: 'AI 챗봇',
@@ -125,7 +149,11 @@ export default function WelcomeGuide() {
       description: 'KBO 규칙, 선수 정보, 팀 전략까지! 헤드셋을 쓴 야구공 캐릭터가 친절하게 답변해드립니다.',
       icon: <MessageCircle className="w-16 h-16" />,
       color: '#10b981',
-      features: ['24시간 답변', '야구 규칙 설명', '실시간 정보 제공']
+      features: [
+        '24시간 답변 가능',
+        '야구 규칙과 용어 설명',
+        'KBO 선수 및 팀 정보 제공'
+      ]
     }
   ];
 

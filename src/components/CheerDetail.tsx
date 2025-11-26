@@ -68,6 +68,7 @@ export default function CheerDetail() {
     setPostCommentCount,
   } = useCheerStore();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   const user = useAuthStore((state) => state.user);
   const userFavoriteTeam = user?.favoriteTeam ?? null;
 
@@ -211,7 +212,15 @@ export default function CheerDetail() {
   const canNextCommentPage = commentPage + 1 < totalCommentPages;
   
   const sameTeamAsUser = useMemo(() => {
-    if (!post || !userFavoriteTeam) {
+    if (!post) {
+      return false;
+    }
+    // 인증 정보가 로딩 중이면 아직 판단하지 않음
+    if (isAuthLoading) {
+      return false;
+    }
+    // 로딩이 완료되었는데 favoriteTeam이 없으면 false
+    if (!userFavoriteTeam) {
       return false;
     }
     if (post.teamId) {
@@ -221,9 +230,9 @@ export default function CheerDetail() {
       return post.teamShortName === userFavoriteTeam;
     }
     return post.team === userFavoriteTeam;
-  }, [post, userFavoriteTeam]);
+  }, [post, userFavoriteTeam, isAuthLoading]);
 
-  const canInteract = Boolean(userFavoriteTeam && sameTeamAsUser);
+  const canInteract = Boolean(!isAuthLoading && userFavoriteTeam && sameTeamAsUser);
 
   const canLike = isLoggedIn;
 

@@ -24,17 +24,14 @@ export function useNotificationWebSocket({ userId, enabled = true }: UseNotifica
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
-      debug: (str) => {
-        console.log('Notification WebSocket:', str);
-      },
       onConnect: () => {
-        console.log('알림 WebSocket 연결됨');
+        
         
         // 알림 구독
         client.subscribe(`/topic/notifications/${userId}`, (message: IMessage) => {
           try {
             const notification: NotificationData = JSON.parse(message.body);
-            console.log('새 알림 수신:', notification);
+            
             
             // Zustand 스토어에 추가
             addNotification(notification);
@@ -53,7 +50,7 @@ export function useNotificationWebSocket({ userId, enabled = true }: UseNotifica
         });
       },
       onDisconnect: () => {
-        console.log('알림 WebSocket 연결 해제됨');
+        
       },
       onStompError: (frame) => {
         console.error('STOMP 오류:', frame);
@@ -66,7 +63,7 @@ export function useNotificationWebSocket({ userId, enabled = true }: UseNotifica
     return () => {
       if (clientRef.current) {
         clientRef.current.deactivate();
-        console.log('알림 WebSocket 연결 종료');
+        
       }
     };
   }, [userId, enabled, addNotification, incrementUnreadCount]);
