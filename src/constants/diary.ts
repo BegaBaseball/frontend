@@ -1,8 +1,8 @@
-import worstEmoji from 'figma:asset/7642c88659d68a93b809e39f4c56d9c284123115.png';
-import fullEmoji from 'figma:asset/691ca553a888de6b3262d9c3c63d03f37db27b4a.png';
-import bestEmoji from 'figma:asset/19b0bb1cde805dc5d6e6af053a4bd1622a1a4fad.png';
-import angryEmoji from 'figma:asset/01cb53a9197c5457e6d7dd7460bdf1cd27b5440b.png';
-import happyEmoji from 'figma:asset/e2bd5a0f58df48e435d03f049811638d849de606.png';
+import worstEmoji from '../assets/7642c88659d68a93b809e39f4c56d9c284123115.png';
+import fullEmoji from '../assets/691ca553a888de6b3262d9c3c63d03f37db27b4a.png';
+import bestEmoji from '../assets/19b0bb1cde805dc5d6e6af053a4bd1622a1a4fad.png';
+import angryEmoji from '../assets/01cb53a9197c5457e6d7dd7460bdf1cd27b5440b.png';
+import happyEmoji from '../assets/e2bd5a0f58df48e435d03f049811638d849de606.png';
 
 export const EMOJI_STATS = [
   { name: '최악', emoji: worstEmoji },
