@@ -113,8 +113,8 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
  * 소셜 로그인 URL 생성
  */
 export const getSocialLoginUrl = (provider: 'kakao' | 'google'): string => {
-  const baseUrl = API_BASE_URL.replace('/api', '');
-  return `${baseUrl}/oauth2/authorization/${provider}`;
+  // const baseUrl = API_BASE_URL.replace('/api', '');
+  return `${API_BASE_URL}/oauth2/authorization/${provider}`;
 }
 
 /**
