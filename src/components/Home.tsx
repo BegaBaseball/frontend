@@ -72,7 +72,7 @@ export default function Home({ onNavigate }: HomeProps) {
      */
     const loadLeagueStartDates = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/kbo/league-start-dates`);
+            const response = await fetch(`${API_BASE_URL}/kbo/league-start-dates`);
 
             if (!response.ok) {
                 console.error(`[리그 시작 날짜] API 요청 실패: ${response.status}`);
