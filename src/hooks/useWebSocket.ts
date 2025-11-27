@@ -17,7 +17,7 @@ interface UseWebSocketProps {
   enabled?: boolean;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'; 
+const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080'; 
 
 export function useWebSocket({ partyId, onMessageReceived, enabled = true }: UseWebSocketProps) {
   const clientRef = useRef<Client | null>(null);
