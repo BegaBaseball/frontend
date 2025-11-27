@@ -104,7 +104,7 @@ export async function listPosts(
   }
 
   const data = await request<PageResponse<PostSummaryRes>>(
-    `${API_BASE_URL}/posts?${params.toString()}`,
+    `${API_BASE_URL}/cheer/posts?${params.toString()}`,
   );
 
   return {
