@@ -153,7 +153,7 @@ export default function Home({ onNavigate }: HomeProps) {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/kbo/schedule?date=${apiDate}`);
+            const response = await fetch(`${API_BASE_URL}/kbo/schedule?date=${apiDate}`);
 
             if (!response.ok) {
                 console.error(`[경기] API 요청 실패: ${response.status} ${response.statusText}`);
@@ -175,7 +175,7 @@ export default function Home({ onNavigate }: HomeProps) {
     const loadRankingsData = async () => {
         setIsRankingsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/${CURRENT_SEASON_YEAR}`);
+            const response = await fetch(`${API_BASE_URL}/kbo/rankings/${CURRENT_SEASON_YEAR}`);
 
             if (!response.ok) {
                 console.error(`[순위] API 요청 실패: ${response.status} ${response.statusText}`);
