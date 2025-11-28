@@ -4,7 +4,7 @@ import { Game, Ranking, LeagueStartDates } from '../types/home';
 import { DEFAULT_LEAGUE_START_DATES } from '../constants/home';
 import { formatDateForAPI } from '../utils/home';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080';
 
 /**
  * 특정 날짜의 경기 데이터 조회

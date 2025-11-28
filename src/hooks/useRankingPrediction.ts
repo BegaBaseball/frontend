@@ -22,6 +22,7 @@ export const useRankingPrediction = () => {
   const navigate = useNavigate();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
+  const userId = useAuthStore((state) => state.user?.id);
 
   // Local state
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -168,6 +169,7 @@ export const useRankingPrediction = () => {
     }
   };
 
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   // 카카오톡 공유
   const handleShare = () => {
     if (!isKakaoSDKReady()) {
@@ -180,26 +182,35 @@ export const useRankingPrediction = () => {
       return;
     }
 
+    if (!userId) {
+      toast.error('사용자 정보를 불러올 수 없습니다.');
+      return;
+    }
+
     try {
       const rankingText = generateRankingText(rankings);
+
+      const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      const shareUrl = `${baseUrl}/predictions/ranking/share/${userId}/${currentSeason}`;
+
 
       window.Kakao.Share.sendDefault({
         objectType: 'feed',
         content: {
           title: `${currentSeason} KBO 시즌 순위 예측`,
           description: rankingText,
-          imageUrl: 'https://mud-kage.kakao.com/dn/NTmhS/btqfEUdFAUf/FjKzkZsnoeE4o19klTOVI1/openlink_640x640s.jpg',
+          imageUrl: `${supabaseUrl}/storage/v1/object/public/public-image/bega.png`,
           link: {
-            mobileWebUrl: window.location.href,
-            webUrl: window.location.href,
+            mobileWebUrl: shareUrl,
+            webUrl: shareUrl,
           },
         },
         buttons: [
           {
             title: '나도 예측하기',
             link: {
-              mobileWebUrl: window.location.origin + '/prediction',
-              webUrl: window.location.origin + '/prediction',
+              mobileWebUrl: `${baseUrl}/prediction`,
+              webUrl: `${baseUrl}/prediction`,
             },
           },
         ],
@@ -225,6 +236,7 @@ export const useRankingPrediction = () => {
     isLoading,
     isAuthLoading,
     isLoggedIn,
+    userId,
     
     // Store state
     rankings,

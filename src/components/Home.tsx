@@ -54,6 +54,8 @@ interface HomeProps {
     onNavigate?: (page: string) => void;
 }
 
+const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080'; 
+
 export default function Home({ onNavigate }: HomeProps) {
     const navigate = useNavigate();
     const [selectedDate, setSelectedDate] = useState(new Date(2025, 9, 26));
@@ -64,8 +66,6 @@ export default function Home({ onNavigate }: HomeProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [isRankingsLoading, setIsRankingsLoading] = useState(false);
     const [activeLeagueTab, setActiveLeagueTab] = useState('koreanseries');
-
-    const API_BASE_URL = "http://localhost:8080"; 
 
     /**
       리그 시작 날짜를 DB에서 불러오기 

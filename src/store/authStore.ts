@@ -7,6 +7,7 @@ const MYPAGE_API_URL = `${API_BASE_URL}/auth/mypage`;
 const AUTH_COOKIE_NAME = 'Authorization';
 
 interface User {
+  id: number;
   email: string;
   name?: string; 
   favoriteTeam?: string;

@@ -8,7 +8,7 @@ interface UseNotificationWebSocketProps {
   userId: number | null;
   enabled?: boolean;
 }
-
+const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080';
 export function useNotificationWebSocket({ userId, enabled = true }: UseNotificationWebSocketProps) {
   const clientRef = useRef<Client | null>(null);
   const { addNotification, incrementUnreadCount } = useNotificationStore();
@@ -18,7 +18,7 @@ export function useNotificationWebSocket({ userId, enabled = true }: UseNotifica
       return;
     }
 
-    const socket = new SockJS('http://localhost:8080/ws');
+    const socket = new SockJS(`${API_BASE_URL}/ws`);
     const client = new Client({
       webSocketFactory: () => socket as any,
       reconnectDelay: 5000,
