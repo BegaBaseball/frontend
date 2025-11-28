@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
  * 현재 예측 가능한 시즌 조회
  */
 export const fetchCurrentSeason = async (): Promise<SeasonResponse> => {
-  const response = await fetch(`${API_BASE_URL}/api/predictions/ranking/current-season`, {
+  const response = await fetch(`${API_BASE_URL}/predictions/ranking/current-season`, {
     credentials: 'include'
   });
 
@@ -26,7 +26,7 @@ export const fetchCurrentSeason = async (): Promise<SeasonResponse> => {
  */
 export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPredictionResponse> => {
   const response = await fetch(
-    `${API_BASE_URL}/api/predictions/ranking?seasonYear=${seasonYear}`, 
+    `${API_BASE_URL}/predictions/ranking?seasonYear=${seasonYear}`, 
     { credentials: 'include' }
   );
 
@@ -44,7 +44,7 @@ export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPre
  * 순위 예측 저장
  */
 export const saveRankingPrediction = async (data: SaveRankingRequest): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/api/predictions/ranking`, {
+  const response = await fetch(`${API_BASE_URL}/predictions/ranking`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -68,7 +68,7 @@ export const fetchSharedPrediction = async (
   seasonYear: string
 ): Promise<SavedPredictionResponse> => {
   const response = await fetch(
-    `${API_BASE_URL}/api/predictions/ranking/share/${userId}/${seasonYear}`
+    `${API_BASE_URL}/predictions/ranking/share/${userId}/${seasonYear}`
   );
 
   if (!response.ok) {
