@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { fetchSharedPrediction } from '../api/ranking';
 import { restoreTeamsFromIds } from '../utils/ranking';
-import { usePredictionStore } from '../store/predictionStore';
+import { Team, usePredictionStore } from '../store/predictionStore';
 
 export const useRankingPredictionShare = () => {
   const { userId, seasonYear } = useParams();
