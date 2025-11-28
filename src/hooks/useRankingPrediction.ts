@@ -190,7 +190,7 @@ export const useRankingPrediction = () => {
     try {
       const rankingText = generateRankingText(rankings);
 
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+      const baseUrl = window.location.origin;
       const shareUrl = `${baseUrl}/predictions/ranking/share/${userId}/${currentSeason}`;
 
 
