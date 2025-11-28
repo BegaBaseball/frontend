@@ -79,7 +79,7 @@ export async function uploadPostImages(postId: number, files: File[]): Promise<v
     formData.append('files', file);
   });
 
-  const response = await fetch(`${API_BASE}/cheer/posts/${postId}/images`, {
+  const response = await fetch(`${API_BASE}/posts/${postId}/images`, {
     method: 'POST',
     body: formData,
     credentials: 'include',
@@ -93,7 +93,7 @@ export async function uploadPostImages(postId: number, files: File[]): Promise<v
 
 // 게시글의 이미지 목록 조회
 export async function listPostImages(postId: number): Promise<PostImageInfo[]> {
-  const response = await fetch(`${API_BASE}/cheer/posts/${postId}/images`, {
+  const response = await fetch(`${API_BASE}/posts/${postId}/images`, {
     method: 'GET',
     credentials: 'include',
   });
