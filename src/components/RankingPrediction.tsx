@@ -273,7 +273,10 @@ export default function RankingPrediction() {
                 ) : alreadySaved ? (
                   <div className="space-y-2">
                     <Button
-                      onClick={handleShare}
+                      onClick={() => {
+                        console.log('버튼 클릭됨!');
+                        handleShare();
+                      }}
                       variant="outline"
                       className="w-full border-2"
                       style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
@@ -291,7 +294,10 @@ export default function RankingPrediction() {
                       저장하기
                     </Button>
                     <Button
-                      onClick={handleShare}
+                      onClick={() => {
+                        console.log('버튼 클릭됨!');
+                        handleShare();
+                      }}
                       variant="outline"
                       className="w-full border-2"
                       style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
