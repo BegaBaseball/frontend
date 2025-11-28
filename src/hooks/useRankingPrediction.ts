@@ -22,7 +22,7 @@ export const useRankingPrediction = () => {
   const navigate = useNavigate();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
-  const userId = useAuthStore((state) => state.user?.id);
+  const userEmail = useAuthStore((state) => state.user?.email);
 
   // Local state
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -182,7 +182,7 @@ export const useRankingPrediction = () => {
       return;
     }
 
-    if (!userId) {
+    if (!userEmail) {
       toast.error('사용자 정보를 불러올 수 없습니다.');
       return;
     }
@@ -191,7 +191,7 @@ export const useRankingPrediction = () => {
       const rankingText = generateRankingText(rankings);
 
       const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-      const shareUrl = `${baseUrl}/predictions/ranking/share/${userId}/${currentSeason}`;
+      const shareUrl = `${baseUrl}/predictions/ranking/share/${encodeURIComponent(userEmail)}/${currentSeason}`;
 
 
       window.Kakao.Share.sendDefault({
@@ -236,7 +236,7 @@ export const useRankingPrediction = () => {
     isLoading,
     isAuthLoading,
     isLoggedIn,
-    userId,
+    userEmail,
     
     // Store state
     rankings,
