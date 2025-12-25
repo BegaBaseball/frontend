@@ -3,6 +3,7 @@ import { Badge } from './ui/badge';
 import { Trophy, TrendingUp, Award, Clock } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../hooks/useTheme';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
@@ -14,6 +15,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
   const diffTime = openingDay.getTime() - selectedDate.getTime();
   const daysUntilOpening = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   const stoveLeagueNews = [
     {
@@ -118,7 +120,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
   ];
 
   return (
-    <div className="space-y-12" style ={{ margin: "30px" }}>
+    <div className="space-y-12 min-h-screen bg-white dark:bg-gray-900 transition-colors" style={{ padding: "30px" }}>
       <button
           onClick={() => navigate('/home')}
           className="text-sm mb-4 flex items-center gap-2 group transition-all border-2 px-3 py-1 rounded-[40px] hover:bg-gray-100"
@@ -152,7 +154,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       </section>
 
       {/* Countdown Card */}
-      <Card className="overflow-hidden border-0 shadow-xl">
+      <Card className="overflow-hidden shadow-xl bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
         <div className="text-center py-16 px-6 relative overflow-hidden" style={{ backgroundColor: '#2d5f4f' }}>
           <div className="absolute inset-0">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full"></div>
@@ -250,12 +252,15 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {postSeasonResults.map((result, index) => (
-            <Card 
-              key={index} 
-              className="p-6 text-center hover:shadow-xl transition-all border-2 hover:-translate-y-1"
-              style={{ 
-                borderColor: index === 0 ? '#2d5f4f' : '#e5e7eb',
-                backgroundColor: index === 0 ? '#f0f9f6' : 'white'
+            <Card
+              key={index}
+              className={`p-6 text-center hover:shadow-xl transition-all border-2 hover:-translate-y-1 ${
+                index === 0
+                  ? 'bg-green-50 dark:bg-green-900/20'
+                  : 'bg-white dark:bg-gray-800'
+              }`}
+              style={{
+                borderColor: index === 0 ? '#2d5f4f' : (theme === 'dark' ? '#374151' : '#e5e7eb')
               }}
             >
               <div className="mb-4">
@@ -282,7 +287,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
           <h3 style={{ fontWeight: 900, color: '#2d5f4f' }}>2025 정규시즌 최종 순위</h3>
         </div>
 
-        <Card className="overflow-hidden shadow-lg border-0">
+        <Card className="overflow-hidden shadow-lg bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -303,10 +308,13 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                   ? '-' 
                   : (((Number(finalRankings[0].wins) - Number(finalRankings[0].losses)) - (Number(team.wins) - Number(team.losses))) / 2).toFixed(1);
                   return (
-                    <tr 
-                      key={team.rank} 
-                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                      style={{ backgroundColor: team.rank <= 3 ? '#f9fafb' : 'white' }}
+                    <tr
+                      key={team.rank}
+                      className={`border-b transition-colors ${
+                        team.rank <= 3
+                          ? 'bg-gray-50 dark:bg-gray-800/50'
+                          : 'bg-white dark:bg-gray-900'
+                      } hover:bg-gray-100 dark:hover:bg-gray-700 dark:border-gray-700`}
                     >
                       <td className="py-5 px-6">
                         <div 
@@ -322,17 +330,17 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                       <td className="py-5 px-6">
                         <div className="flex items-center gap-3">
                           <TeamLogo team={team.logo} size={32} />
-                          <span style={{ fontWeight: team.rank <= 5 ? 700 : 400 }}>
+                          <span className="dark:text-white" style={{ fontWeight: team.rank <= 5 ? 700 : 400 }}>
                             {team.team}
                           </span>
                         </div>
                       </td>
-                      <td className="py-5 px-6 text-center text-gray-600">{team.games}</td>
-                      <td className="py-5 px-6 text-center" style={{ color: '#2d5f4f', fontWeight: 700 }}>{team.wins}</td>
-                      <td className="py-5 px-6 text-center text-gray-600">{team.losses}</td>
-                      <td className="py-5 px-6 text-center text-gray-600">{team.draws}</td>
-                      <td className="py-5 px-6 text-center text-lg" style={{ color: '#2d5f4f', fontWeight: 900 }}>{team.winRate}</td>
-                      <td className="py-5 px-6 text-center text-gray-600">{gameDiff}</td>
+                      <td className="py-5 px-6 text-center text-gray-600 dark:text-gray-400">{team.games}</td>
+                      <td className="py-5 px-6 text-center font-bold text-[#2d5f4f] dark:text-green-400">{team.wins}</td>
+                      <td className="py-5 px-6 text-center text-gray-600 dark:text-gray-400">{team.losses}</td>
+                      <td className="py-5 px-6 text-center text-gray-600 dark:text-gray-400">{team.draws}</td>
+                      <td className="py-5 px-6 text-center text-lg font-black text-[#2d5f4f] dark:text-green-400">{team.winRate}</td>
+                      <td className="py-5 px-6 text-center text-gray-600 dark:text-gray-400">{gameDiff}</td>
                     </tr>
                   );
                 })}

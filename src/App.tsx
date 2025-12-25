@@ -47,7 +47,7 @@ function ProtectedRoute() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white dark:bg-gray-900">
         <LoginRequiredDialog
           open={showLoginRequiredDialog}
           onOpenChange={setShowLoginRequiredDialog}
@@ -100,7 +100,7 @@ export default function App() {
 
   return (
     <ErrorModalProvider>
-      <BrowserRouter>
+        <BrowserRouter>
         {/* <Suspense fallback={<LoadingSpinner />}> */}
           <Routes>
             {/* 공개 라우트 - 로그인 필요 없음 */}

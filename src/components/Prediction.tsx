@@ -74,7 +74,7 @@ export default function Prediction() {
   // 로딩 중
   if (isAuthLoading || loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
           <p style={{ color: '#2d5f4f' }}>
@@ -86,15 +86,15 @@ export default function Prediction() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       {/* 컨펌 다이얼로그 */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="dark:bg-gray-800 dark:border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle style={{ color: '#2d5f4f' }}>
               {confirmDialogData.title}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-base whitespace-pre-line">
+            <AlertDialogDescription className="text-base whitespace-pre-line dark:text-gray-300">
               {confirmDialogData.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -147,12 +147,12 @@ export default function Prediction() {
         {activeTab === 'match' ? (
           <>
             {/* Date Navigation */}
-            <Card className="p-6 mb-6" style={{ backgroundColor: '#f0f9f6' }}>
+            <Card className="p-6 mb-6 bg-[#f0f9f6] dark:bg-[#1f4438]/20 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <button
                   onClick={goToPreviousDate}
                   disabled={currentDateIndex === 0}
-                  className="p-2 hover:bg-white/50 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-2 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   style={{ color: '#2d5f4f' }}
                 >
                   <ChevronLeft size={28} />
@@ -162,9 +162,9 @@ export default function Prediction() {
                   <p className="mb-2" style={{ color: '#2d5f4f', fontWeight: 700 }}>
                     {formatDate(currentDate)}
                   </p>
-                  <p className="text-gray-600">
-                    {isPastGame 
-                      ? '과거 경기 결과와 투표 결과를 확인해보세요!' 
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {isPastGame
+                      ? '과거 경기 결과와 투표 결과를 확인해보세요!'
                       : isFutureGame
                       ? '여러분의 예측에 투표해주세요!'
                       : isToday && currentDateGames.length === 0
@@ -176,7 +176,7 @@ export default function Prediction() {
                 <button
                   onClick={goToNextDate}
                   disabled={currentDateIndex === allDatesData.length - 1}
-                  className="p-2 hover:bg-white/50 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-2 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   style={{ color: '#2d5f4f' }}
                 >
                   <ChevronRight size={28} />
@@ -193,9 +193,9 @@ export default function Prediction() {
                       key={index}
                       onClick={() => setSelectedGame(index)}
                       className={`rounded-lg px-6 py-2 ${
-                        selectedGame === index 
-                          ? 'text-white' 
-                          : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+                        selectedGame === index
+                          ? 'text-white'
+                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                       style={selectedGame === index ? { backgroundColor: '#2d5f4f' } : {}}
                     >
@@ -206,13 +206,13 @@ export default function Prediction() {
 
                 {/* Game Card */}
                 {currentGame && (
-                  <Card className="p-8 mb-6">
+                  <Card className="p-8 mb-6 dark:bg-gray-800 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-8">
                       <div className="flex flex-col items-center">
                         <div className="mb-3">
                           <TeamLogo team={currentGame.awayTeam} size={96} />
                         </div>
-                        <p style={{ fontWeight: 700 }}>{getFullTeamName(currentGame.awayTeam)}</p>
+                        <p className="dark:text-white" style={{ fontWeight: 700 }}>{getFullTeamName(currentGame.awayTeam)}</p>
                       </div>
 
                       {isPastGame ? (
@@ -347,8 +347,7 @@ export default function Prediction() {
                 )}
               </>
             ) : (
-              <Card className="p-16 text-center" style={{ 
-                backgroundColor: '#f0f9f6',
+              <Card className="p-16 text-center bg-[#f0f9f6] dark:bg-[#1f4438]/20 dark:border-gray-700" style={{
                 height: '500px',
                 display: 'flex',
                 alignItems: 'center',
@@ -362,11 +361,11 @@ export default function Prediction() {
           </>
         ) : (
           <>
-            <Card className="p-6 mb-6" style={{ backgroundColor: '#f0f9f6' }}>
+            <Card className="p-6 mb-6 bg-[#f0f9f6] dark:bg-[#1f4438]/20 dark:border-gray-700">
               <p className="text-center mb-2" style={{ color: '#2d5f4f', fontWeight: 700 }}>
                 2026 시즌 순위 예측
               </p>
-              <p className="text-center text-gray-600">
+              <p className="text-center text-gray-600 dark:text-gray-400">
                 팀을 드래그해서 내년 시즌 순위를 예측해보세요
               </p>
             </Card>

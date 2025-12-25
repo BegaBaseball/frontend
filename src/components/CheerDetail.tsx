@@ -50,7 +50,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from './ui/alert-dialog';
 
 const COMMENTS_PAGE_SIZE = 10;
@@ -374,7 +373,7 @@ export default function CheerDetail() {
 
   // ========== Render ==========
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Header */}
       <div className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -473,15 +472,16 @@ export default function CheerDetail() {
                                 <Pencil className="mr-2 h-4 w-4" />
                                 수정
                               </DropdownMenuItem>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem
-                                  onSelect={(e: Event) => e.preventDefault()}
-                                  className="text-red-600 cursor-pointer"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  삭제
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
+                              <DropdownMenuItem
+                                onSelect={(e: Event) => {
+                                  e.preventDefault();
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                                className="text-red-600 cursor-pointer"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                삭제
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                             </>
                           )}

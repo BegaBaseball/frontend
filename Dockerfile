@@ -53,6 +53,7 @@ ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src ./src
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/docs ./docs
 COPY --from=builder /app/index.html ./index.html
 COPY --from=builder /app/vite.config.ts ./vite.config.ts

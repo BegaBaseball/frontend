@@ -65,82 +65,84 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
   const statusStyle = getStatusBadgeStyle(game.gameStatus || game.status);
 
   return (
-    <Card 
-      className={`overflow-hidden ${featured ? 'border-2 hover:shadow-lg' : 'border'} transition-shadow`} 
-      style={{ borderColor: featured ? '#2d5f4f' : '#e5e7eb' }}
+    <Card
+      className={`overflow-hidden ${featured ? 'border-2 hover:shadow-lg' : 'border'} transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700`}
+      style={{ borderColor: featured ? '#2d5f4f' : undefined }}
     >
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Game Info Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
+          <Badge
+            variant="outline"
+            className="text-xs sm:text-sm w-fit"
+            style={{ backgroundColor: '#2d5f4f', color: 'white', borderColor: '#2d5f4f' }}
+          >
+            {game.stadium.replace('구장', '')}
+          </Badge>
           <div className="flex items-center gap-2">
-            <Badge 
-              variant="outline" 
-              className={featured ? '' : 'bg-gray-100 text-gray-700 border-gray-300'}
-              style={featured ? { backgroundColor: '#2d5f4f', color: 'white', borderColor: '#2d5f4f' } : {}}
-            >
-              {game.stadium.replace('구장', '')}
-            </Badge>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-600 text-sm">⚾ {game.time}</span>
-              {/* 상태 뱃지 추가 */}
-              {statusStyle && (
-                <span 
-                  className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                  style={{ 
-                    backgroundColor: statusStyle.bg,
-                    color: statusStyle.color
-                  }}
-                >
-                  {statusStyle.text}
-                </span>
-              )}
-            </div>
+            <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">⚾ {game.time}</span>
+            {/* 상태 뱃지 추가 */}
+            {statusStyle && (
+              <span
+                className="px-2 py-0.5 sm:px-2.5 rounded-full text-xs font-semibold"
+                style={{
+                  backgroundColor: statusStyle.bg,
+                  color: statusStyle.color
+                }}
+              >
+                {statusStyle.text}
+              </span>
+            )}
           </div>
         </div>
 
         {game.gameInfo && (
-          <div 
-            className="mb-4 text-center text-sm"
-            style={featured ? { color: '#2d5f4f', fontWeight: 600 } : { color: '#6b7280' }}
+          <div
+            className={`mb-3 sm:mb-4 text-center text-xs sm:text-sm ${featured ? '' : 'text-gray-500 dark:text-gray-400'}`}
+            style={featured ? { color: '#2d5f4f', fontWeight: 600 } : { fontWeight: 400 }}
           >
             {game.gameInfo}
           </div>
         )}
 
         {/* Teams */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div className="text-center flex-1">
-            <div className="mx-auto mb-2 flex items-center justify-center">
-              <TeamLogo team={game.homeTeam} size={56} />
+            <div className="mx-auto mb-1.5 sm:mb-2 flex items-center justify-center">
+              <div className="bg-white/90 dark:bg-gray-100 p-2 rounded-full shadow-sm inline-flex items-center justify-center">
+                <TeamLogo team={game.homeTeam} size={48} className="w-12 h-12 sm:w-14 sm:h-14" />
+              </div>
             </div>
-            <p className="text-sm" style={{ color: '#2d5f4f', fontWeight: 600 }}>
+            <p className="text-xs sm:text-sm" style={{ color: '#2d5f4f', fontWeight: 600 }}>
               {game.homeTeamFull.split(' ')[0]}
             </p>
             {/* 경기 종료 시 점수 표시 */}
             {game.gameStatus === 'COMPLETED' && game.homeScore !== undefined && (
-              <p className="text-2xl font-bold mt-1" style={{ color: '#2d5f4f' }}>
+              <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1" style={{ color: '#2d5f4f' }}>
                 {game.homeScore}
               </p>
             )}
           </div>
 
-          <div 
-            className="text-xl mx-4" 
-            style={{ fontWeight: 900, color: featured ? '#2d5f4f' : '#9ca3af' }}
+          <div
+            className={`text-base sm:text-lg md:text-xl mx-2 sm:mx-4 ${featured ? '' : 'text-gray-400 dark:text-gray-500'}`}
+            style={{ fontWeight: 900, color: featured ? '#2d5f4f' : undefined }}
           >
             VS
           </div>
 
           <div className="text-center flex-1">
-            <div className="mx-auto mb-2 flex items-center justify-center">
-              <TeamLogo team={game.awayTeam} size={56} />
+            <div className="mx-auto mb-1.5 sm:mb-2 flex items-center justify-center">
+              <div className="bg-white/90 dark:bg-gray-100 p-2 rounded-full shadow-sm inline-flex items-center justify-center">
+                <TeamLogo team={game.awayTeam} size={48} className="w-12 h-12 sm:w-14 sm:h-14" />
+              </div>
             </div>
-            <p className="text-sm" style={{ color: '#2d5f4f', fontWeight: 600 }}>
+            <p className="text-xs sm:text-sm" style={{ color: '#2d5f4f', fontWeight: 600 }}>
               {game.awayTeamFull.split(' ')[0]}
             </p>
             {/* 경기 종료 시 점수 표시 */}
             {game.gameStatus === 'COMPLETED' && game.awayScore !== undefined && (
-              <p className="text-2xl font-bold mt-1" style={{ color: '#2d5f4f' }}>
+              <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1" style={{ color: '#2d5f4f' }}>
                 {game.awayScore}
               </p>
             )}
@@ -149,8 +151,8 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
 
         {/* Action Button - 경기 예정일 때만 표시 */}
         {(!game.gameStatus || game.gameStatus === 'SCHEDULED') && (
-          <Button 
-            className="text-white hover:opacity-90 w-full"
+          <Button
+            className="text-white hover:opacity-90 w-full text-sm sm:text-base"
             style={{ backgroundColor: '#2d5f4f' }}
           >
             TICKET

@@ -1,7 +1,7 @@
 import { ChatRequest, EdgeFunctionRequest, ChatResponse, VoiceResponse } from '../types/chatbot';
 import Cookies from 'js-cookie';
 
-const API_URL = import.meta.env.VITE_AI_API_URL || 'http://localhost:8001';
+const API_URL = import.meta.env.VITE_AI_API_URL || '/ai';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://zyofzvnkputevakepbdm.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1`;

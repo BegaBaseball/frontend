@@ -1,7 +1,8 @@
 import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import React, { useEffect, useState } from 'react'; 
+import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
-import { Bell, LogOut, ShieldAlert, Menu, X } from 'lucide-react'; 
+import { Bell, LogOut, ShieldAlert, Menu, X, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme'; 
 import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore'; 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -17,7 +18,8 @@ const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`;
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const { theme, toggleTheme } = useTheme();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
 
@@ -134,12 +136,10 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="border-b border-gray-200 sticky top-0 z-40 transition-colors duration-300"
-    style={{
-      backgroundColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff',
-      // borderColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff'
-    }}
-  >
+    <header
+      className="border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 transition-colors duration-300 bg-white dark:bg-gray-900"
+      {...(isMenuOpen && !isDesktop ? { style: { backgroundColor: '#2d5f4f' } } : {})}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
@@ -150,12 +150,20 @@ export default function Navbar() {
           >
             <img src={baseballLogo} alt="Baseball" className="w-10 h-10" />
             <div>
-              <h1 className="tracking-wider text-xl transition-colors" 
-              style={{ 
-                fontWeight: 900,
-                color: isMenuOpen && !isDesktop ? '#ffffff' : '#2d5f4f' 
-              }}>BEGA</h1>
-              <p className={`text-xs transition-colors ${isMenuOpen && !isDesktop ? 'text-white' : ''}`} style={{ color: isMenuOpen && !isDesktop ? '#ffffff' : '#2d5f4f' }}>BASEBALL GUIDE</p>
+              <h1 className={`tracking-wider text-xl transition-colors font-black ${
+                isMenuOpen && !isDesktop
+                  ? 'text-white'
+                  : 'text-primary dark:text-white'
+              }`}>
+                BEGA
+              </h1>
+              <p className={`text-xs transition-colors ${
+                isMenuOpen && !isDesktop
+                  ? 'text-white'
+                  : 'text-primary dark:text-white'
+              }`}>
+                BASEBALL GUIDE
+              </p>
             </div>
           </button>
 
@@ -167,7 +175,7 @@ export default function Navbar() {
                 <button
                   key={item.id}
                   onClick={() => navigate(`/${item.id}`)}
-                  className={`${location.pathname === `/${item.id}` ? 'hover:opacity-70' : 'text-gray-700 hover:opacity-70'} whitespace-nowrap px-2 flex-shrink-0`}
+                  className={`${location.pathname === `/${item.id}` ? 'hover:opacity-70' : 'text-gray-700 dark:text-gray-300 hover:opacity-70'} whitespace-nowrap px-2 flex-shrink-0`}
                   style={location.pathname === `/${item.id}` ? { color: '#2d5f4f', fontWeight: 700 } : {}}
                 >
                   {item.label}
@@ -178,21 +186,30 @@ export default function Navbar() {
 
           {/* 3. 우측 아이콘 및 메뉴 영역 */}
           <div className="flex items-center gap-3 shrink-0">
-            
+
+            {/* 테마 토글 버튼 */}
+            <button
+              onClick={toggleTheme}
+              className={`p-1 transition-colors ${isMenuOpen && !isDesktop ? 'text-white hover:text-gray-200' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+            </button>
+
             {/* 알림 버튼 (항상 보임) */}
             <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
               <PopoverTrigger asChild>
-                <button className={`relative p-1 transition-colors ${isMenuOpen && !isDesktop ? 'text-white hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}>
+                <button className={`relative p-1 transition-colors ${isMenuOpen && !isDesktop ? 'text-white hover:text-gray-200' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}>
                   <Bell className="w-6 h-6" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-xs text-white font-bold">
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center text-xs text-white font-bold">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-96 p-0 bg-white border-gray-200" align="end">
-                <div className="p-4 border-b bg-white">
+              <PopoverContent className="w-96 p-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" align="end">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                   <h3 className="font-bold" style={{ color: '#2d5f4f' }}>
                     알림
                   </h3>
@@ -256,7 +273,7 @@ export default function Navbar() {
             {/* 5. 햄버거 버튼 (중요: 768px 이상에서 숨김) */}
             {!isDesktop && (
               <button 
-                className={`p-1 focus:outline-none transition-all duration-200 ease-in-out hover:scale-110 active:scale-95 ${isMenuOpen ? 'text-white' : 'text-gray-600 hover:text-gray-900'}`}
+                className={`p-1 focus:outline-none transition-all duration-200 ease-in-out hover:scale-110 active:scale-95 ${isMenuOpen ? 'text-white' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'}`}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 {isMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
@@ -268,27 +285,32 @@ export default function Navbar() {
 
       {/* 6. 모바일 풀스크린 메뉴 */}
       {isMenuOpen && !isDesktop && (
-        <div className="mobile-menu-container fixed inset-0 bg-white z-50 overflow-y-auto">
+        <div 
+          className="mobile-menu-container fixed inset-0 z-50 overflow-y-auto pt-16"
+          style={{ backgroundColor: theme === 'dark' ? '#111827' : 'white' }}
+        >
           {/* 메뉴 컨텐츠 */}
           <div className="px-6 py-6 space-y-2">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => navigate(`/${item.id}`)}
-                className={`block w-full text-left py-4 px-4 text-lg font-semibold rounded-md `}
+                className={`block w-full text-left py-4 px-4 text-lg font-semibold rounded-md transition-colors ${
+                  theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
+                }`}
                 style={
                   location.pathname === `/${item.id}` 
-                    ? { color: '#2d5f4f', fontWeight: 700 } 
+                    ? { color: theme === 'dark' ? '#4ade80' : '#2d5f4f', fontWeight: 900 } 
                     : {}
                 }
                 onMouseEnter={(e) => {
                   if (location.pathname !== `/${item.id}`) {
-                    e.currentTarget.style.color = '#568e67';
+                    e.currentTarget.style.color = theme === 'dark' ? '#4ade80' : '#568e67';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (location.pathname !== `/${item.id}`) {
-                    e.currentTarget.style.color = '#374151'; // text-gray-700
+                    e.currentTarget.style.color = ''; 
                   }
                 }}
               >
@@ -296,12 +318,14 @@ export default function Navbar() {
               </button>
             ))}
 
-            <div className="border-t border-gray-200 my-6 pt-6 space-y-3">
+            <div className="border-t border-gray-200 dark:border-gray-700 my-6 pt-6 space-y-3">
               {isLoggedIn ? (
                 <>
                   <button
                     onClick={() => navigate('/mypage')}
-                    className="user-profile-button2 items-center justify-center py-3 w-full rounded-full transition-all duration-200 group font-bold text-base"
+                    className={`user-profile-button2 items-center justify-center py-3 w-full rounded-full transition-all duration-200 group font-bold text-base ${
+                      theme === 'dark' ? 'text-white border-gray-700' : 'text-gray-900 border-gray-200'
+                    }`}
                   >
                     <span className="py-2 px-4 relative">
                       <span className="user-name">
@@ -317,7 +341,7 @@ export default function Navbar() {
                     <Button 
                       onClick={() => navigate('/admin')} 
                       variant="outline" 
-                      className="hover:bg-red-50 w-full justify-start py-6 text-base font-semibold" 
+                      className="hover:bg-red-50 dark:hover:bg-red-900/20 w-full justify-start py-6 text-base font-semibold" 
                       style={{ color: '#d32f2f', borderColor: '#d32f2f' }}
                     >
                       <ShieldAlert className="w-5 h-5 mr-2" /> 관리자 페이지
@@ -325,9 +349,9 @@ export default function Navbar() {
                   )}
                   <Button 
                     onClick={handleLogout} 
-                    className="hover:scale-110 w-full justify-center py-6 text-base font-semibold" 
+                    className="hover:scale-110 w-full justify-center py-6 text-base font-semibold dark:bg-gray-800 dark:text-white dark:border-gray-600" 
                     variant="ghost" 
-                    style={{ color: '#d32f2f', backgroundColor: '#ffffff' }}
+                    style={{ color: '#d32f2f', backgroundColor: theme === 'dark' ? undefined : '#ffffff' }}
                   >
                     <LogOut className="w-5 h-5 mr-2" /> 로그아웃
                   </Button>

@@ -192,6 +192,8 @@
 
   body {
     line-height: inherit;
+    overflow-x: hidden;
+    width: 100%;
   }
 
   hr {
@@ -428,8 +430,28 @@
   }
 
   body {
-    background-color: var(--background);
-    color: var(--foreground);
+    @apply bg-white text-gray-900 transition-colors duration-300;
+  }
+
+  .dark body {
+    @apply bg-gray-900 text-gray-100;
+  }
+
+  /* 다크모드일 때 모든 검은색 텍스트를 밝은색으로 강제 전환 */
+  .dark .text-gray-900 {
+    @apply text-gray-100 !important;
+  }
+  .dark .text-gray-800 {
+    @apply text-gray-200 !important;
+  }
+  .dark .text-gray-700 {
+    @apply text-gray-300 !important;
+  }
+  .dark .text-gray-600 {
+    @apply text-gray-400 !important;
+  }
+  .dark .text-gray-500 {
+    @apply text-gray-400 !important;
   }
 
   :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) h1 {
@@ -4019,5 +4041,82 @@ html {
   }
   40% {
     transform: translateY(-6px);
+  }
+}
+
+/* 다크모드 전역 배경/텍스트 설정 */
+.dark .bg-white {
+  background-color: rgb(17 24 39) !important; /* gray-900 */
+}
+
+.dark .bg-gray-50 {
+  background-color: rgb(17 24 39) !important; /* gray-900 */
+}
+
+/* 다크모드 가독성 강화 */
+@layer base {
+  /* 1. 기본 바디 텍스트 색상 설정 */
+  body {
+    @apply bg-white text-gray-900 transition-colors duration-300;
+  }
+
+  .dark body {
+    @apply bg-[#0f172a] text-gray-100; /* 배경은 어둡게, 기본 글자는 밝게 */
+  }
+}
+
+@layer utilities {
+  /* 2. 하드코딩된 라이트 모드 클래스 강제 전환 */
+  /* 컴포넌트 내부의 text-gray-900 등을 일일이 수정하기 힘들 때 유용합니다. */
+  .dark .text-gray-900,
+  .dark .text-black {
+    color: #f3f4f6 !important; /* gray-100 수준으로 강제 변경 */
+  }
+
+  .dark .text-gray-800,
+  .dark .text-gray-700 {
+    color: #e5e7eb !important; /* gray-200 수준 */
+  }
+
+  .dark .text-gray-600,
+  .dark .text-gray-500 {
+    color: #9ca3af !important; /* gray-400 수준 (보조 텍스트) */
+  }
+
+  /* 3. 게시판 등의 테두리(border)도 안 보인다면 추가 */
+  .dark .border-gray-200,
+  .dark .border-gray-100 {
+    border-color: #374151 !important; /* gray-700 수준 */
+  }
+
+  /* 다크모드에서 특정 테두리 내 텍스트의 가독성이 떨어질 때를 대비한 강제 보정 */
+  .dark .border-primary h2,
+  .dark .border-primary span {
+    color: #4ade80 !important;
+  }
+
+  /* 스크롤바 숨기기 */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* fade-in-up 애니메이션 */
+  @keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.3s ease-out;
   }
 }

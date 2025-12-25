@@ -111,7 +111,7 @@ interface MateState {
   resetApplicationForm: () => void;
 }
 
-export const useMateStore = create<MateState>((set) => ({
+export const useMateStore = create<MateState>((set, get) => ({
   parties: [
     {
       id: '1',
@@ -394,7 +394,7 @@ export const useMateStore = create<MateState>((set) => ({
   })),
   
   getPartyApplications: (partyId) => {
-    const state = useMateStore.getState();
+    const state = get();
     return state.applications.filter(app => app.partyId === partyId);
   },
   
@@ -422,12 +422,12 @@ export const useMateStore = create<MateState>((set) => ({
   })),
   
   getChatMessages: (partyId) => {
-    const state = useMateStore.getState();
+    const state = get();
     return state.chatMessages.filter(msg => msg.partyId === partyId);
   },
   
   getChatRoom: (partyId) => {
-    const state = useMateStore.getState();
+    const state = get();
     return state.chatRooms.find(room => room.partyId === partyId);
   },
   

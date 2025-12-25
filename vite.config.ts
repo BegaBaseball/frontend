@@ -99,6 +99,12 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
         secure: false,
         // cookieDomainRewrite: 'localhost',
       },
+      '/ai': {
+        target: process.env.VITE_AI_API_BASE_URL ?? 'http://ai-chatbot:8001',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ai/, ''),
+      },
     },
     },
   });

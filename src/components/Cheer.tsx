@@ -123,7 +123,7 @@ export default function Cheer() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6 flex items-center justify-between">
@@ -135,7 +135,7 @@ export default function Cheer() {
             <Button
               onClick={() => refetchCheer()}
               variant="outline"
-              className="border-gray-300"
+              className="border-gray-300 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
               disabled={isLoading}
             >
               <RotateCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -155,22 +155,24 @@ export default function Cheer() {
         <div className="mb-6 flex gap-3">
           <button
             onClick={() => handleTabChange('all')}
-            className="rounded-full px-6 py-2 transition-all"
-            style={{
-              backgroundColor: activeTab === 'all' ? '#2d5f4f' : '#f3f4f6',
-              color: activeTab === 'all' ? 'white' : '#6b7280',
-            }}
+            className={`rounded-full px-6 py-2 transition-all ${
+              activeTab === 'all'
+                ? 'text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+            }`}
+            style={activeTab === 'all' ? { backgroundColor: '#2d5f4f' } : undefined}
           >
             전체
           </button>
 
           <button
             onClick={() => handleTabChange('myTeam')}
-            className="rounded-full px-6 py-2 transition-all"
-            style={{
-              backgroundColor: activeTab === 'myTeam' ? '#2d5f4f' : '#f3f4f6',
-              color: activeTab === 'myTeam' ? 'white' : '#6b7280',
-            }}
+            className={`rounded-full px-6 py-2 transition-all ${
+              activeTab === 'myTeam'
+                ? 'text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+            }`}
+            style={activeTab === 'myTeam' ? { backgroundColor: '#2d5f4f' } : undefined}
           >
             마이팀
           </button>
@@ -180,16 +182,16 @@ export default function Cheer() {
           <div className="lg:col-span-2">
             
             {isCheerError && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div className="mb-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
                 게시글을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
               </div>
             )}
 
             {activeTab === 'myTeam' && (!favoriteTeam || favoriteTeam === '없음') && (
-              <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
                 <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <div>
-                  응원구단을 설정하지 않으셨습니다. 마이팀 게시물은 <Link to="/mypage" className="font-semibold underline hover:text-amber-900">마이페이지</Link>에서 팀을 선택한 후 확인할 수 있어요.
+                  응원구단을 설정하지 않으셨습니다. 마이팀 게시물은 <Link to="/mypage" className="font-semibold underline hover:text-amber-900 dark:hover:text-amber-300">마이페이지</Link>에서 팀을 선택한 후 확인할 수 있어요.
                 </div>
               </div>
             )}
@@ -197,13 +199,13 @@ export default function Cheer() {
             {isLoading && (
               <div className="space-y-4">
                 {Array.from({ length: 4 }).map((_, idx) => (
-                  <div key={idx} className="animate-pulse rounded-xl border bg-white p-4">
+                  <div key={idx} className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
                     <div className="flex gap-4">
-                      <div className="h-12 w-12 rounded-full bg-gray-200" />
+                      <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-700" />
                       <div className="flex-1 space-y-3">
-                        <div className="h-4 w-1/2 rounded bg-gray-200" />
-                        <div className="h-3 w-1/3 rounded bg-gray-100" />
-                        <div className="h-3 w-2/3 rounded bg-gray-100" />
+                        <div className="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-3 w-1/3 rounded bg-gray-100 dark:bg-gray-600" />
+                        <div className="h-3 w-2/3 rounded bg-gray-100 dark:bg-gray-600" />
                       </div>
                     </div>
                   </div>
@@ -216,18 +218,18 @@ export default function Cheer() {
                 <div
                   key={post.id}
                   onClick={() => handlePostClick(post.id)}
-                  className="cursor-pointer rounded-xl border bg-white px-8 py-5 transition-shadow hover:shadow-md"
+                  className="cursor-pointer rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-8 py-5 transition-shadow hover:shadow-md"
                 >
                   <div className="flex items-center gap-8">
-                    
+
                     <div className="flex-shrink-0">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600">
                         <TeamLogo team={post.team} size={36} />
                       </div>
                     </div>
 
                     <div className="flex-1 min-w-0 flex flex-row items-center justify-between">
-                      
+
                       <div className="flex-1 min-w-0 pr-8">
                         <div className="flex items-center gap-2">
                           {post.isHot && (
@@ -236,27 +238,27 @@ export default function Cheer() {
                               <span className="pb-[1px]">HOT</span>
                             </span>
                           )}
-                          <h3 className="text-base font-bold text-gray-900 truncate">
+                          <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">
                             {post.title}
                           </h3>
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0 text-xs text-gray-500">
-                        
-                        <span className="font-medium text-gray-700 text-sm text-right max-w-[120px] truncate">
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">
+
+                        <span className="font-medium text-gray-700 dark:text-gray-300 text-sm text-right max-w-[120px] truncate">
                           {post.author}
                         </span>
 
                         <div className="flex items-center gap-3">
                           <span>{post.timeAgo}</span>
-                          <span className="text-gray-300">|</span>
-                          
-                          <div className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+                          <span className="text-gray-300 dark:text-gray-600">|</span>
+
+                          <div className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                             <MessageSquare className="h-3.5 w-3.5" />
                             <span>{post.comments}</span>
                           </div>
-                          <div className="flex items-center gap-1 hover:text-red-500 transition-colors">
+                          <div className="flex items-center gap-1 hover:text-red-500 dark:hover:text-red-400 transition-colors">
                             <Heart className="h-3.5 w-3.5" />
                             <span>{post.likes}</span>
                           </div>
@@ -270,7 +272,7 @@ export default function Cheer() {
               ))}
 
               {!isLoading && !isCheerError && displayedPosts.length === 0 && (
-                <div className="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center text-gray-500">
+                <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-4 py-6 text-center text-gray-500 dark:text-gray-400">
                   게시글이 없습니다.
                 </div>
               )}
@@ -296,18 +298,18 @@ export default function Cheer() {
                    .map((page, index, array) => {
                       const isGap = index > 0 && page - array[index - 1] > 1;
                       const isActive = currentPage === page;
-                      
+
                       return (
                         <div key={page} className="flex items-center">
-                          {isGap && <span className="mx-1 text-gray-400">...</span>}
+                          {isGap && <span className="mx-1 text-gray-400 dark:text-gray-600">...</span>}
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handlePageChange(page)}
                             className={`w-9 px-0 ${
-                              isActive 
-                                ? 'font-bold hover:opacity-90' 
-                                : 'text-gray-600 hover:bg-gray-100'
+                              isActive
+                                ? 'font-bold hover:opacity-90'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                             }`}
                             style={isActive ? {
                               backgroundColor: '#2d5f4f',
@@ -336,11 +338,11 @@ export default function Cheer() {
           </div>
           
           <aside className="space-y-6">
-            
-            <div 
-              className="rounded-2xl p-4 border-2 bg-gradient-to-br from-red-50 to-orange-50 border-red-200"
+
+            <div
+              className="rounded-2xl p-4 border-2 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border-red-200 dark:border-red-800"
             >
-              <h2 className="mb-4 flex items-center gap-2 text-red-500 font-bold">
+              <h2 className="mb-4 flex items-center gap-2 text-red-500 dark:text-red-400 font-bold">
                 <Flame className="w-5 h-5" />
                 {activeTab === 'all' ? 'HOT 게시물' : '마이팀 HOT'}
               </h2>
@@ -349,14 +351,14 @@ export default function Cheer() {
                   <div
                     key={`hot-${post.id}`}
                     onClick={() => navigate(`/cheer/detail/${post.id}`)}
-                    className="bg-white rounded-xl p-3 hover:shadow-md transition-shadow cursor-pointer border border-red-100"
+                    className="bg-white dark:bg-gray-800 rounded-xl p-3 hover:shadow-md transition-shadow cursor-pointer border border-red-100 dark:border-red-900"
                   >
-                    <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
                       <span>{post.team}</span>
                       <span>{post.timeAgo}</span>
                     </div>
-                    <div className="mt-1 text-sm font-medium text-gray-900 line-clamp-2">{post.title}</div>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                    <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white line-clamp-2">{post.title}</div>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1">
                         <MessageSquare className="h-3 w-3" />
                         {post.comments}
@@ -369,7 +371,7 @@ export default function Cheer() {
                   </div>
                 ))}
                  {hotPosts.length === 0 && (
-                  <div className="text-center py-4 text-gray-400 text-sm">
+                  <div className="text-center py-4 text-gray-400 dark:text-gray-500 text-sm">
                     HOT 게시물이 없습니다.
                   </div>
                 )}
@@ -377,11 +379,11 @@ export default function Cheer() {
             </div>
 
             {activeTab !== 'notice' && (
-              <div 
-                className="rounded-2xl p-4 border-2 bg-gradient-to-br from-blue-50 to-sky-50 border-blue-200 sticky top-24"
+              <div
+                className="rounded-2xl p-4 border-2 bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-950/20 dark:to-sky-950/20 border-blue-200 dark:border-blue-800 sticky top-24"
               >
               <Link to="/notice">
-                <h2 className="mb-4 flex items-center gap-2 text-blue-600 font-bold">
+                <h2 className="mb-4 flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold">
                   <Megaphone className="w-5 h-5" />
                   공지사항
                 </h2>
@@ -394,14 +396,14 @@ export default function Cheer() {
                   <div
                     key={`notice-${post.id}`}
                     onClick={() => navigate(`/cheer/detail/${post.id}`)}
-                    className="bg-white rounded-xl p-3 hover:shadow-md transition-shadow cursor-pointer border border-blue-100"
+                    className="bg-white dark:bg-gray-800 rounded-xl p-3 hover:shadow-md transition-shadow cursor-pointer border border-blue-100 dark:border-blue-900"
                   >
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span className="text-blue-600 font-medium">Notice</span>
+                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-blue-600 dark:text-blue-400 font-medium">Notice</span>
                       <span>{post.timeAgo}</span>
                     </div>
-                    <div className="mt-1 text-sm font-medium text-gray-900 line-clamp-2">{post.title}</div>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                    <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white line-clamp-2">{post.title}</div>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1">
                         <MessageSquare className="h-3 w-3" />
                         {post.comments}
@@ -417,8 +419,8 @@ export default function Cheer() {
                 {!isNoticeLoading && (
                    (!noticeData || noticeData.content.filter(p => p.postType === 'NOTICE').length === 0)
                 ) && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Megaphone className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Megaphone className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
                     <p className="text-sm">
                       등록된 공지사항이 없습니다.
                     </p>

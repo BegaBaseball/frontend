@@ -3,10 +3,21 @@ import { ArrowLeft, X, Upload } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { useAuthStore } from '../store/authStore';
 import { useCheerWrite } from '../hooks/useCheerWrite';
+import { useNavigate } from 'react-router-dom';
 
 export default function CheerWrite() {
+  const navigate = useNavigate();
   const favoriteTeam = useAuthStore((state) => state.user?.favoriteTeam) ?? null;
 
   const {
@@ -17,6 +28,8 @@ export default function CheerWrite() {
     newFilePreviews,
     isDragging,
     isSubmitting,
+    showTeamRequiredDialog,
+    setShowTeamRequiredDialog,
     handleFileSelect,
     handleRemoveNewFile,
     handleSubmit,
@@ -27,7 +40,7 @@ export default function CheerWrite() {
   } = useCheerWrite(favoriteTeam);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       {/* Header */}
       <div className="border-b bg-gray-50">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -151,6 +164,36 @@ export default function CheerWrite() {
           </div>
         </div>
       </div>
+
+      {/* 응원팀 선택 필요 AlertDialog */}
+      <AlertDialog open={showTeamRequiredDialog} onOpenChange={setShowTeamRequiredDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>응원팀을 선택해주세요</AlertDialogTitle>
+            <AlertDialogDescription>
+              게시글 작성은 마이페이지에서 응원팀을 선택한 후에 가능합니다.
+              <br />
+              마이페이지로 이동하여 응원팀을 설정하시겠습니까?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowTeamRequiredDialog(false)}
+            >
+              취소
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                setShowTeamRequiredDialog(false);
+                navigate('/mypage');
+              }}
+            >
+              마이페이지로 이동
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

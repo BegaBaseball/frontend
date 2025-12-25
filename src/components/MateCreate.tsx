@@ -146,7 +146,7 @@ export default function MateCreate() {
   const progressValue = (createStep / 4) * 100;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <img
         src={grassDecor}
         alt=""
