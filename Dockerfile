@@ -58,6 +58,8 @@ COPY --from=builder /app/docs ./docs
 COPY --from=builder /app/index.html ./index.html
 COPY --from=builder /app/vite.config.ts ./vite.config.ts
 COPY --from=builder /app/tsconfig*.json ./
+COPY --from=builder /app/postcss.config.js ./postcss.config.js
+COPY --from=builder /app/tailwind.config.js ./tailwind.config.js
 
 EXPOSE 3000
 

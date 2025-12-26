@@ -2,7 +2,7 @@ import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.p
 import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Bell, LogOut, ShieldAlert, Menu, X, Moon, Sun } from 'lucide-react';
-import { useTheme } from '../hooks/useTheme'; 
+import { useTheme } from 'next-themes'; 
 import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore'; 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -18,7 +18,8 @@ const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`;
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
@@ -137,8 +138,8 @@ export default function Navbar() {
 
   return (
     <header
-      className="border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 transition-colors duration-300 bg-white dark:bg-gray-900"
-      {...(isMenuOpen && !isDesktop ? { style: { backgroundColor: '#2d5f4f' } } : {})}
+      className="border-b border-gray-200 dark:border-gray-700 sticky top-0 z-[60] transition-colors duration-300 bg-white dark:bg-gray-900"
+      {...(isMenuOpen && !isDesktop ? { style: { backgroundColor: theme === 'dark' ? '#111827' : 'white' } } : {})}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -152,14 +153,14 @@ export default function Navbar() {
             <div>
               <h1 className={`tracking-wider text-xl transition-colors font-black ${
                 isMenuOpen && !isDesktop
-                  ? 'text-white'
+                  ? theme === 'dark' ? 'text-white' : 'text-gray-900'
                   : 'text-primary dark:text-white'
               }`}>
                 BEGA
               </h1>
               <p className={`text-xs transition-colors ${
                 isMenuOpen && !isDesktop
-                  ? 'text-white'
+                  ? theme === 'dark' ? 'text-white' : 'text-gray-900'
                   : 'text-primary dark:text-white'
               }`}>
                 BASEBALL GUIDE
@@ -272,8 +273,8 @@ export default function Navbar() {
 
             {/* 5. 햄버거 버튼 (중요: 768px 이상에서 숨김) */}
             {!isDesktop && (
-              <button 
-                className={`p-1 focus:outline-none transition-all duration-200 ease-in-out hover:scale-110 active:scale-95 ${isMenuOpen ? 'text-white' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'}`}
+              <button
+                className={`p-1 focus:outline-none transition-all duration-200 ease-in-out hover:scale-110 active:scale-95 ${isMenuOpen ? (theme === 'dark' ? 'text-white' : 'text-gray-900') : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'}`}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 {isMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
@@ -285,8 +286,8 @@ export default function Navbar() {
 
       {/* 6. 모바일 풀스크린 메뉴 */}
       {isMenuOpen && !isDesktop && (
-        <div 
-          className="mobile-menu-container fixed inset-0 z-50 overflow-y-auto pt-16"
+        <div
+          className="mobile-menu-container fixed top-16 left-0 right-0 bottom-0 z-50 overflow-y-auto"
           style={{ backgroundColor: theme === 'dark' ? '#111827' : 'white' }}
         >
           {/* 메뉴 컨텐츠 */}

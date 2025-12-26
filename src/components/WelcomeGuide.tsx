@@ -159,7 +159,7 @@ export default function WelcomeGuide() {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden border-0" hideCloseButton>
+      <DialogContent className="max-w-3xl p-0 overflow-hidden border-0 bg-white dark:bg-gray-900 sm:rounded-2xl" hideCloseButton>
         <DialogTitle className="sr-only">
           {slides[currentSlide].title}
         </DialogTitle>

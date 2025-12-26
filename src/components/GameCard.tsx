@@ -116,19 +116,43 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
             <p className="text-xs sm:text-sm" style={{ color: '#2d5f4f', fontWeight: 600 }}>
               {game.homeTeamFull.split(' ')[0]}
             </p>
-            {/* 경기 종료 시 점수 표시 */}
-            {game.gameStatus === 'COMPLETED' && game.homeScore !== undefined && (
-              <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1" style={{ color: '#2d5f4f' }}>
-                {game.homeScore}
-              </p>
-            )}
           </div>
 
-          <div
-            className={`text-base sm:text-lg md:text-xl mx-2 sm:mx-4 ${featured ? '' : 'text-gray-400 dark:text-gray-500'}`}
-            style={{ fontWeight: 900, color: featured ? '#2d5f4f' : undefined }}
-          >
-            VS
+          {/* VS 또는 점수 표시 영역 */}
+          <div className="text-center mx-2 sm:mx-4">
+            {(game.gameStatus === 'PLAYING' || game.gameStatus === 'COMPLETED') &&
+             (game.homeScore !== undefined || game.awayScore !== undefined) ? (
+              // 점수 표시
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
+                <span
+                  className={`text-2xl sm:text-3xl md:text-4xl font-black transition-colors ${
+                    (game.homeScore ?? 0) > (game.awayScore ?? 0)
+                      ? 'text-primary dark:text-[#4ade80]'
+                      : 'text-gray-500 dark:text-gray-500'
+                  }`}
+                >
+                  {game.homeScore ?? '-'}
+                </span>
+                <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-400 dark:text-gray-600">:</span>
+                <span
+                  className={`text-2xl sm:text-3xl md:text-4xl font-black transition-colors ${
+                    (game.awayScore ?? 0) > (game.homeScore ?? 0)
+                      ? 'text-primary dark:text-[#4ade80]'
+                      : 'text-gray-500 dark:text-gray-500'
+                  }`}
+                >
+                  {game.awayScore ?? '-'}
+                </span>
+              </div>
+            ) : (
+              // VS 표시
+              <div
+                className={`text-base sm:text-lg md:text-xl ${featured ? '' : 'text-gray-400 dark:text-gray-500'}`}
+                style={{ fontWeight: 900, color: featured ? '#2d5f4f' : undefined }}
+              >
+                VS
+              </div>
+            )}
           </div>
 
           <div className="text-center flex-1">
@@ -140,12 +164,6 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
             <p className="text-xs sm:text-sm" style={{ color: '#2d5f4f', fontWeight: 600 }}>
               {game.awayTeamFull.split(' ')[0]}
             </p>
-            {/* 경기 종료 시 점수 표시 */}
-            {game.gameStatus === 'COMPLETED' && game.awayScore !== undefined && (
-              <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1" style={{ color: '#2d5f4f' }}>
-                {game.awayScore}
-              </p>
-            )}
           </div>
         </div>
 

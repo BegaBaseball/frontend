@@ -55,7 +55,7 @@ export default function Login() {
             value={formData.email}
             onChange={(e) => handleFieldChange('email', e.target.value)}
             onBlur={() => handleFieldBlur('email')}
-            className={`bg-gray-50 border-gray-200 focus:ring-2 focus:ring-[#2d5f4f] ${fieldErrors.email ? 'border-red-500' : ''}`}
+            className={`bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-[#2d5f4f] ${fieldErrors.email ? 'border-red-500' : ''}`}
             placeholder="이메일을 입력하세요"
             disabled={isLoading}
           />
@@ -77,7 +77,7 @@ export default function Login() {
               value={formData.password}
               onChange={(e) => handleFieldChange('password', e.target.value)}
               onBlur={() => handleFieldBlur('password')}
-              className={`bg-gray-50 border-gray-200 focus:ring-2 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
+              className={`bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
               placeholder="비밀번호를 입력하세요"
               disabled={isLoading}
             />

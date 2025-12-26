@@ -3,7 +3,7 @@ import { Badge } from './ui/badge';
 import { Trophy, TrendingUp, Award, Clock } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../hooks/useTheme';
+import { useTheme } from 'next-themes';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;

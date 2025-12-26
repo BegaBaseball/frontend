@@ -7,7 +7,7 @@ import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constant
 import { openKakaoMapRoute } from '../utils/kakaoMap';
 import { getCategoryIconConfig } from '../utils/stadium';
 import { useStadiumGuide } from '../hooks/useStadiumGuide';
-import { useTheme } from '../hooks/useTheme'; // 테마 사용을 위해 추가
+import { useTheme } from 'next-themes'; // 테마 사용을 위해 추가
 
 export default function StadiumGuide() {
   const { theme } = useTheme(); // 현재 테마 가져오기
