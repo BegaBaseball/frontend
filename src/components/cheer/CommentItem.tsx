@@ -45,13 +45,13 @@ export function CommentItem({
     <div
       className={`${
         depth === 0
-          ? 'border-b border-gray-100 pb-6 last:border-b-0 last:pb-0'
+          ? 'border-b border-gray-100 dark:border-gray-800 pb-6 last:border-b-0 last:pb-0'
           : 'pl-10 pt-4'
       }`}
     >
       <div className="flex gap-4">
         <div className="flex flex-col items-center gap-2">
-          {isReply ? <CornerDownRight className="h-4 w-4 text-gray-300" /> : null}
+          {isReply ? <CornerDownRight className="h-4 w-4 text-gray-300 dark:text-gray-600" /> : null}
           <ProfileAvatar
             src={comment.authorProfileImageUrl}
             alt={comment.author}
@@ -61,20 +61,20 @@ export function CommentItem({
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900">{comment.author}</p>
-              <p className="text-xs text-gray-500">{comment.timeAgo}</p>
+              <p className="font-medium text-gray-900 dark:text-white">{comment.author}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{comment.timeAgo}</p>
             </div>
           </div>
-          <p className="mt-2 whitespace-pre-wrap text-gray-700 leading-relaxed">
+          <p className="mt-2 whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed">
             {comment.content}
           </p>
-          <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
+          <div className="mt-3 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
             <button
               onClick={() => onCommentLike(comment.id)}
               disabled={!canLike || isCommentLikePending}
               className={`flex items-center gap-1 transition-colors hover:text-red-500 ${
                 isCommentLiked ? 'text-red-500' : ''
-              } ${!canLike ? 'cursor-not-allowed text-gray-400 hover:text-gray-400' : ''}`}
+              } ${!canLike ? 'cursor-not-allowed text-gray-400 dark:text-gray-600 hover:text-gray-400 dark:hover:text-gray-600' : ''}`}
             >
               <Heart
                 className={`h-4 w-4 ${isCommentLiked ? 'fill-red-500 text-red-500' : ''}`}
@@ -84,19 +84,19 @@ export function CommentItem({
             <button
               onClick={() => onReplyToggle(comment.id)}
               disabled={!canInteract}
-              className="flex items-center gap-1 transition-colors hover:text-gray-700 disabled:cursor-not-allowed disabled:text-gray-400"
+              className="flex items-center gap-1 transition-colors hover:text-gray-700 dark:hover:text-gray-300 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600"
             >
               답글 달기
             </button>
           </div>
 
           {isReplyOpen && (
-            <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4">
               <Textarea
                 value={replyDraft}
                 onChange={(e) => onReplyChange(comment.id, e.target.value)}
                 placeholder="답글을 입력하세요"
-                className="min-h-[80px]"
+                className="min-h-[80px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 dark:text-white dark:placeholder:text-gray-500"
                 disabled={!canInteract || isReplyPending}
               />
               <div className="mt-3 flex justify-end gap-2">

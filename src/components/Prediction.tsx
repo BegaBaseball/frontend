@@ -1,9 +1,9 @@
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, ChevronLeft, ChevronRight, Trophy, Flame, Target } from 'lucide-react';
 import ChatBot from './ChatBot';
-import TeamLogo from './TeamLogo';
 import RankingPrediction from './RankingPrediction';
+import AdvancedMatchCard from './prediction/AdvancedMatchCard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,14 +17,19 @@ import {
 import { usePrediction } from '../hooks/usePrediction';
 import { 
   formatDate, 
-  getFullTeamName, 
   calculateVotePercentages,
   calculateVoteAccuracy,
   getGameStatus,
-  getTodayString
 } from '../utils/prediction';
-import { TEAM_COLORS, GAME_TIME } from '../constants/prediction';
-import { VoteTeam } from '../types/prediction';
+import { UserPredictionStat } from '../types/prediction';
+
+// 임시 유저 스탯 데이터 (추후 API 연동 필요)
+const dummyUserStats: UserPredictionStat = {
+  accuracy: 68,
+  streak: 3,
+  totalPredictions: 124,
+  correctPredictions: 85
+};
 
 export default function Prediction() {
   const {
@@ -38,18 +43,14 @@ export default function Prediction() {
     votes,
     userVote,
     isAuthLoading,
-    isLoggedIn,
     showConfirmDialog,
     setShowConfirmDialog,
     confirmDialogData,
-    showLoginRequiredDialog,
-    setShowLoginRequiredDialog,
     allDatesData,
     currentDateIndex,
     handleVote,
     goToPreviousDate,
     goToNextDate,
-    handleGoToLogin,
   } = usePrediction();
 
   // 현재 경기 정보
@@ -58,26 +59,21 @@ export default function Prediction() {
   
   // 투표 현황 계산
   const currentVotes = currentGameId ? votes[currentGameId] || { home: 0, away: 0 } : { home: 0, away: 0 };
-  const { homePercentage, awayPercentage, totalVotes } = calculateVotePercentages(
+  const votePercentages = calculateVotePercentages(
     currentVotes.home,
     currentVotes.away
   );
   
   // 경기 상태 확인
   const { isPastGame, isFutureGame, isToday } = getGameStatus(currentGame, currentDate);
-  
-  // 투표 정확도
-  const voteAccuracy = currentGame 
-    ? calculateVoteAccuracy(currentGame.winner, currentVotes.home, currentVotes.away)
-    : null;
 
   // 로딩 중
   if (isAuthLoading || loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center transition-colors duration-200">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
-          <p style={{ color: '#2d5f4f' }}>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] dark:border-[#4ade80] mx-auto mb-4"></div>
+          <p className="text-[#2d5f4f] dark:text-[#4ade80] font-medium">
             {isAuthLoading ? '로그인 확인 중...' : '경기 데이터를 불러오는 중...'}
           </p>
         </div>
@@ -86,23 +82,23 @@ export default function Prediction() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* 컨펌 다이얼로그 */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent className="dark:bg-gray-800 dark:border-gray-700">
+        <AlertDialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700">
           <AlertDialogHeader>
-            <AlertDialogTitle style={{ color: '#2d5f4f' }}>
+            <AlertDialogTitle style={{ color: '#2d5f4f' }} className="dark:text-[#4ade80]">
               {confirmDialogData.title}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-base whitespace-pre-line dark:text-gray-300">
+            <AlertDialogDescription className="text-base whitespace-pre-line text-gray-600 dark:text-gray-300">
               {confirmDialogData.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel className="dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">취소</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDialogData.onConfirm}
-              className="text-white"
+              className="text-white hover:opacity-90"
               style={{ backgroundColor: '#2d5f4f' }}
             >
               확인
@@ -113,32 +109,67 @@ export default function Prediction() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Title */}
-        <div className="flex items-center gap-3 mb-8">
-          <TrendingUp className="w-7 h-7" style={{ color: '#2d5f4f' }} />
-          <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>KBO 예측</h2>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="bg-[#2d5f4f] dark:bg-[#4ade80] p-2 rounded-lg">
+            <TrendingUp className="w-6 h-6 text-white dark:text-gray-900" />
+          </div>
+          <h2 className="text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">KBO 예측</h2>
+        </div>
+
+        {/* User Stats Widget (Gamification) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-3">
+            <div className="p-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+              <Target className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">적중률</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.accuracy}%</p>
+            </div>
+          </Card>
+          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-3">
+            <div className={`p-2 rounded-full ${dummyUserStats.streak >= 3 ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 animate-pulse' : 'bg-gray-100 text-gray-500'}`}>
+              <Flame className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">연승 도전</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.streak}연승</p>
+            </div>
+          </Card>
+          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-3">
+            <div className="p-2 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+              <Trophy className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">총 예측</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.totalPredictions}회</p>
+            </div>
+          </Card>
+          {/* 추가 스탯 자리 or 광고 배너 */}
+          <div className="hidden md:flex items-center justify-center rounded-xl bg-gradient-to-r from-[#2d5f4f] to-[#1f4438] text-white p-4 shadow-sm">
+             <span className="text-sm font-medium opacity-90">오늘의 승부 예측하고 포인트를 받으세요!</span>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-3 mb-8">
+        <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-2xl mb-8 w-fit">
           <button
             onClick={() => setActiveTab('match')}
-            className="px-6 py-3 rounded-xl transition-all"
-            style={{
-              backgroundColor: activeTab === 'match' ? '#2d5f4f' : '#f3f4f6',
-              color: activeTab === 'match' ? 'white' : '#6b7280',
-              fontWeight: activeTab === 'match' ? 700 : 400
-            }}
+            className={`px-6 py-2.5 rounded-xl transition-all text-sm font-bold ${
+              activeTab === 'match'
+                ? 'bg-white dark:bg-gray-700 text-[#2d5f4f] dark:text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
           >
             승부예측
           </button>
           <button
             onClick={() => setActiveTab('ranking')}
-            className="px-6 py-3 rounded-xl transition-all"
-            style={{
-              backgroundColor: activeTab === 'ranking' ? '#2d5f4f' : '#f3f4f6',
-              color: activeTab === 'ranking' ? 'white' : '#6b7280',
-              fontWeight: activeTab === 'ranking' ? 700 : 400
-            }}
+            className={`px-6 py-2.5 rounded-xl transition-all text-sm font-bold ${
+              activeTab === 'ranking'
+                ? 'bg-white dark:bg-gray-700 text-[#2d5f4f] dark:text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
           >
             순위예측
           </button>
@@ -147,39 +178,37 @@ export default function Prediction() {
         {activeTab === 'match' ? (
           <>
             {/* Date Navigation */}
-            <Card className="p-6 mb-6 bg-[#f0f9f6] dark:bg-[#1f4438]/20 dark:border-gray-700">
+            <Card className="p-4 mb-6 bg-white dark:bg-gray-800 border-none shadow-sm">
               <div className="flex items-center justify-between">
                 <button
                   onClick={goToPreviousDate}
                   disabled={currentDateIndex === 0}
-                  className="p-2 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  style={{ color: '#2d5f4f' }}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[#2d5f4f] dark:text-[#4ade80]"
                 >
-                  <ChevronLeft size={28} />
+                  <ChevronLeft size={24} />
                 </button>
 
                 <div className="flex-1 text-center">
-                  <p className="mb-2" style={{ color: '#2d5f4f', fontWeight: 700 }}>
+                  <p className="text-lg font-black text-[#2d5f4f] dark:text-[#4ade80] mb-1">
                     {formatDate(currentDate)}
                   </p>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                     {isPastGame
-                      ? '과거 경기 결과와 투표 결과를 확인해보세요!'
+                      ? '지난 경기 결과를 확인하세요'
                       : isFutureGame
-                      ? '여러분의 예측에 투표해주세요!'
+                      ? '승리가 예상되는 팀을 선택하세요'
                       : isToday && currentDateGames.length === 0
-                      ? '오늘은 예정된 경기가 없습니다.'
-                      : '여러분의 예측에 투표해주세요!'}
+                      ? '오늘은 경기가 없습니다'
+                      : '승리가 예상되는 팀을 선택하세요'}
                   </p>
                 </div>
 
                 <button
                   onClick={goToNextDate}
                   disabled={currentDateIndex === allDatesData.length - 1}
-                  className="p-2 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  style={{ color: '#2d5f4f' }}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[#2d5f4f] dark:text-[#4ade80]"
                 >
-                  <ChevronRight size={28} />
+                  <ChevronRight size={24} />
                 </button>
               </div>
             </Card>
@@ -187,186 +216,56 @@ export default function Prediction() {
             {currentDateGames.length > 0 ? (
               <>
                 {/* Game Selection Tabs */}
-                <div className="flex gap-3 mb-8 flex-wrap">
+                <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
                   {currentDateGames.map((_, index) => (
-                    <Button
+                    <button
                       key={index}
                       onClick={() => setSelectedGame(index)}
-                      className={`rounded-lg px-6 py-2 ${
+                      className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all ${
                         selectedGame === index
-                          ? 'text-white'
-                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          ? 'bg-[#2d5f4f] text-white shadow-md'
+                          : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
-                      style={selectedGame === index ? { backgroundColor: '#2d5f4f' } : {}}
                     >
                       {index + 1}경기
-                    </Button>
+                    </button>
                   ))}
                 </div>
 
-                {/* Game Card */}
+                {/* Advanced Game Card */}
                 {currentGame && (
-                  <Card className="p-8 mb-6 dark:bg-gray-800 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-8">
-                      <div className="flex flex-col items-center">
-                        <div className="mb-3">
-                          <TeamLogo team={currentGame.awayTeam} size={96} />
-                        </div>
-                        <p className="dark:text-white" style={{ fontWeight: 700 }}>{getFullTeamName(currentGame.awayTeam)}</p>
-                      </div>
-
-                      {isPastGame ? (
-                        <div className="flex items-center gap-8">
-                          <span className="text-6xl font-bold" style={{ color: TEAM_COLORS[currentGame.awayTeam] }}>
-                            {currentGame.awayScore}
-                          </span>
-                          <span style={{ fontSize: '2rem', fontWeight: 900, color: '#2d5f4f' }}>VS</span>
-                          <span className="text-6xl font-bold" style={{ color: TEAM_COLORS[currentGame.homeTeam] }}>
-                            {currentGame.homeScore}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-2">
-                          <span style={{ fontSize: '2rem', fontWeight: 900, color: '#2d5f4f' }}>VS</span>
-                          <div 
-                            className="px-4 py-2 rounded-full text-white"
-                            style={{ backgroundColor: '#2d5f4f' }}
-                          >
-                            {GAME_TIME}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex flex-col items-center">
-                        <div className="mb-3">
-                          <TeamLogo team={currentGame.homeTeam} size={96} />
-                        </div>
-                        <p style={{ fontWeight: 700 }}>{getFullTeamName(currentGame.homeTeam)}</p>
-                      </div>
-                    </div>
-
-                    {isFutureGame && !isToday && (
-                      <div className="flex gap-4 mb-6">
-                        <Button
-                          onClick={() => handleVote('away' as VoteTeam, currentGame, isPastGame)}
-                          className="flex-1 py-6 text-white text-lg rounded-lg hover:opacity-90 transition-opacity"
-                          style={{ 
-                            backgroundColor: TEAM_COLORS[currentGame.awayTeam],
-                            fontWeight: 700,
-                            opacity: userVote[currentGameId!] === 'away' ? 1 : userVote[currentGameId!] === 'home' ? 0.5 : 1
-                          }}
-                        >
-                          {getFullTeamName(currentGame.awayTeam)} {userVote[currentGameId!] === 'away' && '✓'}
-                        </Button>
-                        <Button
-                          onClick={() => handleVote('home' as VoteTeam, currentGame, isPastGame)}
-                          className="flex-1 py-6 text-white text-lg rounded-lg hover:opacity-90 transition-opacity"
-                          style={{ 
-                            backgroundColor: TEAM_COLORS[currentGame.homeTeam],
-                            fontWeight: 700,
-                            opacity: userVote[currentGameId!] === 'home' ? 1 : userVote[currentGameId!] === 'away' ? 0.5 : 1
-                          }}
-                        >
-                          {getFullTeamName(currentGame.homeTeam)} {userVote[currentGameId!] === 'home' && '✓'}
-                        </Button>
-                      </div>
-                    )}
-
-                    <div className="rounded-lg p-6" style={{ backgroundColor: '#f0f9f6' }}>
-                      <div className="flex items-center justify-between mb-4">
-                        <span style={{ color: '#2d5f4f', fontWeight: 700 }}>
-                          {isPastGame ? '투표 결과 현황' : '실시간 투표 현황'}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          총 {totalVotes}명 참여
-                        </span>
-                      </div>
-                      
-                      {isPastGame && currentGame.winner !== 'draw' && voteAccuracy !== null && (
-                        <div className="mb-3 text-center text-sm" style={{ color: '#2d5f4f' }}>
-                          <span className="font-bold">{voteAccuracy}%</span>의 팬들이 승리팀을 정확히 예측했습니다!
-                        </div>
-                      )}
-
-                      {isPastGame && currentGame.winner === 'draw' && (
-                        <div className="mb-3 text-center text-sm font-bold" style={{ color: '#f59e0b' }}>
-                          무승부 경기입니다
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between mb-2">
-                        <span style={{ fontWeight: 700, color: '#333' }}>
-                          {getFullTeamName(currentGame.awayTeam)}
-                        </span>
-                        <span style={{ fontWeight: 700, color: '#333' }}>
-                          {getFullTeamName(currentGame.homeTeam)}
-                        </span>
-                      </div>
-
-                      <div className="relative w-full h-12 rounded-lg overflow-hidden" style={{ backgroundColor: '#e5e7eb' }}>
-                        <div className="absolute inset-0 flex">
-                          <div
-                            className="flex items-center justify-center text-white transition-all duration-500"
-                            style={{ 
-                              width: `${awayPercentage}%`,
-                              backgroundColor: TEAM_COLORS[currentGame.awayTeam],
-                              fontWeight: 700,
-                              fontSize: '1.125rem',
-                              opacity: isPastGame && currentGame.winner === 'away' ? 1 : isPastGame ? 0.6 : 1
-                            }}
-                          >
-                            {totalVotes > 0 && awayPercentage > 0 && `${awayPercentage}%`}
-                          </div>
-                          <div
-                            className="flex items-center justify-center text-white transition-all duration-500"
-                            style={{ 
-                              width: `${homePercentage}%`,
-                              backgroundColor: TEAM_COLORS[currentGame.homeTeam],
-                              fontWeight: 700,
-                              fontSize: '1.125rem',
-                              opacity: isPastGame && currentGame.winner === 'home' ? 1 : isPastGame ? 0.6 : 1
-                            }}
-                          >
-                            {totalVotes > 0 && homePercentage > 0 && `${homePercentage}%`}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                )}
-
-                {currentGameId && userVote[currentGameId] && currentGame && (
-                  <div className="text-center mb-6">
-                    <p style={{ color: '#2d5f4f', fontWeight: 700 }}>
-                       {userVote[currentGameId] === 'home' 
-                        ? getFullTeamName(currentGame.homeTeam) 
-                        : getFullTeamName(currentGame.awayTeam)}에 투표하셨습니다!
-                      {isPastGame && userVote[currentGameId] === currentGame.winner && ' 정확한 예측이었습니다! ⚾'}
-                    </p>
-                  </div>
+                  <AdvancedMatchCard 
+                    key={currentGame.gameId}
+                    game={currentGame}
+                    userVote={userVote[currentGameId!] || null}
+                    votePercentages={votePercentages}
+                    isPastGame={isPastGame}
+                    isFutureGame={isFutureGame}
+                    isToday={isToday}
+                    onVote={(team) => handleVote(team, currentGame, isPastGame)}
+                  />
                 )}
               </>
             ) : (
-              <Card className="p-16 text-center bg-[#f0f9f6] dark:bg-[#1f4438]/20 dark:border-gray-700" style={{
-                height: '500px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <h3 className="text-xl font-bold" style={{ color: '#2d5f4f' }}>
+              <Card className="p-16 text-center bg-white dark:bg-gray-800 border-none shadow-sm flex flex-col items-center justify-center min-h-[400px]">
+                <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-full mb-4">
+                  <TrendingUp className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
                   {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
                 </h3>
+                <p className="text-gray-500 dark:text-gray-500">다른 날짜를 확인해보세요!</p>
               </Card>
             )}
           </>
         ) : (
           <>
-            <Card className="p-6 mb-6 bg-[#f0f9f6] dark:bg-[#1f4438]/20 dark:border-gray-700">
-              <p className="text-center mb-2" style={{ color: '#2d5f4f', fontWeight: 700 }}>
+            <Card className="p-6 mb-6 bg-white dark:bg-gray-800 border-none shadow-sm text-center">
+              <h3 className="text-xl font-black text-[#2d5f4f] dark:text-[#4ade80] mb-2">
                 2026 시즌 순위 예측
-              </p>
-              <p className="text-center text-gray-600 dark:text-gray-400">
-                팀을 드래그해서 내년 시즌 순위를 예측해보세요
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                나만의 드림팀 순위를 완성하고 친구들과 공유해보세요!
               </p>
             </Card>
             <RankingPrediction />

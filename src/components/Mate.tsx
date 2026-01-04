@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'; 
 import { useNavigate } from 'react-router-dom';
-import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
+import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -159,9 +159,13 @@ export default function Mate() {
 
         <div className="space-y-2 mb-3">
           <div className="flex items-center gap-2 mb-1">
-            <TeamLogo teamId={party.homeTeam} size="md" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
+              <TeamLogo teamId={party.homeTeam} size={36} />
+            </div>
             <span className="text-sm text-gray-400 dark:text-gray-600">VS</span>
-            <TeamLogo teamId={party.awayTeam} size="md" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
+              <TeamLogo teamId={party.awayTeam} size={36} />
+            </div>
           </div>
 
           <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">

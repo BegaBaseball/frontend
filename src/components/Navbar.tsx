@@ -1,4 +1,4 @@
-import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Bell, LogOut, ShieldAlert, Menu, X, Moon, Sun } from 'lucide-react';
@@ -138,50 +138,57 @@ export default function Navbar() {
 
   return (
     <header
-      className="border-b border-gray-200 dark:border-gray-700 sticky top-0 z-[60] transition-colors duration-300 bg-white dark:bg-gray-900"
-      {...(isMenuOpen && !isDesktop ? { style: { backgroundColor: theme === 'dark' ? '#111827' : 'white' } } : {})}
+      className={`border-b border-gray-200 dark:border-gray-700 sticky top-0 z-[60] transition-colors duration-300 ${
+        isMenuOpen ? 'bg-background' : 'bg-background/80 backdrop-blur-md'
+      }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
-          {/* 1. 로고 */}
+          {/* 1. 로고: 브랜드 컬러 일관성 유지 및 계층 구조 적용 */}
           <button
             onClick={() => navigate('/home')}
-            className="flex items-center gap-3 shrink-0"
+            className="flex items-center gap-3 shrink-0 group"
           >
-            <img src={baseballLogo} alt="Baseball" className="w-10 h-10" />
-            <div>
-              <h1 className={`tracking-wider text-xl transition-colors font-black ${
-                isMenuOpen && !isDesktop
-                  ? theme === 'dark' ? 'text-white' : 'text-gray-900'
-                  : 'text-primary dark:text-white'
-              }`}>
+            <img 
+              src={baseballLogo} 
+              alt="Baseball" 
+              className="w-10 h-10 transition-transform duration-300 group-hover:rotate-12" 
+            />
+            <div className="flex flex-col items-start">
+              <h1 className="font-black text-xl tracking-widest text-primary dark:text-[#4ade80] leading-none">
                 BEGA
               </h1>
-              <p className={`text-xs transition-colors ${
-                isMenuOpen && !isDesktop
-                  ? theme === 'dark' ? 'text-white' : 'text-gray-900'
-                  : 'text-primary dark:text-white'
-              }`}>
+              <p className="text-[10px] font-bold text-muted-foreground tracking-tight">
                 BASEBALL GUIDE
               </p>
             </div>
           </button>
 
-          {/* 2. 데스크톱 네비게이션 (중요: md:flex) */}
-          {/* 모바일(hidden) -> md 이상(flex): 상단 메뉴가 보임 */}
+          {/* 2. 데스크톱 네비게이션: 줄바꿈 방지 및 유동적 간격 */}
           {isDesktop && (
-            <nav className="flex flex-1 justify-center items-center gap-2 md:gap-3 lg:gap-6 xl:gap-8 flex-wrap">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => navigate(`/${item.id}`)}
-                  className={`${location.pathname === `/${item.id}` ? 'hover:opacity-70' : 'text-gray-700 dark:text-gray-300 hover:opacity-70'} whitespace-nowrap px-2 flex-shrink-0`}
-                  style={location.pathname === `/${item.id}` ? { color: '#2d5f4f', fontWeight: 700 } : {}}
-                >
-                  {item.label}
-                </button>
-              ))}
+            <nav className="hidden md:flex flex-1 items-center justify-center">
+              <div className="flex items-center gap-4 lg:gap-8 xl:gap-12 px-4 whitespace-nowrap">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate(`/${item.id}`)}
+                    className={`
+                      relative px-1 py-1 text-sm lg:text-base font-bold transition-all duration-200
+                      ${location.pathname === `/${item.id}` 
+                        ? 'text-primary dark:text-[#4ade80]' 
+                        : 'text-muted-foreground hover:text-primary dark:hover:text-[#4ade80]'
+                      }
+                    `}
+                  >
+                    {item.label}
+                    {/* 선택된 메뉴 아래에 작은 점 표시 */}
+                    {location.pathname === `/${item.id}` && (
+                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary dark:bg-[#4ade80]" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </nav>
           )}
 
@@ -200,22 +207,59 @@ export default function Navbar() {
             {/* 알림 버튼 (항상 보임) */}
             <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
               <PopoverTrigger asChild>
-                <button className={`relative p-1 transition-colors ${isMenuOpen && !isDesktop ? 'text-white hover:text-gray-200' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}>
+                <button 
+                  className={`
+                    relative p-2 rounded-full transition-all duration-200 
+                    focus:outline-none focus:ring-2 focus:ring-primary/50
+                    ${isMenuOpen && !isDesktop 
+                      ? 'text-white hover:bg-white/10' 
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }
+                  `}
+                >
                   <Bell className="w-6 h-6" />
+                  
+                  {/* 개선된 알림 배지 */}
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center text-xs text-white font-bold">
-                      {unreadCount > 9 ? '9+' : unreadCount}
+                    <span className="absolute top-1.5 right-1.5 flex h-4 w-4">
+                      {/* 1. 핑(Ping) 애니메이션: 새 알림이 있음을 생동감 있게 표현 */}
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      
+                      {/* 2. 실제 배지: 배경색과 분리되는 테두리(ring) 추가 */}
+                      <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 ring-2 ring-white dark:ring-gray-900 items-center justify-center">
+                        <span className="text-[10px] font-bold text-white leading-none">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      </span>
                     </span>
                   )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-96 p-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" align="end">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                  <h3 className="font-bold" style={{ color: '#2d5f4f' }}>
+
+              {/* 개선된 팝업 컨텐츠 */}
+              <PopoverContent 
+                className="
+                  w-[calc(100vw-32px)] mr-4 
+                  sm:w-96 sm:mr-0
+                  p-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-xl
+                " 
+                align="end"
+                sideOffset={8}
+              >
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+                  <h3 className="font-bold text-sm text-primary dark:text-[#4ade80]">
                     알림
                   </h3>
+                  {unreadCount > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {unreadCount}개의 읽지 않은 알림
+                    </span>
+                  )}
                 </div>
-                <NotificationPanel />
+                {/* 최대 높이 제한 및 스크롤 추가 */}
+                <div className="max-h-[60vh] overflow-y-auto">
+                  <NotificationPanel />
+                </div>
               </PopoverContent>
             </Popover>
 
@@ -223,22 +267,21 @@ export default function Navbar() {
             {/* 모바일(hidden) -> md 이상(flex): 로그인/내정보 버튼 보임 */}
             {isDesktop && (
               <div className="flex items-center gap-1 md:gap-2 lg:gap-3 xl:gap-4">
-                {isLoggedIn ? (
-                  <>
-                    <button
-                      onClick={() => navigate('/mypage')}
-                      className="user-profile-button flex items-center justify-center rounded-full transition-all duration-200 font-bold text-xs md:text-sm px-3 md:px-4 lg:px-6 h-9"
-                    >
-                      <span className="relative inline-block">
-                        <span className="user-name">
-                          {user?.name || '회원'} 님
-                        </span>
-                        <span className="mypage-text absolute inset-0 flex items-center justify-center">
-                          마이페이지
-                        </span>
-                      </span>
-                    </button>
-                    {isAdmin && (
+                                                {isLoggedIn ? (
+                                                  <>
+                                                                        <button
+                                                                          onClick={() => navigate('/mypage')}
+                                                                          className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary text-primary dark:border-[#4ade80] dark:text-[#4ade80] font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-white dark:hover:bg-[#4ade80] dark:hover:text-[#064e3b]"
+                                                                        >                                                      {/* 1. 닉네임: 평소 중앙, 호버 시 위로 사라짐 */}
+                                                      <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:-translate-y-full group-hover:opacity-0">
+                                                        {user?.name || '회원'} 님
+                                                      </span>
+                                
+                                                      {/* 2. 마이페이지: 평소 아래, 호버 시 중앙으로 올라옴 */}
+                                                      <span className="absolute inset-0 flex items-center justify-center translate-y-full opacity-0 transition-all duration-300 ease-in-out group-hover:translate-y-0 group-hover:opacity-100">
+                                                        마이페이지
+                                                      </span>
+                                                    </button>                    {isAdmin && (
                       <Button
                         onClick={() => navigate('/admin')}
                         variant="outline"
@@ -262,7 +305,7 @@ export default function Navbar() {
                 ) : (
                   <Button
                     onClick={() => navigate('/login')}
-                    className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm"
+                    className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white"
                     style={{ backgroundColor: '#2d5f4f' }}
                   >
                     로그인
@@ -360,7 +403,7 @@ export default function Navbar() {
               ) : (
                 <Button 
                   onClick={() => navigate('/login')} 
-                  className="menu-click-mobile w-full py-6 text-base font-semibold"
+                  className="menu-click-mobile w-full py-6 text-base font-semibold text-white"
                   style={{ backgroundColor: '#2d5f4f' }}
                 >
                   로그인

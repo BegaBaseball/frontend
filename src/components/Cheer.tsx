@@ -223,7 +223,7 @@ export default function Cheer() {
                   <div className="flex items-center gap-8">
 
                     <div className="flex-shrink-0">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
                         <TeamLogo team={post.team} size={36} />
                       </div>
                     </div>

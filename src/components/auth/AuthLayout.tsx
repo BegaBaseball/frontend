@@ -1,5 +1,5 @@
-import begaCharacter from 'figma:asset/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
-import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
+import begaCharacter from '../../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
+import grassDecor from '../../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
