@@ -13,11 +13,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 158 35% 27%; /* #2d5f4f - HSL 변환 필요하지만 일단 HEX 사용 가능하거나 RGB로 */
-    /* Tailwind에서 CSS 변수 사용 시 <alpha-value> 지원을 위해 RGB/HSL 값 권장 */
-    /* #2d5f4f -> 45 95 79 (RGB) -> 158 35 27 (HSL) */
-    /* 여기서는 oklch 대신 프로젝트에 맞는 값으로 설정 */
-    
+    --primary: 158 35% 27%; /* #2d5f4f */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -71,22 +67,38 @@
 }
 
 @layer base {
+  * {
+    @apply border-border;
+  }
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    @apply bg-background text-foreground;
   }
 }
 
-/* 햄버거 메뉴 버튼 - 768px 이상에서 숨김 */
-@media (min-width: 768px) {
-  .hamburger-menu-btn {
-    display: none;
+@layer components {
+  /* 햄버거 메뉴 버튼 - 768px 이상에서 숨김 */
+  @media (min-width: 768px) {
+    .hamburger-menu-btn {
+      display: none;
+    }
   }
-}
 
-/* 모바일 메뉴 애니메이션 */
-.mobile-menu-container {
-  animation: slideInFade 0.3s ease-out !important;
+  /* 모바일 메뉴 애니메이션 */
+  .mobile-menu-container {
+    animation: slideInFade 0.3s ease-out !important;
+  }
+
+  /* 모바일 메뉴 팝업 스타일 */
+  .mobile-menu-popup {
+    width: 380px;
+  }
+
+  /* 작은 화면에서는 화면 폭에 맞게 조정 */
+  @media (max-width: 420px) {
+    .mobile-menu-popup {
+      width: calc(100vw - 32px);
+    }
+  }
 }
 
 @keyframes slideInFade {
@@ -100,14 +112,71 @@
   }
 }
 
-/* 모바일 메뉴 팝업 스타일 */
-.mobile-menu-popup {
-  width: 380px;
+/* --- 유저 프로필 버튼 애니메이션 (순수 CSS 강제 적용) --- */
+
+.user-profile-button {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  width: 130px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  background-color: transparent;
+  border: 1px solid hsl(var(--primary));
+  color: hsl(var(--primary));
+  border-radius: 9999px !important;
+  overflow: hidden !important;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-/* 작은 화면에서는 화면 폭에 맞게 조정 */
-@media (max-width: 420px) {
-  .mobile-menu-popup {
-    width: calc(100vw - 32px);
-  }
+.dark .user-profile-button {
+  border-color: #4ade80 !important;
+  color: #4ade80 !important;
+}
+
+.user-profile-button:hover {
+  background-color: hsl(var(--primary)) !important;
+  color: white !important;
+}
+
+.dark .user-profile-button:hover {
+  background-color: #4ade80 !important;
+  color: #064e3b !important;
+}
+
+.user-profile-button .user-name,
+.user-profile-button .mypage-text {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  pointer-events: none;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+.user-profile-button .user-name {
+  transform: translateY(0);
+  opacity: 1;
+}
+.user-profile-button:hover .user-name {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+.user-profile-button .mypage-text {
+  transform: translateY(100%);
+  opacity: 0;
+}
+.user-profile-button:hover .mypage-text {
+  transform: translateY(0);
+  opacity: 1;
 }

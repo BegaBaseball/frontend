@@ -106,6 +106,9 @@ export const useRankingPrediction = () => {
     }
   };
 
+  // Computed
+  const isComplete = isRankingComplete(rankings);
+
   // 팀 추가
   const handleTeamClick = (team: Team) => {
     if (alreadySaved) {
@@ -222,8 +225,6 @@ export const useRankingPrediction = () => {
       toast.error('카카오톡 공유에 실패했습니다.');
     }
   };
-
-  const isComplete = isRankingComplete(rankings);
 
   return {
     // State

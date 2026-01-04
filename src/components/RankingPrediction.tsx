@@ -5,7 +5,7 @@ import { RotateCcw, Award, X, GripVertical } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
-import firstPlaceImage from 'figma:asset/f552d9266ac817e0c86b657dead0069395c6da11.png';
+import firstPlaceImage from '../assets/f552d9266ac817e0c86b657dead0069395c6da11.png';
 import { useRankingPrediction } from '../hooks/useRankingPrediction';
 import { useDrag, useDrop } from 'react-dnd';
 import { Team } from '../store/predictionStore';
@@ -113,48 +113,71 @@ export default function RankingPrediction() {
 
     drag(drop(ref));
 
-    const backgroundColor = index < 5 ? '#2d5f4f' : '#9ca3af';
+    // 가을야구권(1~5위)과 하위권(6~10위) 색상 구분
+    const isPostSeasonZone = index < 5;
+    const rankBadgeColor = isPostSeasonZone ? '#2d5f4f' : '#9ca3af';
 
     return (
-      <div
-        ref={ref}
-        className={`border-2 rounded-xl p-3 transition-all ${
-          team 
-            ? `border-transparent bg-white shadow-sm ${!alreadySaved && 'cursor-move'}` 
-            : 'border-dashed border-gray-300 bg-gray-50'
-        } ${isDragging ? 'opacity-50' : 'opacity-100'}`}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0"
-            style={{ backgroundColor, fontWeight: 900, fontSize: '1.1rem' }}
-          >
-            {index + 1}
+      <>
+        {/* 5위와 6위 사이 포스트시즌 커트라인 표시 */}
+        {index === 5 && (
+          <div className="flex items-center gap-4 my-4 opacity-80">
+            <div className="h-px flex-1 bg-red-400/50 dark:bg-red-500/50 border-t border-dashed border-red-500"></div>
+            <span className="text-xs font-bold text-red-500 px-3 py-1 bg-red-50 dark:bg-red-900/20 rounded-full border border-red-200 dark:border-red-800">
+              가을야구 진출 (PS)
+            </span>
+            <div className="h-px flex-1 bg-red-400/50 dark:bg-red-500/50 border-t border-dashed border-red-500"></div>
           </div>
+        )}
 
-          {team ? (
-            <div className="flex items-center gap-3 flex-1">
-              {!alreadySaved && <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />}
-              <TeamLogo team={team.shortName} size={40} />
-              <span style={{ fontWeight: 700 }} className="flex-1">{team.name}</span>
-              {!alreadySaved && (
-                <Button
-                  onClick={() => handleRemoveTeam(index)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-red-50"
-                >
-                  <X className="w-4 h-4 text-red-500" />
-                </Button>
-              )}
+        <div
+          ref={ref}
+          className={`border-2 rounded-xl p-3 transition-all duration-200 ${
+            team 
+              ? `border-transparent shadow-sm ${!alreadySaved && 'cursor-move hover:scale-[1.01] hover:shadow-md'} ${
+                  isPostSeasonZone 
+                    ? 'bg-white dark:bg-gray-800' 
+                    : 'bg-gray-50/80 dark:bg-gray-800/60'
+                }` 
+              : 'border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30'
+          } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'}`}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${isPostSeasonZone ? 'ring-2 ring-emerald-100 dark:ring-emerald-900' : ''}`}
+              style={{ backgroundColor: rankBadgeColor, fontWeight: 900, fontSize: '1.1rem' }}
+            >
+              {index + 1}
             </div>
-          ) : (
-            <div className="flex-1 text-center text-gray-400 text-sm">
-              팀을 선택하세요
-            </div>
-          )}
+
+            {team ? (
+              <div className="flex items-center gap-3 flex-1">
+                {!alreadySaved && <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 border border-gray-100 flex-shrink-0">
+                  <TeamLogo team={team.shortName} size={32} />
+                </div>
+                <span style={{ fontWeight: 700 }} className={`flex-1 ${isPostSeasonZone ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                  {team.name}
+                </span>
+                {!alreadySaved && (
+                  <Button
+                    onClick={() => handleRemoveTeam(index)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 hover:bg-red-50 dark:hover:bg-red-900/30 group"
+                  >
+                    <X className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" />
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="flex-1 text-center text-gray-400 dark:text-gray-500 text-sm">
+                팀을 선택하세요
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </>
     );
   };
 
@@ -164,17 +187,17 @@ export default function RankingPrediction() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle style={{ color: '#2d5f4f' }}>순위 확정</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="dark:text-gray-400">
               한번 저장하면 순위 변경이 불가능합니다.<br />
               이대로 순위를 확정하시겠습니까?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSaving}>취소</AlertDialogCancel>
+            <AlertDialogCancel disabled={isSaving} className="dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">취소</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmSave}
               disabled={isSaving}
-              className="text-white"
+              className="text-white hover:opacity-90"
               style={{ backgroundColor: '#2d5f4f' }}
             >
               {isSaving ? '저장 중...' : '확인'}
@@ -191,7 +214,7 @@ export default function RankingPrediction() {
             {!alreadySaved && (
               <Button
                 onClick={resetRankings}
-                className="flex items-center gap-2 border-2"
+                className="flex items-center gap-2 border-2 dark:bg-transparent"
                 variant="outline"
                 style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
               >
@@ -211,7 +234,7 @@ export default function RankingPrediction() {
         {/* Team Selection Area - 오른쪽 */}
         <div style={{ marginTop: '60px' }}>
           {alreadySaved && (
-            <div className="mb-4 px-6 py-8 rounded-lg" style={{ backgroundColor: '#f0f9f4', color: '#2d5f4f' }}>
+            <div className="mb-4 px-6 py-8 rounded-lg bg-green-50 dark:bg-green-900/20 text-[#2d5f4f] dark:text-green-400">
               <p className="text-base font-bold text-center">
                 저장된 예측입니다 
               </p>
@@ -225,21 +248,23 @@ export default function RankingPrediction() {
             </span>
           </h2>
 
-          <div className="rounded-xl border-2 bg-white overflow-hidden" style={{ borderColor: '#2d5f4f' }}>
+          <div className="rounded-xl border-2 bg-white dark:bg-gray-800 overflow-hidden" style={{ borderColor: '#2d5f4f' }}>
             {availableTeams.length > 0 ? (
-              <div className="divide-y">
+              <div className="divide-y dark:divide-gray-700">
                 {availableTeams.map((team) => (
                   <button
                     key={team.id}
                     onClick={() => handleTeamClick(team)}
                     disabled={alreadySaved}
                     className={`w-full p-2 transition-colors text-left ${
-                      !alreadySaved && 'hover:bg-gray-50'
+                      !alreadySaved && 'hover:bg-gray-50 dark:hover:bg-gray-700'
                     } ${alreadySaved && 'opacity-50 cursor-not-allowed'}`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <TeamLogo team={team.shortName} size={32} />
-                      <span style={{ fontWeight: 600 }}>{team.name}</span>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 border border-gray-100 flex-shrink-0">
+                        <TeamLogo team={team.shortName} size={32} />
+                      </div>
+                      <span style={{ fontWeight: 600 }} className="text-gray-900 dark:text-white">{team.name}</span>
                     </div>
                   </button>
                 ))}

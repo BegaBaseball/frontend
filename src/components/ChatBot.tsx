@@ -5,11 +5,13 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChatBot } from '../hooks/useChatBot';
 import { useAuthStore } from '../store/authStore';
-import { useState, useEffect } from 'react';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useEffect } from 'react';
 
 
 export default function ChatBot() {
   const { isLoggedIn } = useAuthStore();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const {
     isOpen,
     setIsOpen,
@@ -23,63 +25,57 @@ export default function ChatBot() {
     handleSendMessage,
   } = useChatBot();
 
+  // 모바일에서 챗봇 열릴 때 body 스크롤 방지
+  useEffect(() => {
+    if (isOpen && isMobile) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, isMobile]);
+
   return (
-    <div style={{ position: 'fixed', zIndex: 9999 }}>
-      {/* Chat Window */}
+    <div className="fixed z-[9999]">
+      {/* Chat Window - 모바일: 전체화면 / 데스크톱: 우측하단 팝업 */}
       {isOpen && (
         <div
-          className="animate-fade-in-up"
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            width: '400px',
-            maxWidth: 'calc(100vw - 40px)',
-            height: '600px',
-            backgroundColor: '#000000',
-            borderRadius: '24px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
+          className={`
+            animate-fade-in-up
+            fixed flex flex-col overflow-hidden
+            bg-black border border-white/10
+            ${isMobile
+              ? 'inset-0 rounded-none'
+              : 'bottom-5 right-5 w-[400px] max-w-[calc(100vw-40px)] h-[600px] rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]'
+            }
+          `}
         >
           {/* Header */}
-          <div
-            style={{
-              padding: '16px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: '#2d5f4f',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="p-4 border-b border-white/10 flex items-center justify-between bg-[#2d5f4f]">
+            <div className="flex items-center gap-3">
               <img
                 src={chatBotIcon}
                 alt="BEGA"
-                style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'white', padding: '6px' }}
+                className="w-10 h-10 rounded-full bg-white p-1.5"
               />
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h3 style={{ color: 'white', fontWeight: 'bold', fontSize: '16px', margin: 0 }}>야구 가이드 BEGA</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-white font-bold text-base m-0">야구 가이드 BEGA</h3>
                   <Badge variant="outline" className="text-xs bg-gray-800 text-gray-300 border-gray-700">Beta</Badge>
                 </div>
-                <p style={{ color: '#9ca3af', fontSize: '12px', margin: 0 }}>야구 정보 안내</p>
+                <p className="text-gray-400 text-xs m-0">야구 정보 안내</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              style={{
-                color: '#9ca3af',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '50%',
-              }}
+              className="text-gray-400 hover:text-gray-200 bg-transparent border-none cursor-pointer
+                         p-2 rounded-full transition-colors
+                         min-w-[44px] min-h-[44px] flex items-center justify-center
+                         focus:outline-none focus:ring-2 focus:ring-white/50"
+              aria-label="챗봇 닫기"
             >
               <X className="w-5 h-5" />
             </button>
@@ -88,33 +84,18 @@ export default function ChatBot() {
           {/* Messages */}
           <div
             ref={messagesContainerRef}
-            className="scrollbar-hide"
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}
+            className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scrollbar-hide"
           >
             {!isLoggedIn ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                <div style={{ textAlign: 'center', padding: '24px', borderRadius: '16px', backgroundColor: 'rgba(31, 41, 55, 0.5)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                  <h3 style={{ color: 'white', fontWeight: 'bold', marginBottom: '8px' }}>로그인이 필요합니다</h3>
-                  <p style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '16px' }}>야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center p-6 rounded-2xl bg-gray-800/50 border border-white/10">
+                  <h3 className="text-white font-bold mb-2">로그인이 필요합니다</h3>
+                  <p className="text-gray-400 text-sm mb-4">야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
                   <a
                     href="/login"
-                    style={{
-                      display: 'inline-block',
-                      padding: '10px 24px',
-                      borderRadius: '12px',
-                      color: 'white',
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      textDecoration: 'none',
-                      fontWeight: '500',
-                    }}
+                    className="inline-block py-2.5 px-6 rounded-xl text-white bg-white/10
+                               border border-white/20 no-underline font-medium
+                               hover:bg-white/20 transition-colors"
                   >
                     로그인하러 가기
                   </a>
@@ -125,38 +106,34 @@ export default function ChatBot() {
                 {messages.map((message, index) => (
                   <div
                     key={index}
-                    style={{
-                      display: 'flex',
-                      justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
-                    }}
+                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      style={{
-                        padding: '10px 16px',
-                        borderRadius: '16px',
-                        maxWidth: '85%',
-                        backgroundColor: message.sender === 'user' ? 'white' : 'rgba(55, 65, 81, 0.8)',
-                        color: message.sender === 'user' ? '#111827' : 'white',
-                        border: message.sender === 'bot' ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-                      }}
+                      className={`
+                        py-2.5 px-4 rounded-2xl max-w-[85%]
+                        ${message.sender === 'user'
+                          ? 'bg-white text-gray-900'
+                          : 'bg-gray-700/80 text-white border border-white/10'
+                        }
+                      `}
                     >
                       {message.sender === 'bot' ? (
                         <ReactMarkdown remarkPlugins={[remarkGfm]} className="text-sm prose prose-invert max-w-none">
                           {message.text}
                         </ReactMarkdown>
                       ) : (
-                        <p style={{ margin: 0, fontSize: '14px' }}>{message.text}</p>
+                        <p className="m-0 text-sm">{message.text}</p>
                       )}
-                      <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: message.sender === 'user' ? '#6b7280' : '#9ca3af' }}>
+                      <p className={`mt-1 text-[11px] ${message.sender === 'user' ? 'text-gray-500' : 'text-gray-400'}`}>
                         {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>
                 ))}
                 {isTyping && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                    <div style={{ padding: '12px 16px', borderRadius: '16px', backgroundColor: 'rgba(55, 65, 81, 0.8)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                      <p style={{ margin: 0, fontSize: '14px', color: '#d1d5db' }}>답변 생성 중...</p>
+                  <div className="flex justify-start">
+                    <div className="py-3 px-4 rounded-2xl bg-gray-700/80 border border-white/10">
+                      <p className="m-0 text-sm text-gray-300">답변 생성 중...</p>
                     </div>
                   </div>
                 )}
@@ -168,33 +145,18 @@ export default function ChatBot() {
           {/* Input */}
           <form
             onSubmit={handleSendMessage}
-            style={{
-              padding: '16px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            }}
+            className="p-4 border-t border-white/10"
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: '#111827',
-                borderRadius: '16px',
-                padding: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-              }}
-            >
+            <div className="flex items-center gap-2 bg-gray-900 rounded-2xl p-2 border border-white/10">
               <button
                 type="button"
                 disabled={!isLoggedIn || isProcessing}
-                style={{
-                  color: '#9ca3af',
-                  background: 'none',
-                  border: 'none',
-                  cursor: !isLoggedIn || isProcessing ? 'not-allowed' : 'pointer',
-                  padding: '8px',
-                  opacity: !isLoggedIn || isProcessing ? 0.5 : 1,
-                }}
+                className={`
+                  text-gray-400 bg-transparent border-none p-2
+                  ${!isLoggedIn || isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:text-gray-200'}
+                  transition-colors
+                `}
+                aria-label="파일 첨부"
               >
                 <Paperclip className="w-4 h-4" />
               </button>
@@ -203,28 +165,21 @@ export default function ChatBot() {
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder={!isLoggedIn ? '로그인이 필요합니다...' : '메시지를 입력하세요...'}
                 disabled={!isLoggedIn || isProcessing}
-                style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: 'white',
-                  fontSize: '14px',
-                  padding: '8px',
-                }}
+                inputMode="text"
+                autoComplete="off"
+                className="flex-1 bg-transparent border-none outline-none text-white text-sm py-2 px-1
+                           placeholder:text-gray-500 disabled:cursor-not-allowed"
               />
               <button
                 type="submit"
                 disabled={!isLoggedIn || isProcessing}
-                style={{
-                  backgroundColor: 'white',
-                  color: 'black',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '8px',
-                  cursor: !isLoggedIn || isProcessing ? 'not-allowed' : 'pointer',
-                  opacity: !isLoggedIn || isProcessing ? 0.5 : 1,
-                }}
+                className={`
+                  bg-white text-black border-none rounded-xl p-2
+                  ${!isLoggedIn || isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-gray-100'}
+                  transition-colors
+                  min-w-[40px] min-h-[40px] flex items-center justify-center
+                `}
+                aria-label="메시지 전송"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -237,34 +192,18 @@ export default function ChatBot() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            backgroundColor: '#2d5f4f',
-            border: 'none',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            transition: 'transform 0.2s',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          className="fixed bottom-5 right-5 w-16 h-16 rounded-full bg-[#2d5f4f] border-none
+                     shadow-[0_10px_25px_rgba(0,0,0,0.3)] cursor-pointer
+                     flex items-center justify-center text-white
+                     transition-transform duration-200 hover:scale-110 active:scale-95
+                     focus:outline-none focus:ring-4 focus:ring-[#2d5f4f]/50"
+          aria-label="챗봇 열기"
         >
           <img
             src={chatBotIcon}
-            alt="BEGA"
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
-            }}
+            alt=""
+            className="w-12 h-12 rounded-full"
+            aria-hidden="true"
           />
         </button>
       )}

@@ -69,7 +69,7 @@ export default function SignUp() {
             value={formData.name}
             onChange={(e) => handleFieldChange('name', e.target.value)}
             onBlur={() => handleFieldBlur('name')}
-            className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] ${fieldErrors.name ? 'border-red-500' : ''}`}
+            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.name ? 'border-red-500' : ''}`}
             style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
             placeholder="홍길동"
             disabled={isLoading || isSuccess}  // ✅ 수정
@@ -91,7 +91,7 @@ export default function SignUp() {
             value={formData.email}
             onChange={(e) => handleFieldChange('email', e.target.value)}
             onBlur={() => handleFieldBlur('email')}
-            className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] ${fieldErrors.email ? 'border-red-500' : ''}`}
+            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.email ? 'border-red-500' : ''}`}
             style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
             placeholder="example@email.com"
             disabled={isLoading || isSuccess}  // ✅ 수정
@@ -114,7 +114,7 @@ export default function SignUp() {
               value={formData.password}
               onChange={(e) => handleFieldChange('password', e.target.value)}
               onBlur={() => handleFieldBlur('password')}
-              className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
+              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
               style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
               placeholder="8자 이상 입력"
               disabled={isLoading || isSuccess}  // ✅ 수정
@@ -151,7 +151,7 @@ export default function SignUp() {
               value={formData.confirmPassword}
               onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
               onBlur={() => handleFieldBlur('confirmPassword')}
-              className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
+              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
               style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
               placeholder="비밀번호 재입력"
               disabled={isLoading || isSuccess}  // ✅ 수정
@@ -180,7 +180,7 @@ export default function SignUp() {
             onValueChange={(value) => handleFieldChange('favoriteTeam', value)}
             disabled={isLoading || isSuccess}  // ✅ 수정
           >
-            <SelectTrigger className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] ${fieldErrors.favoriteTeam ? 'border-red-500' : ''}`}>
+            <SelectTrigger className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.favoriteTeam ? 'border-red-500' : ''}`}>
               <SelectValue placeholder="팀을 선택하세요" />
             </SelectTrigger>
             <SelectContent>
