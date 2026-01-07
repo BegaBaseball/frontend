@@ -111,7 +111,7 @@ interface MateState {
   resetApplicationForm: () => void;
 }
 
-export const useMateStore = create<MateState>((set) => ({
+export const useMateStore = create<MateState>((set, get) => ({
   parties: [
     {
       id: '1',
@@ -356,23 +356,33 @@ export const useMateStore = create<MateState>((set) => ({
   
   approveApplication: (applicationId, partyId) => set((state) => {
     const application = state.applications.find(app => app.id === applicationId);
+    if (!application) return {};
+
     const updatedApplications = state.applications.map((app) =>
       app.id === applicationId ? { ...app, isApproved: true } : app
     );
     
-    // 채팅방 생성 또는 참여자 추가
+    // 채팅방 생성 또는 참여자 추가 (불변성 유지)
+    const existingRoomIndex = state.chatRooms.findIndex(room => room.partyId === partyId);
     let updatedChatRooms = [...state.chatRooms];
-    const existingRoom = updatedChatRooms.find(room => room.partyId === partyId);
     
-    if (existingRoom && application) {
-      existingRoom.participants = [...new Set([...existingRoom.participants, application.applicantId])];
-    } else if (application) {
+    if (existingRoomIndex !== -1) {
+      // 기존 채팅방이 있으면 참여자 추가
+      const existingRoom = updatedChatRooms[existingRoomIndex];
+      updatedChatRooms[existingRoomIndex] = {
+        ...existingRoom,
+        participants: [...new Set([...existingRoom.participants, application.applicantId])]
+      };
+    } else {
+      // 채팅방 없으면 새로 생성
       const party = state.parties.find(p => p.id === partyId);
-      updatedChatRooms.push({
-        partyId,
-        participants: [party?.hostId || '', application.applicantId],
-        unreadCount: 0,
-      });
+      if (party) {
+        updatedChatRooms.push({
+          partyId,
+          participants: [party.hostId, application.applicantId],
+          unreadCount: 0,
+        });
+      }
     }
     
     return {
@@ -394,7 +404,7 @@ export const useMateStore = create<MateState>((set) => ({
   })),
   
   getPartyApplications: (partyId) => {
-    const state = useMateStore.getState();
+    const state = get();
     return state.applications.filter(app => app.partyId === partyId);
   },
   
@@ -422,12 +432,12 @@ export const useMateStore = create<MateState>((set) => ({
   })),
   
   getChatMessages: (partyId) => {
-    const state = useMateStore.getState();
+    const state = get();
     return state.chatMessages.filter(msg => msg.partyId === partyId);
   },
   
   getChatRoom: (partyId) => {
-    const state = useMateStore.getState();
+    const state = get();
     return state.chatRooms.find(room => room.partyId === partyId);
   },
   

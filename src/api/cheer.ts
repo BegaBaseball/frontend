@@ -1,7 +1,7 @@
 import { Comment, getFallbackTeamColor, getTeamNameById, Post } from '../store/cheerStore';
 import { formatTimeAgo } from '../utils/time';
 
-const API_BASE_URL = import.meta.env.VITE_CHEER_API_URL ?? '/api/cheer';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 export type PageResponse<T> = {
   content: T[];
@@ -104,7 +104,7 @@ export async function listPosts(
   }
 
   const data = await request<PageResponse<PostSummaryRes>>(
-    `${API_BASE_URL}/posts?${params.toString()}`,
+    `${API_BASE_URL}/cheer/posts?${params.toString()}`,
   );
 
   return {
@@ -114,12 +114,12 @@ export async function listPosts(
 }
 
 export async function getPost(postId: number): Promise<Post> {
-  const data = await request<PostDetailRes>(`${API_BASE_URL}/posts/${postId}`);
+  const data = await request<PostDetailRes>(`${API_BASE_URL}/cheer/posts/${postId}`);
   return mapDetailToPost(data);
 }
 
 export async function createPost(payload: { teamId: string | null; title: string; content: string; postType?: string }): Promise<Post> {
-  const data = await request<PostDetailRes>(`${API_BASE_URL}/posts`, {
+  const data = await request<PostDetailRes>(`${API_BASE_URL}/cheer/posts`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -131,7 +131,7 @@ export async function createPost(payload: { teamId: string | null; title: string
 }
 
 export async function updatePost(postId: number, payload: { title: string; content: string; postType?: string }): Promise<Post> {
-  const data = await request<PostDetailRes>(`${API_BASE_URL}/posts/${postId}`, {
+  const data = await request<PostDetailRes>(`${API_BASE_URL}/cheer/posts/${postId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -143,13 +143,13 @@ export async function updatePost(postId: number, payload: { title: string; conte
 }
 
 export async function deletePost(postId: number): Promise<void> {
-  await request(`${API_BASE_URL}/posts/${postId}`, {
+  await request(`${API_BASE_URL}/cheer/posts/${postId}`, {
     method: 'DELETE',
   });
 }
 
 export async function togglePostLike(postId: number): Promise<LikeToggleResponse> {
-  return request<LikeToggleResponse>(`${API_BASE_URL}/posts/${postId}/like`, {
+  return request<LikeToggleResponse>(`${API_BASE_URL}/cheer/posts/${postId}/like`, {
     method: 'POST',
   });
 }
@@ -161,7 +161,7 @@ export async function listComments(postId: number, page = 0, size = 20): Promise
   });
 
   const data = await request<PageResponse<CommentRes>>(
-    `${API_BASE_URL}/posts/${postId}/comments?${params.toString()}`
+    `${API_BASE_URL}/cheer/posts/${postId}/comments?${params.toString()}`
   );
 
   return {
@@ -171,7 +171,7 @@ export async function listComments(postId: number, page = 0, size = 20): Promise
 }
 
 export async function addComment(postId: number, content: string): Promise<Comment> {
-  const data = await request<CommentRes>(`${API_BASE_URL}/posts/${postId}/comments`, {
+  const data = await request<CommentRes>(`${API_BASE_URL}/cheer/posts/${postId}/comments`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -183,7 +183,7 @@ export async function addComment(postId: number, content: string): Promise<Comme
 }
 
 export async function addReply(postId: number, parentCommentId: number, content: string): Promise<Comment> {
-  const data = await request<CommentRes>(`${API_BASE_URL}/posts/${postId}/comments/${parentCommentId}/replies`, {
+  const data = await request<CommentRes>(`${API_BASE_URL}/cheer/posts/${postId}/comments/${parentCommentId}/replies`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -195,13 +195,13 @@ export async function addReply(postId: number, parentCommentId: number, content:
 }
 
 export async function toggleCommentLike(commentId: number): Promise<LikeToggleResponse> {
-  return request<LikeToggleResponse>(`${API_BASE_URL}/comments/${commentId}/like`, {
+  return request<LikeToggleResponse>(`${API_BASE_URL}/cheer/comments/${commentId}/like`, {
     method: 'POST',
   });
 }
 
 export async function deleteComment(commentId: number): Promise<void> {
-  await request(`${API_BASE_URL}/comments/${commentId}`, {
+  await request(`${API_BASE_URL}/cheer/comments/${commentId}`, {
     method: 'DELETE',
   });
 }

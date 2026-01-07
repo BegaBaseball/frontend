@@ -1,5 +1,5 @@
 // AdminPage.tsx
-import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
+import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
@@ -42,7 +42,7 @@ export default function AdminPage() {
   } = useAdminData();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Grass decoration */}
       <img
         src={grassDecor}

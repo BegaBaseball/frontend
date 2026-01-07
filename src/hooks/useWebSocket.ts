@@ -17,6 +17,8 @@ interface UseWebSocketProps {
   enabled?: boolean;
 }
 
+const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080'; 
+
 export function useWebSocket({ partyId, onMessageReceived, enabled = true }: UseWebSocketProps) {
   const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false); 
@@ -29,7 +31,7 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
     }
 
     const client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws`),
       debug: (str) => {
         console.log('STOMP Debug:', str);
       },

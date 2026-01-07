@@ -28,7 +28,7 @@ export function ProfileAvatar({ src, alt, size = 'md', className = '' }: Profile
       <img
         src={src}
         alt={alt}
-        className={`${sizeClasses[size]} rounded-full object-cover ${className}`}
+        className={`${sizeClasses[size]} rounded-full object-cover border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 ${className}`}
         onError={() => setImageError(true)}
       />
     );
@@ -36,9 +36,9 @@ export function ProfileAvatar({ src, alt, size = 'md', className = '' }: Profile
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ${className}`}
+      className={`${sizeClasses[size]} rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center ${className}`}
     >
-      <User className={`${iconSizes[size]} text-gray-500`} />
+      <User className={`${iconSizes[size]} text-gray-400 dark:text-gray-500`} />
     </div>
   );
 }

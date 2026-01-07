@@ -32,15 +32,15 @@ export default function MyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ marginBottom: '100px' }}>
         {/* 상단 프로필 카드 */}
-        <Card className="p-4 md:p-8 mb-8">
+        <Card className="p-4 md:p-8 mb-8 dark:bg-gray-800 dark:border-gray-700">
           <div className={`${isDesktop ? 'flex items-start justify-between' : 'space-y-6'}`}>
             {/* 프로필 정보 */}
             <div className="flex items-center gap-4 md:gap-6">
               <div className="relative flex-shrink-0">
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gray-200 overflow-hidden">
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                   {profileImage ? (
                     <img
                       src={profileImage}
@@ -49,7 +49,7 @@ export default function MyPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <User className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
+                      <User className="w-10 h-10 md:w-12 md:h-12 text-gray-400 dark:text-gray-600" />
                     </div>
                   )}
                 </div>
@@ -67,8 +67,8 @@ export default function MyPage() {
                     )}
                   </div>
                 </div>
-                <p className="text-sm md:text-base text-gray-600 mb-1">{name}</p>
-                <p className="text-xs md:text-sm text-gray-500">{email}</p>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-1">{name}</p>
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-500">{email}</p>
               </div>
             </div>
 
@@ -76,7 +76,7 @@ export default function MyPage() {
             <div className={`${isDesktop ? 'flex items-center gap-3' : 'grid grid-cols-2 gap-3'}`}>
               <Button
                 onClick={() => setViewMode('mateHistory')}
-                className="flex items-center justify-center gap-2 bg-white border-2 hover:bg-gray-50 h-10 md:h-11 px-4 whitespace-nowrap"
+                className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap"
                 style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
               >
                 <Users className="w-4 h-4 flex-shrink-0" />
@@ -84,7 +84,7 @@ export default function MyPage() {
               </Button>
               <Button
                 onClick={handleToggleStats}
-                className="flex items-center justify-center gap-2 bg-white border-2 hover:bg-gray-50 h-10 md:h-11 px-4 whitespace-nowrap"
+                className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap"
                 style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
               >
                 <BarChart3 className="w-4 h-4 flex-shrink-0" />

@@ -19,7 +19,7 @@ export interface EdgeFunctionImageResponse {
   };
 }
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1`;
 

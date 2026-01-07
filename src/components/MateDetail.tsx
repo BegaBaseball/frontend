@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
+import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -304,7 +304,7 @@ useEffect(() => {
   };
 
   return (
-  <div className="min-h-screen bg-gray-50">
+  <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
     <img
       src={grassDecor}
       alt=""
@@ -328,7 +328,9 @@ useEffect(() => {
           {/* Header */}
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-center gap-4">
-              <TeamLogo teamId={selectedParty.teamId} size="lg" />
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-50 border border-gray-100 flex-shrink-0">
+                <TeamLogo teamId={selectedParty.teamId} size={60} />
+              </div>
               <div>
                 <h1 className="mb-2" style={{ color: '#2d5f4f' }}>
                   {selectedParty.stadium} 직관
@@ -380,14 +382,18 @@ useEffect(() => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <TeamLogo teamId={selectedParty.homeTeam} size="md" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
+                  <TeamLogo teamId={selectedParty.homeTeam} size={36} />
+                </div>
                 <span>홈</span>
               </div>
               <span className="text-xl">vs</span>
               <div className="flex items-center gap-3">
-                <TeamLogo teamId={selectedParty.awayTeam} size="md" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
+                  <TeamLogo teamId={selectedParty.awayTeam} size={36} />
+                </div>
                 <span>원정</span>
               </div>
             </div>
@@ -400,7 +406,7 @@ useEffect(() => {
             <h3 className="mb-4" style={{ color: '#2d5f4f' }}>
               호스트 정보
             </h3>
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <span>{selectedParty.hostName}</span>

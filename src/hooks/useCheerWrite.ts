@@ -19,6 +19,7 @@ export const useCheerWrite = (favoriteTeam: string | null) => {
   const [content, setContent] = useState('');
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [showTeamRequiredDialog, setShowTeamRequiredDialog] = useState(false);
 
   const newFilePreviews = useMemo(() => {
     return newFiles.map((file) => ({
@@ -54,8 +55,13 @@ export const useCheerWrite = (favoriteTeam: string | null) => {
       toast.success('게시글이 성공적으로 등록되었습니다.');
       navigate(`/cheer/detail/${newPost.id}`);
     },
-    onError: (error: Error) => {
-      toast.error(error.message || '게시글 등록 중 문제가 발생했습니다.');
+    onError: (error: any) => {
+      // 403 에러 (응원팀 미선택) 처리
+      if (error.response?.status === 403 || error.response?.data?.message?.includes('마이팀')) {
+        setShowTeamRequiredDialog(true);
+      } else {
+        toast.error(error.message || '게시글 등록 중 문제가 발생했습니다.');
+      }
     },
   });
 
@@ -115,7 +121,7 @@ export const useCheerWrite = (favoriteTeam: string | null) => {
     }
 
     if (!favoriteTeam) {
-      toast.error('마이페이지에서 응원 구단을 설정한 후 게시글을 작성할 수 있습니다.');
+      setShowTeamRequiredDialog(true);
       return;
     }
 
@@ -143,6 +149,8 @@ export const useCheerWrite = (favoriteTeam: string | null) => {
     newFilePreviews,
     isDragging,
     isSubmitting: createMutation.isPending,
+    showTeamRequiredDialog,
+    setShowTeamRequiredDialog,
     handleFileSelect,
     handleRemoveNewFile,
     handleSubmit,

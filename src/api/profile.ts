@@ -6,13 +6,13 @@ import {
   ProfileUpdateResponse 
 } from '../types/profile';
 
-const API_BASE_URL = '/api/profile';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 /**
  * 사용자 프로필 조회
  */
 export async function fetchUserProfile(): Promise<UserProfile> {
-  const response = await fetch('/api/auth/mypage', {
+  const response = await fetch(`${API_BASE_URL}/auth/mypage`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -38,7 +38,7 @@ export async function uploadProfileImage(file: File): Promise<ProfileImageDto> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${API_BASE_URL}/image`, {
+  const response = await fetch(`${API_BASE_URL}/profile/image`, {
     method: 'POST',
     credentials: 'include',
     body: formData,
@@ -62,7 +62,7 @@ export async function uploadProfileImage(file: File): Promise<ProfileImageDto> {
  * 프로필 정보 업데이트
  */
 export async function updateProfile(data: ProfileUpdateData): Promise<ProfileUpdateResponse> {
-  const response = await fetch('/api/auth/mypage', {
+  const response = await fetch(`${API_BASE_URL}/auth/mypage`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

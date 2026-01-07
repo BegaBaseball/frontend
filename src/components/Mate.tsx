@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'; 
 import { useNavigate } from 'react-router-dom';
-import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
+import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -121,15 +121,15 @@ export default function Mate() {
     return (
       <Card
         key={party.id}
-        className="p-5 hover:shadow-lg transition-shadow cursor-pointer border-2"
+        className="p-5 hover:shadow-lg transition-shadow cursor-pointer border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
         onClick={() => handlePartyClick(party)}
       >
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12">
-              <AvatarImage 
-                src={profileImageUrl || undefined} 
-                alt="Profile" 
+              <AvatarImage
+                src={profileImageUrl || undefined}
+                alt="Profile"
                 className="object-cover"
               />
               <AvatarFallback className="text-white" style={{ backgroundColor: '#2d5f4f' }}>
@@ -138,17 +138,17 @@ export default function Mate() {
             </Avatar>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-gray-900">{party.hostName}</span>
+                <span className="text-gray-900 dark:text-white">{party.hostName}</span>
                 {getBadgeIcon(party.hostBadge)}
                 {/* 조건부 렌더링 추가 */}
                 {party.hostFavoriteTeam && party.hostFavoriteTeam !== '없음' && (
-                  <TeamLogo 
-                    teamId={party.hostFavoriteTeam} 
-                    size="sm" 
+                  <TeamLogo
+                    teamId={party.hostFavoriteTeam}
+                    size="sm"
                   />
                 )}
               </div>
-              <div className="flex items-center gap-1 text-sm text-gray-500">
+              <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                 <TrendingUp className="w-3 h-3" style={{ color: '#2d5f4f' }} />
                 <span>신뢰도 {party.hostRating}</span>
               </div>
@@ -159,20 +159,24 @@ export default function Mate() {
 
         <div className="space-y-2 mb-3">
           <div className="flex items-center gap-2 mb-1">
-            <TeamLogo teamId={party.homeTeam} size="md" />
-            <span className="text-sm text-gray-400">VS</span>
-            <TeamLogo teamId={party.awayTeam} size="md" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
+              <TeamLogo teamId={party.homeTeam} size={36} />
+            </div>
+            <span className="text-sm text-gray-400 dark:text-gray-600">VS</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
+              <TeamLogo teamId={party.awayTeam} size={36} />
+            </div>
           </div>
-          
-          <div className="flex items-center gap-2 text-gray-700">
+
+          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             <Calendar className="w-4 h-4" style={{ color: '#2d5f4f' }} />
             <span className="text-sm">{party.gameDate} {party.gameTime}</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-700">
+          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             <MapPin className="w-4 h-4" style={{ color: '#2d5f4f' }} />
             <span className="text-sm">{party.stadium} • {party.section}</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-700">
+          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             <Users className="w-4 h-4" style={{ color: '#2d5f4f' }} />
             <span className="text-sm">
               {party.currentParticipants}/{party.maxParticipants}명
@@ -180,19 +184,19 @@ export default function Mate() {
           </div>
         </div>
 
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{party.description}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{party.description}</p>
 
-        <div className="pt-3 border-t">
+        <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
           {party.status === 'SELLING' && party.price ? (
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">티켓 판매가</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">티켓 판매가</span>
               <span style={{ color: '#2d5f4f' }}>
                 {party.price.toLocaleString()}원
               </span>
             </div>
           ) : (
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">참가비</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">참가비</span>
               <span style={{ color: '#2d5f4f' }}>
                 {((party.ticketPrice || 0) + 10000).toLocaleString()}원
               </span>
@@ -204,11 +208,11 @@ export default function Mate() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <img
         src={grassDecor}
         alt=""
-        className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30 dark:opacity-10"
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
@@ -217,7 +221,7 @@ export default function Mate() {
             <h1 style={{ color: '#2d5f4f' }} className="mb-2">
               같이 갈 메이트 찾기
             </h1>
-            <p className="text-gray-600">함께 야구를 즐길 메이트를 찾아보세요</p>
+            <p className="text-gray-600 dark:text-gray-400">함께 야구를 즐길 메이트를 찾아보세요</p>
           </div>
           <Button
             onClick={() => navigate('/mate/create')} 
@@ -229,10 +233,10 @@ export default function Mate() {
           </Button>
         </div>
 
-        <Card className="p-4 mb-8 border-2" style={{ backgroundColor: '#f0f7f4', borderColor: '#2d5f4f' }}>
+        <Card className="p-4 mb-8 border-2 bg-[#f0f7f4] dark:bg-[#1f4438]/20 border-[#2d5f4f] dark:border-[#2d5f4f]">
           <div>
             <h3 className="mb-1" style={{ color: '#2d5f4f' }}>'같이가요' 이용 가이드</h3>
-            <ul className="text-sm space-y-1" style={{ color: '#1f4438' }}>
+            <ul className="text-sm space-y-1 text-[#1f4438] dark:text-gray-300">
               <li>• <strong>내가 호스트인 파티:</strong> 신청 관리 → 승인/거절 → 채팅방 소통</li>
               <li>• <strong>참여 신청한 파티:</strong> 승인 대기 → 승인 후 채팅 가능</li>
               <li>• 경기 당일 체크인으로 보증금을 환불받으세요</li>
@@ -241,13 +245,13 @@ export default function Mate() {
         </Card>
 
         <div className="mb-6 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
           <Input
             type="text"
             placeholder="팀명, 구장으로 검색..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 bg-white border-2 border-gray-200 rounded-lg focus:border-[#2d5f4f] transition-colors"
+            className="pl-10 h-12 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-lg focus:border-[#2d5f4f] transition-colors dark:text-white dark:placeholder-gray-500"
           />
         </div>
 
@@ -266,8 +270,8 @@ export default function Mate() {
               </div>
             ) : filteredParties.length === 0 ? (
               <div className="text-center py-16">
-                <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">
+                <Users className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
+                <p className="text-gray-500 dark:text-gray-400">
                   {searchQuery ? '검색 결과가 없습니다' : '등록된 파티가 없습니다'}
                 </p>
               </div>
@@ -334,7 +338,7 @@ export default function Mate() {
                 )}
 
                 {!searchQuery && (
-                  <p className="text-center text-sm text-gray-500 mt-4">
+                  <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
                     총 {totalElements}개의 파티 (페이지 {currentPage + 1} / {totalPages})
                   </p>
                 )}
@@ -345,8 +349,8 @@ export default function Mate() {
           <TabsContent value="recruiting" className="space-y-4">
             {pendingParties.length === 0 ? (
               <div className="text-center py-16">
-                <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">모집 중인 파티가 없습니다</p>
+                <Users className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
+                <p className="text-gray-500 dark:text-gray-400">모집 중인 파티가 없습니다</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -358,8 +362,8 @@ export default function Mate() {
           <TabsContent value="matched" className="space-y-4">
             {matchedParties.length === 0 ? (
               <div className="text-center py-16">
-                <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">매칭된 파티가 없습니다</p>
+                <Users className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
+                <p className="text-gray-500 dark:text-gray-400">매칭된 파티가 없습니다</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -371,8 +375,8 @@ export default function Mate() {
           <TabsContent value="selling" className="space-y-4">
             {sellingParties.length === 0 ? (
               <div className="text-center py-16">
-                <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">판매 중인 티켓이 없습니다</p>
+                <Users className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
+                <p className="text-gray-500 dark:text-gray-400">판매 중인 티켓이 없습니다</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

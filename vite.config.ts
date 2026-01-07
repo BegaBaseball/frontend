@@ -1,10 +1,12 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const proxyTarget = env.VITE_PROXY_TARGET ?? 'http://localhost:8080';
 
-  export default defineConfig({
+  return {
     appType: 'spa',
     plugins: [react()],
     
@@ -72,13 +74,9 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
         '@': path.resolve(__dirname, './src'),
       },
     },
-     define: {
-        global: 'globalThis',
-         'import.meta.env.VITE_KAKAO_MAP_KEY': JSON.stringify(process.env.VITE_KAKAO_MAP_KEY),
-        'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL),
-        'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL),
-        'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY),
-      },
+    define: {
+      global: 'globalThis',
+    },
       optimizeDeps: {
         include: ['sockjs-client'],
       },
@@ -99,7 +97,14 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://backend:8080';
         secure: false,
         // cookieDomainRewrite: 'localhost',
       },
+      '/ai': {
+        target: env.VITE_AI_API_URL ?? 'http://localhost:8001',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ai/, ''),
+      },
     },
     },
-  });
+  };
+});
 

@@ -50,7 +50,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from './ui/alert-dialog';
 
 const COMMENTS_PAGE_SIZE = 10;
@@ -374,18 +373,18 @@ export default function CheerDetail() {
 
   // ========== Render ==========
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b bg-white dark:bg-gray-800 dark:border-gray-700">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <button
             onClick={handleBack}
-            className="flex items-center gap-2 text-gray-600 transition-colors hover:text-gray-900"
+            className="flex items-center gap-2 text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
           >
             <ArrowLeft className="h-5 w-5" />
             <span>응원게시판으로 돌아가기</span>
           </button>
-          <Button variant="ghost" onClick={() => refetch()}>
+          <Button variant="ghost" onClick={() => refetch()} className="dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700">
             새로고침
           </Button>
         </div>
@@ -395,28 +394,28 @@ export default function CheerDetail() {
         <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Error Message */}
           {isError && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
               게시글을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
             </div>
           )}
 
           <div className="space-y-6">
             {/* Post Card */}
-            <Card className="rounded-xl bg-white p-8 shadow-sm">
+            <Card className="rounded-xl bg-white p-8 shadow-sm dark:bg-gray-800 dark:border-gray-700">
               {/* Loading Skeleton */}
               {isLoading && (
                 <div className="animate-pulse space-y-4">
                   <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-full bg-gray-200" />
+                    <div className="h-14 w-14 rounded-full bg-gray-200 dark:bg-gray-700" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-5 w-1/2 rounded bg-gray-200" />
-                      <div className="h-4 w-1/3 rounded bg-gray-100" />
-                      <div className="h-3 w-1/4 rounded bg-gray-100" />
+                      <div className="h-5 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                      <div className="h-4 w-1/3 rounded bg-gray-100 dark:bg-gray-700" />
+                      <div className="h-3 w-1/4 rounded bg-gray-100 dark:bg-gray-700" />
                     </div>
                   </div>
-                  <div className="h-4 w-full rounded bg-gray-100" />
-                  <div className="h-4 w-2/3 rounded bg-gray-100" />
-                  <div className="h-48 w-full rounded bg-gray-100" />
+                  <div className="h-4 w-full rounded bg-gray-100 dark:bg-gray-700" />
+                  <div className="h-4 w-2/3 rounded bg-gray-100 dark:bg-gray-700" />
+                  <div className="h-48 w-full rounded bg-gray-100 dark:bg-gray-700" />
                 </div>
               )}
 
@@ -424,7 +423,7 @@ export default function CheerDetail() {
               {!isLoading && post && (
                 <>
                   {/* Post Header */}
-                  <div className="mb-6 flex items-center justify-between border-b pb-6">
+                  <div className="mb-6 flex items-center justify-between border-b pb-6 dark:border-gray-700">
                     <div className="flex items-center gap-4">
                       <ProfileAvatar
                         src={post.authorProfileImageUrl}
@@ -432,17 +431,14 @@ export default function CheerDetail() {
                         size="lg"
                       />
                       <div className="flex-1">
-                        <h2 className="mb-2 text-gray-900">{post.title}</h2>
+                        <h2 className="mb-2 text-gray-900 dark:text-white">{post.title}</h2>
                         <div className="mb-2 flex items-center gap-2">
-                          <span className="text-sm text-gray-600">{post.author}</span>
-                          <div
-                            className="flex h-6 w-6 items-center justify-center rounded-full"
-                            style={{ backgroundColor: '#f3f4f6' }}
-                          >
-                            <TeamLogo team={post.team} size={24} />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{post.author}</span>
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-50 border border-gray-100 flex-shrink-0">
+                            <TeamLogo team={post.team} size={20} />
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 text-sm text-gray-500">
+                        <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                           <span>{post.timeAgo}</span>
                           <span>•</span>
                           <div className="flex items-center gap-1">
@@ -455,14 +451,14 @@ export default function CheerDetail() {
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={handleShare}
-                        className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                        className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
                         title="공유하기"
                       >
                         <Share2 className="h-5 w-5" />
                       </button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Button variant="ghost" className="h-8 w-8 p-0 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
                             <MoreVertical className="h-5 w-5" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -473,15 +469,16 @@ export default function CheerDetail() {
                                 <Pencil className="mr-2 h-4 w-4" />
                                 수정
                               </DropdownMenuItem>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem
-                                  onSelect={(e: Event) => e.preventDefault()}
-                                  className="text-red-600 cursor-pointer"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  삭제
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
+                              <DropdownMenuItem
+                                onSelect={(e: Event) => {
+                                  e.preventDefault();
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                                className="text-red-600 cursor-pointer"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                삭제
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                             </>
                           )}
@@ -491,7 +488,7 @@ export default function CheerDetail() {
                   </div>
 
                   {/* Post Body */}
-                  <div className="mb-8 whitespace-pre-wrap text-gray-700 leading-relaxed">
+                  <div className="mb-8 whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed">
                     {post.content}
                   </div>
 
@@ -510,32 +507,32 @@ export default function CheerDetail() {
                   )}
 
                   {/* Post Actions */}
-                  <div className="flex items-center justify-between border-t pt-6">
+                  <div className="flex items-center justify-between border-t pt-6 dark:border-gray-700">
                     <div className="flex items-center gap-6">
                       <button
                         onClick={handleLike}
-                        className="flex items-center gap-2 text-gray-600 transition-colors hover:text-red-500 disabled:cursor-not-allowed disabled:text-gray-400"
+                        className="flex items-center gap-2 text-gray-600 dark:text-gray-400 transition-colors hover:text-red-500 dark:hover:text-red-400 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600"
                         disabled={!canLike || likeMutation.isPending}
                       >
                         <Heart
                           className={`h-6 w-6 ${
-                            post.likedByUser ? 'fill-red-500 text-red-500' : ''
+                            post.likedByUser ? 'fill-red-500 text-red-500 dark:text-red-400' : ''
                           }`}
                         />
                         <span className="font-medium">{post.likes}</span>
                       </button>
-                      <div className="flex items-center gap-2 text-gray-600">
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                         <MessageSquare className="h-6 w-6" />
                         <span className="font-medium">{totalCommentCount}</span>
                       </div>
                     </div>
                     <button
                       onClick={() => setIsBookmarked((prev) => !prev)}
-                      className="flex items-center gap-2 text-gray-600 transition-colors hover:text-yellow-500"
+                      className="flex items-center gap-2 text-gray-600 dark:text-gray-400 transition-colors hover:text-yellow-500 dark:hover:text-yellow-400"
                     >
                       <Bookmark
                         className={`h-6 w-6 ${
-                          isBookmarked ? 'fill-yellow-500 text-yellow-500' : ''
+                          isBookmarked ? 'fill-yellow-500 text-yellow-500 dark:text-yellow-400' : ''
                         }`}
                       />
                     </button>
@@ -545,14 +542,14 @@ export default function CheerDetail() {
             </Card>
 
             {/* Comments Card */}
-            <Card className="rounded-xl bg-white p-8 shadow-sm">
+            <Card className="rounded-xl bg-white p-8 shadow-sm dark:bg-gray-800 dark:border-gray-700">
               <h3 className="mb-6 flex items-center gap-2" style={{ color: '#2d5f4f' }}>
                 <MessageSquare className="h-6 w-6" />
                 댓글 <span className="ml-1">{totalCommentCount}</span>
               </h3>
 
               {/* Comment Input */}
-              <div className="mb-8 border-b pb-8">
+              <div className="mb-8 border-b pb-8 dark:border-gray-700">
                 <div className="flex gap-4">
                   <ProfileAvatar
                     src={useAuthStore.getState().user?.profileImageUrl}
@@ -566,7 +563,7 @@ export default function CheerDetail() {
                       onChange={(e) => setCommentInput(e.target.value)}
                       placeholder="댓글을 입력하세요"
                       disabled={!canInteract || commentMutation.isPending}
-                      className="min-h-[100px]"
+                      className="min-h-[100px] bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 dark:text-white dark:placeholder:text-gray-500"
                     />
                     <div className="mt-3 flex justify-end">
                       <Button
@@ -586,7 +583,7 @@ export default function CheerDetail() {
                   </div>
                 </div>
                 {interactionWarning && (
-                  <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                  <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400">
                     {interactionWarning}
                   </div>
                 )}
@@ -597,8 +594,8 @@ export default function CheerDetail() {
                 <div className="space-y-4">
                   {Array.from({ length: 3 }).map((_, idx) => (
                     <div key={idx} className="animate-pulse space-y-2">
-                      <div className="h-4 w-1/3 rounded bg-gray-200" />
-                      <div className="h-3 w-2/3 rounded bg-gray-100" />
+                      <div className="h-4 w-1/3 rounded bg-gray-200 dark:bg-gray-700" />
+                      <div className="h-3 w-2/3 rounded bg-gray-100 dark:bg-gray-700" />
                     </div>
                   ))}
                 </div>
@@ -606,7 +603,7 @@ export default function CheerDetail() {
 
               {/* Empty State */}
               {!isCommentsLoading && comments.length === 0 && (
-                <div className="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center text-gray-500">
+                <div className="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center text-gray-500 dark:border-gray-700 dark:text-gray-400">
                   아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
                 </div>
               )}
@@ -641,24 +638,24 @@ export default function CheerDetail() {
 
               {/* Pagination */}
               {totalCommentPages > 1 && (
-                <div className="mt-8 flex items-center justify-between border-t pt-4">
+                <div className="mt-8 flex items-center justify-between border-t pt-4 dark:border-gray-700">
                   <Button
                     variant="outline"
                     onClick={() => handleChangeCommentPage(commentPage - 1)}
                     disabled={!canPrevCommentPage || isCommentsFetching}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     이전
                   </Button>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {commentPage + 1} / {totalCommentPages}
                   </span>
                   <Button
                     variant="outline"
                     onClick={() => handleChangeCommentPage(commentPage + 1)}
                     disabled={!canNextCommentPage || isCommentsFetching}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
                   >
                     다음
                     <ChevronRight className="h-4 w-4" />
@@ -671,12 +668,12 @@ export default function CheerDetail() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>게시글 삭제</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="dark:text-gray-400">
               게시글을 정말로 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel className="dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">취소</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete}>삭제</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -45,12 +45,18 @@ export const useSignUpForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ✅ 중복 요청 방지: 이미 처리 중이거나 성공한 경우 무시
+    if (isLoading || isSuccess) {
+      return;
+    }
+
     setError(null);
     setIsSuccess(false);  // ✅ 초기화
-    
+
     const errors = validateAllFields(formData);
     setFieldErrors(errors);
-    
+
     if (Object.values(errors).some(error => error !== '')) {
       return;
     }

@@ -1,6 +1,6 @@
 import { MateParty, MateApplication } from '../types/mate';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 /**
  * 현재 사용자 정보 조회
