@@ -126,16 +126,16 @@ export default function Cheer() {
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
           <div className="flex items-center gap-3">
-            <MessageSquare className="h-7 w-7" style={{ color: '#2d5f4f' }} />
-            <h1 style={{ color: '#2d5f4f' }}>응원게시판</h1>
+            <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: '#2d5f4f' }} />
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#2d5f4f' }}>응원게시판</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full sm:w-auto items-center gap-2 sm:gap-3">
             <Button
               onClick={() => refetchCheer()}
               variant="outline"
-              className="border-gray-300 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
               disabled={isLoading}
             >
               <RotateCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -143,7 +143,7 @@ export default function Cheer() {
             </Button>
             <Button
               onClick={() => navigate('/cheer/write')}
-              className="text-white"
+              className="flex-1 sm:flex-none text-white"
               style={{ backgroundColor: '#2d5f4f' }}
             >
               <PenSquare className="mr-2 h-4 w-4" />
@@ -152,10 +152,10 @@ export default function Cheer() {
           </div>
         </div>
 
-        <div className="mb-6 flex gap-3">
+        <div className="mb-6 flex gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
           <button
             onClick={() => handleTabChange('all')}
-            className={`rounded-full px-6 py-2 transition-all ${
+            className={`whitespace-nowrap rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base transition-all ${
               activeTab === 'all'
                 ? 'text-white'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
@@ -167,7 +167,7 @@ export default function Cheer() {
 
           <button
             onClick={() => handleTabChange('myTeam')}
-            className={`rounded-full px-6 py-2 transition-all ${
+            className={`whitespace-nowrap rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base transition-all ${
               activeTab === 'myTeam'
                 ? 'text-white'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
@@ -218,48 +218,48 @@ export default function Cheer() {
                 <div
                   key={post.id}
                   onClick={() => handlePostClick(post.id)}
-                  className="cursor-pointer rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-8 py-5 transition-shadow hover:shadow-md"
+                  className="cursor-pointer rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 sm:px-8 py-4 sm:py-5 transition-shadow hover:shadow-md"
                 >
-                  <div className="flex items-center gap-8">
+                  <div className="flex items-center gap-4 sm:gap-8">
 
                     <div className="flex-shrink-0">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
-                        <TeamLogo team={post.team} size={36} />
+                      <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
+                        <TeamLogo team={post.team} size={30} className="sm:w-9 sm:h-9" />
                       </div>
                     </div>
 
-                    <div className="flex-1 min-w-0 flex flex-row items-center justify-between">
+                    <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
 
-                      <div className="flex-1 min-w-0 pr-8">
+                      <div className="flex-1 min-w-0 pr-0 sm:pr-8">
                         <div className="flex items-center gap-2">
                           {post.isHot && (
-                            <span className="flex-shrink-0 flex items-center gap-0.5 rounded-full bg-red-500 px-1 py-1 text-[10px] leading-none text-white">
-                              <Flame className="h-3 w-3 flex-shrink-0" fill="currentColor" />
+                            <span className="flex-shrink-0 flex items-center gap-0.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] sm:text-[10px] leading-none text-white">
+                              <Flame className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" fill="currentColor" />
                               <span className="pb-[1px]">HOT</span>
                             </span>
                           )}
-                          <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">
+                          <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">
                             {post.title}
                           </h3>
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center justify-between sm:flex-col sm:items-end gap-1 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">
 
-                        <span className="font-medium text-gray-700 dark:text-gray-300 text-sm text-right max-w-[120px] truncate">
+                        <span className="font-medium text-gray-700 dark:text-gray-300 text-xs sm:text-sm text-right max-w-[120px] truncate">
                           {post.author}
                         </span>
 
-                        <div className="flex items-center gap-3">
-                          <span>{post.timeAgo}</span>
-                          <span className="text-gray-300 dark:text-gray-600">|</span>
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <span className="text-[10px] sm:text-xs">{post.timeAgo}</span>
+                          <span className="text-gray-300 dark:text-gray-600 hidden sm:inline">|</span>
 
                           <div className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                            <MessageSquare className="h-3.5 w-3.5" />
+                            <MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                             <span>{post.comments}</span>
                           </div>
                           <div className="flex items-center gap-1 hover:text-red-500 dark:hover:text-red-400 transition-colors">
-                            <Heart className="h-3.5 w-3.5" />
+                            <Heart className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                             <span>{post.likes}</span>
                           </div>
                         </div>

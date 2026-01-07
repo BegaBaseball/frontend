@@ -117,32 +117,32 @@ export default function Prediction() {
         </div>
 
         {/* User Stats Widget (Gamification) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-3">
-            <div className="p-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-              <Target className="w-5 h-5" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+          <Card className="p-3 md:p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-2 md:gap-3">
+            <div className="p-1.5 md:p-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+              <Target className="w-4 h-4 md:w-5 md:h-5" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">적중률</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.accuracy}%</p>
+              <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium">적중률</p>
+              <p className="text-sm md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.accuracy}%</p>
             </div>
           </Card>
-          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-3">
-            <div className={`p-2 rounded-full ${dummyUserStats.streak >= 3 ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 animate-pulse' : 'bg-gray-100 text-gray-500'}`}>
-              <Flame className="w-5 h-5" />
+          <Card className="p-3 md:p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-2 md:gap-3">
+            <div className={`p-1.5 md:p-2 rounded-full ${dummyUserStats.streak >= 3 ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 animate-pulse' : 'bg-gray-100 text-gray-500'}`}>
+              <Flame className="w-4 h-4 md:w-5 md:h-5" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">연승 도전</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.streak}연승</p>
+              <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium">연승 도전</p>
+              <p className="text-sm md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.streak}연승</p>
             </div>
           </Card>
-          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-3">
-            <div className="p-2 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
-              <Trophy className="w-5 h-5" />
+          <Card className="p-3 md:p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-2 md:gap-3">
+            <div className="p-1.5 md:p-2 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+              <Trophy className="w-4 h-4 md:w-5 md:h-5" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">총 예측</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.totalPredictions}회</p>
+              <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium">총 예측</p>
+              <p className="text-sm md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.totalPredictions}회</p>
             </div>
           </Card>
           {/* 추가 스탯 자리 or 광고 배너 */}
@@ -152,10 +152,10 @@ export default function Prediction() {
         </div>
 
         {/* Tabs */}
-        <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-2xl mb-8 w-fit">
+        <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-xl md:rounded-2xl mb-6 md:mb-8 w-full md:w-fit">
           <button
             onClick={() => setActiveTab('match')}
-            className={`px-6 py-2.5 rounded-xl transition-all text-sm font-bold ${
+            className={`flex-1 md:flex-none px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl transition-all text-xs md:text-sm font-bold ${
               activeTab === 'match'
                 ? 'bg-white dark:bg-gray-700 text-[#2d5f4f] dark:text-white shadow-sm'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -165,7 +165,7 @@ export default function Prediction() {
           </button>
           <button
             onClick={() => setActiveTab('ranking')}
-            className={`px-6 py-2.5 rounded-xl transition-all text-sm font-bold ${
+            className={`flex-1 md:flex-none px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl transition-all text-xs md:text-sm font-bold ${
               activeTab === 'ranking'
                 ? 'bg-white dark:bg-gray-700 text-[#2d5f4f] dark:text-white shadow-sm'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
