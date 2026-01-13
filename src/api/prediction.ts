@@ -23,6 +23,17 @@ export const fetchPastGames = async (): Promise<Game[]> => {
 };
 
 /**
+ * 특정 기간의 경기 데이터 가져오기
+ */
+export const fetchMatchesByRange = async (startDate: string, endDate: string): Promise<Game[]> => {
+  const response = await fetch(`${API_BASE_URL}/matches/range?startDate=${startDate}&endDate=${endDate}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  return await response.json();
+};
+
+/**
  * 특정 날짜의 경기 데이터 가져오기
  */
 export const fetchMatchesByDate = async (date: string): Promise<Game[]> => {

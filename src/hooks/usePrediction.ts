@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { Game, DateGames, VoteStatus, ConfirmDialogData, VoteTeam, PredictionTab } from '../types/prediction';
-import { 
-  fetchPastGames, 
-  fetchMatchesByDate, 
+import {
+  fetchMatchesByDate,
+  fetchMatchesByRange,
   fetchAllUserVotes as fetchAllUserVotesAPI,
   fetchVoteStatus,
   submitVote,
-  cancelVote 
+  cancelVote
 } from '../api/prediction';
 import { 
   groupByDate, 
@@ -79,23 +79,28 @@ export const usePrediction = () => {
     try {
       setLoading(true);
 
-      const pastData = await fetchPastGames();
       const today = getTodayString();
       const tomorrow = getTomorrowString();
-      
+
+      // 과거 3개월치 데이터 가져오기 (2025 시즌 포함)
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const startDate = threeMonthsAgo.toISOString().split('T')[0];
+
+      const pastData = await fetchMatchesByRange(startDate, today);
       const todayData = await fetchMatchesByDate(today);
 
       const groupedPastGames = groupByDate(pastData);
       const todayGroup: DateGames = { date: today, games: [] };
-      
+
       const allDates = [...groupedPastGames, todayGroup];
       if (todayData.length > 0) {
         const tomorrowGroup: DateGames = { date: tomorrow, games: todayData };
         allDates.push(tomorrowGroup);
       }
-      
+
       setAllDatesData(allDates);
-      
+
       const todayIndex = allDates.findIndex(d => d.date === today);
       setCurrentDateIndex(todayIndex !== -1 ? todayIndex : 0);
 

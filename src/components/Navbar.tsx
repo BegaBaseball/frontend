@@ -2,7 +2,7 @@ import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png
 import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Bell, LogOut, ShieldAlert, Menu, X, Moon, Sun } from 'lucide-react';
-import { useTheme } from 'next-themes'; 
+import { useTheme } from '../hooks/useTheme'; 
 import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore'; 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -167,7 +167,7 @@ export default function Navbar() {
 
           {/* 2. 데스크톱 네비게이션: 줄바꿈 방지 및 유동적 간격 */}
           {isDesktop && (
-            <nav className="hidden md:flex flex-1 items-center justify-center">
+            <nav className="flex flex-1 items-center justify-center">
               <div className="flex items-center gap-4 lg:gap-8 xl:gap-12 px-4 whitespace-nowrap">
                 {navItems.map((item) => (
                   <button

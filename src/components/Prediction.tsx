@@ -118,31 +118,31 @@ export default function Prediction() {
 
         {/* User Stats Widget (Gamification) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-          <Card className="p-3 md:p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-2 md:gap-3">
-            <div className="p-1.5 md:p-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-              <Target className="w-4 h-4 md:w-5 md:h-5" />
+          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex flex-col sm:flex-row items-center gap-2 md:gap-3">
+            <div className="p-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
+              <Target className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium">적중률</p>
-              <p className="text-sm md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.accuracy}%</p>
-            </div>
-          </Card>
-          <Card className="p-3 md:p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-2 md:gap-3">
-            <div className={`p-1.5 md:p-2 rounded-full ${dummyUserStats.streak >= 3 ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 animate-pulse' : 'bg-gray-100 text-gray-500'}`}>
-              <Flame className="w-4 h-4 md:w-5 md:h-5" />
-            </div>
-            <div>
-              <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium">연승 도전</p>
-              <p className="text-sm md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.streak}연승</p>
+            <div className="text-center sm:text-left">
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">적중률</p>
+              <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.accuracy}%</p>
             </div>
           </Card>
-          <Card className="p-3 md:p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex items-center gap-2 md:gap-3">
-            <div className="p-1.5 md:p-2 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
-              <Trophy className="w-4 h-4 md:w-5 md:h-5" />
+          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex flex-col sm:flex-row items-center gap-2 md:gap-3">
+            <div className={`p-2 rounded-full shrink-0 ${dummyUserStats.streak >= 3 ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 animate-pulse' : 'bg-gray-100 text-gray-500'}`}>
+              <Flame className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium">총 예측</p>
-              <p className="text-sm md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.totalPredictions}회</p>
+            <div className="text-center sm:text-left">
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">연승 도전</p>
+              <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.streak}연승</p>
+            </div>
+          </Card>
+          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex flex-col sm:flex-row items-center gap-2 md:gap-3 col-span-2 md:col-span-1">
+            <div className="p-2 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shrink-0">
+              <Trophy className="w-5 h-5" />
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">총 예측</p>
+              <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.totalPredictions}회</p>
             </div>
           </Card>
           {/* 추가 스탯 자리 or 광고 배너 */}

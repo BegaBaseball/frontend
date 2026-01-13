@@ -19,6 +19,7 @@ export interface Post {
   views?: number;
   isHot: boolean;
   likedByUser?: boolean;
+  isBookmarked?: boolean;
   isOwner?: boolean;
   postType?: string;
   avatar?: string;
@@ -40,15 +41,16 @@ export interface Comment {
 }
 
 interface CheerState {
-  activeTab: 'all' | 'myTeam' | 'notice';
+  activeTab: 'all' | 'myTeam' | 'notice' | 'bookmarks';
   posts: Post[];
   selectedPostId: number | null;
-  setActiveTab: (tab: 'all' | 'myTeam' | 'notice') => void;
+  setActiveTab: (tab: 'all' | 'myTeam' | 'notice' | 'bookmarks') => void;
   setPosts: (posts: Post[]) => void;
   setSelectedPostId: (postId: number | null) => void;
   upsertPost: (post: Post) => void;
   removePost: (id: number) => void;
   setPostLikeState: (id: number, liked: boolean, likes: number) => void;
+  setPostBookmarkState: (id: number, bookmarked: boolean) => void;
   setPostCommentCount: (id: number, comments: number) => void;
   clearPosts: () => void;
 }
@@ -163,12 +165,16 @@ export const useCheerStore = create<CheerState>((set) => ({
       posts: state.posts.map((p) =>
         p.id === id
           ? {
-              ...p,
-              likedByUser: liked,
-              likes,
-            }
+            ...p,
+            likedByUser: liked,
+            likes,
+          }
           : p
       ),
+    })),
+  setPostBookmarkState: (id, bookmarked) =>
+    set((state) => ({
+      posts: state.posts.map((p) => (p.id === id ? { ...p, isBookmarked: bookmarked } : p)),
     })),
   setPostCommentCount: (id, comments) =>
     set((state) => ({

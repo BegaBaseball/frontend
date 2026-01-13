@@ -96,14 +96,14 @@ export default function Login() {
           
          <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm text-gray-600">
-              <input 
-                type="checkbox" 
-                className="rounded border-gray-300" 
-                checked={rememberEmail} 
-                onChange={(e) => handleRememberEmailChange(e.target.checked)} 
-                disabled={isLoading} 
+              <input
+                type="checkbox"
+                className="rounded border-gray-300"
+                checked={rememberEmail}
+                onChange={(e) => handleRememberEmailChange(e.target.checked)}
+                disabled={isLoading}
               />
-              이메일 저장 
+              이메일 저장
             </label>
             <button
               type="button"
@@ -139,7 +139,7 @@ export default function Login() {
         {/* 회원가입 링크 */}
         <p className="text-center text-sm text-gray-600">
           계정이 없으신가요?{' '}
-          <button 
+          <button
             type="button"
             onClick={() => navigate('/signup')}
             className="hover:underline disabled:opacity-50"

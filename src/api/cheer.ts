@@ -25,6 +25,7 @@ export interface PostSummaryRes {
   likes: number;
   views: number;
   isHot: boolean;
+  isBookmarked: boolean;
   postType: string;
 }
 
@@ -43,6 +44,7 @@ export interface PostDetailRes {
   comments: number;
   likes: number;
   likedByMe: boolean;
+  isBookmarked: boolean;
   isOwner: boolean;
   imageUrls: string[];
   views: number;
@@ -65,6 +67,10 @@ export interface CommentRes {
 export interface LikeToggleResponse {
   liked: boolean;
   likes: number;
+}
+
+export interface BookmarkResponse {
+  bookmarked: boolean;
 }
 
 async function request<T>(input: RequestInfo, init: RequestInit = {}): Promise<T> {
@@ -154,6 +160,28 @@ export async function togglePostLike(postId: number): Promise<LikeToggleResponse
   });
 }
 
+export async function togglePostBookmark(postId: number): Promise<BookmarkResponse> {
+  return request<BookmarkResponse>(`${API_BASE_URL}/cheer/posts/${postId}/bookmark`, {
+    method: 'POST',
+  });
+}
+
+export async function listBookmarks(page = 0, size = 20): Promise<PageResponse<Post>> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+
+  const data = await request<PageResponse<PostSummaryRes>>(
+    `${API_BASE_URL}/cheer/bookmarks?${params.toString()}`
+  );
+
+  return {
+    ...data,
+    content: data.content.map(mapSummaryToPost),
+  };
+}
+
 export async function listComments(postId: number, page = 0, size = 20): Promise<PageResponse<Comment>> {
   const params = new URLSearchParams({
     page: String(page),
@@ -206,6 +234,32 @@ export async function deleteComment(commentId: number): Promise<void> {
   });
 }
 
+export enum ReportReason {
+  SPAM = 'SPAM',
+  INAPPROPRIATE_CONTENT = 'INAPPROPRIATE_CONTENT',
+  ABUSIVE_LANGUAGE = 'ABUSIVE_LANGUAGE',
+  ADVERTISEMENT = 'ADVERTISEMENT',
+  OTHER = 'OTHER',
+}
+
+export const ReportReasonLabels: Record<ReportReason, string> = {
+  [ReportReason.SPAM]: '스팸/홍보',
+  [ReportReason.INAPPROPRIATE_CONTENT]: '부적절한 콘텐츠',
+  [ReportReason.ABUSIVE_LANGUAGE]: '욕설/비하 발언',
+  [ReportReason.ADVERTISEMENT]: '상업적 광고',
+  [ReportReason.OTHER]: '기타',
+};
+
+export async function reportPost(postId: number, reason: ReportReason, description?: string): Promise<void> {
+  await request(`${API_BASE_URL}/cheer/posts/${postId}/report`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ reason, description }),
+  });
+}
+
 const mapSummaryToPost = (summary: PostSummaryRes): Post => ({
   id: summary.id,
   teamId: summary.teamId,
@@ -222,6 +276,7 @@ const mapSummaryToPost = (summary: PostSummaryRes): Post => ({
   likes: summary.likes,
   views: summary.views,
   isHot: summary.isHot,
+  isBookmarked: summary.isBookmarked,
   postType: summary.postType,
 });
 
@@ -244,6 +299,7 @@ const mapDetailToPost = (detail: PostDetailRes): Post => ({
   likedByUser: detail.likedByMe,
   isOwner: detail.isOwner,
   isHot: detail.postType === 'NOTICE',
+  isBookmarked: detail.isBookmarked,
   images: detail.imageUrls,
   views: detail.views,
   postType: detail.postType,

@@ -35,6 +35,7 @@ const teamLogoImages: Record<string, string> = {
   'NC': ncLogo,
   'LG': lgLogo,
   'KT': ktLogo,
+  'kt': ktLogo,
 };
 
 // 영어 ID -> 한글 이름 매핑
@@ -75,16 +76,16 @@ export default function TeamLogo({ team, teamId, size = 64, className = '' }: Te
   // teamId가 있으면 한글 이름으로 변환
   const teamName = teamId ? teamIdToName[teamId.toLowerCase()] : team;
   const canonicalKey = normalizeTeamLabel(teamName ?? team);
-  
+
   // size가 문자열이면 숫자로 변환
   const numericSize = typeof size === 'string' ? sizeMap[size] : size;
-  
+
   const logoImage = canonicalKey ? teamLogoImages[canonicalKey] : undefined;
-  
+
   if (!logoImage) {
     // 로고가 없는 경우 기본 표시
     return (
-      <div 
+      <div
         className={`rounded-full bg-white/90 flex items-center justify-center ${className}`}
         style={{ width: numericSize, height: numericSize, fontWeight: 900, fontSize: numericSize * 0.28, color: '#2d5f4f' }}
       >
@@ -94,10 +95,10 @@ export default function TeamLogo({ team, teamId, size = 64, className = '' }: Te
   }
 
   return (
-    <div 
+    <div
       className={`flex items-center justify-center ${className}`}
-      style={{ 
-        width: numericSize, 
+      style={{
+        width: numericSize,
         height: numericSize,
       }}
     >

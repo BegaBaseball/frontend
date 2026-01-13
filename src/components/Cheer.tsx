@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  MessageSquare, Heart, Flame, PenSquare, RotateCw, Info, 
-  ChevronLeft, ChevronRight, Megaphone 
+import {
+  MessageSquare, Heart, Flame, PenSquare, RotateCw, Info,
+  ChevronLeft, ChevronRight, Megaphone, Bookmark, Flag
 } from 'lucide-react';
 import { Button } from './ui/button';
 import TeamLogo from './TeamLogo';
-import { listPosts } from '../api/cheer';
+import { listPosts, togglePostBookmark, listBookmarks } from '../api/cheer';
 import { useCheerStore, Post } from '../store/cheerStore';
 import { useAuthStore } from '../store/authStore';
 import { Link, useNavigate } from 'react-router-dom';
+import ReportModal from './ReportModal';
 
-type TabType = 'all' | 'notice' | 'myTeam';
+type TabType = 'all' | 'notice' | 'myTeam' | 'bookmarks';
 const ITEMS_PER_PAGE = 10;
 
 export default function Cheer() {
@@ -21,11 +22,14 @@ export default function Cheer() {
     setActiveTab,
     setPosts,
     setSelectedPostId,
+    setPostBookmarkState,
   } = useCheerStore();
   const navigate = useNavigate();
   const favoriteTeam = useAuthStore((state) => state.user?.favoriteTeam ?? null);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportPostId, setReportPostId] = useState<number | null>(null);
 
   const teamFilter = useMemo(() => {
     if (activeTab !== 'myTeam') return undefined;
@@ -44,6 +48,9 @@ export default function Cheer() {
     queryFn: () => {
       if (activeTab === 'notice') {
         return listPosts(undefined, 0, 100, 'NOTICE');
+      }
+      if (activeTab === 'bookmarks') {
+        return listBookmarks(0, 100);
       }
       return listPosts(teamFilter, 0, 100, 'NORMAL');
     },
@@ -74,7 +81,7 @@ export default function Cheer() {
   const isLoading = isCheerLoading;
 
   const displayedPosts = useMemo(() => {
-    if (activeTab === 'notice') {
+    if (activeTab === 'notice' || activeTab === 'bookmarks') {
       return posts;
     }
     if (activeTab === 'all' || !favoriteTeam || favoriteTeam === '없음') {
@@ -122,8 +129,32 @@ export default function Cheer() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleBookmarkClick = async (e: React.MouseEvent, post: Post) => {
+    e.stopPropagation();
+    try {
+      setPostBookmarkState(post.id, !post.isBookmarked);
+      await togglePostBookmark(post.id);
+    } catch (error) {
+      // revert on error
+      setPostBookmarkState(post.id, !post.isBookmarked);
+      console.error('Failed to toggle bookmark', error);
+    }
+  };
+
+  const handleReportClick = (e: React.MouseEvent, postId: number) => {
+    e.stopPropagation();
+    setReportPostId(postId);
+    setReportModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
+
+      <ReportModal
+        postId={reportPostId}
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
@@ -155,11 +186,10 @@ export default function Cheer() {
         <div className="mb-6 flex gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
           <button
             onClick={() => handleTabChange('all')}
-            className={`whitespace-nowrap rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base transition-all ${
-              activeTab === 'all'
-                ? 'text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-            }`}
+            className={`whitespace-nowrap rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base transition-all ${activeTab === 'all'
+              ? 'text-white'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+              }`}
             style={activeTab === 'all' ? { backgroundColor: '#2d5f4f' } : undefined}
           >
             전체
@@ -167,20 +197,30 @@ export default function Cheer() {
 
           <button
             onClick={() => handleTabChange('myTeam')}
-            className={`whitespace-nowrap rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base transition-all ${
-              activeTab === 'myTeam'
-                ? 'text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-            }`}
+            className={`whitespace-nowrap rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base transition-all ${activeTab === 'myTeam'
+              ? 'text-white'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+              }`}
             style={activeTab === 'myTeam' ? { backgroundColor: '#2d5f4f' } : undefined}
           >
             마이팀
+          </button>
+
+          <button
+            onClick={() => handleTabChange('bookmarks')}
+            className={`whitespace-nowrap rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base transition-all ${activeTab === 'bookmarks'
+              ? 'text-white'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+              }`}
+            style={activeTab === 'bookmarks' ? { backgroundColor: '#2d5f4f' } : undefined}
+          >
+            북마크
           </button>
         </div>
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            
+
             {isCheerError && (
               <div className="mb-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
                 게시글을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
@@ -218,7 +258,7 @@ export default function Cheer() {
                 <div
                   key={post.id}
                   onClick={() => handlePostClick(post.id)}
-                  className="cursor-pointer rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 sm:px-8 py-4 sm:py-5 transition-shadow hover:shadow-md"
+                  className="cursor-pointer rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 sm:px-8 py-4 sm:py-5 transition-shadow hover:shadow-md relative group"
                 >
                   <div className="flex items-center gap-4 sm:gap-8">
 
@@ -262,6 +302,19 @@ export default function Cheer() {
                             <Heart className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                             <span>{post.likes}</span>
                           </div>
+                          <div
+                            className="flex items-center gap-1 hover:text-yellow-500 dark:hover:text-yellow-400 transition-colors z-10"
+                            onClick={(e) => handleBookmarkClick(e, post)}
+                          >
+                            <Bookmark className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${post.isBookmarked ? 'fill-yellow-500 text-yellow-500' : ''}`} />
+                          </div>
+                          <div
+                            className="flex items-center gap-1 hover:text-red-600 dark:hover:text-red-400 transition-colors z-10 opacity-0 group-hover:opacity-100"
+                            onClick={(e) => handleReportClick(e, post.id)}
+                            title="신고하기"
+                          >
+                            <Flag className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          </div>
                         </div>
 
                       </div>
@@ -289,13 +342,13 @@ export default function Cheer() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                
+
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                   .filter(page => {
+                    .filter(page => {
                       return page === 1 || page === totalPages || Math.abs(page - currentPage) <= 2;
-                   })
-                   .map((page, index, array) => {
+                    })
+                    .map((page, index, array) => {
                       const isGap = index > 0 && page - array[index - 1] > 1;
                       const isActive = currentPage === page;
 
@@ -306,11 +359,10 @@ export default function Cheer() {
                             variant="outline"
                             size="sm"
                             onClick={() => handlePageChange(page)}
-                            className={`w-9 px-0 ${
-                              isActive
-                                ? 'font-bold hover:opacity-90'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                            }`}
+                            className={`w-9 px-0 ${isActive
+                              ? 'font-bold hover:opacity-90'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                              }`}
                             style={isActive ? {
                               backgroundColor: '#2d5f4f',
                               color: '#ffffff',
@@ -321,7 +373,7 @@ export default function Cheer() {
                           </Button>
                         </div>
                       );
-                   })}
+                    })}
                 </div>
 
                 <Button
@@ -336,7 +388,7 @@ export default function Cheer() {
               </div>
             )}
           </div>
-          
+
           <aside className="space-y-6">
 
             <div
@@ -370,7 +422,7 @@ export default function Cheer() {
                     </div>
                   </div>
                 ))}
-                 {hotPosts.length === 0 && (
+                {hotPosts.length === 0 && (
                   <div className="text-center py-4 text-gray-400 dark:text-gray-500 text-sm">
                     HOT 게시물이 없습니다.
                   </div>
@@ -382,51 +434,51 @@ export default function Cheer() {
               <div
                 className="rounded-2xl p-4 border-2 bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-950/20 dark:to-sky-950/20 border-blue-200 dark:border-blue-800 sticky top-24"
               >
-              <Link to="/notice">
-                <h2 className="mb-4 flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold">
-                  <Megaphone className="w-5 h-5" />
-                  공지사항
-                </h2>
-              </Link>
-              <div className="space-y-3">
-                {(noticeData?.content ?? [])
-                  .filter((post) => post.postType === 'NOTICE')
-                  .slice(0, 5)
-                  .map((post) => (
-                  <div
-                    key={`notice-${post.id}`}
-                    onClick={() => navigate(`/cheer/detail/${post.id}`)}
-                    className="bg-white dark:bg-gray-800 rounded-xl p-3 hover:shadow-md transition-shadow cursor-pointer border border-blue-100 dark:border-blue-900"
-                  >
-                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">Notice</span>
-                      <span>{post.timeAgo}</span>
-                    </div>
-                    <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white line-clamp-2">{post.title}</div>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        {post.comments}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Heart className="h-3 w-3" />
-                        {post.likes}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                <Link to="/notice">
+                  <h2 className="mb-4 flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold">
+                    <Megaphone className="w-5 h-5" />
+                    공지사항
+                  </h2>
+                </Link>
+                <div className="space-y-3">
+                  {(noticeData?.content ?? [])
+                    .filter((post) => post.postType === 'NOTICE')
+                    .slice(0, 5)
+                    .map((post) => (
+                      <div
+                        key={`notice-${post.id}`}
+                        onClick={() => navigate(`/cheer/detail/${post.id}`)}
+                        className="bg-white dark:bg-gray-800 rounded-xl p-3 hover:shadow-md transition-shadow cursor-pointer border border-blue-100 dark:border-blue-900"
+                      >
+                        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                          <span className="text-blue-600 dark:text-blue-400 font-medium">Notice</span>
+                          <span>{post.timeAgo}</span>
+                        </div>
+                        <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white line-clamp-2">{post.title}</div>
+                        <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            {post.comments}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Heart className="h-3 w-3" />
+                            {post.likes}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
 
-                {!isNoticeLoading && (
-                   (!noticeData || noticeData.content.filter(p => p.postType === 'NOTICE').length === 0)
-                ) && (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <Megaphone className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                    <p className="text-sm">
-                      등록된 공지사항이 없습니다.
-                    </p>
-                  </div>
-                )}
-              </div>
+                  {!isNoticeLoading && (
+                    (!noticeData || noticeData.content.filter(p => p.postType === 'NOTICE').length === 0)
+                  ) && (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <Megaphone className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                        <p className="text-sm">
+                          등록된 공지사항이 없습니다.
+                        </p>
+                      </div>
+                    )}
+                </div>
               </div>
             )}
 
