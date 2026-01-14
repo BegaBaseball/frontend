@@ -1,69 +1,130 @@
+
+import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { Trophy, TrendingUp, Award, Clock, ChevronLeft } from 'lucide-react';
+import { Search, ChevronRight, ChevronLeft, Calculator, Trophy, Medal, Crown, TrendingUp, Loader2, Info, ChevronDown, Clock, Award } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
+import { Button } from './ui/button';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
 }
 
+interface OffseasonMovement {
+  id: number;
+  date: string;
+  section: string;
+  team: string; // teamCode
+  player: string;
+  remarks: string;
+  bigEvent: boolean;
+  estimatedAmount: number;
+}
+
+const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080';
+
+// Helper to highlight money string
+const formatRemarks = (text: string) => {
+  if (!text) return text;
+  // Regex for typical money patterns: "nn억", "nnn만원", "nn만달러"
+  const parts = text.split(/(\d+(?:,\d+)*\s*(?:억|만\s*원|만\s*달러|달러))/g);
+
+  return (
+    <span>
+      {parts.map((part, i) => {
+        if (part.match(/(\d+(?:,\d+)*)\s*(?:억|만\s*원|만\s*달러|달러)/)) {
+          return <span key={i} className="font-bold text-[#2d5f4f] dark:text-[#4ade80]">{part}</span>;
+        }
+        return part;
+      })}
+    </span>
+  );
+};
+
 export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
-  // 2026 시즌 개막일 계산
-  const openingDay = new Date(2026, 2, 28); // 2026년 3월 28일
-  const diffTime = openingDay.getTime() - selectedDate.getTime();
-  const daysUntilOpening = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   const navigate = useNavigate();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { theme } = useTheme();
 
-  const stoveLeagueNews = [
-    { category: '이적', team: 'KT', title: '김현수 선수 FA 계약 3년 50억', date: '2025.11.25' },
-    { category: '이적', team: '한화', title: '강백호 선수 FA 계약', date: '2025.11.22' },
-    { category: '이적', team: '두산', title: '박찬호 선수 FA 계약', date: '2025.11.08' },
-    { category: '코치', team: 'WO', title: '박병호 선수 은퇴 후 선임 코치', date: '2025.11.04' },
-  ];
+  // Data State
+  const [movements, setMovements] = useState<OffseasonMovement[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const awards = [
-    { award: 'MVP', playerName: '코디 폰세', team: '한화', stats: `17승 1패 평균자책점 1.89` },
-    { award: '신인상', playerName: '안현민', team: 'KT', stats: '타율 .334 22홈런 80타점' },
-    { award: '홈런상', playerName: '르윈 디아즈', team: '삼성', stats: '역대 최초 50홈런 158타점' },
-    { award: '홀드상', playerName: '노경은', team: 'SSG', stats: '77경기 35홀드 최고령 홀드 갱신' },
-    { award: '도루상', playerName: '박해민', team: 'LG', stats: '6월 역대 최초 12시즌 연속 20도루' },
-    { award: '타율상', playerName: '양의지', team: '두산', stats: '타율 .337 3번째 포수 타격왕' },
-  ];
+  // Dynamic Data State (Awards, PostSeason, Rankings)
+  interface AwardData { award: string; playerName: string; team: string; stats: string; }
+  interface PostSeasonResult { title: string; result: string; detail: string; }
+  interface Ranking { rank: number; teamId: string; teamName: string; wins: number; losses: number; draws: number; winRate: string; games: number; }
 
-  const postSeasonResults = [
-    { title: '한국시리즈 우승', result: 'LG 트윈스', detail: '한화 이글스 KS 4-1 승' },
-    { title: '플레이오프', result: '한화 이글스', detail: '삼성 라이온즈 PO 3-2 승' },
-    { title: '준플레이오프', result: '삼성 라이온즈', detail: 'SSG 랜더스 준PO 2-3 승' },
-    { title: '와일드카드', result: '삼성 라이온즈', detail: 'NC 다이노스 WC 1-1 승' }
-  ];
+  const [awards, setAwards] = useState<AwardData[]>([]);
+  const [postSeasonResults, setPostSeasonResults] = useState<PostSeasonResult[]>([]);
+  const [rankings, setRankings] = useState<Ranking[]>([]);
 
-  const finalRankings = [
-    { rank: 1, team: 'LG 트윈스', logo: 'LG', games: '144', wins: '85', losses: '56', draws: '3', winRate: '0.603' },
-    { rank: 2, team: '한화 이글스', logo: '한화', games: '144', wins: '83', losses: '57', draws: '4', winRate: '0.593' },
-    { rank: 3, team: 'SSG 랜더스', logo: 'SSG', games: '144', wins: '75', losses: '65', draws: '4', winRate: '0.536' },
-    { rank: 4, team: '삼성 라이온즈', logo: '삼성', games: '144', wins: '74', losses: '68', draws: '2', winRate: '0.521' },
-    { rank: 5, team: 'NC 다이노스', logo: 'NC', games: '144', wins: '71', losses: '67', draws: '6', winRate: '0.514' },
-    { rank: 6, team: 'KT 위즈', logo: 'KT', games: '144', wins: '71', losses: '68', draws: '5', winRate: '0.511' },
-    { rank: 7, team: '롯데 자이언츠', logo: '롯데', games: '144', wins: '66', losses: '72', draws: '6', winRate: '0.478' },
-    { rank: 8, team: 'KIA 타이거즈', logo: 'HT', games: '144', wins: '65', losses: '75', draws: '4', winRate: '0.464' },
-    { rank: 9, team: '두산 베어스', logo: '두산', games: '144', wins: '61', losses: '77', draws: '6', winRate: '0.442' },
-    { rank: 10, team: '키움 히어로즈', logo: '키움', games: '144', wins: '47', losses: '93', draws: '4', winRate: '0.336' }
-  ];
+  // 2026 Season Opening Day
+  const openingDay = new Date(2026, 2, 28);
+  const diffTime = openingDay.getTime() - new Date().getTime();
+  const daysUntilOpening = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch movements
+        const movementsRes = await fetch(`${API_BASE_URL}/api/kbo/offseason/movements`);
+        if (movementsRes.ok) {
+          setMovements(await movementsRes.json());
+        }
+
+        // Fetch metadata (awards, postseason)
+        const metadataRes = await fetch(`${API_BASE_URL}/api/kbo/offseason/metadata?year=2025`);
+        if (metadataRes.ok) {
+          const metadata = await metadataRes.json();
+          setAwards(metadata.awards || []);
+          setPostSeasonResults(metadata.postSeasonResults || []);
+        }
+
+        // Fetch rankings
+        const rankingsRes = await fetch(`${API_BASE_URL}/api/kbo/rankings/2025`);
+        if (rankingsRes.ok) {
+          setRankings(await rankingsRes.json());
+        }
+      } catch (error) {
+        console.error("Failed to fetch offseason data", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Filter for 2025 Stove League (Frontend Fail-safe)
+  // Even if backend sends all data, we only show recent ones here.
+  const stoveLeagueStart = "2024-11-01";
+  const recentMovements = movements.filter(m => m.date >= stoveLeagueStart);
+
+  // Filter Big Events (Top 4)
+  const bigEvents = recentMovements.filter(m => m.bigEvent).slice(0, 4);
+
+  // Use shared team name utility
+  const getTeamName = (code: string) => {
+    const teamNameMap: { [key: string]: string } = {
+      'OB': '두산', 'HT': 'KIA', 'LT': '롯데', 'NC': 'NC', 'SS': '삼성',
+      'WO': '키움', 'SK': 'SSG', 'HH': '한화', 'LG': 'LG', 'KT': 'KT'
+    };
+    return teamNameMap[code] || code;
+  };
 
   return (
     <div className="space-y-8 md:space-y-12 min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors px-4 py-6 md:p-8">
       <button
-          onClick={() => navigate('/home')}
-          className="text-sm mb-2 flex items-center gap-2 group transition-all border-2 px-4 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-          style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+        onClick={() => navigate('/home')}
+        className="text-sm mb-2 flex items-center gap-2 group transition-all border-2 px-4 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+        style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
       >
-          <span className="w-6 h-6 rounded-full bg-[#2d5f4f]/10 dark:bg-[#4ade80]/10 flex items-center justify-center transition-all group-hover:scale-110">
-              <ChevronLeft className="w-4 h-4" />
-          </span>
-          <span className="group-hover:underline font-bold dark:text-[#4ade80]">메인페이지로 돌아가기</span>
+        <span className="w-6 h-6 rounded-full bg-[#2d5f4f]/10 dark:bg-[#4ade80]/10 flex items-center justify-center transition-all group-hover:scale-110">
+          <ChevronLeft className="w-4 h-4" />
+        </span>
+        <span className="group-hover:underline font-bold dark:text-[#4ade80]">메인페이지로 돌아가기</span>
       </button>
 
       {/* Hero Section */}
@@ -79,7 +140,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
             <div className="text-white md:text-right bg-black/20 p-3 md:p-4 rounded-xl md:rounded-2xl backdrop-blur-sm border border-white/10 w-fit">
               <div className="text-[10px] md:text-xs text-white/60 mb-1 uppercase tracking-wider font-bold">OFF-SEASON STATUS</div>
               <div className="text-lg md:text-2xl font-black">
-                {selectedDate.getFullYear()}.{selectedDate.getMonth() + 1}.{selectedDate.getDate()}
+                {new Date().toLocaleDateString()} 기준
               </div>
             </div>
           </div>
@@ -90,11 +151,11 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       <Card className="overflow-hidden shadow-2xl bg-white dark:bg-gray-900 border-none rounded-2xl md:rounded-3xl">
         <div className="text-center py-12 md:py-16 px-6 relative overflow-hidden bg-gradient-to-br from-[#1a3c34] to-[#2d5f4f]">
           <div className="absolute inset-0 opacity-10">
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-white rounded-full blur-3xl"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-white rounded-full blur-3xl"></div>
           </div>
           <div className="relative z-10">
             <div className="bg-white/10 w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-md">
-                <Clock className="w-8 h-8 md:w-10 md:h-10 text-yellow-400 animate-pulse" />
+              <Clock className="w-8 h-8 md:w-10 md:h-10 text-yellow-400 animate-pulse" />
             </div>
             <h3 className="text-xl md:text-3xl mb-6 md:mb-8 text-white font-black tracking-tight">
               2026 시즌 개막까지
@@ -109,39 +170,83 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
         </div>
       </Card>
 
-      {/* Stove League NOW */}
+      {/* Stove League Highlight Section */}
       <section>
         <div className="flex items-center gap-3 mb-6 md:mb-8">
           <div className="bg-[#2d5f4f] p-1.5 md:p-2 rounded-lg md:rounded-xl">
             <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
-          <h3 className="text-xl md:text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">스토브리그 NOW</h3>
-          <Badge className="ml-2 text-white animate-pulse border-none px-2 md:px-3 text-[10px] md:text-xs" style={{ backgroundColor: '#ef4444' }}>LIVE</Badge>
+          <h3 className="text-xl md:text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">2025 주요 이적 소식</h3>
+          <Badge className="ml-2 text-white animate-pulse border-none px-2 md:px-3 text-[10px] md:text-xs" style={{ backgroundColor: '#ef4444' }}>Breaking</Badge>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {stoveLeagueNews.map((news, index) => (
-            <Card key={index} className="p-4 md:p-6 hover:shadow-xl transition-all cursor-pointer border-none bg-white dark:bg-gray-900 group ring-1 ring-black/5 dark:ring-white/10">
-              <div className="flex items-start gap-4 md:gap-5">
-                <div className="flex-shrink-0">
-                  <div className="flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 dark:bg-gray-800 dark:border-gray-700 shadow-sm">
-                    <TeamLogo team={news.team} size={36} className="md:w-11 md:h-11" />
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="p-4 md:p-6 border-none bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/10 animate-pulse">
+                <div className="flex items-start gap-4 md:gap-5">
+                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                  <div className="flex-1 space-y-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
                   </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5 md:mb-2">
-                    <Badge className="text-white border-none font-bold text-[10px]" style={{ backgroundColor: '#2d5f4f' }}>{news.category}</Badge>
-                    <span className="text-[10px] text-gray-400 font-medium">{news.date}</span>
+              </Card>
+            ))}
+          </div>
+        ) : bigEvents.length === 0 ? (
+          <Card className="p-10 md:p-16 text-center border-none bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/10">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <TrendingUp className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">아직 등록된 주요 이적 소식이 없습니다.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">새로운 소식이 등록되면 여기에 표시됩니다.</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {bigEvents.map((news, index) => (
+              <Card key={news.id} className="p-4 md:p-6 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer border-none bg-white dark:bg-gray-900 group ring-1 ring-black/5 dark:ring-white/10 relative overflow-hidden">
+                {/* Highlight Background Effect */}
+                <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-400/10 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
+
+                <div className="flex items-start gap-4 md:gap-5 relative z-10">
+                  <div className="flex-shrink-0">
+                    <div className="flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 dark:bg-gray-800 dark:border-gray-700 shadow-sm">
+                      <TeamLogo team={getTeamName(news.team)} size={36} className="md:w-11 md:h-11" />
+                    </div>
                   </div>
-                  <p className="text-gray-900 dark:text-white text-base md:text-lg font-bold group-hover:text-[#2d5f4f] dark:group-hover:text-[#4ade80] transition-colors line-clamp-2">{news.title}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5 md:mb-2">
+                      <Badge className="text-white border-none font-bold text-[10px]" style={{ backgroundColor: '#2d5f4f' }}>{news.section}</Badge>
+                      <span className="text-[10px] text-gray-400 font-medium">{news.date}</span>
+                    </div>
+                    <p className="text-gray-900 dark:text-white text-base md:text-lg font-bold group-hover:text-[#2d5f4f] dark:group-hover:text-[#4ade80] transition-colors line-clamp-1">
+                      {news.player} ({getTeamName(news.team)})
+                    </p>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-1">
+                      {formatRemarks(news.remarks)}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Awards Section */}
+      {/* Button to Open List Page */}
+      <section className="flex justify-center pb-10">
+        <Button
+          onClick={() => navigate('/offseason/list')}
+          className="bg-white dark:bg-gray-800 text-[#2d5f4f] dark:text-[#4ade80] border border-[#2d5f4f]/20 hover:bg-[#2d5f4f]/5 rounded-full px-8 py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+        >
+          전체 이적 현황 보러가기 ({movements.length}건)
+          <ChevronDown className="w-5 h-5 ml-2 -rotate-90" />
+        </Button>
+      </section>
+
+      {/* Awards Section (Static) */}
       <section>
         <div className="flex items-center gap-3 mb-6 md:mb-8">
           <div className="bg-[#2d5f4f] p-1.5 md:p-2 rounded-lg md:rounded-xl">
@@ -172,40 +277,123 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
         </div>
       </section>
 
-      {/* Post Season Results */}
+      {/* PostSeason Bracket Section */}
       <section>
         <div className="flex items-center gap-3 mb-6 md:mb-8">
           <div className="bg-[#2d5f4f] p-1.5 md:p-2 rounded-lg md:rounded-xl">
             <Trophy className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
-          <h3 className="text-xl md:text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">PS 주요 결과</h3>
+          <h3 className="text-xl md:text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">2025 포스트시즌 결과</h3>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-          {postSeasonResults.map((result, index) => (
-            <Card
-              key={index}
-              className={`p-4 md:p-6 text-center hover:shadow-2xl transition-all border-none hover:-translate-y-1 ring-1 ${
-                index === 0
-                  ? 'bg-gradient-to-b from-white to-green-50 dark:from-gray-900 dark:to-green-900/10 ring-[#2d5f4f]/30 col-span-2 md:col-span-1'
-                  : 'bg-white dark:bg-gray-900 ring-black/5 dark:ring-white/10'
-              }`}
-            >
-              <div className="mb-3 md:mb-4">
-                <Badge className={`text-white text-[9px] md:text-xs px-2 md:px-4 py-0.5 md:py-1 border-none font-bold ${index === 0 ? 'bg-[#2d5f4f]' : index === 1 ? 'bg-gray-600' : 'bg-gray-400'}`}>
-                  {result.title}
-                </Badge>
+        <Card className="p-6 md:p-10 overflow-x-auto bg-white dark:bg-gray-900 border-none shadow-xl rounded-2xl md:rounded-3xl ring-1 ring-black/5 dark:ring-white/10">
+          <div className="min-w-[800px] flex items-center justify-center relative h-[400px] gap-12">
+
+            {/* WC Stage (Left - Lowest) */}
+            <div className="flex flex-col gap-4 relative z-10 translate-y-20">
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-bold text-gray-400 text-center">와일드카드</span>
+                <div className="flex flex-col gap-3 relative">
+                  {/* Connector Line for WC: Goes UP to Semi */}
+                  <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
+                  <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
+
+                  <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-44">
+                    <span className="text-sm font-bold text-gray-500 w-8">5위</span>
+                    <TeamLogo team="NC" size={24} />
+                    <span className="font-bold text-gray-900 dark:text-white">NC</span>
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80] w-44 relative z-10">
+                    <span className="text-sm font-bold text-[#2d5f4f] dark:text-[#4ade80] w-8">4위</span>
+                    <TeamLogo team="삼성" size={24} />
+                    <span className="font-bold text-gray-900 dark:text-white">삼성</span>
+                    <Badge className="ml-auto text-[10px] bg-[#2d5f4f]">승</Badge>
+                  </div>
+                </div>
               </div>
-              <p className={`mb-1 md:mb-2 text-base md:text-xl font-black ${index === 0 ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-900 dark:text-white'}`}>
-                {result.result}
-              </p>
-              <p className="text-[10px] md:text-sm text-gray-500 dark:text-gray-400 font-medium">{result.detail}</p>
-            </Card>
-          ))}
-        </div>
+            </div>
+
+            {/* Semi-PO Stage (Step Up) */}
+            <div className="flex flex-col gap-4 relative z-10 translate-y-8">
+              <span className="text-xs font-bold text-gray-400 text-center">준플레이오프</span>
+              <div className="flex flex-col gap-8 relative">
+                {/* Incoming Connector from WC */}
+                <div className="absolute left-[-48px] bottom-[26px] w-[48px] h-[2px] bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
+
+                {/* Outgoing Connector to PO */}
+                <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
+                <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
+
+                <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-48">
+                  <span className="text-sm font-bold text-gray-500 w-8">3위</span>
+                  <TeamLogo team="SSG" size={24} />
+                  <span className="font-bold text-gray-900 dark:text-white">SSG</span>
+                </div>
+
+                <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80] w-48">
+                  <span className="text-sm font-bold text-[#2d5f4f] dark:text-[#4ade80] w-8">WC</span>
+                  <TeamLogo team="삼성" size={24} />
+                  <span className="font-bold text-gray-900 dark:text-white">삼성</span>
+                  <Badge className="ml-auto text-[10px] bg-[#2d5f4f] text-white">승</Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* PO Stage (Step Up) */}
+            <div className="flex flex-col gap-4 relative z-10 -translate-y-4">
+              <span className="text-xs font-bold text-gray-400 text-center">플레이오프</span>
+              <div className="flex flex-col gap-8 relative">
+                {/* Incoming Connector from Semi */}
+                <div className="absolute left-[-48px] bottom-[26px] w-[48px] h-[2px] bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
+
+                {/* Outgoing Connector to KS */}
+                <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
+                <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
+
+
+                <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80] w-52">
+                  <span className="text-sm font-bold text-[#2d5f4f] dark:text-[#4ade80] w-8">2위</span>
+                  <TeamLogo team="한화" size={24} />
+                  <span className="font-bold text-gray-900 dark:text-white">한화</span>
+                  <Badge className="ml-auto text-[10px] bg-[#2d5f4f] text-white">승</Badge>
+                </div>
+                <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-52">
+                  <span className="text-sm font-bold text-gray-500 w-8">준PO</span>
+                  <TeamLogo team="삼성" size={24} />
+                  <span className="font-bold text-gray-900 dark:text-white">삼성</span>
+                </div>
+              </div>
+            </div>
+
+            {/* KS Stage (Highest) */}
+            <div className="flex flex-col gap-4 relative z-10 -translate-y-16">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Crown className="w-4 h-4 text-yellow-500" />
+                <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 text-center">한국시리즈</span>
+              </div>
+
+              <div className="flex flex-col gap-8 relative">
+                {/* Incoming Connector from PO */}
+                <div className="absolute left-[-48px] bottom-[30px] w-[48px] h-[2px] bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
+
+                <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-[#2d5f4f] to-[#1a3c34] rounded-xl shadow-lg shadow-emerald-900/20 border-none w-60 scale-110">
+                  <span className="text-sm font-bold text-emerald-200 w-8">1위</span>
+                  <TeamLogo team="LG" size={32} />
+                  <span className="font-bold text-white text-lg">LG</span>
+                  <Badge className="ml-auto text-[10px] bg-yellow-400 text-black hover:bg-yellow-500">V3</Badge>
+                </div>
+                <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-60 opacity-70">
+                  <span className="text-sm font-bold text-gray-500 w-8">PO</span>
+                  <TeamLogo team="한화" size={24} />
+                  <span className="font-bold text-gray-900 dark:text-white">한화</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
       </section>
 
-      {/* Final Rankings */}
+      {/* Final Rankings (Static) */}
       <section className="pb-10">
         <div className="flex items-center gap-3 mb-6 md:mb-8">
           <div className="bg-[#2d5f4f] p-1.5 md:p-2 rounded-lg md:rounded-xl">
@@ -227,32 +415,32 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {finalRankings.map((team, index) => (
-                    <tr key={team.rank} className={`group transition-colors ${team.rank <= 3 ? 'bg-emerald-50/30 dark:bg-emerald-900/5' : ''} hover:bg-gray-50 dark:hover:bg-gray-800/50`}>
-                      <td className="py-4 px-4 md:px-6">
-                        <div className={`w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center text-white shadow-md font-black text-xs md:text-base ${team.rank <= 3 ? 'bg-[#2d5f4f] scale-105' : 'bg-gray-400 dark:bg-gray-700'}`}>
-                          {team.rank}
+                {rankings.map((team: Ranking) => (
+                  <tr key={team.rank} className={`group transition-colors ${team.rank <= 3 ? 'bg-emerald-50/30 dark:bg-emerald-900/5' : ''} hover:bg-gray-50 dark:hover:bg-gray-800/50`}>
+                    <td className="py-4 px-4 md:px-6">
+                      <div className={`w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center text-white shadow-md font-black text-xs md:text-base ${team.rank <= 3 ? 'bg-[#2d5f4f] scale-105' : 'bg-gray-400 dark:bg-gray-700'}`}>
+                        {team.rank}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 md:px-6">
+                      <div className="flex items-center gap-2 md:gap-4">
+                        <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm flex-shrink-0">
+                          <TeamLogo team={team.teamId} size={24} className="md:w-7 md:h-7" />
                         </div>
-                      </td>
-                      <td className="py-4 px-4 md:px-6">
-                        <div className="flex items-center gap-2 md:gap-4">
-                          <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm flex-shrink-0">
-                            <TeamLogo team={team.logo} size={24} className="md:w-7 md:h-7" />
-                          </div>
-                          <span className="text-gray-900 dark:text-white font-bold text-xs md:text-base truncate max-w-[70px] md:max-w-none">
-                            {team.team}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 md:px-6 text-center text-gray-600 dark:text-gray-400 text-xs hidden sm:table-cell">{team.games}</td>
-                      <td className="py-4 px-4 md:px-6 text-center">
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-0 md:gap-1.5">
-                            <span className="text-emerald-600 dark:text-[#4ade80] font-bold text-xs md:text-sm">{team.wins}승</span>
-                            <span className="text-rose-600 dark:text-rose-400 font-bold text-xs md:text-sm">{team.losses}패</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 md:px-6 text-center font-black text-gray-900 dark:text-white text-xs md:text-lg tabular-nums">{team.winRate}</td>
-                    </tr>
+                        <span className="text-gray-900 dark:text-white font-bold text-xs md:text-base truncate max-w-[70px] md:max-w-none">
+                          {team.teamName}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 md:px-6 text-center text-gray-600 dark:text-gray-400 text-xs hidden sm:table-cell">{team.games}</td>
+                    <td className="py-4 px-4 md:px-6 text-center">
+                      <div className="flex flex-col md:flex-row items-center justify-center gap-0 md:gap-1.5">
+                        <span className="text-emerald-600 dark:text-[#4ade80] font-bold text-xs md:text-sm">{team.wins}승</span>
+                        <span className="text-rose-600 dark:text-rose-400 font-bold text-xs md:text-sm">{team.losses}패</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 md:px-6 text-center font-black text-gray-900 dark:text-white text-xs md:text-lg tabular-nums">{team.winRate}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
