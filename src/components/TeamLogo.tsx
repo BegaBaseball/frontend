@@ -30,6 +30,7 @@ const teamLogoImages: Record<string, string> = {
   LT: lotteLogo,
   '롯데': lotteLogo,
   'Lotte': lotteLogo,
+  'LOTTE': lotteLogo,
   OB: doosanLogo,
   '두산': doosanLogo,
   'Doosan': doosanLogo,

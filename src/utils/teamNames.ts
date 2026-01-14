@@ -20,6 +20,12 @@ export const teamNameMap: { [key: string]: string } = {
     'Kiwoom': '키움',
     'Hanwha': '한화',
     'Kia': 'KIA',
+    'KIA': 'KIA',
+    'LOTTE': '롯데',
+    'SAMSUNG': '삼성',
+    'DOOSAN': '두산',
+    'HANWHA': '한화',
+    'KIWOOM': '키움',
 };
 
 /**
