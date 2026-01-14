@@ -7,6 +7,7 @@ import TeamLogo from './TeamLogo';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/button';
+import { getTeamKoreanName } from '../utils/teamNames';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
@@ -107,11 +108,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
 
   // Use shared team name utility
   const getTeamName = (code: string) => {
-    const teamNameMap: { [key: string]: string } = {
-      'OB': '두산', 'HT': 'KIA', 'LT': '롯데', 'NC': 'NC', 'SS': '삼성',
-      'WO': '키움', 'SK': 'SSG', 'HH': '한화', 'LG': 'LG', 'KT': 'KT'
-    };
-    return teamNameMap[code] || code;
+    return getTeamKoreanName(code);
   };
 
   return (
