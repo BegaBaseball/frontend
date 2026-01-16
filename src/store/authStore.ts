@@ -85,10 +85,9 @@ export const useAuthStore = create<AuthState>()(
             // Should be handled by catch mainly, but if 200 logic fails
             set({ isAuthLoading: false });
           }
-        } catch (error: any) {
-          // If 401 happens, interceptor tries refresh. If that fails, it comes here.
-          // We should reset auth state.
-          // Note: Interceptor might have already tried refresh. If we are here, it failed.
+        } catch (error) {
+          // 401 errors are handled by interceptor (redirect to login)
+          // For other errors during initial auth check, we just reset state silently to avoid modal on startup
           set({
             user: null,
             isLoggedIn: false,
@@ -131,7 +130,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        api.post('/auth/logout').catch(err => console.error(err));
+        api.post('/auth/logout'); // Global handler will catch errors if any
 
         set({
           user: null,

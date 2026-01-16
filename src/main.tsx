@@ -5,6 +5,13 @@ import { ThemeProvider } from "next-themes";
 import App from "./App";
 import "./index.css";
 
+// 기존 bega-theme를 kbo-theme으로 마이그레이션
+const oldTheme = localStorage.getItem('bega-theme');
+if (oldTheme && !localStorage.getItem('kbo-theme')) {
+  localStorage.setItem('kbo-theme', oldTheme);
+  localStorage.removeItem('bega-theme');
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

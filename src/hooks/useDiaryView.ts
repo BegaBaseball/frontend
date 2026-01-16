@@ -4,12 +4,11 @@ import { fetchGames, fetchDiaries, saveDiary, updateDiary, deleteDiary, uploadDi
 import { DiaryEntry, Game } from '../types/diary';
 import { formatDateString } from '../utils/diary';
 import { useDiaryForm } from './useDiaryForm';
-import { useErrorModal } from '../components/contexts/ErrorModalContext'
 import { toast } from 'sonner';
 
 export const useDiaryView = () => {
   const queryClient = useQueryClient();
-  const { openErrorModal } = useErrorModal();
+  // const { openErrorModal } = useErrorModal(); // Removed
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -30,7 +29,7 @@ export const useDiaryView = () => {
   // ========== Fetch Diaries from DB ==========
   const { data: diaryEntries = [], isLoading: entriesLoading } = useQuery({
     queryKey: ['diaries'],
-    queryFn: () => fetchDiaries(openErrorModal),
+    queryFn: () => fetchDiaries(),
     staleTime: 1 * 60 * 1000, // 1분
     gcTime: 5 * 60 * 1000, // 5분
   });
@@ -42,7 +41,7 @@ export const useDiaryView = () => {
   // ========== Fetch Games ==========
   const { data: availableGames = [], isLoading: gamesLoading } = useQuery({
     queryKey: ['games', dateStr],
-    queryFn: () => fetchGames(dateStr, openErrorModal),
+    queryFn: () => fetchGames(dateStr),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
@@ -68,10 +67,11 @@ export const useDiaryView = () => {
     if (photoFiles.length === 0) return [];
 
     try {
-      const photos = await uploadDiaryImages(diaryId, photoFiles, openErrorModal);
+      const photos = await uploadDiaryImages(diaryId, photoFiles);
       toast.success(`${photos.length}장의 사진이 저장되었습니다.`);
       return photos;
     } catch (error) {
+      // Global modal handles server errors. Toast provides quick feedback.
       toast.error('일부 사진 업로드에 실패했습니다.');
       return [];
     }
@@ -79,7 +79,7 @@ export const useDiaryView = () => {
 
   // ========== Save Mutation ==========
   const saveMutation = useMutation({
-    mutationFn: (data: any) => saveDiary(data, openErrorModal),
+    mutationFn: (data: any) => saveDiary(data),
     onSuccess: async (result) => {
       const diaryId = result.id || result.data?.id;
 
@@ -89,7 +89,7 @@ export const useDiaryView = () => {
       // 업로드된 사진이 있으면 다이어리 레코드 업데이트
       if (uploadedPhotos.length > 0) {
         const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
-        
+
         await updateDiary({
           id: diaryId,
           data: {
@@ -100,17 +100,15 @@ export const useDiaryView = () => {
             winningName: diaryForm.winningName,
             gameId: diaryForm.gameId,
             memo: diaryForm.memo,
-            photos: uploadedPhotos, 
+            photos: uploadedPhotos,
             team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
             stadium: game?.stadium || '',
           },
-        },
-        openErrorModal
-      );
-    }
+        });
+      }
 
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // DB 데이터 다시 조회 (강제 리프레시)
       await queryClient.invalidateQueries({ queryKey: ['diaries'], refetchType: 'all' });
       await queryClient.refetchQueries({ queryKey: ['diaries'], type: 'active' });
@@ -120,34 +118,33 @@ export const useDiaryView = () => {
       setIsEditMode(false);
     },
     onError: (error) => {
+      // Global error modal handles the details. Toast is optional but good for quick feedback.
       toast.error('다이어리 저장에 실패했습니다.');
     },
   });
 
   // ========== Update Mutation ==========
   const updateMutation = useMutation({
-    mutationFn: (params: { id: number; data: any }) => updateDiary(params, openErrorModal),
+    mutationFn: (params: { id: number; data: any }) => updateDiary(params),
     onSuccess: async (result, variables) => {
       const diaryId = variables.id;
 
       // 새 사진이 있으면 업로드
       if (diaryForm.photoFiles.length > 0) {
         const uploadedPhotos = await handleImageUpload(diaryId, diaryForm.photoFiles);
-        
+
         // 업로드 성공 시 기존 사진과 합쳐서 다시 업데이트
         if (uploadedPhotos.length > 0) {
           const allPhotos = [...(diaryForm.photos || []), ...uploadedPhotos];
           const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
-          
+
           await updateDiary({
-              id: diaryId,
-              data: {
-                ...variables.data,
-                photos: allPhotos, 
-              },
+            id: diaryId,
+            data: {
+              ...variables.data,
+              photos: allPhotos,
             },
-            openErrorModal
-          );
+          });
         }
       }
 
@@ -168,13 +165,13 @@ export const useDiaryView = () => {
 
   // ========== Delete Mutation ==========
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteDiary(id, openErrorModal),
+    mutationFn: (id: number) => deleteDiary(id),
     onSuccess: async () => {
       // DB 데이터 다시 조회 (강제 리프레시)
       await queryClient.invalidateQueries({ queryKey: ['diaries'], refetchType: 'active' });
       await queryClient.refetchQueries({ queryKey: ['diaries'] });
       await queryClient.invalidateQueries({ queryKey: ['statistics'] });
-      
+
       toast.success('다이어리가 삭제되었습니다.');
       setIsEditMode(false);
       resetForm();

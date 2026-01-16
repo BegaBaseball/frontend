@@ -49,7 +49,12 @@ export async function sendChatMessageToEdge(data: EdgeFunctionRequest): Promise<
 export async function sendChatMessageStream(
   data: ChatRequest,
   onDelta: (delta: string) => void,
-  onError: (error: string) => void
+  onError: (error: string) => void,
+  onMeta?: (meta: {
+    verified: boolean;
+    dataSources: Array<{ title: string; url?: string; content?: string }>;
+    toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
+  }) => void
 ): Promise<void> {
   const response = await fetch(`${API_URL}/chat/stream`, {
     method: 'POST',
@@ -86,11 +91,25 @@ export async function sendChatMessageStream(
         if (dataString === '[DONE]') break;
 
         try {
-          const data = JSON.parse(dataString);
-          if (currentEvent === 'message' && data.delta) {
-            onDelta(data.delta);
+          const parsed = JSON.parse(dataString);
+          if (currentEvent === 'message' && parsed.delta) {
+            onDelta(parsed.delta);
           } else if (currentEvent === 'error') {
-            onError(data.message || '알 수 없는 오류');
+            onError(parsed.message || '알 수 없는 오류');
+          } else if (currentEvent === 'meta' && onMeta) {
+            // Transform snake_case to camelCase for frontend consistency
+            onMeta({
+              verified: parsed.verified ?? false,
+              dataSources: (parsed.data_sources || []).map((s: { title?: string; url?: string; content?: string }) => ({
+                title: s.title || 'Unknown',
+                url: s.url,
+                content: s.content,
+              })),
+              toolCalls: (parsed.tool_calls || []).map((t: { tool_name?: string; parameters?: Record<string, unknown> }) => ({
+                toolName: t.tool_name || 'unknown',
+                parameters: t.parameters || {},
+              })),
+            });
           }
           currentEvent = 'message';
         } catch (parseError) {

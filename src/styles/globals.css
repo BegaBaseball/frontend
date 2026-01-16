@@ -180,3 +180,10 @@
   transform: translateY(0);
   opacity: 1;
 }
+
+.tweet-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+}

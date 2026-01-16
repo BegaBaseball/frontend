@@ -65,7 +65,9 @@ export interface PasswordResetConfirmResponse {
  */
 export const loginUser = async (credentials: LoginRequest): Promise<LoginResponse> => {
   try {
-    const response = await api.post<LoginResponse>('/auth/login', credentials);
+    const response = await api.post<LoginResponse>('/auth/login', credentials, {
+      skipGlobalErrorHandler: true, // 로그인 실패 시 모달 대신 폼 에러 표시
+    } as any);
     return response.data;
   } catch (error: any) {
     let errorMessage = '로그인에 실패했습니다.';
@@ -86,7 +88,9 @@ export const loginUser = async (credentials: LoginRequest): Promise<LoginRespons
  */
 export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> => {
   try {
-    const response = await api.post<SignUpResponse>('/auth/signup', data);
+    const response = await api.post<SignUpResponse>('/auth/signup', data, {
+      skipGlobalErrorHandler: true,
+    } as any);
     return response.data;
   } catch (error: any) {
     const errorMessage = error.response?.data?.message ||
@@ -115,7 +119,9 @@ export const logoutUser = async (): Promise<void> => {
  */
 export const requestPasswordReset = async (email: string): Promise<PasswordResetResponse> => {
   try {
-    const response = await api.post<PasswordResetResponse>('/auth/password/reset/request', { email });
+    const response = await api.post<PasswordResetResponse>('/auth/password/reset/request', { email }, {
+      skipGlobalErrorHandler: true,
+    } as any);
     return response.data;
   } catch (error: any) {
     const errorMessage = error.response?.data?.message || '이메일 발송에 실패했습니다.';
@@ -136,7 +142,9 @@ export const confirmPasswordReset = async (
       token,
       newPassword,
       confirmPassword,
-    });
+    }, {
+      skipGlobalErrorHandler: true,
+    } as any);
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || error.response?.data?.error || '비밀번호 변경에 실패했습니다.');

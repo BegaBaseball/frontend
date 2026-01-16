@@ -245,7 +245,7 @@ export default function WelcomeGuide() {
   return (
     <Dialog open={showWelcome} onOpenChange={(isOpen: boolean) => !isOpen && handleClose()}>
       <DialogContent
-        className="max-w-3xl w-[95vw] sm:w-full p-0 overflow-hidden border-0 bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl"
+        className="max-w-3xl w-[95vw] sm:w-[90vw] md:w-full max-h-[90vh] p-0 overflow-hidden border-0 bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl"
         hideCloseButton
       >
         <DialogTitle className="sr-only">
@@ -302,7 +302,7 @@ export default function WelcomeGuide() {
           </div>
 
           {/* Content */}
-          <div className="px-4 sm:px-8 py-8 sm:py-12 min-h-[400px] sm:min-h-[500px] flex flex-col items-center justify-center text-center">
+          <div className="px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-12 min-h-[300px] sm:min-h-[400px] md:min-h-[500px] max-h-[calc(90vh-180px)] overflow-y-auto flex flex-col items-center justify-center text-center">
             {/* Icon */}
             <SlideIcon
               iconType={currentSlideData.icon}
@@ -311,46 +311,46 @@ export default function WelcomeGuide() {
             />
 
             {/* Title */}
-            <div className="mb-3 sm:mb-4">
+            <div className="mb-2 sm:mb-3 md:mb-4">
               {!currentSlideData.isIntro && (
                 <Badge
-                  className="mb-2 sm:mb-3 text-white text-xs sm:text-sm"
+                  className="mb-2 sm:mb-3 text-white text-[10px] sm:text-xs md:text-sm"
                   style={{ backgroundColor: currentSlideData.color }}
                 >
                   {currentSlideData.subtitle}
                 </Badge>
               )}
               <h2
-                className="text-2xl sm:text-3xl mb-2 px-2"
+                className="text-xl sm:text-2xl md:text-3xl mb-1.5 sm:mb-2 px-2 dark:text-white"
                 style={{
                   fontWeight: 900,
-                  color: currentSlideData.isIntro ? currentSlideData.color : '#1f2937'
+                  color: currentSlideData.isIntro ? currentSlideData.color : undefined
                 }}
               >
                 {currentSlideData.title}
               </h2>
               {currentSlideData.isIntro && (
-                <p className="text-gray-600 text-base sm:text-lg" style={{ fontWeight: 600 }}>
+                <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base md:text-lg" style={{ fontWeight: 600 }}>
                   {currentSlideData.subtitle}
                 </p>
               )}
             </div>
 
             {/* Description */}
-            <p className="text-gray-600 text-sm sm:text-base mb-6 sm:mb-8 max-w-md leading-relaxed px-4">
+            <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm md:text-base mb-4 sm:mb-6 md:mb-8 max-w-md leading-relaxed px-2 sm:px-4">
               {currentSlideData.description}
             </p>
 
             {/* Features */}
             {currentSlideData.features && (
-              <div className="grid grid-cols-1 gap-2 sm:gap-3 w-full max-w-md mb-6 sm:mb-8 px-2">
+              <div className="grid grid-cols-1 gap-1.5 sm:gap-2 md:gap-3 w-full max-w-md mb-4 sm:mb-6 md:mb-8 px-2">
                 {currentSlideData.features.map((feature: string, index: number) => (
                   <Card
                     key={index}
-                    className="px-3 sm:px-4 py-2 sm:py-3 border-l-4 text-left"
+                    className="px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 border-l-4 text-left bg-white dark:bg-gray-800"
                     style={{ borderLeftColor: currentSlideData.color }}
                   >
-                    <span className="text-xs sm:text-sm" style={{ fontWeight: 600 }}>
+                    <span className="text-[11px] sm:text-xs md:text-sm text-gray-700 dark:text-gray-200 leading-relaxed" style={{ fontWeight: 600 }}>
                       {feature}
                     </span>
                   </Card>
@@ -360,20 +360,20 @@ export default function WelcomeGuide() {
 
             {/* Welcome Message for First Slide */}
             {currentSlideData.isIntro && (
-              <div className="space-y-3 sm:space-y-4 max-w-md px-2">
+              <div className="space-y-2 sm:space-y-3 md:space-y-4 max-w-md px-2">
                 <Card
-                  className="p-4 sm:p-6 border-2"
-                  style={{ borderColor: '#2d5f4f', backgroundColor: '#f0f9f6' }}
+                  className="p-3 sm:p-4 md:p-6 border-2 dark:bg-[#1a2e28]"
+                  style={{ borderColor: '#2d5f4f', backgroundColor: undefined }}
                 >
-                  <div className="text-left mb-3 sm:mb-4">
-                    <h4 className="mb-1 text-sm sm:text-base" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                  <div className="text-left mb-2 sm:mb-3 md:mb-4 bg-[#f0f9f6] dark:bg-transparent rounded-lg p-2 sm:p-0">
+                    <h4 className="mb-1 text-xs sm:text-sm md:text-base" style={{ fontWeight: 900, color: '#2d5f4f' }}>
                       7가지 핵심 기능
                     </h4>
-                    <p className="text-xs sm:text-sm text-gray-600">
+                    <p className="text-[11px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">
                       홈, 응원, 구장, 예측, 메이트, 마이페이지, 챗봇
                     </p>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 text-left leading-relaxed">
+                  <p className="text-[11px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300 text-left leading-relaxed">
                     야구 팬을 위한 모든 것이 담긴 BEGA에서<br/>
                     더욱 즐거운 야구 라이프를 시작하세요! ⚾
                   </p>
@@ -383,50 +383,54 @@ export default function WelcomeGuide() {
           </div>
 
           {/* Footer Navigation */}
-          <div className="px-4 sm:px-8 py-4 sm:py-6 bg-gray-50 dark:bg-gray-800 border-t">
+          <div className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 bg-gray-50 dark:bg-gray-800 border-t dark:border-gray-700">
             <div className="flex items-center justify-between">
               {/* Progress Dots */}
-              <div className="flex gap-1 sm:gap-2">
+              <div className="flex gap-0.5 sm:gap-1">
                 {SLIDES_DATA.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentSlide(index)}
-                    className="transition-all rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2"
-                    style={{
-                      width: currentSlide === index ? '24px' : '8px',
-                      height: '8px',
-                      backgroundColor: currentSlide === index ? currentSlideData.color : '#d1d5db',
-                      boxShadow: currentSlide === index ? `0 0 0 2px ${currentSlideData.color}20` : 'none'
-                    }}
+                    className="p-1.5 sm:p-2 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-full"
                     aria-label={`슬라이드 ${index + 1}로 이동`}
                     aria-current={currentSlide === index}
-                  />
+                  >
+                    <span
+                      className="block rounded-full transition-all"
+                      style={{
+                        width: currentSlide === index ? '20px' : '8px',
+                        height: '8px',
+                        backgroundColor: currentSlide === index ? currentSlideData.color : '#d1d5db',
+                        boxShadow: currentSlide === index ? `0 0 0 2px ${currentSlideData.color}20` : 'none'
+                      }}
+                    />
+                  </button>
                 ))}
               </div>
 
               {/* Navigation Buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2">
                 {currentSlide > 0 && (
                   <Button
                     variant="outline"
                     onClick={handlePrev}
-                    className="gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-10 px-2 sm:px-4"
+                    className="gap-1 sm:gap-2 text-xs sm:text-sm h-9 sm:h-10 px-2.5 sm:px-4 min-w-[44px] dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
                     aria-label="이전 슬라이드"
                   >
-                    <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">이전</span>
                   </Button>
                 )}
                 <Button
                   onClick={handleNext}
-                  className="gap-1 sm:gap-2 text-white text-xs sm:text-sm h-8 sm:h-10 px-3 sm:px-4"
+                  className="gap-1 sm:gap-2 text-white text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4 min-w-[60px] sm:min-w-[80px]"
                   style={buttonStyle}
                   aria-label={currentSlide < SLIDES_DATA.length - 1 ? "다음 슬라이드" : "가이드 시작하기"}
                 >
                   {currentSlide < SLIDES_DATA.length - 1 ? (
                     <>
                       다음
-                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </>
                   ) : (
                     '시작하기'
@@ -437,21 +441,21 @@ export default function WelcomeGuide() {
 
             {/* Skip and Don't Show Again Buttons */}
             {currentSlide < SLIDES_DATA.length - 1 && (
-              <div className="text-center mt-3 sm:mt-4 flex items-center justify-center gap-3 sm:gap-4">
+              <div className="text-center mt-2.5 sm:mt-4 flex items-center justify-center gap-2 sm:gap-4">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleClose}
-                  className="text-xs sm:text-sm text-gray-500 hover:text-gray-700 h-auto p-1"
+                  className="text-[11px] sm:text-xs md:text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 h-auto p-1.5 min-h-[44px] min-w-[44px]"
                 >
                   건너뛰기
                 </Button>
-                <span className="text-gray-300">|</span>
+                <span className="text-gray-300 dark:text-gray-600">|</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleDontShowAgain}
-                  className="text-xs sm:text-sm text-gray-500 hover:text-gray-700 h-auto p-1"
+                  className="text-[11px] sm:text-xs md:text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 h-auto p-1.5 min-h-[44px]"
                 >
                   다시 보지 않기
                 </Button>

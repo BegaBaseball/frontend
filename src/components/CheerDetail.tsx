@@ -1,0 +1,520 @@
+import { useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import {
+    ArrowLeft,
+    Heart,
+    MessageSquare,
+    Share2,
+    MoreVertical,
+    Trash2,
+    Edit2,
+    Bookmark
+} from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
+} from './ui/dropdown-menu';
+import { cn } from '../lib/utils';
+import * as cheatApi from '../api/cheerApi';
+import { CommentItem } from './cheer/CommentItem';
+import TeamLogo from './TeamLogo';
+import { TEAM_DATA } from '../constants/teams';
+import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
+
+export default function CheerDetail() {
+    const { postId } = useParams();
+    const navigate = useNavigate();
+    const { user } = useAuthStore();
+
+    const parsedPostId = postId ? parseInt(postId) : 0;
+    const { data: selectedPost, isLoading: loading, error } = useCheerPost(parsedPostId);
+    const { toggleLikeMutation, toggleBookmarkMutation, deletePostMutation, deleteCommentMutation } = useCheerMutations();
+
+    const [commentText, setCommentText] = useState('');
+    const [comments, setComments] = useState<(cheatApi.Comment & { isPending?: boolean })[]>([]);
+    const [commentCount, setCommentCount] = useState(0);
+    const [sendingComment, setSendingComment] = useState(false);
+    const [commentsLoading, setCommentsLoading] = useState(false);
+    const [commentsError, setCommentsError] = useState<string | null>(null);
+    const [activeReplyId, setActiveReplyId] = useState<number | null>(null);
+    const [replyDraft, setReplyDraft] = useState('');
+    const [isReplyPending, setIsReplyPending] = useState(false);
+    const [commentLikeAnimating, setCommentLikeAnimating] = useState<Record<number, boolean>>({});
+    const commentLikeTimersRef = useRef<Record<number, number>>({});
+
+    useEffect(() => {
+        if (parsedPostId) {
+            loadComments(parsedPostId);
+        }
+    }, [parsedPostId]);
+
+    useEffect(() => {
+        if (selectedPost) {
+            setCommentCount(selectedPost.comments ?? 0);
+        }
+    }, [selectedPost]);
+
+    useEffect(() => {
+        return () => {
+            Object.values(commentLikeTimersRef.current).forEach((timerId) => {
+                window.clearTimeout(timerId);
+            });
+        };
+    }, []);
+
+    const loadComments = async (postId: number) => {
+        setCommentsLoading(true);
+        setCommentsError(null);
+        try {
+            const data = await cheatApi.fetchComments(postId);
+            setComments(data.content);
+            if (typeof data.totalElements === 'number') {
+                setCommentCount(data.totalElements);
+            } else {
+                setCommentCount(data.content?.length ?? 0);
+            }
+        } catch (e) {
+            console.error(e);
+            setCommentsError('댓글을 불러오지 못했습니다.');
+        } finally {
+            setCommentsLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!selectedPost || !confirm('정말 삭제하시겠습니까?')) return;
+        try {
+            await deletePostMutation.mutateAsync(selectedPost.id);
+            navigate('/cheer');
+        } catch (e) {
+            alert('삭제 실패');
+        }
+    };
+
+    const toggleLike = (id: number) => {
+        if (!user) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+        toggleLikeMutation.mutate(id);
+    };
+
+    const toggleBookmark = (id: number) => {
+        if (!user) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+        toggleBookmarkMutation.mutate(id);
+    };
+
+    const handleDisplayEdit = () => {
+        if (selectedPost) {
+            navigate(`/cheer/edit/${selectedPost.id}`);
+        }
+    };
+
+    const handleCommentSubmit = async () => {
+        if (!selectedPost || !commentText.trim()) return;
+        if (!user) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+
+        const trimmed = commentText.trim();
+        const optimisticId = Date.now() * -1;
+        const optimisticComment = {
+            id: optimisticId,
+            author: user.name || user.email || '나',
+            content: trimmed,
+            timeAgo: '방금 전',
+            likes: 0,
+            likeCount: 0,
+            likedByMe: false,
+            authorProfileImageUrl: user.profileImageUrl,
+            isPending: true,
+        };
+
+        setCommentText('');
+        setComments((prev) => [optimisticComment, ...prev]);
+        setCommentCount((prev) => prev + 1);
+        setSendingComment(true);
+
+        try {
+            const created = await cheatApi.createComment(selectedPost.id, trimmed);
+            if (created?.id) {
+                setComments((prev) =>
+                    prev.map((comment) =>
+                        comment.id === optimisticId ? { ...created, isPending: false } : comment
+                    )
+                );
+            } else {
+                await loadComments(selectedPost.id);
+            }
+            // Recalculate comments by reloading or rely on local state
+        } catch (e) {
+            setComments((prev) => prev.filter((comment) => comment.id !== optimisticId));
+            setCommentCount((prev) => Math.max(0, prev - 1));
+            alert('댓글 작성 실패');
+        } finally {
+            setSendingComment(false);
+        }
+    };
+
+    const updateCommentLikes = (
+        list: (cheatApi.Comment & { isPending?: boolean })[],
+        targetId: number
+    ): (cheatApi.Comment & { isPending?: boolean })[] => {
+        return list.map((comment) => {
+            if (comment.id === targetId) {
+                const isLiked = Boolean(comment.likedByMe);
+                const currentCount = comment.likeCount ?? comment.likes ?? 0;
+                return {
+                    ...comment,
+                    likedByMe: !isLiked,
+                    likeCount: currentCount + (isLiked ? -1 : 1),
+                };
+            }
+            if (comment.replies && comment.replies.length > 0) {
+                return {
+                    ...comment,
+                    replies: updateCommentLikes(comment.replies, targetId),
+                };
+            }
+            return comment;
+        });
+    };
+
+    const handleCommentLike = async (commentId: number) => {
+        if (!user) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+
+        // Optimistic update
+        setComments((prev) => updateCommentLikes(prev, commentId));
+        setCommentLikeAnimating((prev) => ({ ...prev, [commentId]: true }));
+
+        if (commentLikeTimersRef.current[commentId]) {
+            window.clearTimeout(commentLikeTimersRef.current[commentId]);
+        }
+        commentLikeTimersRef.current[commentId] = window.setTimeout(() => {
+            setCommentLikeAnimating((prev) => ({ ...prev, [commentId]: false }));
+        }, 450);
+
+        try {
+            await cheatApi.toggleCommentLike(commentId);
+        } catch (e) {
+            console.error('Comment like failed', e);
+            // Rollback
+            setComments((prev) => updateCommentLikes(prev, commentId));
+            alert('좋아요 처리 실패');
+        }
+    };
+
+    const handleReplyToggle = (commentId: number) => {
+        if (!user) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+        setActiveReplyId((prev) => (prev === commentId ? null : commentId));
+        setReplyDraft('');
+    };
+
+    const handleReplyChange = (commentId: number, value: string) => {
+        if (activeReplyId === commentId) {
+            setReplyDraft(value);
+        }
+    };
+
+    const handleReplyCancel = () => {
+        setActiveReplyId(null);
+        setReplyDraft('');
+    };
+
+    const handleReplySubmit = async (commentId: number) => {
+        if (!commentId || commentId !== activeReplyId) return;
+        if (!replyDraft.trim()) return;
+        setIsReplyPending(true);
+        try {
+            alert('답글 기능은 준비 중입니다.');
+            handleReplyCancel();
+        } finally {
+            setIsReplyPending(false);
+        }
+    };
+
+    const handleCommentDelete = async (commentId: number) => {
+        if (!confirm('댓글을 삭제하시겠습니까?')) return;
+
+        // Optimistic update: filter out the deleted comment locally
+        const previousComments = [...comments];
+
+        // Helper to remove comment from nested structure
+        const filterComments = (list: any[], targetId: number): any[] => {
+            return list.filter(c => c.id !== targetId).map(c => ({
+                ...c,
+                replies: c.replies ? filterComments(c.replies, targetId) : []
+            }));
+        };
+
+        setComments(prev => filterComments(prev, commentId));
+        setCommentCount(prev => Math.max(0, prev - 1));
+
+        try {
+            await deleteCommentMutation.mutateAsync(commentId);
+        } catch (e) {
+            console.error('Comment deletion failed', e);
+            // Rollback
+            setComments(previousComments);
+            setCommentCount(previousComments.length); // Approximate, or more precise if needed
+            alert('댓글 삭제 실패');
+        }
+    };
+
+    if (loading && !selectedPost) {
+        return (
+            <div className="min-h-screen bg-white dark:bg-gray-900 pb-20">
+                <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b px-4 h-14 flex items-center justify-between">
+                    <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-800" />
+                    <div className="h-4 w-40 rounded bg-gray-100 dark:bg-gray-800" />
+                    <div className="w-9" />
+                </div>
+                <div className="max-w-3xl mx-auto p-5 space-y-6">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-800" />
+                        <div className="space-y-2">
+                            <div className="h-3 w-24 rounded bg-gray-100 dark:bg-gray-800" />
+                            <div className="h-3 w-32 rounded bg-gray-100 dark:bg-gray-800" />
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        <div className="h-5 w-2/3 rounded bg-gray-100 dark:bg-gray-800" />
+                        <div className="h-4 w-full rounded bg-gray-100 dark:bg-gray-800" />
+                        <div className="h-4 w-5/6 rounded bg-gray-100 dark:bg-gray-800" />
+                        <div className="h-4 w-4/6 rounded bg-gray-100 dark:bg-gray-800" />
+                    </div>
+                    <div className="h-40 rounded-2xl bg-gray-100 dark:bg-gray-800" />
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !selectedPost) {
+        return (
+            <div className="p-8 text-center">
+                <p className="text-red-500 mb-4">{(error as Error)?.message || '게시글을 찾을 수 없습니다.'}</p>
+                <Button onClick={() => navigate('/cheer')}>목록으로 돌아가기</Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-white dark:bg-gray-900 pb-20">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b px-4 h-14 flex items-center justify-between">
+                <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full">
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="font-bold truncate max-w-[200px]">게시글</div>
+                <div className="w-9" /> {/* Spacer */}
+            </div>
+
+            <div className="max-w-3xl mx-auto">
+                <div className="p-5">
+                    {/* Post Meta */}
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="relative h-10 w-10 flex-shrink-0">
+                                <div className="h-full w-full rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-300 overflow-hidden">
+                                    {selectedPost.authorProfileImageUrl ? (
+                                        <img
+                                            src={selectedPost.authorProfileImageUrl}
+                                            alt={selectedPost.author}
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <img
+                                            src={baseballLogo}
+                                            alt="BEGA"
+                                            className="h-6 w-6"
+                                        />
+                                    )}
+                                </div>
+                                {selectedPost.authorTeamId && (
+                                    <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white ring-2 ring-white dark:ring-slate-700 overflow-hidden flex items-center justify-center">
+                                        <TeamLogo
+                                            team={TEAM_DATA[selectedPost.authorTeamId]?.name || selectedPost.authorTeamId}
+                                            size={18}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <div className="font-bold text-gray-900 dark:text-gray-100">{selectedPost.author}</div>
+                                <div className="text-xs text-gray-500 flex items-center gap-2">
+                                    <span>{selectedPost.timeAgo}</span>
+                                    <span>·</span>
+                                    <span>조회 {selectedPost.views}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {selectedPost.isOwner && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="p-2 text-gray-400 hover:text-gray-600">
+                                        <MoreVertical className="w-5 h-5" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={handleDisplayEdit}>
+                                        <Edit2 className="w-4 h-4 mr-2" />
+                                        수정하기
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500">
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        삭제하기
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
+
+                    {/* Post Content */}
+                    <div className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed mb-6 min-h-[100px]">
+                        {selectedPost.content}
+                    </div>
+
+                    {/* Images */}
+                    {selectedPost.images && selectedPost.images.length > 0 && (
+                        <div className="space-y-3 mb-8">
+                            {selectedPost.images.map((img, idx) => (
+                                <img key={idx} src={img} alt={`uploaded-${idx}`} className="rounded-lg w-full object-cover max-h-[500px]" />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-4 py-4 border-t border-b border-gray-100 dark:border-gray-800">
+                        <button
+                            onClick={() => toggleLike(selectedPost.id)}
+                            className={cn(
+                                "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
+                                selectedPost.likedByUser
+                                    ? "bg-red-50 text-red-500"
+                                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                            )}
+                        >
+                            <Heart className={cn("w-5 h-5", selectedPost.likedByUser && "fill-current")} />
+                            <span className="font-medium">{selectedPost.likes}</span>
+                        </button>
+
+                        <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
+                            <MessageSquare className="w-5 h-5" />
+                            <span className="font-medium">{commentCount}</span>
+                        </button>
+
+                        <button
+                            onClick={() => toggleBookmark(selectedPost.id)}
+                            className={cn(
+                                "flex items-center gap-2 px-4 py-2 rounded-full transition-colors ml-auto",
+                                selectedPost.isBookmarked
+                                    ? "bg-yellow-50 text-yellow-500"
+                                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                            )}
+                        >
+                            <Bookmark className={cn("w-5 h-5", selectedPost.isBookmarked && "fill-current")} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Comment Section */}
+                <div className="bg-gray-50 dark:bg-gray-800/50 p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold">댓글 {commentCount}개</h3>
+                    </div>
+
+                    {/* Comment Input */}
+                    <div className="flex gap-3 mb-8">
+                        <Textarea
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            placeholder={user ? "댓글을 남겨주세요." : "로그인이 필요합니다."}
+                            disabled={!user || sendingComment}
+                            className="min-h-[80px] bg-white resize-none"
+                        />
+                        <Button
+                            onClick={handleCommentSubmit}
+                            disabled={!user || !commentText.trim() || sendingComment}
+                            className="h-auto bg-[#2d5f4f] text-white"
+                        >
+                            등록
+                        </Button>
+                    </div>
+
+                    {/* Comment List */}
+                    {commentsError ? (
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm text-gray-600 dark:text-gray-300">
+                            <p>{commentsError}</p>
+                            <Button
+                                variant="outline"
+                                className="mt-3"
+                                onClick={() => parsedPostId && loadComments(parsedPostId)}
+                                disabled={!parsedPostId}
+                            >
+                                다시 시도
+                            </Button>
+                        </div>
+                    ) : commentsLoading ? (
+                        <div className="space-y-4">
+                            {[1, 2, 3].map((item) => (
+                                <div key={item} className="flex gap-4 animate-pulse">
+                                    <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-3 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+                                        <div className="h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
+                                        <div className="h-4 w-5/6 rounded bg-gray-200 dark:bg-gray-700" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : comments.length === 0 ? (
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                            아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {comments.map((comment) => (
+                                <CommentItem
+                                    key={comment.id}
+                                    comment={comment}
+                                    canInteract={Boolean(user)}
+                                    canLike={Boolean(user)}
+                                    repliesEnabled={false}
+                                    activeReplyId={activeReplyId}
+                                    replyDraft={replyDraft}
+                                    isReplyPending={isReplyPending}
+                                    isCommentLikePending={false}
+                                    commentLikeAnimating={commentLikeAnimating}
+                                    onCommentLike={handleCommentLike}
+                                    onReplyToggle={handleReplyToggle}
+                                    onReplyChange={handleReplyChange}
+                                    onReplySubmit={handleReplySubmit}
+                                    onReplyCancel={handleReplyCancel}
+                                    onDelete={handleCommentDelete}
+                                    userEmail={user?.email}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}

@@ -1,10 +1,11 @@
-export type NotificationType = 
+export type NotificationType =
   | 'APPLICATION_RECEIVED'
   | 'APPLICATION_APPROVED'
   | 'APPLICATION_REJECTED'
   | 'APPLICATION_CANCELLED'
   | 'POST_COMMENT'
-  | 'COMMENT_REPLY';
+  | 'COMMENT_REPLY'
+  | 'POST_LIKE';
 
 export interface NotificationData {
   id: number;

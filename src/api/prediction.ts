@@ -1,47 +1,28 @@
+import api from './axios';
 import { Game } from '../types/prediction';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-
-/**
- * 인증 헤더 생성
- */
-const getAuthHeaders = () => {
-  return {
-    'Content-Type': 'application/json',
-  };
-};
 
 /**
  * 과거 경기 데이터 가져오기
  */
 export const fetchPastGames = async (): Promise<Game[]> => {
-  const response = await fetch(`${API_BASE_URL}/games/past`, {
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  });
-  return await response.json();
+  const response = await api.get<Game[]>('/games/past');
+  return response.data;
 };
 
 /**
  * 특정 기간의 경기 데이터 가져오기
  */
 export const fetchMatchesByRange = async (startDate: string, endDate: string): Promise<Game[]> => {
-  const response = await fetch(`${API_BASE_URL}/matches/range?startDate=${startDate}&endDate=${endDate}`, {
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  });
-  return await response.json();
+  const response = await api.get<Game[]>(`/matches/range?startDate=${startDate}&endDate=${endDate}`);
+  return response.data;
 };
 
 /**
  * 특정 날짜의 경기 데이터 가져오기
  */
 export const fetchMatchesByDate = async (date: string): Promise<Game[]> => {
-  const response = await fetch(`${API_BASE_URL}/matches?date=${date}`, {
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  });
-  return await response.json();
+  const response = await api.get<Game[]>(`/matches?date=${date}`);
+  return response.data;
 };
 
 /**
@@ -49,18 +30,12 @@ export const fetchMatchesByDate = async (date: string): Promise<Game[]> => {
  */
 export const fetchUserVote = async (gameId: string): Promise<string | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/predictions/my-vote/${gameId}`, {
-      headers: getAuthHeaders(),
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      return data.votedTeam || null;
-    }
-    return null;
+    const response = await api.get<{ votedTeam: string }>(`/predictions/my-vote/${gameId}`);
+    return response.data.votedTeam || null;
   } catch (error) {
-    console.error(`투표 기록 불러오기 실패 (${gameId}):`, error);
+    // 404 might mean no vote? If backend returns 404 for no vote, we should handle it.
+    // Assuming backend returns 200 with null if no vote, or 404.
+    // If it's a real error, global handler shows modal. We return null to UI.
     return null;
   }
 };
@@ -70,12 +45,13 @@ export const fetchUserVote = async (gameId: string): Promise<string | null> => {
  */
 export const fetchAllUserVotes = async (games: Game[]): Promise<{ [key: string]: 'home' | 'away' | null }> => {
   const votes: { [key: string]: 'home' | 'away' | null } = {};
-  
+
+  // Note: This sequential fetching is inefficient. Consider bulk API.
   for (const game of games) {
     const vote = await fetchUserVote(game.gameId);
     votes[game.gameId] = vote as 'home' | 'away' | null;
   }
-  
+
   return votes;
 };
 
@@ -84,14 +60,9 @@ export const fetchAllUserVotes = async (games: Game[]): Promise<{ [key: string]:
  */
 export const fetchVoteStatus = async (gameId: string): Promise<{ homeVotes: number; awayVotes: number }> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/predictions/status/${gameId}`, {
-      headers: getAuthHeaders(),
-      credentials: 'include'
-    });
-    const data = await response.json();
-    return { homeVotes: data.homeVotes, awayVotes: data.awayVotes };
+    const response = await api.get<{ homeVotes: number; awayVotes: number }>(`/predictions/status/${gameId}`);
+    return { homeVotes: response.data.homeVotes, awayVotes: response.data.awayVotes };
   } catch (error) {
-    console.error('투표 현황을 불러오는데 실패했습니다:', error);
     return { homeVotes: 0, awayVotes: 0 };
   }
 };
@@ -100,39 +71,14 @@ export const fetchVoteStatus = async (gameId: string): Promise<{ homeVotes: numb
  * 투표하기
  */
 export const submitVote = async (gameId: string, votedTeam: 'home' | 'away'): Promise<boolean> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/predictions/vote`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      credentials: 'include',
-      body: JSON.stringify({ gameId, votedTeam })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText);
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('투표 실패:', error);
-    throw error;
-  }
+  await api.post('/predictions/vote', { gameId, votedTeam });
+  return true;
 };
 
 /**
  * 투표 취소하기
  */
 export const cancelVote = async (gameId: string): Promise<boolean> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/predictions/${gameId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-      credentials: 'include'
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('투표 취소 실패:', error);
-    return false;
-  }
+  await api.delete(`/predictions/${gameId}`);
+  return true;
 };

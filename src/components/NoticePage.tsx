@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Megaphone, MessageSquare, Heart, ChevronLeft, ChevronRight, RotateCw, PenSquare } from 'lucide-react';
 import { Button } from './ui/button';
-import { listPosts, Post } from '../api/cheer';
+import { fetchPosts, CheerPost } from '../api/cheerApi';
 import { useCheerStore } from '../store/cheerStore';
 import { useNavigate } from 'react-router-dom';
 import TeamLogo from './TeamLogo';
@@ -12,7 +12,7 @@ const ITEMS_PER_PAGE = 15;
 
 export default function NoticePage() {
   const navigate = useNavigate();
-  const { setSelectedPostId } = useCheerStore();
+  // const { setSelectedPostId } = useCheerStore();
   const [currentPage, setCurrentPage] = useState(1);
   const isAdmin = useAuthStore((state) => state.isAdmin);
 
@@ -23,13 +23,13 @@ export default function NoticePage() {
     refetch,
   } = useQuery({
     queryKey: ['noticePostsPage'],
-    queryFn: () => listPosts(undefined, 0, 100, 'NOTICE'), // Fetch all notices
+    queryFn: () => fetchPosts(undefined, 0, 100, 'NOTICE'), // Fetch all notices
     staleTime: 1000 * 60 * 5, // 5분
   });
 
   const posts = useMemo(() => {
     // API에서 공지사항만 가져오지만, 프론트엔드에서도 한 번 더 필터링
-    return (noticeData?.content ?? []).filter(post => post.postType === 'NOTICE');
+    return (noticeData?.content ?? []).filter((post: CheerPost) => post.postType === 'NOTICE');
   }, [noticeData]);
 
   const paginatedPosts = useMemo(() => {
@@ -41,8 +41,9 @@ export default function NoticePage() {
   const totalPages = Math.ceil(posts.length / ITEMS_PER_PAGE);
 
   const handlePostClick = (postId: number) => {
-    setSelectedPostId(postId);
-    navigate(`/cheer/detail/${postId}`);
+    // setSelectedPostId(postId); // Removed from store, just navigate
+    // useCheerStore.getState().fetchPostDetail(postId);
+    navigate(`/cheer/${postId}`);
   };
 
   const handlePageChange = (page: number) => {
@@ -50,7 +51,7 @@ export default function NoticePage() {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -108,7 +109,7 @@ export default function NoticePage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {paginatedPosts.map((post) => (
+            {paginatedPosts.map((post: CheerPost) => (
               <div
                 key={post.id}
                 onClick={() => handlePostClick(post.id)}

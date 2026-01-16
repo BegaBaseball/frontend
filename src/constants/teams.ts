@@ -16,6 +16,7 @@ export const TEAM_DATA: Record<string, TeamInfo> = {
   'LT': { name: '롯데', fullName: '롯데 자이언츠' },
   'HT': { name: '기아', fullName: '기아 타이거즈' },
   'HH': { name: '한화', fullName: '한화 이글스' },
+  'ALLSTAR1': { name: '공지', fullName: '공지사항' },
 };
 
 export const TEAM_LIST = [

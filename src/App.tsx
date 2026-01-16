@@ -18,6 +18,7 @@ const PasswordResetConfirm = lazy(() => import('./components/PasswordResetConfir
 const StadiumGuide = lazy(() => import('./components/StadiumGuide'));
 const Prediction = lazy(() => import('./components/Prediction'));
 const Cheer = lazy(() => import('./components/Cheer'));
+const CheerBookmarks = lazy(() => import('./components/CheerBookmarks'));
 const CheerWrite = lazy(() => import('./components/CheerWrite'));
 const CheerDetail = lazy(() => import('./components/CheerDetail'));
 const CheerEdit = lazy(() => import('./components/CheerEdit'));
@@ -36,6 +37,7 @@ const NoticePage = lazy(() => import('./components/NoticePage'));
 const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./components/OAuthCallback'));
+const TestError = lazy(() => import('./components/TestError')); // Test Purpose Only
 
 function ProtectedRoute() {
   const { isLoggedIn, showLoginRequiredDialog, setShowLoginRequiredDialog } = useAuthStore();
@@ -84,6 +86,16 @@ export default function App() {
   }, [fetchProfileAndAuthenticate]);
 
   useEffect(() => {
+    const handleSessionExpired = () => {
+      useAuthStore.getState().logout();
+      // Optional: Show a toast or dialog saying "Session expired"
+    };
+
+    window.addEventListener('auth-session-expired', handleSessionExpired);
+    return () => window.removeEventListener('auth-session-expired', handleSessionExpired);
+  }, []);
+
+  useEffect(() => {
     if (isLoggedIn && 'Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
@@ -120,7 +132,7 @@ export default function App() {
             <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()} />} />
             <Route path="/offseason/list" element={<OffSeasonList />} />
             <Route path="/cheer" element={<Cheer />} />
-            <Route path="/cheer/detail/:postId" element={<CheerDetail />} />
+            <Route path="/cheer/:postId" element={<CheerDetail />} />
             <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
             <Route path="/notice" element={<NoticePage />} />
             <Route path="/terms" element={<TermsOfService />} />
@@ -132,6 +144,7 @@ export default function App() {
               <Route path="/prediction" element={<Prediction />} />
               <Route path="/stadium" element={<StadiumGuide />} />
               <Route path="/cheer/write" element={<CheerWrite />} />
+              <Route path="/cheer/bookmarks" element={<CheerBookmarks />} />
               <Route path="/cheer/edit/:postId" element={<CheerEdit />} />
               <Route path="/mate/create" element={<MateCreate />} />
               <Route path="/mate/:id/apply" element={<MateApply />} />
@@ -146,6 +159,9 @@ export default function App() {
               <Route path="/admin" element={<AdminPage />} />
             </Route>
           </Route>
+
+          {/* Test Route */}
+          <Route path="/test/error" element={<TestError />} />
 
           {/* 404 처리 */}
           <Route path="*" element={<Navigate to="/" replace />} />

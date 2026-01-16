@@ -11,7 +11,7 @@ import { Button } from './ui/button';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { ReportReason, ReportReasonLabels, reportPost } from '../api/cheer';
+import { ReportReason, ReportReasonLabels, reportPost } from '../api/cheerApi';
 import { toast } from 'sonner';
 
 interface ReportModalProps {

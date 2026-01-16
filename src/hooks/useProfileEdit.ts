@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { uploadProfileImage, updateProfile } from '../api/profile';
 import { ProfileUpdateData } from '../types/profile';
 import { toast } from 'sonner';
+import { useAuthStore } from '../store/authStore';
 
 interface UseProfileEditProps {
   initialProfileImage: string;
@@ -55,6 +56,11 @@ export const useProfileEdit = ({
       if (profileImage.startsWith('blob:')) {
         URL.revokeObjectURL(profileImage);
       }
+
+      // ✅ AuthStore 동기화: favoriteTeam 업데이트
+      const { setFavoriteTeam, setUserProfile, fetchProfileAndAuthenticate } = useAuthStore.getState();
+      // 간단히 전체 프로필을 다시 fetch하여 동기화
+      fetchProfileAndAuthenticate();
 
       setNewProfileImageFile(null);
       setNameError('');  // ✅ 추가: 성공 시 에러 초기화

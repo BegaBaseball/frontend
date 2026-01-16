@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { useCheerStore } from './cheerStore';
+// import { useCheerStore } from './cheerStore'; // Removed
 
 export type ViewType =
   | 'home'
@@ -25,16 +25,16 @@ export type ViewType =
 
 type NavigationOptions = {
   postId?: number;
-  token?: string; 
-  [key: string]: any; 
+  token?: string;
+  [key: string]: any;
 };
 
 const viewToPath: Record<ViewType, string> = {
   home: '/',
   login: '/login',
   signup: '/signup',
-  passwordReset: '/password-reset', 
-  passwordResetConfirm: '/password-reset/confirm', 
+  passwordReset: '/password-reset',
+  passwordResetConfirm: '/password-reset/confirm',
   stadium: '/stadium',
   prediction: '/prediction',
   cheer: '/cheer',
@@ -73,7 +73,7 @@ const getViewFromLocation = (): ViewType => {
     const postId = Number(detailMatch[1]);
     if (!Number.isNaN(postId)) {
       lastCheerDetailId = postId;
-      useCheerStore.getState().setSelectedPostId(postId);
+      // useCheerStore.getState().fetchPostDetail(postId); // Removed
       return 'cheerDetail';
     }
   }
@@ -84,7 +84,7 @@ const getViewFromLocation = (): ViewType => {
     const postId = Number(editMatch[1]);
     if (!Number.isNaN(postId)) {
       lastCheerDetailId = postId;
-      useCheerStore.getState().setSelectedPostId(postId);
+      // useCheerStore.getState().fetchPostDetail(postId); // Removed
       return 'cheerEdit';
     }
   }
@@ -102,16 +102,16 @@ const navigate = (view: ViewType, options?: NavigationOptions) => {
   if (view === 'cheerDetail') {
     const postId =
       options?.postId ??
-      useCheerStore.getState().selectedPostId ??
+      // useCheerStore.getState().selectedPost?.id ?? // Removed
       lastCheerDetailId;
     if (postId != null) {
-      targetPath = `/cheer/detail/${postId}`;
+      targetPath = `/cheer/${postId}`;
       lastCheerDetailId = postId;
     }
   } else if (view === 'cheerEdit') {
     const postId =
       options?.postId ??
-      useCheerStore.getState().selectedPostId ??
+      // useCheerStore.getState().selectedPost?.id ?? // Removed
       lastCheerDetailId;
     if (postId != null) {
       targetPath = `/cheer/edit/${postId}`;
@@ -130,7 +130,7 @@ let popstateRegistered = false;
 
 interface NavigationState {
   currentView: ViewType;
-  params?: NavigationOptions; 
+  params?: NavigationOptions;
   setCurrentView: (view: ViewType, options?: NavigationOptions) => void;
   navigateToLogin: () => void;
 }
@@ -138,7 +138,7 @@ interface NavigationState {
 export const useNavigationStore = create<NavigationState>((set) => {
   if (isBrowser && !popstateRegistered) {
     window.addEventListener('popstate', () => {
-      set({ currentView: getViewFromLocation(), params: undefined }); 
+      set({ currentView: getViewFromLocation(), params: undefined });
     });
     popstateRegistered = true;
   }
@@ -147,30 +147,30 @@ export const useNavigationStore = create<NavigationState>((set) => {
     currentView: getViewFromLocation(),
     params: undefined,
     setCurrentView: (view, options) => {
-  if (view === 'passwordResetConfirm' || view === 'passwordReset') {
-    set({ currentView: view, params: options });
-    return;
-  }
+      if (view === 'passwordResetConfirm' || view === 'passwordReset') {
+        set({ currentView: view, params: options });
+        return;
+      }
 
-  if (view === 'cheerDetail' || view === 'cheerEdit') {
-    const postId =
-      options?.postId ??
-      useCheerStore.getState().selectedPostId ??
-      lastCheerDetailId;
-    if (postId != null) {
-      useCheerStore.getState().setSelectedPostId(postId);
-      lastCheerDetailId = postId;
-    }
-    navigate(view, { postId });
-    set({ currentView: view, params: { postId } });
-  } else {
-    navigate(view);
-    set({ currentView: view, params: options });
-  }
-},
+      if (view === 'cheerDetail' || view === 'cheerEdit') {
+        const postId =
+          options?.postId ??
+          // useCheerStore.getState().selectedPost?.id ?? // Removed
+          lastCheerDetailId;
+        if (postId != null) {
+          // useCheerStore.getState().fetchPostDetail(postId); // Removed
+          lastCheerDetailId = postId;
+        }
+        navigate(view, { postId: postId ?? undefined });
+        set({ currentView: view, params: { postId: postId ?? undefined } });
+      } else {
+        navigate(view);
+        set({ currentView: view, params: options });
+      }
+    },
     navigateToLogin: () => {
       navigate('login');
-      set({ currentView: 'login', params: undefined }); 
+      set({ currentView: 'login', params: undefined });
     },
   };
 });

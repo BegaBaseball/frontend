@@ -28,7 +28,7 @@ export const useDiaryStatistics = () => {
 
   const { data: diaryEntries = [] } = useQuery<DiaryEntry[]>({
     queryKey: ['diaries'],
-    queryFn: () => fetchDiaries(() => { }),
+    queryFn: () => fetchDiaries(),
     staleTime: 1 * 60 * 1000,
   });
   // const { diaryEntries, cheerPostCount, mateParticipationCount } = useDiaryStore();
@@ -41,7 +41,7 @@ export const useDiaryStatistics = () => {
     error,
   } = useQuery<DiaryStatistics>({
     queryKey: ['statistics'],
-    queryFn: () => fetchDiaryStatistics(() => { }), // Error handled by useEffect below
+    queryFn: () => fetchDiaryStatistics(), // Error handled by useEffect below
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
@@ -67,5 +67,6 @@ export const useDiaryStatistics = () => {
     emojiStats,
     totalEmojiCount,
     isLoading,
+    diaryEntries,
   };
 };

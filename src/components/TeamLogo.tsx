@@ -66,9 +66,9 @@ const normalizeTeamLabel = (value?: string | null): string | undefined => {
   if (!trimmed) return undefined;
   // Remove words like "라이온즈", "베어스" 등 by splitting first token if there is a space.
   const firstToken = trimmed.split(/\s+/)[0];
-  // Upper-case short codes should stay uppercase (KT, LG 등)
-  if (firstToken.length <= 3 && /^[A-Z가-힣]+$/.test(firstToken)) {
-    return firstToken;
+  // Normalize short codes to uppercase (kt, lg, ssg 등)
+  if (firstToken.length <= 3 && /^[A-Za-z가-힣]+$/.test(firstToken)) {
+    return /^[가-힣]+$/.test(firstToken) ? firstToken : firstToken.toUpperCase();
   }
   return firstToken;
 };
@@ -104,7 +104,7 @@ export default function TeamLogo({ team, teamId, size = 64, className = '' }: Te
 
   return (
     <div
-      className={`flex items-center justify-center ${className}`}
+      className={`flex items-center justify-center rounded-full bg-white ${className}`}
       style={{
         width: numericSize,
         height: numericSize,

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { parseError } from '../utils/errorUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
@@ -16,8 +17,12 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // 401 에러 발생 시 (Access Token 만료)
         if (error.response?.status === 401 && !originalRequest._retry) {
+            // Log for excluded paths
+            if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/signup')) {
+                return Promise.reject(error);
+            }
+
             originalRequest._retry = true;
 
             try {
@@ -29,8 +34,19 @@ api.interceptors.response.use(
             } catch (reissueError) {
                 // 재발급 실패 시 (Refresh Token 만료 등)
                 console.error('Session expired. Please login again.');
-                // 여기서 로그아웃 처리를 하거나 에러를 전파하여 UI에서 처리
+                // window.location.href = '/login'; // Redirect to login caused infinite loop
+                window.dispatchEvent(new CustomEvent('auth-session-expired'));
+
                 return Promise.reject(reissueError);
+            }
+        }
+
+        // Global Error Handling
+        if (!error.config?.skipGlobalErrorHandler) {
+            const parsedError = parseError(error);
+            // 401 is handled above, so we skip it here unless it fell through (e.g. reissue failed)
+            if (parsedError.statusCode !== 401) {
+                window.dispatchEvent(new CustomEvent('global-api-error', { detail: parsedError }));
             }
         }
 

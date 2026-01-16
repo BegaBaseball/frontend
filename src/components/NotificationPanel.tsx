@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Bell, MessageCircle, MessageSquare } from 'lucide-react';
+import { X, Check, Bell, MessageCircle, MessageSquare, Heart } from 'lucide-react';
 import { useNotificationStore } from '../store/notificationStore';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
-import { Notification, NotificationType } from '../types/notification';
+import { NotificationData as Notification, NotificationType } from '../types/notification';
 
 export default function NotificationPanel() {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ export default function NotificationPanel() {
       try {
         const userId = await api.getUserIdByEmail(user.email);
         const id = userId.data || userId;
-        
+
         const [notifs, count] = await Promise.all([
           api.getNotifications(id),
           api.getUnreadCount(id),
@@ -34,10 +34,10 @@ export default function NotificationPanel() {
     };
 
     fetchNotifications();
-    
+
     // 30초마다 알림 갱신
     const interval = setInterval(fetchNotifications, 30000);
-    
+
     return () => clearInterval(interval);
   }, [user, setNotifications, setUnreadCount]);
 
@@ -56,9 +56,9 @@ export default function NotificationPanel() {
       } else if (notification.type === 'APPLICATION_APPROVED' || notification.type === 'APPLICATION_REJECTED') {
         // 신청자: 파티 상세 페이지로
         navigate(`/mate/${notification.relatedId}`);
-      }else if (notification.type === 'POST_COMMENT' || notification.type === 'COMMENT_REPLY') {
+      } else if (notification.type === 'POST_COMMENT' || notification.type === 'COMMENT_REPLY' || notification.type === 'POST_LIKE') {
         // 응원게시판: 게시글 상세 페이지로
-        navigate(`/cheer/detail/${notification.relatedId}`);
+        navigate(`/cheer/${notification.relatedId}`);
       }
     } catch (error) {
       console.error('알림 처리 오류:', error);
@@ -67,7 +67,7 @@ export default function NotificationPanel() {
 
   const handleDelete = async (notificationId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     try {
       await api.deleteNotification(notificationId);
       removeNotification(notificationId);
@@ -77,31 +77,33 @@ export default function NotificationPanel() {
   };
 
   const getNotificationIcon = (type: NotificationType) => {
-  switch (type) {
-    // 메이트 관련
-    case 'APPLICATION_RECEIVED':
-      return <Bell className="w-5 h-5 text-blue-500" />;
-    case 'APPLICATION_APPROVED':
-      return <Check className="w-5 h-5 text-green-500" />;
-    case 'APPLICATION_REJECTED':
-      return <X className="w-5 h-5 text-red-500" />;
-    
-    // 응원게시판 관련
-    case 'POST_COMMENT':
-      return <MessageCircle className="w-5 h-5 text-blue-500" />;
-    case 'COMMENT_REPLY':
-      return <MessageSquare className="w-5 h-5 text-purple-500" />;
-    
-    default:
-      return <Bell className="w-5 h-5 text-gray-500" />;
-  }
-};
+    switch (type) {
+      // 메이트 관련
+      case 'APPLICATION_RECEIVED':
+        return <Bell className="w-5 h-5 text-blue-500" />;
+      case 'APPLICATION_APPROVED':
+        return <Check className="w-5 h-5 text-green-500" />;
+      case 'APPLICATION_REJECTED':
+        return <X className="w-5 h-5 text-red-500" />;
+
+      // 응원게시판 관련
+      case 'POST_COMMENT':
+        return <MessageCircle className="w-5 h-5 text-blue-500" />;
+      case 'COMMENT_REPLY':
+        return <MessageSquare className="w-5 h-5 text-purple-500" />;
+      case 'POST_LIKE':
+        return <Heart className="w-5 h-5 text-pink-500" />;
+
+      default:
+        return <Bell className="w-5 h-5 text-gray-500" />;
+    }
+  };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
+
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
@@ -110,7 +112,7 @@ export default function NotificationPanel() {
     if (minutes < 60) return `${minutes}분 전`;
     if (hours < 24) return `${hours}시간 전`;
     if (days < 7) return `${days}일 전`;
-    
+
     return date.toLocaleDateString('ko-KR', {
       month: 'short',
       day: 'numeric',
@@ -132,17 +134,16 @@ export default function NotificationPanel() {
         <div
           key={notification.id}
           onClick={() => handleNotificationClick(notification)}
-          className={`p-4 border-b cursor-pointer transition-colors ${
-            notification.isRead
-              ? 'bg-white hover:bg-gray-50'
-              : 'bg-blue-50 hover:bg-blue-100'
-          }`}
+          className={`p-4 border-b cursor-pointer transition-colors ${notification.isRead
+            ? 'bg-white hover:bg-gray-50'
+            : 'bg-blue-50 hover:bg-blue-100'
+            }`}
         >
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 mt-1">
               {getNotificationIcon(notification.type)}
             </div>
-            
+
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2 mb-1">
                 <h4 className="font-semibold text-sm" style={{ color: '#2d5f4f' }}>
@@ -152,16 +153,16 @@ export default function NotificationPanel() {
                   <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></span>
                 )}
               </div>
-              
+
               <p className="text-sm text-gray-600 mb-2">
                 {notification.message}
               </p>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">
                   {formatTime(notification.createdAt)}
                 </span>
-                
+
                 <button
                   onClick={(e) => handleDelete(notification.id, e)}
                   className="text-gray-400 hover:text-red-500 transition-colors p-1"
