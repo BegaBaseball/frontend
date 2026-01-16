@@ -37,4 +37,9 @@ export interface ProfileUpdateResponse {
   message?: string;
 }
 
-export type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory';
+export type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory' | 'changePassword' | 'accountSettings';
+
+export interface UserProviderDto {
+  provider: string;
+  connectedAt: string;
+}

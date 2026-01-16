@@ -4,6 +4,8 @@ import { Card } from './ui/card';
 import ChatBot from './ChatBot';
 import TeamLogo from './TeamLogo';
 import ProfileEditSection from './mypage/ProfileEditSection';
+import PasswordChangeSection from './mypage/PasswordChangeSection';
+import AccountSettingsSection from './mypage/AccountSettingsSection';
 import DiaryViewSection from './mypage/Diaryform';
 import DiaryStatistics from './mypage/Diarystatistics';
 import MateHistorySection from './mypage/MateHistorySection';
@@ -113,8 +115,18 @@ export default function MyPage() {
             email={email}
             savedFavoriteTeam={savedFavoriteTeam}
             userRole={user?.role}
+            userProvider={user?.provider}
             onCancel={() => setViewMode('diary')}
-            onSave={handleProfileUpdated}  
+            onSave={handleProfileUpdated}
+            onChangePassword={() => setViewMode('changePassword')}
+            onAccountSettings={() => setViewMode('accountSettings')}
+          />
+        )}
+
+        {viewMode === 'changePassword' && (
+          <PasswordChangeSection
+            onCancel={() => setViewMode('editProfile')}
+            onSuccess={() => setViewMode('diary')}
           />
         )}
 
@@ -123,6 +135,13 @@ export default function MyPage() {
         {viewMode === 'stats' && <DiaryStatistics />}
 
         {viewMode === 'mateHistory' && <MateHistorySection />}
+
+        {viewMode === 'accountSettings' && (
+          <AccountSettingsSection
+            userProvider={user?.provider}
+            onCancel={() => setViewMode('editProfile')}
+          />
+        )}
       </div>
 
       <ChatBot />

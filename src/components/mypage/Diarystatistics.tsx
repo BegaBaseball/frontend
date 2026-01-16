@@ -39,17 +39,17 @@ export default function DiaryStatistics() {
   }
 
   return (
-    <div className="space-y-6 md:space-y-8 animate-fade-in-up">
-      {/* 1. 상단 요약 카드 */}
-      <Card className="p-5 md:p-8 bg-gradient-to-br from-white to-green-50/50">
+    <div className="space-y-6 lg:space-y-8 animate-fade-in-up">
+      {/* 1. 상단 요약 카드 - 대시보드 스타일 */}
+      <Card className="p-5 md:p-8 bg-gradient-to-br from-white to-green-50/50 dark:from-gray-800 dark:to-emerald-900/20 dark:border-gray-700">
         <div className="flex items-center gap-3">
-          <Trophy className="w-6 h-6 md:w-7 md:h-7" style={{ color: '#2d5f4f' }} />
-          <h2 className="text-lg md:text-xl" style={{ color: '#2d5f4f', fontWeight: 900 }}>
+          <Trophy className="w-6 h-6 md:w-7 md:h-7 text-[#2d5f4f] dark:text-emerald-400" />
+          <h2 className="text-lg md:text-xl font-black text-[#2d5f4f] dark:text-emerald-400">
             나의 야구 기록 요약
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 pt-6 border-t md:grid-cols-4 md:gap-8 mt-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 pt-6 border-t border-gray-200 dark:border-gray-700 mt-4">
           <StatCard value={statistics.totalCount} label="총 직관 횟수" />
           <StatCard value={statistics.cheerPostCount || 0} label="작성한 응원글" />
           <StatCard value={`${statistics.winRate.toFixed(0)}%`} label="직관 승률" />
@@ -57,10 +57,10 @@ export default function DiaryStatistics() {
         </div>
       </Card>
 
-      {/* 2. 차트 그리드 레이아웃 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* 2. 대시보드 스타일 그리드 - 승률, 구장, 월별 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 승률 차트 */}
-        <div className="h-[350px]">
+        <div className="lg:col-span-1 h-[350px]">
           <WinRateChart
             wins={statistics.totalWins}
             draws={statistics.totalDraws}
@@ -70,62 +70,65 @@ export default function DiaryStatistics() {
         </div>
 
         {/* 구장 도장 깨기 */}
-        <div className="h-[350px]">
+        <div className="lg:col-span-1 h-[350px]">
           <StadiumVisitList entries={diaryEntries} />
         </div>
+
+        {/* 월별 추이 - 데스크탑에서 옆에 배치 */}
+        <div className="lg:col-span-1 h-[350px]">
+          <MonthlyStatsChart data={monthlyData} />
+        </div>
       </div>
 
-      {/* 3. 월별 추이 */}
-      <div className="h-[350px]">
-        <MonthlyStatsChart data={monthlyData} />
+      {/* 3. 하단 정보 영역 - 기분 분석 + 상세 기록 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 기분 통계 */}
+        <Card className="p-5 md:p-8 dark:bg-gray-800 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-6">
+            <TrendingUp className="w-6 h-6 md:w-7 md:h-7 text-[#2d5f4f] dark:text-emerald-400" />
+            <h2 className="text-lg md:text-xl font-black text-[#2d5f4f] dark:text-emerald-400">
+              기분 분석
+            </h2>
+          </div>
+          <EmojiStatsCard stats={emojiStats} />
+        </Card>
+
+        {/* 상세 기록 */}
+        <Card className="p-5 md:p-8 dark:bg-gray-800 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-6">
+            <BarChart3 className="w-6 h-6 md:w-7 md:h-7 text-[#2d5f4f] dark:text-emerald-400" />
+            <h2 className="text-lg md:text-xl font-black text-[#2d5f4f] dark:text-emerald-400">
+              상세 기록
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+              <span className="text-gray-600 dark:text-gray-400 font-medium">가장 많이 방문한 구장</span>
+              <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                {statistics.mostVisitedStadium || '-'} ({statistics.mostVisitedCount}회)
+              </span>
+            </div>
+            <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+              <span className="text-gray-600 dark:text-gray-400 font-medium">가장 행복했던 달</span>
+              <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                {statistics.happiestMonth || '-'} ({statistics.happiestCount}회)
+              </span>
+            </div>
+            <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+              <span className="text-gray-600 dark:text-gray-400 font-medium">첫 직관 날짜</span>
+              <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                {statistics.firstDiaryDate || '-'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+              <span className="text-gray-600 dark:text-gray-400 font-medium">연간 승률</span>
+              <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                {statistics.yearlyWinRate?.toFixed(1) || 0}% ({statistics.yearlyWins}승 / {statistics.yearlyCount}경기)
+              </span>
+            </div>
+          </div>
+        </Card>
       </div>
-
-      {/* 4. 기분 통계 (기존 유지) */}
-      <Card className="p-5 md:p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <TrendingUp className="w-6 h-6 md:w-7 md:h-7" style={{ color: '#2d5f4f' }} />
-          <h2 className="text-lg md:text-xl" style={{ color: '#2d5f4f', fontWeight: 900 }}>
-            기분 분석
-          </h2>
-        </div>
-        <EmojiStatsCard stats={emojiStats} />
-      </Card>
-
-      {/* 5. 기타 통계 (텍스트 정보) */}
-      <Card className="p-5 md:p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <BarChart3 className="w-6 h-6 md:w-7 md:h-7" style={{ color: '#2d5f4f' }} />
-          <h2 className="text-lg md:text-xl" style={{ color: '#2d5f4f', fontWeight: 900 }}>
-            상세 기록
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
-            <span className="text-gray-600 font-medium">가장 많이 방문한 구장</span>
-            <span className="font-bold text-[#2d5f4f]">
-              {statistics.mostVisitedStadium || '-'} ({statistics.mostVisitedCount}회)
-            </span>
-          </div>
-          <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
-            <span className="text-gray-600 font-medium">가장 행복했던 달</span>
-            <span className="font-bold text-[#2d5f4f]">
-              {statistics.happiestMonth || '-'} ({statistics.happiestCount}회)
-            </span>
-          </div>
-          <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
-            <span className="text-gray-600 font-medium">첫 직관 날짜</span>
-            <span className="font-bold text-[#2d5f4f]">
-              {statistics.firstDiaryDate || '-'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
-            <span className="text-gray-600 font-medium">연간 승률</span>
-            <span className="font-bold text-[#2d5f4f]">
-              {statistics.yearlyWinRate?.toFixed(1) || 0}% ({statistics.yearlyWins}승 / {statistics.yearlyCount}경기)
-            </span>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }

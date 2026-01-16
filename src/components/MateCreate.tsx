@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from './ui/alert';
 import { api } from '../utils/api';
 import { STADIUMS, TEAMS } from '../utils/constants';
 import { mapBackendPartyToFrontend } from '../utils/mate';
+import VerificationRequiredDialog from './VerificationRequiredDialog';
 
 export default function MateCreate() {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export default function MateCreate() {
     try {
       const userData = await api.getCurrentUser();
       setCurrentUserName(userData.data.name);
-      
+
       const userId = await api.getUserIdByEmail(userData.data.email);
       setCurrentUserId(userId.data || userId);
     } catch (error) {
@@ -78,7 +79,7 @@ export default function MateCreate() {
       return formData.gameDate && formData.homeTeam && formData.awayTeam && formData.stadium;
     }
     if (targetStep === 3) {
-      return formData.section && formData.maxParticipants > 0 && formData.ticketPrice > 0; 
+      return formData.section && formData.maxParticipants > 0 && formData.ticketPrice > 0;
     }
     if (targetStep === 4) {
       return formData.description && !formErrors.description;
@@ -126,13 +127,19 @@ export default function MateCreate() {
       resetForm();
       alert('파티가 생성되었습니다!');
       navigate(`/mate/${mappedParty.id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('파티 생성 중 오류:', error);
-      alert('파티 생성 중 오류가 발생했습니다.');
+      if (error.response?.status === 403 || error.message?.includes('403')) {
+        setShowVerificationDialog(true);
+      } else {
+        alert(error.message || '파티 생성 중 오류가 발생했습니다.');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
 
   const handleBack = () => {
     if (createStep === 1) {
@@ -214,7 +221,7 @@ export default function MateCreate() {
                   <Label>홈 팀 *</Label>
                   <Select
                     value={formData.homeTeam}
-                    onValueChange={(value) => updateFormData({ homeTeam: value })}
+                    onValueChange={(value: string) => updateFormData({ homeTeam: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="홈 팀 선택" />
@@ -236,7 +243,7 @@ export default function MateCreate() {
                   <Label>원정 팀 *</Label>
                   <Select
                     value={formData.awayTeam}
-                    onValueChange={(value) => updateFormData({ awayTeam: value })}
+                    onValueChange={(value: string) => updateFormData({ awayTeam: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="원정 팀 선택" />
@@ -259,7 +266,7 @@ export default function MateCreate() {
                 <Label>구장 *</Label>
                 <Select
                   value={formData.stadium}
-                  onValueChange={(value) => updateFormData({ stadium: value })}
+                  onValueChange={(value: string) => updateFormData({ stadium: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="구장 선택" />
@@ -300,7 +307,7 @@ export default function MateCreate() {
                 <Label htmlFor="participants">모집 인원 *</Label>
                 <Select
                   value={formData.maxParticipants.toString()}
-                  onValueChange={(value) =>
+                  onValueChange={(value: string) =>
                     updateFormData({ maxParticipants: parseInt(value) })
                   }
                 >
@@ -396,9 +403,8 @@ export default function MateCreate() {
               <div className="space-y-4">
                 <Label>예매내역 스크린샷 *</Label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center ${
-                    formData.ticketFile ? 'border-green-500 bg-green-50' : 'border-gray-300'
-                  }`}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center ${formData.ticketFile ? 'border-green-500 bg-green-50' : 'border-gray-300'
+                    }`}
                 >
                   <input
                     type="file"
@@ -479,6 +485,10 @@ export default function MateCreate() {
           </div>
         </Card>
       </div>
+      <VerificationRequiredDialog
+        isOpen={showVerificationDialog}
+        onClose={() => setShowVerificationDialog(false)}
+      />
     </div>
   );
 }

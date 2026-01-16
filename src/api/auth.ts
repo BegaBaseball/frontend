@@ -102,8 +102,8 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
 /**
  * 소셜 로그인 URL 생성
  */
-const NO_API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080/';
-export const getSocialLoginUrl = (provider: 'kakao' | 'google'): string => {
+const NO_API_BASE_URL = (import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+export const getSocialLoginUrl = (provider: 'kakao' | 'google' | 'naver'): string => {
   return `${NO_API_BASE_URL}/oauth2/authorization/${provider}`;
 };
 

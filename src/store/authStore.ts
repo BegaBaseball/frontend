@@ -16,6 +16,7 @@ interface User {
   isAdmin?: boolean;
   profileImageUrl?: string;
   role?: string;
+  provider?: string;  // LOCAL, GOOGLE, KAKAO 등
 }
 
 interface AuthState {

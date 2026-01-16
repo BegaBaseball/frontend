@@ -9,20 +9,22 @@ import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle } from 'l
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import ChatBot from './ChatBot';  
+import ChatBot from './ChatBot';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
+import VerificationRequiredDialog from './VerificationRequiredDialog';
 
 export default function MateApply() {
   const { selectedParty } = useMateStore();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  
+
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserName, setCurrentUserName] = useState('');
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function MateApply() {
       try {
         const userData = await api.getCurrentUser();
         setCurrentUserName(userData.data.name);
-        
+
         const userId = await api.getUserIdByEmail(userData.data.email);
         setCurrentUserId(userId.data || userId);
       } catch (error) {
@@ -82,11 +84,15 @@ export default function MateApply() {
       } else {
         alert('신청이 완료되었습니다! 호스트의 승인을 기다려주세요.');
       }
-      
+
       navigate(`/mate/${id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('신청 중 오류:', error);
-      alert('신청 중 오류가 발생했습니다.');
+      if (error.response?.status === 403 || error.message?.includes('403')) {
+        setShowVerificationDialog(true);
+      } else {
+        alert(error.message || '신청 중 오류가 발생했습니다.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -259,8 +265,8 @@ export default function MateApply() {
           {isSubmitting
             ? '신청 중...'
             : isSelling
-            ? `${sellingPrice.toLocaleString()}원 결제하기`
-            : `${totalAmount.toLocaleString()}원 결제하기`}
+              ? `${sellingPrice.toLocaleString()}원 결제하기`
+              : `${totalAmount.toLocaleString()}원 결제하기`}
         </Button>
 
         {!isSelling && message.length < 10 && (
@@ -272,6 +278,10 @@ export default function MateApply() {
 
       {/* ChatBot  */}
       <ChatBot />
+      <VerificationRequiredDialog
+        isOpen={showVerificationDialog}
+        onClose={() => setShowVerificationDialog(false)}
+      />
     </div>
   );
 }

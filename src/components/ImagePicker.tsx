@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Loader2 } from 'lucide-react';
+import { compressImages, CompressionOptions } from '../utils/imageCompression';
 
 interface ImagePickerProps {
   maxImages?: number;
@@ -8,6 +9,10 @@ interface ImagePickerProps {
   onImagesSelected: (files: File[]) => void;
   onRemoveFile: (index: number) => void;
   disabled?: boolean;
+  /** 이미지 압축 활성화 여부 - 기본값: true */
+  enableCompression?: boolean;
+  /** 압축 옵션 */
+  compressionOptions?: CompressionOptions;
 }
 
 export default function ImagePicker({
@@ -17,9 +22,13 @@ export default function ImagePicker({
   onImagesSelected,
   onRemoveFile,
   disabled,
+  enableCompression = true,
+  compressionOptions,
 }: ImagePickerProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState({ current: 0, total: 0 });
 
   // selectedFiles가 변경될 때 preview URLs 업데이트
   useEffect(() => {
@@ -43,13 +52,15 @@ export default function ImagePicker({
     };
   }, []);
 
-  const handleSelectFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelectFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = event.target;
     if (!files) return;
 
+    // 원본 파일 크기 제한 (압축 전 최대 10MB까지 허용)
+    const maxOriginalSizeMB = enableCompression ? 10 : maxSizeMB;
     const nextFiles = Array.from(files).filter((file) => {
-      if (file.size > maxSizeMB * 1024 * 1024) {
-        alert(`${file.name} 파일이 ${maxSizeMB}MB 제한을 초과했습니다.`);
+      if (file.size > maxOriginalSizeMB * 1024 * 1024) {
+        alert(`${file.name} 파일이 ${maxOriginalSizeMB}MB 제한을 초과했습니다.`);
         return false;
       }
       return true;
@@ -60,26 +71,65 @@ export default function ImagePicker({
       return;
     }
 
-    onImagesSelected(nextFiles);
     if (inputRef.current) {
       inputRef.current.value = '';
+    }
+
+    // 압축이 비활성화된 경우 바로 전달
+    if (!enableCompression) {
+      onImagesSelected(nextFiles);
+      return;
+    }
+
+    // 이미지 압축
+    setIsCompressing(true);
+    setCompressionProgress({ current: 0, total: nextFiles.length });
+
+    try {
+      const compressedFiles = await compressImages(
+        nextFiles,
+        {
+          maxSizeMB: 1, // 압축 후 최대 1MB
+          maxWidthOrHeight: 1920, // 최대 해상도 1920px
+          initialQuality: 0.8,
+          ...compressionOptions,
+        },
+        (current, total) => setCompressionProgress({ current, total })
+      );
+      onImagesSelected(compressedFiles);
+    } catch (error) {
+      console.error('이미지 압축 중 오류 발생:', error);
+      // 압축 실패 시 원본 전달
+      onImagesSelected(nextFiles);
+    } finally {
+      setIsCompressing(false);
+      setCompressionProgress({ current: 0, total: 0 });
     }
   };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between text-sm text-gray-500">
+      <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
         <span>
-          이미지 최대 {maxImages}개, 파일당 {maxSizeMB}MB 이하
+          이미지 최대 {maxImages}개{enableCompression ? ' (자동 압축)' : `, 파일당 ${maxSizeMB}MB 이하`}
         </span>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex items-center gap-2 rounded-md border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 hover:border-gray-400 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={disabled}
+          className="flex items-center gap-2 rounded-md border border-dashed border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={disabled || isCompressing}
         >
-          <Upload className="h-4 w-4" />
-          이미지 선택
+          {isCompressing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              압축 중 ({compressionProgress.current}/{compressionProgress.total})
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              이미지 선택
+            </>
+          )}
         </button>
       </div>
 
