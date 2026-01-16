@@ -10,6 +10,7 @@ interface UseProfileEditProps {
   initialName: string;
   initialEmail: string;
   initialFavoriteTeam: string;
+  initialBio?: string | null;
   onSave: () => void;
 }
 
@@ -22,6 +23,7 @@ export const useProfileEdit = ({
   initialName,
   initialEmail,
   initialFavoriteTeam,
+  initialBio,
   onSave,
 }: UseProfileEditProps) => {
   // ========== States ==========
@@ -29,6 +31,7 @@ export const useProfileEdit = ({
   const [name, setName] = useState(initialName);
   const [email, setEmail] = useState(initialEmail);
   const [editingFavoriteTeam, setEditingFavoriteTeam] = useState(initialFavoriteTeam);
+  const [bio, setBio] = useState(initialBio || '');
   const [newProfileImageFile, setNewProfileImageFile] = useState<File | null>(null);
   const [showTeamTest, setShowTeamTest] = useState(false);
   const [nameError, setNameError] = useState('');  // ✅ 추가
@@ -131,6 +134,12 @@ export const useProfileEdit = ({
       return;
     }
 
+    // Bio validation
+    if (bio.length > 500) {
+      toast.error('자기소개는 500자 이내여야 합니다.');
+      return;
+    }
+
     // ✅ 검증 통과 시 에러 초기화
     setNameError('');
 
@@ -148,6 +157,7 @@ export const useProfileEdit = ({
         name: name.trim(),
         favoriteTeam: editingFavoriteTeam === '없음' ? null : editingFavoriteTeam,
         email: email,
+        bio: bio.trim() || undefined,
       };
 
       // 이미지 URL 추가 (업로드했거나 기존 URL 유지)
@@ -180,6 +190,8 @@ export const useProfileEdit = ({
     setEmail,
     editingFavoriteTeam,
     setEditingFavoriteTeam,
+    bio,
+    setBio,
     showTeamTest,
     setShowTeamTest,
     nameError,  // ✅ 추가

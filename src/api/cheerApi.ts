@@ -61,6 +61,7 @@ export interface CheerPost {
     title: string;
     content?: string;
     author: string;
+    authorId: number; // Added authorId
     authorProfileImageUrl?: string;
     authorTeamId?: string;
     timeAgo: string;
@@ -121,6 +122,7 @@ export async function fetchPosts(teamId?: string, page = 0, size = 20, postType?
         teamColor: teamColors[post.teamId] || '#2d5f4f',
         title: post.title,
         author: post.author,
+        authorId: post.authorId, // Map from response
         authorProfileImageUrl: post.authorProfileImageUrl,
         authorTeamId: post.authorTeamId,
         timeAgo: formatTimeAgo(post.createdAt),
@@ -155,6 +157,7 @@ export async function fetchPostDetail(id: number): Promise<CheerPost> {
         title: post.title,
         content: post.content,
         author: post.author,
+        authorId: post.authorId, // Map from response
         authorProfileImageUrl: post.authorProfileImageUrl,
         authorTeamId: post.authorTeamId,
         timeAgo: formatTimeAgo(post.createdAt),

@@ -5,6 +5,15 @@ export interface UserProfile {
   favoriteTeam: string | null;
   profileImageUrl: string | null;
   role?: string;
+  bio?: string | null;
+}
+
+export interface PublicUserProfile {
+  id: number;
+  name: string;
+  favoriteTeam: string | null;
+  profileImageUrl: string | null;
+  bio?: string | null;
 }
 
 export interface UserProfileApiResponse {
@@ -26,6 +35,7 @@ export interface ProfileUpdateData {
   email: string;
   favoriteTeam: string | null;
   profileImageUrl?: string;
+  bio?: string;
 }
 
 export interface ProfileUpdateResponse {
@@ -33,6 +43,10 @@ export interface ProfileUpdateResponse {
   data: {
     token?: string;
     profileImageUrl?: string;
+    name?: string;
+    email?: string;
+    favoriteTeam?: string;
+    bio?: string;
   };
   message?: string;
 }

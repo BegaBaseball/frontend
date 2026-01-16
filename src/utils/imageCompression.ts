@@ -70,7 +70,7 @@ export async function compressImage(
 }
 
 /**
- * 여러 이미지 일괄 압축
+ * 여러 이미지 일괄 압축 (병렬 처리)
  * @param files 원본 이미지 파일 배열
  * @param options 압축 옵션
  * @param onProgress 진행 상황 콜백 (선택)
@@ -81,18 +81,29 @@ export async function compressImages(
   options: CompressionOptions = {},
   onProgress?: (current: number, total: number) => void
 ): Promise<File[]> {
-  const compressedFiles: File[] = [];
   const total = files.length;
+  let completed = 0;
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    onProgress?.(i + 1, total);
+  // 병렬 처리로 성능 개선 (최대 3개 동시 처리)
+  const CONCURRENCY = 3;
+  const results: File[] = new Array(files.length);
 
-    const compressed = await compressImage(file, options);
-    compressedFiles.push(compressed);
+  for (let i = 0; i < files.length; i += CONCURRENCY) {
+    const batch = files.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.all(
+      batch.map(async (file, idx) => {
+        const compressed = await compressImage(file, options);
+        completed++;
+        onProgress?.(completed, total);
+        return { index: i + idx, file: compressed };
+      })
+    );
+    batchResults.forEach(({ index, file }) => {
+      results[index] = file;
+    });
   }
 
-  return compressedFiles;
+  return results;
 }
 
 /**

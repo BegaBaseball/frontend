@@ -14,12 +14,13 @@ interface ProfileEditSectionProps {
   name: string;
   email: string;
   userRole?: string;
-  userProvider?: string;  // LOCAL, GOOGLE, KAKAO 등
+  userProvider?: string;
   savedFavoriteTeam: string;
+  initialBio?: string | null; // Added initialBio
   onCancel: () => void;
   onSave: () => void;
-  onChangePassword?: () => void;  // 비밀번호 변경 화면으로 이동
-  onAccountSettings?: () => void;  // 계정 설정 화면으로 이동
+  onChangePassword?: () => void;
+  onAccountSettings?: () => void;
 }
 
 export default function ProfileEditSection({
@@ -27,6 +28,7 @@ export default function ProfileEditSection({
   name: initialName,
   email: initialEmail,
   savedFavoriteTeam: initialFavoriteTeam,
+  initialBio,
   userRole,
   userProvider,
   onCancel,
@@ -38,11 +40,13 @@ export default function ProfileEditSection({
     profileImage,
     name,
     setName,
-    nameError, // ✅ 이미 받아오고 있음
+    nameError,
     email,
     setEmail,
     editingFavoriteTeam,
     setEditingFavoriteTeam,
+    bio,
+    setBio,
     showTeamTest,
     setShowTeamTest,
     isLoading,
@@ -54,6 +58,7 @@ export default function ProfileEditSection({
     initialName,
     initialEmail,
     initialFavoriteTeam,
+    initialBio,
     onSave,
   });
 
@@ -178,6 +183,27 @@ export default function ProfileEditSection({
                   disabled={true}
                   readOnly
                 />
+              </div>
+
+              {/* Bio */}
+              <div className="space-y-2">
+                <Label htmlFor="bio" className="text-gray-700 dark:text-gray-300">
+                  자기소개
+                </Label>
+                <textarea
+                  id="bio"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="자기소개를 입력하세요 (500자 이내)"
+                  maxLength={500}
+                  disabled={isLoading}
+                />
+                <div className="flex justify-end">
+                  <p className={`text-xs ${bio.length > 500 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {bio.length}/500
+                  </p>
+                </div>
               </div>
 
               {/* Favorite Team (ROLE_USER only) */}
