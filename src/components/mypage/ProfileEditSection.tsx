@@ -1,9 +1,9 @@
-import { Camera, Save, User, AlertCircle } from 'lucide-react'; 
+import { Camera, Save, User, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert'; 
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import TeamLogo from '../TeamLogo';
 import TeamRecommendationTest from '../TeamRecommendationTest';
 import { useProfileEdit } from '../../hooks/useProfileEdit';
@@ -14,9 +14,12 @@ interface ProfileEditSectionProps {
   name: string;
   email: string;
   userRole?: string;
+  userProvider?: string;  // LOCAL, GOOGLE, KAKAO 등
   savedFavoriteTeam: string;
   onCancel: () => void;
   onSave: () => void;
+  onChangePassword?: () => void;  // 비밀번호 변경 화면으로 이동
+  onAccountSettings?: () => void;  // 계정 설정 화면으로 이동
 }
 
 export default function ProfileEditSection({
@@ -25,8 +28,11 @@ export default function ProfileEditSection({
   email: initialEmail,
   savedFavoriteTeam: initialFavoriteTeam,
   userRole,
+  userProvider,
   onCancel,
   onSave,
+  onChangePassword,
+  onAccountSettings,
 }: ProfileEditSectionProps) {
   const {
     profileImage,
@@ -53,12 +59,13 @@ export default function ProfileEditSection({
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-8 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-6 md:p-8 mb-6">
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 style={{ color: '#2d5f4f' }}>내 정보 수정</h2>
+          <h2 className="text-xl font-bold text-[#2d5f4f] dark:text-emerald-400">내 정보 수정</h2>
         </div>
 
-        {/* ✅ 에러 Alert 추가 */}
+        {/* ✅ 에러 Alert */}
         {nameError && (
           <Alert variant="destructive" className="mb-6 animate-in fade-in">
             <AlertCircle className="h-4 w-4" />
@@ -67,151 +74,205 @@ export default function ProfileEditSection({
           </Alert>
         )}
 
-        {/* Profile Image */}
-        <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gray-200">
-          <div className="relative">
-            <div className="w-32 h-32 rounded-full bg-gray-200 overflow-hidden">
-              {profileImage ? (
-                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <User className="w-16 h-16 text-gray-400" />
-                </div>
-              )}
-            </div>
-            <label
-              className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center cursor-pointer hover:bg-gray-50 shadow-md"
-              style={{ borderColor: '#2d5f4f' }}
-            >
-              <Camera className="w-5 h-5" style={{ color: '#2d5f4f' }} />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-                disabled={isLoading}
-              />
-            </label>
-          </div>
-          <div>
-            <h3 style={{ color: '#2d5f4f' }}>{name}</h3>
-            <p className="text-gray-600 mt-1">{email}</p>
-          </div>
-        </div>
+        {/* 2-Column Layout for Desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
 
-        {/* Form Fields */}
-        <div className="space-y-6">
-          {/* Name - ✅ 수정된 부분 */}
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-gray-700">
-              이름 *
-            </Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={`w-full ${nameError ? 'border-red-500' : ''}`} // ✅ 에러 시 빨간 테두리
-              placeholder="이름을 입력하세요"
-              maxLength={21} // ✅ 최대 21자 (20자 + 1)
-              disabled={isLoading}
-            />
-            {/* ✅ 글자 수 표시 추가 */}
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-500">닉네임은 20자 이하로 입력해주세요</p>
-              <p className={`text-xs ${name.length > 20 ? 'text-red-500' : 'text-gray-500'}`}>
-                {name.length}/20
-              </p>
-            </div>
-          </div>
-
-          {/* Email */}
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-gray-700">
-              이메일 *
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full"
-              placeholder="이메일을 입력하세요"
-              disabled={true} 
-              readOnly 
-            />
-          </div>
-
-          {/* Favorite Team (ROLE_USER only) */}
-          {userRole === 'ROLE_USER' && (
-            <div className="space-y-2">
-              <Label htmlFor="team" className="text-gray-700">
-                응원구단 *
-              </Label>
-              <Select value={editingFavoriteTeam} onValueChange={setEditingFavoriteTeam}>
-                <SelectTrigger className="w-full">
-                  <div className="flex items-center gap-2">
-                    {editingFavoriteTeam !== '없음' && (
-                      <div className="w-6 h-6">
-                        <TeamLogo team={editingFavoriteTeam} size="sm" />
+          {/* Left Column - Profile Image & Quick Actions */}
+          <div className="md:col-span-4 lg:col-span-3 md:border-r md:border-gray-200 md:dark:border-gray-700 md:pr-6">
+            <div className="md:sticky md:top-8 space-y-6">
+              {/* Profile Image */}
+              <div className="flex flex-col items-center p-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                <div className="relative">
+                  <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                    {profileImage ? (
+                      <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <User className="w-16 h-16 text-gray-400 dark:text-gray-500" />
                       </div>
                     )}
-                    <span>{TEAM_DATA[editingFavoriteTeam]?.name || '응원하는 팀을 선택하세요'}</span>
                   </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(TEAM_DATA).map((teamId) => (
-                    <SelectItem key={teamId} value={teamId}>
+                  <label
+                    className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white dark:bg-gray-700 border-2 border-[#2d5f4f] dark:border-emerald-500 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md transition-colors"
+                  >
+                    <Camera className="w-5 h-5 text-[#2d5f4f] dark:text-emerald-400" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      disabled={isLoading}
+                    />
+                  </label>
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-[#2d5f4f] dark:text-emerald-400">{name}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{email}</p>
+              </div>
+
+              {/* Quick Actions - Desktop Only */}
+              <div className="hidden md:block space-y-3">
+                {/* Password Change Button (LOCAL users only) */}
+                {(!userProvider || userProvider === 'LOCAL') && onChangePassword && (
+                  <Button
+                    variant="outline"
+                    onClick={onChangePassword}
+                    className="w-full flex items-center justify-center gap-2"
+                    disabled={isLoading}
+                  >
+                    🔐 비밀번호 변경
+                  </Button>
+                )}
+
+                {/* Account Settings Button */}
+                {onAccountSettings && (
+                  <Button
+                    variant="ghost"
+                    onClick={onAccountSettings}
+                    className="w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    disabled={isLoading}
+                  >
+                    ⚙️ 계정 설정
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Form Fields */}
+          <div className="md:col-span-8 lg:col-span-9 md:pl-2">
+            <div className="space-y-6 p-6 md:p-0 bg-gray-50/50 dark:bg-transparent md:bg-transparent rounded-xl md:rounded-none">
+              {/* Name */}
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">
+                  이름 *
+                </Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={`w-full ${nameError ? 'border-red-500' : ''}`}
+                  placeholder="이름을 입력하세요"
+                  maxLength={21}
+                  disabled={isLoading}
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">닉네임은 20자 이하로 입력해주세요</p>
+                  <p className={`text-xs ${name.length > 20 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {name.length}/20
+                  </p>
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">
+                  이메일 *
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full"
+                  placeholder="이메일을 입력하세요"
+                  disabled={true}
+                  readOnly
+                />
+              </div>
+
+              {/* Favorite Team (ROLE_USER only) */}
+              {userRole === 'ROLE_USER' && (
+                <div className="space-y-2">
+                  <Label htmlFor="team" className="text-gray-700 dark:text-gray-300">
+                    응원구단 *
+                  </Label>
+                  <Select value={editingFavoriteTeam} onValueChange={setEditingFavoriteTeam}>
+                    <SelectTrigger className="w-full">
                       <div className="flex items-center gap-2">
-                        {teamId !== '없음' && (
+                        {editingFavoriteTeam !== '없음' && (
                           <div className="w-6 h-6">
-                            <TeamLogo team={teamId} size="sm" />
+                            <TeamLogo team={editingFavoriteTeam} size="sm" />
                           </div>
                         )}
-                        {teamId === '없음' && (
-                          <div
-                            className="w-6 h-6 rounded-full"
-                            style={{
-                              backgroundColor:
-                                TEAM_DATA[teamId]?.color || TEAM_DATA['없음'].color,
-                            }}
-                          />
-                        )}
-                        {TEAM_DATA[teamId].name}
+                        <span>{TEAM_DATA[editingFavoriteTeam]?.name || '응원하는 팀을 선택하세요'}</span>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-sm text-gray-500">응원구단은 응원게시판에서 사용됩니다</p>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(TEAM_DATA).map((teamId) => (
+                        <SelectItem key={teamId} value={teamId}>
+                          <div className="flex items-center gap-2">
+                            {teamId !== '없음' && (
+                              <div className="w-6 h-6">
+                                <TeamLogo team={teamId} size="sm" />
+                              </div>
+                            )}
+                            {teamId === '없음' && (
+                              <div className="w-6 h-6 rounded-full bg-gray-400" />
+                            )}
+                            {TEAM_DATA[teamId].name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">응원구단은 응원게시판에서 사용됩니다</p>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowTeamTest(true)}
+                      className="text-sm flex items-center h-auto py-1 px-2 text-[#2d5f4f] dark:text-emerald-400 hover:bg-green-50 dark:hover:bg-emerald-900/20"
+                      disabled={isLoading}
+                    >
+                      구단 테스트 해보기
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Mobile Only - Quick Actions */}
+              <div className="md:hidden space-y-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                {/* Password Change Button (LOCAL users only) */}
+                {(!userProvider || userProvider === 'LOCAL') && onChangePassword && (
+                  <Button
+                    variant="outline"
+                    onClick={onChangePassword}
+                    className="w-full flex items-center justify-center gap-2"
+                    disabled={isLoading}
+                  >
+                    🔐 비밀번호 변경
+                  </Button>
+                )}
+
+                {/* Account Settings Button */}
+                {onAccountSettings && (
+                  <Button
+                    variant="ghost"
+                    onClick={onAccountSettings}
+                    className="w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    disabled={isLoading}
+                  >
+                    ⚙️ 계정 설정
+                  </Button>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <Button variant="outline" className="flex-1" onClick={onCancel} disabled={isLoading}>
+                  취소
+                </Button>
                 <Button
-                  variant="ghost"
-                  onClick={() => setShowTeamTest(true)}
-                  className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50"
-                  style={{ color: '#2d5f4f' }}
+                  onClick={handleSave}
+                  className="flex-1 text-white flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#2d5f4f' }}
                   disabled={isLoading}
                 >
-                  구단 테스트 해보기
+                  <Save className="w-5 h-5" />
+                  {isLoading ? '저장 중...' : '저장하기'}
                 </Button>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">
-          <Button variant="outline" className="flex-1" onClick={onCancel} disabled={isLoading}>
-            취소
-          </Button>
-          <Button
-            onClick={handleSave}
-            className="flex-1 text-white flex items-center justify-center gap-2"
-            style={{ backgroundColor: '#2d5f4f' }}
-            disabled={isLoading}
-          >
-            <Save className="w-5 h-5" />
-            {isLoading ? '저장 중...' : '저장하기'}
-          </Button>
+          </div>
         </div>
       </div>
 
