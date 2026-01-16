@@ -30,27 +30,24 @@ export default function ImagePicker({
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState({ current: 0, total: 0 });
 
+  // 현재 preview URLs를 ref로 관리 (cleanup에서 최신값 접근용)
+  const previewUrlsRef = useRef<string[]>([]);
+
   // selectedFiles가 변경될 때 preview URLs 업데이트
   useEffect(() => {
     // 기존 URLs 정리
-    previewUrls.forEach(url => URL.revokeObjectURL(url));
-    
+    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+
     // 새로운 URLs 생성
     const newUrls = selectedFiles.map(file => URL.createObjectURL(file));
     setPreviewUrls(newUrls);
+    previewUrlsRef.current = newUrls;
 
     // 컴포넌트 언마운트 시 정리
     return () => {
-      newUrls.forEach(url => URL.revokeObjectURL(url));
+      previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
     };
   }, [selectedFiles]);
-
-  // 컴포넌트 언마운트 시 모든 URLs 정리
-  useEffect(() => {
-    return () => {
-      previewUrls.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, []);
 
   const handleSelectFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = event.target;

@@ -26,6 +26,7 @@ import TeamLogo from './TeamLogo';
 import { TEAM_DATA } from '../constants/teams';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
+import UserProfileModal from './profile/UserProfileModal';
 
 export default function CheerDetail() {
     const { postId } = useParams();
@@ -47,6 +48,10 @@ export default function CheerDetail() {
     const [isReplyPending, setIsReplyPending] = useState(false);
     const [commentLikeAnimating, setCommentLikeAnimating] = useState<Record<number, boolean>>({});
     const commentLikeTimersRef = useRef<Record<number, number>>({});
+
+    // Profile Modal State
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [viewingUserId, setViewingUserId] = useState<number | null>(null);
 
     useEffect(() => {
         if (parsedPostId) {
@@ -355,166 +360,179 @@ export default function CheerDetail() {
                                     </div>
                                 )}
                             </div>
-                            <div>
-                                <div className="font-bold text-gray-900 dark:text-gray-100">{selectedPost.author}</div>
-                                <div className="text-xs text-gray-500 flex items-center gap-2">
-                                    <span>{selectedPost.timeAgo}</span>
-                                    <span>·</span>
-                                    <span>조회 {selectedPost.views}</span>
-                                </div>
+                        </div>
+                        <div
+                            className="cursor-pointer hover:underline"
+                            onClick={() => {
+                                if (selectedPost.authorId) {
+                                    setViewingUserId(selectedPost.authorId);
+                                    setIsProfileModalOpen(true);
+                                }
+                            }}
+                        >
+                            <div className="font-bold text-gray-900 dark:text-gray-100">{selectedPost.author}</div>
+                            <div className="text-xs text-gray-500 flex items-center gap-2">
+                                <span>{selectedPost.timeAgo}</span>
+                                <span>·</span>
+                                <span>조회 {selectedPost.views}</span>
                             </div>
                         </div>
-
-                        {selectedPost.isOwner && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button className="p-2 text-gray-400 hover:text-gray-600">
-                                        <MoreVertical className="w-5 h-5" />
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={handleDisplayEdit}>
-                                        <Edit2 className="w-4 h-4 mr-2" />
-                                        수정하기
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500">
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        삭제하기
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
                     </div>
 
-                    {/* Post Content */}
-                    <div className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed mb-6 min-h-[100px]">
-                        {selectedPost.content}
-                    </div>
-
-                    {/* Images */}
-                    {selectedPost.images && selectedPost.images.length > 0 && (
-                        <div className="space-y-3 mb-8">
-                            {selectedPost.images.map((img, idx) => (
-                                <img key={idx} src={img} alt={`uploaded-${idx}`} className="rounded-lg w-full object-cover max-h-[500px]" />
-                            ))}
-                        </div>
+                    {selectedPost.isOwner && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="p-2 text-gray-400 hover:text-gray-600">
+                                    <MoreVertical className="w-5 h-5" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={handleDisplayEdit}>
+                                    <Edit2 className="w-4 h-4 mr-2" />
+                                    수정하기
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500">
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    삭제하기
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     )}
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-4 py-4 border-t border-b border-gray-100 dark:border-gray-800">
-                        <button
-                            onClick={() => toggleLike(selectedPost.id)}
-                            className={cn(
-                                "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
-                                selectedPost.likedByUser
-                                    ? "bg-red-50 text-red-500"
-                                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                            )}
-                        >
-                            <Heart className={cn("w-5 h-5", selectedPost.likedByUser && "fill-current")} />
-                            <span className="font-medium">{selectedPost.likes}</span>
-                        </button>
-
-                        <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
-                            <MessageSquare className="w-5 h-5" />
-                            <span className="font-medium">{commentCount}</span>
-                        </button>
-
-                        <button
-                            onClick={() => toggleBookmark(selectedPost.id)}
-                            className={cn(
-                                "flex items-center gap-2 px-4 py-2 rounded-full transition-colors ml-auto",
-                                selectedPost.isBookmarked
-                                    ? "bg-yellow-50 text-yellow-500"
-                                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                            )}
-                        >
-                            <Bookmark className={cn("w-5 h-5", selectedPost.isBookmarked && "fill-current")} />
-                        </button>
-                    </div>
                 </div>
 
-                {/* Comment Section */}
-                <div className="bg-gray-50 dark:bg-gray-800/50 p-5">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold">댓글 {commentCount}개</h3>
-                    </div>
+                {/* Post Content */}
+                <div className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed mb-6 min-h-[100px]">
+                    {selectedPost.content}
+                </div>
 
-                    {/* Comment Input */}
-                    <div className="flex gap-3 mb-8">
-                        <Textarea
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            placeholder={user ? "댓글을 남겨주세요." : "로그인이 필요합니다."}
-                            disabled={!user || sendingComment}
-                            className="min-h-[80px] bg-white resize-none"
-                        />
-                        <Button
-                            onClick={handleCommentSubmit}
-                            disabled={!user || !commentText.trim() || sendingComment}
-                            className="h-auto bg-[#2d5f4f] text-white"
-                        >
-                            등록
-                        </Button>
+                {/* Images */}
+                {selectedPost.images && selectedPost.images.length > 0 && (
+                    <div className="space-y-3 mb-8">
+                        {selectedPost.images.map((img, idx) => (
+                            <img key={idx} src={img} alt={`uploaded-${idx}`} className="rounded-lg w-full object-cover max-h-[500px]" />
+                        ))}
                     </div>
+                )}
 
-                    {/* Comment List */}
-                    {commentsError ? (
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm text-gray-600 dark:text-gray-300">
-                            <p>{commentsError}</p>
-                            <Button
-                                variant="outline"
-                                className="mt-3"
-                                onClick={() => parsedPostId && loadComments(parsedPostId)}
-                                disabled={!parsedPostId}
-                            >
-                                다시 시도
-                            </Button>
-                        </div>
-                    ) : commentsLoading ? (
-                        <div className="space-y-4">
-                            {[1, 2, 3].map((item) => (
-                                <div key={item} className="flex gap-4 animate-pulse">
-                                    <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700" />
-                                    <div className="flex-1 space-y-2">
-                                        <div className="h-3 w-24 rounded bg-gray-200 dark:bg-gray-700" />
-                                        <div className="h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
-                                        <div className="h-4 w-5/6 rounded bg-gray-200 dark:bg-gray-700" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : comments.length === 0 ? (
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                            아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {comments.map((comment) => (
-                                <CommentItem
-                                    key={comment.id}
-                                    comment={comment}
-                                    canInteract={Boolean(user)}
-                                    canLike={Boolean(user)}
-                                    repliesEnabled={false}
-                                    activeReplyId={activeReplyId}
-                                    replyDraft={replyDraft}
-                                    isReplyPending={isReplyPending}
-                                    isCommentLikePending={false}
-                                    commentLikeAnimating={commentLikeAnimating}
-                                    onCommentLike={handleCommentLike}
-                                    onReplyToggle={handleReplyToggle}
-                                    onReplyChange={handleReplyChange}
-                                    onReplySubmit={handleReplySubmit}
-                                    onReplyCancel={handleReplyCancel}
-                                    onDelete={handleCommentDelete}
-                                    userEmail={user?.email}
-                                />
-                            ))}
-                        </div>
-                    )}
+                {/* Action Buttons */}
+                <div className="flex items-center gap-4 py-4 border-t border-b border-gray-100 dark:border-gray-800">
+                    <button
+                        onClick={() => toggleLike(selectedPost.id)}
+                        className={cn(
+                            "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
+                            selectedPost.likedByUser
+                                ? "bg-red-50 text-red-500"
+                                : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                        )}
+                    >
+                        <Heart className={cn("w-5 h-5", selectedPost.likedByUser && "fill-current")} />
+                        <span className="font-medium">{selectedPost.likes}</span>
+                    </button>
+
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
+                        <MessageSquare className="w-5 h-5" />
+                        <span className="font-medium">{commentCount}</span>
+                    </button>
+
+                    <button
+                        onClick={() => toggleBookmark(selectedPost.id)}
+                        className={cn(
+                            "flex items-center gap-2 px-4 py-2 rounded-full transition-colors ml-auto",
+                            selectedPost.isBookmarked
+                                ? "bg-yellow-50 text-yellow-500"
+                                : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                        )}
+                    >
+                        <Bookmark className={cn("w-5 h-5", selectedPost.isBookmarked && "fill-current")} />
+                    </button>
                 </div>
             </div>
+
+            {/* Comment Section */}
+            <div className="bg-gray-50 dark:bg-gray-800/50 p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold">댓글 {commentCount}개</h3>
+                </div>
+
+                {/* Comment Input */}
+                <div className="flex gap-3 mb-8">
+                    <Textarea
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        placeholder={user ? "댓글을 남겨주세요." : "로그인이 필요합니다."}
+                        disabled={!user || sendingComment}
+                        className="min-h-[80px] bg-white resize-none"
+                    />
+                    <Button
+                        onClick={handleCommentSubmit}
+                        disabled={!user || !commentText.trim() || sendingComment}
+                        className="h-auto bg-[#2d5f4f] text-white"
+                    >
+                        등록
+                    </Button>
+                </div>
+
+                {/* Comment List */}
+                {commentsError ? (
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm text-gray-600 dark:text-gray-300">
+                        <p>{commentsError}</p>
+                        <Button
+                            variant="outline"
+                            className="mt-3"
+                            onClick={() => parsedPostId && loadComments(parsedPostId)}
+                            disabled={!parsedPostId}
+                        >
+                            다시 시도
+                        </Button>
+                    </div>
+                ) : commentsLoading ? (
+                    <div className="space-y-4">
+                        {[1, 2, 3].map((item) => (
+                            <div key={item} className="flex gap-4 animate-pulse">
+                                <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-3 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+                                    <div className="h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
+                                    <div className="h-4 w-5/6 rounded bg-gray-200 dark:bg-gray-700" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : comments.length === 0 ? (
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                        아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {comments.map((comment) => (
+                            <CommentItem
+                                key={comment.id}
+                                comment={comment}
+                                canInteract={Boolean(user)}
+                                canLike={Boolean(user)}
+                                repliesEnabled={false}
+                                activeReplyId={activeReplyId}
+                                replyDraft={replyDraft}
+                                isReplyPending={isReplyPending}
+                                isCommentLikePending={false}
+                                commentLikeAnimating={commentLikeAnimating}
+                                onCommentLike={handleCommentLike}
+                                onReplyToggle={handleReplyToggle}
+                                onReplyChange={handleReplyChange}
+                                onReplySubmit={handleReplySubmit}
+                                onReplyCancel={handleReplyCancel}
+                                onDelete={handleCommentDelete}
+                                userEmail={user?.email}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+            <UserProfileModal
+                userId={viewingUserId}
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+            />
         </div>
     );
 }

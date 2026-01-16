@@ -16,7 +16,9 @@ interface User {
   isAdmin?: boolean;
   profileImageUrl?: string;
   role?: string;
-  provider?: string;  // LOCAL, GOOGLE, KAKAO 등
+  provider?: string;    // 'LOCAL', 'GOOGLE', 'KAKAO', 'NAVER'
+  providerId?: string;
+  bio?: string | null;  // Added bio
 }
 
 interface AuthState {
@@ -76,6 +78,7 @@ export const useAuthStore = create<AuthState>()(
                 isAdmin: isAdminUser,
                 profileImageUrl: profile.profileImageUrl,
                 role: profile.role,
+                bio: profile.bio,
               },
               isLoggedIn: true,
               isAdmin: isAdminUser,

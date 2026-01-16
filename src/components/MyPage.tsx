@@ -116,6 +116,7 @@ export default function MyPage() {
             savedFavoriteTeam={savedFavoriteTeam}
             userRole={user?.role}
             userProvider={user?.provider}
+            initialBio={user?.bio}
             onCancel={() => setViewMode('diary')}
             onSave={handleProfileUpdated}
             onChangePassword={() => setViewMode('changePassword')}
