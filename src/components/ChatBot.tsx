@@ -146,42 +146,9 @@ export default function ChatBot() {
                         `}
                       >
                         {message.sender === 'bot' ? (
-                          <>
-                            <ReactMarkdown remarkPlugins={[remarkGfm]} className="text-sm prose dark:prose-invert max-w-none">
-                              {message.text}
-                            </ReactMarkdown>
-                            {/* Verified Badge */}
-                            {message.verified && (
-                              <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-200 dark:border-white/10">
-                                <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                </svg>
-                                <span className="text-xs text-green-600 dark:text-green-400 font-medium">검증됨</span>
-                              </div>
-                            )}
-                            {/* Citations */}
-                            {message.citations && message.citations.length > 0 && (
-                              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-white/10">
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-1">참조 데이터:</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {message.citations.slice(0, 3).map((citation, i) => (
-                                    <span
-                                      key={i}
-                                      className="text-[10px] bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-1.5 py-0.5 rounded"
-                                      title={citation.content}
-                                    >
-                                      {citation.title}
-                                    </span>
-                                  ))}
-                                  {message.citations.length > 3 && (
-                                    <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                                      +{message.citations.length - 3}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} className="text-sm prose dark:prose-invert max-w-none">
+                            {message.text}
+                          </ReactMarkdown>
                         ) : (
                           <p className="m-0 text-sm">{message.text}</p>
                         )}

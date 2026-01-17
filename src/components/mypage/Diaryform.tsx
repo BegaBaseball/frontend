@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Camera, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Camera, X, Ticket, Loader2 } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { EMOJI_STATS, WINNING_OPTIONS, MAX_PHOTOS } from '../../constants/diary';
@@ -452,6 +452,57 @@ function DiaryEditMode({
   saveMutation,
   updateMutation,
 }: any) {
+  const [isScanning, setIsScanning] = useState(false);
+
+  const handleTicketScan = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    setIsScanning(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // AI Service Vision API 호출
+      const aiServiceUrl = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8001';
+      const response = await fetch(`${aiServiceUrl}/vision/ticket`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('티켓 분석에 실패했습니다');
+      }
+
+      const ticketInfo = await response.json();
+
+      // 폼 필드 자동 채우기
+      // availableGames에서 매칭되는 경기 찾기
+      if (ticketInfo.homeTeam && ticketInfo.awayTeam) {
+        const matchingGame = availableGames.find((game: any) =>
+          (game.homeTeam.includes(ticketInfo.homeTeam) || ticketInfo.homeTeam.includes(game.homeTeam)) &&
+          (game.awayTeam.includes(ticketInfo.awayTeam) || ticketInfo.awayTeam.includes(game.awayTeam))
+        );
+
+        if (matchingGame) {
+          updateForm({ gameId: matchingGame.id });
+        }
+      }
+
+      // 스캔한 티켓 이미지도 사진으로 추가
+      handlePhotoUpload(files);
+
+      alert(`티켓 분석 완료!\n경기장: ${ticketInfo.stadium || '미확인'}\n날짜: ${ticketInfo.date || '미확인'}\n좌석: ${ticketInfo.section || ''} ${ticketInfo.row || ''} ${ticketInfo.seat || ''}`);
+
+    } catch (error) {
+      console.error('Ticket scan error:', error);
+      alert('티켓 분석 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   const allPhotos = [
     ...diaryForm.photos,      // DB에 저장된 URL들
     ...diaryForm.photoFiles,  // 새로 추가한 File 객체들
@@ -459,6 +510,36 @@ function DiaryEditMode({
 
   return (
     <div className="space-y-4">
+      {/* 티켓 스캔 버튼 */}
+      <div className="mb-4">
+        <label className={`
+          flex items-center justify-center gap-2 w-full py-3 px-4 
+          border-2 border-dashed border-[#2d5f4f] rounded-xl cursor-pointer
+          bg-[#f8fcfb] hover:bg-[#e8f5f0] transition-colors
+          ${isScanning ? 'opacity-50 cursor-not-allowed' : ''}
+        `}>
+          {isScanning ? (
+            <>
+              <Loader2 className="w-5 h-5 text-[#2d5f4f] animate-spin" />
+              <span className="text-[#2d5f4f] font-semibold">티켓 분석 중...</span>
+            </>
+          ) : (
+            <>
+              <Ticket className="w-5 h-5 text-[#2d5f4f]" />
+              <span className="text-[#2d5f4f] font-semibold">티켓 사진으로 자동 입력</span>
+            </>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleTicketScan(e.target.files)}
+            className="hidden"
+            disabled={isScanning}
+          />
+        </label>
+        <p className="text-xs text-gray-500 text-center mt-1">티켓 사진을 올리면 AI가 자동으로 정보를 채워줍니다</p>
+      </div>
+
       {/* 직관 유형 선택 */}
       <div>
         <label className="text-sm text-gray-600 mb-3 block">직관 유형</label>

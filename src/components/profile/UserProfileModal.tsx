@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Badge } from '../ui/badge';
 import { Loader2, User, Trophy, Quote } from 'lucide-react';
-import { PublicUserProfile } from '../types/profile';
-import { fetchPublicUserProfile } from '../api/profile';
-import { getTeamKoreanName } from '../utils/teamUtils';
+import { PublicUserProfile } from '../../types/profile';
+import { fetchPublicUserProfile } from '../../api/profile';
+import { getTeamKoreanName } from '../../utils/teamNames';
 
 interface UserProfileModalProps {
     userId: number | null;

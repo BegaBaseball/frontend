@@ -27,7 +27,7 @@ interface AccountSettingsSectionProps {
 
 export default function AccountSettingsSection({ userProvider, onCancel }: AccountSettingsSectionProps) {
     const navigate = useNavigate();
-    const logout = useAuthStore((state) => state.logout);
+    const { logout, user } = useAuthStore();
     const queryClient = useQueryClient();
 
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -79,7 +79,11 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
 
     const handleLinkAccount = (provider: string) => {
         // 소셜 연동 시작
-        window.location.href = getSocialLoginUrl(provider.toLowerCase() as 'kakao' | 'google' | 'naver');
+        const targetUrl = user?.id
+            ? getSocialLoginUrl(provider.toLowerCase() as 'kakao' | 'google' | 'naver', { mode: 'link', userId: user.id })
+            : getSocialLoginUrl(provider.toLowerCase() as 'kakao' | 'google' | 'naver');
+
+        window.location.href = targetUrl;
     };
 
     const handleUnlinkAccount = (provider: string) => {

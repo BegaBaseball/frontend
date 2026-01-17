@@ -8,7 +8,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Progress } from './ui/progress';
-import { AlertCircle, CheckCircle, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Ticket, Loader2 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
@@ -16,6 +16,7 @@ import { api } from '../utils/api';
 import { STADIUMS, TEAMS } from '../utils/constants';
 import { mapBackendPartyToFrontend } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
+import StadiumSeatMap from './StadiumSeatMap';
 
 export default function MateCreate() {
   const navigate = useNavigate();
@@ -35,6 +36,8 @@ export default function MateCreate() {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserName, setCurrentUserName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -46,7 +49,18 @@ export default function MateCreate() {
       setCurrentUserName(userData.data.name);
 
       const userId = await api.getUserIdByEmail(userData.data.email);
-      setCurrentUserId(userId.data || userId);
+      const id = userId.data || userId;
+      setCurrentUserId(id);
+
+      // 소셜 연동 여부 확인 - 미연동 시 알림
+      try {
+        const socialResult = await api.checkSocialVerified(id);
+        if (socialResult.data === false) {
+          setShowVerificationDialog(true);
+        }
+      } catch {
+        // 확인 실패 시 무시 (나중에 제출 시 다시 체크됨)
+      }
     } catch (error) {
       console.error('사용자 정보 가져오기 실패:', error);
     }
@@ -58,31 +72,100 @@ export default function MateCreate() {
     setFormError('description', error);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Step 1: 티켓 업로드 + OCR
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        setFormError('ticketFile', '파일 크기는 10MB 이하여야 합니다.');
-        return;
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setFormError('ticketFile', '파일 크기는 10MB 이하여야 합니다.');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      setFormError('ticketFile', '이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    updateFormData({ ticketFile: file });
+    setFormError('ticketFile', '');
+    setIsScanning(true);
+
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+
+      const aiServiceUrl = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8001';
+      const response = await fetch(`${aiServiceUrl}/vision/ticket`, {
+        method: 'POST',
+        body: formDataUpload,
+      });
+
+      if (response.ok) {
+        const ticketInfo = await response.json();
+        const updates: any = {};
+
+        if (ticketInfo.date) {
+          updates.gameDate = ticketInfo.date;
+        }
+        if (ticketInfo.time) {
+          // HH:MM 형식으로 변환 (HH:MM:SS 제거)
+          updates.gameTime = ticketInfo.time.substring(0, 5);
+        }
+        if (ticketInfo.stadium) {
+          const matchedStadium = STADIUMS.find(s =>
+            s.includes(ticketInfo.stadium) || ticketInfo.stadium.includes(s)
+          );
+          if (matchedStadium) {
+            updates.stadium = matchedStadium;
+          } else {
+            updates.stadium = ticketInfo.stadium;
+          }
+        }
+        if (ticketInfo.homeTeam) {
+          const matchedTeam = TEAMS.find(t =>
+            t.name.includes(ticketInfo.homeTeam) || ticketInfo.homeTeam.includes(t.name)
+          );
+          if (matchedTeam) {
+            updates.homeTeam = matchedTeam.id;
+          }
+        }
+        if (ticketInfo.awayTeam) {
+          const matchedTeam = TEAMS.find(t =>
+            t.name.includes(ticketInfo.awayTeam) || ticketInfo.awayTeam.includes(t.name)
+          );
+          if (matchedTeam) {
+            updates.awayTeam = matchedTeam.id;
+          }
+        }
+        if (ticketInfo.section || ticketInfo.row || ticketInfo.seat) {
+          updates.section = [ticketInfo.section, ticketInfo.row, ticketInfo.seat]
+            .filter(Boolean)
+            .join(' ');
+        }
+
+        updateFormData(updates);
+
+        // 자동으로 다음 단계로 이동
+        setTimeout(() => {
+          setCreateStep(2);
+        }, 500);
       }
-      if (!file.type.startsWith('image/')) {
-        setFormError('ticketFile', '이미지 파일만 업로드 가능합니다.');
-        return;
-      }
-      updateFormData({ ticketFile: file });
-      setFormError('ticketFile', '');
+    } catch (error) {
+      console.error('Ticket OCR error:', error);
+    } finally {
+      setIsScanning(false);
     }
   };
 
   const canProceedToStep = (targetStep: number) => {
     if (targetStep === 2) {
-      return formData.gameDate && formData.homeTeam && formData.awayTeam && formData.stadium;
+      return formData.ticketFile !== null;
     }
     if (targetStep === 3) {
-      return formData.section && formData.maxParticipants > 0 && formData.ticketPrice > 0;
+      return formData.gameDate && formData.homeTeam && formData.awayTeam && formData.stadium;
     }
     if (targetStep === 4) {
-      return formData.description && !formErrors.description;
+      return formData.section && formData.maxParticipants > 0 && formData.ticketPrice > 0;
     }
     return true;
   };
@@ -98,17 +181,22 @@ export default function MateCreate() {
       return;
     }
 
+    if (!formData.description || formData.description.length < 10) {
+      setFormError('description', '소개글을 10자 이상 입력해주세요.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const partyData = {
         hostId: currentUserId,
         hostName: currentUserName,
-        hostBadge: 'NEW',
+        // hostBadge는 백엔드에서 기본값 처리
         hostRating: 5.0,
         teamId: formData.homeTeam,
-        gameDate: formData.gameDate,
-        gameTime: formData.gameTime || '18:30:00',
+        gameDate: formData.gameDate, // "YYYY-MM-DD" 형식
+        gameTime: formData.gameTime || '18:30', // "HH:MM" 형식 (LocalTime으로 변환됨)
         stadium: formData.stadium,
         homeTeam: formData.homeTeam,
         awayTeam: formData.awayTeam,
@@ -138,8 +226,6 @@ export default function MateCreate() {
       setIsSubmitting(false);
     }
   };
-
-  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
 
   const handleBack = () => {
     if (createStep === 1) {
@@ -187,12 +273,82 @@ export default function MateCreate() {
         </div>
 
         <Card className="p-8">
-          {/* Step 1: 경기 정보 */}
+          {/* Step 1: 티켓 업로드 + OCR */}
           {createStep === 1 && (
             <div className="space-y-6">
               <h2 className="mb-6" style={{ color: '#2d5f4f' }}>
-                경기 정보
+                티켓 인증
               </h2>
+
+              <div className="space-y-4">
+                <Label>예매내역 스크린샷</Label>
+                <div
+                  className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isScanning
+                    ? 'border-[#2d5f4f] bg-[#f8fcfb]'
+                    : formData.ticketFile
+                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                      : 'border-[#2d5f4f] bg-[#f8fcfb] hover:bg-[#e8f5f0]'
+                    }`}
+                >
+                  <input
+                    type="file"
+                    id="ticketFile"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    disabled={isScanning}
+                  />
+                  <label htmlFor="ticketFile" className={`cursor-pointer ${isScanning ? 'pointer-events-none' : ''}`}>
+                    {isScanning ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="w-16 h-16 text-[#2d5f4f] animate-spin" />
+                        <p className="text-[#2d5f4f] font-bold text-lg">AI가 티켓을 분석 중...</p>
+                        <p className="text-gray-500">경기 정보를 자동으로 추출합니다</p>
+                      </div>
+                    ) : formData.ticketFile ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <CheckCircle className="w-16 h-16 text-green-500" />
+                        <p className="text-green-700 dark:text-green-400 font-bold text-lg">
+                          {formData.ticketFile.name}
+                        </p>
+                        <p className="text-gray-500">클릭하여 다른 파일 선택</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-3">
+                        <Ticket className="w-16 h-16 text-[#2d5f4f]" />
+                        <p className="text-[#2d5f4f] font-bold text-lg">티켓 사진으로 자동 입력</p>
+                        <p className="text-gray-500">JPG, PNG (최대 10MB)</p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+                {formErrors.ticketFile && (
+                  <p className="text-sm text-red-500">{formErrors.ticketFile}</p>
+                )}
+              </div>
+
+              <Alert>
+                <AlertCircle className="w-4 h-4" />
+                <AlertDescription>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>티켓 사진을 올리면 AI가 경기 정보를 자동으로 입력합니다</li>
+                    <li>예매번호와 좌석 정보가 명확히 보여야 합니다</li>
+                    <li>개인정보는 가려서 업로드해주세요</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {/* Step 2: 경기 정보 확인/수정 */}
+          {createStep === 2 && (
+            <div className="space-y-6">
+              <h2 className="mb-2" style={{ color: '#2d5f4f' }}>
+                경기 정보 확인
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                AI가 추출한 정보를 확인하고 필요시 수정하세요
+              </p>
 
               <div className="space-y-2">
                 <Label htmlFor="gameDate">경기 날짜 *</Label>
@@ -283,24 +439,28 @@ export default function MateCreate() {
             </div>
           )}
 
-          {/* Step 2: 좌석 정보 */}
-          {createStep === 2 && (
+          {/* Step 3: 좌석 정보 */}
+          {createStep === 3 && (
             <div className="space-y-6">
               <h2 className="mb-6" style={{ color: '#2d5f4f' }}>
                 좌석 정보
               </h2>
 
+              {/* 시각적 좌석 맵 */}
+              <StadiumSeatMap
+                stadium={formData.stadium}
+                selectedSection={formData.section}
+                onSectionSelect={(section) => updateFormData({ section })}
+              />
+
               <div className="space-y-2">
-                <Label htmlFor="section">섹션 *</Label>
+                <Label htmlFor="section">좌석 상세 (선택 또는 직접 입력) *</Label>
                 <Input
                   id="section"
                   value={formData.section}
                   onChange={(e) => updateFormData({ section: e.target.value })}
-                  placeholder="예: A 201, B 304"
+                  placeholder="예: 블루석 A구역 5열 23번"
                 />
-                <p className="text-sm text-gray-500">
-                  섹션과 좌석 번호를 입력해주세요
-                </p>
               </div>
 
               <div className="space-y-2">
@@ -339,9 +499,6 @@ export default function MateCreate() {
                     원
                   </span>
                 </div>
-                <p className="text-sm text-gray-500">
-                  예매한 티켓의 1인당 가격을 입력해주세요
-                </p>
                 {formData.ticketPrice > 0 && (
                   <Alert>
                     <AlertCircle className="w-4 h-4" />
@@ -354,8 +511,8 @@ export default function MateCreate() {
             </div>
           )}
 
-          {/* Step 3: 소개글 */}
-          {createStep === 3 && (
+          {/* Step 4: 소개글 + 제출 */}
+          {createStep === 4 && (
             <div className="space-y-6">
               <h2 className="mb-6" style={{ color: '#2d5f4f' }}>
                 파티 소개
@@ -393,64 +550,6 @@ export default function MateCreate() {
             </div>
           )}
 
-          {/* Step 4: 예매내역 인증 */}
-          {createStep === 4 && (
-            <div className="space-y-6">
-              <h2 className="mb-6" style={{ color: '#2d5f4f' }}>
-                예매내역 인증
-              </h2>
-
-              <div className="space-y-4">
-                <Label>예매내역 스크린샷 *</Label>
-                <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center ${formData.ticketFile ? 'border-green-500 bg-green-50' : 'border-gray-300'
-                    }`}
-                >
-                  <input
-                    type="file"
-                    id="ticketFile"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <label htmlFor="ticketFile" className="cursor-pointer">
-                    {formData.ticketFile ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <CheckCircle className="w-12 h-12 text-green-500" />
-                        <p className="text-green-700">{formData.ticketFile.name}</p>
-                        <p className="text-sm text-gray-500">
-                          클릭하여 다른 파일 선택
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <Upload className="w-12 h-12 text-gray-400" />
-                        <p className="text-gray-600">클릭하여 파일 업로드</p>
-                        <p className="text-sm text-gray-500">
-                          JPG, PNG (최대 10MB)
-                        </p>
-                      </div>
-                    )}
-                  </label>
-                </div>
-                {formErrors.ticketFile && (
-                  <p className="text-sm text-red-500">{formErrors.ticketFile}</p>
-                )}
-              </div>
-
-              <Alert>
-                <AlertCircle className="w-4 h-4" />
-                <AlertDescription>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li>예매번호와 좌석 정보가 명확히 보여야 합니다</li>
-                    <li>개인정보는 가려서 업로드해주세요</li>
-                    <li>인증된 예매내역만 파티 생성이 가능합니다</li>
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
-
           {/* Navigation Buttons */}
           <div className="flex gap-4 mt-8">
             {createStep > 1 && (
@@ -475,7 +574,7 @@ export default function MateCreate() {
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={!formData.ticketFile || isSubmitting}
+                disabled={!formData.description || formData.description.length < 10 || isSubmitting}
                 className="flex-1 text-white"
                 style={{ backgroundColor: '#2d5f4f' }}
               >

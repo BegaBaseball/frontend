@@ -46,6 +46,10 @@ export const api = {
     return this.request(`/users/email-to-id?email=${encodeURIComponent(email)}`);
   },
 
+  async checkSocialVerified(userId: number) {
+    return this.request(`/users/${userId}/social-verified`);
+  },
+
   // Party
   async getParties(teamId?: string, stadium?: string, page = 0, size = 9): Promise<{
     content: any[];
@@ -59,18 +63,18 @@ export const api = {
     if (stadium) params.append('stadium', stadium);
     params.append('page', page.toString());
     params.append('size', size.toString());
-    
+
     return this.request(`/parties?${params}`);
   },
 
-    async createParty(data: any) {
+  async createParty(data: any) {
     return this.request('/parties', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
- async getPartyById(partyId: string) {
+  async getPartyById(partyId: string) {
     return this.request(`/parties/${partyId}`);
   },
 
@@ -88,7 +92,7 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
-   async getApplicationsByParty(partyId: string) {
+  async getApplicationsByParty(partyId: string) {
     return this.request(`/applications/party/${partyId}`);
   },
 

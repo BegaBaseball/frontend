@@ -12,7 +12,7 @@ import ktLogo from '../assets/bb63ace90c2b7b74e708cae2f562fbca654538ec.png';
 interface TeamLogoProps {
   team?: string;
   teamId?: string;
-  size?: number | 'sm' | 'md' | 'lg';
+  size?: number | 'sm' | 'md' | 'lg' | 'full';
   className?: string;
 }
 
@@ -86,16 +86,17 @@ export default function TeamLogo({ team, teamId, size = 64, className = '' }: Te
   const canonicalKey = normalizeTeamLabel(teamName ?? team);
 
   // size가 문자열이면 숫자로 변환
-  const numericSize = typeof size === 'string' ? sizeMap[size] : size;
+  const numericSize = typeof size === 'string' && size !== 'full' ? sizeMap[size] : size;
 
   const logoImage = canonicalKey ? teamLogoImages[canonicalKey] : undefined;
+  const isResponsive = size === 'full';
 
   if (!logoImage) {
     // 로고가 없는 경우 기본 표시
     return (
       <div
         className={`rounded-full bg-white/90 flex items-center justify-center ${className}`}
-        style={{ width: numericSize, height: numericSize, fontWeight: 900, fontSize: numericSize * 0.28, color: '#2d5f4f' }}
+        style={!isResponsive ? { width: numericSize, height: numericSize, fontWeight: 900, fontSize: Number(numericSize) * 0.28, color: '#2d5f4f' } : { fontWeight: 900, color: '#2d5f4f' }}
       >
         {teamName || team || '?'}
       </div>
@@ -105,17 +106,17 @@ export default function TeamLogo({ team, teamId, size = 64, className = '' }: Te
   return (
     <div
       className={`flex items-center justify-center rounded-full bg-white ${className}`}
-      style={{
+      style={!isResponsive ? {
         width: numericSize,
         height: numericSize,
-      }}
+      } : {}}
     >
       <img
         src={logoImage}
         alt={`${teamName || team} 로고`}
         style={{
-          width: numericSize,
-          height: numericSize,
+          width: isResponsive ? '100%' : numericSize,
+          height: isResponsive ? '100%' : numericSize,
           objectFit: 'contain',
         }}
       />

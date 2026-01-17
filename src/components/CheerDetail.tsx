@@ -320,9 +320,9 @@ export default function CheerDetail() {
     }
 
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-900 pb-20">
+        <div className="min-h-screen bg-[#f7f9f9] dark:bg-[#0E1117] pb-24 sm:pb-20">
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b px-4 h-14 flex items-center justify-between">
+            <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
                 <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full">
                     <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -330,12 +330,13 @@ export default function CheerDetail() {
                 <div className="w-9" /> {/* Spacer */}
             </div>
 
-            <div className="max-w-3xl mx-auto">
-                <div className="p-5">
+            <div className="mx-auto w-full max-w-[880px] px-4 sm:px-6 lg:px-8">
+                <article className="mt-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#151A23] shadow-sm">
+                    <div className="px-4 sm:px-6 lg:px-8 py-6">
                     {/* Post Meta */}
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-start justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="relative h-10 w-10 flex-shrink-0">
+                            <div className="relative h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0">
                                 <div className="h-full w-full rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-300 overflow-hidden">
                                     {selectedPost.authorProfileImageUrl ? (
                                         <img
@@ -360,117 +361,126 @@ export default function CheerDetail() {
                                     </div>
                                 )}
                             </div>
-                        </div>
-                        <div
-                            className="cursor-pointer hover:underline"
-                            onClick={() => {
-                                if (selectedPost.authorId) {
-                                    setViewingUserId(selectedPost.authorId);
-                                    setIsProfileModalOpen(true);
-                                }
-                            }}
-                        >
-                            <div className="font-bold text-gray-900 dark:text-gray-100">{selectedPost.author}</div>
-                            <div className="text-xs text-gray-500 flex items-center gap-2">
-                                <span>{selectedPost.timeAgo}</span>
-                                <span>·</span>
-                                <span>조회 {selectedPost.views}</span>
+                            <div
+                                className="cursor-pointer hover:underline"
+                                onClick={() => {
+                                    if (selectedPost.authorId) {
+                                        setViewingUserId(selectedPost.authorId);
+                                        setIsProfileModalOpen(true);
+                                    }
+                                }}
+                            >
+                                <div className="text-[15px] sm:text-[16px] font-bold text-gray-900 dark:text-gray-100">
+                                    {selectedPost.author}
+                                </div>
+                                <div className="text-xs text-gray-500 flex items-center gap-2">
+                                    <span>{selectedPost.timeAgo}</span>
+                                    <span>·</span>
+                                    <span>조회 {selectedPost.views}</span>
+                                </div>
                             </div>
                         </div>
+
+                        {selectedPost.isOwner && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="p-2 text-gray-400 hover:text-gray-600">
+                                        <MoreVertical className="w-5 h-5" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={handleDisplayEdit}>
+                                        <Edit2 className="w-4 h-4 mr-2" />
+                                        수정하기
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500">
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        삭제하기
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                     </div>
 
-                    {selectedPost.isOwner && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button className="p-2 text-gray-400 hover:text-gray-600">
-                                    <MoreVertical className="w-5 h-5" />
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={handleDisplayEdit}>
-                                    <Edit2 className="w-4 h-4 mr-2" />
-                                    수정하기
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500">
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    삭제하기
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                    {/* Post Content */}
+                    <div className="mt-5 text-[15px] sm:text-[16px] text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-6 sm:leading-7 min-h-[100px]">
+                        {selectedPost.content}
+                    </div>
+
+                    {/* Images */}
+                    {selectedPost.images && selectedPost.images.length > 0 && (
+                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {selectedPost.images.map((img, idx) => (
+                                <div key={idx} className="overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+                                    <img
+                                        src={img}
+                                        alt={`uploaded-${idx}`}
+                                        className="h-full w-full object-cover aspect-[4/3]"
+                                    />
+                                </div>
+                            ))}
+                        </div>
                     )}
-                </div>
 
-                {/* Post Content */}
-                <div className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed mb-6 min-h-[100px]">
-                    {selectedPost.content}
-                </div>
+                    {/* Action Buttons */}
+                    <div className="mt-6 flex flex-wrap items-center gap-2 sm:gap-4 py-4 border-t border-b border-gray-100 dark:border-gray-800 text-sm">
+                        <button
+                            onClick={() => toggleLike(selectedPost.id)}
+                            className={cn(
+                                "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
+                                selectedPost.likedByUser
+                                    ? "bg-red-50 text-red-500"
+                                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                            )}
+                        >
+                            <Heart className={cn("w-5 h-5", selectedPost.likedByUser && "fill-current")} />
+                            <span className="font-semibold">{selectedPost.likes}</span>
+                        </button>
 
-                {/* Images */}
-                {selectedPost.images && selectedPost.images.length > 0 && (
-                    <div className="space-y-3 mb-8">
-                        {selectedPost.images.map((img, idx) => (
-                            <img key={idx} src={img} alt={`uploaded-${idx}`} className="rounded-lg w-full object-cover max-h-[500px]" />
-                        ))}
+                        <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
+                            <MessageSquare className="w-5 h-5" />
+                            <span className="font-semibold">{commentCount}</span>
+                        </button>
+
+                        <button
+                            onClick={() => toggleBookmark(selectedPost.id)}
+                            className={cn(
+                                "flex items-center gap-2 px-4 py-2 rounded-full transition-colors sm:ml-auto",
+                                selectedPost.isBookmarked
+                                    ? "bg-yellow-50 text-yellow-600"
+                                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                            )}
+                        >
+                            <Bookmark className={cn("w-5 h-5", selectedPost.isBookmarked && "fill-current")} />
+                        </button>
                     </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-4 py-4 border-t border-b border-gray-100 dark:border-gray-800">
-                    <button
-                        onClick={() => toggleLike(selectedPost.id)}
-                        className={cn(
-                            "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
-                            selectedPost.likedByUser
-                                ? "bg-red-50 text-red-500"
-                                : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                        )}
-                    >
-                        <Heart className={cn("w-5 h-5", selectedPost.likedByUser && "fill-current")} />
-                        <span className="font-medium">{selectedPost.likes}</span>
-                    </button>
-
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
-                        <MessageSquare className="w-5 h-5" />
-                        <span className="font-medium">{commentCount}</span>
-                    </button>
-
-                    <button
-                        onClick={() => toggleBookmark(selectedPost.id)}
-                        className={cn(
-                            "flex items-center gap-2 px-4 py-2 rounded-full transition-colors ml-auto",
-                            selectedPost.isBookmarked
-                                ? "bg-yellow-50 text-yellow-500"
-                                : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                        )}
-                    >
-                        <Bookmark className={cn("w-5 h-5", selectedPost.isBookmarked && "fill-current")} />
-                    </button>
                 </div>
-            </div>
+            </article>
 
             {/* Comment Section */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 p-5">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold">댓글 {commentCount}개</h3>
-                </div>
+            <section className="mt-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#151A23] shadow-sm">
+                <div className="px-4 sm:px-6 lg:px-8 py-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-[15px] sm:text-[16px]">댓글 {commentCount}개</h3>
+                    </div>
 
-                {/* Comment Input */}
-                <div className="flex gap-3 mb-8">
-                    <Textarea
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        placeholder={user ? "댓글을 남겨주세요." : "로그인이 필요합니다."}
-                        disabled={!user || sendingComment}
-                        className="min-h-[80px] bg-white resize-none"
-                    />
-                    <Button
-                        onClick={handleCommentSubmit}
-                        disabled={!user || !commentText.trim() || sendingComment}
-                        className="h-auto bg-[#2d5f4f] text-white"
-                    >
-                        등록
-                    </Button>
-                </div>
+                    {/* Comment Input */}
+                    <div className="flex flex-col sm:flex-row gap-3 mb-8">
+                        <Textarea
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            placeholder={user ? "댓글을 남겨주세요." : "로그인이 필요합니다."}
+                            disabled={!user || sendingComment}
+                            className="min-h-[88px] sm:min-h-[96px] bg-gray-50 dark:bg-gray-900 resize-none"
+                        />
+                        <Button
+                            onClick={handleCommentSubmit}
+                            disabled={!user || !commentText.trim() || sendingComment}
+                            className="h-11 sm:h-auto bg-[#2d5f4f] text-white sm:w-auto"
+                        >
+                            등록
+                        </Button>
+                    </div>
 
                 {/* Comment List */}
                 {commentsError ? (
@@ -527,12 +537,14 @@ export default function CheerDetail() {
                         ))}
                     </div>
                 )}
-            </div>
+                </div>
+            </section>
             <UserProfileModal
                 userId={viewingUserId}
                 isOpen={isProfileModalOpen}
                 onClose={() => setIsProfileModalOpen(false)}
             />
+        </div>
         </div>
     );
 }

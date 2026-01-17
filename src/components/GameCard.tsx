@@ -116,7 +116,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
           <div className="flex-1 flex flex-col items-center gap-3 group/team">
             <div className="relative">
               <div className="w-14 h-14 sm:w-16 sm:h-16 xl:w-20 xl:h-20 flex items-center justify-center p-3 bg-white dark:bg-gray-700/30 rounded-2xl shadow-sm group-hover/team:shadow-md group-hover/team:scale-105 transition-all duration-300">
-                <TeamLogo team={game.awayTeam} size={64} className="w-full h-full object-contain drop-shadow-sm" />
+                <TeamLogo team={game.awayTeam} size="full" className="w-full h-full object-contain drop-shadow-sm" />
               </div>
             </div>
             <span className="font-bold text-gray-800 dark:text-gray-100 text-xs sm:text-sm xl:text-base tracking-tight truncate w-full text-center">
@@ -148,7 +148,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
           <div className="flex-1 flex flex-col items-center gap-3 group/team">
             <div className="relative">
               <div className="w-14 h-14 sm:w-16 sm:h-16 xl:w-20 xl:h-20 flex items-center justify-center p-3 bg-white dark:bg-gray-700/30 rounded-2xl shadow-sm group-hover/team:shadow-md group-hover/team:scale-105 transition-all duration-300">
-                <TeamLogo team={game.homeTeam} size={64} className="w-full h-full object-contain drop-shadow-sm" />
+                <TeamLogo team={game.homeTeam} size="full" className="w-full h-full object-contain drop-shadow-sm" />
               </div>
             </div>
             <span className="font-bold text-gray-800 dark:text-gray-100 text-xs sm:text-sm xl:text-base tracking-tight truncate w-full text-center">
