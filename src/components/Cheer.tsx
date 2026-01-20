@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +12,7 @@ import { Game as HomeGame } from '../types/home';
 import TeamLogo from './TeamLogo';
 import CheerCard from './CheerCard';
 import CheerHot from './CheerHot';
+import CheerWriteModal from './CheerWriteModal';
 import EndOfFeed from './EndOfFeed';
 
 
@@ -145,6 +147,7 @@ export default function Cheer() {
         ? getTeamDescription(teamLabel)
         : '모든 팀의 흐름을 한 번에 확인하세요.';
     const activeTabConfig = feedTabs.find((item) => item.key === activeFeedTab);
+    const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
     const [composerContent, setComposerContent] = useState('');
     const [composerFiles, setComposerFiles] = useState<File[]>([]);
     const [composerPreviews, setComposerPreviews] = useState<{ file: File; url: string }[]>([]);
@@ -449,6 +452,22 @@ export default function Cheer() {
                                 </button>
                             );
                         })}
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!user) {
+                                    alert('로그인이 필요한 서비스입니다.');
+                                    return;
+                                }
+                                setIsWriteModalOpen(true);
+                            }}
+                            className="mt-4 flex w-full items-center justify-center xl:justify-start gap-3 h-12 px-4 rounded-full xl:rounded-xl text-[18px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                            style={{ backgroundColor: teamAccent }}
+                        >
+                            <PenSquare className="h-6 w-6" />
+                            <span className="hidden xl:inline">게시하기</span>
+                        </button>
                     </aside>
 
                     <main className="flex w-full flex-col gap-0 bg-white dark:bg-[#151A23] border-x border-[#EFF3F4] dark:border-[#232938] lg:w-[600px]">
@@ -531,12 +550,13 @@ export default function Cheer() {
                                     )}
                                 </div>
                                 <div className="flex-1">
-                                    <textarea
+                                    <TextareaAutosize
                                         placeholder="지금 우리 팀에게 응원을 남겨주세요!"
                                         className="w-full resize-none border-none bg-transparent text-[16px] text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none focus:ring-0"
-                                        rows={2}
+                                        minRows={2}
+                                        maxRows={10}
                                         value={composerContent}
-                                        onChange={(event) => setComposerContent(event.target.value)}
+                                        onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setComposerContent(event.target.value)}
                                     />
                                     <div className="mt-2 flex items-center justify-between border-t border-[#EFF3F4] dark:border-[#232938] pt-2">
                                         <div className="flex items-center gap-2 text-[#536471] dark:text-slate-500">
@@ -795,6 +815,22 @@ export default function Cheer() {
             >
                 <PenSquare className="mx-auto h-5 w-5" />
             </button>
+
+            <CheerWriteModal
+                isOpen={isWriteModalOpen}
+                onClose={() => setIsWriteModalOpen(false)}
+                onSubmit={async (content: string, files: File[]) => {
+                    await createMutation.mutateAsync({
+                        content,
+                        files,
+                        postType: activeTabConfig?.postType,
+                    });
+                }}
+                teamColor={teamColor}
+                teamAccent={teamAccent}
+                teamContrastText={teamContrastText}
+                teamLabel={teamLabel}
+            />
         </div>
     );
 }

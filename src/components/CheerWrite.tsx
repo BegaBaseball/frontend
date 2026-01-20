@@ -1,5 +1,6 @@
 // CheerWrite.tsx
 import { ArrowLeft, X, Upload } from 'lucide-react';
+import TextareaAutosize from 'react-textarea-autosize';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
@@ -93,11 +94,13 @@ export default function CheerWrite() {
             <label className="block text-sm" style={{ color: '#2d5f4f' }}>
               내용 *
             </label>
-            <Textarea
+            <TextareaAutosize
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="응원 메시지를 작성하세요"
-              className="min-h-[300px] w-full"
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
+              placeholder="응원 메시지를 작성하세요. 긴 글도 자유롭게 작성하실 수 있습니다."
+              minRows={10}
+              maxRows={25}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
             />
           </div>
 
@@ -117,9 +120,8 @@ export default function CheerWrite() {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 transition-colors ${
-                isDragging ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-gray-400'
-              }`}
+              className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 transition-colors ${isDragging ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-gray-400'
+                }`}
             >
               <Upload className="h-6 w-6" />
               <span>클릭 또는 드래그하여 이미지 추가</span>

@@ -1,4 +1,4 @@
-import chatBotIcon from '/src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import chatBotIcon from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Badge } from './ui/badge';
 import { X, Send, MessageSquare, Paperclip } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';

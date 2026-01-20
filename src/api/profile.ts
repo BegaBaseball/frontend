@@ -12,11 +12,27 @@ import api from './axios';
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 /**
- * 다른 사용자 프로필 조회 (공개 정보)
+ * 다른 사용자 프로필 조회 (공개 정보 - ID 기준)
  */
 export async function fetchPublicUserProfile(userId: number): Promise<PublicUserProfile> {
   try {
     const response = await api.get<{ success: boolean; data: PublicUserProfile; message?: string }>(`/users/${userId}/profile`);
+
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
+    }
+    return response.data.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || '프로필 조회 실패');
+  }
+}
+
+/**
+ * 다른 사용자 프로필 조회 (공개 정보 - 핸들 기준)
+ */
+export async function fetchPublicUserProfileByHandle(handle: string): Promise<PublicUserProfile> {
+  try {
+    const response = await api.get<{ success: boolean; data: PublicUserProfile; message?: string }>(`/users/profile/${handle}`);
 
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');

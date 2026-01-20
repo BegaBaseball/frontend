@@ -161,7 +161,7 @@ export const usePrediction = () => {
     if (userVote[gameId] === team) {
       setConfirmDialogData({
         title: '투표 취소',
-        description: '투표를 취소하시겠습니까?',
+        description: '투표를 취소하시겠습니까?\n\n(❗️ 주의: 사용된 포인트는 반환되지 않습니다)',
         onConfirm: () => {
           setShowConfirmDialog(false);
           executeCancelVote(gameId);
@@ -179,6 +179,11 @@ export const usePrediction = () => {
   const executeVote = async (gameId: string, team: VoteTeam, game: Game) => {
     try {
       await submitVote(gameId, team);
+
+      // 포인트 즉시 차감 (UI 업데이트)
+      const { deductCheerPoints } = useAuthStore.getState();
+      deductCheerPoints(1);
+
       setUserVote(prev => ({ ...prev, [gameId]: team }));
       loadVoteStatus(gameId);
 
@@ -195,6 +200,7 @@ export const usePrediction = () => {
   const executeCancelVote = async (gameId: string) => {
     const success = await cancelVote(gameId);
     if (success) {
+
       setUserVote(prev => ({ ...prev, [gameId]: null }));
       loadVoteStatus(gameId);
       toast.success('투표가 취소되었습니다.');

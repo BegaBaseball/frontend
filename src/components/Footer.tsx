@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import baseballLogo from '/src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 
 
 export default function Footer() {
@@ -7,11 +7,11 @@ export default function Footer() {
     <footer className="bg-gray-900 text-white py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-row items-center gap-3 mb-4">
-          <img 
-              src={baseballLogo} 
-              alt="baseball" 
-              className="w-8 h-8"
-            />
+          <img
+            src={baseballLogo}
+            alt="baseball"
+            className="w-8 h-8"
+          />
           <div className="flex items-baseline gap-2">
             <h3 className="tracking-wider text-lg" style={{ fontWeight: 900 }}>
               BEGA

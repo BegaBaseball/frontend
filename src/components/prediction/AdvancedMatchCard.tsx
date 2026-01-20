@@ -6,7 +6,6 @@ import TeamLogo from '../TeamLogo';
 import { Game, VoteTeam } from '../../types/prediction';
 import { TEAM_COLORS, GAME_TIME } from '../../constants/prediction';
 import { getFullTeamName } from '../../utils/prediction';
-import CheerBattleBar from '../CheerBattleBar';
 
 interface AdvancedMatchCardProps {
   game: Game;
@@ -240,15 +239,6 @@ export default function AdvancedMatchCard({
           </div>
         )}
 
-        {/* Real-time Cheer Battle */}
-        {/* TODO: Change back to {isToday && ...} after testing */}
-        <div className="mt-6">
-          <CheerBattleBar
-            gameId={game.gameId}
-            homeTeam={game.homeTeam}
-            awayTeam={game.awayTeam}
-          />
-        </div>
       </div>
     </Card >
   );

@@ -1,10 +1,10 @@
 import { Home, MessageCircle, MapPin, TrendingUp, Users, BookOpen } from 'lucide-react';
-import homeScreenshot from '/src/assets/home.png';
-import predictionScreenshot from '/src/assets/prediction.png';
-import diaryScreenshot from '/src/assets/diary.png';
-import screenshot2 from '/src/assets/cheer.png';
-import screenshot3 from '/src/assets/stadium.png';
-import mateScreenshot1 from '/src/assets/mate.png';
+import homeScreenshot from '../assets/home.png';
+import predictionScreenshot from '../assets/prediction.png';
+import diaryScreenshot from '../assets/diary.png';
+import screenshot2 from '../assets/cheer.png';
+import screenshot3 from '../assets/stadium.png';
+import mateScreenshot1 from '../assets/mate.png';
 import { Feature } from '../types/landing';
 
 export const LANDING_FEATURES: Feature[] = [

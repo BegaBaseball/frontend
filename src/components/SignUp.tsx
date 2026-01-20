@@ -10,7 +10,7 @@ import { useSignUpForm } from '../hooks/useSignUpForm';
 import { TEAM_LIST, getFullTeamName, TEAM_DATA } from '../constants/teams';
 import AuthLayout from './auth/AuthLayout';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
-import { CheckCircle2, XCircle } from 'lucide-react';  
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -22,13 +22,13 @@ export default function SignUp() {
     formData,
     fieldErrors,
     isLoading,
-    isSuccess,  
+    isSuccess,
     error,
     handleFieldChange,
     handleFieldBlur,
     handleSubmit,
   } = useSignUpForm();
-  
+
 
   return (
     <AuthLayout>
@@ -76,6 +76,42 @@ export default function SignUp() {
           />
           {fieldErrors.name && (
             <p className="text-sm text-red-500">* {fieldErrors.name}</p>
+          )}
+        </div>
+
+        {/* 핸들 (사용자 아이디) */}
+        <div className="space-y-2">
+          <Label htmlFor="handle" className="flex items-center gap-2 text-gray-700">
+            <User className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            사용자 핸들 (@)
+          </Label>
+          <Input
+            id="handle"
+            type="text"
+            value={formData.handle}
+            onChange={(e) => {
+              const val = e.target.value;
+              // @로 시작하도록 유도하거나 강제
+              if (val === '' || val === '@') {
+                handleFieldChange('handle', '@');
+              } else if (val.startsWith('@')) {
+                handleFieldChange('handle', val);
+              } else {
+                handleFieldChange('handle', `@${val}`);
+              }
+            }}
+            onBlur={() => handleFieldBlur('handle')}
+            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.handle ? 'border-red-500' : ''}`}
+            style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+            placeholder="@username"
+            disabled={isLoading || isSuccess}
+          />
+          {fieldErrors.handle ? (
+            <p className="text-sm text-red-500">* {fieldErrors.handle}</p>
+          ) : (
+            <p className="text-xs text-gray-500">
+              핸들은 내 프로필 주소로 사용됩니다. (기호는 _만 가능)
+            </p>
           )}
         </div>
 
@@ -175,9 +211,9 @@ export default function SignUp() {
           <Label htmlFor="favoriteTeam" className="text-gray-700">
             응원팀 선택
           </Label>
-          <Select 
-            value={formData.favoriteTeam} 
-            onValueChange={(value) => handleFieldChange('favoriteTeam', value)}
+          <Select
+            value={formData.favoriteTeam}
+            onValueChange={(value: string) => handleFieldChange('favoriteTeam', value)}
             disabled={isLoading || isSuccess}  // ✅ 수정
           >
             <SelectTrigger className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.favoriteTeam ? 'border-red-500' : ''}`}>
@@ -191,11 +227,11 @@ export default function SignUp() {
               ))}
             </SelectContent>
           </Select>
-          
+
           {fieldErrors.favoriteTeam && (
             <p className="text-sm text-red-500">* {fieldErrors.favoriteTeam}</p>
           )}
-          
+
           {/* "없음" 선택 시 경고 메시지 */}
           {formData.favoriteTeam === '없음' && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -205,21 +241,21 @@ export default function SignUp() {
               </p>
             </div>
           )}
-          
+
           <div className="flex items-center justify-between mt-2">
             <p className="text-sm text-gray-500">응원구단은 응원게시판에서 사용됩니다</p>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              onClick={() => setShowTeamTest(true)} 
-              className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50" 
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowTeamTest(true)}
+              className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50"
               style={{ color: '#2d5f4f' }}
               disabled={isLoading || isSuccess}  // ✅ 수정
             >
               구단 테스트 해보기
             </Button>
           </div>
-          
+
           <TeamRecommendationTest
             isOpen={showTeamTest}
             onClose={() => setShowTeamTest(false)}
@@ -235,8 +271,8 @@ export default function SignUp() {
         </div>
 
         {/* ✅ 수정된 버튼 */}
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           style={{ backgroundColor: isSuccess ? '#10b981' : '#2d5f4f' }}  // ✅ 성공 시 초록색
           disabled={isLoading || isSuccess}  // ✅ 수정
@@ -273,10 +309,10 @@ export default function SignUp() {
 
         <p className="text-center text-sm text-gray-600">
           이미 계정이 있으신가요?{' '}
-          <button 
+          <button
             type="button"
-            onClick={() => navigate('/login')}  
-            className="hover:underline disabled:opacity-50" 
+            onClick={() => navigate('/login')}
+            className="hover:underline disabled:opacity-50"
             style={{ color: '#2d5f4f' }}
             disabled={isLoading || isSuccess}  // ✅ 수정
           >

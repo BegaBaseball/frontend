@@ -1,4 +1,6 @@
 // components/cheer/CommentItem.tsx
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, CornerDownRight, Send, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -25,7 +27,7 @@ interface CommentItemProps {
   userEmail?: string; // Added for ownership check
 }
 
-export function CommentItem({
+function CommentItemComponent({
   comment,
   depth = 0,
   canInteract,
@@ -44,6 +46,7 @@ export function CommentItem({
   onDelete, // Added
   userEmail, // Added
 }: CommentItemProps) {
+  const navigate = useNavigate();
   const isReply = depth > 0;
   const likeCount = comment.likeCount ?? 0;
   const isReplyOpen = activeReplyId === comment.id;
@@ -61,16 +64,30 @@ export function CommentItem({
       <div className="flex gap-4">
         <div className="flex flex-col items-center gap-2">
           {isReply ? <CornerDownRight className="h-4 w-4 text-gray-300 dark:text-gray-600" /> : null}
-          <ProfileAvatar
-            src={comment.authorProfileImageUrl}
-            alt={comment.author}
-            size={isReply ? 'sm' : 'md'}
-          />
+          <div
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => {
+              if (comment.authorHandle) navigate(`/profile/${comment.authorHandle}`);
+            }}
+          >
+            <ProfileAvatar
+              src={comment.authorProfileImageUrl}
+              alt={comment.author}
+              size={isReply ? 'sm' : 'md'}
+            />
+          </div>
         </div>
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900 dark:text-white">{comment.author}</p>
+              <p
+                className="font-medium text-gray-900 dark:text-white cursor-pointer hover:underline"
+                onClick={() => {
+                  if (comment.authorHandle) navigate(`/profile/${comment.authorHandle}`);
+                }}
+              >
+                {comment.author}
+              </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {comment.isPending ? '전송 중...' : comment.timeAgo}
               </p>
@@ -152,7 +169,7 @@ export function CommentItem({
           {comment.replies && comment.replies.length > 0 && (
             <div className="mt-4 space-y-4">
               {comment.replies.map((reply) => (
-                <CommentItem
+                <CommentItemComponent
                   key={reply.id}
                   comment={reply}
                   depth={depth + 1}
@@ -180,3 +197,6 @@ export function CommentItem({
     </div>
   );
 }
+
+// React.memo to prevent unnecessary re-renders in comment lists
+export const CommentItem = React.memo(CommentItemComponent);

@@ -61,7 +61,8 @@ export interface CheerPost {
     title: string;
     content?: string;
     author: string;
-    authorId: number; // Added authorId
+    authorId: number;
+    authorHandle?: string;
     authorProfileImageUrl?: string;
     authorTeamId?: string;
     timeAgo: string;
@@ -91,6 +92,7 @@ export interface Comment {
     likeCount?: number;
     likedByMe?: boolean;
     authorProfileImageUrl?: string;
+    authorHandle?: string;
     replies?: Comment[];
     authorEmail?: string; // Added for ownership check
 }
@@ -113,8 +115,17 @@ export async function fetchPosts(teamId?: string, page = 0, size = 20, postType?
     }
 
     const response = await api.get(`/cheer/posts?${params.toString()}`);
-    const data = response.data;
+    return transformPostPage(response.data);
+}
 
+// 특정 사용자 게시글 조회 (핸들 기준)
+export async function fetchUserPostsByHandle(handle: string, page = 0, size = 20) {
+    const response = await api.get(`/cheer/user/${handle}/posts?page=${page}&size=${size}`);
+    return transformPostPage(response.data);
+}
+
+// 데이터 변환 헬퍼
+function transformPostPage(data: any) {
     // 데이터 변환
     const content = data.content.map((post: any) => ({
         id: post.id,
@@ -122,7 +133,8 @@ export async function fetchPosts(teamId?: string, page = 0, size = 20, postType?
         teamColor: teamColors[post.teamId] || '#2d5f4f',
         title: post.title,
         author: post.author,
-        authorId: post.authorId, // Map from response
+        authorId: post.authorId,
+        authorHandle: post.authorHandle,
         authorProfileImageUrl: post.authorProfileImageUrl,
         authorTeamId: post.authorTeamId,
         timeAgo: formatTimeAgo(post.createdAt),
@@ -133,6 +145,7 @@ export async function fetchPosts(teamId?: string, page = 0, size = 20, postType?
         postType: post.postType,
         images: post.imageUrls,
         isOwner: post.isOwner,
+        likedByUser: post.liked,
         isBookmarked: post.bookmarkedByMe ?? post.isBookmarked ?? false,
     }));
 
@@ -164,7 +177,7 @@ export async function fetchPostDetail(id: number): Promise<CheerPost> {
         comments: post.comments,
         likes: post.likes,
         views: post.views,
-        likedByUser: post.likedByMe,
+        likedByUser: post.liked,
         isBookmarked: post.bookmarkedByMe ?? post.isBookmarked ?? false,
         images: post.imageUrls,
         isOwner: post.isOwner,
@@ -210,7 +223,26 @@ export async function toggleLike(postId: number): Promise<LikeToggleResponse> {
 // 댓글 목록 조회
 export async function fetchComments(postId: number, page = 0, size = 20) {
     const response = await api.get(`/cheer/posts/${postId}/comments?page=${page}&size=${size}`);
-    return response.data; // CommentRes 구조에 따라 변환 필요할 수 있음
+    const data = response.data;
+
+    const transformComment = (c: any): any => ({
+        id: c.id,
+        author: c.author,
+        authorEmail: c.authorEmail,
+        authorTeamId: c.authorTeamId,
+        authorProfileImageUrl: c.authorProfileImageUrl,
+        authorHandle: c.authorHandle,
+        content: c.content,
+        timeAgo: formatTimeAgo(c.createdAt),
+        likeCount: c.likeCount,
+        likedByMe: c.likedByMe,
+        replies: c.replies ? c.replies.map(transformComment) : []
+    });
+
+    return {
+        ...data,
+        content: data.content.map(transformComment)
+    };
 }
 
 // 댓글 작성

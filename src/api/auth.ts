@@ -23,6 +23,7 @@ export interface LoginResponse {
 
 export interface SignUpRequest {
   name: string;
+  handle: string;
   email: string;
   password: string;
   confirmPassword: string;

@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
-import { Zap } from 'lucide-react';
+import { Zap, Coins } from 'lucide-react'; // Added Coins icon
 import { useAuthStore } from '../store/authStore';
-import { TEAM_DATA, getFullTeamName } from '../constants/teams';
+import { TEAM_DATA } from '../constants/teams';
 
 interface CheerBattleBarProps {
     gameId: string;
@@ -17,7 +17,7 @@ interface BattleStats {
 }
 
 export default function CheerBattleBar({ gameId, homeTeam, awayTeam }: CheerBattleBarProps) {
-    const { user, requireLogin } = useAuthStore();
+    const { user, requireLogin, deductCheerPoints } = useAuthStore(); // Added deductCheerPoints
 
     // Initialize with 0s for home/away
     const [stats, setStats] = useState<BattleStats>({
@@ -61,6 +61,13 @@ export default function CheerBattleBar({ gameId, homeTeam, awayTeam }: CheerBatt
         // Prevent voting again if already voted
         if (myVote) return;
 
+        // Check points
+        const currentPoints = user?.cheerPoints || 0;
+        if (currentPoints < 1) {
+            alert("응원 포인트가 부족합니다! (포인트는 게시글/댓글 좋아요 및 일일 로그인으로 획득 가능)");
+            return;
+        }
+
         if (client && client.connected) {
             // Send teamId as plain body
             client.publish({
@@ -68,12 +75,15 @@ export default function CheerBattleBar({ gameId, homeTeam, awayTeam }: CheerBatt
                 body: teamId,
             });
 
-            // Mark as voted
+            // Mark as voted for this session
             setMyVote(teamId);
 
             // Optimistic update for immediate feedback
             setStats(prev => ({ ...prev, [teamId]: (prev[teamId] || 0) + 1 }));
             setTotalVotes(prev => prev + 1);
+
+            // Deduct point locally
+            deductCheerPoints(1);
         } else {
             console.error('Client not connected');
         }
@@ -96,11 +106,19 @@ export default function CheerBattleBar({ gameId, homeTeam, awayTeam }: CheerBatt
             <div className="flex items-center justify-between mb-3 relative z-10">
                 <h3 className="font-bold flex items-center gap-2 text-slate-800 dark:text-white text-sm">
                     <Zap className="w-4 h-4 text-yellow-500 fill-yellow-500 animate-pulse" />
-                    <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">실시간 응원 배틀</span>
+                    <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">실시간 팬심 대결</span>
                 </h3>
-                <span className="text-[10px] font-mono text-slate-400 font-medium bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-700">
-                    Total: {totalVotes.toLocaleString()}
-                </span>
+                <div className="flex items-center gap-2">
+                    {user && (
+                        <span className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                            <Coins className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                            {user.cheerPoints?.toLocaleString() || 0} P
+                        </span>
+                    )}
+                    <span className="text-[10px] font-mono text-slate-400 font-medium bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-700">
+                        Total: {totalVotes.toLocaleString()}
+                    </span>
+                </div>
             </div>
 
             {/* Battle Gauge */}
@@ -140,27 +158,35 @@ export default function CheerBattleBar({ gameId, homeTeam, awayTeam }: CheerBatt
                     onClick={() => handleVote(awayTeam)}
                     disabled={!!myVote}
                     className={`flex-1 h-9 rounded-lg font-bold text-xs shadow-sm transition-all text-white ${myVote === awayTeam
-                            ? 'ring-2 ring-offset-2 ring-yellow-400'
-                            : myVote
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:brightness-110 active:scale-95'
+                        ? 'ring-2 ring-offset-2 ring-yellow-400'
+                        : myVote
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'hover:brightness-110 active:scale-95'
                         }`}
                     style={{ backgroundColor: colorAway }}
                 >
-                    {myVote === awayTeam ? '✓ 응원 완료!' : `${TEAM_DATA[awayTeam]?.name} 응원!`}
+                    {myVote === awayTeam ? '✓ 응원 완료!' : (
+                        <span className="flex items-center gap-1">
+                            {TEAM_DATA[awayTeam]?.name} 응원! <span className="opacity-70 text-[10px] font-normal">(-1P)</span>
+                        </span>
+                    )}
                 </Button>
                 <Button
                     onClick={() => handleVote(homeTeam)}
                     disabled={!!myVote}
                     className={`flex-1 h-9 rounded-lg font-bold text-xs shadow-sm transition-all text-white ${myVote === homeTeam
-                            ? 'ring-2 ring-offset-2 ring-yellow-400'
-                            : myVote
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:brightness-110 active:scale-95'
+                        ? 'ring-2 ring-offset-2 ring-yellow-400'
+                        : myVote
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'hover:brightness-110 active:scale-95'
                         }`}
                     style={{ backgroundColor: colorHome }}
                 >
-                    {myVote === homeTeam ? '✓ 응원 완료!' : `${TEAM_DATA[homeTeam]?.name} 응원!`}
+                    {myVote === homeTeam ? '✓ 응원 완료!' : (
+                        <span className="flex items-center gap-1">
+                            {TEAM_DATA[homeTeam]?.name} 응원! <span className="opacity-70 text-[10px] font-normal">(-1P)</span>
+                        </span>
+                    )}
                 </Button>
             </div>
 

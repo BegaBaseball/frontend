@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2, Heart, MessageCircle, MoreHorizontal, Repeat2, Trash2 } from 'lucide-react';
 import { CheerPost } from '../api/cheerApi';
@@ -20,14 +20,22 @@ interface CheerCardProps {
     isHotItem?: boolean; // For Hot Topic Panel styling
 }
 
-export default function CheerCard({ post, isHotItem = false }: CheerCardProps) {
+function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const navigate = useNavigate();
     // const toggleLike = useCheerStore((state) => state.toggleLike); // Removed
     // const deletePost = useCheerStore((state) => state.deletePost); // Removed
     const { toggleLikeMutation, deletePostMutation } = useCheerMutations(); // Added
 
     const contentText = post.content?.trim() || post.title;
-    const shouldShowMore = contentText.length > 120;
+
+    // Use a ref-like derived value OR helper function defined inside the component
+    const normalizeContent = (text: string) => {
+        return text.replace(/\n{3,}/g, '\n\n').trim();
+    };
+
+    const [isExpanded, setIsExpanded] = useState(false);
+    const normalizedContent = normalizeContent(contentText);
+    const shouldShowMore = normalizedContent.length > 450 || contentText.split('\n').length > 6;
     const repostCount = Math.max(0, Math.round(post.views / 10));
     const [likeAnimating, setLikeAnimating] = useState(false);
     const [commentAnimating, setCommentAnimating] = useState(false);
@@ -104,11 +112,10 @@ export default function CheerCard({ post, isHotItem = false }: CheerCardProps) {
                         <RollingNumber value={post.comments} />
                     </span>
                     <span className="flex items-center gap-1">
-                        <Heart className={`h-4 w-4 transition-all duration-200 ${
-                            post.likedByUser
-                                ? 'fill-rose-500 text-rose-500'
-                                : 'fill-transparent dark:text-slate-400'
-                        }`} />
+                        <Heart className={`h-4 w-4 transition-all duration-200 ${post.likedByUser
+                            ? 'fill-rose-500 text-rose-500'
+                            : 'fill-transparent dark:text-slate-400'
+                            }`} />
                         <RollingNumber value={post.likes} />
                     </span>
                 </div>
@@ -124,7 +131,13 @@ export default function CheerCard({ post, isHotItem = false }: CheerCardProps) {
         >
             <div className="flex gap-3">
                 <div className="relative h-10 w-10 flex-shrink-0">
-                    <div className="h-full w-full rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-300 overflow-hidden">
+                    <div
+                        className="h-full w-full rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-300 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (post.authorHandle) navigate(`/profile/${post.authorHandle}`);
+                        }}
+                    >
                         {post.authorProfileImageUrl ? (
                             <img
                                 src={post.authorProfileImageUrl}
@@ -144,9 +157,19 @@ export default function CheerCard({ post, isHotItem = false }: CheerCardProps) {
 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 text-[15px]">
-                        <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-[#0f1419] dark:text-white truncate">{post.author}</span>
-                            <span className="text-[#536471] dark:text-slate-400">@{(post.team || 'user').toLowerCase()} · {post.timeAgo}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <span
+                                className="font-bold text-[#0f1419] dark:text-white truncate cursor-pointer hover:underline"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (post.authorHandle) navigate(`/profile/${post.authorHandle}`);
+                                }}
+                            >
+                                {post.author}
+                            </span>
+                            <span className="text-[#536471] dark:text-slate-400 truncate">
+                                {post.authorHandle || `@${(post.team || 'user').toLowerCase()}`} · {post.timeAgo}
+                            </span>
                             {post.isHot && (
                                 <span className="text-[11px] font-semibold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/50 px-2 py-0.5 rounded-full">
                                     HOT
@@ -179,14 +202,27 @@ export default function CheerCard({ post, isHotItem = false }: CheerCardProps) {
                         )}
                     </div>
 
-                    <p className="mt-0.5 text-[16px] leading-[22px] text-[#0f1419] dark:text-slate-200 tweet-clamp">
-                        {contentText}
-                    </p>
+                    <div className={`mt-0.5 text-[16px] leading-[22px] text-[#0f1419] dark:text-slate-200 transition-all duration-300 ${shouldShowMore && !isExpanded ? 'content-collapsed' : 'content-expanded'
+                        }`}>
+                        {(isExpanded ? contentText : normalizedContent).split('\n').map((line, i) => (
+                            <React.Fragment key={i}>
+                                {line}
+                                <br />
+                            </React.Fragment>
+                        ))}
+                    </div>
 
                     {shouldShowMore && (
-                        <span className="mt-1 inline-block text-[13px] text-[#536471] dark:text-slate-400 hover:text-[#0f1419] dark:hover:text-white">
-                            더보기
-                        </span>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsExpanded(!isExpanded);
+                            }}
+                            className="mt-2 text-[13px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                        >
+                            {isExpanded ? '접기' : '자세히 보기'}
+                        </button>
                     )}
 
                     {post.images?.length ? (
@@ -249,11 +285,10 @@ export default function CheerCard({ post, isHotItem = false }: CheerCardProps) {
                                     <span className="pointer-events-none absolute inset-0 rounded-full bg-rose-500/30 animate-like-ring" />
                                 )}
                                 <Heart
-                                    className={`h-[18px] w-[18px] transition-all duration-200 ${
-                                        post.likedByUser
-                                            ? 'fill-rose-500 text-rose-500 scale-110'
-                                            : 'fill-transparent'
-                                    } ${likeAnimating ? 'animate-like-pop' : ''}`}
+                                    className={`h-[18px] w-[18px] transition-all duration-200 ${post.likedByUser
+                                        ? 'fill-rose-500 text-rose-500 scale-110'
+                                        : 'fill-transparent'
+                                        } ${likeAnimating ? 'animate-like-pop' : ''}`}
                                 />
                             </span>
                             <RollingNumber value={post.likes} />
@@ -264,3 +299,7 @@ export default function CheerCard({ post, isHotItem = false }: CheerCardProps) {
         </div>
     );
 }
+
+// React.memo to prevent unnecessary re-renders when other posts change
+const CheerCard = React.memo(CheerCardComponent);
+export default CheerCard;

@@ -30,6 +30,7 @@ const MateCheckIn = lazy(() => import('./components/MateCheckIn'));
 const MateChat = lazy(() => import('./components/MateChat'));
 const MateManage = lazy(() => import('./components/MateManage'));
 const MyPage = lazy(() => import('./components/MyPage'));
+const UserProfile = lazy(() => import('./components/profile/UserProfile'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const RankingPredictionShare = lazy(() => import('./components/RankingPredictionShare'));
 const Landing = lazy(() => import('./components/Landing'));
@@ -133,6 +134,7 @@ export default function App() {
             <Route path="/offseason/list" element={<OffSeasonList />} />
             <Route path="/cheer" element={<Cheer />} />
             <Route path="/cheer/:postId" element={<CheerDetail />} />
+            <Route path="/profile/:handle" element={<UserProfile />} />
             <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
             <Route path="/notice" element={<NoticePage />} />
             <Route path="/terms" element={<TermsOfService />} />

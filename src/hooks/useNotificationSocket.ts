@@ -54,6 +54,8 @@ export const useNotificationSocket = () => {
                         const notification: NotificationData = JSON.parse(message.body);
                         console.log('New notification received:', notification);
                         addNotification(notification);
+                        // 알림 수신 시 사용자 정보(포인트 등) 최신화
+                        useAuthStore.getState().fetchProfileAndAuthenticate();
                     } catch (error) {
                         console.error('Failed to parse notification:', error);
                     }
