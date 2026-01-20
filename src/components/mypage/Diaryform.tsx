@@ -490,6 +490,16 @@ function DiaryEditMode({
         }
       }
 
+      // 2. 좌석 정보 매칭
+      const seatUpdates: any = {};
+      if (ticketInfo.section) seatUpdates.section = ticketInfo.section;
+      if (ticketInfo.row) seatUpdates.row = ticketInfo.row;
+      if (ticketInfo.seat) seatUpdates.seat = ticketInfo.seat;
+
+      if (Object.keys(seatUpdates).length > 0) {
+        updateForm(seatUpdates);
+      }
+
       // 스캔한 티켓 이미지도 사진으로 추가
       handlePhotoUpload(files);
 
@@ -670,6 +680,43 @@ function DiaryEditMode({
           </div>
         )}
       </div>
+
+      {/* 좌석 정보 (직관 완료시만) */}
+      {diaryForm.type === 'attended' && (
+        <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
+          <label className="text-sm font-bold text-[#2d5f4f]">좌석 정보</label>
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="text"
+              placeholder="구역 (예: 1루 레드석)"
+              value={diaryForm.section || ''}
+              onChange={(e) => updateForm({ section: e.target.value })}
+              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            />
+            <input
+              type="text"
+              placeholder="블록 (예: 101블록)"
+              value={diaryForm.block || ''}
+              onChange={(e) => updateForm({ block: e.target.value })}
+              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            />
+            <input
+              type="text"
+              placeholder="열 (예: 5열)"
+              value={diaryForm.row || ''}
+              onChange={(e) => updateForm({ row: e.target.value })}
+              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            />
+            <input
+              type="text"
+              placeholder="번 (예: 13번)"
+              value={diaryForm.seat || ''}
+              onChange={(e) => updateForm({ seat: e.target.value })}
+              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            />
+          </div>
+        </div>
+      )}
 
       {/* 승패 선택 (직관 완료시만) */}
       {diaryForm.type === 'attended' && (

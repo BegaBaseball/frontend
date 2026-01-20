@@ -129,7 +129,18 @@ export const useChatBot = () => {
       );
     } catch (error) {
       console.error('Chat Error:', error);
-      streamingBuffer.current += `\n죄송합니다, 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
+
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+
+      if (errorMessage === 'STATUS_429') {
+        toast.error('현재 이용자가 많아 AI 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.');
+        streamingBuffer.current += `\n\n(시스템) ⚠️ 현재 이용자가 많아 연결이 지연되고 있습니다. 1-2분 뒤에 다시 질문해 주시겠어요?`;
+      } else if (errorMessage === 'STATUS_503') {
+        toast.error('서비스 점검 중이거나 일시적인 오류입니다.');
+        streamingBuffer.current += `\n\n(시스템) 🔧 서비스 점검 중이거나 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.`;
+      } else {
+        streamingBuffer.current += `\n죄송합니다, 오류가 발생했습니다: ${errorMessage}`;
+      }
     } finally {
       // 스트리밍 연결이 끊어지면 처리 상태 해제
       setIsProcessing(false);

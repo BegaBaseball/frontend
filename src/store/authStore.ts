@@ -66,7 +66,7 @@ export const useAuthStore = create<AuthState>()(
           if (response.status === 200) {
             const result = response.data;
             const profile = result.data;
-            const isAdminUser = profile.role === 'ROLE_ADMIN';
+            const isAdminUser = profile.role === 'ROLE_ADMIN' || profile.role === 'ROLE_SUPER_ADMIN';
 
             set({
               user: {
@@ -113,7 +113,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       login: (email, name, profileImageUrl, role, favoriteTeam, id) => {
-        const isAdminUser = role === 'ROLE_ADMIN';
+        const isAdminUser = role === 'ROLE_ADMIN' || role === 'ROLE_SUPER_ADMIN';
 
         set({
           user: {

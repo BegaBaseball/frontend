@@ -103,6 +103,10 @@ export const useDiaryView = () => {
             photos: uploadedPhotos,
             team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
             stadium: game?.stadium || '',
+            section: diaryForm.section,
+            block: diaryForm.block,
+            row: diaryForm.row,
+            seat: diaryForm.seat,
           },
         });
       }
@@ -202,6 +206,10 @@ export const useDiaryView = () => {
       photos: diaryForm.photos, // 기존 사진 URL 유지
       team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
       stadium: game?.stadium || '',
+      section: diaryForm.section,
+      block: diaryForm.block,
+      row: diaryForm.row,
+      seat: diaryForm.seat,
     };
 
     if (selectedDiary) {

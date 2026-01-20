@@ -53,6 +53,7 @@ export async function sendChatMessageStream(
   onMeta?: (meta: {
     verified: boolean;
     dataSources: Array<{ title: string; url?: string; content?: string }>;
+
     toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
   }) => void
 ): Promise<void> {
@@ -64,6 +65,12 @@ export async function sendChatMessageStream(
   });
 
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error('STATUS_429');
+    }
+    if (response.status === 503) {
+      throw new Error('STATUS_503');
+    }
     const errorText = await response.text();
     throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
   }

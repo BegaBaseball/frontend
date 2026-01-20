@@ -22,6 +22,10 @@ export interface DiaryEntry {
   photos: string[];
   team: string;
   stadium: string;
+  section?: string;
+  block?: string;
+  row?: string;
+  seat?: string;
 }
 
 export interface DiaryFormData {
@@ -33,6 +37,10 @@ export interface DiaryFormData {
   memo: string;
   photos: string[];
   photoFiles: File[];
+  section?: string;
+  block?: string;
+  row?: string;
+  seat?: string;
 }
 
 export interface SaveDiaryRequest {
@@ -46,6 +54,10 @@ export interface SaveDiaryRequest {
   photos: string[];
   team: string;
   stadium: string;
+  section?: string;
+  block?: string;
+  row?: string;
+  seat?: string;
 }
 
 export interface DiaryStatistics {

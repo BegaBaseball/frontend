@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { MapPin } from 'lucide-react';
@@ -7,10 +7,12 @@ import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constant
 import { openKakaoMapRoute } from '../utils/kakaoMap';
 import { getCategoryIconConfig } from '../utils/stadium';
 import { useStadiumGuide } from '../hooks/useStadiumGuide';
-import { useTheme } from '../hooks/useTheme'; // 테마 사용을 위해 추가
+import { useTheme } from '../hooks/useTheme';
+import StadiumSeatMap from './StadiumSeatMap';
 
 export default function StadiumGuide() {
-  const { theme } = useTheme(); // 현재 테마 가져오기
+  const { theme } = useTheme();
+  const [viewMode, setViewMode] = useState<'map' | 'seat'>('map');
   const {
     stadiums,
     selectedStadium,
@@ -101,9 +103,33 @@ export default function StadiumGuide() {
 
             {/* Stadium Info & Map */}
             <div>
-              <h3 className="mb-3 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
-                구장 위치
-              </h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
+                  구장 위치
+                </h3>
+                {selectedStadium && (
+                  <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                    <button
+                      onClick={() => setViewMode('map')}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === 'map'
+                        ? 'bg-white shadow text-[#2d5f4f] dark:bg-gray-700 dark:text-white'
+                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                        }`}
+                    >
+                      지도
+                    </button>
+                    <button
+                      onClick={() => setViewMode('seat')}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === 'seat'
+                        ? 'bg-white shadow text-[#2d5f4f] dark:bg-gray-700 dark:text-white'
+                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                        }`}
+                    >
+                      좌석뷰
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* 구장 정보 카드 */}
               {selectedStadium && (
@@ -148,8 +174,21 @@ export default function StadiumGuide() {
                 </div>
               )}
 
-              {/* 지도 */}
-              {selectedStadium && KAKAO_API_KEY ? (
+              {/* 지도 또는 좌석 뷰 */}
+              {viewMode === 'seat' ? (
+                <div
+                  className="rounded-3xl border-2 dark:bg-gray-800 dark:border-gray-700 p-4"
+                  style={{
+                    backgroundColor: isDark ? undefined : THEME_COLORS.primaryLight,
+                    borderColor: isDark ? '#374151' : THEME_COLORS.primary,
+                  }}
+                >
+                  <StadiumSeatMap
+                    stadium={selectedStadium?.stadiumName || ''}
+                    onSectionSelect={() => { }}
+                  />
+                </div>
+              ) : selectedStadium && KAKAO_API_KEY ? (
                 <div
                   className="p-2 rounded-3xl border-2 dark:bg-gray-800 dark:border-gray-700"
                   style={{
@@ -279,25 +318,25 @@ export default function StadiumGuide() {
                         places.map((place) => {
                           const { Icon, color } = getCategoryIconConfig(place.category);
                           const isSelected = selectedPlace?.id === place.id;
-                          
+
                           return (
                             <Card
                               key={place.id}
                               id={`place-${place.id}`}
                               className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-2 dark:bg-gray-800"
                               style={{
-                                backgroundColor: isSelected 
-                                  ? (isDark ? '#1f4436' : THEME_COLORS.primaryLight) 
+                                backgroundColor: isSelected
+                                  ? (isDark ? '#1f4436' : THEME_COLORS.primaryLight)
                                   : (isDark ? '#1f2937' : 'white'),
-                                borderColor: isSelected 
-                                  ? THEME_COLORS.primary 
+                                borderColor: isSelected
+                                  ? THEME_COLORS.primary
                                   : (isDark ? '#374151' : THEME_COLORS.border),
                               }}
                             >
                               <div className="flex items-center justify-between">
                                 {/* 왼쪽: Place 정보 (클릭 가능) */}
-                                <div 
-                                  className="flex-1" 
+                                <div
+                                  className="flex-1"
                                   onClick={() => handlePlaceClick(place)}
                                 >
                                   <div className="flex items-center gap-2 mb-2">

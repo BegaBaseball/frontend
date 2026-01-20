@@ -13,6 +13,7 @@ import CheerCard from './CheerCard';
 import CheerHot from './CheerHot';
 import EndOfFeed from './EndOfFeed';
 
+
 const DEFAULT_TEAM_COLOR = '#2d5f4f';
 
 const normalizeHexColor = (color?: string) => {
@@ -492,6 +493,10 @@ export default function Cheer() {
                                 새 글 {newPostCount}개 보기
                             </button>
                         )}
+
+                        <div className="mx-4 mt-4">
+
+                        </div>
 
                         <section
                             className={cn(

@@ -12,6 +12,7 @@ import { useTheme } from 'next-themes';
 
 export default function ChatBot() {
   const { isLoggedIn } = useAuthStore();
+  // const isLoggedIn = true;
   const isMobile = useIsMobile();
   const { theme } = useTheme();
   const {

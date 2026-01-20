@@ -154,3 +154,121 @@
     left: 150%;
   }
 }
+
+/* Admin Dashboard - Stadium Night Theme */
+.admin-page {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Radial gradient utility */
+.bg-gradient-radial {
+  background: radial-gradient(ellipse at center, var(--tw-gradient-from) 0%, var(--tw-gradient-via, transparent) 50%, var(--tw-gradient-to) 100%);
+}
+
+/* Fade in up animation */
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+/* Glow pulse for stat cards */
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.05);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* Custom scrollbar for admin tables */
+.admin-page ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-page ::-webkit-scrollbar-track {
+  background: rgb(30 41 59); /* slate-800 */
+  border-radius: 4px;
+}
+
+.admin-page ::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105); /* slate-600 */
+  border-radius: 4px;
+}
+
+.admin-page ::-webkit-scrollbar-thumb:hover {
+  background: rgb(100 116 139); /* slate-500 */
+}
+
+/* Enhanced shadow for elevated elements */
+.shadow-3xl {
+  box-shadow:
+    0 35px 60px -15px rgba(0, 0, 0, 0.5),
+    0 0 40px -10px rgba(245, 158, 11, 0.1);
+}
+
+/* Table row hover glow effect */
+.admin-page table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.admin-page table tbody tr:hover {
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.1);
+}
+
+/* Badge animations */
+.admin-page .badge-glow {
+  position: relative;
+}
+
+.admin-page .badge-glow::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: inherit;
+  filter: blur(8px);
+  opacity: 0.5;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+/* Input focus glow */
+.admin-page input:focus {
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+/* Tab indicator animation */
+.admin-page [role="tablist"] button[data-state="active"] {
+  position: relative;
+}
+
+.admin-page [role="tablist"] button[data-state="active"]::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  opacity: 0.5;
+}

@@ -6,6 +6,7 @@ import TeamLogo from '../TeamLogo';
 import { Game, VoteTeam } from '../../types/prediction';
 import { TEAM_COLORS, GAME_TIME } from '../../constants/prediction';
 import { getFullTeamName } from '../../utils/prediction';
+import CheerBattleBar from '../CheerBattleBar';
 
 interface AdvancedMatchCardProps {
   game: Game;
@@ -27,7 +28,7 @@ export default function AdvancedMatchCard({
   onVote,
 }: AdvancedMatchCardProps) {
   const { homePercentage, awayPercentage, totalVotes } = votePercentages;
-  
+
   // 애니메이션을 위한 상태 관리
   const [isReady, setIsReady] = useState(false); // 컴포넌트가 마운트되었는지 확인
   const [startAnimate, setStartAnimate] = useState(false); // 실제 비율로 애니메이션 시작 여부
@@ -35,12 +36,12 @@ export default function AdvancedMatchCard({
   useEffect(() => {
     // 1. 먼저 컴포넌트가 마운트되었음을 알림 (50:50 상태로 렌더링 시작)
     setIsReady(true);
-    
+
     // 2. 브라우저가 50:50 상태를 완전히 그린 후(약 200ms) 실제 비율로 전환
     const timer = setTimeout(() => {
       setStartAnimate(true);
     }, 200);
-    
+
     return () => {
       clearTimeout(timer);
       setIsReady(false);
@@ -51,11 +52,11 @@ export default function AdvancedMatchCard({
   // 투수 정보가 없을 경우 기본값 처리
   const homePitcher = game.homePitcher || { name: '미정', era: '-', win: 0, loss: 0 };
   const awayPitcher = game.awayPitcher || { name: '미정', era: '-', win: 0, loss: 0 };
-  
+
   // 승리 확률이 없을 경우 투표 비율을 대안으로 사용하거나 50:50 표시
-  const winProb = game.winProbability || { 
-    home: totalVotes > 0 ? homePercentage : 50, 
-    away: totalVotes > 0 ? awayPercentage : 50 
+  const winProb = game.winProbability || {
+    home: totalVotes > 0 ? homePercentage : 50,
+    away: totalVotes > 0 ? awayPercentage : 50
   };
 
   // 애니메이션 적용된 비율 계산
@@ -64,7 +65,7 @@ export default function AdvancedMatchCard({
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-gray-800 transition-colors duration-200 mb-6">
-      
+
       {/* 1. AI Insight Header */}
       <div className="bg-gradient-to-r from-[#2d5f4f] to-[#1f4438] p-3 flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse flex-shrink-0" />
@@ -75,7 +76,7 @@ export default function AdvancedMatchCard({
 
       <div className="p-4 md:p-6">
         <div className="flex justify-between items-center md:items-end mb-6">
-          
+
           {/* Away Team & Pitcher */}
           <div className="flex flex-col items-center w-1/3">
             <div className="relative mb-1 md:mb-2">
@@ -111,7 +112,7 @@ export default function AdvancedMatchCard({
                 </span>
               </div>
             )}
-            
+
             {/* 승리 확률 Bar */}
             <div className="w-full max-w-[80px] md:max-w-[120px] space-y-1">
               <div className="flex justify-between text-[8px] md:text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tighter">
@@ -120,13 +121,13 @@ export default function AdvancedMatchCard({
                 <span>{Math.round(winProb.home)}%</span>
               </div>
               <div className="h-1 md:h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex">
-                <div 
-                  style={{ width: `${winProb.away}%`, backgroundColor: TEAM_COLORS[game.awayTeam] }} 
-                  className="h-full transition-all duration-500" 
+                <div
+                  style={{ width: `${winProb.away}%`, backgroundColor: TEAM_COLORS[game.awayTeam] }}
+                  className="h-full transition-all duration-500"
                 />
-                <div 
-                  style={{ width: `${winProb.home}%`, backgroundColor: TEAM_COLORS[game.homeTeam] }} 
-                  className="h-full transition-all duration-500" 
+                <div
+                  style={{ width: `${winProb.home}%`, backgroundColor: TEAM_COLORS[game.homeTeam] }}
+                  className="h-full transition-all duration-500"
                 />
               </div>
             </div>
@@ -134,8 +135,8 @@ export default function AdvancedMatchCard({
 
           {/* Home Team & Pitcher */}
           <div className="flex flex-col items-center w-1/3">
-             <div className="relative mb-1 md:mb-2">
-               <div className="flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 dark:bg-gray-800 dark:border-gray-700 shadow-sm transition-transform group-hover:scale-105">
+            <div className="relative mb-1 md:mb-2">
+              <div className="flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 dark:bg-gray-800 dark:border-gray-700 shadow-sm transition-transform group-hover:scale-105">
                 <TeamLogo team={game.homeTeam} size={36} className="md:w-12 md:h-12" />
               </div>
               <div className="absolute -bottom-1 -left-1 md:-bottom-2 md:-left-2 bg-white dark:bg-gray-700 text-[8px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm font-bold dark:text-gray-200">
@@ -153,7 +154,7 @@ export default function AdvancedMatchCard({
             <Button
               onClick={() => onVote('away')}
               className="flex-1 py-4 md:py-6 text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
-              style={{ 
+              style={{
                 backgroundColor: TEAM_COLORS[game.awayTeam],
                 fontWeight: 700,
                 opacity: userVote === 'away' ? 1 : userVote === 'home' ? 0.4 : 1,
@@ -170,7 +171,7 @@ export default function AdvancedMatchCard({
             <Button
               onClick={() => onVote('home')}
               className="flex-1 py-4 md:py-6 text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
-              style={{ 
+              style={{
                 backgroundColor: TEAM_COLORS[game.homeTeam],
                 fontWeight: 700,
                 opacity: userVote === 'home' ? 1 : userVote === 'away' ? 0.4 : 1,
@@ -199,12 +200,12 @@ export default function AdvancedMatchCard({
                 {totalVotes.toLocaleString()}명 참여
               </span>
             </div>
-            
+
             <div className="relative w-full h-8 md:h-10 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
               <div className="absolute inset-0 flex">
                 <div
                   className={`flex items-center justify-center text-white text-xs md:text-sm font-bold ${startAnimate ? 'transition-all duration-1000 ease-out' : ''}`}
-                  style={{ 
+                  style={{
                     width: `${animatedAwayPct}%`,
                     backgroundColor: TEAM_COLORS[game.awayTeam],
                     opacity: isPastGame && game.winner === 'away' ? 1 : isPastGame ? 0.5 : 1
@@ -214,7 +215,7 @@ export default function AdvancedMatchCard({
                 </div>
                 <div
                   className={`flex items-center justify-center text-white text-xs md:text-sm font-bold ${startAnimate ? 'transition-all duration-1000 ease-out' : ''}`}
-                  style={{ 
+                  style={{
                     width: `${animatedHomePct}%`,
                     backgroundColor: TEAM_COLORS[game.homeTeam],
                     opacity: isPastGame && game.winner === 'home' ? 1 : isPastGame ? 0.5 : 1
@@ -227,19 +228,28 @@ export default function AdvancedMatchCard({
 
             {/* 예측 성공 메시지 */}
             {isPastGame && userVote && game.winner && game.winner !== 'draw' && (
-              <div className={`mt-2 md:mt-3 text-center text-xs md:text-sm font-bold ${
-                userVote === game.winner 
-                  ? 'text-blue-600 dark:text-blue-400' 
-                  : 'text-gray-500 dark:text-gray-400'
-              }`}>
-                {userVote === game.winner 
-                  ? '🎉 예측 적중!' 
+              <div className={`mt-2 md:mt-3 text-center text-xs md:text-sm font-bold ${userVote === game.winner
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400'
+                }`}>
+                {userVote === game.winner
+                  ? '🎉 예측 적중!'
                   : '아쉽네요, 다음 기회에!'}
               </div>
             )}
           </div>
         )}
+
+        {/* Real-time Cheer Battle */}
+        {/* TODO: Change back to {isToday && ...} after testing */}
+        <div className="mt-6">
+          <CheerBattleBar
+            gameId={game.gameId}
+            homeTeam={game.homeTeam}
+            awayTeam={game.awayTeam}
+          />
+        </div>
       </div>
-    </Card>
+    </Card >
   );
 }
