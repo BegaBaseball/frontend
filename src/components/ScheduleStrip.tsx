@@ -34,7 +34,7 @@ export default function ScheduleStrip({ games }: ScheduleStripProps) {
                     {games.map((game) => (
                         <Card
                             key={game.gameId}
-                            className="w-[200px] shrink-0 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer border-0 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800"
+                            className="w-[160px] sm:w-[200px] shrink-0 p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer border-0 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800"
                         >
                             <div className="flex justify-between items-center mb-3">
                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded 

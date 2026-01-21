@@ -1,79 +1,48 @@
 // api/ranking.ts (기존 파일에 추가/업데이트)
+import api from './axios';
 import { SeasonResponse, SavedPredictionResponse, SaveRankingRequest } from '../types/ranking';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 /**
  * 현재 예측 가능한 시즌 조회
  */
 export const fetchCurrentSeason = async (): Promise<SeasonResponse> => {
-  const response = await fetch(`${API_BASE_URL}/predictions/ranking/current-season`, {
-    credentials: 'include'
-  });
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('UNAUTHORIZED');
-    }
-    const errorData = await response.json();
-    throw new Error(errorData.error || '시즌 정보를 불러올 수 없습니다.');
-  }
-
-  return await response.json();
+  const response = await api.get('/predictions/ranking/current-season');
+  return response.data;
 };
 
 /**
  * 저장된 순위 예측 조회
+ * @returns 저장된 예측이 없으면 null 반환
  */
-export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPredictionResponse> => {
-  const response = await fetch(
-    `${API_BASE_URL}/predictions/ranking?seasonYear=${seasonYear}`, 
-    { credentials: 'include' }
-  );
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('UNAUTHORIZED');
+export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPredictionResponse | null> => {
+  try {
+    const response = await api.get(`/predictions/ranking`, {
+      params: { seasonYear }
+    });
+    return response.data;
+  } catch (error: any) {
+    // 404: 저장된 예측이 없음 - 정상적인 상태이므로 null 반환
+    if (error.response?.status === 404) {
+      return null;
     }
-    throw new Error('저장된 예측을 불러올 수 없습니다.');
+    throw error;
   }
-
-  return await response.json();
 };
 
 /**
  * 순위 예측 저장
  */
 export const saveRankingPrediction = async (data: SaveRankingRequest): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/predictions/ranking`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(data)
-  });
-
-  if (!response.ok) {
-    if (response.status === 409) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || '이미 예측을 저장하셨습니다.');
-    }
-    throw new Error('저장에 실패했습니다.');
-  }
+  await api.post('/predictions/ranking', data);
 };
 
 /**
  * 공유된 순위 예측 조회
  */
 export const fetchSharedPrediction = async (
-  userId: string, 
+  userId: string,
   seasonYear: string
 ): Promise<SavedPredictionResponse> => {
-  const response = await fetch(
-    `${API_BASE_URL}/predictions/ranking/share/${userId}/${seasonYear}`
-  );
-
-  if (!response.ok) {
-    throw new Error('예측을 찾을 수 없습니다.');
-  }
-
-  return await response.json();
+  const response = await api.get(`/predictions/ranking/share/${userId}/${seasonYear}`);
+  return response.data;
 };

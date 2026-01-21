@@ -26,7 +26,23 @@ export const useCheerWrite = (favoriteTeam: string | null) => {
     };
 
     const addFiles = (files: File[]) => {
-        const validFiles = files.filter(file => file.type.startsWith('image/'));
+        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+        const validFiles: File[] = [];
+        let skippedCount = 0;
+
+        files.forEach(file => {
+            if (!file.type.startsWith('image/')) return;
+            if (file.size > MAX_SIZE) {
+                skippedCount++;
+                return;
+            }
+            validFiles.push(file);
+        });
+
+        if (skippedCount > 0) {
+            alert(`이미지 크기는 5MB 이하여야 합니다. (${skippedCount}개 파일 제외됨)`);
+        }
+
         const combinedFiles = [...newFiles, ...validFiles].slice(0, 10);
 
         setNewFiles(combinedFiles);

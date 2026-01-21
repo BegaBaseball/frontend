@@ -13,6 +13,7 @@ interface CommentItemProps {
   canInteract: boolean; // For replies
   canLike: boolean; // For likes
   repliesEnabled?: boolean;
+  repliesComingSoon?: boolean; // Show 'Coming Soon' badge on reply button
   activeReplyId: number | null;
   replyDraft: string;
   isReplyPending: boolean;
@@ -33,6 +34,7 @@ function CommentItemComponent({
   canInteract,
   canLike,
   repliesEnabled = true,
+  repliesComingSoon = false,
   activeReplyId,
   replyDraft,
   isReplyPending,
@@ -125,11 +127,19 @@ function CommentItemComponent({
             </button>
             {showReplyAction && (
               <button
-                onClick={() => onReplyToggle(comment.id)}
-                disabled={!canInteract}
-                className="flex items-center gap-1 transition-colors hover:text-gray-700 dark:hover:text-gray-300 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600"
+                onClick={() => !repliesComingSoon && onReplyToggle(comment.id)}
+                disabled={!canInteract || repliesComingSoon}
+                className={`flex items-center gap-1.5 transition-colors ${repliesComingSoon
+                    ? 'cursor-not-allowed text-gray-400 dark:text-gray-600'
+                    : 'hover:text-gray-700 dark:hover:text-gray-300 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600'
+                  }`}
               >
                 답글 달기
+                {repliesComingSoon && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                    준비 중
+                  </span>
+                )}
               </button>
             )}
           </div>

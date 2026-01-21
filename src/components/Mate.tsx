@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'; 
+import { useState, useEffect } from 'react';
+import { OptimizedImage } from './common/OptimizedImage';
 import { useNavigate } from 'react-router-dom';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Plus, Users, MapPin, Calendar, Shield, Star, Search, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';  
+import { Plus, Users, MapPin, Calendar, Shield, Star, Search, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { Input } from './ui/input';
@@ -13,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ChatBot from './ChatBot';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
-import { mapBackendPartyToFrontend } from '../utils/mate';  
+import { mapBackendPartyToFrontend } from '../utils/mate';
 import { Party } from '../types/mate';
 
 
@@ -89,11 +90,11 @@ export default function Mate() {
 
     // 검색 필터
     if (!searchQuery.trim()) return true;
-    
+
     const query = searchQuery.toLowerCase();
     const homeTeamName = teamIdToName[party.homeTeam] || party.homeTeam;
     const awayTeamName = teamIdToName[party.awayTeam] || party.awayTeam;
-    
+
     return (
       party.stadium.toLowerCase().includes(query) ||
       homeTeamName.toLowerCase().includes(query) ||
@@ -109,15 +110,15 @@ export default function Mate() {
 
   const renderPartyCard = (party: Party) => {
     const isMyParty = currentUser && party.hostName === currentUser.name;
-    
-    let profileImageUrl = isMyParty 
-      ? currentUser.profileImageUrl 
+
+    let profileImageUrl = isMyParty
+      ? currentUser.profileImageUrl
       : party.hostProfileImageUrl;
-    
+
     if (profileImageUrl?.startsWith('blob:')) {
-      profileImageUrl = null;
+      profileImageUrl = undefined;
     }
-    
+
     return (
       <Card
         key={party.id}
@@ -209,7 +210,7 @@ export default function Mate() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <img
+      <OptimizedImage
         src={grassDecor}
         alt=""
         className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30 dark:opacity-10"
@@ -224,7 +225,7 @@ export default function Mate() {
             <p className="text-gray-600 dark:text-gray-400">함께 야구를 즐길 메이트를 찾아보세요</p>
           </div>
           <Button
-            onClick={() => navigate('/mate/create')} 
+            onClick={() => navigate('/mate/create')}
             className="rounded-full px-6"
             style={{ backgroundColor: '#2d5f4f' }}
           >

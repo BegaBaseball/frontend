@@ -4,6 +4,8 @@ import { ChevronLeft, Search, TrendingUp } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { useNavigate } from 'react-router-dom';
 import { Input } from "./ui/input";
+import { useIsMobile } from '../hooks/use-mobile';
+import { Card } from './ui/card';
 import {
     Table,
     TableBody,
@@ -45,6 +47,7 @@ const formatRemarks = (text: string) => {
 
 export default function OffSeasonList() {
     const navigate = useNavigate();
+    const isMobile = useIsMobile();
     const [movements, setMovements] = useState<OffseasonMovement[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -144,61 +147,107 @@ export default function OffSeasonList() {
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader className="bg-gray-50 dark:bg-gray-800">
-                            <TableRow>
-                                <TableHead className="w-[120px] text-center font-bold text-gray-700 dark:text-gray-300">날짜</TableHead>
-                                <TableHead className="w-[100px] text-center font-bold text-gray-700 dark:text-gray-300">구분</TableHead>
-                                <TableHead className="w-[140px] text-center font-bold text-gray-700 dark:text-gray-300">구단</TableHead>
-                                <TableHead className="w-[120px] text-center font-bold text-gray-700 dark:text-gray-300">선수</TableHead>
-                                <TableHead className="font-bold text-gray-700 dark:text-gray-300">내용</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
+            {/* Mobile: Card Layout / Desktop: Table */}
+            {isMobile ? (
+                <div className="px-4 space-y-3">
+                    {isLoading ? (
+                        <div className="space-y-3">
+                            {[1, 2, 3].map((i) => (
+                                <Card key={i} className="p-4 animate-pulse">
+                                    <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+                                    <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                                    <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : filteredList.length === 0 ? (
+                        <div className="py-16 text-center text-gray-400">
+                            검색 결과가 없습니다.
+                        </div>
+                    ) : (
+                        filteredList.map((item) => (
+                            <Card
+                                key={item.id}
+                                className={`p-4 ${item.bigEvent ? 'border-l-4 border-l-[#2d5f4f] bg-emerald-50/30 dark:bg-emerald-900/10' : 'bg-white dark:bg-gray-900'}`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <Badge variant="outline" className={`text-xs ${item.bigEvent ? 'bg-[#2d5f4f] text-white border-[#2d5f4f]' : ''}`}>
+                                        {item.section}
+                                    </Badge>
+                                    <span className="text-xs text-gray-400">{item.date}</span>
+                                </div>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <TeamLogo team={getTeamName(item.team)} size={28} />
+                                    <div>
+                                        <p className={`font-bold ${item.bigEvent ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-900 dark:text-white'}`}>
+                                            {item.player}
+                                        </p>
+                                        <p className="text-xs text-gray-500">{getTeamName(item.team)}</p>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                    {formatRemarks(item.remarks)}
+                                </p>
+                            </Card>
+                        ))
+                    )}
+                </div>
+            ) : (
+                <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader className="bg-gray-50 dark:bg-gray-800">
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-32 text-center text-gray-400">
-                                        데이터를 불러오는 중입니다...
-                                    </TableCell>
+                                    <TableHead className="w-[120px] text-center font-bold text-gray-700 dark:text-gray-300">날짜</TableHead>
+                                    <TableHead className="w-[100px] text-center font-bold text-gray-700 dark:text-gray-300">구분</TableHead>
+                                    <TableHead className="w-[140px] text-center font-bold text-gray-700 dark:text-gray-300">구단</TableHead>
+                                    <TableHead className="w-[120px] text-center font-bold text-gray-700 dark:text-gray-300">선수</TableHead>
+                                    <TableHead className="font-bold text-gray-700 dark:text-gray-300">내용</TableHead>
                                 </TableRow>
-                            ) : filteredList.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-32 text-center text-gray-400">
-                                        검색 결과가 없습니다.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredList.map((item) => (
-                                    <TableRow
-                                        key={item.id}
-                                        className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${item.bigEvent ? 'border-l-4 border-l-[#2d5f4f] bg-emerald-50/30 dark:bg-emerald-900/5' : ''}`}
-                                    >
-                                        <TableCell className="text-center text-sm text-gray-500">{item.date}</TableCell>
-                                        <TableCell className="text-center">
-                                            <Badge variant="outline" className={`whitespace-nowrap ${item.bigEvent ? 'bg-[#2d5f4f] text-white border-[#2d5f4f]' : 'bg-white dark:bg-gray-700'}`}>
-                                                {item.section}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <TeamLogo team={getTeamName(item.team)} size={24} />
-                                                <span className="font-bold text-sm hidden md:inline">{getTeamName(item.team)}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className={`text-center font-bold text-base ${item.bigEvent ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-900 dark:text-gray-100'}`}>{item.player}</TableCell>
-                                        <TableCell className="text-sm md:text-base text-gray-700 dark:text-gray-300">
-                                            {formatRemarks(item.remarks)}
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="h-32 text-center text-gray-400">
+                                            데이터를 불러오는 중입니다...
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                ) : filteredList.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="h-32 text-center text-gray-400">
+                                            검색 결과가 없습니다.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredList.map((item) => (
+                                        <TableRow
+                                            key={item.id}
+                                            className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${item.bigEvent ? 'border-l-4 border-l-[#2d5f4f] bg-emerald-50/30 dark:bg-emerald-900/5' : ''}`}
+                                        >
+                                            <TableCell className="text-center text-sm text-gray-500">{item.date}</TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant="outline" className={`whitespace-nowrap ${item.bigEvent ? 'bg-[#2d5f4f] text-white border-[#2d5f4f]' : 'bg-white dark:bg-gray-700'}`}>
+                                                    {item.section}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <TeamLogo team={getTeamName(item.team)} size={24} />
+                                                    <span className="font-bold text-sm hidden md:inline">{getTeamName(item.team)}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className={`text-center font-bold text-base ${item.bigEvent ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-900 dark:text-gray-100'}`}>{item.player}</TableCell>
+                                            <TableCell className="text-sm md:text-base text-gray-700 dark:text-gray-300">
+                                                {formatRemarks(item.remarks)}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

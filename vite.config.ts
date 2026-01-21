@@ -83,6 +83,7 @@ export default defineConfig(({ mode }) => {
     build: {
       target: 'esnext',
       outDir: 'dist',
+      chunkSizeWarningLimit: 1000, // Suppress chunk size warnings (default: 500kB)
     },
 
     server: {

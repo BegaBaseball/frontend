@@ -241,6 +241,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             type="button"
                             className="group/comment flex items-center gap-1.5 rounded-full transition-colors hover:text-sky-500"
                             onClick={handleCommentClick}
+                            aria-label={`댓글 ${post.comments}개`}
                         >
                             <span className="relative rounded-full p-2 transition-colors group-hover/comment:bg-sky-50 dark:group-hover/comment:bg-sky-500/20">
                                 {commentAnimating && (
@@ -258,6 +259,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             type="button"
                             className="group/repost flex items-center gap-1.5 rounded-full transition-colors hover:text-emerald-500"
                             onClick={handleRepostClick}
+                            aria-label={`리포스트 ${repostCount}회`}
                         >
                             <span className="relative rounded-full p-2 transition-colors group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20">
                                 {repostAnimating && (
@@ -276,6 +278,8 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             className={`group/like flex items-center gap-1.5 rounded-full transition-colors ${post.likedByUser ? 'text-rose-500' : 'hover:text-rose-500'
                                 }`}
                             onClick={handleLikeClick}
+                            aria-label={post.likedByUser ? `좋아요 취소 (현재 ${post.likes}개)` : `좋아요 (현재 ${post.likes}개)`}
+                            aria-pressed={post.likedByUser}
                         >
                             <span
                                 className={`relative rounded-full p-2 transition-all duration-200 ${post.likedByUser ? 'bg-rose-50 dark:bg-rose-500/20' : 'group-hover/like:bg-rose-50 dark:group-hover/like:bg-rose-500/20'

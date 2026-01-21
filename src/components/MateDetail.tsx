@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -24,16 +25,16 @@ import ChatBot from './ChatBot';
 import TeamLogo from './TeamLogo';
 import { api } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
-import { DEPOSIT_AMOUNT } from '../utils/constants'; 
+import { DEPOSIT_AMOUNT } from '../utils/constants';
 
 export default function MateDetail() {
-  const navigate = useNavigate();  
-  const { id } = useParams<{ id: string }>();  
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const selectedParty = useMateStore((state) => state.selectedParty);
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
   const updateParty = useMateStore((state) => state.updateParty);
 
-  
+
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [myApplication, setMyApplication] = useState<any>(null);
@@ -41,33 +42,33 @@ export default function MateDetail() {
   const [isCancelling, setIsCancelling] = useState(false);
 
   // localStorage에서 파티 정보 복원
-useEffect(() => {
-  if (!selectedParty) {
-    const savedParty = localStorage.getItem('selectedParty');
-    if (savedParty) {
-      try {
-        const party = JSON.parse(savedParty);
-        setSelectedParty(party);
-      } catch (error) {
-        console.error('파티 정보 복원 실패:', error);
-        localStorage.removeItem('selectedParty');
+  useEffect(() => {
+    if (!selectedParty) {
+      const savedParty = localStorage.getItem('selectedParty');
+      if (savedParty) {
+        try {
+          const party = JSON.parse(savedParty);
+          setSelectedParty(party);
+        } catch (error) {
+          console.error('파티 정보 복원 실패:', error);
+          localStorage.removeItem('selectedParty');
+        }
       }
     }
-  }
-}, [selectedParty, setSelectedParty]);
+  }, [selectedParty, setSelectedParty]);
 
-// selectedParty가 변경될 때 localStorage에 저장
-useEffect(() => {
-  if (selectedParty) {
-    localStorage.setItem('selectedParty', JSON.stringify(selectedParty));
-  }
-}, [selectedParty]);
+  // selectedParty가 변경될 때 localStorage에 저장
+  useEffect(() => {
+    if (selectedParty) {
+      localStorage.setItem('selectedParty', JSON.stringify(selectedParty));
+    }
+  }, [selectedParty]);
 
- // 사용자 정보 가져오기
+  // 사용자 정보 가져오기
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const userData = await api.getCurrentUser();  
+        const userData = await api.getCurrentUser();
         const userId = await api.getUserIdByEmail(userData.data.email);  // 변경
         setCurrentUserId(userId.data || userId);
       } catch (error) {
@@ -87,7 +88,7 @@ useEffect(() => {
     const fetchMyApplication = async () => {
       try {
         const applicationsData = await api.getApplicationsByApplicant(currentUserId);  // 변경
-        const myApp = applicationsData.find((app: any) => 
+        const myApp = applicationsData.find((app: any) =>
           String(app.partyId) === String(selectedParty.id)
         );
         setMyApplication(myApp);
@@ -108,7 +109,7 @@ useEffect(() => {
 
     const fetchApplications = async () => {
       try {
-        const data = await api.getApplicationsByParty(selectedParty.id);  
+        const data = await api.getApplicationsByParty(selectedParty.id);
         setApplications(data);
       } catch (error) {
         console.error('신청 목록 가져오기 실패:', error);
@@ -120,21 +121,22 @@ useEffect(() => {
 
   const isGameTomorrow = () => {
     if (!selectedParty) return false;
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const gameDate = new Date(selectedParty.gameDate);
     gameDate.setHours(0, 0, 0, 0);
-    
+
     const daysDiff = Math.floor((gameDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     // 경기가 오늘이거나 내일이면 true (취소 불가)
     return daysDiff < 1;
   };
 
   // 취소 가능 여부 체크
   const canCancel = () => {
+    if (!selectedParty) return false;
     if (!myApplication) return false;
     if (myApplication.isRejected) return false;
     if (selectedParty.status === 'CHECKED_IN' || selectedParty.status === 'COMPLETED') {
@@ -148,13 +150,13 @@ useEffect(() => {
 
   // 신청 취소 핸들러
   const handleCancelApplication = async () => {
-    if (!myApplication || !currentUserId) return;
+    if (!selectedParty || !myApplication || !currentUserId) return;
 
     const isApproved = myApplication.isApproved;
-    
+
     let confirmMessage = '';
     if (isApproved) {
-      confirmMessage = 
+      confirmMessage =
         '참여를 취소하시겠습니까?\n\n' +
         '⚠️ 승인 후 취소 시:\n' +
         '- 보증금 10,000원은 환불되지 않습니다\n' +
@@ -172,20 +174,20 @@ useEffect(() => {
 
     try {
       await api.cancelApplication(myApplication.id, currentUserId);
-      
+
       if (isApproved) {
         alert('참여가 취소되었습니다.\n티켓 가격만 환불되며, 보증금은 환불되지 않습니다.');
       } else {
         alert('신청이 취소되었습니다.\n결제 금액이 전액 환불됩니다.');
       }
-      
+
       // 내 신청 정보 초기화
       setMyApplication(null);
-      
+
       // 파티 정보 다시 불러오기
       const updatedParty = await api.getPartyById(selectedParty.id);
       setSelectedParty(updatedParty);
-      
+
     } catch (error: any) {
       console.error('신청 취소 중 오류:', error);
       const errorMessage = error.response?.data?.message || '신청 취소 중 오류가 발생했습니다.';
@@ -281,7 +283,7 @@ useEffect(() => {
   };
 
   const handleApply = () => {
-    navigate(`/mate/${id}/apply`);  
+    navigate(`/mate/${id}/apply`);
   };
 
   const handleConvertToSale = () => {
@@ -292,37 +294,37 @@ useEffect(() => {
   };
 
   const handleCheckIn = () => {
-    navigate(`/mate/${id}/checkin`);  
+    navigate(`/mate/${id}/checkin`);
   };
 
   const handleManageParty = () => {
-    navigate(`/mate/${id}/manage`); 
+    navigate(`/mate/${id}/manage`);
   };
 
   const handleOpenChat = () => {
-    navigate(`/mate/${id}/chat`);  
+    navigate(`/mate/${id}/chat`);
   };
 
   return (
-  <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <img
-      src={grassDecor}
-      alt=""
-      className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
-    />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <OptimizedImage
+        src={grassDecor}
+        alt=""
+        className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+      />
 
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-      <Button
-        variant="ghost"
-        onClick={() => {
-          localStorage.removeItem('selectedParty'); 
-          navigate('/mate');  
-        }}
-        className="mb-4"
-      >
-        <ChevronLeft className="w-4 h-4 mr-2" />
-        목록으로
-      </Button>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            localStorage.removeItem('selectedParty');
+            navigate('/mate');
+          }}
+          className="mb-4"
+        >
+          <ChevronLeft className="w-4 h-4 mr-2" />
+          목록으로
+        </Button>
 
         <Card className="p-8">
           {/* Header */}
@@ -445,43 +447,43 @@ useEffect(() => {
           </div>
 
           {/* Price Info */}
-            <div className="mb-6">
-              {selectedParty.status === 'SELLING' && selectedParty.price ? (
-                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <span className="text-orange-700">티켓 판매가</span>
-                    <span className="text-orange-900" style={{ fontWeight: 'bold' }}>
-                      {selectedParty.price.toLocaleString()}원
+          <div className="mb-6">
+            {selectedParty.status === 'SELLING' && selectedParty.price ? (
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-orange-700">티켓 판매가</span>
+                  <span className="text-orange-900" style={{ fontWeight: 'bold' }}>
+                    {selectedParty.price.toLocaleString()}원
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-blue-700">티켓 가격</span>
+                    <span className="text-blue-900">
+                      {(selectedParty.ticketPrice || 0).toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-blue-700">보증금</span>
+                    <span className="text-blue-900">10,000원</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between">
+                    <span className="text-blue-700" style={{ fontWeight: 'bold' }}>총 결제 금액</span>
+                    <span className="text-lg text-blue-900" style={{ fontWeight: 'bold' }}>
+                      {((selectedParty.ticketPrice || 0) + 10000).toLocaleString()}원
                     </span>
                   </div>
                 </div>
-              ) : (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-blue-700">티켓 가격</span>
-                      <span className="text-blue-900">
-                        {(selectedParty.ticketPrice || 0).toLocaleString()}원
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-blue-700">보증금</span>
-                      <span className="text-blue-900">10,000원</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between">
-                      <span className="text-blue-700" style={{ fontWeight: 'bold' }}>총 결제 금액</span>
-                      <span className="text-lg text-blue-900" style={{ fontWeight: 'bold' }}>
-                        {((selectedParty.ticketPrice || 0) + 10000).toLocaleString()}원
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-blue-600 mt-3">
-                    티켓 가격은 경기 1일 후 자정에 호스트에게 정산됩니다 (수수료 10%)
-                  </p>
-                </div>
-              )}
-            </div>
+                <p className="text-xs text-blue-600 mt-3">
+                  티켓 가격은 경기 1일 후 자정에 호스트에게 정산됩니다 (수수료 10%)
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Warnings */}
           {selectedParty.status === 'MATCHED' && (
@@ -550,7 +552,7 @@ useEffect(() => {
                       <MessageSquare className="w-5 h-5 mr-2" />
                       채팅방 입장
                     </Button>
-                    
+
                     {canCancel() && (
                       <>
                         <Alert className="border-yellow-200 bg-yellow-50">

@@ -299,7 +299,8 @@ export async function uploadPostImages(postId: number, files: File[]): Promise<s
         headers: {
             'Content-Type': 'multipart/form-data',
         },
-    });
+        skipGlobalErrorHandler: true, // 직접 에러 처리 (글 작성 실패 메시지 커스텀)
+    } as any);
     return response.data; // 업로드된 이미지 URL 목록 반환
 }
 

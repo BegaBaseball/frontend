@@ -5,6 +5,7 @@ import { RotateCcw, Award, X, GripVertical } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
+import { OptimizedImage } from './common/OptimizedImage';
 import firstPlaceImage from '../assets/f552d9266ac817e0c86b657dead0069395c6da11.png';
 import { useRankingPrediction } from '../hooks/useRankingPrediction';
 import { useDrag, useDrop } from 'react-dnd';
@@ -58,8 +59,8 @@ export default function RankingPrediction() {
   if (isAuthLoading || isLoading) {
     return (
       <div className="text-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" 
-             style={{ borderColor: '#2d5f4f' }}></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4"
+          style={{ borderColor: '#2d5f4f' }}></div>
         <p className="text-gray-600">
           {isAuthLoading ? '로그인 확인 중...' : '불러오는 중...'}
         </p>
@@ -105,7 +106,7 @@ export default function RankingPrediction() {
         const dragIndex = item.index;
         const hoverIndex = index;
         if (dragIndex === hoverIndex) return;
-        
+
         moveTeam(dragIndex, hoverIndex);
         item.index = hoverIndex;
       },
@@ -132,15 +133,13 @@ export default function RankingPrediction() {
 
         <div
           ref={ref}
-          className={`border-2 rounded-xl p-3 transition-all duration-200 ${
-            team 
-              ? `border-transparent shadow-sm ${!alreadySaved && 'cursor-move hover:scale-[1.01] hover:shadow-md'} ${
-                  isPostSeasonZone 
-                    ? 'bg-white dark:bg-gray-800' 
-                    : 'bg-gray-50/80 dark:bg-gray-800/60'
-                }` 
-              : 'border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30'
-          } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'}`}
+          className={`border-2 rounded-xl p-3 transition-all duration-200 ${team
+            ? `border-transparent shadow-sm ${!alreadySaved && 'cursor-move hover:scale-[1.01] hover:shadow-md'} ${isPostSeasonZone
+              ? 'bg-white dark:bg-gray-800'
+              : 'bg-gray-50/80 dark:bg-gray-800/60'
+            }`
+            : 'border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30'
+            } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'}`}
         >
           <div className="flex items-center gap-3">
             <div
@@ -236,7 +235,7 @@ export default function RankingPrediction() {
           {alreadySaved && (
             <div className="mb-4 px-6 py-8 rounded-lg bg-green-50 dark:bg-green-900/20 text-[#2d5f4f] dark:text-green-400">
               <p className="text-base font-bold text-center">
-                저장된 예측입니다 
+                저장된 예측입니다
               </p>
             </div>
           )}
@@ -256,9 +255,8 @@ export default function RankingPrediction() {
                     key={team.id}
                     onClick={() => handleTeamClick(team)}
                     disabled={alreadySaved}
-                    className={`w-full p-2 transition-colors text-left ${
-                      !alreadySaved && 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                    } ${alreadySaved && 'opacity-50 cursor-not-allowed'}`}
+                    className={`w-full p-2 transition-colors text-left ${!alreadySaved && 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                      } ${alreadySaved && 'opacity-50 cursor-not-allowed'}`}
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 border border-gray-100 flex-shrink-0">
@@ -272,21 +270,21 @@ export default function RankingPrediction() {
             ) : (
               <div className="text-center py-8 px-4 text-gray-400">
                 <div className="mb-4 mx-auto" style={{ width: '60px' }}>
-                  <img src={firstPlaceImage} alt="First Place" className="w-full h-auto object-contain" />
+                  <OptimizedImage src={firstPlaceImage} alt="First Place" className="w-full h-auto object-contain" />
                 </div>
-                
+
                 <p className="mb-4" style={{ color: '#2d5f4f', fontWeight: 900, fontSize: '1.5rem' }}>
                   1위
                 </p>
-                
+
                 {rankings[0] && (
                   <div className="mb-6 flex justify-center">
                     <TeamLogo team={rankings[0].shortName} size={140} />
                   </div>
                 )}
-                
+
                 <p className="text-sm mb-4">모든 팀이 배치되었습니다!</p>
-                
+
                 {!isPredictionSaved && !alreadySaved ? (
                   <Button
                     onClick={handleCompletePrediction}

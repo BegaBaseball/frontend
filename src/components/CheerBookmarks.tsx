@@ -33,7 +33,7 @@ export default function CheerBookmarks() {
   return (
     <div className="min-h-screen bg-[#f7f9f9] dark:bg-[#0E1117]">
       <div className="mx-auto w-full max-w-[1200px] px-6 py-8">
-        <div className="grid grid-cols-1 gap-0 lg:grid-cols-[72px_600px_320px] xl:grid-cols-[200px_600px_320px]">
+        <div className="grid grid-cols-1 gap-0 lg:grid-cols-[72px_1fr_320px] xl:grid-cols-[200px_1fr_320px]">
           <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -57,16 +57,39 @@ export default function CheerBookmarks() {
             })}
           </aside>
 
-          <main className="flex w-full flex-col gap-0 bg-white dark:bg-[#151A23] border-x border-[#EFF3F4] dark:border-[#232938] lg:w-[600px]">
+          <main className="flex w-full flex-col gap-0 bg-white dark:bg-[#151A23] border-x border-[#EFF3F4] dark:border-[#232938] lg:max-w-[600px]">
             <div className="border-b border-[#EFF3F4] dark:border-[#232938] px-4 py-4">
               <h1 className="text-lg font-bold text-[#0F172A] dark:text-white">북마크</h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">저장해둔 게시글을 모아볼 수 있어요.</p>
             </div>
 
             {isLoading ? (
-              <div className="px-4 py-6 space-y-3">
+              <div className="divide-y divide-[#EFF3F4] dark:divide-[#232938]">
                 {[1, 2, 3].map((item) => (
-                  <div key={item} className="h-24 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                  <div key={item} className="px-4 py-4 animate-pulse">
+                    {/* Header: Avatar + Author info */}
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="h-4 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+                          <div className="h-3 w-12 rounded bg-slate-100 dark:bg-slate-800" />
+                        </div>
+                        {/* Content lines */}
+                        <div className="mt-3 space-y-2">
+                          <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-700" />
+                          <div className="h-4 w-4/5 rounded bg-slate-200 dark:bg-slate-700" />
+                          <div className="h-4 w-2/3 rounded bg-slate-100 dark:bg-slate-800" />
+                        </div>
+                        {/* Action buttons */}
+                        <div className="mt-4 flex items-center gap-6">
+                          <div className="h-4 w-10 rounded bg-slate-100 dark:bg-slate-800" />
+                          <div className="h-4 w-10 rounded bg-slate-100 dark:bg-slate-800" />
+                          <div className="h-4 w-10 rounded bg-slate-100 dark:bg-slate-800" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : isError ? (
@@ -103,6 +126,37 @@ export default function CheerBookmarks() {
           </aside>
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#151A23] border-t border-[#EFF3F4] dark:border-[#232938] z-40 safe-area-bottom">
+        <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
+          {[
+            { id: 'home', label: '홈', icon: Home, path: '/home' },
+            { id: 'team', label: '팀허브', icon: Users, path: '/cheer' },
+            { id: 'live', label: '라이브', icon: Radio, path: '/prediction' },
+            { id: 'profile', label: '프로필', icon: UserRound, path: '/mypage' },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path || (item.id === 'team' && location.pathname.startsWith('/cheer'));
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => navigate(item.path)}
+                className={cn(
+                  'flex flex-col items-center justify-center gap-0.5 w-16 h-full transition-colors',
+                  isActive
+                    ? 'text-[#2d5f4f] dark:text-[#4ade80]'
+                    : 'text-gray-400 dark:text-gray-500'
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

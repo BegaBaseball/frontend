@@ -1,4 +1,5 @@
 import begaCharacter from '../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
+import { OptimizedImage } from './common/OptimizedImage';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Button } from './ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -117,7 +118,7 @@ export default function Landing() {
 
                 <div className="relative overflow-hidden bg-black rounded-lg aspect-[16/10]">
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#2d5f4f] to-[#3d7f5f]">
-                    <img src={begaCharacter} alt="BEGA Character" className="w-16 h-16 sm:w-24 sm:h-24 object-contain" />
+                    <OptimizedImage src={begaCharacter} alt="BEGA Character" className="w-16 h-16 sm:w-24 sm:h-24 object-contain" priority={true} />
                     <div className="text-center">
                       <h1 className="text-white text-2xl sm:text-4xl font-black tracking-wider mb-1">
                         BEGA

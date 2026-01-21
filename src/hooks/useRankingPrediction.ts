@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { usePredictionStore, Team } from '../store/predictionStore';
-import { 
-  fetchCurrentSeason, 
-  fetchSavedPrediction, 
-  saveRankingPrediction 
+import {
+  fetchCurrentSeason,
+  fetchSavedPrediction,
+  saveRankingPrediction
 } from '../api/ranking';
-import { 
-  restoreTeamsFromIds, 
+import {
+  restoreTeamsFromIds,
   isRankingComplete,
   extractTeamIds,
   generateRankingText,
@@ -37,7 +37,7 @@ export const useRankingPrediction = () => {
   const availableTeams = usePredictionStore((state) => state.availableTeams);
   const isPredictionSaved = usePredictionStore((state) => state.isPredictionSaved);
   const allTeams = usePredictionStore((state) => state.allTeams);
-  
+
   const addTeamToRanking = usePredictionStore((state) => state.addTeamToRanking);
   const removeTeamFromRanking = usePredictionStore((state) => state.removeTeamFromRanking);
   const moveTeam = usePredictionStore((state) => state.moveTeam);
@@ -67,30 +67,29 @@ export const useRankingPrediction = () => {
 
   const initializePage = async () => {
     setIsLoading(true);
-    
+
     try {
       // 1. 현재 시즌 조회
       const seasonData = await fetchCurrentSeason();
       setCurrentSeason(seasonData.seasonYear);
       setIsPredictionPeriod(true);
 
-      // 2. 저장된 예측 조회
-      try {
-        const savedPrediction = await fetchSavedPrediction(seasonData.seasonYear);
+      // 2. 저장된 예측 조회 (없으면 null 반환)
+      const savedPrediction = await fetchSavedPrediction(seasonData.seasonYear);
+
+      if (savedPrediction) {
         setAlreadySaved(true);
-        
+
         // 저장된 예측 복원
         const restoredRankings = restoreTeamsFromIds(savedPrediction.teamIdsInOrder, allTeams);
         if (setRankings) {
           setRankings(restoredRankings);
         }
-        
+
         toast.info(`${seasonData.seasonYear} 시즌 순위 예측을 불러왔습니다.`);
-      } catch (error: any) {
+      } else {
         // 저장된 예측이 없으면 초기화
-        if (error.message !== 'UNAUTHORIZED') {
-          resetRankings();
-        }
+        resetRankings();
       }
 
     } catch (error: any) {
@@ -152,7 +151,7 @@ export const useRankingPrediction = () => {
 
     try {
       const teamIds = extractTeamIds(rankings);
-      
+
       await saveRankingPrediction({
         seasonYear: currentSeason,
         teamIdsInOrder: teamIds
@@ -238,20 +237,20 @@ export const useRankingPrediction = () => {
     isAuthLoading,
     isLoggedIn,
     userId,
-    
+
     // Store state
     rankings,
     availableTeams,
     isPredictionSaved,
     allTeams,
-    
+
     // Store actions
     moveTeam,
     resetRankings,
-    
+
     // Computed
     isComplete,
-    
+
     // Handlers
     handleTeamClick,
     handleRemoveTeam,

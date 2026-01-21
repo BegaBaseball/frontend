@@ -40,9 +40,31 @@ export default function CheerWriteModal({
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
-            const selectedFiles = Array.from(event.target.files).filter(f => f.type.startsWith('image/'));
-            const combinedFiles = [...files, ...selectedFiles].slice(0, 10);
-            const newPreviews = selectedFiles.map(file => ({
+            const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+            const incomingFiles = Array.from(event.target.files).filter(f => f.type.startsWith('image/'));
+
+            const validFiles: File[] = [];
+            let skippedCount = 0;
+
+            incomingFiles.forEach(file => {
+                if (file.size > MAX_SIZE) {
+                    skippedCount++;
+                } else {
+                    validFiles.push(file);
+                }
+            });
+
+            if (skippedCount > 0) {
+                alert(`이미지 크기는 5MB 이하여야 합니다. (${skippedCount}개 파일 제외됨)`);
+            }
+
+            if (validFiles.length === 0) {
+                event.target.value = '';
+                return;
+            }
+
+            const combinedFiles = [...files, ...validFiles].slice(0, 10);
+            const newPreviews = validFiles.map(file => ({
                 file,
                 url: URL.createObjectURL(file)
             }));
@@ -79,7 +101,7 @@ export default function CheerWriteModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none bg-white dark:bg-[#151A23]">
+            <DialogContent className="w-full h-full max-w-none max-h-none sm:w-auto sm:h-auto sm:max-w-[600px] sm:max-h-[90vh] p-0 overflow-hidden border-none rounded-none sm:rounded-lg bg-white dark:bg-[#151A23] fixed inset-0 sm:inset-auto">
                 <DialogHeader className="px-4 py-3 border-b border-[#EFF3F4] dark:border-[#232938] flex flex-row items-center justify-between">
                     <DialogTitle className="text-lg font-bold">새 응원글 작성</DialogTitle>
                 </DialogHeader>

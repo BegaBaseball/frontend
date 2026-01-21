@@ -113,13 +113,7 @@
 }
 
 .mobile-menu-popup {
-  width: 380px;
-}
-
-@media (max-width: 420px) {
-  .mobile-menu-popup {
-    width: calc(100vw - 32px);
-  }
+  width: min(380px, calc(100vw - 32px));
 }
 
 /* Shiny button animation for Stove League */

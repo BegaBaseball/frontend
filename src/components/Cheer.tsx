@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { parseError } from '../utils/errorUtils';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -6,7 +7,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Radio, Smile, UserRound, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getTeamDescription, TEAM_DATA } from '../constants/teams';
-import { createPost as createCheerPost, fetchPosts, getTeamNameById, uploadPostImages } from '../api/cheerApi';
+import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchPosts, getTeamNameById, uploadPostImages } from '../api/cheerApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
 import TeamLogo from './TeamLogo';
@@ -170,7 +171,23 @@ export default function Cheer() {
     }, []);
 
     const addComposerFiles = (files: File[]) => {
-        const validFiles = files.filter((file) => file.type.startsWith('image/'));
+        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+        const validFiles: File[] = [];
+        let skippedCount = 0;
+
+        files.forEach((file) => {
+            if (!file.type.startsWith('image/')) return;
+            if (file.size > MAX_SIZE) {
+                skippedCount++;
+                return;
+            }
+            validFiles.push(file);
+        });
+
+        if (skippedCount > 0) {
+            alert(`이미지 크기는 5MB 이하여야 합니다. (${skippedCount}개 파일 제외됨)`);
+        }
+
         const combinedFiles = [...composerFiles, ...validFiles].slice(0, 10);
         const newPreviews = validFiles.map((file) => ({
             file,
@@ -233,10 +250,28 @@ export default function Cheer() {
                 try {
                     uploadedUrls = await uploadPostImages(created.id, payload.files);
                 } catch (error) {
-                    uploadFailed = true;
+                    // 이미지 업로드 실패 시 게시글 삭제 (Atomic 처럼 동작하게)
+                    console.error('Image upload failed, deleting post...', error);
+                    try {
+                        await deleteCheerPost(created.id);
+                    } catch (deleteError) {
+                        console.error('Failed to delete post after image upload failure', deleteError);
+                    }
+
+                    const parsedError = parseError(error);
+
+                    // 글로벌 에러 다이얼로그 호출 (파싱된 에러 사용)
+                    window.dispatchEvent(new CustomEvent('global-api-error', {
+                        detail: {
+                            ...parsedError,
+                            message: `이미지 업로드 실패: ${parsedError.message}`
+                        }
+                    }));
+
+                    throw new Error('Image upload failed');
                 }
             }
-            return { created, derivedTitle, uploadedUrls, uploadFailed };
+            return { created, derivedTitle, uploadedUrls, uploadFailed: false };
         },
         onMutate: async (payload) => {
             const optimisticId = Date.now() * -1;
@@ -288,7 +323,7 @@ export default function Cheer() {
             if (activeFeedTab !== 'all') {
                 queryClient.setQueryData(['cheer-posts', 'all'], context.previousAll);
             }
-            alert('글 작성에 실패했습니다.');
+
         },
         onSuccess: (result, _payload, context) => {
             const createdPost = result?.created;
@@ -342,6 +377,9 @@ export default function Cheer() {
             setComposerFiles([]);
             composerPreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
             setComposerPreviews([]);
+        } catch (error) {
+            // 에러는 mutation의 onError 또는 내부 catch에서 이미 처리됨
+            console.debug('Post creation cancelled or failed', error);
         } finally {
             setComposerSubmitting(false);
         }
@@ -423,7 +461,7 @@ export default function Cheer() {
     return (
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-[#0E1117]">
             <div className="mx-auto w-full max-w-[1200px] px-6 py-8">
-                <div className="grid grid-cols-1 gap-0 lg:grid-cols-[72px_600px_320px] xl:grid-cols-[200px_600px_320px]">
+                <div className="grid grid-cols-1 gap-0 lg:grid-cols-[72px_1fr_320px] xl:grid-cols-[200px_1fr_320px]">
                     <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
                         {[
                             { id: 'home', label: 'Home', icon: Home, path: '/home' },
@@ -470,7 +508,7 @@ export default function Cheer() {
                         </button>
                     </aside>
 
-                    <main className="flex w-full flex-col gap-0 bg-white dark:bg-[#151A23] border-x border-[#EFF3F4] dark:border-[#232938] lg:w-[600px]">
+                    <main className="flex w-full flex-col gap-0 bg-white dark:bg-[#151A23] border-x border-[#EFF3F4] dark:border-[#232938] lg:max-w-[600px]">
                         <nav className="flex items-center border-b border-[#EFF3F4] dark:border-[#232938] px-4 py-3 bg-white/80 dark:bg-[#151A23]">
                             <div className="flex items-center gap-1 rounded-full bg-slate-100/90 p-1 dark:bg-slate-800/80">
                                 {feedTabs.map((tab) => {
@@ -501,7 +539,7 @@ export default function Cheer() {
                         {newPostCount > 0 && (
                             <button
                                 onClick={handleNewPostsClick}
-                                className="sticky top-0 z-20 w-full backdrop-blur-sm py-2 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
+                                className="sticky top-12 z-20 w-full backdrop-blur-sm py-2 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
                                 style={{
                                     backgroundColor: teamSoftBg,
                                     borderColor: teamSoftBorder,
@@ -562,12 +600,24 @@ export default function Cheer() {
                                         <div className="flex items-center gap-2 text-[#536471] dark:text-slate-500">
                                             <button
                                                 type="button"
-                                                className="rounded-full p-1 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                className={`group relative rounded-full p-1 transition-colors ${composerFiles.length >= 10
+                                                        ? 'opacity-50 cursor-not-allowed'
+                                                        : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                                                    }`}
                                                 onClick={() => fileInputRef.current?.click()}
                                                 aria-label="이미지 첨부"
+                                                disabled={composerFiles.length >= 10}
                                             >
                                                 <ImagePlus className="h-4 w-4" />
+                                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block whitespace-nowrap rounded bg-slate-800 dark:bg-slate-600 px-2 py-1 text-xs text-white shadow-lg">
+                                                    최대 10장, 각 5MB 이하
+                                                </span>
                                             </button>
+                                            {composerFiles.length >= 10 ? (
+                                                <span className="text-xs text-amber-500 dark:text-amber-400 font-medium">10장 제한</span>
+                                            ) : composerFiles.length > 0 ? (
+                                                <span className="text-xs text-slate-400">{composerFiles.length}/10</span>
+                                            ) : null}
                                             <Smile className="h-4 w-4" />
                                             <input
                                                 ref={fileInputRef}
@@ -576,18 +626,23 @@ export default function Cheer() {
                                                 multiple
                                                 className="hidden"
                                                 onChange={handleComposerFileSelect}
-                                                disabled={composerSubmitting}
+                                                disabled={composerSubmitting || composerFiles.length >= 10}
                                             />
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleComposerSubmit}
-                                            className="rounded-full px-4 py-1.5 text-sm font-bold disabled:opacity-60"
-                                            style={{ backgroundColor: teamColor, color: teamContrastText }}
-                                            disabled={composerSubmitting || !composerContent.trim()}
-                                        >
-                                            {composerSubmitting ? '등록 중...' : '게시하기'}
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            {!composerContent.trim() && (
+                                                <span className="text-xs text-slate-400 dark:text-slate-500">내용을 입력해 주세요</span>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={handleComposerSubmit}
+                                                className="rounded-full px-4 py-1.5 text-sm font-bold disabled:opacity-60"
+                                                style={{ backgroundColor: teamColor, color: teamContrastText }}
+                                                disabled={composerSubmitting || !composerContent.trim()}
+                                            >
+                                                {composerSubmitting ? '등록 중...' : '게시하기'}
+                                            </button>
+                                        </div>
                                     </div>
                                     {composerPreviews.length > 0 && (
                                         <div className="mt-3 grid grid-cols-3 gap-2">
@@ -806,10 +861,43 @@ export default function Cheer() {
                 </div>
             </div>
 
+            {/* Mobile Bottom Navigation */}
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#151A23] border-t border-[#EFF3F4] dark:border-[#232938] z-40 safe-area-bottom">
+                <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
+                    {[
+                        { id: 'home', label: '홈', icon: Home, path: '/home' },
+                        { id: 'team', label: '팀허브', icon: Users, path: '/cheer' },
+                        { id: 'live', label: '라이브', icon: Radio, path: '/prediction' },
+                        { id: 'profile', label: '프로필', icon: UserRound, path: '/mypage' },
+                    ].map((item) => {
+                        const Icon = item.icon;
+                        const isActive = item.id === 'team';
+                        return (
+                            <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => navigate(item.path)}
+                                className={cn(
+                                    'flex flex-col items-center justify-center gap-0.5 w-16 h-full transition-colors',
+                                    isActive
+                                        ? 'text-[#2d5f4f] dark:text-[#4ade80]'
+                                        : 'text-gray-400 dark:text-gray-500'
+                                )}
+                                style={isActive ? { color: teamAccent } : undefined}
+                            >
+                                <Icon className="h-5 w-5" />
+                                <span className="text-[10px] font-medium">{item.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </nav>
+
+            {/* FAB Write Button - adjusted for mobile nav */}
             <button
                 type="button"
                 onClick={handleWriteClick}
-                className="fixed bottom-8 right-8 h-12 w-12 rounded-full text-white shadow-[0_8px_24px_rgba(0,0,0,0.15)] transition-transform hover:scale-105 lg:hidden"
+                className="fixed bottom-20 right-4 h-12 w-12 rounded-full text-white shadow-[0_8px_24px_rgba(0,0,0,0.15)] transition-transform hover:scale-105 lg:hidden lg:bottom-8 lg:right-8"
                 style={{ backgroundColor: teamColor }}
                 aria-label="글쓰기"
             >

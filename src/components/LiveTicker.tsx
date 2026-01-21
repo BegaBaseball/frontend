@@ -35,7 +35,7 @@ export default function LiveTicker({ games }: LiveTickerProps) {
 
             <div className="flex animate-marquee whitespace-nowrap pl-20 items-center">
                 {liveGames.map((game, idx) => (
-                    <div key={game.gameId} className="flex items-center gap-4 px-6 border-r border-white/10 min-w-[200px]">
+                    <div key={game.gameId} className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6 border-r border-white/10 min-w-[160px] sm:min-w-[200px]">
                         <div className="flex items-center gap-2 text-sm font-semibold">
                             <span className="text-gray-400 w-10 text-right">{game.awayTeam}</span>
                             <span className={`text-lg ${game.awayScore && game.homeScore && game.awayScore > game.homeScore ? 'text-yellow-400' : 'text-white'}`}>

@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/button';
 import { getTeamKoreanName } from '../utils/teamNames';
+import { useIsMobile } from '../hooks/use-mobile';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
@@ -48,6 +49,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
   const navigate = useNavigate();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { theme } = useTheme();
+  const isMobile = useIsMobile();
 
   // Data State
   const [movements, setMovements] = useState<OffseasonMovement[]>([]);
@@ -283,110 +285,195 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
           <h3 className="text-xl md:text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">2025 포스트시즌 결과</h3>
         </div>
 
-        <Card className="p-6 md:p-10 overflow-x-auto bg-white dark:bg-gray-900 border-none shadow-xl rounded-2xl md:rounded-3xl ring-1 ring-black/5 dark:ring-white/10">
-          <div className="min-w-[800px] flex items-center justify-center relative h-[400px] gap-12">
-
-            {/* WC Stage (Left - Lowest) */}
-            <div className="flex flex-col gap-4 relative z-10 translate-y-20">
-              <div className="flex flex-col gap-2">
-                <span className="text-xs font-bold text-gray-400 text-center">와일드카드</span>
-                <div className="flex flex-col gap-3 relative">
-                  {/* Connector Line for WC: Goes UP to Semi */}
-                  <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
-                  <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
-
-                  <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-44">
-                    <span className="text-sm font-bold text-gray-500 w-8">5위</span>
-                    <TeamLogo team="NC" size={24} />
-                    <span className="font-bold text-gray-900 dark:text-white">NC</span>
+        <Card className="p-4 md:p-10 overflow-x-auto bg-white dark:bg-gray-900 border-none shadow-xl rounded-2xl md:rounded-3xl ring-1 ring-black/5 dark:ring-white/10">
+          {isMobile ? (
+            /* Mobile: Vertical Timeline Layout */
+            <div className="flex flex-col gap-4 py-2">
+              {/* 와일드카드 */}
+              <div className="relative pl-8 pb-4 border-l-2 border-gray-300 dark:border-gray-600">
+                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                <span className="text-xs font-bold text-gray-400 mb-2 block">와일드카드</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <span className="text-xs font-bold text-gray-500 w-6">5위</span>
+                    <TeamLogo team="NC" size={20} />
+                    <span className="font-bold text-gray-900 dark:text-white text-sm">NC</span>
                   </div>
-                  <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80] w-44 relative z-10">
-                    <span className="text-sm font-bold text-[#2d5f4f] dark:text-[#4ade80] w-8">4위</span>
-                    <TeamLogo team="삼성" size={24} />
-                    <span className="font-bold text-gray-900 dark:text-white">삼성</span>
+                  <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80]">
+                    <span className="text-xs font-bold text-[#2d5f4f] dark:text-[#4ade80] w-6">4위</span>
+                    <TeamLogo team="삼성" size={20} />
+                    <span className="font-bold text-gray-900 dark:text-white text-sm">삼성</span>
                     <Badge className="ml-auto text-[10px] bg-[#2d5f4f]">승</Badge>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Semi-PO Stage (Step Up) */}
-            <div className="flex flex-col gap-4 relative z-10 translate-y-8">
-              <span className="text-xs font-bold text-gray-400 text-center">준플레이오프</span>
-              <div className="flex flex-col gap-8 relative">
-                {/* Incoming Connector from WC */}
-                <div className="absolute left-[-48px] bottom-[26px] w-[48px] h-[2px] bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
-
-                {/* Outgoing Connector to PO */}
-                <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
-                <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
-
-                <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-48">
-                  <span className="text-sm font-bold text-gray-500 w-8">3위</span>
-                  <TeamLogo team="SSG" size={24} />
-                  <span className="font-bold text-gray-900 dark:text-white">SSG</span>
+              {/* 준플레이오프 */}
+              <div className="relative pl-8 pb-4 border-l-2 border-[#2d5f4f] dark:border-[#4ade80]">
+                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
+                <span className="text-xs font-bold text-gray-400 mb-2 block">준플레이오프</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <span className="text-xs font-bold text-gray-500 w-6">3위</span>
+                    <TeamLogo team="SSG" size={20} />
+                    <span className="font-bold text-gray-900 dark:text-white text-sm">SSG</span>
+                  </div>
+                  <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80]">
+                    <span className="text-xs font-bold text-[#2d5f4f] dark:text-[#4ade80] w-6">WC</span>
+                    <TeamLogo team="삼성" size={20} />
+                    <span className="font-bold text-gray-900 dark:text-white text-sm">삼성</span>
+                    <Badge className="ml-auto text-[10px] bg-[#2d5f4f] text-white">승</Badge>
+                  </div>
                 </div>
+              </div>
 
-                <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80] w-48">
-                  <span className="text-sm font-bold text-[#2d5f4f] dark:text-[#4ade80] w-8">WC</span>
-                  <TeamLogo team="삼성" size={24} />
-                  <span className="font-bold text-gray-900 dark:text-white">삼성</span>
-                  <Badge className="ml-auto text-[10px] bg-[#2d5f4f] text-white">승</Badge>
+              {/* 플레이오프 */}
+              <div className="relative pl-8 pb-4 border-l-2 border-[#2d5f4f] dark:border-[#4ade80]">
+                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
+                <span className="text-xs font-bold text-gray-400 mb-2 block">플레이오프</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80]">
+                    <span className="text-xs font-bold text-[#2d5f4f] dark:text-[#4ade80] w-6">2위</span>
+                    <TeamLogo team="한화" size={20} />
+                    <span className="font-bold text-gray-900 dark:text-white text-sm">한화</span>
+                    <Badge className="ml-auto text-[10px] bg-[#2d5f4f] text-white">승</Badge>
+                  </div>
+                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <span className="text-xs font-bold text-gray-500 w-6">준PO</span>
+                    <TeamLogo team="삼성" size={20} />
+                    <span className="font-bold text-gray-900 dark:text-white text-sm">삼성</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 한국시리즈 */}
+              <div className="relative pl-8">
+                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-yellow-500"></div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Crown className="w-4 h-4 text-yellow-500" />
+                  <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400">한국시리즈</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-[#2d5f4f] to-[#1a3c34] rounded-xl shadow-lg">
+                    <span className="text-xs font-bold text-emerald-200 w-6">1위</span>
+                    <TeamLogo team="LG" size={24} />
+                    <span className="font-bold text-white">LG</span>
+                    <Badge className="ml-auto text-[10px] bg-yellow-400 text-black">V3</Badge>
+                  </div>
+                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 opacity-70">
+                    <span className="text-xs font-bold text-gray-500 w-6">PO</span>
+                    <TeamLogo team="한화" size={20} />
+                    <span className="font-bold text-gray-900 dark:text-white text-sm">한화</span>
+                  </div>
                 </div>
               </div>
             </div>
+          ) : (
+            /* Desktop: Original Horizontal Bracket Layout */
+            <div className="min-w-[800px] flex items-center justify-center relative h-[400px] gap-12">
 
-            {/* PO Stage (Step Up) */}
-            <div className="flex flex-col gap-4 relative z-10 -translate-y-4">
-              <span className="text-xs font-bold text-gray-400 text-center">플레이오프</span>
-              <div className="flex flex-col gap-8 relative">
-                {/* Incoming Connector from Semi */}
-                <div className="absolute left-[-48px] bottom-[26px] w-[48px] h-[2px] bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
+              {/* WC Stage (Left - Lowest) */}
+              <div className="flex flex-col gap-4 relative z-10 translate-y-20">
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-bold text-gray-400 text-center">와일드카드</span>
+                  <div className="flex flex-col gap-3 relative">
+                    {/* Connector Line for WC: Goes UP to Semi */}
+                    <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
+                    <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
 
-                {/* Outgoing Connector to KS */}
-                <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
-                <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
-
-
-                <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80] w-52">
-                  <span className="text-sm font-bold text-[#2d5f4f] dark:text-[#4ade80] w-8">2위</span>
-                  <TeamLogo team="한화" size={24} />
-                  <span className="font-bold text-gray-900 dark:text-white">한화</span>
-                  <Badge className="ml-auto text-[10px] bg-[#2d5f4f] text-white">승</Badge>
+                    <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-44">
+                      <span className="text-sm font-bold text-gray-500 w-8">5위</span>
+                      <TeamLogo team="NC" size={24} />
+                      <span className="font-bold text-gray-900 dark:text-white">NC</span>
+                    </div>
+                    <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80] w-44 relative z-10">
+                      <span className="text-sm font-bold text-[#2d5f4f] dark:text-[#4ade80] w-8">4위</span>
+                      <TeamLogo team="삼성" size={24} />
+                      <span className="font-bold text-gray-900 dark:text-white">삼성</span>
+                      <Badge className="ml-auto text-[10px] bg-[#2d5f4f]">승</Badge>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-52">
-                  <span className="text-sm font-bold text-gray-500 w-8">준PO</span>
-                  <TeamLogo team="삼성" size={24} />
-                  <span className="font-bold text-gray-900 dark:text-white">삼성</span>
+              </div>
+
+              {/* Semi-PO Stage (Step Up) */}
+              <div className="flex flex-col gap-4 relative z-10 translate-y-8">
+                <span className="text-xs font-bold text-gray-400 text-center">준플레이오프</span>
+                <div className="flex flex-col gap-8 relative">
+                  {/* Incoming Connector from WC */}
+                  <div className="absolute left-[-48px] bottom-[26px] w-[48px] h-[2px] bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
+
+                  {/* Outgoing Connector to PO */}
+                  <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
+                  <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
+
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-48">
+                    <span className="text-sm font-bold text-gray-500 w-8">3위</span>
+                    <TeamLogo team="SSG" size={24} />
+                    <span className="font-bold text-gray-900 dark:text-white">SSG</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80] w-48">
+                    <span className="text-sm font-bold text-[#2d5f4f] dark:text-[#4ade80] w-8">WC</span>
+                    <TeamLogo team="삼성" size={24} />
+                    <span className="font-bold text-gray-900 dark:text-white">삼성</span>
+                    <Badge className="ml-auto text-[10px] bg-[#2d5f4f] text-white">승</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* PO Stage (Step Up) */}
+              <div className="flex flex-col gap-4 relative z-10 -translate-y-4">
+                <span className="text-xs font-bold text-gray-400 text-center">플레이오프</span>
+                <div className="flex flex-col gap-8 relative">
+                  {/* Incoming Connector from Semi */}
+                  <div className="absolute left-[-48px] bottom-[26px] w-[48px] h-[2px] bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
+
+                  {/* Outgoing Connector to KS */}
+                  <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
+                  <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
+
+
+                  <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-[#2d5f4f] dark:border-[#4ade80] w-52">
+                    <span className="text-sm font-bold text-[#2d5f4f] dark:text-[#4ade80] w-8">2위</span>
+                    <TeamLogo team="한화" size={24} />
+                    <span className="font-bold text-gray-900 dark:text-white">한화</span>
+                    <Badge className="ml-auto text-[10px] bg-[#2d5f4f] text-white">승</Badge>
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-52">
+                    <span className="text-sm font-bold text-gray-500 w-8">준PO</span>
+                    <TeamLogo team="삼성" size={24} />
+                    <span className="font-bold text-gray-900 dark:text-white">삼성</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* KS Stage (Highest) */}
+              <div className="flex flex-col gap-4 relative z-10 -translate-y-16">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Crown className="w-4 h-4 text-yellow-500" />
+                  <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 text-center">한국시리즈</span>
+                </div>
+
+                <div className="flex flex-col gap-8 relative">
+                  {/* Incoming Connector from PO */}
+                  <div className="absolute left-[-48px] bottom-[30px] w-[48px] h-[2px] bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
+
+                  <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-[#2d5f4f] to-[#1a3c34] rounded-xl shadow-lg shadow-emerald-900/20 border-none w-60 scale-110">
+                    <span className="text-sm font-bold text-emerald-200 w-8">1위</span>
+                    <TeamLogo team="LG" size={32} />
+                    <span className="font-bold text-white text-lg">LG</span>
+                    <Badge className="ml-auto text-[10px] bg-yellow-400 text-black hover:bg-yellow-500">V3</Badge>
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-60 opacity-70">
+                    <span className="text-sm font-bold text-gray-500 w-8">PO</span>
+                    <TeamLogo team="한화" size={24} />
+                    <span className="font-bold text-gray-900 dark:text-white">한화</span>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* KS Stage (Highest) */}
-            <div className="flex flex-col gap-4 relative z-10 -translate-y-16">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Crown className="w-4 h-4 text-yellow-500" />
-                <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 text-center">한국시리즈</span>
-              </div>
-
-              <div className="flex flex-col gap-8 relative">
-                {/* Incoming Connector from PO */}
-                <div className="absolute left-[-48px] bottom-[30px] w-[48px] h-[2px] bg-[#2d5f4f] dark:bg-[#4ade80]"></div>
-
-                <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-[#2d5f4f] to-[#1a3c34] rounded-xl shadow-lg shadow-emerald-900/20 border-none w-60 scale-110">
-                  <span className="text-sm font-bold text-emerald-200 w-8">1위</span>
-                  <TeamLogo team="LG" size={32} />
-                  <span className="font-bold text-white text-lg">LG</span>
-                  <Badge className="ml-auto text-[10px] bg-yellow-400 text-black hover:bg-yellow-500">V3</Badge>
-                </div>
-                <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-60 opacity-70">
-                  <span className="text-sm font-bold text-gray-500 w-8">PO</span>
-                  <TeamLogo team="한화" size={24} />
-                  <span className="font-bold text-gray-900 dark:text-white">한화</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </Card>
       </section>
 
