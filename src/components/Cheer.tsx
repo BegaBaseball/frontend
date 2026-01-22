@@ -395,7 +395,13 @@ export default function Cheer() {
     } = useInfiniteQuery({
         queryKey: ['cheer-posts', activeFeedTab],
         queryFn: ({ pageParam = 0 }) =>
-            fetchPosts('all', pageParam, 20, activeTabConfig?.postType, activeTabConfig?.sort),
+            fetchPosts({
+                teamId: favoriteTeamId || 'all',
+                page: pageParam as number,
+                size: 20,
+                postType: activeTabConfig?.postType as 'NORMAL' | 'NOTICE' | null,
+                sort: activeTabConfig?.sort
+            }),
         getNextPageParam: (lastPage) =>
             lastPage.last ? undefined : lastPage.number + 1,
         initialPageParam: 0,
@@ -408,7 +414,12 @@ export default function Cheer() {
     // Polling for new posts
     const { data: polledData } = useQuery({
         queryKey: ['cheer-polling', activeFeedTab],
-        queryFn: () => fetchPosts('all', 0, 10, activeTabConfig?.postType),
+        queryFn: () => fetchPosts({
+            teamId: favoriteTeamId || 'all',
+            page: 0,
+            size: 10,
+            postType: activeTabConfig?.postType as 'NORMAL' | 'NOTICE' | null
+        }),
         refetchInterval: 15000,
         enabled: !isLoading && !activeTabConfig?.sort, // Only poll for default sort (createdAt)
     });
@@ -601,8 +612,8 @@ export default function Cheer() {
                                             <button
                                                 type="button"
                                                 className={`group relative rounded-full p-1 transition-colors ${composerFiles.length >= 10
-                                                        ? 'opacity-50 cursor-not-allowed'
-                                                        : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                                                    ? 'opacity-50 cursor-not-allowed'
+                                                    : 'hover:bg-slate-100 dark:hover:bg-slate-700'
                                                     }`}
                                                 onClick={() => fileInputRef.current?.click()}
                                                 aria-label="이미지 첨부"

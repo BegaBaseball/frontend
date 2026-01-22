@@ -6,6 +6,7 @@ import ImageGrid from './ImageGrid';
 import RollingNumber from './RollingNumber';
 import TeamLogo from './TeamLogo';
 import { TEAM_DATA } from '../constants/teams';
+import CommentModal from './CommentModal';
 // import { useCheerStore } from '../store/cheerStore'; // Removed
 import { useCheerMutations } from '../hooks/useCheerQueries'; // Added
 import {
@@ -24,7 +25,8 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const navigate = useNavigate();
     // const toggleLike = useCheerStore((state) => state.toggleLike); // Removed
     // const deletePost = useCheerStore((state) => state.deletePost); // Removed
-    const { toggleLikeMutation, deletePostMutation } = useCheerMutations(); // Added
+    const { toggleLikeMutation, deletePostMutation, repostMutation } = useCheerMutations(); // Updated
+    const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
 
     const contentText = post.content?.trim() || post.title;
 
@@ -35,8 +37,12 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
     const [isExpanded, setIsExpanded] = useState(false);
     const normalizedContent = normalizeContent(contentText);
-    const shouldShowMore = normalizedContent.length > 450 || contentText.split('\n').length > 6;
-    const repostCount = Math.max(0, Math.round(post.views / 10));
+    const MAX_LENGTH = 250;
+    const shouldShowMore = normalizedContent.length > MAX_LENGTH;
+    const displayContent = !isExpanded && shouldShowMore
+        ? normalizedContent.slice(0, MAX_LENGTH) + '...'
+        : normalizedContent;
+
     const [likeAnimating, setLikeAnimating] = useState(false);
     const [commentAnimating, setCommentAnimating] = useState(false);
     const [repostAnimating, setRepostAnimating] = useState(false);
@@ -77,6 +83,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const handleCommentClick = (event: React.MouseEvent) => {
         event.stopPropagation();
         setCommentAnimating(true);
+        setIsCommentModalOpen(true);
         if (commentTimerRef.current) window.clearTimeout(commentTimerRef.current);
         commentTimerRef.current = window.setTimeout(() => {
             setCommentAnimating(false);
@@ -86,6 +93,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const handleRepostClick = (event: React.MouseEvent) => {
         event.stopPropagation();
         setRepostAnimating(true);
+        repostMutation.mutate(post.id);
         if (repostTimerRef.current) window.clearTimeout(repostTimerRef.current);
         repostTimerRef.current = window.setTimeout(() => {
             setRepostAnimating(false);
@@ -103,9 +111,26 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     <span className="font-semibold">{post.team}</span>
                     <span>{post.timeAgo}</span>
                 </div>
-                <p className="text-sm text-[#0f1419] dark:text-slate-200 tweet-clamp leading-relaxed mb-3">
-                    {contentText}
-                </p>
+                <div className="text-sm text-[#0f1419] dark:text-slate-200 leading-relaxed mb-3">
+                    {displayContent.split('\n').map((line, i) => (
+                        <React.Fragment key={i}>
+                            {line}
+                            <br />
+                        </React.Fragment>
+                    ))}
+                </div>
+                {shouldShowMore && (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsExpanded(!isExpanded);
+                        }}
+                        className="mb-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                        {isExpanded ? '접기' : '더보기'}
+                    </button>
+                )}
                 <div className="flex items-center gap-4 text-xs text-[#536471] dark:text-slate-400">
                     <span className="flex items-center gap-1">
                         <MessageCircle className="h-4 w-4" />
@@ -202,9 +227,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         )}
                     </div>
 
-                    <div className={`mt-0.5 text-[16px] leading-[22px] text-[#0f1419] dark:text-slate-200 transition-all duration-300 ${shouldShowMore && !isExpanded ? 'content-collapsed' : 'content-expanded'
-                        }`}>
-                        {(isExpanded ? contentText : normalizedContent).split('\n').map((line, i) => (
+                    <div
+                        className="mt-0.5 text-[16px] leading-[22px] text-[#0f1419] dark:text-slate-200 transition-all duration-300"
+                    >
+                        {displayContent.split('\n').map((line, i) => (
                             <React.Fragment key={i}>
                                 {line}
                                 <br />
@@ -221,7 +247,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             }}
                             className="mt-2 text-[13px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
                         >
-                            {isExpanded ? '접기' : '자세히 보기'}
+                            {isExpanded ? '접기' : '더보기'}
                         </button>
                     )}
 
@@ -259,7 +285,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             type="button"
                             className="group/repost flex items-center gap-1.5 rounded-full transition-colors hover:text-emerald-500"
                             onClick={handleRepostClick}
-                            aria-label={`리포스트 ${repostCount}회`}
+                            aria-label={`리포스트 ${post.repostCount}회`}
                         >
                             <span className="relative rounded-full p-2 transition-colors group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20">
                                 {repostAnimating && (
@@ -270,7 +296,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         }`}
                                 />
                             </span>
-                            <RollingNumber value={repostCount} />
+                            <RollingNumber value={post.repostCount} />
                         </button>
 
                         <button
@@ -300,6 +326,12 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     </div>
                 </div>
             </div>
+
+            <CommentModal
+                isOpen={isCommentModalOpen}
+                onClose={() => setIsCommentModalOpen(false)}
+                post={post}
+            />
         </div>
     );
 }

@@ -153,12 +153,17 @@ export default function MateCreate() {
       }
     } catch (error) {
       console.error('Ticket OCR error:', error);
+      setFormError('ticketFile', '이미지 분석에 실패했습니다. 직접 입력해주세요.');
+      // 실패해도 isScanning이 false가 되면 수동으로 다음 단계로 이동 가능
     } finally {
       setIsScanning(false);
     }
   };
 
   const canProceedToStep = (targetStep: number) => {
+    // 스캔 중이면 이동 불가
+    if (isScanning) return false;
+
     if (targetStep === 2) {
       return formData.ticketFile !== null;
     }
@@ -217,10 +222,11 @@ export default function MateCreate() {
       alert('파티가 생성되었습니다!');
       navigate(`/mate/${mappedParty.id}`);
     } catch (error: any) {
-      console.error('파티 생성 중 오류:', error);
-      if (error.response?.status === 403 || error.message?.includes('403')) {
+      if (error.status === 403 || error.response?.status === 403 || error.message?.includes('403')) {
+        console.warn('Verification required (403)');
         setShowVerificationDialog(true);
       } else {
+        console.error('파티 생성 중 오류:', error);
         alert(error.message || '파티 생성 중 오류가 발생했습니다.');
       }
     } finally {
@@ -285,10 +291,10 @@ export default function MateCreate() {
                 <Label>예매내역 스크린샷</Label>
                 <div
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isScanning
-                    ? 'border-[#2d5f4f] bg-[#f8fcfb]'
+                    ? 'border-primary bg-slate-50 dark:bg-slate-900/50'
                     : formData.ticketFile
                       ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                      : 'border-[#2d5f4f] bg-[#f8fcfb] hover:bg-[#e8f5f0]'
+                      : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900'
                     }`}
                 >
                   <input
@@ -302,9 +308,9 @@ export default function MateCreate() {
                   <label htmlFor="ticketFile" className={`cursor-pointer ${isScanning ? 'pointer-events-none' : ''}`}>
                     {isScanning ? (
                       <div className="flex flex-col items-center gap-3">
-                        <Loader2 className="w-16 h-16 text-[#2d5f4f] animate-spin" />
-                        <p className="text-[#2d5f4f] font-bold text-lg">AI가 티켓을 분석 중...</p>
-                        <p className="text-gray-500">경기 정보를 자동으로 추출합니다</p>
+                        <Loader2 className="w-16 h-16 text-primary animate-spin" />
+                        <p className="text-primary font-bold text-lg">AI가 티켓을 분석 중...</p>
+                        <p className="text-muted-foreground">경기 정보를 자동으로 추출합니다</p>
                       </div>
                     ) : formData.ticketFile ? (
                       <div className="flex flex-col items-center gap-3">

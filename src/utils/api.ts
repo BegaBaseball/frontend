@@ -13,7 +13,14 @@ export const api = {
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
+      const error: any = new Error(`API Error: ${response.status}`);
+      error.status = response.status;
+      try {
+        error.data = await response.json();
+      } catch {
+        error.data = null;
+      }
+      throw error;
     }
 
     if (response.status === 204) {

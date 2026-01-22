@@ -286,19 +286,8 @@
 }
 
 .content-collapsed {
-  display: -webkit-box;
-  -webkit-line-clamp: 6;
-  /* Limit to 6 lines */
-  -webkit-box-orient: vertical;
-  line-clamp: 6;
-  /* Standard property */
-  max-height: 132px;
-  /* 6 lines * 22px leading approx */
-  overflow: hidden;
-  position: relative;
-  /* Mask effect for smooth cutoff */
-  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  display: block;
+  /* Reset to simple block, handled by JS truncation */
 }
 
 .content-collapsed::after {

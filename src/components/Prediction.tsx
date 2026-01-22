@@ -71,15 +71,71 @@ export default function Prediction() {
   // 경기 상태 확인
   const { isPastGame, isFutureGame, isToday } = getGameStatus(currentGame, currentDate);
 
-  // 로딩 중
+  // 로딩 중 - 스켈레톤 UI
   if (isAuthLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center transition-colors duration-200">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] dark:border-[#4ade80] mx-auto mb-4"></div>
-          <p className="text-[#2d5f4f] dark:text-[#4ade80] font-medium">
-            {isAuthLoading ? '로그인 확인 중...' : '경기 데이터를 불러오는 중...'}
-          </p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Title skeleton */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-lg w-10 h-10 animate-pulse" />
+            <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+
+          {/* Stats skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm animate-pulse">
+                <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
+                  <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-12 bg-gray-200 dark:bg-gray-700 rounded" />
+                    <div className="h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Tab skeleton */}
+          <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-xl md:rounded-2xl mb-6 md:mb-8 w-fit animate-pulse">
+            <div className="w-20 h-10 bg-gray-300 dark:bg-gray-700 rounded-lg" />
+            <div className="w-20 h-10 bg-gray-300 dark:bg-gray-700 rounded-lg ml-1" />
+          </div>
+
+          {/* Match card skeleton */}
+          <Card className="p-4 mb-6 bg-white dark:bg-gray-800 border-none shadow-sm animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full" />
+              <div className="flex-1 text-center space-y-2 px-4">
+                <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded mx-auto" />
+                <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded mx-auto" />
+              </div>
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full" />
+            </div>
+          </Card>
+
+          <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-gray-800 animate-pulse">
+            <div className="h-12 bg-gray-300 dark:bg-gray-700" />
+            <div className="p-6 space-y-6">
+              <div className="flex justify-between">
+                <div className="flex flex-col items-center w-1/3 space-y-2">
+                  <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                  <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+                <div className="flex flex-col items-center w-1/3 space-y-2">
+                  <div className="h-8 w-12 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+                <div className="flex flex-col items-center w-1/3 space-y-2">
+                  <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                  <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
     );
@@ -121,9 +177,9 @@ export default function Prediction() {
             <h2 className="text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">KBO 예측</h2>
           </div>
           {isLoggedIn && (
-            <div className="flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-full">
+            <div className="flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50 rounded-full">
               <Coins className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-              <span className="text-sm font-bold text-yellow-700 dark:text-yellow-400 tabular-nums">
+              <span className="text-sm font-bold text-yellow-700 dark:text-yellow-300 tabular-nums">
                 {user?.cheerPoints?.toLocaleString() || 0} P
               </span>
             </div>
@@ -210,7 +266,8 @@ export default function Prediction() {
                 <button
                   onClick={goToPreviousDate}
                   disabled={currentDateIndex === 0}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[#2d5f4f] dark:text-[#4ade80]"
+                  aria-label="이전 날짜"
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[#2d5f4f] dark:text-[#4ade80]"
                 >
                   <ChevronLeft size={24} />
                 </button>
@@ -233,7 +290,8 @@ export default function Prediction() {
                 <button
                   onClick={goToNextDate}
                   disabled={currentDateIndex === allDatesData.length - 1}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[#2d5f4f] dark:text-[#4ade80]"
+                  aria-label="다음 날짜"
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[#2d5f4f] dark:text-[#4ade80]"
                 >
                   <ChevronRight size={24} />
                 </button>
@@ -248,7 +306,9 @@ export default function Prediction() {
                     <button
                       key={index}
                       onClick={() => setSelectedGame(index)}
-                      className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all ${selectedGame === index
+                      aria-pressed={selectedGame === index}
+                      aria-label={`${index + 1}경기 선택`}
+                      className={`flex-shrink-0 px-4 py-3 min-h-[44px] rounded-full text-sm font-bold transition-all ${selectedGame === index
                         ? 'bg-[#2d5f4f] text-white shadow-md'
                         : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}

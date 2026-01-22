@@ -14,6 +14,7 @@ import ChatBot from './ChatBot';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
+import { mapBackendPartyToFrontend } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
 
 export default function MateApply() {
@@ -44,8 +45,40 @@ export default function MateApply() {
     fetchUser();
   }, []);
 
+  // selectedParty가 없는 경우 (새로고침 직후 등) 데이터 불러오기 시도 또는 리다이렉트
+  useEffect(() => {
+    if (!selectedParty && id) {
+      const fetchParty = async () => {
+        try {
+          const response = await api.getPartyById(id);
+          const party = mapBackendPartyToFrontend(response.data);
+          useMateStore.getState().setSelectedParty(party);
+        } catch (error) {
+          console.error("Failed to fetch party:", error);
+          alert("파티 정보를 불러올 수 없습니다.");
+          navigate('/mate');
+        }
+      };
+      fetchParty();
+    }
+  }, [id, selectedParty, navigate]);
+
   if (!selectedParty) {
-    return null;
+    return (
+      <div className="flex justify-center items-center h-screen bg-background dark:bg-gray-900 transition-colors duration-200">
+        <OptimizedImage
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        />
+        <div className="text-center z-10">
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">파티 정보를 불러오는 중입니다...</p>
+          <Button onClick={() => navigate('/mate')} variant="outline" className="dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700">
+            목록으로 돌아가기
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const isSelling = selectedParty.status === 'SELLING';
@@ -88,11 +121,12 @@ export default function MateApply() {
 
       navigate(`/mate/${id}`);
     } catch (error: any) {
-      console.error('신청 중 오류:', error);
-      if (error.response?.status === 403 || error.message?.includes('403')) {
+      if (error.status === 403 || error.response?.status === 403 || error.message?.includes('403')) {
+        console.warn('Verification required (403)');
         setShowVerificationDialog(true);
       } else {
-        alert(error.message || '신청 중 오류가 발생했습니다.');
+        console.error('신청 중 오류:', error);
+        alert(error.data?.error || error.message || '신청 중 오류가 발생했습니다.');
       }
     } finally {
       setIsSubmitting(false);

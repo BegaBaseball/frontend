@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { RotateCcw, Award, X, GripVertical } from 'lucide-react';
+import { RotateCcw, Award, X, GripVertical, LogIn } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
@@ -31,6 +32,7 @@ declare global {
 }
 
 export default function RankingPrediction() {
+  const navigate = useNavigate();
   const {
     showSaveDialog,
     setShowSaveDialog,
@@ -68,9 +70,28 @@ export default function RankingPrediction() {
     );
   }
 
-  // 로그인 안 되어 있으면 아무것도 렌더링 안함
+  // 로그인 안 되어 있으면 로그인 유도 메시지 표시
   if (!isLoggedIn) {
-    return null;
+    return (
+      <Card className="p-8 md:p-12 text-center bg-white dark:bg-gray-800 border-none shadow-sm">
+        <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-full w-fit mx-auto mb-4">
+          <LogIn className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
+          로그인이 필요합니다
+        </h3>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">
+          순위 예측에 참여하려면 로그인해주세요.
+        </p>
+        <Button
+          onClick={() => navigate('/login')}
+          className="text-white px-6 py-2"
+          style={{ backgroundColor: '#2d5f4f' }}
+        >
+          로그인하기
+        </Button>
+      </Card>
+    );
   }
 
   // 예측 불가 기간 UI
@@ -163,9 +184,10 @@ export default function RankingPrediction() {
                     onClick={() => handleRemoveTeam(index)}
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 hover:bg-red-50 dark:hover:bg-red-900/30 group"
+                    aria-label={`${team.name} 제거`}
+                    className="h-10 w-10 p-0 hover:bg-red-50 dark:hover:bg-red-900/30 group"
                   >
-                    <X className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" />
+                    <X className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" />
                   </Button>
                 )}
               </div>
@@ -183,9 +205,9 @@ export default function RankingPrediction() {
   return (
     <DndProvider backend={HTML5Backend}>
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="dark:bg-gray-800 dark:border-gray-700">
           <AlertDialogHeader>
-            <AlertDialogTitle style={{ color: '#2d5f4f' }}>순위 확정</AlertDialogTitle>
+            <AlertDialogTitle className="text-[#2d5f4f] dark:text-emerald-400">순위 확정</AlertDialogTitle>
             <AlertDialogDescription className="dark:text-gray-400">
               한번 저장하면 순위 변경이 불가능합니다.<br />
               이대로 순위를 확정하시겠습니까?
@@ -196,8 +218,7 @@ export default function RankingPrediction() {
             <AlertDialogAction
               onClick={confirmSave}
               disabled={isSaving}
-              className="text-white hover:opacity-90"
-              style={{ backgroundColor: '#2d5f4f' }}
+              className="text-white bg-[#2d5f4f] hover:bg-[#244d40] dark:bg-emerald-600 dark:hover:bg-emerald-700"
             >
               {isSaving ? '저장 중...' : '확인'}
             </AlertDialogAction>
@@ -205,17 +226,16 @@ export default function RankingPrediction() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Rankings Area - 왼쪽 */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 style={{ color: '#2d5f4f' }}>예상 순위</h2>
+            <h2 className="text-[#2d5f4f] dark:text-emerald-400 font-bold text-lg">예상 순위</h2>
             {!alreadySaved && (
               <Button
                 onClick={resetRankings}
-                className="flex items-center gap-2 border-2 dark:bg-transparent"
+                className="flex items-center gap-2 border-2 border-[#2d5f4f] text-[#2d5f4f] dark:border-emerald-500 dark:text-emerald-400 dark:bg-transparent hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                 variant="outline"
-                style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
               >
                 <RotateCcw className="w-4 h-4" />
                 초기화
@@ -231,7 +251,7 @@ export default function RankingPrediction() {
         </div>
 
         {/* Team Selection Area - 오른쪽 */}
-        <div style={{ marginTop: '60px' }}>
+        <div className="mt-6 md:mt-[60px]">
           {alreadySaved && (
             <div className="mb-4 px-6 py-8 rounded-lg bg-green-50 dark:bg-green-900/20 text-[#2d5f4f] dark:text-green-400">
               <p className="text-base font-bold text-center">
@@ -240,14 +260,14 @@ export default function RankingPrediction() {
             </div>
           )}
 
-          <h2 className="mb-4" style={{ color: '#2d5f4f' }}>
+          <h2 className="mb-4 text-[#2d5f4f] dark:text-emerald-400 font-bold text-lg">
             팀 선택
-            <span className="text-sm text-gray-500 ml-2">
+            <span className="text-sm text-gray-500 dark:text-gray-400 ml-2 font-normal">
               ({availableTeams.length}/10)
             </span>
           </h2>
 
-          <div className="rounded-xl border-2 bg-white dark:bg-gray-800 overflow-hidden" style={{ borderColor: '#2d5f4f' }}>
+          <div className="rounded-xl border-2 border-[#2d5f4f] dark:border-emerald-500 bg-white dark:bg-gray-800 overflow-hidden">
             {availableTeams.length > 0 ? (
               <div className="divide-y dark:divide-gray-700">
                 {availableTeams.map((team) => (
@@ -262,18 +282,18 @@ export default function RankingPrediction() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 border border-gray-100 flex-shrink-0">
                         <TeamLogo team={team.shortName} size={32} />
                       </div>
-                      <span style={{ fontWeight: 600 }} className="text-gray-900 dark:text-white">{team.name}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{team.name}</span>
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
               <div className="text-center py-8 px-4 text-gray-400">
-                <div className="mb-4 mx-auto" style={{ width: '60px' }}>
+                <div className="mb-4 mx-auto w-[60px]">
                   <OptimizedImage src={firstPlaceImage} alt="First Place" className="w-full h-auto object-contain" />
                 </div>
 
-                <p className="mb-4" style={{ color: '#2d5f4f', fontWeight: 900, fontSize: '1.5rem' }}>
+                <p className="mb-4 text-[#2d5f4f] dark:text-emerald-400 font-black text-2xl">
                   1위
                 </p>
 
@@ -288,8 +308,7 @@ export default function RankingPrediction() {
                 {!isPredictionSaved && !alreadySaved ? (
                   <Button
                     onClick={handleCompletePrediction}
-                    className="w-full text-white"
-                    style={{ backgroundColor: '#2d5f4f' }}
+                    className="w-full text-white bg-[#2d5f4f] hover:bg-[#244d40] dark:bg-emerald-600 dark:hover:bg-emerald-700"
                   >
                     예측 완료
                   </Button>
@@ -301,8 +320,7 @@ export default function RankingPrediction() {
                         handleShare();
                       }}
                       variant="outline"
-                      className="w-full border-2"
-                      style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+                      className="w-full border-2 border-[#2d5f4f] text-[#2d5f4f] dark:border-emerald-500 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                     >
                       공유하기
                     </Button>
@@ -311,8 +329,7 @@ export default function RankingPrediction() {
                   <div className="space-y-2">
                     <Button
                       onClick={handleSave}
-                      className="w-full text-white"
-                      style={{ backgroundColor: '#2d5f4f' }}
+                      className="w-full text-white bg-[#2d5f4f] hover:bg-[#244d40] dark:bg-emerald-600 dark:hover:bg-emerald-700"
                     >
                       저장하기
                     </Button>
@@ -322,8 +339,7 @@ export default function RankingPrediction() {
                         handleShare();
                       }}
                       variant="outline"
-                      className="w-full border-2"
-                      style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+                      className="w-full border-2 border-[#2d5f4f] text-[#2d5f4f] dark:border-emerald-500 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                     >
                       공유하기
                     </Button>
