@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+
 import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { NotificationData } from '../types/notification';
@@ -25,20 +25,13 @@ export const useNotificationSocket = () => {
             return;
         }
 
-        let socketUrl: string;
-
-        if (import.meta.env.DEV) {
-            // 개발 환경: 프록시 타겟(8080) 직접 사용 또는 로컬호스트
-            socketUrl = 'http://localhost:8080/ws';
-        } else {
-            // 배포 환경: 현재 도메인의 /ws 엔드포인트 사용 (Nginx 등이 라우팅)
-            const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-            socketUrl = `${protocol}//${window.location.host}/ws`;
-        }
+        // 프록시(Dev) 또는 Nginx(Prod)를 통해 연결되므로 상대 경로 사용 (WS 프로토콜)
+        // window.location.protocol이 http:면 ws:, https:면 wss:
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const brokerUrl = `${protocol}//${window.location.host}/ws`;
 
         const client = new Client({
-            // SockJS를 사용하는 factory 함수
-            webSocketFactory: () => new SockJS(socketUrl),
+            brokerURL: brokerUrl,
 
             // 재연결 설정
             reconnectDelay: 5000,

@@ -11,7 +11,8 @@ import {
     MoreVertical,
     Trash2,
     Edit2,
-    Bookmark
+    Bookmark,
+    Flag
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -27,6 +28,7 @@ import { TEAM_DATA } from '../constants/teams';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
 import UserProfileModal from './profile/UserProfileModal';
+import ReportModal from './ReportModal';
 
 export default function CheerDetail() {
     const { postId } = useParams();
@@ -51,6 +53,8 @@ export default function CheerDetail() {
 
     // Profile Modal State
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    // Report Modal State
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [viewingUserId, setViewingUserId] = useState<number | null>(null);
 
     useEffect(() => {
@@ -323,7 +327,7 @@ export default function CheerDetail() {
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-[#0E1117] pb-24 sm:pb-20">
             {/* Header */}
             <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-                <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full">
+                <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                     <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="font-bold truncate max-w-[200px]">게시글</div>
@@ -400,6 +404,17 @@ export default function CheerDetail() {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             )}
+
+                            {/* Report Button for non-owners */}
+                            {!selectedPost.isOwner && user && (
+                                <button
+                                    onClick={() => setIsReportModalOpen(true)}
+                                    className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                                    title="신고하기"
+                                >
+                                    <Flag className="w-5 h-5" />
+                                </button>
+                            )}
                         </div>
 
                         {/* Post Content */}
@@ -429,15 +444,15 @@ export default function CheerDetail() {
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
                                     selectedPost.likedByUser
-                                        ? "bg-red-50 text-red-500"
-                                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                                        ? "bg-red-50 dark:bg-red-900/20 text-red-500"
+                                        : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
                                 )}
                             >
                                 <Heart className={cn("w-5 h-5", selectedPost.likedByUser && "fill-current")} />
                                 <span className="font-semibold">{selectedPost.likes}</span>
                             </button>
 
-                            <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
+                            <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
                                 <MessageSquare className="w-5 h-5" />
                                 <span className="font-semibold">{commentCount}</span>
                             </button>
@@ -447,8 +462,8 @@ export default function CheerDetail() {
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-full transition-colors sm:ml-auto",
                                     selectedPost.isBookmarked
-                                        ? "bg-yellow-50 text-yellow-600"
-                                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                                        ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600"
+                                        : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
                                 )}
                             >
                                 <Bookmark className={cn("w-5 h-5", selectedPost.isBookmarked && "fill-current")} />
@@ -558,6 +573,11 @@ export default function CheerDetail() {
                     userId={viewingUserId}
                     isOpen={isProfileModalOpen}
                     onClose={() => setIsProfileModalOpen(false)}
+                />
+                <ReportModal
+                    postId={parsedPostId}
+                    isOpen={isReportModalOpen}
+                    onClose={() => setIsReportModalOpen(false)}
                 />
             </div>
         </div>

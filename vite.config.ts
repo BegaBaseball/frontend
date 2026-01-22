@@ -104,6 +104,11 @@ export default defineConfig(({ mode }) => {
           secure: false,
           rewrite: (path) => path.replace(/^\/ai/, ''),
         },
+        '/ws': {
+          target: proxyTarget,
+          ws: true,
+          changeOrigin: true,
+        },
       },
     },
   };

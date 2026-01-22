@@ -9,32 +9,28 @@
     <style>
       /* FOUC 방지: 다크모드일 때 CSS 로드 전 즉시 배경색 적용 */
       html.dark body {
-        background-color: #0c0a09; /* Tailwind gray-950 or neutral-950 hex */
-        color: #ffffff;
+        background-color: #020617; /* Tailwind Slate-950 (approx HSL 222 84% 4.9%) */
+        color: #f8fafc;
+      }
+      html.dark {
+        background-color: #020617;
       }
     </style>
 
     <!-- 테마 초기화 스크립트 (FOUC 방지) -->
     <script>
       (function() {
-        const theme = localStorage.getItem('bega-theme') || 'light';
+        // kbo-theme (신규) 또는 bega-theme (구형) 확인
+        const theme = localStorage.getItem('kbo-theme') || localStorage.getItem('bega-theme') || 'light';
         const root = document.documentElement;
         
-        // 기존 클래스 제거 (혹시 모를 중복 방지)
         root.classList.remove('light', 'dark');
         root.classList.add(theme);
-        
-        // 메타 태그 색상 변경 (모바일 브라우저 상단바 등)
-        /* 
-           참고: 실제 프로젝트 색상에 맞춰 조정 필요 
-           Light: #ffffff, Dark: #0c0a09 
-        */
-        /* 
-        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-        if (metaThemeColor) {
-           metaThemeColor.setAttribute('content', theme === 'dark' ? '#0c0a09' : '#ffffff');
-        } 
-        */
+
+        // 배경색 즉시 적용으로 깜빡임 최소화
+        if (theme === 'dark') {
+          document.body.style.backgroundColor = '#020617';
+        }
       })();
     </script>
 

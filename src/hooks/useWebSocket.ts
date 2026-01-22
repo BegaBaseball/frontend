@@ -1,5 +1,4 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
 
 interface ChatMessage {
@@ -17,21 +16,25 @@ interface UseWebSocketProps {
   enabled?: boolean;
 }
 
-const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080'; 
-
 export function useWebSocket({ partyId, onMessageReceived, enabled = true }: UseWebSocketProps) {
   const clientRef = useRef<Client | null>(null);
-  const [isConnected, setIsConnected] = useState(false); 
+  const [isConnected, setIsConnected] = useState(false);
 
   // WebSocket 연결
   useEffect(() => {
     if (!enabled || !partyId) {
-      setIsConnected(false); 
+      setIsConnected(false);
       return;
     }
 
+    // Determine WebSocket URL
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Development proxy handles /ws -> backend
+    // Production Nginx handles /ws -> backend
+    const brokerUrl = `${protocol}//${window.location.host}/ws`;
+
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws`),
+      brokerURL: brokerUrl,
       debug: (str) => {
         console.log('STOMP Debug:', str);
       },
@@ -54,12 +57,12 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
 
     client.onStompError = (frame) => {
       console.error('STOMP error:', frame);
-      setIsConnected(false); 
+      setIsConnected(false);
     };
 
     client.onWebSocketClose = () => {
       console.log('WebSocket Closed');
-      setIsConnected(false); 
+      setIsConnected(false);
     };
 
     client.activate();
@@ -69,7 +72,7 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
       if (client.active) {
         client.deactivate();
       }
-      setIsConnected(false); 
+      setIsConnected(false);
     };
   }, [partyId, enabled, onMessageReceived]);
 
@@ -96,11 +99,11 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
         console.error('Failed to send message:', error);
       }
     },
-    [partyId, isConnected] 
+    [partyId, isConnected]
   );
 
   return {
     sendMessage,
-    isConnected, 
+    isConnected,
   };
 }

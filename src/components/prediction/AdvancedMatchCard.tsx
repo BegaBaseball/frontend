@@ -66,7 +66,7 @@ export default function AdvancedMatchCard({
     <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-gray-800 transition-colors duration-200 mb-6">
 
       {/* 1. AI Insight Header */}
-      <div className="bg-gradient-to-r from-[#2d5f4f] to-[#1f4438] p-3 flex items-center gap-2">
+      <div className="bg-gradient-to-r from-[#2d5f4f] to-[#1f4438] dark:from-emerald-700 dark:to-emerald-800 p-3 flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse flex-shrink-0" />
         <p className="text-[10px] sm:text-xs text-white font-medium truncate">
           AI 분석: {game.aiSummary || "양 팀의 최근 전력을 바탕으로 한 박빙의 승부가 예상됩니다."}
@@ -83,12 +83,12 @@ export default function AdvancedMatchCard({
                 <TeamLogo team={game.awayTeam} size={36} className="md:w-12 md:h-12" />
               </div>
               {/* 투수 스탯 뱃지 */}
-              <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 bg-white dark:bg-gray-700 text-[8px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm font-bold dark:text-gray-200">
+              <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 bg-white dark:bg-gray-700 text-[7px] sm:text-[8px] md:text-[10px] px-1 sm:px-1.5 md:px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm font-bold dark:text-gray-200">
                 {awayPitcher.era}
               </div>
             </div>
-            <span className="font-bold text-sm md:text-lg text-gray-900 dark:text-white mt-1 md:mt-2 truncate w-full text-center">{getFullTeamName(game.awayTeam)}</span>
-            <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-0.5">{awayPitcher.name}</span>
+            <span className="font-bold text-xs sm:text-sm md:text-lg text-gray-900 dark:text-white mt-1 md:mt-2 truncate w-full text-center">{getFullTeamName(game.awayTeam)}</span>
+            <span className="text-[9px] sm:text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-full">{awayPitcher.name}</span>
           </div>
 
           {/* VS & Probability Info */}
@@ -113,10 +113,10 @@ export default function AdvancedMatchCard({
             )}
 
             {/* 승리 확률 Bar */}
-            <div className="w-full max-w-[80px] md:max-w-[120px] space-y-1">
-              <div className="flex justify-between text-[8px] md:text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tighter">
+            <div className="w-full max-w-[60px] sm:max-w-[80px] md:max-w-[120px] space-y-1">
+              <div className="flex justify-between text-[7px] sm:text-[8px] md:text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tighter">
                 <span>{Math.round(winProb.away)}%</span>
-                <span className="hidden md:inline">WIN PROB</span>
+                <span className="hidden sm:inline">WIN PROB</span>
                 <span>{Math.round(winProb.home)}%</span>
               </div>
               <div className="h-1 md:h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex">
@@ -138,12 +138,12 @@ export default function AdvancedMatchCard({
               <div className="flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 dark:bg-gray-800 dark:border-gray-700 shadow-sm transition-transform group-hover:scale-105">
                 <TeamLogo team={game.homeTeam} size={36} className="md:w-12 md:h-12" />
               </div>
-              <div className="absolute -bottom-1 -left-1 md:-bottom-2 md:-left-2 bg-white dark:bg-gray-700 text-[8px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm font-bold dark:text-gray-200">
+              <div className="absolute -bottom-1 -left-1 md:-bottom-2 md:-left-2 bg-white dark:bg-gray-700 text-[7px] sm:text-[8px] md:text-[10px] px-1 sm:px-1.5 md:px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm font-bold dark:text-gray-200">
                 {homePitcher.era}
               </div>
             </div>
-            <span className="font-bold text-sm md:text-lg text-gray-900 dark:text-white mt-1 md:mt-2 truncate w-full text-center">{getFullTeamName(game.homeTeam)}</span>
-            <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-0.5">{homePitcher.name}</span>
+            <span className="font-bold text-xs sm:text-sm md:text-lg text-gray-900 dark:text-white mt-1 md:mt-2 truncate w-full text-center">{getFullTeamName(game.homeTeam)}</span>
+            <span className="text-[9px] sm:text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-full">{homePitcher.name}</span>
           </div>
         </div>
 
@@ -152,7 +152,9 @@ export default function AdvancedMatchCard({
           <div className="flex gap-2 md:gap-3 mt-4 md:mt-6">
             <Button
               onClick={() => onVote('away')}
-              className="flex-1 py-4 md:py-6 text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
+              aria-pressed={userVote === 'away'}
+              aria-label={`${getFullTeamName(game.awayTeam)} 승리 예측`}
+              className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
               style={{
                 backgroundColor: TEAM_COLORS[game.awayTeam],
                 fontWeight: 700,
@@ -169,7 +171,9 @@ export default function AdvancedMatchCard({
             </Button>
             <Button
               onClick={() => onVote('home')}
-              className="flex-1 py-4 md:py-6 text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
+              aria-pressed={userVote === 'home'}
+              aria-label={`${getFullTeamName(game.homeTeam)} 승리 예측`}
+              className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
               style={{
                 backgroundColor: TEAM_COLORS[game.homeTeam],
                 fontWeight: 700,

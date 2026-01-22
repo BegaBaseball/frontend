@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, ImagePlus, Smile } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
+import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
+import { useTheme } from '../hooks/useTheme';
 import {
     Dialog,
     DialogContent,
@@ -36,7 +38,24 @@ export default function CheerWriteModal({
     const [files, setFiles] = useState<File[]>([]);
     const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const { theme } = useTheme();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+                setShowEmojiPicker(false);
+            }
+        };
+        if (showEmojiPicker) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showEmojiPicker]);
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
@@ -80,6 +99,10 @@ export default function CheerWriteModal({
             URL.revokeObjectURL(prev[index].url);
             return prev.filter((_, i) => i !== index);
         });
+    };
+
+    const handleEmojiClick = (emojiData: { emoji: string }) => {
+        setContent(prev => prev + emojiData.emoji);
     };
 
     const handleSubmit = async () => {
@@ -153,9 +176,28 @@ export default function CheerWriteModal({
                                     >
                                         <ImagePlus className="w-5 h-5" />
                                     </button>
-                                    <button type="button" className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-colors">
-                                        <Smile className="w-5 h-5" />
-                                    </button>
+                                    <div className="relative" ref={emojiPickerRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                            className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-colors"
+                                        >
+                                            <Smile className="w-5 h-5" />
+                                        </button>
+                                        {showEmojiPicker && (
+                                            <div className="absolute top-0 left-full z-50 ml-2 sm:left-auto sm:right-0 sm:top-full sm:mt-2">
+                                                <EmojiPicker
+                                                    onEmojiClick={handleEmojiClick}
+                                                    theme={theme === 'dark' ? EmojiTheme.DARK : EmojiTheme.LIGHT}
+                                                    lazyLoadEmojis={true}
+                                                    skinTonesDisabled={true}
+                                                    searchPlaceHolder="이모지 검색..."
+                                                    width={300}
+                                                    height={400}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                     <input
                                         ref={fileInputRef}
                                         type="file"
