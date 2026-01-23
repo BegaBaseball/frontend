@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Bell, MessageCircle, MessageSquare, Heart } from 'lucide-react';
+import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText, Repeat2 } from 'lucide-react';
 import { useNotificationStore } from '../store/notificationStore';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
@@ -56,8 +56,15 @@ export default function NotificationPanel() {
       } else if (notification.type === 'APPLICATION_APPROVED' || notification.type === 'APPLICATION_REJECTED') {
         // 신청자: 파티 상세 페이지로
         navigate(`/mate/${notification.relatedId}`);
-      } else if (notification.type === 'POST_COMMENT' || notification.type === 'COMMENT_REPLY' || notification.type === 'POST_LIKE') {
+      } else if (notification.type === 'POST_COMMENT' || notification.type === 'COMMENT_REPLY' || notification.type === 'POST_LIKE' || notification.type === 'POST_REPOST') {
         // 응원게시판: 게시글 상세 페이지로
+        navigate(`/cheer/${notification.relatedId}`);
+      } else if (notification.type === 'NEW_FOLLOWER') {
+        // 새 팔로워: relatedId는 팔로워의 userId
+        // TODO: 프로필 페이지 구현 후 경로 업데이트
+        navigate(`/cheer`);
+      } else if (notification.type === 'FOLLOWING_NEW_POST') {
+        // 팔로우한 유저의 새 게시글: relatedId는 postId
         navigate(`/cheer/${notification.relatedId}`);
       }
     } catch (error) {
@@ -93,6 +100,14 @@ export default function NotificationPanel() {
         return <MessageSquare className="w-5 h-5 text-purple-500" />;
       case 'POST_LIKE':
         return <Heart className="w-5 h-5 text-pink-500" />;
+      case 'POST_REPOST':
+        return <Repeat2 className="w-5 h-5 text-emerald-500" />;
+
+      // 팔로우 관련
+      case 'NEW_FOLLOWER':
+        return <UserPlus className="w-5 h-5 text-green-500" />;
+      case 'FOLLOWING_NEW_POST':
+        return <FileText className="w-5 h-5 text-blue-500" />;
 
       default:
         return <Bell className="w-5 h-5 text-gray-500" />;

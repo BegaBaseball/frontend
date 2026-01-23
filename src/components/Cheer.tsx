@@ -7,7 +7,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Radio, Smile, UserRound, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getTeamDescription, TEAM_DATA } from '../constants/teams';
-import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchPosts, getTeamNameById, uploadPostImages } from '../api/cheerApi';
+import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages } from '../api/cheerApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
 import TeamLogo from './TeamLogo';
@@ -87,7 +87,7 @@ export default function Cheer() {
         () => [
             { key: 'all', label: '전체', postType: undefined },
             { key: 'popular', label: '인기', postType: undefined, sort: 'views,desc' },
-            { key: 'GAME', label: '경기', postType: 'GAME' },
+            { key: 'following', label: '팔로우', postType: undefined, requireAuth: true },
         ],
         []
     );
@@ -159,6 +159,7 @@ export default function Cheer() {
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     const observerRef = useRef<IntersectionObserver | null>(null);
     const previewsRef = useRef<{ file: File; url: string }[]>([]);
+    const retryCount = useRef(0); // For infinite scroll smart retry
 
     useEffect(() => {
         previewsRef.current = composerPreviews;
@@ -394,28 +395,63 @@ export default function Cheer() {
         fetchNextPage,
     } = useInfiniteQuery({
         queryKey: ['cheer-posts', activeFeedTab],
-        queryFn: ({ pageParam = 0 }) =>
-            fetchPosts({
-                teamId: favoriteTeamId || 'all',
+        queryFn: ({ pageParam = 0 }) => {
+            // 팔로우 탭: 팔로우한 유저의 게시글만 조회
+            if (activeFeedTab === 'following') {
+                return fetchFollowingPosts({
+                    page: pageParam as number,
+                    size: 20,
+                });
+            }
+            return fetchPosts({
+                // Force 'all' to allow viewing/commenting on all posts regardless of user's favorite team.
+                // Previously: teamId: favoriteTeamId || 'all' (Restricted view)
+                teamId: 'all',
                 page: pageParam as number,
                 size: 20,
                 postType: activeTabConfig?.postType as 'NORMAL' | 'NOTICE' | null,
                 sort: activeTabConfig?.sort
-            }),
-        getNextPageParam: (lastPage) =>
-            lastPage.last ? undefined : lastPage.number + 1,
+            });
+        },
+        getNextPageParam: (lastPage, allPages) => {
+            // Fallback logic if 'last' or 'number' is missing (which seems to be the case based on logs)
+            // If content is empty or less than page size (20), we assume it's the last page.
+            // RELAXED: Only stop if strictly empty, to handle backend filtering or irregular page sizes.
+            if (!lastPage || !lastPage.content || lastPage.content.length === 0) {
+                return undefined;
+            }
+            // If explicit 'last' exists, use it
+            if (lastPage.last) return undefined;
+
+            // Otherwise, infer next page number from allPages length
+            // allPages[0] is page 0, so length is the next page index.
+            // e.g. allPages has 1 item (page 0), next is 1.
+            return allPages.length;
+        },
         initialPageParam: 0,
         staleTime: 60 * 1000, // 1 minute
         gcTime: 5 * 60 * 1000, // 5 minutes
+        // 팔로우 탭은 로그인 필수
+        enabled: activeFeedTab !== 'following' || !!user,
     });
 
-    const currentPosts = data?.pages.flatMap((page) => page.content) ?? [];
+    const currentPosts = useMemo(() => {
+        if (!data?.pages) return [];
+        const flattened = data.pages.flatMap((page) => page?.content ?? []);
+        const seen = new Set<number>();
+        return flattened.filter((post) => {
+            if (!post || !post.id) return false;
+            if (seen.has(post.id)) return false;
+            seen.add(post.id);
+            return true;
+        });
+    }, [data]);
 
     // Polling for new posts
     const { data: polledData } = useQuery({
         queryKey: ['cheer-polling', activeFeedTab],
         queryFn: () => fetchPosts({
-            teamId: favoriteTeamId || 'all',
+            teamId: 'all',
             page: 0,
             size: 10,
             postType: activeTabConfig?.postType as 'NORMAL' | 'NOTICE' | null
@@ -437,6 +473,47 @@ export default function Cheer() {
             setNewPostCount(newCount);
         }
     }, [polledData, currentPosts]);
+
+    // Smart Retry for Infinite Scroll (Fix for Duplicate/Offset Loop)
+    useEffect(() => {
+        try {
+            if (!isFetchingNextPage && hasNextPage && data?.pages) {
+                const lastPage = data.pages[data.pages.length - 1];
+
+                // If the last page has content, check if it contributed any *new* unique items.
+                if (lastPage?.content?.length > 0) {
+                    // Safe mapping with null checks
+                    const lastPageIds = new Set(
+                        (lastPage.content as any[])
+                            .filter(p => p && typeof p.id === 'number')
+                            .map(p => p.id)
+                    );
+
+                    const previousPagesContent = data.pages.slice(0, -1).flatMap(p => p.content ?? []);
+                    const previousIds = new Set(
+                        (previousPagesContent as any[])
+                            .filter(p => p && typeof p.id === 'number')
+                            .map(p => p.id)
+                    );
+
+                    // Count how many items in the LAST page are valid (not in previous pages)
+                    const newUniqueItems = [...lastPageIds].filter(id => !previousIds.has(id)).length;
+
+                    if (newUniqueItems === 0 && retryCount.current < 5) {
+                        // Last page was ALL duplicates. Fetch next immediately to break the loop.
+                        retryCount.current += 1;
+                        fetchNextPage();
+                    } else if (newUniqueItems > 0) {
+                        // We found some new content! Reset retry count.
+                        retryCount.current = 0;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Smart Retry Logic Error:", error);
+        }
+    }, [data, isFetchingNextPage, hasNextPage, fetchNextPage]);
+
 
     const handleNewPostsClick = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -737,10 +814,32 @@ export default function Cheer() {
                                         다시 시도
                                     </button>
                                 </div>
+                            ) : activeFeedTab === 'following' && !user ? (
+                                <div className="border-b border-[#EFF3F4] dark:border-[#232938] px-6 py-12 text-center">
+                                    <p className="text-[#64748B] dark:text-slate-400">로그인이 필요합니다</p>
+                                    <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">팔로우한 유저의 글을 보려면 로그인해주세요.</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/login')}
+                                        className="mt-4 rounded-full px-6 py-2 text-sm font-semibold text-white"
+                                        style={{ backgroundColor: teamColor }}
+                                    >
+                                        로그인하기
+                                    </button>
+                                </div>
                             ) : currentPosts.length === 0 ? (
                                 <div className="border-b border-[#EFF3F4] dark:border-[#232938] px-6 py-12 text-center">
-                                    <p className="text-[#64748B] dark:text-slate-400">아직 작성된 응원글이 없습니다.</p>
-                                    <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">첫 번째 응원글을 남겨보세요!</p>
+                                    {activeFeedTab === 'following' ? (
+                                        <>
+                                            <p className="text-[#64748B] dark:text-slate-400">팔로우한 유저가 없습니다</p>
+                                            <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">다른 유저를 팔로우하면 여기에 글이 표시됩니다!</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-[#64748B] dark:text-slate-400">아직 작성된 응원글이 없습니다.</p>
+                                            <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">첫 번째 응원글을 남겨보세요!</p>
+                                        </>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="px-4 py-4 space-y-3">

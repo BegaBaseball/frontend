@@ -8,11 +8,48 @@ export interface AnalyzeRequest {
     question_override?: string;
 }
 
+// Structured dashboard stat
+export interface DashboardStat {
+    label: string;
+    value: string;
+    status: string;
+    trend: 'up' | 'down' | 'neutral';
+    is_critical: boolean;
+}
+
+// Dashboard section
+export interface CoachDashboard {
+    headline: string;
+    context: string;
+    sentiment: 'positive' | 'negative' | 'neutral';
+    stats: DashboardStat[];
+}
+
+// Metric card data
+export interface CoachMetric {
+    category: string;
+    name: string;
+    value: string;
+    description: string;
+    risk_level: 0 | 1 | 2; // 0=danger, 1=warning, 2=success
+    trend: 'up' | 'down' | 'neutral';
+}
+
+// Structured response data from LLM
+export interface CoachAnalysisData {
+    dashboard: CoachDashboard;
+    metrics: CoachMetric[];
+    detailed_analysis: string;
+    coach_note: string;
+}
+
+// API Response wrapper
 export interface CoachAnalyzeResponse {
-    answer?: string;
-    tool_calls?: Array<any>;
+    data?: CoachAnalysisData;
+    raw_answer?: string;  // For debugging
+    tool_calls?: Array<unknown>;
     verified?: boolean;
-    data_sources?: Array<any>;
+    data_sources?: Array<unknown>;
     error?: string;
 }
 

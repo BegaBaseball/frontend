@@ -4,6 +4,7 @@ import { TrendingUp, ChevronLeft, ChevronRight, Trophy, Flame, Target, Coins } f
 import ChatBot from './ChatBot';
 import RankingPrediction from './RankingPrediction';
 import AdvancedMatchCard from './prediction/AdvancedMatchCard';
+import CoachBriefing from './CoachBriefing';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -174,7 +175,7 @@ export default function Prediction() {
             <TrendingUp className="w-6 h-6 text-white dark:text-gray-900" />
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">KBO 예측</h2>
+            <h2 className="text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">AI 승부 분석</h2>
           </div>
           {isLoggedIn && (
             <div className="flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50 rounded-full">
@@ -186,55 +187,13 @@ export default function Prediction() {
           )}
         </div>
 
-        {/* User Stats Widget (Gamification) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex flex-col sm:flex-row items-center gap-2 md:gap-3">
-            <div className="p-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
-              <Target className="w-5 h-5" />
-            </div>
-            <div className="text-center sm:text-left">
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">적중률</p>
-              <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.accuracy}%</p>
-            </div>
-          </Card>
-          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex flex-col sm:flex-row items-center gap-2 md:gap-3">
-            <div className={`p-2 rounded-full shrink-0 ${dummyUserStats.streak >= 3 ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 animate-pulse' : 'bg-gray-100 text-gray-500'}`}>
-              <Flame className="w-5 h-5" />
-            </div>
-            <div className="text-center sm:text-left">
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">연승 도전</p>
-              <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.streak}연승</p>
-            </div>
-          </Card>
-          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm flex flex-col sm:flex-row items-center gap-2 md:gap-3 col-span-2 md:col-span-1">
-            <div className="p-2 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shrink-0">
-              <Trophy className="w-5 h-5" />
-            </div>
-            <div className="text-center sm:text-left">
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">총 예측</p>
-              <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{dummyUserStats.totalPredictions}회</p>
-            </div>
-          </Card>
-          {/* 추가 스탯 자리 or 광고 배너 */}
-          {/* 포인트 표시 (로그인 시) 또는 로그인 유도 */}
-          <div className="hidden md:flex items-center justify-center rounded-xl bg-gradient-to-r from-[#2d5f4f] to-[#1f4438] text-white p-4 shadow-sm">
-            {isLoggedIn ? (
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-full">
-                  <Coins className="w-5 h-5 text-yellow-300 fill-yellow-300" />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs text-gray-200">보유 포인트</p>
-                  <p className="text-lg font-bold tabular-nums text-white">
-                    {user?.cheerPoints?.toLocaleString() || 0} P
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <span className="text-sm font-medium opacity-90">로그인하고 승부 예측에 참여하세요!</span>
-            )}
-          </div>
-        </div>
+        {/* Coach Briefing Widget */}
+        <CoachBriefing
+          game={currentGame}
+          votePercentages={votePercentages}
+          totalVotes={currentVotes.home + currentVotes.away}
+          isToday={isToday}
+        />
 
         {/* Tabs */}
         <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-xl md:rounded-2xl mb-6 md:mb-8 w-full md:w-fit">

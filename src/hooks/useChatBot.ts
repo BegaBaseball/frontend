@@ -138,6 +138,9 @@ export const useChatBot = () => {
       } else if (errorMessage === 'STATUS_503') {
         toast.error('서비스 점검 중이거나 일시적인 오류입니다.');
         streamingBuffer.current += `\n\n(시스템) 🔧 서비스 점검 중이거나 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.`;
+      } else if (errorMessage === 'STREAM_TIMEOUT') {
+        toast.error('응답 시간이 초과되었습니다.');
+        streamingBuffer.current += `\n\n(시스템) ⏱️ 응답 시간이 초과되었습니다. 네트워크 상태를 확인하거나 잠시 후 다시 시도해주세요.`;
       } else {
         streamingBuffer.current += `\n죄송합니다, 오류가 발생했습니다: ${errorMessage}`;
       }

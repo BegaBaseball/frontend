@@ -83,9 +83,7 @@ export default function App() {
   const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
-  useEffect(() => {
-    fetchProfileAndAuthenticate();
-  }, [fetchProfileAndAuthenticate]);
+
 
   useEffect(() => {
     const handleSessionExpired = () => {

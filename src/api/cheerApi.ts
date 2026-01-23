@@ -72,6 +72,7 @@ export interface CheerPost {
     bookmarked: boolean;
     isBookmarked: boolean; // compatibility
     isOwner: boolean;
+    repostedByMe: boolean;
     imageUrls?: string[];
     images?: string[]; // compatibility
     comments: number; // Changed from any[] to number (count)
@@ -113,6 +114,11 @@ export interface LikeToggleResponse {
     likes: number;
 }
 
+export interface RepostToggleResponse {
+    reposted: boolean;
+    count: number;
+}
+
 export interface Comment {
     id: number;
     author: string;
@@ -149,6 +155,13 @@ export const fetchPosts = async (params: FetchPostsParams = {}): Promise<PageRes
 export const fetchHotPosts = async (params: FetchPostsParams = {}): Promise<PageResponse<CheerPost>> => {
     const { page = 0, size = 20 } = params;
     const response = await api.get(`/cheer/posts/hot?page=${page}&size=${size}`);
+    return transformPostPage(response.data);
+};
+
+// 팔로우한 유저들의 게시글 조회 (팔로우 피드)
+export const fetchFollowingPosts = async (params: FetchPostsParams = {}): Promise<PageResponse<CheerPost>> => {
+    const { page = 0, size = 20 } = params;
+    const response = await api.get(`/cheer/posts/following?page=${page}&size=${size}`);
     return transformPostPage(response.data);
 };
 
@@ -201,6 +214,7 @@ function transformPost(post: any): CheerPost {
         images: post.imageUrls || [],
         imageUrls: post.imageUrls || [],
         isOwner: post.isOwner ?? false,
+        repostedByMe: post.repostedByMe ?? false,
         isHot: post.isHot ?? false,
         postType: post.postType,
         createdAt: post.createdAt,
@@ -308,8 +322,8 @@ export async function toggleBookmark(postId: number) {
     return response.data;
 }
 
-// 재게시 (Repost)
-export async function repost(postId: number): Promise<number> {
+// 재게시 (Repost) 토글
+export async function toggleRepost(postId: number): Promise<RepostToggleResponse> {
     const response = await api.post(`/cheer/posts/${postId}/repost`);
     return response.data;
 }
@@ -383,5 +397,15 @@ export interface PostImageDto {
 // 게시글 이미지 목록 조회 (ID 포함)
 export async function fetchPostImages(postId: number): Promise<PostImageDto[]> {
     const response = await api.get(`/cheer/posts/${postId}/images`);
+    return response.data;
+}
+// Cheer Battle Status
+export interface CheerBattleStatus {
+    stats: Record<string, number>;
+    myVote: string | null;
+}
+
+export async function getCheerBattleStatus(gameId: string): Promise<CheerBattleStatus> {
+    const response = await api.get(`/cheer/battle/${gameId}/status`);
     return response.data;
 }

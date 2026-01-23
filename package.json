@@ -58,6 +58,7 @@
             "react-router-dom": "^7.9.6",
             "react-textarea-autosize": "^8.5.9",
             "recharts": "^2.15.2",
+            "rehype-raw": "^7.0.0",
             "remark-gfm": "^4.0.0",
             "sockjs-client": "^1.6.1",
             "sonner": "^2.0.3",

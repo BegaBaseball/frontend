@@ -29,8 +29,19 @@ export default function CheerBattleBar({ gameId, homeTeam, awayTeam }: CheerBatt
     const [totalVotes, setTotalVotes] = useState(0);
     const [myVote, setMyVote] = useState<string | null>(null); // Track user's voted team
 
-    // Connect to WebSocket
+    // Connect to WebSocket & Fetch Initial Status
     useEffect(() => {
+        // 1. Fetch Initial Status (including my vote)
+        import('../api/cheerApi').then(({ getCheerBattleStatus }) => {
+            getCheerBattleStatus(gameId).then(data => {
+                setStats(data.stats);
+                setMyVote(data.myVote);
+                const total = Object.values(data.stats).reduce((a, b) => a + b, 0);
+                setTotalVotes(total);
+            }).catch(console.error);
+        });
+
+        // 2. Connect WebSocket
         const newClient = new Client({
             brokerURL: 'ws://localhost:8080/ws/websocket',
             onConnect: () => {

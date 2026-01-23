@@ -5,7 +5,10 @@ export type NotificationType =
   | 'APPLICATION_CANCELLED'
   | 'POST_COMMENT'
   | 'COMMENT_REPLY'
-  | 'POST_LIKE';
+  | 'POST_LIKE'
+  | 'POST_REPOST'
+  | 'NEW_FOLLOWER'
+  | 'FOLLOWING_NEW_POST';
 
 export interface NotificationData {
   id: number;
