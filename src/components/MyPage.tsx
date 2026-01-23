@@ -9,7 +9,6 @@ import AccountSettingsSection from './mypage/AccountSettingsSection';
 import DiaryViewSection from './mypage/Diaryform';
 import DiaryStatistics from './mypage/Diarystatistics';
 import MateHistorySection from './mypage/MateHistorySection';
-import CoachBriefing from './CoachBriefing';
 import { useMyPage } from '../hooks/useMyPage';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -83,7 +82,7 @@ export default function MyPage() {
 
             {/* 버튼들 */}
             <div className={`${isDesktop ? 'flex items-center gap-3' : 'grid grid-cols-2 gap-3'}`}>
-              <CoachBriefing />
+
 
               <Button
                 onClick={() => setViewMode('mateHistory')}

@@ -283,17 +283,24 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
                         <button
                             type="button"
-                            className="group/repost flex items-center gap-1.5 rounded-full transition-colors hover:text-emerald-500"
+                            className={`group/repost flex items-center gap-1.5 rounded-full transition-colors ${post.repostedByMe ? 'text-emerald-500' : 'hover:text-emerald-500'
+                                }`}
                             onClick={handleRepostClick}
-                            aria-label={`리포스트 ${post.repostCount}회`}
+                            aria-label={post.repostedByMe ? `리포스트 취소 (현재 ${post.repostCount}회)` : `리포스트 (현재 ${post.repostCount}회)`}
+                            aria-pressed={post.repostedByMe}
                         >
-                            <span className="relative rounded-full p-2 transition-colors group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20">
+                            <span
+                                className={`relative rounded-full p-2 transition-all duration-200 ${post.repostedByMe ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'
+                                    }`}
+                            >
                                 {repostAnimating && (
-                                    <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-500/20 animate-like-ring" />
+                                    <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-500/30 animate-like-ring" />
                                 )}
                                 <Repeat2
-                                    className={`h-[18px] w-[18px] ${repostAnimating ? 'animate-like-pop' : ''
-                                        }`}
+                                    className={`h-[18px] w-[18px] transition-all duration-200 ${post.repostedByMe
+                                        ? 'text-emerald-500 scale-110'
+                                        : ''
+                                        } ${repostAnimating ? 'animate-like-pop' : ''}`}
                                 />
                             </span>
                             <RollingNumber value={post.repostCount} />

@@ -52,6 +52,18 @@ export const TEAM_NAME_TO_ID: { [key: string]: string } = {
   '롯데': 'LT',
   '기아': 'HT',
   '한화': 'HH',
+  // Full Name Mappings
+  'LG 트윈스': 'LG',
+  '두산 베어스': 'OB',
+  'SSG 랜더스': 'SK',
+  'KT 위즈': 'KT',
+  '키움 히어로즈': 'WO',
+  'NC 다이노스': 'NC',
+  '삼성 라이온즈': 'SS',
+  '롯데 자이언츠': 'LT',
+  '기아 타이거즈': 'HT',
+  'KIA 타이거즈': 'HT',
+  '한화 이글스': 'HH',
 };
 
 /**
@@ -75,4 +87,14 @@ export const TEAM_DESCRIPTIONS: { [key: string]: string } = {
  */
 export const getTeamDescription = (team: string): string => {
   return TEAM_DESCRIPTIONS[team] || '멋진 선택이에요! 함께 응원하며 즐거운 야구 생활을 시작해보세요.';
+};
+
+/**
+ * 무작위 팀 이름 가져오기
+ */
+export const getRandomTeamName = (): string => {
+  // Filter out '없음' which is usually the first item
+  const teams = TEAM_LIST.filter(t => t !== '없음');
+  const randomIndex = Math.floor(Math.random() * teams.length);
+  return teams[randomIndex];
 };

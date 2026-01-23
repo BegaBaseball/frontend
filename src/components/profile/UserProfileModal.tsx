@@ -2,10 +2,14 @@ import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
-import { Loader2, User, Trophy, Quote } from 'lucide-react';
+import { Loader2, User, Trophy, Quote, Users } from 'lucide-react';
 import { PublicUserProfile } from '../../types/profile';
 import { fetchPublicUserProfile } from '../../api/profile';
 import { getTeamKoreanName } from '../../utils/teamNames';
+import { getFollowCounts, FollowCountResponse } from '../../api/followApi';
+import FollowButton from './FollowButton';
+import BlockButton from './BlockButton';
+import { useAuthStore } from '../../store/authStore';
 
 interface UserProfileModalProps {
     userId: number | null;
@@ -14,15 +18,19 @@ interface UserProfileModalProps {
 }
 
 export default function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalProps) {
+    const { user: currentUser } = useAuthStore();
     const [profile, setProfile] = useState<PublicUserProfile | null>(null);
+    const [followCounts, setFollowCounts] = useState<FollowCountResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen && userId) {
             loadProfile(userId);
+            loadFollowCounts(userId);
         } else {
             setProfile(null);
+            setFollowCounts(null);
             setError(null);
         }
     }, [isOpen, userId]);
@@ -39,6 +47,25 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const loadFollowCounts = async (id: number) => {
+        try {
+            const data = await getFollowCounts(id);
+            setFollowCounts(data);
+        } catch (err) {
+            console.error('Failed to load follow counts:', err);
+        }
+    };
+
+    const handleFollowChange = (response: any) => {
+        setFollowCounts((prev) => prev ? {
+            ...prev,
+            followerCount: response.followerCount,
+            followingCount: response.followingCount,
+            isFollowedByMe: response.following,
+            notifyNewPosts: response.notifyNewPosts,
+        } : null);
     };
 
     const getTeamColor = (teamName: string | null) => {
@@ -87,6 +114,38 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
                                     <span className="text-sm text-gray-500">응원팀 없음</span>
                                 )}
                             </div>
+
+                            {/* Follower/Following Counts */}
+                            {followCounts && (
+                                <div className="flex items-center justify-center gap-6 text-sm">
+                                    <div className="flex items-center gap-1">
+                                        <Users className="w-4 h-4 text-gray-400" />
+                                        <span className="font-semibold text-gray-900 dark:text-white">{followCounts.followerCount}</span>
+                                        <span className="text-gray-500">팔로워</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <span className="font-semibold text-gray-900 dark:text-white">{followCounts.followingCount}</span>
+                                        <span className="text-gray-500">팔로잉</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Follow & Block Buttons */}
+                            {currentUser && userId && currentUser.id !== userId && (
+                                <div className="flex items-center gap-2">
+                                    <FollowButton
+                                        userId={userId}
+                                        initialFollowing={followCounts?.isFollowedByMe ?? false}
+                                        initialNotify={followCounts?.notifyNewPosts ?? false}
+                                        onFollowChange={handleFollowChange}
+                                    />
+                                    <BlockButton
+                                        userId={userId}
+                                        userName={profile.name}
+                                        size="sm"
+                                    />
+                                </div>
+                            )}
 
                             {/* Bio Section */}
                             <div className="w-full bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5 relative mt-4">

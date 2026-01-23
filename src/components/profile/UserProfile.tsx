@@ -81,7 +81,11 @@ export default function UserProfile() {
         );
     }
 
+    // 중복 게시글 제거 (페이지네이션 사이에 데이터 변경으로 중복 발생 가능)
     const allPosts = postsData?.pages.flatMap((page) => page.content) || [];
+    const uniquePosts = allPosts.filter(
+        (post, index, self) => index === self.findIndex((p) => p.id === post.id)
+    );
 
     return (
         <div className="max-w-2xl mx-auto px-4 py-8">
@@ -159,9 +163,9 @@ export default function UserProfile() {
                         <div className="flex justify-center py-12">
                             <Loader2 className="h-8 w-8 animate-spin text-[#2d5f4f]" />
                         </div>
-                    ) : allPosts.length > 0 ? (
+                    ) : uniquePosts.length > 0 ? (
                         <div className="space-y-4">
-                            {allPosts.map((post) => (
+                            {uniquePosts.map((post) => (
                                 <CheerCard key={post.id} post={post} />
                             ))}
                             {isFetchingNextPage && (
@@ -169,7 +173,7 @@ export default function UserProfile() {
                                     <Loader2 className="h-6 w-6 animate-spin text-[#2d5f4f]" />
                                 </div>
                             )}
-                            {!hasNextPage && allPosts.length > 0 && <EndOfFeed />}
+                            {!hasNextPage && uniquePosts.length > 0 && <EndOfFeed />}
                         </div>
                     ) : (
                         <div className="text-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
