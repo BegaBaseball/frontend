@@ -1,5 +1,5 @@
 import api from './axios';
-import { Game } from '../types/prediction';
+import { Game, GameDetail } from '../types/prediction';
 
 /**
  * 과거 경기 데이터 가져오기
@@ -22,6 +22,14 @@ export const fetchMatchesByRange = async (startDate: string, endDate: string): P
  */
 export const fetchMatchesByDate = async (date: string): Promise<Game[]> => {
   const response = await api.get<Game[]>(`/matches?date=${date}`);
+  return response.data;
+};
+
+/**
+ * 특정 경기 상세 데이터 가져오기
+ */
+export const fetchGameDetail = async (gameId: string): Promise<GameDetail> => {
+  const response = await api.get<GameDetail>(`/matches/${gameId}`);
   return response.data;
 };
 

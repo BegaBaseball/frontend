@@ -68,8 +68,6 @@ export const useAuthStore = create<AuthState>()(
           if (response.status === 200) {
             const result = response.data;
             const profile = result.data;
-            console.log('Fetched Profile from API:', profile); // Debug log
-            console.log('Cheer Points:', profile.cheerPoints); // Debug log
             const isAdminUser = profile.role === 'ROLE_ADMIN' || profile.role === 'ROLE_SUPER_ADMIN';
 
             set({

@@ -3,14 +3,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
-import { Game, DateGames, VoteStatus, ConfirmDialogData, VoteTeam, PredictionTab } from '../types/prediction';
+import { Game, DateGames, VoteStatus, ConfirmDialogData, VoteTeam, PredictionTab, GameDetail } from '../types/prediction';
 import {
   fetchMatchesByDate,
   fetchMatchesByRange,
   fetchAllUserVotes as fetchAllUserVotesAPI,
   fetchVoteStatus,
   submitVote,
-  cancelVote
+  cancelVote,
+  fetchGameDetail
 } from '../api/prediction';
 import {
   groupByDate,
@@ -38,6 +39,10 @@ export const usePrediction = () => {
 
   // 사용자 투표
   const [userVote, setUserVote] = useState<{ [key: string]: VoteTeam | null }>({});
+
+  // 경기 상세 정보
+  const [gameDetails, setGameDetails] = useState<{ [key: string]: GameDetail | null }>({});
+  const [gameDetailLoading, setGameDetailLoading] = useState<{ [key: string]: boolean }>({});
 
   // 다이얼로그 상태
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -73,6 +78,29 @@ export const usePrediction = () => {
       }
     }
   }, [selectedGame, allDatesData, currentDateIndex]);
+
+  // 경기 상세 정보 가져오기
+  useEffect(() => {
+    const currentDateGames = allDatesData[currentDateIndex]?.games || [];
+    if (currentDateGames.length === 0) return;
+
+    const currentGameId = currentDateGames[selectedGame]?.gameId;
+    if (!currentGameId || gameDetails[currentGameId] !== undefined) return;
+
+    const loadGameDetail = async () => {
+      try {
+        setGameDetailLoading((prev) => ({ ...prev, [currentGameId]: true }));
+        const detail = await fetchGameDetail(currentGameId);
+        setGameDetails((prev) => ({ ...prev, [currentGameId]: detail }));
+      } catch {
+        setGameDetails((prev) => ({ ...prev, [currentGameId]: null }));
+      } finally {
+        setGameDetailLoading((prev) => ({ ...prev, [currentGameId]: false }));
+      }
+    };
+
+    loadGameDetail();
+  }, [selectedGame, allDatesData, currentDateIndex, gameDetails]);
 
   // 모든 경기 데이터 가져오기
   const fetchAllGames = async () => {
@@ -231,6 +259,9 @@ export const usePrediction = () => {
   // 현재 날짜의 경기 정보
   const currentDateGames = allDatesData[currentDateIndex]?.games || [];
   const currentDate = allDatesData[currentDateIndex]?.date || getTodayString();
+  const currentGameId = currentDateGames[selectedGame]?.gameId;
+  const currentGameDetail = currentGameId ? gameDetails[currentGameId] ?? null : null;
+  const currentGameDetailLoading = currentGameId ? !!gameDetailLoading[currentGameId] : false;
 
   return {
     // State
@@ -245,6 +276,8 @@ export const usePrediction = () => {
     loading,
     votes,
     userVote,
+    currentGameDetail,
+    currentGameDetailLoading,
     isAuthLoading,
     isLoggedIn,
 

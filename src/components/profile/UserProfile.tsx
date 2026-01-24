@@ -8,12 +8,15 @@ import { Loader2, User, Trophy, Quote, ArrowLeft } from 'lucide-react';
 import { getTeamKoreanName } from '../../utils/teamNames';
 import CheerCard from '../CheerCard';
 import EndOfFeed from '../EndOfFeed';
+import FollowButton from './FollowButton';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { useAuthStore } from '../../store/authStore';
 
 export default function UserProfile() {
     const { handle } = useParams<{ handle: string }>();
     const navigate = useNavigate();
+    const currentUser = useAuthStore((state) => state.user);
 
     // URL에 @가 없는 경우 붙여줌 (UX)
     const normalizedHandle = handle?.startsWith('@') ? handle : `@${handle}`;
@@ -123,6 +126,15 @@ export default function UserProfile() {
                                 <span>{profile.cheerPoints?.toLocaleString() || 0} P</span>
                             </div>
                         </div>
+
+                        {/* Follow Button - 본인 프로필이 아닌 경우에만 표시 */}
+                        {profile.id && currentUser && currentUser.id !== profile.id && (
+                            <FollowButton
+                                userId={profile.id}
+                                size="default"
+                                showNotifyOption={true}
+                            />
+                        )}
 
                         {profile.favoriteTeam ? (
                             <Badge variant="secondary" className="px-4 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">

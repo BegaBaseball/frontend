@@ -12,6 +12,7 @@ export const useLoginForm = () => {
   const navigate = useNavigate();
 
   const login = useAuthStore((state) => state.login);
+  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
 
   const getSavedEmail = () => {
     try {
@@ -89,6 +90,7 @@ export const useLoginForm = () => {
         response.data.id
       );
 
+      await fetchProfileAndAuthenticate();
       navigate('/home');
     } catch (err: any) {
       console.error('로그인 실패:', err);

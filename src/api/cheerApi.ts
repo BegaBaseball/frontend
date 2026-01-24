@@ -78,6 +78,11 @@ export interface CheerPost {
     comments: number; // Changed from any[] to number (count)
     likes: number; // Changed from number | undefined to number
     imageUploadFailed?: boolean; // Added
+    // 리포스트 관련 필드
+    repostOfId?: number;           // 원본 게시글 ID (리포스트인 경우)
+    repostType?: RepostType;       // 'SIMPLE' | 'QUOTE' | undefined(원본)
+    originalPost?: EmbeddedPost;   // 원본 게시글 임베드 정보
+    originalDeleted?: boolean;     // 원본 삭제 여부
 }
 
 // ... (PageResponse, PostSummaryRes, etc. - skipping unrelated parts if possible, but replace_file_content needs contiguous block)
@@ -118,6 +123,27 @@ export interface RepostToggleResponse {
     reposted: boolean;
     count: number;
 }
+
+// 임베드된 원본 게시글 정보 (리포스트에서 표시용)
+export interface EmbeddedPost {
+    id: number;
+    teamId: string;
+    teamColor: string;
+    title: string;
+    content: string;  // 100자 미리보기
+    author: string;
+    authorHandle: string;
+    authorProfileImageUrl?: string;
+    createdAt: string;
+    imageUrls: string[];
+    deleted: boolean;  // 삭제 여부
+    likeCount?: number;
+    commentCount?: number;
+    repostCount?: number;
+}
+
+// 리포스트 타입
+export type RepostType = 'SIMPLE' | 'QUOTE';
 
 export interface Comment {
     id: number;
@@ -219,7 +245,29 @@ function transformPost(post: any): CheerPost {
         postType: post.postType,
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
-        imageUploadFailed: post.imageUploadFailed
+        imageUploadFailed: post.imageUploadFailed,
+        // 리포스트 관련 필드
+        repostOfId: post.repostOfId,
+        repostType: post.repostType,
+        originalPost: post.originalPost ? transformEmbeddedPost(post.originalPost) : undefined,
+        originalDeleted: post.originalDeleted ?? false
+    };
+}
+
+// 임베드된 원본 게시글 변환
+function transformEmbeddedPost(post: any): EmbeddedPost {
+    return {
+        id: post.id,
+        teamId: post.teamId,
+        teamColor: post.teamColor || teamColors[post.teamId] || '#2d5f4f',
+        title: post.title || '',
+        content: post.content || '',
+        author: post.author,
+        authorHandle: post.authorHandle,
+        authorProfileImageUrl: post.authorProfileImageUrl,
+        createdAt: post.createdAt,
+        imageUrls: post.imageUrls || [],
+        deleted: post.deleted ?? false
     };
 }
 
@@ -322,10 +370,16 @@ export async function toggleBookmark(postId: number) {
     return response.data;
 }
 
-// 재게시 (Repost) 토글
+// 재게시 (Repost) 토글 - 단순 리포스트
 export async function toggleRepost(postId: number): Promise<RepostToggleResponse> {
     const response = await api.post(`/cheer/posts/${postId}/repost`);
     return response.data;
+}
+
+// 인용 리포스트 생성
+export async function createQuoteRepost(postId: number, content: string): Promise<CheerPost> {
+    const response = await api.post(`/cheer/posts/${postId}/quote`, { content });
+    return transformPost(response.data);
 }
 
 export enum ReportReason {

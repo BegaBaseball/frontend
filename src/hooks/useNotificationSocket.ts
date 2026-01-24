@@ -25,10 +25,12 @@ export const useNotificationSocket = () => {
             return;
         }
 
-        // 프록시(Dev) 또는 Nginx(Prod)를 통해 연결되므로 상대 경로 사용 (WS 프로토콜)
-        // window.location.protocol이 http:면 ws:, https:면 wss:
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const brokerUrl = `${protocol}//${window.location.host}/ws`;
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+        const wsBaseUrl = apiBaseUrl
+            .replace(/^http:/, 'ws:')
+            .replace(/^https:/, 'wss:')
+            .replace(/\/api\/?$/, '');
+        const brokerUrl = `${wsBaseUrl}/ws`;
 
         const client = new Client({
             brokerURL: brokerUrl,

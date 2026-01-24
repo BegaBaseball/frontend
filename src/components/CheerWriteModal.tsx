@@ -22,6 +22,7 @@ interface CheerWriteModalProps {
     teamAccent: string;
     teamContrastText: string;
     teamLabel: string;
+    teamId?: string;
 }
 
 export default function CheerWriteModal({
@@ -31,7 +32,8 @@ export default function CheerWriteModal({
     teamColor,
     teamAccent,
     teamContrastText,
-    teamLabel
+    teamLabel,
+    teamId
 }: CheerWriteModalProps) {
     const { user } = useAuthStore();
     const [content, setContent] = useState('');
@@ -133,7 +135,7 @@ export default function CheerWriteModal({
                     <div className="flex gap-3">
                         <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                             {user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
-                                <TeamLogo team={teamLabel} size={40} />
+                                <TeamLogo teamId={teamId} team={teamLabel} size={40} />
                             ) : (
                                 <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
                                     {user?.name?.slice(0, 1) || '?'}

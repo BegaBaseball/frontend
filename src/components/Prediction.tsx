@@ -44,6 +44,8 @@ export default function Prediction() {
     loading,
     votes,
     userVote,
+    currentGameDetail,
+    currentGameDetailLoading,
     isAuthLoading,
     showConfirmDialog,
     setShowConfirmDialog,
@@ -279,12 +281,14 @@ export default function Prediction() {
 
                 {/* Advanced Game Card */}
                 {currentGame && (
-                  <AdvancedMatchCard
-                    key={currentGame.gameId}
-                    game={currentGame}
-                    userVote={userVote[currentGameId!] || null}
-                    votePercentages={votePercentages}
-                    isPastGame={isPastGame}
+                    <AdvancedMatchCard
+                      key={currentGame.gameId}
+                      game={currentGame}
+                      gameDetail={currentGameDetail}
+                      gameDetailLoading={currentGameDetailLoading}
+                      userVote={userVote[currentGameId!] || null}
+                      votePercentages={votePercentages}
+                      isPastGame={isPastGame}
                     isFutureGame={isFutureGame}
                     isToday={isToday}
                     onVote={(team) => handleVote(team, currentGame, isPastGame)}

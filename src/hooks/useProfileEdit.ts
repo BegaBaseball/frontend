@@ -4,6 +4,7 @@ import { uploadProfileImage, updateProfile } from '../api/profile';
 import { ProfileUpdateData } from '../types/profile';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
+import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 
 interface UseProfileEditProps {
   initialProfileImage: string;
@@ -170,8 +171,15 @@ export const useProfileEdit = ({
       // 이미지 URL 추가 (업로드했거나 기존 URL 유지)
       if (finalImageUrl) {
         updatedProfile.profileImageUrl = finalImageUrl;
-      } else if (newProfileImageFile === null && profileImage !== 'https://placehold.co/100x100/374151/ffffff?text=User') {
-        updatedProfile.profileImageUrl = profileImage;
+      } else if (newProfileImageFile === null) {
+        const isPlaceholder = profileImage === 'https://placehold.co/100x100/374151/ffffff?text=User';
+        const isLocalAsset = profileImage === DEFAULT_PROFILE_IMAGE
+          || profileImage.startsWith('/assets/')
+          || profileImage.startsWith('/src/assets/');
+
+        if (!isPlaceholder && !isLocalAsset) {
+          updatedProfile.profileImageUrl = profileImage;
+        }
       }
 
       // 프로필 업데이트

@@ -7,6 +7,7 @@ export default function OAuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const login = useAuthStore((state) => state.login);
+  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
 
   useEffect(() => {
     const email = searchParams.get('email');
@@ -25,6 +26,7 @@ export default function OAuthCallback() {
       );
 
       setTimeout(() => {
+        fetchProfileAndAuthenticate();
         navigate('/home', { replace: true });
       }, 100);
     } else {

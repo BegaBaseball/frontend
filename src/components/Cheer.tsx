@@ -7,6 +7,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Radio, Smile, UserRound, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getTeamDescription, TEAM_DATA } from '../constants/teams';
+import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages } from '../api/cheerApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
@@ -80,7 +81,7 @@ const getContrastText = (hex: string) => {
 
 export default function Cheer() {
     const navigate = useNavigate();
-    const { user } = useAuthStore();
+    const { user, isAuthLoading, fetchProfileAndAuthenticate } = useAuthStore();
     const queryClient = useQueryClient();
     const today = useMemo(() => new Date(), []);
     const feedTabs = useMemo(
@@ -92,6 +93,13 @@ export default function Cheer() {
         []
     );
     const [activeFeedTab, setActiveFeedTab] = useState(feedTabs[0].key);
+
+    useEffect(() => {
+        if (isAuthLoading) return;
+        if (!user) return;
+        if (user.favoriteTeam && user.favoriteTeam !== '없음') return;
+        fetchProfileAndAuthenticate();
+    }, [fetchProfileAndAuthenticate, isAuthLoading, user]);
 
     const handleWriteClick = () => {
         if (!user) {
@@ -141,6 +149,7 @@ export default function Cheer() {
         return todaysGames[0];
     }, [favoriteTeamFull, favoriteTeamId, favoriteTeamLabel, todaysGames]);
     const teamId = user?.favoriteTeam && user.favoriteTeam !== '없음' ? user.favoriteTeam : 'all';
+    const teamLogoId = teamId !== 'all' ? teamId : undefined;
     const rawTeamName = teamId !== 'all' ? getTeamNameById(teamId) : 'KBO 리그';
     const teamLabel = TEAM_DATA[teamId]?.name || rawTeamName.split(' ')[0];
     const teamName = TEAM_DATA[teamId]?.fullName || rawTeamName;
@@ -662,10 +671,10 @@ export default function Cheer() {
                             <div className="flex gap-3">
                                 <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden">
                                     {user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
-                                        <TeamLogo team={teamLabel} size={40} />
+                                        <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
                                     ) : user?.profileImageUrl ? (
                                         <img
-                                            src={user.profileImageUrl}
+                                            src={user.profileImageUrl.includes('/assets/') ? DEFAULT_PROFILE_IMAGE : user.profileImageUrl}
                                             alt={user?.name || '프로필'}
                                             className="h-full w-full object-cover"
                                         />
@@ -877,7 +886,7 @@ export default function Cheer() {
                         <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#232938] p-4 bg-white dark:bg-[#151A23]">
                             <div className="flex items-center gap-3">
                                 <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center">
-                                    <TeamLogo team={teamLabel} size={48} />
+                                    <TeamLogo teamId={teamLogoId} team={teamLabel} size={48} />
                                 </div>
                                 <div>
                                     <p className="text-sm font-semibold text-[#0F172A] dark:text-white">팀 정보 요약</p>
@@ -1014,21 +1023,22 @@ export default function Cheer() {
                 <PenSquare className="mx-auto h-5 w-5" />
             </button>
 
-            <CheerWriteModal
-                isOpen={isWriteModalOpen}
-                onClose={() => setIsWriteModalOpen(false)}
-                onSubmit={async (content: string, files: File[]) => {
-                    await createMutation.mutateAsync({
-                        content,
-                        files,
-                        postType: activeTabConfig?.postType,
-                    });
-                }}
-                teamColor={teamColor}
-                teamAccent={teamAccent}
-                teamContrastText={teamContrastText}
-                teamLabel={teamLabel}
-            />
+                <CheerWriteModal
+                    isOpen={isWriteModalOpen}
+                    onClose={() => setIsWriteModalOpen(false)}
+                    onSubmit={async (content: string, files: File[]) => {
+                        await createMutation.mutateAsync({
+                            content,
+                            files,
+                            postType: activeTabConfig?.postType,
+                        });
+                    }}
+                    teamColor={teamColor}
+                    teamAccent={teamAccent}
+                    teamContrastText={teamContrastText}
+                    teamLabel={teamLabel}
+                    teamId={teamLogoId}
+                />
         </div>
     );
 }

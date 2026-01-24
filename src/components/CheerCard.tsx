@@ -7,14 +7,21 @@ import RollingNumber from './RollingNumber';
 import TeamLogo from './TeamLogo';
 import { TEAM_DATA } from '../constants/teams';
 import CommentModal from './CommentModal';
-// import { useCheerStore } from '../store/cheerStore'; // Removed
-import { useCheerMutations } from '../hooks/useCheerQueries'; // Added
+// import RepostModal from './RepostModal'; // Removed
+import QuoteRepostEditor from './QuoteRepostEditor';
+import EmbeddedPost from './EmbeddedPost';
+import { useCheerMutations } from '../hooks/useCheerQueries';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from './ui/popover';
 
 interface CheerCardProps {
     post: CheerPost;
@@ -25,8 +32,11 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const navigate = useNavigate();
     // const toggleLike = useCheerStore((state) => state.toggleLike); // Removed
     // const deletePost = useCheerStore((state) => state.deletePost); // Removed
-    const { toggleLikeMutation, deletePostMutation, repostMutation } = useCheerMutations(); // Updated
+    const { toggleLikeMutation, deletePostMutation, repostMutation } = useCheerMutations();
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+    // const [isRepostModalOpen, setIsRepostModalOpen] = useState(false); // Removed for Popover
+    const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
+    const [isPopoverOpen, setIsPopoverOpen] = useState(false); // New state for manually closing popover if needed
 
     const contentText = post.content?.trim() || post.title;
 
@@ -90,14 +100,27 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         }, 450);
     };
 
-    const handleRepostClick = (event: React.MouseEvent) => {
-        event.stopPropagation();
+    // Popover handles open state automatically, but we might want manual control if needed
+    // const handleRepostClick = ... (replaced by PopoverTrigger)
+
+    const handleSimpleRepost = () => {
         setRepostAnimating(true);
         repostMutation.mutate(post.id);
+        setIsPopoverOpen(false); // Close popover
         if (repostTimerRef.current) window.clearTimeout(repostTimerRef.current);
         repostTimerRef.current = window.setTimeout(() => {
             setRepostAnimating(false);
         }, 450);
+    };
+
+    const handleQuoteRepost = () => {
+        setIsPopoverOpen(false); // Close popover
+        setIsQuoteEditorOpen(true);
+    };
+
+    const handleCancelRepost = () => {
+        setIsPopoverOpen(false);
+        deletePostMutation.mutate(post.id);
     };
 
     // Hot Topic List Item Style
@@ -154,6 +177,18 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
             onClick={() => navigate(`/cheer/${post.id}`)}
             className="group rounded-2xl border border-[#EFF3F4] dark:border-[#232938] bg-white dark:bg-[#151A23] px-4 py-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
         >
+            {/* 리포스트 표시 */}
+            {post.repostType && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-2 ml-12">
+                    <Repeat2 className="w-3.5 h-3.5" />
+                    <span>
+                        {(post.authorHandle === post.originalPost?.authorHandle || post.author === post.originalPost?.author)
+                            ? '다시 언급함' // Self-Repost
+                            : post.repostType === 'SIMPLE' ? '리포스트됨' : '인용 리포스트'}
+                    </span>
+                </div>
+            )}
+
             <div className="flex gap-3">
                 <div className="relative h-10 w-10 flex-shrink-0">
                     <div
@@ -251,6 +286,19 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         </button>
                     )}
 
+                    {/* 원본 게시글 임베드 (리포스트인 경우) */}
+                    {post.originalPost && (
+                        <div className="relative">
+                            <EmbeddedPost
+                                post={post.originalDeleted ? { ...post.originalPost, deleted: true } : post.originalPost}
+                                className={(post.authorHandle === post.originalPost.authorHandle || post.author === post.originalPost.author)
+                                    ? "ring-2 ring-gray-300 dark:ring-gray-600 rounded-xl" // Self-Repost Thicker Border
+                                    : ""
+                                }
+                            />
+                        </div>
+                    )}
+
                     {post.images?.length ? (
                         <div className="relative">
                             <ImageGrid images={post.images} />
@@ -281,30 +329,102 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             <RollingNumber value={post.comments} />
                         </button>
 
-                        <button
-                            type="button"
-                            className={`group/repost flex items-center gap-1.5 rounded-full transition-colors ${post.repostedByMe ? 'text-emerald-500' : 'hover:text-emerald-500'
-                                }`}
-                            onClick={handleRepostClick}
-                            aria-label={post.repostedByMe ? `리포스트 취소 (현재 ${post.repostCount}회)` : `리포스트 (현재 ${post.repostCount}회)`}
-                            aria-pressed={post.repostedByMe}
-                        >
-                            <span
-                                className={`relative rounded-full p-2 transition-all duration-200 ${post.repostedByMe ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'
-                                    }`}
+                        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    className={`group/repost flex items-center gap-1.5 rounded-full transition-colors ${post.repostedByMe ? 'text-emerald-500' : 'hover:text-emerald-500'
+                                        }`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        // PopoverTrigger handles spacing, but stopPropagation is good practice if wrapped
+                                    }}
+                                    aria-label={post.repostedByMe ? `리포스트 취소 (현재 ${post.repostCount}회)` : `리포스트 (현재 ${post.repostCount}회)`}
+                                    aria-pressed={post.repostedByMe}
+                                >
+                                    <span
+                                        className={`relative rounded-full p-2 transition-all duration-200 ${post.repostedByMe ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'
+                                            }`}
+                                    >
+                                        {repostAnimating && (
+                                            <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-500/30 animate-like-ring" />
+                                        )}
+                                        <Repeat2
+                                            className={`h-[18px] w-[18px] transition-all duration-200 ${post.repostedByMe
+                                                ? 'text-emerald-500 scale-110'
+                                                : ''
+                                                } ${repostAnimating ? 'animate-like-pop' : ''}`}
+                                        />
+                                    </span>
+                                    <RollingNumber value={post.repostCount} />
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                                className="w-48 p-0"
+                                align="start"
+                                onClick={(e) => e.stopPropagation()} // Prevent card click
                             >
-                                {repostAnimating && (
-                                    <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-500/30 animate-like-ring" />
-                                )}
-                                <Repeat2
-                                    className={`h-[18px] w-[18px] transition-all duration-200 ${post.repostedByMe
-                                        ? 'text-emerald-500 scale-110'
-                                        : ''
-                                        } ${repostAnimating ? 'animate-like-pop' : ''}`}
-                                />
-                            </span>
-                            <RollingNumber value={post.repostCount} />
-                        </button>
+                                <div className="flex flex-col py-1">
+                                    {(!!post.repostType && post.isOwner) ? (
+                                        // Owner of a repost -> Cancel Option
+                                        <button
+                                            onClick={handleCancelRepost}
+                                            className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                            <div>
+                                                <span className="block text-sm font-medium text-red-600 dark:text-red-400">
+                                                    리포스트 삭제
+                                                </span>
+                                            </div>
+                                        </button>
+                                    ) : (post.repostType && !post.isOwner) ? (
+                                        // Someone else's repost -> Cannot repost
+                                        <div className="px-4 py-3 text-sm text-gray-400 text-center">
+                                            리포스트할 수 없습니다
+                                        </div>
+                                    ) : (
+                                        // Standard Options
+                                        <>
+                                            <button
+                                                onClick={handleSimpleRepost}
+                                                className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                            >
+                                                <div className={`flex items-center justify-center w-5 h-5`}>
+                                                    {post.repostedByMe ? (
+                                                        <div className="relative">
+                                                            <Repeat2 className="w-4 h-4 text-emerald-500" />
+                                                            <div className="absolute top-0 right-0 w-2 h-0.5 bg-red-500 rotate-45 transform origin-center" />
+                                                            {/* ^ Crude visual for "Undo" or just use Undo2 icon if available */}
+                                                        </div>
+                                                    ) : (
+                                                        <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <span className={`block text-sm font-medium ${post.repostedByMe ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                                                        {post.repostedByMe ? '리포스트 취소' : '리포스트'}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                            <button
+                                                onClick={handleQuoteRepost}
+                                                className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                            >
+                                                <div className="flex items-center justify-center w-5 h-5">
+                                                    <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                </div>
+                                                <div>
+                                                    <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                                                        인용하기
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
 
                         <button
                             type="button"
@@ -334,11 +454,20 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 </div>
             </div>
 
-            <CommentModal
-                isOpen={isCommentModalOpen}
-                onClose={() => setIsCommentModalOpen(false)}
-                post={post}
-            />
+            {/* Portal Bubbling 방지를 위한 래퍼 */}
+            <div onClick={(e) => e.stopPropagation()}>
+                <CommentModal
+                    isOpen={isCommentModalOpen}
+                    onClose={() => setIsCommentModalOpen(false)}
+                    post={post}
+                />
+
+                <QuoteRepostEditor
+                    isOpen={isQuoteEditorOpen}
+                    onClose={() => setIsQuoteEditorOpen(false)}
+                    post={post}
+                />
+            </div>
         </div>
     );
 }

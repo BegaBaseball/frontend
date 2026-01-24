@@ -350,6 +350,44 @@ export const useCheerMutations = () => {
         },
     });
 
+    // 인용 리포스트 생성
+    const quoteRepostMutation = useMutation({
+        mutationFn: ({ postId, content }: { postId: number; content: string }) =>
+            cheerApi.createQuoteRepost(postId, content),
+        onSuccess: (newPost, { postId }) => {
+            // 원본 게시글의 리포스트 카운트 업데이트
+            queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    repostCount: old.repostCount + 1,
+                };
+            });
+
+            queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+                if (!old?.pages) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                        ...page,
+                        content: page.content.map((p: any) => {
+                            if (p.id === postId) {
+                                return {
+                                    ...p,
+                                    repostCount: (p.repostCount || 0) + 1,
+                                };
+                            }
+                            return p;
+                        }),
+                    })),
+                };
+            });
+
+            // 게시글 목록 새로고침 (새 인용 리포스트가 피드에 표시되도록)
+            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+        },
+    });
+
     return {
         toggleLikeMutation,
         toggleBookmarkMutation,
@@ -358,5 +396,6 @@ export const useCheerMutations = () => {
         deletePostMutation,
         deleteCommentMutation,
         repostMutation,
+        quoteRepostMutation,
     };
 };
