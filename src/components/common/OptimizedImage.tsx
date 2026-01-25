@@ -28,7 +28,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
             <img
                 src={src}
                 alt={alt}
-                className={className}
+                className={`image-render-quality ${className || ''}`}
                 loading={priority ? 'eager' : 'lazy'}
                 decoding={priority ? 'sync' : 'async'}
                 {...props}

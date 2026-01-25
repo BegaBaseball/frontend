@@ -17,6 +17,8 @@ interface FollowButtonProps {
     onFollowChange?: (response: FollowToggleResponse) => void;
     size?: 'sm' | 'default' | 'lg';
     showNotifyOption?: boolean;
+    className?: string; // Added
+    style?: React.CSSProperties; // Added
 }
 
 export default function FollowButton({
@@ -26,6 +28,8 @@ export default function FollowButton({
     onFollowChange,
     size = 'default',
     showNotifyOption = true,
+    className,
+    style,
 }: FollowButtonProps) {
     const { user } = useAuthStore();
     const [isFollowing, setIsFollowing] = useState(initialFollowing);
@@ -33,7 +37,7 @@ export default function FollowButton({
     const [isLoading, setIsLoading] = useState(false);
 
     // Don't show follow button for own profile
-    if (user?.id === userId) {
+    if (user && userId && Number(user.id) === Number(userId)) {
         return null;
     }
 
@@ -75,7 +79,8 @@ export default function FollowButton({
             <Button
                 onClick={handleToggleFollow}
                 disabled={isLoading}
-                className={`${buttonSize} bg-[#2d5f4f] hover:bg-[#234a3d] text-white`}
+                className={`${buttonSize} bg-[#2d5f4f] hover:bg-[#234a3d] text-white ${className || ''}`}
+                style={style}
             >
                 {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

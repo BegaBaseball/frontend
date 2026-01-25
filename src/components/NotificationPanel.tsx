@@ -57,7 +57,7 @@ export default function NotificationPanel() {
         // 신청자: 파티 상세 페이지로
         navigate(`/mate/${notification.relatedId}`);
       } else if (notification.type === 'POST_COMMENT' || notification.type === 'COMMENT_REPLY' || notification.type === 'POST_LIKE' || notification.type === 'POST_REPOST') {
-        // 응원게시판: 게시글 상세 페이지로
+        // 응원석: 게시글 상세 페이지로
         navigate(`/cheer/${notification.relatedId}`);
       } else if (notification.type === 'NEW_FOLLOWER') {
         // 새 팔로워: relatedId는 팔로워의 userId
@@ -93,7 +93,7 @@ export default function NotificationPanel() {
       case 'APPLICATION_REJECTED':
         return <X className="w-5 h-5 text-red-500" />;
 
-      // 응원게시판 관련
+      // 응원석 관련
       case 'POST_COMMENT':
         return <MessageCircle className="w-5 h-5 text-blue-500" />;
       case 'COMMENT_REPLY':

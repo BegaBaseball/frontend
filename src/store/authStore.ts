@@ -11,6 +11,7 @@ interface User {
   id: number;
   email: string;
   name?: string;
+  handle?: string;
   favoriteTeam?: string;
   favoriteTeamColor?: string;
   isAdmin?: boolean;
@@ -39,7 +40,7 @@ interface AuthState {
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
   setShowPassword: (show: boolean) => void;
-  login: (email: string, name: string, profileImageUrl?: string, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number) => void;
+  login: (email: string, name: string, profileImageUrl?: string, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string) => void;
   logout: () => void;
   setFavoriteTeam: (team: string, color: string) => void;
   setShowLoginRequiredDialog: (show: boolean) => void;
@@ -75,6 +76,7 @@ export const useAuthStore = create<AuthState>()(
                 id: profile.id,
                 email: profile.email,
                 name: profile.name,
+                handle: profile.handle,
                 favoriteTeam: profile.favoriteTeam,
                 favoriteTeamColor: profile.favoriteTeamColor,
                 isAdmin: isAdminUser,
@@ -128,7 +130,7 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      login: (email, name, profileImageUrl, role, favoriteTeam, id, cheerPoints) => {
+      login: (email, name, profileImageUrl, role, favoriteTeam, id, cheerPoints, handle) => {
         const isAdminUser = role === 'ROLE_ADMIN' || role === 'ROLE_SUPER_ADMIN';
 
         set({
@@ -141,6 +143,7 @@ export const useAuthStore = create<AuthState>()(
             role: role,
             favoriteTeam: favoriteTeam || '없음',
             cheerPoints: cheerPoints || 0,
+            handle: handle,
           },
           isLoggedIn: true,
           isAdmin: isAdminUser,

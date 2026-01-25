@@ -33,7 +33,6 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
         id: post.id,
         teamId: post.teamId,
         teamColor: post.teamColor,
-        title: post.title,
         content: post.content,
         author: post.author,
         authorHandle: post.authorHandle,

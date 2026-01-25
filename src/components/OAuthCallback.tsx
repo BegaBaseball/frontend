@@ -15,19 +15,24 @@ export default function OAuthCallback() {
     const role = searchParams.get('role');
     const profileImageUrl = searchParams.get('profileImageUrl');
     const favoriteTeam = searchParams.get('favoriteTeam');
+    const handle = searchParams.get('handle');
 
     if (email && name) {
       login(
-        email, 
-        name, 
-        profileImageUrl || undefined, 
+        email,
+        name,
+        profileImageUrl || undefined,
         role || undefined,
-        favoriteTeam || undefined 
+        favoriteTeam || undefined,
+        undefined,
+        undefined,
+        handle || undefined
       );
 
       setTimeout(() => {
         fetchProfileAndAuthenticate();
-        navigate('/home', { replace: true });
+        const redirectPath = handle ? `/mypage/${handle.startsWith('@') ? handle : `@${handle}`}` : '/home';
+        navigate(redirectPath, { replace: true });
       }, 100);
     } else {
       navigate('/login', { replace: true });

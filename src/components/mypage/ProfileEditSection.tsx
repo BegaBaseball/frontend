@@ -242,7 +242,7 @@ export default function ProfileEditSection({
                     </SelectContent>
                   </Select>
                   <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">응원구단은 응원게시판에서 사용됩니다</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">응원구단은 응원석에서 사용됩니다</p>
                     <Button
                       variant="ghost"
                       onClick={() => setShowTeamTest(true)}

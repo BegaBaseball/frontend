@@ -55,6 +55,7 @@ export const useCheerMutations = () => {
             // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
             await queryClient.cancelQueries({ queryKey: ['cheer-post', postId] });
             await queryClient.cancelQueries({ queryKey: ['cheer-posts'] });
+            await queryClient.cancelQueries({ queryKey: ['userPosts'] });
 
             // Snapshot the previous value
             const previousPost = queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]);
@@ -101,6 +102,52 @@ export const useCheerMutations = () => {
                                 };
                             }
                             return post;
+                        }),
+                    })),
+                };
+            });
+
+            queryClient.setQueriesData({ queryKey: ['userPosts'] }, (old: any) => {
+                if (!old?.pages) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                        ...page,
+                        content: page.content.map((p: any) => {
+                            if (p.id === postId) {
+                                const isCurrentlyReposted = p.repostedByMe;
+                                return {
+                                    ...p,
+                                    repostedByMe: !isCurrentlyReposted,
+                                    repostCount: isCurrentlyReposted
+                                        ? Math.max(0, (p.repostCount || 0) - 1)
+                                        : (p.repostCount || 0) + 1,
+                                };
+                            }
+                            return p;
+                        }),
+                    })),
+                };
+            });
+
+            queryClient.setQueriesData({ queryKey: ['userPosts'] }, (old: any) => {
+                if (!old?.pages) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                        ...page,
+                        content: page.content.map((p: any) => {
+                            if (p.id === postId) {
+                                const isCurrentlyReposted = p.repostedByMe;
+                                return {
+                                    ...p,
+                                    repostedByMe: !isCurrentlyReposted,
+                                    repostCount: isCurrentlyReposted
+                                        ? Math.max(0, (p.repostCount || 0) - 1)
+                                        : (p.repostCount || 0) + 1,
+                                };
+                            }
+                            return p;
                         }),
                     })),
                 };
@@ -182,11 +229,10 @@ export const useCheerMutations = () => {
     });
 
     const createPostMutation = useMutation({
-        mutationFn: async (data: { teamId: string; title: string; content: string; postType?: string; files?: File[] }) => {
+        mutationFn: async (data: { teamId: string; content: string; postType?: string; files?: File[] }) => {
             // 1. Create Post
             const newPost = await cheerApi.createPost({
                 teamId: data.teamId,
-                title: data.title,
                 content: data.content,
                 postType: data.postType,
             });
@@ -205,7 +251,7 @@ export const useCheerMutations = () => {
     const updatePostMutation = useMutation({
         mutationFn: async ({ id, data, newFiles, deletingImageIds }: {
             id: number;
-            data: { title: string; content: string };
+            data: { content: string };
             newFiles?: File[];
             deletingImageIds?: number[];
         }) => {
@@ -316,6 +362,7 @@ export const useCheerMutations = () => {
                 queryClient.setQueryData(['cheer-post', postId], context.previousPost);
             }
             queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
         },
         onSuccess: (response, postId) => {
             // Update with actual server response
@@ -347,6 +394,217 @@ export const useCheerMutations = () => {
                     })),
                 };
             });
+
+            queryClient.setQueriesData({ queryKey: ['userPosts'] }, (old: any) => {
+                if (!old?.pages) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                        ...page,
+                        content: page.content.map((p: any) => {
+                            if (p.id === postId) {
+                                return {
+                                    ...p,
+                                    repostedByMe: response.reposted,
+                                    repostCount: response.count,
+                                };
+                            }
+                            return p;
+                        }),
+                    })),
+                };
+            });
+
+            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+        },
+    });
+
+    // 리포스트 취소 (작성한 리포스트 삭제)
+    const cancelRepostMutation = useMutation({
+        mutationFn: cheerApi.cancelRepost,
+        onMutate: async (repostId) => {
+            await queryClient.cancelQueries({ queryKey: ['cheer-posts'] });
+            await queryClient.cancelQueries({ queryKey: ['userPosts'] });
+
+            // Find the repost and its original post in cache
+            let originalPostId: number | null = null;
+            let repostCountBefore = 0;
+
+            queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+                if (!old?.pages) return old;
+
+                // Find original post ID
+                old.pages.forEach((page: any) => {
+                    page.content.forEach((p: any) => {
+                        if (p.id === repostId && p.repostOfId) {
+                            originalPostId = p.repostOfId;
+                        }
+                    });
+                });
+
+                // Find original post to get its repost count
+                if (originalPostId) {
+                    old.pages.forEach((page: any) => {
+                        const originalPost = page.content.find((op: any) => op.id === originalPostId);
+                        if (originalPost && repostCountBefore === 0) {
+                            repostCountBefore = originalPost.repostCount || 0;
+                        }
+                    });
+                }
+
+                // Remove repost from feed
+                return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                        ...page,
+                        content: page.content.filter((p: any) => p.id !== repostId),
+                    })),
+                };
+            });
+
+            queryClient.setQueriesData({ queryKey: ['userPosts'] }, (old: any) => {
+                if (!old?.pages) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                        ...page,
+                        content: page.content
+                            .filter((p: any) => p.id !== repostId)
+                            .map((p: any) => {
+                                if (originalPostId && p.id === originalPostId) {
+                                    return {
+                                        ...p,
+                                        repostedByMe: false,
+                                        repostCount: Math.max(0, (p.repostCount || 0) - 1),
+                                    };
+                                }
+                                return p;
+                            }),
+                    })),
+                };
+            });
+
+            // Optimistically update original post's repostCount
+            if (originalPostId) {
+                queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', originalPostId], (old) => {
+                    if (!old) return old;
+                    return {
+                        ...old,
+                        repostedByMe: false,
+                        repostCount: Math.max(0, repostCountBefore - 1),
+                    };
+                });
+
+                queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+                    if (!old?.pages) return old;
+                    return {
+                        ...old,
+                        pages: old.pages.map((page: any) => ({
+                            ...page,
+                            content: page.content.map((p: any) => {
+                                if (p.id === originalPostId) {
+                                    return {
+                                        ...p,
+                                        repostedByMe: false,
+                                        repostCount: Math.max(0, (p.repostCount || 0) - 1),
+                                    };
+                                }
+                                return p;
+                            }),
+                        })),
+                    };
+                });
+            }
+
+            return { originalPostId, repostCountBefore };
+        },
+        onError: (_err, _repostId, context) => {
+            // On error, invalidate all queries to refetch
+            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+            if (context?.originalPostId) {
+                queryClient.invalidateQueries({ queryKey: ['cheer-post', context.originalPostId] });
+            }
+            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+        },
+        onSuccess: (response, repostId) => {
+            // Find original post ID from cache to update
+            let originalPostId: number | null = null;
+
+            queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+                if (!old?.pages) return old;
+
+                // Find original post ID
+                old.pages.forEach((page: any) => {
+                    page.content.forEach((p: any) => {
+                        if (p.id === repostId && p.repostOfId) {
+                            originalPostId = p.repostOfId;
+                        }
+                    });
+                });
+
+                // Remove repost from feed
+                return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                        ...page,
+                        content: page.content.filter((p: any) => p.id !== repostId),
+                    })),
+                };
+            });
+
+            queryClient.setQueriesData({ queryKey: ['userPosts'] }, (old: any) => {
+                if (!old?.pages) return old;
+
+                old.pages.forEach((page: any) => {
+                    page.content.forEach((p: any) => {
+                        if (p.id === repostId && p.repostOfId) {
+                            originalPostId = p.repostOfId;
+                        }
+                    });
+                });
+
+                return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                        ...page,
+                        content: page.content.filter((p: any) => p.id !== repostId),
+                    })),
+                };
+            });
+
+            // Update original post with server response
+            if (originalPostId) {
+                queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', originalPostId], (old) => {
+                    if (!old) return old;
+                    return {
+                        ...old,
+                        repostedByMe: false,
+                        repostCount: response.count,
+                    };
+                });
+
+                queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+                    if (!old?.pages) return old;
+                    return {
+                        ...old,
+                        pages: old.pages.map((page: any) => ({
+                            ...page,
+                            content: page.content.map((p: any) => {
+                                if (p.id === originalPostId) {
+                                    return {
+                                        ...p,
+                                        repostedByMe: false,
+                                        repostCount: response.count,
+                                    };
+                                }
+                                return p;
+                            }),
+                        })),
+                    };
+                });
+            }
+
+            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
         },
     });
 
@@ -385,6 +643,7 @@ export const useCheerMutations = () => {
 
             // 게시글 목록 새로고침 (새 인용 리포스트가 피드에 표시되도록)
             queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
         },
     });
 
@@ -396,6 +655,7 @@ export const useCheerMutations = () => {
         deletePostMutation,
         deleteCommentMutation,
         repostMutation,
+        cancelRepostMutation,
         quoteRepostMutation,
     };
 };

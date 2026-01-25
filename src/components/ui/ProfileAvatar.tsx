@@ -10,7 +10,7 @@ interface ProfileAvatarProps {
 
 export function ProfileAvatar({ src, alt, size = 'md', className = '' }: ProfileAvatarProps) {
   const [imageError, setImageError] = useState(false);
-  
+
   const sizeClasses = {
     sm: 'h-10 w-10',
     md: 'h-12 w-12',
@@ -28,7 +28,7 @@ export function ProfileAvatar({ src, alt, size = 'md', className = '' }: Profile
       <img
         src={src}
         alt={alt}
-        className={`${sizeClasses[size]} rounded-full object-cover border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 ${className}`}
+        className={`${sizeClasses[size]} rounded-full object-cover border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 image-render-quality ${className}`}
         onError={() => setImageError(true)}
       />
     );

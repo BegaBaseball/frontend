@@ -17,7 +17,6 @@ import { api } from '../utils/api';
 import { STADIUMS, TEAMS } from '../utils/constants';
 import { mapBackendPartyToFrontend } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
-import StadiumSeatMap from './StadiumSeatMap';
 
 export default function MateCreate() {
   const navigate = useNavigate();
@@ -452,13 +451,6 @@ export default function MateCreate() {
               <h2 className="mb-6" style={{ color: '#2d5f4f' }}>
                 좌석 정보
               </h2>
-
-              {/* 시각적 좌석 맵 */}
-              <StadiumSeatMap
-                stadium={formData.stadium}
-                selectedSection={formData.section}
-                onSectionSelect={(section) => updateFormData({ section })}
-              />
 
               <div className="space-y-2">
                 <Label htmlFor="section">좌석 상세 (선택 또는 직접 입력) *</Label>

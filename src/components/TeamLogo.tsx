@@ -114,6 +114,7 @@ export default function TeamLogo({ team, teamId, size = 64, className = '' }: Te
       <img
         src={logoImage}
         alt={`${teamName || team} 로고`}
+        className="image-render-quality"
         style={{
           width: isResponsive ? '100%' : numericSize,
           height: isResponsive ? '100%' : numericSize,

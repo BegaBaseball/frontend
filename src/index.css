@@ -87,6 +87,14 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Improved image rendering for downscaled images */
+  .image-render-quality {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: high-quality; /* Standard property if supported */
+    transform: translateZ(0); /* Triggers GPU compositing for smoother rendering */
+    backface-visibility: hidden; /* Helps with antialiasing in some browsers */
+  }
 }
 
 /* Mobile menu animations */

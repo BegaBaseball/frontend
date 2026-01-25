@@ -1,6 +1,7 @@
 export interface UserProfile {
   id: number;
   name: string;
+  handle?: string;
   email: string;
   favoriteTeam: string | null;
   profileImageUrl: string | null;

@@ -236,14 +236,14 @@ export default function SignUp() {
           {formData.favoriteTeam === '없음' && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                ⚠️ 응원구단을 선택하지 않으면 <strong>응원게시판을 이용할 수 없습니다.</strong><br />
+                ⚠️ 응원구단을 선택하지 않으면 <strong>응원석을 이용할 수 없습니다.</strong><br />
                 <span className="text-xs">나중에 마이페이지 &gt; 내 정보 수정에서 변경 가능합니다.</span>
               </p>
             </div>
           )}
 
           <div className="flex items-center justify-between mt-2">
-            <p className="text-sm text-gray-500">응원구단은 응원게시판에서 사용됩니다</p>
+            <p className="text-sm text-gray-500">응원구단은 응원석에서 사용됩니다</p>
             <Button
               type="button"
               variant="ghost"

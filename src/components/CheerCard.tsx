@@ -32,13 +32,13 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const navigate = useNavigate();
     // const toggleLike = useCheerStore((state) => state.toggleLike); // Removed
     // const deletePost = useCheerStore((state) => state.deletePost); // Removed
-    const { toggleLikeMutation, deletePostMutation, repostMutation } = useCheerMutations();
+    const { toggleLikeMutation, deletePostMutation, repostMutation, cancelRepostMutation } = useCheerMutations();
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
     // const [isRepostModalOpen, setIsRepostModalOpen] = useState(false); // Removed for Popover
     const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
     const [isPopoverOpen, setIsPopoverOpen] = useState(false); // New state for manually closing popover if needed
 
-    const contentText = post.content?.trim() || post.title;
+    const contentText = post.content?.trim() || '';
 
     // Use a ref-like derived value OR helper function defined inside the component
     const normalizeContent = (text: string) => {
@@ -52,6 +52,14 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const displayContent = !isExpanded && shouldShowMore
         ? normalizedContent.slice(0, MAX_LENGTH) + '...'
         : normalizedContent;
+
+    const statsSource = (post.repostType === 'SIMPLE' && post.originalPost)
+        ? post.originalPost
+        : post;
+    const commentCount = statsSource.commentCount ?? post.comments;
+    const likeCount = statsSource.likeCount ?? post.likes;
+    const repostCount = statsSource.repostCount ?? post.repostCount;
+    const repostActive = post.repostedByMe || (post.repostType && post.isOwner);
 
     const [likeAnimating, setLikeAnimating] = useState(false);
     const [commentAnimating, setCommentAnimating] = useState(false);
@@ -120,7 +128,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
     const handleCancelRepost = () => {
         setIsPopoverOpen(false);
-        deletePostMutation.mutate(post.id);
+        cancelRepostMutation.mutate(post.id);
     };
 
     // Hot Topic List Item Style
@@ -157,14 +165,14 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 <div className="flex items-center gap-4 text-xs text-[#536471] dark:text-slate-400">
                     <span className="flex items-center gap-1">
                         <MessageCircle className="h-4 w-4" />
-                        <RollingNumber value={post.comments} />
+                        <RollingNumber value={commentCount} />
                     </span>
                     <span className="flex items-center gap-1">
                         <Heart className={`h-4 w-4 transition-all duration-200 ${post.likedByUser
                             ? 'fill-rose-500 text-rose-500'
                             : 'fill-transparent dark:text-slate-400'
                             }`} />
-                        <RollingNumber value={post.likes} />
+                        <RollingNumber value={likeCount} />
                     </span>
                 </div>
             </div>
@@ -174,7 +182,6 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     // Main Feed Tweet Style
     return (
         <div
-            onClick={() => navigate(`/cheer/${post.id}`)}
             className="group rounded-2xl border border-[#EFF3F4] dark:border-[#232938] bg-white dark:bg-[#151A23] px-4 py-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
         >
             {/* 리포스트 표시 */}
@@ -184,33 +191,67 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     <span>
                         {(post.authorHandle === post.originalPost?.authorHandle || post.author === post.originalPost?.author)
                             ? '다시 언급함' // Self-Repost
-                            : post.repostType === 'SIMPLE' ? '리포스트됨' : '인용 리포스트'}
+                            : post.repostType === 'SIMPLE' ? `${post.author}님이 리포스트함` : '인용 리포스트'}
                     </span>
                 </div>
             )}
 
-            <div className="flex gap-3">
+            <div
+                onClick={(e) => {
+                    e.stopPropagation(); // prevent double nav if needed, but usually redundant if div is the trigger
+                    // Navigate to Original Post if Simple Repost
+                    if (post.repostType === 'SIMPLE' && post.originalPost) {
+                        navigate(`/cheer/${post.originalPost.id}`);
+                    } else {
+                        navigate(`/cheer/${post.id}`);
+                    }
+                }}
+                className="flex gap-3"
+            >
+
                 <div className="relative h-10 w-10 flex-shrink-0">
                     <div
                         className="h-full w-full rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-300 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={(e) => {
                             e.stopPropagation();
-                            if (post.authorHandle) navigate(`/profile/${post.authorHandle}`);
+                            const targetHandle = (post.repostType === 'SIMPLE' && post.originalPost)
+                                ? post.originalPost.authorHandle
+                                : post.authorHandle;
+                            if (targetHandle) {
+                                const normalizedHandle = targetHandle.startsWith('@') ? targetHandle : `@${targetHandle}`;
+                                navigate(`/profile/${normalizedHandle}`);
+                            }
                         }}
                     >
-                        {post.authorProfileImageUrl ? (
-                            <img
-                                src={post.authorProfileImageUrl}
-                                alt={post.author}
-                                className="h-full w-full object-cover"
-                            />
+                        {(post.repostType === 'SIMPLE' && post.originalPost) ? (
+                            post.originalPost.authorProfileImageUrl ? (
+                                <img
+                                    src={post.originalPost.authorProfileImageUrl}
+                                    alt={post.originalPost.author}
+                                    className="h-full w-full object-cover image-render-quality"
+                                />
+                            ) : (
+                                post.originalPost.author?.slice(0, 1) || '?'
+                            )
                         ) : (
-                            post.author?.slice(0, 1) || '?'
+                            post.authorProfileImageUrl ? (
+                                <img
+                                    src={post.authorProfileImageUrl}
+                                    alt={post.author}
+                                    className="h-full w-full object-cover image-render-quality"
+                                />
+                            ) : (
+                                post.author?.slice(0, 1) || '?'
+                            )
                         )}
                     </div>
-                    {post.authorTeamId && (
+                    {/* Team Logo: Use Original's team if Simple Repost */}
+                    {((post.repostType === 'SIMPLE' && post.originalPost && post.originalPost.teamId) || post.authorTeamId) && (
                         <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white dark:bg-slate-600 ring-2 ring-white dark:ring-slate-600 overflow-hidden flex items-center justify-center">
-                            <TeamLogo team={TEAM_DATA[post.authorTeamId]?.name || post.authorTeamId} size={20} />
+                            <TeamLogo
+                                team={((post.repostType === 'SIMPLE' && post.originalPost) ? (TEAM_DATA[post.originalPost.teamId as keyof typeof TEAM_DATA]?.name || post.originalPost.teamId) : (TEAM_DATA[post.authorTeamId as keyof typeof TEAM_DATA]?.name || post.authorTeamId))}
+                                size={20}
+                            />
                         </div>
                     )}
                 </div>
@@ -222,15 +263,24 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                 className="font-bold text-[#0f1419] dark:text-white truncate cursor-pointer hover:underline"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (post.authorHandle) navigate(`/profile/${post.authorHandle}`);
+                                    const targetHandle = (post.repostType === 'SIMPLE' && post.originalPost)
+                                        ? post.originalPost.authorHandle
+                                        : post.authorHandle;
+                                    if (targetHandle) {
+                                        const normalizedHandle = targetHandle.startsWith('@') ? targetHandle : `@${targetHandle}`;
+                                        navigate(`/profile/${normalizedHandle}`);
+                                    }
                                 }}
                             >
-                                {post.author}
+                                {(post.repostType === 'SIMPLE' && post.originalPost) ? post.originalPost.author : post.author}
                             </span>
                             <span className="text-[#536471] dark:text-slate-400 truncate">
-                                {post.authorHandle || `@${(post.team || 'user').toLowerCase()}`} · {post.timeAgo}
+                                {(post.repostType === 'SIMPLE' && post.originalPost)
+                                    ? (post.originalPost.authorHandle || '')
+                                    : (post.authorHandle || `@${(post.team || 'user').toLowerCase()}`)}
+                                · {post.timeAgo}
                             </span>
-                            {post.isHot && (
+                            {((post.repostType === 'SIMPLE' && post.originalPost && post.isHot) || (!post.repostType && post.isHot)) && (
                                 <span className="text-[11px] font-semibold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/50 px-2 py-0.5 rounded-full">
                                     HOT
                                 </span>
@@ -265,12 +315,20 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     <div
                         className="mt-0.5 text-[16px] leading-[22px] text-[#0f1419] dark:text-slate-200 transition-all duration-300"
                     >
-                        {displayContent.split('\n').map((line, i) => (
-                            <React.Fragment key={i}>
-                                {line}
-                                <br />
-                            </React.Fragment>
-                        ))}
+                        {(post.repostType === 'SIMPLE' && post.originalPost)
+                            ? (post.originalPost.content ? post.originalPost.content.split('\n').map((line, i) => (
+                                <React.Fragment key={i}>
+                                    {line}
+                                    <br />
+                                </React.Fragment>
+                            )) : '')
+                            : displayContent.split('\n').map((line, i) => (
+                                <React.Fragment key={i}>
+                                    {line}
+                                    <br />
+                                </React.Fragment>
+                            ))
+                        }
                     </div>
 
                     {shouldShowMore && (
@@ -286,22 +344,23 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         </button>
                     )}
 
-                    {/* 원본 게시글 임베드 (리포스트인 경우) */}
-                    {post.originalPost && (
+                    {/* 원본 게시글 임베드 (리포스트인 경우 - Quote만 표시, Simple은 본문으로 통합됨) */}
+                    {(post.originalPost && post.repostType !== 'SIMPLE') && (
                         <div className="relative">
                             <EmbeddedPost
                                 post={post.originalDeleted ? { ...post.originalPost, deleted: true } : post.originalPost}
                                 className={(post.authorHandle === post.originalPost.authorHandle || post.author === post.originalPost.author)
-                                    ? "ring-2 ring-gray-300 dark:ring-gray-600 rounded-xl" // Self-Repost Thicker Border
+                                    ? "ring-2 ring-gray-300 dark:ring-gray-600 rounded-xl"
                                     : ""
                                 }
                             />
                         </div>
                     )}
 
-                    {post.images?.length ? (
+                    {/* 이미지 표시 (Simple Repost면 원본 이미지) */}
+                    {((post.repostType === 'SIMPLE' && post.originalPost && post.originalPost.imageUrls?.length) || (post.images?.length && post.repostType !== 'SIMPLE')) ? (
                         <div className="relative">
-                            <ImageGrid images={post.images} />
+                            <ImageGrid images={(post.repostType === 'SIMPLE' && post.originalPost) ? post.originalPost.imageUrls : post.images!} />
                             {post.imageUploadFailed && (
                                 <span className="absolute right-3 top-3 rounded-full bg-red-600/90 px-2 py-1 text-xs font-semibold text-white">
                                     업로드 실패
@@ -315,7 +374,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             type="button"
                             className="group/comment flex items-center gap-1.5 rounded-full transition-colors hover:text-sky-500"
                             onClick={handleCommentClick}
-                            aria-label={`댓글 ${post.comments}개`}
+                            aria-label={`댓글 ${commentCount}개`}
                         >
                             <span className="relative rounded-full p-2 transition-colors group-hover/comment:bg-sky-50 dark:group-hover/comment:bg-sky-500/20">
                                 {commentAnimating && (
@@ -326,43 +385,43 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         }`}
                                 />
                             </span>
-                            <RollingNumber value={post.comments} />
+                            <RollingNumber value={commentCount} />
                         </button>
 
                         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <button
                                     type="button"
-                                    className={`group/repost flex items-center gap-1.5 rounded-full transition-colors ${post.repostedByMe ? 'text-emerald-500' : 'hover:text-emerald-500'
+                                    className={`group/repost flex items-center gap-1.5 rounded-full transition-colors ${repostActive ? 'text-emerald-500' : 'hover:text-emerald-500'
                                         }`}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         // PopoverTrigger handles spacing, but stopPropagation is good practice if wrapped
                                     }}
-                                    aria-label={post.repostedByMe ? `리포스트 취소 (현재 ${post.repostCount}회)` : `리포스트 (현재 ${post.repostCount}회)`}
-                                    aria-pressed={post.repostedByMe}
+                                    aria-label={repostActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
+                                    aria-pressed={repostActive}
                                 >
                                     <span
-                                        className={`relative rounded-full p-2 transition-all duration-200 ${post.repostedByMe ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'
+                                        className={`relative rounded-full p-2 transition-all duration-200 ${repostActive ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'
                                             }`}
                                     >
                                         {repostAnimating && (
                                             <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-500/30 animate-like-ring" />
                                         )}
                                         <Repeat2
-                                            className={`h-[18px] w-[18px] transition-all duration-200 ${post.repostedByMe
+                                            className={`h-[18px] w-[18px] transition-all duration-200 ${repostActive
                                                 ? 'text-emerald-500 scale-110'
                                                 : ''
                                                 } ${repostAnimating ? 'animate-like-pop' : ''}`}
                                         />
                                     </span>
-                                    <RollingNumber value={post.repostCount} />
+                                    <RollingNumber value={repostCount} />
                                 </button>
                             </PopoverTrigger>
                             <PopoverContent
                                 className="w-48 p-0"
                                 align="start"
-                                onClick={(e) => e.stopPropagation()} // Prevent card click
+                                onClick={(e: React.MouseEvent) => e.stopPropagation()} // Prevent card click
                             >
                                 <div className="flex flex-col py-1">
                                     {(!!post.repostType && post.isOwner) ? (
@@ -431,7 +490,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             className={`group/like flex items-center gap-1.5 rounded-full transition-colors ${post.likedByUser ? 'text-rose-500' : 'hover:text-rose-500'
                                 }`}
                             onClick={handleLikeClick}
-                            aria-label={post.likedByUser ? `좋아요 취소 (현재 ${post.likes}개)` : `좋아요 (현재 ${post.likes}개)`}
+                            aria-label={post.likedByUser ? `좋아요 취소 (현재 ${likeCount}개)` : `좋아요 (현재 ${likeCount}개)`}
                             aria-pressed={post.likedByUser}
                         >
                             <span
@@ -448,25 +507,25 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         } ${likeAnimating ? 'animate-like-pop' : ''}`}
                                 />
                             </span>
-                            <RollingNumber value={post.likes} />
+                            <RollingNumber value={likeCount} />
                         </button>
                     </div>
                 </div>
-            </div>
 
-            {/* Portal Bubbling 방지를 위한 래퍼 */}
-            <div onClick={(e) => e.stopPropagation()}>
-                <CommentModal
-                    isOpen={isCommentModalOpen}
-                    onClose={() => setIsCommentModalOpen(false)}
-                    post={post}
-                />
+                {/* Portal Bubbling 방지를 위한 래퍼 */}
+                <div onClick={(e) => e.stopPropagation()}>
+                    <CommentModal
+                        isOpen={isCommentModalOpen}
+                        onClose={() => setIsCommentModalOpen(false)}
+                        post={post}
+                    />
 
-                <QuoteRepostEditor
-                    isOpen={isQuoteEditorOpen}
-                    onClose={() => setIsQuoteEditorOpen(false)}
-                    post={post}
-                />
+                    <QuoteRepostEditor
+                        isOpen={isQuoteEditorOpen}
+                        onClose={() => setIsQuoteEditorOpen(false)}
+                        post={post}
+                    />
+                </div>
             </div>
         </div>
     );

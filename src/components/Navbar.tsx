@@ -1,7 +1,7 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
-import { Bell, LogOut, ShieldAlert, Menu, X, Moon, Sun, MessageSquare, Map, Trophy, Users } from 'lucide-react';
+import { Bell, LogOut, ShieldAlert, Menu, X, Moon, Sun, MessageSquare, Map, Trophy, Users, Megaphone, LineChart } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
@@ -126,9 +126,9 @@ export default function Navbar() {
   };
 
   const navItems = [
-    { id: 'cheer', label: '게시판', icon: MessageSquare },
+    { id: 'cheer', label: '응원석', icon: Megaphone },
     { id: 'stadium', label: '구장가이드', icon: Map },
-    { id: 'prediction', label: '승리예측', icon: Trophy },
+    { id: 'prediction', label: '전력분석실', icon: LineChart },
     { id: 'mate', label: '같이가요', icon: Users }
   ];
 
@@ -262,18 +262,19 @@ export default function Navbar() {
                 {isLoggedIn ? (
                   <>
                     <button
-                      onClick={() => navigate('/mypage')}
+                      onClick={() => navigate(user?.handle ? `/mypage/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
                       className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary text-primary dark:border-[#4ade80] dark:text-[#4ade80] font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-white dark:hover:bg-[#4ade80] dark:hover:text-[#064e3b]"
                     >                                                      {/* 1. 닉네임: 평소 중앙, 호버 시 위로 사라짐 */}
                       <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:-translate-y-full group-hover:opacity-0">
                         {user?.name || '회원'} 님
                       </span>
 
-                      {/* 2. 마이페이지: 평소 아래, 호버 시 중앙으로 올라옴 */}
+                      {/* 2. 프로필: 평소 아래, 호버 시 중앙으로 올라옴 */}
                       <span className="absolute inset-0 flex items-center justify-center translate-y-full opacity-0 transition-all duration-300 ease-in-out group-hover:translate-y-0 group-hover:opacity-100">
                         마이페이지
                       </span>
-                    </button>                    {isAdmin && (
+                    </button>
+                    {isAdmin && (
                       <Button
                         onClick={() => navigate('/admin')}
                         variant="outline"
@@ -372,12 +373,12 @@ export default function Navbar() {
               <div className="space-y-2">
                 {/* 프로필 카드 */}
                 <button
-                  onClick={() => navigate('/mypage')}
+                  onClick={() => navigate(user?.handle ? `/mypage/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
                   className={`flex items-center gap-4 w-full py-4 px-4 rounded-xl transition-all duration-200 ${theme === 'dark'
                     ? 'bg-gray-800 hover:bg-gray-700'
                     : 'bg-gray-50 hover:bg-gray-100'
                     }`}
-                  aria-label="마이페이지로 이동"
+                  aria-label="프로필로 이동"
                 >
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${theme === 'dark' ? 'bg-[#4ade80]/20 text-[#4ade80]' : 'bg-[#2d5f4f]/10 text-[#2d5f4f]'
                     }`}>
@@ -388,7 +389,7 @@ export default function Navbar() {
                       {user?.name || '회원'} 님
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      마이페이지 →
+                      내 프로필 보기 →
                     </p>
                   </div>
                 </button>

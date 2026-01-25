@@ -4,7 +4,7 @@ import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Radio, Smile, UserRound, Users } from 'lucide-react';
+import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Radio, Smile, UserRound, Users, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getTeamDescription, TEAM_DATA } from '../constants/teams';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
@@ -16,67 +16,13 @@ import CheerCard from './CheerCard';
 import CheerHot from './CheerHot';
 import CheerWriteModal from './CheerWriteModal';
 import EndOfFeed from './EndOfFeed';
-
-
-const DEFAULT_TEAM_COLOR = '#2d5f4f';
-
-const normalizeHexColor = (color?: string) => {
-    if (!color) return DEFAULT_TEAM_COLOR;
-    const trimmed = color.trim();
-    if (!trimmed.startsWith('#')) return DEFAULT_TEAM_COLOR;
-    const hex = trimmed.slice(1);
-    if (hex.length === 3) {
-        return `#${hex
-            .split('')
-            .map((char) => char + char)
-            .join('')}`.toUpperCase();
-    }
-    if (hex.length === 6) {
-        return `#${hex.toUpperCase()}`;
-    }
-    return DEFAULT_TEAM_COLOR;
-};
-
-const hexToRgb = (hex: string) => {
-    const normalized = normalizeHexColor(hex);
-    const value = normalized.replace('#', '');
-    const r = parseInt(value.slice(0, 2), 16);
-    const g = parseInt(value.slice(2, 4), 16);
-    const b = parseInt(value.slice(4, 6), 16);
-    return { r, g, b };
-};
-
-const toRgba = (hex: string, alpha: number) => {
-    const { r, g, b } = hexToRgb(hex);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
-const getLuminance = (hex: string) => {
-    const { r, g, b } = hexToRgb(hex);
-    const [sr, sg, sb] = [r, g, b].map((value) => {
-        const channel = value / 255;
-        return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
-    });
-    return 0.2126 * sr + 0.7152 * sg + 0.0722 * sb;
-};
-
-const darkenColor = (hex: string, amount: number) => {
-    const { r, g, b } = hexToRgb(hex);
-    const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
-    return `#${[clamp(r * (1 - amount)), clamp(g * (1 - amount)), clamp(b * (1 - amount))]
-        .map((value) => value.toString(16).padStart(2, '0'))
-        .join('')}`.toUpperCase();
-};
-
-const getReadableAccent = (hex: string) => {
-    const luminance = getLuminance(hex);
-    return luminance > 0.7 ? darkenColor(hex, 0.35) : hex;
-};
-
-const getContrastText = (hex: string) => {
-    const luminance = getLuminance(hex);
-    return luminance > 0.6 ? '#0F172A' : '#FFFFFF';
-};
+import {
+    normalizeHexColor,
+    toRgba,
+    getReadableAccent,
+    getContrastText,
+    DEFAULT_BRAND_COLOR,
+} from '../utils/teamColors';
 
 
 export default function Cheer() {
@@ -109,7 +55,7 @@ export default function Cheer() {
         navigate('/cheer/write');
     };
 
-    const teamColor = normalizeHexColor(user?.favoriteTeamColor || DEFAULT_TEAM_COLOR);
+    const teamColor = normalizeHexColor(user?.favoriteTeamColor || DEFAULT_BRAND_COLOR);
     const teamAccent = getReadableAccent(teamColor);
     const teamContrastText = getContrastText(teamColor);
     const teamSoftBg = toRgba(teamColor, 0.12);
@@ -247,10 +193,8 @@ export default function Cheer() {
             if (!user?.favoriteTeam) {
                 throw new Error('favoriteTeam-required');
             }
-            const derivedTitle = payload.content.split('\n')[0].slice(0, 40) || '응원글';
             const created = await createCheerPost({
                 teamId: user.favoriteTeam,
-                title: derivedTitle,
                 content: payload.content,
                 postType: payload.postType ?? 'CHEER',
             });
@@ -281,7 +225,7 @@ export default function Cheer() {
                     throw new Error('Image upload failed');
                 }
             }
-            return { created, derivedTitle, uploadedUrls, uploadFailed: false };
+            return { created, uploadedUrls, uploadFailed: false };
         },
         onMutate: async (payload) => {
             const optimisticId = Date.now() * -1;
@@ -289,7 +233,6 @@ export default function Cheer() {
                 id: optimisticId,
                 team: user?.favoriteTeam || 'ALL',
                 teamColor,
-                title: payload.content.split('\n')[0].slice(0, 40) || '응원글',
                 content: payload.content,
                 author: user?.name || user?.email || '나',
                 timeAgo: '방금 전',
@@ -418,7 +361,7 @@ export default function Cheer() {
                 teamId: 'all',
                 page: pageParam as number,
                 size: 20,
-                postType: activeTabConfig?.postType as 'NORMAL' | 'NOTICE' | null,
+                postType: activeTabConfig?.postType as any,
                 sort: activeTabConfig?.sort
             });
         },
@@ -463,7 +406,7 @@ export default function Cheer() {
             teamId: 'all',
             page: 0,
             size: 10,
-            postType: activeTabConfig?.postType as 'NORMAL' | 'NOTICE' | null
+            postType: activeTabConfig?.postType as any
         }),
         refetchInterval: 15000,
         enabled: !isLoading && !activeTabConfig?.sort, // Only poll for default sort (createdAt)
@@ -557,14 +500,15 @@ export default function Cheer() {
 
     return (
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-[#0E1117]">
-            <div className="mx-auto w-full max-w-[1200px] px-6 py-8">
-                <div className="grid grid-cols-1 gap-0 lg:grid-cols-[72px_1fr_320px] xl:grid-cols-[200px_1fr_320px]">
+            <div className="px-6 py-8">
+                <div className="mx-auto w-full max-w-[1008px] xl:max-w-[1136px] lg:-translate-x-4">
+                    <div className="grid grid-cols-1 gap-0 lg:gap-x-4 lg:grid-cols-[72px_600px_320px] xl:grid-cols-[200px_600px_320px]">
                     <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
                         {[
-                            { id: 'home', label: 'Home', icon: Home, path: '/home' },
-                            { id: 'team', label: 'Team Hub', icon: Users, path: '/cheer' },
-                            { id: 'live', label: 'LIVE', icon: Radio, path: '/prediction' },
-                            { id: 'profile', label: 'Profile', icon: UserRound, path: '/mypage' },
+                            { id: 'home', label: '홈', icon: Home, path: '/home' },
+                            { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
+                            { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
+                            { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage' },
                             { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
                         ].map((item) => {
                             const Icon = item.icon;
@@ -882,7 +826,7 @@ export default function Cheer() {
                         </section>
                     </main>
 
-                    <aside className="hidden lg:flex w-[320px] flex-col gap-4 sticky top-6 self-start lg:ml-4">
+                    <aside className="hidden lg:flex w-[320px] flex-col gap-4 sticky top-6 self-start">
                         <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#232938] p-4 bg-white dark:bg-[#151A23]">
                             <div className="flex items-center gap-3">
                                 <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center">
@@ -979,15 +923,16 @@ export default function Cheer() {
                     </aside>
                 </div>
             </div>
+        </div>
 
             {/* Mobile Bottom Navigation */}
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#151A23] border-t border-[#EFF3F4] dark:border-[#232938] z-40 safe-area-bottom">
                 <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
                     {[
                         { id: 'home', label: '홈', icon: Home, path: '/home' },
-                        { id: 'team', label: '팀허브', icon: Users, path: '/cheer' },
-                        { id: 'live', label: '라이브', icon: Radio, path: '/prediction' },
-                        { id: 'profile', label: '프로필', icon: UserRound, path: '/mypage' },
+                        { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
+                        { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
+                        { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage' },
                     ].map((item) => {
                         const Icon = item.icon;
                         const isActive = item.id === 'team';
@@ -1023,22 +968,22 @@ export default function Cheer() {
                 <PenSquare className="mx-auto h-5 w-5" />
             </button>
 
-                <CheerWriteModal
-                    isOpen={isWriteModalOpen}
-                    onClose={() => setIsWriteModalOpen(false)}
-                    onSubmit={async (content: string, files: File[]) => {
-                        await createMutation.mutateAsync({
-                            content,
-                            files,
-                            postType: activeTabConfig?.postType,
-                        });
-                    }}
-                    teamColor={teamColor}
-                    teamAccent={teamAccent}
-                    teamContrastText={teamContrastText}
-                    teamLabel={teamLabel}
-                    teamId={teamLogoId}
-                />
+            <CheerWriteModal
+                isOpen={isWriteModalOpen}
+                onClose={() => setIsWriteModalOpen(false)}
+                onSubmit={async (content: string, files: File[]) => {
+                    await createMutation.mutateAsync({
+                        content,
+                        files,
+                        postType: activeTabConfig?.postType,
+                    });
+                }}
+                teamColor={teamColor}
+                teamAccent={teamAccent}
+                teamContrastText={teamContrastText}
+                teamLabel={teamLabel}
+                teamId={teamLogoId}
+            />
         </div>
     );
 }

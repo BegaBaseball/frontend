@@ -1,6 +1,6 @@
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { TrendingUp, ChevronLeft, ChevronRight, Trophy, Flame, Target, Coins } from 'lucide-react';
+import { TrendingUp, ChevronLeft, ChevronRight, Trophy, Flame, Target, Coins, LineChart } from 'lucide-react';
 import ChatBot from './ChatBot';
 import RankingPrediction from './RankingPrediction';
 import AdvancedMatchCard from './prediction/AdvancedMatchCard';
@@ -174,10 +174,10 @@ export default function Prediction() {
         {/* Title */}
         <div className="flex items-center gap-3 mb-6">
           <div className="bg-[#2d5f4f] dark:bg-[#4ade80] p-2 rounded-lg">
-            <TrendingUp className="w-6 h-6 text-white dark:text-gray-900" />
+            <LineChart className="w-6 h-6 text-white dark:text-gray-900" />
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">AI 승부 분석</h2>
+            <h2 className="text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">전력분석실</h2>
           </div>
           {isLoggedIn && (
             <div className="flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50 rounded-full">
@@ -281,14 +281,14 @@ export default function Prediction() {
 
                 {/* Advanced Game Card */}
                 {currentGame && (
-                    <AdvancedMatchCard
-                      key={currentGame.gameId}
-                      game={currentGame}
-                      gameDetail={currentGameDetail}
-                      gameDetailLoading={currentGameDetailLoading}
-                      userVote={userVote[currentGameId!] || null}
-                      votePercentages={votePercentages}
-                      isPastGame={isPastGame}
+                  <AdvancedMatchCard
+                    key={currentGame.gameId}
+                    game={currentGame}
+                    gameDetail={currentGameDetail}
+                    gameDetailLoading={currentGameDetailLoading}
+                    userVote={userVote[currentGameId!] || null}
+                    votePercentages={votePercentages}
+                    isPastGame={isPastGame}
                     isFutureGame={isFutureGame}
                     isToday={isToday}
                     onVote={(team) => handleVote(team, currentGame, isPastGame)}

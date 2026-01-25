@@ -43,7 +43,7 @@ export default function ImageGrid({ images }: ImageGridProps) {
             <img
               src={src}
               alt=""
-              className="h-full w-full object-cover transition-all hover:brightness-90"
+              className="h-full w-full object-cover transition-all hover:brightness-90 image-render-quality"
               loading="lazy"
             />
             {images.length > 4 && index === 3 && (

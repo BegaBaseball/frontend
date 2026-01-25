@@ -67,6 +67,7 @@ export const useMyPage = () => {
   // ========== Computed Values ==========
   const profileImage = profile?.profileImageUrl || DEFAULT_PROFILE_IMAGE;
   const name = profile?.name || '로딩 중...';
+  const handle = profile?.handle || '';
   const email = profile?.email || 'loading@...';
   const savedFavoriteTeam = profile?.favoriteTeam || '없음';
 
@@ -88,6 +89,7 @@ export const useMyPage = () => {
     // Profile Data
     profileImage,
     name,
+    handle,
     email,
     savedFavoriteTeam,
     isLoading,
