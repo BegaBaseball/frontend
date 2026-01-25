@@ -121,6 +121,8 @@ export async function sendChatMessageStream(
 
   // We'll race reader.read() against a timeout.
 
+  let streamCompleted = false;
+
   while (true) {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -148,7 +150,10 @@ export async function sendChatMessageStream(
           currentEvent = line.substring(6).trim();
         } else if (line.startsWith('data:')) {
           const dataString = line.substring(5).trim();
-          if (dataString === '[DONE]') break;
+          if (dataString === '[DONE]') {
+            streamCompleted = true;
+            break;
+          }
 
           try {
             const parsed = JSON.parse(dataString);
@@ -156,6 +161,7 @@ export async function sendChatMessageStream(
               onDelta(parsed.delta);
             } else if (currentEvent === 'error') {
               onError(parsed.message || '알 수 없는 오류');
+              return; // Stop processing on error
             } else if (currentEvent === 'meta' && onMeta) {
               onMeta({
                 verified: parsed.verified ?? false,
@@ -176,6 +182,7 @@ export async function sendChatMessageStream(
           }
         }
       }
+      if (streamCompleted) break;
     } catch (error: any) {
       if (timeoutId) clearTimeout(timeoutId);
 
@@ -187,6 +194,11 @@ export async function sendChatMessageStream(
       }
       throw error;
     }
+  }
+
+  // 스트림이 [DONE] 시그널 없이 종료된 경우 (서버 비정상 종료 등)
+  if (!streamCompleted) {
+    throw new Error('INCOMPLETE_STREAM');
   }
 }
 

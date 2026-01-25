@@ -120,7 +120,7 @@ export default function NoticePage() {
                     <Megaphone className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-1 text-base">{post.title}</h3>
+                    <h3 className="mb-1 text-base">{post.content?.split('\n')[0]?.slice(0, 60) || '공지사항'}</h3>
                     <div className="flex items-center gap-3 text-sm text-gray-500">
                       <span>{post.author}</span>
                       <span>•</span>

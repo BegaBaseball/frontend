@@ -56,7 +56,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                         <img
                             src={post.authorProfileImageUrl}
                             alt={post.author}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-cover image-render-quality"
                         />
                     ) : (
                         <div className="h-full w-full flex items-center justify-center text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -74,13 +74,6 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                 </div>
             </div>
 
-            {/* 제목 (있는 경우) */}
-            {post.title && (
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-1 line-clamp-1">
-                    {post.title}
-                </h4>
-            )}
-
             {/* 본문 미리보기 */}
             {previewContent && (
                 <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
@@ -94,7 +87,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                     <img
                         src={post.imageUrls[0]}
                         alt="첨부 이미지"
-                        className="h-20 w-full object-cover rounded-lg"
+                        className="h-20 w-full object-cover rounded-lg image-render-quality"
                     />
                     {post.imageUrls.length > 1 && (
                         <div className="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">

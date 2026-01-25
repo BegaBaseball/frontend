@@ -413,7 +413,7 @@ export default function AdminPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <span className="text-slate-200">{post.title}</span>
+                              <span className="text-slate-200">{post.content?.slice(0, 40) || '-'}</span>
                               {post.isHot && (
                                 <Badge className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] px-1.5 py-0 border-0 animate-pulse">
                                   HOT

@@ -1,16 +1,30 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 import { fetchPublicUserProfileByHandle } from '../../api/profile';
 import { fetchUserPostsByHandle } from '../../api/cheerApi';
+import { getFollowCounts } from '../../api/followApi';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
-import { Loader2, User, Trophy, Quote, ArrowLeft } from 'lucide-react';
+import { Button } from '../ui/button';
+import {
+    Loader2,
+    User,
+    Trophy,
+    Quote,
+    ArrowLeft,
+    AlertCircle,
+    Award,
+    FileText,
+    Users,
+    UserPlus,
+    MessageCircle,
+} from 'lucide-react';
 import { getTeamKoreanName } from '../../utils/teamNames';
+import { getTeamTheme } from '../../utils/teamColors';
 import CheerCard from '../CheerCard';
 import EndOfFeed from '../EndOfFeed';
 import FollowButton from './FollowButton';
-import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
 
 export default function UserProfile() {
@@ -21,10 +35,21 @@ export default function UserProfile() {
     // URL에 @가 없는 경우 붙여줌 (UX)
     const normalizedHandle = handle?.startsWith('@') ? handle : `@${handle}`;
 
-    const { data: profile, isLoading: isProfileLoading, error: profileError } = useQuery({
+    const {
+        data: profile,
+        isLoading: isProfileLoading,
+        error: profileError,
+    } = useQuery({
         queryKey: ['publicProfile', normalizedHandle],
         queryFn: () => fetchPublicUserProfileByHandle(normalizedHandle),
         enabled: !!normalizedHandle,
+    });
+
+    // 팔로워/팔로잉 카운트 조회
+    const { data: followCounts } = useQuery({
+        queryKey: ['followCounts', profile?.id],
+        queryFn: () => getFollowCounts(profile!.id),
+        enabled: !!profile?.id,
     });
 
     const {
@@ -40,6 +65,9 @@ export default function UserProfile() {
         enabled: !!normalizedHandle,
         initialPageParam: 0,
     });
+
+    // 팀 테마 색상 계산
+    const theme = useMemo(() => getTeamTheme(profile?.favoriteTeam), [profile?.favoriteTeam]);
 
     // Infinite scroll handler
     useEffect(() => {
@@ -58,6 +86,14 @@ export default function UserProfile() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+    // 숫자 포맷 (1000 -> 1k)
+    const formatCount = (count: number): string => {
+        if (count >= 1000) {
+            return `${(count / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+        }
+        return count.toString();
+    };
+
     if (isProfileLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -71,8 +107,12 @@ export default function UserProfile() {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
                 <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">사용자를 찾을 수 없습니다.</h2>
-                <p className="text-gray-500 text-center mb-6">존재하지 않거나 삭제된 사용자일 수 있습니다.</p>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    사용자를 찾을 수 없습니다.
+                </h2>
+                <p className="text-gray-500 text-center mb-6">
+                    존재하지 않거나 삭제된 사용자일 수 있습니다.
+                </p>
                 <button
                     onClick={() => navigate(-1)}
                     className="flex items-center text-[#2d5f4f] font-medium hover:underline"
@@ -84,138 +124,197 @@ export default function UserProfile() {
         );
     }
 
-    // 중복 게시글 제거 (페이지네이션 사이에 데이터 변경으로 중복 발생 가능)
+    // 중복 게시글 제거
     const allPosts = postsData?.pages.flatMap((page) => page.content) || [];
     const uniquePosts = allPosts.filter(
         (post, index, self) => index === self.findIndex((p) => p.id === post.id)
     );
+    const totalPosts = postsData?.pages[0]?.totalElements || 0;
+
+    const isOwnProfile = currentUser && profile && Number(currentUser.id) === Number(profile.id);
 
     return (
-        <div className="max-w-2xl mx-auto px-4 py-8">
-            {/* Header / Back Button */}
+        <div className="max-w-2xl mx-auto pb-8">
+            {/* Back Button */}
             <button
                 onClick={() => navigate(-1)}
-                className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-6 transition-colors"
+                className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-4 py-4 transition-colors"
             >
                 <ArrowLeft className="w-5 h-5 mr-1" />
                 <span>뒤로</span>
             </button>
 
-            {/* Profile Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 mb-8">
-                <div className="flex flex-col items-center space-y-6">
-                    <div className="relative">
-                        <Avatar className="w-28 h-28 border-4 border-white dark:border-gray-700 shadow-xl">
-                            <AvatarImage src={profile.profileImageUrl || ''} className="object-cover" />
-                            <AvatarFallback className="bg-gray-100 dark:bg-gray-700 text-gray-400">
-                                <User className="w-14 h-14" />
-                            </AvatarFallback>
-                        </Avatar>
+            {/* Profile Card */}
+            <div className="bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                {/* Banner */}
+                <div className="h-[150px] relative" style={{ background: theme.gradient }}>
+                    {/* Optional: subtle pattern or team logo watermark */}
+                </div>
+
+                {/* Avatar - overlapping banner */}
+                <div className="px-6 -mt-[50px] relative z-10">
+                    <Avatar className="w-[100px] h-[100px] border-4 border-white dark:border-gray-800 shadow-xl">
+                        <AvatarImage src={profile.profileImageUrl || ''} className="object-cover" />
+                        <AvatarFallback className="bg-gray-100 dark:bg-gray-700 text-gray-400">
+                            <User className="w-12 h-12" />
+                        </AvatarFallback>
+                    </Avatar>
+                </div>
+
+                {/* Profile Info */}
+                <div className="px-6 pt-4 pb-6">
+                    {/* Name & Handle */}
+                    <div className="mb-3">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {profile.name}
+                        </h1>
+                        <p className="text-gray-500 dark:text-gray-400">{profile.handle}</p>
                     </div>
 
-                    <div className="text-center space-y-3">
-                        <div className="space-y-1">
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white leading-tight">
-                                {profile.name}
-                            </h1>
-                            <p className="text-gray-500 dark:text-gray-400 font-medium">
-                                {profile.handle}
-                            </p>
-                            <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-full w-fit mx-auto mt-1 border border-amber-100 dark:border-amber-800">
-                                <Trophy className="w-3.5 h-3.5 fill-amber-500" />
-                                <span>{profile.cheerPoints?.toLocaleString() || 0} P</span>
-                            </div>
-                        </div>
+                    {/* Badges */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        {/* Points Badge */}
+                        <Badge
+                            className="px-3 py-1 border-0"
+                            style={{
+                                backgroundColor: theme.softBg,
+                                color: theme.accent,
+                            }}
+                        >
+                            <Award className="w-3.5 h-3.5 mr-1" />
+                            {profile.cheerPoints?.toLocaleString() || 0} P
+                        </Badge>
 
-                        {/* Follow Button - 본인 프로필이 아닌 경우에만 표시 */}
-                        {profile.id && currentUser && currentUser.id !== profile.id && (
+                        {/* Team Badge */}
+                        {profile.favoriteTeam && profile.favoriteTeam !== '없음' && (
+                            <Badge
+                                className="px-3 py-1 border-0"
+                                style={{
+                                    backgroundColor: theme.primary,
+                                    color: theme.contrastText,
+                                }}
+                            >
+                                <Trophy className="w-3.5 h-3.5 mr-1" />
+                                {getTeamKoreanName(profile.favoriteTeam)}
+                            </Badge>
+                        )}
+                    </div>
+
+                    {/* Statistics Row */}
+                    <div className="flex items-center gap-6 py-4 border-y border-gray-100 dark:border-gray-700">
+                        <div className="text-center">
+                            <span className="font-bold text-lg text-gray-900 dark:text-white block">
+                                {formatCount(totalPosts)}
+                            </span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
+                                <FileText className="w-3.5 h-3.5" />
+                                게시글
+                            </span>
+                        </div>
+                        <div className="text-center">
+                            <span className="font-bold text-lg text-gray-900 dark:text-white block">
+                                {formatCount(followCounts?.followerCount || 0)}
+                            </span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
+                                <Users className="w-3.5 h-3.5" />
+                                팔로워
+                            </span>
+                        </div>
+                        <div className="text-center">
+                            <span className="font-bold text-lg text-gray-900 dark:text-white block">
+                                {formatCount(followCounts?.followingCount || 0)}
+                            </span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
+                                <UserPlus className="w-3.5 h-3.5" />
+                                팔로잉
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    {!isOwnProfile && currentUser && (
+                        <div className="flex gap-3 mt-4">
                             <FollowButton
                                 userId={profile.id}
                                 size="default"
                                 showNotifyOption={true}
+                                className="flex-1"
+                                style={{
+                                    backgroundColor: theme.primary,
+                                    color: theme.contrastText,
+                                }}
                             />
-                        )}
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => {
+                                    // TODO: 메시지 기능 구현 시 연결
+                                }}
+                            >
+                                <MessageCircle className="w-4 h-4 mr-2" />
+                                메시지
+                            </Button>
+                        </div>
+                    )}
 
-                        {profile.favoriteTeam ? (
-                            <Badge variant="secondary" className="px-4 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                <Trophy className="w-4 h-4 mr-2 text-[#2d5f4f]" />
-                                {getTeamKoreanName(profile.favoriteTeam)}
-                            </Badge>
-                        ) : (
-                            <span className="text-sm text-gray-500">응원팀 없음</span>
-                        )}
-                    </div>
-
-                    {/* Bio */}
-                    <div className="w-full bg-gray-50 dark:bg-gray-700/30 rounded-2xl p-6 relative max-w-lg">
-                        <Quote className="absolute top-4 left-4 w-5 h-5 text-gray-200 dark:text-gray-600" />
-                        <div className="px-4 text-center">
+                    {/* Bio Section */}
+                    <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl relative">
+                        <Quote className="absolute top-3 left-3 w-4 h-4 text-gray-300 dark:text-gray-600" />
+                        <div className="pl-6">
                             {profile.bio ? (
                                 <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                                     {profile.bio}
                                 </p>
                             ) : (
-                                <p className="text-gray-400 italic text-sm">
+                                <p className="text-gray-400 dark:text-gray-500 italic text-sm">
                                     아직 자기소개가 없습니다.
                                 </p>
                             )}
                         </div>
                     </div>
                 </div>
+            </div>
 
-
-                {/* Posts Section */}
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-700 pb-4">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">작성한 게시글</h2>
-                        <span className="text-sm text-gray-500">{postsData?.pages[0]?.totalElements || 0}개의 글</span>
-                    </div>
-
-                    {isPostsLoading ? (
-                        <div className="flex justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-[#2d5f4f]" />
-                        </div>
-                    ) : uniquePosts.length > 0 ? (
-                        <div className="space-y-4">
-                            {uniquePosts.map((post) => (
-                                <CheerCard key={post.id} post={post} />
-                            ))}
-                            {isFetchingNextPage && (
-                                <div className="flex justify-center py-4">
-                                    <Loader2 className="h-6 w-6 animate-spin text-[#2d5f4f]" />
-                                </div>
-                            )}
-                            {!hasNextPage && uniquePosts.length > 0 && <EndOfFeed />}
-                        </div>
-                    ) : (
-                        <div className="text-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
-                            <p className="text-gray-400">아직 작성한 게시글이 없습니다.</p>
-                        </div>
-                    )}
+            {/* Posts Section */}
+            <div className="mt-6 px-4">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <FileText className="w-5 h-5" style={{ color: theme.accent }} />
+                        작성한 게시글
+                    </h2>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {totalPosts}개의 글
+                    </span>
                 </div>
-            </div >
-        </div>
-    );
-}
 
-// Missing component placeholder - you need to import or create it
-function AlertCircle({ className }: { className?: string }) {
-    return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-        >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
+                {isPostsLoading ? (
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin" style={{ color: theme.primary }} />
+                    </div>
+                ) : uniquePosts.length > 0 ? (
+                    <div className="space-y-4">
+                        {uniquePosts.map((post) => (
+                            <CheerCard key={post.id} post={post} />
+                        ))}
+                        {isFetchingNextPage && (
+                            <div className="flex justify-center py-4">
+                                <Loader2
+                                    className="h-6 w-6 animate-spin"
+                                    style={{ color: theme.primary }}
+                                />
+                            </div>
+                        )}
+                        {!hasNextPage && uniquePosts.length > 0 && <EndOfFeed />}
+                    </div>
+                ) : (
+                    <div className="text-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                        <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                        <p className="text-gray-400 dark:text-gray-500">
+                            아직 작성한 게시글이 없습니다.
+                        </p>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }

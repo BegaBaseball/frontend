@@ -10,3 +10,4 @@ yarn-error.log*
 /.npm-cache
 .env
 /cypress
+/src/assets/stadiums

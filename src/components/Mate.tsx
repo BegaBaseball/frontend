@@ -131,7 +131,7 @@ export default function Mate() {
               <AvatarImage
                 src={profileImageUrl || undefined}
                 alt="Profile"
-                className="object-cover"
+                className="object-cover image-render-quality"
               />
               <AvatarFallback className="text-white" style={{ backgroundColor: '#2d5f4f' }}>
                 {party.hostName.slice(0, 2)}

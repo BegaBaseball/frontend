@@ -18,6 +18,7 @@ export interface LoginResponse {
     id: number;
     name: string;
     role: string;
+    handle?: string;
   };
 }
 

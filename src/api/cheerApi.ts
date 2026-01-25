@@ -56,7 +56,6 @@ export interface CheerPost {
     authorHandle: string;
     authorProfileImageUrl?: string;
     authorTeamId?: string;
-    title: string;
     content: string;
     timeAgo: string; // Added for compatibility
     teamColor: string; // Added for compatibility
@@ -129,7 +128,6 @@ export interface EmbeddedPost {
     id: number;
     teamId: string;
     teamColor: string;
-    title: string;
     content: string;  // 100자 미리보기
     author: string;
     authorHandle: string;
@@ -219,8 +217,7 @@ function transformPost(post: any): CheerPost {
         teamId: post.teamId,
         team: post.teamId, // compatibility
         teamColor: teamColors[post.teamId] || '#2d5f4f',
-        title: post.title,
-        content: post.content,
+        content: post.content || '',
         author: post.author, // Assuming post.author is string from backend PostSummaryRes
         authorId: post.authorId,
         authorHandle: post.authorHandle || '',
@@ -260,14 +257,16 @@ function transformEmbeddedPost(post: any): EmbeddedPost {
         id: post.id,
         teamId: post.teamId,
         teamColor: post.teamColor || teamColors[post.teamId] || '#2d5f4f',
-        title: post.title || '',
         content: post.content || '',
         author: post.author,
         authorHandle: post.authorHandle,
         authorProfileImageUrl: post.authorProfileImageUrl,
         createdAt: post.createdAt,
         imageUrls: post.imageUrls || [],
-        deleted: post.deleted ?? false
+        deleted: post.deleted ?? false,
+        likeCount: post.likeCount ?? 0,
+        commentCount: post.commentCount ?? 0,
+        repostCount: post.repostCount ?? 0
     };
 }
 
@@ -291,7 +290,6 @@ export async function fetchPostDetail(id: number): Promise<CheerPost> {
 // 게시글 작성
 export async function createPost(data: {
     teamId: string;
-    title: string;
     content: string;
     postType?: string;
 }) {
@@ -304,7 +302,6 @@ export async function createPost(data: {
 
 // 게시글 수정
 export async function updatePost(id: number, data: {
-    title: string;
     content: string;
 }) {
     const response = await api.put(`/cheer/posts/${id}`, data);
@@ -373,6 +370,12 @@ export async function toggleBookmark(postId: number) {
 // 재게시 (Repost) 토글 - 단순 리포스트
 export async function toggleRepost(postId: number): Promise<RepostToggleResponse> {
     const response = await api.post(`/cheer/posts/${postId}/repost`);
+    return response.data;
+}
+
+// 리포스트 취소 - 단순 리포스트 삭제
+export async function cancelRepost(repostId: number): Promise<RepostToggleResponse> {
+    const response = await api.delete(`/cheer/posts/${repostId}/repost`);
     return response.data;
 }
 

@@ -13,7 +13,9 @@ import {
   X,
   ChevronRight,
   ChevronLeft,
-  Users
+  Users,
+  Megaphone,
+  LineChart
 } from 'lucide-react';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
@@ -63,10 +65,10 @@ const SLIDES_DATA: readonly Slide[] = [
     ]
   },
   {
-    title: '응원게시판',
+    title: '응원석',
     subtitle: '팬들과 함께하는 공간',
     description: '마이팀 설정으로 필터링하여 우리 팀 소식만 모아보세요',
-    icon: 'heart',
+    icon: 'megaphone',
     color: '#ef4444',
     features: [
       '마이팀 설정 후 우리 팀 게시글만 필터링',
@@ -87,10 +89,10 @@ const SLIDES_DATA: readonly Slide[] = [
     ]
   },
   {
-    title: '승리예측',
+    title: '전력분석실',
     subtitle: '나만의 예측으로 즐기기',
-    description: '순위예측과 승부예측으로 경기를 더 재미있게 즐기세요',
-    icon: 'trending',
+    description: '전력 분석과 승부 예측으로 경기를 더 재미있게 즐기세요',
+    icon: 'linechart',
     color: '#8b5cf6',
     features: [
       '스토브리그 시즌: 순위 예측 활성화',
@@ -143,12 +145,13 @@ const SlideIcon = ({ iconType, color, isIntro }: { iconType: string; color: stri
   const icons = {
     baseball: <img src={baseballLogo} alt="BEGA 로고" className={iconClass} />,
     home: <Home className={iconClass} />,
-    heart: <Heart className={iconClass} />,
+    megaphone: <Megaphone className={iconClass} />,
     map: <MapPin className={iconClass} />,
     trending: <TrendingUp className={iconClass} />,
     users: <Users className={iconClass} />,
     book: <BookOpen className={iconClass} />,
-    message: <MessageCircle className={iconClass} />
+    message: <MessageCircle className={iconClass} />,
+    linechart: <LineChart className={iconClass} />
   };
 
   return (
@@ -185,7 +188,7 @@ export default function WelcomeGuide() {
     if (!showWelcome) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      switch(e.key) {
+      switch (e.key) {
         case 'ArrowRight':
           e.preventDefault();
           handleNext();
@@ -374,7 +377,7 @@ export default function WelcomeGuide() {
                     </p>
                   </div>
                   <p className="text-[11px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300 text-left leading-relaxed">
-                    야구 팬을 위한 모든 것이 담긴 BEGA에서<br/>
+                    야구 팬을 위한 모든 것이 담긴 BEGA에서<br />
                     더욱 즐거운 야구 라이프를 시작하세요! ⚾
                   </p>
                 </Card>

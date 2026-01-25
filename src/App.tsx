@@ -153,6 +153,7 @@ export default function App() {
                 <Route path="/mate/:id/chat" element={<MateChat />} />
                 <Route path="/mate/:id/manage" element={<MateManage />} />
                 <Route path="/mypage" element={<MyPage />} />
+                <Route path="/mypage/:handle" element={<MyPage />} />
               </Route>
 
               {/* 관리자 전용 라우트 */}

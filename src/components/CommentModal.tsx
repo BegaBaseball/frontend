@@ -87,7 +87,7 @@ export default function CommentModal({ isOpen, onClose, post }: CommentModalProp
                                 <span className="text-slate-400">·</span>
                                 <span className="text-[14px] text-slate-500 dark:text-slate-400">{post.timeAgo}</span>
                             </div>
-                            <p className="text-[15px] text-slate-700 dark:text-slate-300 line-clamp-3 mb-2">{post.content || post.title}</p>
+                            <p className="text-[15px] text-slate-700 dark:text-slate-300 line-clamp-3 mb-2">{post.content}</p>
                             <div className="text-[14px] text-slate-400">
                                 <span className="text-indigo-500 font-medium">@{post.authorHandle || post.author}</span> 님에게 답글 남기는 중
                             </div>

@@ -2,8 +2,6 @@
 import { ArrowLeft, X, Upload } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { Button } from './ui/button';
-import { Textarea } from './ui/textarea';
-import { Input } from './ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +20,6 @@ export default function CheerWrite() {
   const favoriteTeam = useAuthStore((state) => state.user?.favoriteTeam) ?? null;
 
   const {
-    title,
-    setTitle,
     content,
     setContent,
     newFilePreviews,
@@ -66,7 +62,7 @@ export default function CheerWrite() {
               onClick={handleSubmit}
               className="text-white"
               style={{ backgroundColor: '#2d5f4f' }}
-              disabled={isSubmitting || !title.trim() || !content.trim()}
+              disabled={isSubmitting || !content.trim()}
             >
               {isSubmitting ? '등록 중...' : '등록'}
             </Button>
@@ -76,19 +72,6 @@ export default function CheerWrite() {
 
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
-          {/* Title */}
-          <div className="space-y-2">
-            <label className="block text-sm" style={{ color: '#2d5f4f' }}>
-              제목 *
-            </label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="제목을 입력하세요"
-              className="w-full"
-            />
-          </div>
-
           {/* Content */}
           <div className="space-y-2">
             <label className="block text-sm" style={{ color: '#2d5f4f' }}>

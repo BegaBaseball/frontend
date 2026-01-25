@@ -18,6 +18,7 @@ export default function MyPage() {
     user,
     profileImage,
     name,
+    handle,
     email,
     savedFavoriteTeam,
     isLoading,
@@ -69,7 +70,7 @@ export default function MyPage() {
                     )}
                   </div>
                 </div>
-                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-1">{name}</p>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-1">{handle ? (handle.startsWith('@') ? handle : `@${handle}`) : ''}</p>
                 <p className="text-xs md:text-sm text-gray-500 dark:text-gray-500 mb-2">{email}</p>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 text-xs font-semibold text-yellow-700 dark:text-yellow-400">
@@ -116,28 +117,32 @@ export default function MyPage() {
         </Card>
 
         {/* 컨텐츠 영역 */}
-        {viewMode === 'editProfile' && (
-          <ProfileEditSection
-            profileImage={profileImage}
-            name={name}
-            email={email}
-            savedFavoriteTeam={savedFavoriteTeam}
-            userRole={user?.role}
-            userProvider={user?.provider}
-            initialBio={user?.bio}
-            onCancel={() => setViewMode('diary')}
-            onSave={handleProfileUpdated}
-            onChangePassword={() => setViewMode('changePassword')}
-            onAccountSettings={() => setViewMode('accountSettings')}
-          />
-        )}
+        {
+          viewMode === 'editProfile' && (
+            <ProfileEditSection
+              profileImage={profileImage}
+              name={name}
+              email={email}
+              savedFavoriteTeam={savedFavoriteTeam}
+              userRole={user?.role}
+              userProvider={user?.provider}
+              initialBio={user?.bio}
+              onCancel={() => setViewMode('diary')}
+              onSave={handleProfileUpdated}
+              onChangePassword={() => setViewMode('changePassword')}
+              onAccountSettings={() => setViewMode('accountSettings')}
+            />
+          )
+        }
 
-        {viewMode === 'changePassword' && (
-          <PasswordChangeSection
-            onCancel={() => setViewMode('editProfile')}
-            onSuccess={() => setViewMode('diary')}
-          />
-        )}
+        {
+          viewMode === 'changePassword' && (
+            <PasswordChangeSection
+              onCancel={() => setViewMode('editProfile')}
+              onSuccess={() => setViewMode('diary')}
+            />
+          )
+        }
 
         {viewMode === 'diary' && <DiaryViewSection />}
 
@@ -145,15 +150,17 @@ export default function MyPage() {
 
         {viewMode === 'mateHistory' && <MateHistorySection />}
 
-        {viewMode === 'accountSettings' && (
-          <AccountSettingsSection
-            userProvider={user?.provider}
-            onCancel={() => setViewMode('editProfile')}
-          />
-        )}
-      </div>
+        {
+          viewMode === 'accountSettings' && (
+            <AccountSettingsSection
+              userProvider={user?.provider}
+              onCancel={() => setViewMode('editProfile')}
+            />
+          )
+        }
+      </div >
 
       <ChatBot />
-    </div>
+    </div >
   );
 }

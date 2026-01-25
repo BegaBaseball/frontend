@@ -2,7 +2,6 @@
 import { ArrowLeft, Image as ImageIcon, MessageSquare, X, Upload } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getTeamNameById } from '../api/cheerApi';
@@ -20,8 +19,6 @@ export default function CheerEdit() {
     isLoading,
     isError,
     hasAccess,
-    title,
-    setTitle,
     content,
     setContent,
     existingImages,
@@ -81,7 +78,7 @@ export default function CheerEdit() {
               onClick={handleSubmit}
               className="text-white"
               style={{ backgroundColor: '#2d5f4f' }}
-              disabled={isSubmitting || !title.trim() || !content.trim()}
+              disabled={isSubmitting || !content.trim()}
             >
               {isSubmitting ? '수정 중...' : '수정 완료'}
             </Button>
@@ -138,19 +135,6 @@ export default function CheerEdit() {
             ) : (
               /* Edit Form */
               <div className="space-y-6">
-                {/* Title */}
-                <div className="space-y-2">
-                  <label className="block text-sm" style={{ color: '#2d5f4f' }}>
-                    제목 *
-                  </label>
-                  <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="제목을 입력하세요"
-                    className="w-full"
-                  />
-                </div>
-
                 {/* Content */}
                 <div className="space-y-2">
                   <label className="block text-sm" style={{ color: '#2d5f4f' }}>

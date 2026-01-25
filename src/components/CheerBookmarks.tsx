@@ -1,18 +1,20 @@
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Bookmark, Home, Radio, UserRound, Users } from 'lucide-react';
+import { Bookmark, Home, Radio, UserRound, Users, Megaphone, LineChart } from 'lucide-react';
 import { fetchPosts } from '../api/cheerApi';
 import CheerCard from './CheerCard';
 import { cn } from '../lib/utils';
+import { useAuthStore } from '../store/authStore';
 
 export default function CheerBookmarks() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuthStore();
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['cheer-bookmarks'],
-    queryFn: () => fetchPosts('all', 0, 50),
+    queryFn: () => fetchPosts({ teamId: 'all', page: 0, size: 50 }),
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
@@ -23,10 +25,10 @@ export default function CheerBookmarks() {
   );
 
   const navItems = [
-    { id: 'home', label: 'Home', icon: Home, path: '/home' },
-    { id: 'team', label: 'Team Hub', icon: Users, path: '/cheer' },
-    { id: 'live', label: 'LIVE', icon: Radio, path: '/prediction' },
-    { id: 'profile', label: 'Profile', icon: UserRound, path: '/mypage' },
+    { id: 'home', label: '홈', icon: Home, path: '/home' },
+    { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
+    { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
+    { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage' },
     { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
   ];
 
@@ -132,9 +134,10 @@ export default function CheerBookmarks() {
         <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
           {[
             { id: 'home', label: '홈', icon: Home, path: '/home' },
-            { id: 'team', label: '팀허브', icon: Users, path: '/cheer' },
-            { id: 'live', label: '라이브', icon: Radio, path: '/prediction' },
-            { id: 'profile', label: '프로필', icon: UserRound, path: '/mypage' },
+            { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
+            { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
+            { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle}` : '/mypage' },
+            { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path || (item.id === 'team' && location.pathname.startsWith('/cheer'));

@@ -87,7 +87,9 @@ export const useLoginForm = () => {
         undefined, // profileImageUrl는 나중에 마이페이지에서 가져옴
         response.data.role,
         undefined, // favoriteTeam
-        response.data.id
+        response.data.id,
+        undefined, // cheerPoints (will be fetched)
+        response.data.handle
       );
 
       await fetchProfileAndAuthenticate();

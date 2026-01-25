@@ -8,11 +8,9 @@ import { openKakaoMapRoute } from '../utils/kakaoMap';
 import { getCategoryIconConfig } from '../utils/stadium';
 import { useStadiumGuide } from '../hooks/useStadiumGuide';
 import { useTheme } from '../hooks/useTheme';
-import StadiumSeatMap from './StadiumSeatMap';
 
 export default function StadiumGuide() {
   const { theme } = useTheme();
-  const [viewMode, setViewMode] = useState<'map' | 'seat'>('map');
   const {
     stadiums,
     selectedStadium,
@@ -107,28 +105,6 @@ export default function StadiumGuide() {
                 <h3 className="font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
                   구장 위치
                 </h3>
-                {selectedStadium && (
-                  <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-                    <button
-                      onClick={() => setViewMode('map')}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === 'map'
-                        ? 'bg-white shadow text-[#2d5f4f] dark:bg-gray-700 dark:text-white'
-                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
-                        }`}
-                    >
-                      지도
-                    </button>
-                    <button
-                      onClick={() => setViewMode('seat')}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === 'seat'
-                        ? 'bg-white shadow text-[#2d5f4f] dark:bg-gray-700 dark:text-white'
-                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
-                        }`}
-                    >
-                      좌석뷰
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* 구장 정보 카드 */}
@@ -174,21 +150,7 @@ export default function StadiumGuide() {
                 </div>
               )}
 
-              {/* 지도 또는 좌석 뷰 */}
-              {viewMode === 'seat' ? (
-                <div
-                  className="rounded-3xl border-2 dark:bg-gray-800 dark:border-gray-700 p-4"
-                  style={{
-                    backgroundColor: isDark ? undefined : THEME_COLORS.primaryLight,
-                    borderColor: isDark ? '#374151' : THEME_COLORS.primary,
-                  }}
-                >
-                  <StadiumSeatMap
-                    stadium={selectedStadium?.stadiumName || ''}
-                    onSectionSelect={() => { }}
-                  />
-                </div>
-              ) : selectedStadium && KAKAO_API_KEY ? (
+              {selectedStadium && KAKAO_API_KEY ? (
                 <div
                   className="p-2 rounded-3xl border-2 dark:bg-gray-800 dark:border-gray-700"
                   style={{

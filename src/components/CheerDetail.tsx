@@ -7,6 +7,7 @@ import {
     ArrowLeft,
     Heart,
     MessageSquare,
+    Repeat2,
     Share2,
     MoreVertical,
     Trash2,
@@ -20,6 +21,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from './ui/dropdown-menu';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger
+} from './ui/popover';
 import { cn } from '../lib/utils';
 import * as cheatApi from '../api/cheerApi';
 import { CommentItem } from './cheer/CommentItem';
@@ -29,6 +35,7 @@ import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png
 import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
 import UserProfileModal from './profile/UserProfileModal';
 import ReportModal from './ReportModal';
+import QuoteRepostEditor from './QuoteRepostEditor';
 
 export default function CheerDetail() {
     const { postId } = useParams();
@@ -37,7 +44,7 @@ export default function CheerDetail() {
 
     const parsedPostId = postId ? parseInt(postId) : 0;
     const { data: selectedPost, isLoading: loading, error } = useCheerPost(parsedPostId);
-    const { toggleLikeMutation, toggleBookmarkMutation, deletePostMutation, deleteCommentMutation } = useCheerMutations();
+    const { toggleLikeMutation, toggleBookmarkMutation, deletePostMutation, deleteCommentMutation, repostMutation, cancelRepostMutation } = useCheerMutations();
 
     const [commentText, setCommentText] = useState('');
     const [comments, setComments] = useState<(cheatApi.Comment & { isPending?: boolean })[]>([]);
@@ -50,6 +57,8 @@ export default function CheerDetail() {
     const [isReplyPending, setIsReplyPending] = useState(false);
     const [commentLikeAnimating, setCommentLikeAnimating] = useState<Record<number, boolean>>({});
     const commentLikeTimersRef = useRef<Record<number, number>>({});
+    const [isRepostPopoverOpen, setIsRepostPopoverOpen] = useState(false);
+    const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
 
     // Profile Modal State
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -62,6 +71,13 @@ export default function CheerDetail() {
             loadComments(parsedPostId);
         }
     }, [parsedPostId]);
+
+    // Redirect Simple Reposts to Original Post
+    useEffect(() => {
+        if (selectedPost?.repostType === 'SIMPLE' && selectedPost.originalPost) {
+            navigate(`/cheer/${selectedPost.originalPost.id}`, { replace: true });
+        }
+    }, [selectedPost, navigate]);
 
     useEffect(() => {
         if (selectedPost) {
@@ -126,6 +142,35 @@ export default function CheerDetail() {
         if (selectedPost) {
             navigate(`/cheer/edit/${selectedPost.id}`);
         }
+    };
+
+    const handleSimpleRepost = () => {
+        if (!selectedPost) return;
+        if (!user) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+        setIsRepostPopoverOpen(false);
+        repostMutation.mutate(selectedPost.id);
+    };
+
+    const handleQuoteRepost = () => {
+        if (!user) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+        setIsRepostPopoverOpen(false);
+        setIsQuoteEditorOpen(true);
+    };
+
+    const handleCancelRepost = () => {
+        if (!selectedPost) return;
+        if (!user) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+        setIsRepostPopoverOpen(false);
+        cancelRepostMutation.mutate(selectedPost.id);
     };
 
     const handleCommentSubmit = async () => {
@@ -323,6 +368,9 @@ export default function CheerDetail() {
         );
     }
 
+    const repostCount = selectedPost.repostCount ?? 0;
+    const repostActive = selectedPost.repostedByMe || (selectedPost.repostType && selectedPost.isOwner);
+
     return (
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-[#0E1117] pb-24 sm:pb-20">
             {/* Header */}
@@ -340,7 +388,14 @@ export default function CheerDetail() {
                         {/* Post Meta */}
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex items-center gap-3">
-                                <div className="relative h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0">
+                                <div
+                                    className="relative h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => {
+                                        if (selectedPost.authorHandle) {
+                                            navigate(`/profile/${selectedPost.authorHandle}`);
+                                        }
+                                    }}
+                                >
                                     <div className="h-full w-full rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-300 overflow-hidden">
                                         {selectedPost.authorProfileImageUrl ? (
                                             <img
@@ -368,9 +423,8 @@ export default function CheerDetail() {
                                 <div
                                     className="cursor-pointer hover:underline"
                                     onClick={() => {
-                                        if (selectedPost.authorId) {
-                                            setViewingUserId(selectedPost.authorId);
-                                            setIsProfileModalOpen(true);
+                                        if (selectedPost.authorHandle) {
+                                            navigate(`/profile/${selectedPost.authorHandle}`);
                                         }
                                     }}
                                 >
@@ -456,6 +510,93 @@ export default function CheerDetail() {
                                 <MessageSquare className="w-5 h-5" />
                                 <span className="font-semibold">{commentCount}</span>
                             </button>
+                            <Popover
+                                open={isRepostPopoverOpen}
+                                onOpenChange={(open) => {
+                                    if (open && !user) {
+                                        alert('로그인이 필요한 서비스입니다.');
+                                        return;
+                                    }
+                                    setIsRepostPopoverOpen(open);
+                                }}
+                            >
+                                <PopoverTrigger asChild>
+                                    <button
+                                        className={cn(
+                                            "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
+                                            repostActive
+                                                ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600"
+                                                : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                                        )}
+                                        aria-label={repostActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
+                                        aria-pressed={repostActive}
+                                    >
+                                        <Repeat2 className="w-5 h-5" />
+                                        <span className="font-semibold">{repostCount}</span>
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                    className="w-48 p-0"
+                                    align="start"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="flex flex-col py-1">
+                                        {(selectedPost.repostType && selectedPost.isOwner) ? (
+                                            <button
+                                                onClick={handleCancelRepost}
+                                                className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                                <div>
+                                                    <span className="block text-sm font-medium text-red-600 dark:text-red-400">
+                                                        리포스트 삭제
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        ) : (selectedPost.repostType && !selectedPost.isOwner) ? (
+                                            <div className="px-4 py-3 text-sm text-gray-400 text-center">
+                                                리포스트할 수 없습니다
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={handleSimpleRepost}
+                                                    className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                                >
+                                                    <div className="flex items-center justify-center w-5 h-5">
+                                                        {selectedPost.repostedByMe ? (
+                                                            <div className="relative">
+                                                                <Repeat2 className="w-4 h-4 text-emerald-500" />
+                                                                <div className="absolute top-0 right-0 w-2 h-0.5 bg-red-500 rotate-45 transform origin-center" />
+                                                            </div>
+                                                        ) : (
+                                                            <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <span className={`block text-sm font-medium ${selectedPost.repostedByMe ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                                                            {selectedPost.repostedByMe ? '리포스트 취소' : '리포스트'}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                                <button
+                                                    onClick={handleQuoteRepost}
+                                                    className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                                >
+                                                    <div className="flex items-center justify-center w-5 h-5">
+                                                        <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                    </div>
+                                                    <div>
+                                                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                                                            인용하기
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
 
                             <button
                                 onClick={() => toggleBookmark(selectedPost.id)}
@@ -578,6 +719,11 @@ export default function CheerDetail() {
                     postId={parsedPostId}
                     isOpen={isReportModalOpen}
                     onClose={() => setIsReportModalOpen(false)}
+                />
+                <QuoteRepostEditor
+                    isOpen={isQuoteEditorOpen}
+                    onClose={() => setIsQuoteEditorOpen(false)}
+                    post={selectedPost}
                 />
             </div>
         </div>
