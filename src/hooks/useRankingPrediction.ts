@@ -171,7 +171,6 @@ export const useRankingPrediction = () => {
     }
   };
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   // 카카오톡 공유
   const handleShare = () => {
     if (!isKakaoSDKReady()) {
@@ -201,7 +200,7 @@ export const useRankingPrediction = () => {
         content: {
           title: `${currentSeason} KBO 시즌 순위 예측`,
           description: rankingText,
-          imageUrl: `${supabaseUrl}/storage/v1/object/public/public-image/bega.png`,
+          imageUrl: `${baseUrl}/favicon.png`,
           link: {
             mobileWebUrl: shareUrl,
             webUrl: shareUrl,

@@ -95,7 +95,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
               variant="outline"
               className="bg-gray-100/50 dark:bg-gray-700/50 border-0 text-gray-600 dark:text-gray-300 backdrop-blur-sm"
             >
-              {game.stadium.replace('구장', '')}
+              {(game.stadium ?? '').replace('구장', '')}
             </Badge>
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400 font-mono">
               {game.time}
@@ -120,7 +120,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
               </div>
             </div>
             <span className="font-bold text-gray-800 dark:text-gray-100 text-xs sm:text-sm xl:text-base tracking-tight truncate w-full text-center">
-              {game.awayTeamFull.split(' ')[0]}
+              {(game.awayTeamFull ?? '').split(' ')[0]}
             </span>
           </div>
 
@@ -152,7 +152,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
               </div>
             </div>
             <span className="font-bold text-gray-800 dark:text-gray-100 text-xs sm:text-sm xl:text-base tracking-tight truncate w-full text-center">
-              {game.homeTeamFull.split(' ')[0]}
+              {(game.homeTeamFull ?? '').split(' ')[0]}
             </span>
           </div>
         </div>

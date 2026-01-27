@@ -20,6 +20,8 @@ export default function CheerWrite() {
   const favoriteTeam = useAuthStore((state) => state.user?.favoriteTeam) ?? null;
 
   const {
+    title, // Added
+    setTitle, // Added
     content,
     setContent,
     newFilePreviews,
@@ -62,7 +64,7 @@ export default function CheerWrite() {
               onClick={handleSubmit}
               className="text-white"
               style={{ backgroundColor: '#2d5f4f' }}
-              disabled={isSubmitting || !content.trim()}
+              disabled={isSubmitting || !title.trim() || !content.trim()}
             >
               {isSubmitting ? '등록 중...' : '등록'}
             </Button>
@@ -72,6 +74,17 @@ export default function CheerWrite() {
 
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
+          <label className="block text-sm" style={{ color: '#2d5f4f' }}>
+            제목 *
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="제목을 입력하세요"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          />
+
           {/* Content */}
           <div className="space-y-2">
             <label className="block text-sm" style={{ color: '#2d5f4f' }}>
@@ -179,6 +192,6 @@ export default function CheerWrite() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </div >
   );
 }

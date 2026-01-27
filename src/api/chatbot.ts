@@ -1,48 +1,11 @@
-import { ChatRequest, EdgeFunctionRequest, ChatResponse, VoiceResponse } from '../types/chatbot';
-import Cookies from 'js-cookie';
-
-const API_URL = import.meta.env.VITE_AI_API_URL || '/ai';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://zyofzvnkputevakepbdm.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1`;
-
-/**
- * Edge Function으로 채팅 메시지 전송
- */
-export async function sendChatMessageToEdge(data: EdgeFunctionRequest): Promise<ChatResponse> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-
-  // 인증 헤더 추가
-  const authToken = Cookies.get('Authorization');
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  } else if (SUPABASE_ANON_KEY) {
-    headers['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`;
-  } else {
-    throw new Error('Supabase anon key가 설정되지 않았습니다.');
-  }
-
-  const response = await fetch(`${EDGE_FUNCTION_URL}/ai-chat`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
-  }
-
-  const result: ChatResponse = await response.json();
-
-  if (result.error) {
-    throw new Error(result.error);
-  }
-
-  return result;
-}
-
+import { ChatRequest, VoiceResponse } from '../types/chatbot';
+const RAW_AI_API_URL = import.meta.env.VITE_AI_API_URL;
+const API_BASE = RAW_AI_API_URL ? RAW_AI_API_URL.replace(/\/+$/, '') : '';
+const buildAiUrl = (path: string) => {
+  if (!API_BASE) return `/ai${path}`;
+  if (API_BASE.endsWith('/ai')) return `${API_BASE}${path}`;
+  return `${API_BASE}/ai${path}`;
+};
 /**
  * FastAPI SSE 스트리밍 처리
  */
@@ -65,7 +28,7 @@ export async function sendChatMessageStream(
   while (attempt < MAX_RETRIES) {
     try {
       attempt++;
-      response = await fetch(`${API_URL}/chat/stream`, {
+      response = await fetch(buildAiUrl('/chat/stream'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -213,7 +176,7 @@ export async function convertVoiceToText(audioBlob: Blob): Promise<string> {
   const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
-    const response = await fetch(`${API_URL}/chat/voice`, {
+    const response = await fetch(buildAiUrl('/chat/voice'), {
       method: 'POST',
       body: formData,
       signal: controller.signal,

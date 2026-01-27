@@ -229,10 +229,11 @@ export const useCheerMutations = () => {
     });
 
     const createPostMutation = useMutation({
-        mutationFn: async (data: { teamId: string; content: string; postType?: string; files?: File[] }) => {
+        mutationFn: async (data: { teamId: string; title: string; content: string; postType?: string; files?: File[] }) => {
             // 1. Create Post
             const newPost = await cheerApi.createPost({
                 teamId: data.teamId,
+                title: data.title,
                 content: data.content,
                 postType: data.postType,
             });
@@ -251,7 +252,7 @@ export const useCheerMutations = () => {
     const updatePostMutation = useMutation({
         mutationFn: async ({ id, data, newFiles, deletingImageIds }: {
             id: number;
-            data: { content: string };
+            data: { title: string; content: string };
             newFiles?: File[];
             deletingImageIds?: number[];
         }) => {
@@ -610,8 +611,8 @@ export const useCheerMutations = () => {
 
     // 인용 리포스트 생성
     const quoteRepostMutation = useMutation({
-        mutationFn: ({ postId, content }: { postId: number; content: string }) =>
-            cheerApi.createQuoteRepost(postId, content),
+        mutationFn: ({ postId, title, content }: { postId: number; title: string; content: string }) =>
+            cheerApi.createQuoteRepost(postId, title, content),
         onSuccess: (newPost, { postId }) => {
             // 원본 게시글의 리포스트 카운트 업데이트
             queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], (old) => {

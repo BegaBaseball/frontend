@@ -25,11 +25,21 @@ export const useNotificationSocket = () => {
             return;
         }
 
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-        const wsBaseUrl = apiBaseUrl
-            .replace(/^http:/, 'ws:')
-            .replace(/^https:/, 'wss:')
-            .replace(/\/api\/?$/, '');
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+        let wsBaseUrl = '';
+
+        if (apiBaseUrl.startsWith('http')) {
+            wsBaseUrl = apiBaseUrl
+                .replace(/^http:/, 'ws:')
+                .replace(/^https:/, 'wss:')
+                .replace(/\/api\/?$/, '');
+        } else {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            // "/api" -> ""
+            const cleanPath = apiBaseUrl.replace(/\/api\/?$/, '');
+            wsBaseUrl = `${protocol}//${window.location.host}${cleanPath}`;
+        }
+
         const brokerUrl = `${wsBaseUrl}/ws`;
 
         const client = new Client({
@@ -78,5 +88,5 @@ export const useNotificationSocket = () => {
                 clientRef.current = null;
             }
         };
-    }, [user, addNotification]); // user가 변경될 때마다(로그인/로그아웃) 재실행
+    }, [user?.id, addNotification]); // user.id가 변경될 때마다(로그인/로그아웃) 재실행
 };

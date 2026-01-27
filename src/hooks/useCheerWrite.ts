@@ -8,6 +8,7 @@ export const useCheerWrite = (favoriteTeam: string | null) => {
     // const { createPost } = useCheerStore(); // Removed
     const { createPostMutation } = useCheerMutations(); // Added
 
+    const [title, setTitle] = useState(''); // Added title state
     const [content, setContent] = useState('');
     const [newFiles, setNewFiles] = useState<File[]>([]);
     const [newFilePreviews, setNewFilePreviews] = useState<{ file: File; url: string }[]>([]);
@@ -86,11 +87,12 @@ export const useCheerWrite = (favoriteTeam: string | null) => {
             setShowTeamRequiredDialog(true);
             return;
         }
-        if (!content.trim()) return;
+        if (!title.trim() || !content.trim()) return;
 
         // setIsSubmitting(true);
         createPostMutation.mutate({
             teamId: favoriteTeam,
+            title,
             content,
             postType: 'CHEER',
             files: newFiles
@@ -102,6 +104,8 @@ export const useCheerWrite = (favoriteTeam: string | null) => {
     };
 
     return {
+        title, // Exposed
+        setTitle, // Exposed
         content,
         setContent,
         newFilePreviews,

@@ -162,3 +162,22 @@ export const confirmPasswordReset = async (
     throw new Error(error.response?.data?.message || error.response?.data?.error || '비밀번호 변경에 실패했습니다.');
   }
 };
+
+// ========== OAuth2 State ==========
+
+export interface OAuth2StateData {
+  email: string;
+  name: string;
+  role: string;
+  profileImageUrl: string | null;
+  favoriteTeam: string | null;
+  handle: string | null;
+}
+
+/**
+ * OAuth2 로그인 state에서 사용자 정보를 조회합니다 (일회성).
+ */
+export const consumeOAuth2State = async (stateId: string): Promise<OAuth2StateData> => {
+  const response = await api.get<OAuth2StateData>(`/auth/oauth2/state/${stateId}`);
+  return response.data;
+};

@@ -56,6 +56,7 @@ export interface CheerPost {
     authorHandle: string;
     authorProfileImageUrl?: string;
     authorTeamId?: string;
+    title: string; // Added field
     content: string;
     timeAgo: string; // Added for compatibility
     teamColor: string; // Added for compatibility
@@ -217,6 +218,7 @@ function transformPost(post: any): CheerPost {
         teamId: post.teamId,
         team: post.teamId, // compatibility
         teamColor: teamColors[post.teamId] || '#2d5f4f',
+        title: post.title || '',
         content: post.content || '',
         author: post.author, // Assuming post.author is string from backend PostSummaryRes
         authorId: post.authorId,
@@ -290,6 +292,7 @@ export async function fetchPostDetail(id: number): Promise<CheerPost> {
 // 게시글 작성
 export async function createPost(data: {
     teamId: string;
+    title: string;
     content: string;
     postType?: string;
 }) {
@@ -302,6 +305,7 @@ export async function createPost(data: {
 
 // 게시글 수정
 export async function updatePost(id: number, data: {
+    title: string;
     content: string;
 }) {
     const response = await api.put(`/cheer/posts/${id}`, data);
@@ -379,9 +383,12 @@ export async function cancelRepost(repostId: number): Promise<RepostToggleRespon
     return response.data;
 }
 
-// 인용 리포스트 생성
-export async function createQuoteRepost(postId: number, content: string): Promise<CheerPost> {
-    const response = await api.post(`/cheer/posts/${postId}/quote`, { content });
+// 인용 리포스트
+export async function createQuoteRepost(postId: number, title: string, content: string) {
+    const response = await api.post(`/cheer/posts/${postId}/repost`, {
+        title,
+        content
+    });
     return transformPost(response.data);
 }
 

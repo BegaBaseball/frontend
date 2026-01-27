@@ -17,8 +17,9 @@ export const fetchCurrentSeason = async (): Promise<SeasonResponse> => {
 export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPredictionResponse | null> => {
   try {
     const response = await api.get(`/predictions/ranking`, {
-      params: { seasonYear }
-    });
+      params: { seasonYear },
+      skipGlobalErrorHandler: true, // 404는 예외가 아니므로 전역 에러 처리 제외
+    } as any);
     return response.data;
   } catch (error: any) {
     // 404: 저장된 예측이 없음 - 정상적인 상태이므로 null 반환
