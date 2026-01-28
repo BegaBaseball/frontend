@@ -23,7 +23,7 @@ export default function NoticePage() {
     refetch,
   } = useQuery({
     queryKey: ['noticePostsPage'],
-    queryFn: () => fetchPosts(undefined, 0, 100, 'NOTICE'), // Fetch all notices
+    queryFn: () => fetchPosts({ postType: 'NOTICE', page: 0, size: 100 }), // Fetch all notices
     staleTime: 1000 * 60 * 5, // 5분
   });
 

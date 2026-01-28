@@ -17,7 +17,7 @@ import { useAuthStore } from '../store/authStore';
 interface CheerWriteModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (title: string, content: string, files: File[]) => Promise<void>;
+    onSubmit: (content: string, files: File[]) => Promise<void>;
     teamColor: string;
     teamAccent: string;
     teamContrastText: string;
@@ -36,7 +36,6 @@ export default function CheerWriteModal({
     teamId
 }: CheerWriteModalProps) {
     const { user } = useAuthStore();
-    const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [files, setFiles] = useState<File[]>([]);
     const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
@@ -109,11 +108,10 @@ export default function CheerWriteModal({
     };
 
     const handleSubmit = async () => {
-        if (!title.trim() || !content.trim()) return;
+        if (!content.trim()) return;
         setIsSubmitting(true);
         try {
-            await onSubmit(title, content, files);
-            setTitle('');
+            await onSubmit(content, files);
             setContent('');
             setFiles([]);
             previews.forEach(p => URL.revokeObjectURL(p.url));
@@ -145,13 +143,6 @@ export default function CheerWriteModal({
                             )}
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col gap-2">
-                            <input
-                                type="text"
-                                placeholder="제목을 입력하세요"
-                                className="w-full bg-transparent text-[18px] font-bold text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none border-b border-[#EFF3F4] dark:border-[#232938] pb-2 mb-2"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                            />
                             <TextareaAutosize
                                 autoFocus
                                 placeholder="지금 우리 팀에게 응원을 남겨주세요!"
@@ -220,7 +211,7 @@ export default function CheerWriteModal({
                                 </div>
                                 <Button
                                     onClick={handleSubmit}
-                                    disabled={!title.trim() || !content.trim() || isSubmitting}
+                                    disabled={!content.trim() || isSubmitting}
                                     className="rounded-full px-6 font-bold shadow-md hover:shadow-lg transition-all"
                                     style={{ backgroundColor: teamAccent, color: teamContrastText }}
                                 >

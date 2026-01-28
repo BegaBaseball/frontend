@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { Message } from '../types/chatbot';
 import { buildHistoryPayload } from '../utils/chatbot';
-import { sendChatMessageStream, convertVoiceToText } from '../api/chatbot';
+import { sendChatMessageStream, convertVoiceToText, RateLimitError } from '../api/chatbot';
 import { toast } from 'sonner';
 
 const GREETING_TEXT = '안녕하세요! 야구 가이드 BEGA입니다. 무엇을 도와드릴까요?';
 
 const USE_EDGE_FUNCTION = false; // Edge Function 사용 여부
+const DEFAULT_RETRY_SECONDS = 10;
+const MAX_BACKOFF_SECONDS = 40;
+const JITTER_MIN_SECONDS = 1;
+const JITTER_MAX_SECONDS = 2;
 
 export const useChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,6 +20,11 @@ export const useChatBot = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [messageQueue, setMessageQueue] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [rateLimitActive, setRateLimitActive] = useState(false);
+  const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
+  const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
+  const [failureCount, setFailureCount] = useState(0);
+  const [pendingMessage, setPendingMessage] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -73,6 +82,35 @@ export const useChatBot = () => {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    const storedMessage = sessionStorage.getItem('last_pending_msg');
+    if (storedMessage && storedMessage.trim().length > 0) {
+      setPendingMessage(storedMessage);
+      setInputMessage(storedMessage);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!rateLimitUntil) {
+      setRateLimitCountdown(0);
+      setRateLimitActive(false);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const remainingSeconds = Math.max(0, Math.ceil((rateLimitUntil - Date.now()) / 1000));
+      setRateLimitCountdown(remainingSeconds);
+      if (remainingSeconds <= 0) {
+        setRateLimitActive(false);
+      }
+    };
+
+    updateCountdown();
+
+    const intervalId = setInterval(updateCountdown, 1000);
+    return () => clearInterval(intervalId);
+  }, [rateLimitUntil]);
+
   // ========== Scroll to Bottom ==========
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -127,14 +165,27 @@ export const useChatBot = () => {
           });
         }
       );
+
+      setFailureCount(0);
+      setRateLimitActive(false);
+      setRateLimitUntil(null);
+      setPendingMessage('');
+      sessionStorage.removeItem('last_pending_msg');
     } catch (error) {
       console.error('Chat Error:', error);
 
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
 
-      if (errorMessage === 'STATUS_429') {
-        toast.error('현재 이용자가 많아 AI 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.');
-        streamingBuffer.current += `\n\n(시스템) ⚠️ 현재 이용자가 많아 연결이 지연되고 있습니다. 1-2분 뒤에 다시 질문해 주시겠어요?`;
+      if (error instanceof RateLimitError || errorMessage === 'STATUS_429') {
+        const nextFailureCount = Math.min(failureCount + 1, 3);
+        const backoffSeconds = Math.min(DEFAULT_RETRY_SECONDS * Math.pow(2, nextFailureCount - 1), MAX_BACKOFF_SECONDS);
+        const retryAfterSeconds = error instanceof RateLimitError ? error.retryAfterSeconds : DEFAULT_RETRY_SECONDS;
+        const jitterSeconds = Math.floor(Math.random() * (JITTER_MAX_SECONDS - JITTER_MIN_SECONDS + 1)) + JITTER_MIN_SECONDS;
+        const waitSeconds = Math.min(MAX_BACKOFF_SECONDS, Math.max(retryAfterSeconds, backoffSeconds) + jitterSeconds);
+
+        setFailureCount(nextFailureCount);
+        setRateLimitActive(true);
+        setRateLimitUntil(Date.now() + waitSeconds * 1000);
       } else if (errorMessage === 'STATUS_503') {
         toast.error('서비스 점검 중이거나 일시적인 오류입니다.');
         streamingBuffer.current += `\n\n(시스템) 🔧 서비스 점검 중이거나 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.`;
@@ -143,6 +194,10 @@ export const useChatBot = () => {
         streamingBuffer.current += `\n\n(시스템) ⏱️ 응답 시간이 초과되었습니다. 네트워크 상태를 확인하거나 잠시 후 다시 시도해주세요.`;
       } else {
         streamingBuffer.current += `\n죄송합니다, 오류가 발생했습니다: ${errorMessage}`;
+      }
+
+      if (!(error instanceof RateLimitError || errorMessage === 'STATUS_429')) {
+        setInputMessage(pendingMessage);
       }
     } finally {
       // 스트리밍 연결이 끊어지면 처리 상태 해제
@@ -165,16 +220,48 @@ export const useChatBot = () => {
   // ========== Send Message ==========
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
+    if (rateLimitActive && rateLimitCountdown > 0) return;
     if (!inputMessage.trim()) return;
 
+    const trimmedInput = inputMessage.trim();
+    setPendingMessage(trimmedInput);
+    sessionStorage.setItem('last_pending_msg', trimmedInput);
+
     const userMessage: Message = {
-      text: inputMessage,
+      text: trimmedInput,
       sender: 'user',
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
     setMessageQueue((prev) => [...prev, userMessage]);
     setInputMessage('');
+  };
+
+  const handleRetrySend = () => {
+    if (rateLimitCountdown > 0) return;
+
+    const retryText = inputMessage.trim() || pendingMessage.trim();
+    if (!retryText) return;
+
+    setPendingMessage(retryText);
+    sessionStorage.setItem('last_pending_msg', retryText);
+
+    const userMessage: Message = {
+      text: retryText,
+      sender: 'user',
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setMessageQueue((prev) => [...prev, userMessage]);
+    setInputMessage('');
+    setRateLimitActive(false);
+    setRateLimitUntil(null);
+  };
+
+  const handleRestorePendingMessage = () => {
+    if (!pendingMessage.trim()) return;
+    setInputMessage(pendingMessage);
   };
 
   // ========== Voice Recording ==========
@@ -231,6 +318,10 @@ export const useChatBot = () => {
     isRecording,
     isTyping,
     isProcessing,
+    rateLimitActive,
+    rateLimitCountdown,
+    rateLimitStage: Math.min(Math.max(failureCount, 1), 3),
+    pendingMessage,
     position,
     setPosition,
     size,
@@ -242,6 +333,8 @@ export const useChatBot = () => {
 
     // Handlers
     handleSendMessage,
+    handleRetrySend,
+    handleRestorePendingMessage,
     handleMicClick,
   };
 };

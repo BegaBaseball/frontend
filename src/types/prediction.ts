@@ -43,7 +43,7 @@ export interface GameDetail {
 
 export interface Game {
   gameId: string;
-  gameDate: string;
+  gameDate?: string;
   homeTeam: string;
   awayTeam: string;
   stadium: string;

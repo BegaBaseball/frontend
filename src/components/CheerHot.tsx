@@ -11,7 +11,7 @@ export default function CheerHot() {
         const loadHotPosts = async () => {
             try {
                 // Fetch top 5 posts sorted by likes
-                const data = await fetchPosts('all', 0, 5, undefined, 'likeCount,desc');
+                const data = await fetchPosts({ teamId: 'all', page: 0, size: 5, sort: 'likeCount,desc' });
                 setHotPosts(data.content);
             } catch (error) {
                 console.error("Failed to load hot posts", error);

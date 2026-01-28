@@ -15,7 +15,8 @@ export const PAST_GAMES_DATA: DateGames[] = [
         stadium: '잠실구장',
         homeScore: 5,
         awayScore: 3,
-        winner: 'home'
+        winner: 'home',
+        gameDate: '2024-10-27'
       },
       {
         gameId: 'game_20241027_2',
@@ -24,7 +25,8 @@ export const PAST_GAMES_DATA: DateGames[] = [
         stadium: '수원구장',
         homeScore: 2,
         awayScore: 4,
-        winner: 'away'
+        winner: 'away',
+        gameDate: '2024-10-27'
       }
     ]
   },
@@ -202,7 +204,8 @@ export const generateFutureGames = (date: string): DateGames => ({
       gameId: `game_${date.replace(/-/g, '')}_5`,
       homeTeam: 'LT',
       awayTeam: 'WO',
-      stadium: '사직구장'
+      stadium: '사직구장',
+      gameDate: date
     }
   ]
 });

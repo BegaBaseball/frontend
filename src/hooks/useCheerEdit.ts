@@ -15,7 +15,7 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
     const [error, setError] = useState(false);
     const [hasAccess, setHasAccess] = useState(false);
 
-    const [title, setTitle] = useState('');
+    // const [title, setTitle] = useState(''); // Removed title state
     const [content, setContent] = useState('');
 
     // Image handling
@@ -31,7 +31,7 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
     useEffect(() => {
         if (!post) return;
 
-        setTitle(post.title || '');
+        // setTitle(post.title || ''); // Removed
         setContent(post.content || '');
 
         if (post.isOwner) {
@@ -133,7 +133,7 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
     const handleSubmit = async () => {
         updatePostMutation.mutate({
             id: postId,
-            data: { title, content },
+            data: { content },
             newFiles: newFiles
             // deletingImageIds is handled immediately in this version
         }, {
@@ -150,8 +150,8 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
         isLoading: loading,
         isError: error,
         hasAccess,
-        title,
-        setTitle,
+        // title, // Removed
+        // setTitle, // Removed
         content,
         setContent,
         existingImages,

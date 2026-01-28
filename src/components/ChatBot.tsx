@@ -23,12 +23,45 @@ export default function ChatBot() {
     setInputMessage,
     isTyping,
     isProcessing,
+    rateLimitActive,
+    rateLimitCountdown,
+    rateLimitStage,
+    pendingMessage,
     messagesEndRef,
     messagesContainerRef,
     handleSendMessage,
+    handleRetrySend,
+    handleRestorePendingMessage,
   } = useChatBot();
 
   const [isClosing, setIsClosing] = useState(false);
+  const isRateLimited = rateLimitActive && rateLimitCountdown > 0;
+
+  const rateLimitCopy = (() => {
+    if (!rateLimitActive) return null;
+
+    if (rateLimitStage === 1) {
+      return {
+        main: '전 경기 실시간 스탯을 집계하고 있습니다. 더욱 정확한 답변을 위해 잠시 숫자를 정리할 시간이 필요해요.',
+        guide: `약 ${rateLimitCountdown}초 후에 다시 질문하실 수 있습니다. 작성하신 내용은 그대로 보관 중이에요.`,
+        buttonBase: '다시 시도',
+      };
+    }
+
+    if (rateLimitStage === 2) {
+      return {
+        main: '데이터 정합성을 유지하기 위해 추가 집계가 진행 중입니다.',
+        guide: `안정적인 답변을 위해 ${rateLimitCountdown}초만 더 기다려 주세요. 잠시 후 버튼이 활성화됩니다.`,
+        buttonBase: '데이터 다시 요청',
+      };
+    }
+
+    return {
+      main: '현재 데이터 집계 요청이 매우 많아 처리 대기 중입니다.',
+      guide: `시스템을 재정비하는 중입니다. ${rateLimitCountdown}초 후에 다시 시도해 주시거나, 잠시 후에 다시 방문해 주세요.`,
+      buttonBase: '최종 재시도',
+    };
+  })();
 
   const handleClose = () => {
     setIsClosing(true);
@@ -211,10 +244,10 @@ export default function ChatBot() {
               />
               <button
                 type="submit"
-                disabled={!isLoggedIn || isProcessing || !inputMessage.trim()}
+                disabled={!isLoggedIn || isProcessing || isRateLimited || !inputMessage.trim()}
                 className={`
                   bg-[#2d5f4f] text-white border-none rounded-xl p-2
-                  ${(!isLoggedIn || isProcessing || !inputMessage.trim()) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-[#3d7f6f]'}
+                  ${(!isLoggedIn || isProcessing || isRateLimited || !inputMessage.trim()) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-[#3d7f6f]'}
                   transition-colors
                   min-w-[40px] min-h-[40px] flex items-center justify-center
                 `}
@@ -223,6 +256,52 @@ export default function ChatBot() {
                 <Send className="w-4 h-4" />
               </button>
             </div>
+            {rateLimitActive && rateLimitCopy && (
+              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
+                <p className="m-0">
+                  {rateLimitCopy.main}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-amber-800 dark:text-amber-100">
+                    {rateLimitCopy.guide}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleRetrySend}
+                      disabled={rateLimitCountdown > 0}
+                      className={`
+                        rounded-lg px-3 py-1 text-xs font-semibold
+                        ${rateLimitCountdown > 0
+                          ? 'cursor-not-allowed bg-amber-100 text-amber-500 dark:bg-amber-400/20 dark:text-amber-200'
+                          : 'bg-[#2d5f4f] text-white hover:bg-[#3d7f6f]'
+                        }
+                        transition-colors
+                      `}
+                    >
+                      {rateLimitCountdown > 0
+                        ? `${rateLimitCountdown}초 후 ${rateLimitCopy.buttonBase}`
+                        : `지금 ${rateLimitCopy.buttonBase}`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRestorePendingMessage}
+                      disabled={!pendingMessage.trim()}
+                      className={`
+                        rounded-lg border border-amber-200 px-3 py-1 text-xs font-semibold
+                        ${pendingMessage.trim().length > 0
+                          ? 'text-amber-900 hover:bg-amber-100 dark:border-amber-200/40 dark:text-amber-100 dark:hover:bg-amber-400/10'
+                          : 'cursor-not-allowed text-amber-300 dark:text-amber-300/60'
+                        }
+                        transition-colors
+                      `}
+                    >
+                      메시지 복구
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </form>
         </div>
       )}

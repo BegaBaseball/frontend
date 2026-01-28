@@ -381,7 +381,7 @@ export default function AdminPage() {
                     <TableRow className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/50">
                       <TableHead className="text-slate-400 font-semibold">ID</TableHead>
                       <TableHead className="text-slate-400 font-semibold">팀</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">제목</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">내용</TableHead>
                       <TableHead className="text-slate-400 font-semibold">작성자</TableHead>
                       <TableHead className="text-slate-400 font-semibold">작성 시간</TableHead>
                       <TableHead className="text-slate-400 font-semibold">좋아요</TableHead>
@@ -539,15 +539,14 @@ export default function AdminPage() {
                           </TableCell>
                           <TableCell>
                             <Badge
-                              className={`border-0 ${
-                                mate.status === 'pending'
+                              className={`border-0 ${mate.status === 'pending'
                                   ? 'bg-emerald-500/20 text-emerald-400'
                                   : mate.status === 'matched'
-                                  ? 'bg-sky-500/20 text-sky-400'
-                                  : mate.status === 'selling'
-                                  ? 'bg-amber-500/20 text-amber-400'
-                                  : 'bg-slate-700/50 text-slate-400'
-                              }`}
+                                    ? 'bg-sky-500/20 text-sky-400'
+                                    : mate.status === 'selling'
+                                      ? 'bg-amber-500/20 text-amber-400'
+                                      : 'bg-slate-700/50 text-slate-400'
+                                }`}
                             >
                               {mate.status === 'pending' && '모집중'}
                               {mate.status === 'matched' && '매칭완료'}

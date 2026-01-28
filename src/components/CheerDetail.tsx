@@ -471,12 +471,7 @@ export default function CheerDetail() {
                             )}
                         </div>
 
-                        {/* Post Title */}
-                        {selectedPost.title && (
-                            <h1 className="mt-4 text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
-                                {selectedPost.title}
-                            </h1>
-                        )}
+                        {/* Post Title Removed */}
 
                         {/* Post Content */}
                         <div className="mt-4 text-[15px] sm:text-[16px] text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-6 sm:leading-7 min-h-[100px]">
@@ -519,7 +514,7 @@ export default function CheerDetail() {
                             </button>
                             <Popover
                                 open={isRepostPopoverOpen}
-                                onOpenChange={(open) => {
+                                onOpenChange={(open: boolean) => {
                                     if (open && !user) {
                                         alert('로그인이 필요한 서비스입니다.');
                                         return;
@@ -545,7 +540,7 @@ export default function CheerDetail() {
                                 <PopoverContent
                                     className="w-48 p-0"
                                     align="start"
-                                    onClick={(e) => e.stopPropagation()}
+                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                 >
                                     <div className="flex flex-col py-1">
                                         {(selectedPost.repostType && selectedPost.isOwner) ? (

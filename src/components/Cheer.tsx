@@ -108,7 +108,6 @@ export default function Cheer() {
         : '모든 팀의 흐름을 한 번에 확인하세요.';
     const activeTabConfig = feedTabs.find((item) => item.key === activeFeedTab);
     const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
-    const [composerTitle, setComposerTitle] = useState('');
     const [composerContent, setComposerContent] = useState('');
     const [composerFiles, setComposerFiles] = useState<File[]>([]);
     const [composerPreviews, setComposerPreviews] = useState<{ file: File; url: string }[]>([]);
@@ -194,13 +193,12 @@ export default function Cheer() {
     };
 
     const createMutation = useMutation({
-        mutationFn: async (payload: { title: string; content: string; files: File[]; postType?: string }) => {
+        mutationFn: async (payload: { content: string; files: File[]; postType?: string }) => {
             if (!user?.favoriteTeam) {
                 throw new Error('favoriteTeam-required');
             }
             const created = await createCheerPost({
                 teamId: user.favoriteTeam,
-                title: payload.title,
                 content: payload.content,
                 postType: payload.postType ?? 'CHEER',
             });
@@ -239,7 +237,6 @@ export default function Cheer() {
                 id: optimisticId,
                 team: user?.favoriteTeam || 'ALL',
                 teamColor,
-                title: payload.title,
                 content: payload.content,
                 author: user?.name || user?.email || '나',
                 timeAgo: '방금 전',
@@ -323,19 +320,16 @@ export default function Cheer() {
             alert('마이페이지에서 응원팀을 설정해주세요!');
             return;
         }
-        const trimmedTitle = composerTitle.trim();
         const trimmedContent = composerContent.trim();
-        if (!trimmedTitle || !trimmedContent) return;
+        if (!trimmedContent) return;
 
         setComposerSubmitting(true);
         try {
             await createMutation.mutateAsync({
-                title: trimmedTitle,
                 content: trimmedContent,
                 files: composerFiles,
                 postType: activeTabConfig?.postType,
             });
-            setComposerTitle('');
             setComposerContent('');
             setComposerFiles([]);
             composerPreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
@@ -639,13 +633,6 @@ export default function Cheer() {
                                         )}
                                     </div>
                                     <div className="flex-1">
-                                        <input
-                                            type="text"
-                                            placeholder="제목을 입력하세요"
-                                            className="w-full bg-transparent text-[16px] font-bold text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none border-b border-[#EFF3F4] dark:border-[#232938] pb-2 mb-2"
-                                            value={composerTitle}
-                                            onChange={(e) => setComposerTitle(e.target.value)}
-                                        />
                                         <TextareaAutosize
                                             placeholder="지금 우리 팀에게 응원을 남겨주세요!"
                                             className="w-full resize-none border-none bg-transparent text-[16px] text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none focus:ring-0"
@@ -696,7 +683,7 @@ export default function Cheer() {
                                                     onClick={handleComposerSubmit}
                                                     className="rounded-full px-4 py-1.5 text-sm font-bold disabled:opacity-60"
                                                     style={{ backgroundColor: teamColor, color: teamContrastText }}
-                                                    disabled={composerSubmitting || !composerTitle.trim() || !composerContent.trim()}
+                                                    disabled={composerSubmitting || !composerContent.trim()}
                                                 >
                                                     {composerSubmitting ? '등록 중...' : '게시하기'}
                                                 </button>
@@ -988,9 +975,8 @@ export default function Cheer() {
             <CheerWriteModal
                 isOpen={isWriteModalOpen}
                 onClose={() => setIsWriteModalOpen(false)}
-                onSubmit={async (title: string, content: string, files: File[]) => {
+                onSubmit={async (content: string, files: File[]) => {
                     await createMutation.mutateAsync({
-                        title,
                         content,
                         files,
                         postType: activeTabConfig?.postType,

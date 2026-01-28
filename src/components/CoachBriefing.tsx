@@ -56,7 +56,7 @@ export default function CoachBriefing({ game, votePercentages, totalVotes, isTod
     }, [game, votePercentages]);
 
     return (
-        <Card className="mb-6 overflow-hidden border-none shadow-xl bg-gradient-to-br from-[#2d5f4f] to-[#1a3c32] dark:from-[#1a3c32] dark:to-black relative group">
+        <Card className="mb-6 overflow-hidden border-none shadow-xl bg-primary dark:bg-primary-dark relative group">
             {/* Background Decorations */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/10 transition-colors duration-500" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-yellow-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4" />

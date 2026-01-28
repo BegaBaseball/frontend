@@ -312,17 +312,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         )}
                     </div>
 
-                    {post.title && (
-                        <h3
-                            className="mb-1 text-[17px] font-bold text-[#0f1419] dark:text-white leading-tight cursor-pointer hover:underline"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/cheer/${post.id}`);
-                            }}
-                        >
-                            {post.title}
-                        </h3>
-                    )}
+                    {/* Title Display Removed */}
                     <div
                         className="mt-0.5 text-[16px] leading-[22px] text-[#0f1419] dark:text-slate-200 transition-all duration-300"
                     >

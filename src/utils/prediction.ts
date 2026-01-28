@@ -9,10 +9,11 @@ export const groupByDate = (games: Game[]): DateGames[] => {
   const grouped: { [key: string]: Game[] } = {};
 
   games.forEach(game => {
-    if (!grouped[game.gameDate]) {
-      grouped[game.gameDate] = [];
+    const gameDate = game.gameDate || 'unknown';
+    if (!grouped[gameDate]) {
+      grouped[gameDate] = [];
     }
-    grouped[game.gameDate].push(game);
+    grouped[gameDate].push(game);
   });
 
   return Object.keys(grouped)

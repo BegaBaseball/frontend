@@ -22,6 +22,15 @@ const getInitialStatistics = (): DiaryStatistics => ({
   firstDiaryDate: null,
   cheerPostCount: 0,
   mateParticipationCount: 0,
+  currentWinStreak: 0,
+  longestWinStreak: 0,
+  currentLossStreak: 0,
+  opponentWinRates: {},
+  bestOpponent: '',
+  worstOpponent: '',
+  dayOfWeekStats: {},
+  luckyDay: '',
+  earnedBadges: [],
 });
 
 export const useDiaryStatistics = () => {

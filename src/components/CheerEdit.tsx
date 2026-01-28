@@ -19,8 +19,8 @@ export default function CheerEdit() {
     isLoading,
     isError,
     hasAccess,
-    title,
-    setTitle,
+    // title, // Removed
+    // setTitle, // Removed
     content,
     setContent,
     existingImages,
@@ -80,7 +80,7 @@ export default function CheerEdit() {
               onClick={handleSubmit}
               className="text-white"
               style={{ backgroundColor: '#2d5f4f' }}
-              disabled={isSubmitting || !title.trim() || !content.trim()}
+              disabled={isSubmitting || !content.trim()}
             >
               {isSubmitting ? '수정 중...' : '수정 완료'}
             </Button>
@@ -138,16 +138,7 @@ export default function CheerEdit() {
               /* Edit Form */
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="block text-sm" style={{ color: '#2d5f4f' }}>
-                    제목 *
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="제목을 입력하세요"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  />
+                  {/* Title Input Removed */}
                 </div>
 
                 {/* Content */}
