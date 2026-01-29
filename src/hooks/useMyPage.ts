@@ -7,7 +7,7 @@ import { useNavigationStore } from '../store/navigationStore';
 import { ViewMode } from '../types/profile';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 
-const VALID_VIEW_MODES: ViewMode[] = ['diary', 'stats', 'editProfile', 'mateHistory', 'changePassword', 'accountSettings'];
+const VALID_VIEW_MODES: ViewMode[] = ['diary', 'stats', 'editProfile', 'mateHistory', 'changePassword', 'accountSettings', 'blockedUsers'];
 
 export const useMyPage = () => {
   const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);

@@ -14,6 +14,8 @@ interface FollowButtonProps {
     userId: number;
     initialFollowing?: boolean;
     initialNotify?: boolean;
+    initialBlocked?: boolean;
+    initialBlocking?: boolean;
     onFollowChange?: (response: FollowToggleResponse) => void;
     size?: 'sm' | 'default' | 'lg';
     showNotifyOption?: boolean;
@@ -25,6 +27,8 @@ export default function FollowButton({
     userId,
     initialFollowing = false,
     initialNotify = false,
+    initialBlocked = false,
+    initialBlocking = false,
     onFollowChange,
     size = 'default',
     showNotifyOption = true,
@@ -36,9 +40,13 @@ export default function FollowButton({
     const [notifyNewPosts, setNotifyNewPosts] = useState(initialNotify);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Don't show follow button for own profile
+    // Don't show follow button for own profile or if blocked
     if (user && userId && Number(user.id) === Number(userId)) {
         return null;
+    }
+
+    if (initialBlocked || initialBlocking) {
+        return null; // 차단 관계가 있으면 팔로우 버튼 숨김
     }
 
     const handleToggleFollow = useCallback(async () => {
