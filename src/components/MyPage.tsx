@@ -9,6 +9,7 @@ import AccountSettingsSection from './mypage/AccountSettingsSection';
 import DiaryViewSection from './mypage/Diaryform';
 import DiaryStatistics from './mypage/Diarystatistics';
 import MateHistorySection from './mypage/MateHistorySection';
+import BlockedUsersSection from './mypage/BlockedUsersSection';
 import { useMyPage } from '../hooks/useMyPage';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -131,6 +132,7 @@ export default function MyPage() {
               onSave={handleProfileUpdated}
               onChangePassword={() => setViewMode('changePassword')}
               onAccountSettings={() => setViewMode('accountSettings')}
+              onBlockedUsers={() => setViewMode('blockedUsers')}
             />
           )
         }
@@ -156,6 +158,19 @@ export default function MyPage() {
               userProvider={user?.provider}
               onCancel={() => setViewMode('editProfile')}
             />
+          )
+        }
+
+        {
+          viewMode === 'blockedUsers' && (
+            <div className="max-w-3xl mx-auto">
+              <BlockedUsersSection />
+              <div className="mt-4 flex justify-end">
+                <Button variant="outline" onClick={() => setViewMode('editProfile')}>
+                  돌아가기
+                </Button>
+              </div>
+            </div>
           )
         }
       </div >

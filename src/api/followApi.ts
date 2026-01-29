@@ -14,6 +14,8 @@ export interface FollowCountResponse {
     followingCount: number;
     isFollowedByMe: boolean;
     notifyNewPosts: boolean;
+    blockedByMe?: boolean;
+    blockingMe?: boolean;
 }
 
 export interface UserFollowSummary {

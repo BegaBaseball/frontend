@@ -55,7 +55,7 @@ export interface ProfileUpdateResponse {
   message?: string;
 }
 
-export type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory' | 'changePassword' | 'accountSettings';
+export type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory' | 'changePassword' | 'accountSettings' | 'blockedUsers';
 
 export interface UserProviderDto {
   provider: string;

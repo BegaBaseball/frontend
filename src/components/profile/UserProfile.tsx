@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { fetchPublicUserProfileByHandle } from '../../api/profile';
 import { fetchUserPostsByHandle } from '../../api/cheerApi';
 import { getFollowCounts } from '../../api/followApi';
@@ -26,11 +26,22 @@ import CheerCard from '../CheerCard';
 import EndOfFeed from '../EndOfFeed';
 import FollowButton from './FollowButton';
 import { useAuthStore } from '../../store/authStore';
+import UserListModal from './UserListModal';
 
 export default function UserProfile() {
     const { handle } = useParams<{ handle: string }>();
     const navigate = useNavigate();
     const currentUser = useAuthStore((state) => state.user);
+
+    const [userListModal, setUserListModal] = useState<{
+        isOpen: boolean;
+        type: 'followers' | 'following';
+        title: string;
+    }>({
+        isOpen: false,
+        type: 'followers',
+        title: '',
+    });
 
     // URL에 @가 없는 경우 붙여줌 (UX)
     const normalizedHandle = handle?.startsWith('@') ? handle : `@${handle}`;
@@ -134,70 +145,73 @@ export default function UserProfile() {
     const isOwnProfile = currentUser && profile && Number(currentUser.id) === Number(profile.id);
 
     return (
-        <div className="max-w-2xl mx-auto pb-8">
-            {/* Back Button */}
-            <button
-                onClick={() => navigate(-1)}
-                className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-4 py-4 transition-colors"
-            >
-                <ArrowLeft className="w-5 h-5 mr-1" />
-                <span>뒤로</span>
-            </button>
+        <>
+            <div className="max-w-2xl mx-auto pb-8">
+                {/* Back Button */}
+                <button
+                    onClick={() => navigate(-1)}
+                    className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-4 py-4 transition-colors"
+                >
+                    <ArrowLeft className="w-5 h-5 mr-1" />
+                    <span>뒤로</span>
+                </button>
 
-            {/* Profile Card */}
-            <div className="bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                {/* Banner */}
-                <div className="h-[150px] relative" style={{ background: theme.gradient }}>
-                    {/* Optional: subtle pattern or team logo watermark */}
-                </div>
-
-                {/* Avatar - overlapping banner */}
-                <div className="px-6 -mt-[50px] relative z-10">
-                    <Avatar className="w-[100px] h-[100px] border-4 border-white dark:border-gray-800 shadow-xl">
-                        <AvatarImage src={profile.profileImageUrl || ''} className="object-cover" />
-                        <AvatarFallback className="bg-gray-100 dark:bg-gray-700 text-gray-400">
-                            <User className="w-12 h-12" />
-                        </AvatarFallback>
-                    </Avatar>
-                </div>
-
-                {/* Profile Info */}
-                <div className="px-6 pt-4 pb-6">
-                    {/* Name & Handle */}
-                    <div className="mb-3">
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {profile.name}
-                        </h1>
-                        <p className="text-gray-500 dark:text-gray-400">{profile.handle}</p>
+                {/* Profile Card */}
+                <div className="bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    {/* Banner */}
+                    <div className="h-[150px] relative" style={{ background: theme.gradient }}>
+                        {/* Optional: subtle pattern or team logo watermark */}
                     </div>
 
-                    {/* Badges */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                        {/* Points Badge */}
-                        <Badge
-                            className="px-3 py-1 border-0"
-                            style={{
-                                backgroundColor: theme.softBg,
-                                color: theme.accent,
-                            }}
-                        >
-                            <Award className="w-3.5 h-3.5 mr-1" />
-                            {profile.cheerPoints?.toLocaleString() || 0} P
-                        </Badge>
+                    {/* Avatar - overlapping banner */}
+                    <div className="px-6 -mt-[50px] relative z-10">
+                        <Avatar className="w-[100px] h-[100px] border-4 border-white dark:border-gray-800 shadow-xl">
+                            <AvatarImage src={profile.profileImageUrl || ''} className="object-cover" />
+                            <AvatarFallback className="bg-gray-100 dark:bg-gray-700 text-gray-400">
+                                <User className="w-12 h-12" />
+                            </AvatarFallback>
+                        </Avatar>
+                    </div>
 
-                        {/* Team Badge */}
-                        {profile.favoriteTeam && profile.favoriteTeam !== '없음' && (
+                    {/* Profile Info */}
+                    <div className="px-6 pt-4 pb-6">
+                        {/* Name & Handle */}
+                        <div className="mb-3">
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                {profile.name}
+                            </h1>
+                            <p className="text-gray-500 dark:text-gray-400">{profile.handle}</p>
+                        </div>
+
+                        {/* Badges */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {/* Points Badge */}
                             <Badge
                                 className="px-3 py-1 border-0"
                                 style={{
-                                    backgroundColor: theme.primary,
-                                    color: theme.contrastText,
+                                    backgroundColor: theme.softBg,
+                                    color: theme.accent,
                                 }}
                             >
-                                <Trophy className="w-3.5 h-3.5 mr-1" />
-                                {getTeamKoreanName(profile.favoriteTeam)}
+                                <Award className="w-3.5 h-3.5 mr-1" />
+                                {profile.cheerPoints?.toLocaleString() || 0} P
                             </Badge>
-                        )}
+
+                            {/* Team Badge */}
+                            {profile.favoriteTeam && profile.favoriteTeam !== '없음' && (
+                                <Badge
+                                    className="px-3 py-1 border-0"
+                                    style={{
+                                        backgroundColor: theme.primary,
+                                        color: theme.contrastText,
+                                    }}
+                                >
+                                    <Trophy className="w-3.5 h-3.5 mr-1" />
+                                    {getTeamKoreanName(profile.favoriteTeam)}
+                                </Badge>
+                            )}
+                        </div>
+
                     </div>
 
                     {/* Statistics Row */}
@@ -211,7 +225,10 @@ export default function UserProfile() {
                                 게시글
                             </span>
                         </div>
-                        <div className="text-center">
+                        <button
+                            className="text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 p-1 rounded-lg transition-colors cursor-pointer"
+                            onClick={() => setUserListModal({ isOpen: true, type: 'followers', title: '팔로워' })}
+                        >
                             <span className="font-bold text-lg text-gray-900 dark:text-white block">
                                 {formatCount(followCounts?.followerCount || 0)}
                             </span>
@@ -219,8 +236,11 @@ export default function UserProfile() {
                                 <Users className="w-3.5 h-3.5" />
                                 팔로워
                             </span>
-                        </div>
-                        <div className="text-center">
+                        </button>
+                        <button
+                            className="text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 p-1 rounded-lg transition-colors cursor-pointer"
+                            onClick={() => setUserListModal({ isOpen: true, type: 'following', title: '팔로잉' })}
+                        >
                             <span className="font-bold text-lg text-gray-900 dark:text-white block">
                                 {formatCount(followCounts?.followingCount || 0)}
                             </span>
@@ -228,7 +248,7 @@ export default function UserProfile() {
                                 <UserPlus className="w-3.5 h-3.5" />
                                 팔로잉
                             </span>
-                        </div>
+                        </button>
                     </div>
 
                     {/* Action Buttons */}
@@ -315,6 +335,20 @@ export default function UserProfile() {
                     </div>
                 )}
             </div>
-        </div>
+
+
+            {/* User List Modal */}
+            {
+                profile && (
+                    <UserListModal
+                        isOpen={userListModal.isOpen}
+                        onClose={() => setUserListModal(prev => ({ ...prev, isOpen: false }))}
+                        userId={profile.id}
+                        type={userListModal.type}
+                        title={userListModal.title}
+                    />
+                )
+            }
+        </>
     );
 }
