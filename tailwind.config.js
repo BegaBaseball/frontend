@@ -15,6 +15,9 @@ export default {
       '2xl': '1536px',
     },
     extend: {
+      fontFamily: {
+        retro: ['"Press Start 2P"', 'monospace'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -93,6 +96,29 @@ export default {
           '0%': { transform: 'translateY(0)', opacity: '1' },
           '100%': { transform: 'translateY(12px)', opacity: '0' },
         },
+        // Retro leaderboard animations
+        'crt-flicker': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.98' },
+        },
+        'pixel-bounce': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-4px)' },
+        },
+        'score-pop': {
+          '0%': { transform: 'scale(0) rotate(-10deg)', opacity: '0' },
+          '50%': { transform: 'scale(1.2) rotate(5deg)' },
+          '100%': { transform: 'scale(1) rotate(0)', opacity: '1' },
+        },
+        'neon-pulse': {
+          '0%, 100%': { textShadow: '0 0 5px currentColor, 0 0 10px currentColor' },
+          '50%': { textShadow: '0 0 20px currentColor, 0 0 30px currentColor' },
+        },
+        'combo-shake': {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-2px)' },
+          '20%, 40%, 60%, 80%': { transform: 'translateX(2px)' },
+        },
       },
       animation: {
         'fade-in-up': 'fade-in-up 0.3s ease-out',
@@ -103,6 +129,12 @@ export default {
         'roll-out-up': 'roll-out-up 0.3s ease-out',
         'roll-in-down': 'roll-in-down 0.3s ease-out',
         'roll-out-down': 'roll-out-down 0.3s ease-out',
+        // Retro leaderboard animations
+        'crt-flicker': 'crt-flicker 0.15s infinite',
+        'pixel-bounce': 'pixel-bounce 0.6s ease-in-out infinite',
+        'score-pop': 'score-pop 0.5s ease-out',
+        'neon-pulse': 'neon-pulse 2s infinite',
+        'combo-shake': 'combo-shake 0.5s infinite',
       }
     },
   },

@@ -1,3 +1,9 @@
+/* Google Font for Retro Leaderboard */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* Korean Pixel Font for better readability */
+@import url('https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

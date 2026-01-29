@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
+import { useLeaderboardStore } from '../store/leaderboardStore';
 import { Game, DateGames, VoteStatus, ConfirmDialogData, VoteTeam, PredictionTab, GameDetail } from '../types/prediction';
 import {
   fetchMatchesByDate,
@@ -262,6 +263,12 @@ export const usePrediction = () => {
         ? getFullTeamName(game.homeTeam)
         : getFullTeamName(game.awayTeam);
       toast.success(`${teamName} 승리 예측이 저장되었습니다! ⚾`);
+
+      // 콤보 애니메이션 트리거 (현재 연승 표시)
+      const { currentStreak, triggerCombo } = useLeaderboardStore.getState();
+      if (currentStreak > 0) {
+        triggerCombo(currentStreak);
+      }
     } catch (error: any) {
       toast.error(error.message || '투표에 실패했습니다.');
     }

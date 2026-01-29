@@ -140,6 +140,19 @@ export default function ProfileEditSection({
                   >
                     ⚙️ 계정 설정
                   </Button>
+
+                )}
+
+                {/* Blocked Users Button */}
+                {onBlockedUsers && (
+                  <Button
+                    variant="ghost"
+                    onClick={onBlockedUsers}
+                    className="w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    disabled={isLoading}
+                  >
+                    🚫 차단 관리
+                  </Button>
                 )}
               </div>
             </div>
@@ -281,6 +294,19 @@ export default function ProfileEditSection({
                   >
                     ⚙️ 계정 설정
                   </Button>
+
+                )}
+
+                {/* Blocked Users Button */}
+                {onBlockedUsers && (
+                  <Button
+                    variant="ghost"
+                    onClick={onBlockedUsers}
+                    className="w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    disabled={isLoading}
+                  >
+                    🚫 차단 관리
+                  </Button>
                 )}
               </div>
 
@@ -305,13 +331,15 @@ export default function ProfileEditSection({
       </div>
 
       {/* Team Test Modal */}
-      {showTeamTest && (
-        <TeamRecommendationTest
-          isOpen={showTeamTest}
-          onClose={() => setShowTeamTest(false)}
-          onSelectTeam={handleTeamSelect}
-        />
-      )}
+      {
+        showTeamTest && (
+          <TeamRecommendationTest
+            isOpen={showTeamTest}
+            onClose={() => setShowTeamTest(false)}
+            onSelectTeam={handleTeamSelect}
+          />
+        )
+      }
     </>
   );
 }

@@ -1,8 +1,10 @@
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { TrendingUp, ChevronLeft, ChevronRight, Trophy, Flame, Target, Coins, LineChart } from 'lucide-react';
+import { TrendingUp, ChevronLeft, ChevronRight, Trophy, Flame, Target, Coins, LineChart, Gamepad2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import ChatBot from './ChatBot';
 import RankingPrediction from './RankingPrediction';
+import ComboAnimation from './retro/ComboAnimation';
 import AdvancedMatchCard from './prediction/AdvancedMatchCard';
 import CoachBriefing from './CoachBriefing';
 import {
@@ -179,14 +181,24 @@ export default function Prediction() {
           <div className="flex-1">
             <h2 className="text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">전력분석실</h2>
           </div>
-          {isLoggedIn && (
-            <div className="flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50 rounded-full">
-              <Coins className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-              <span className="text-sm font-bold text-yellow-700 dark:text-yellow-300 tabular-nums">
-                {user?.cheerPoints?.toLocaleString() || 0} P
-              </span>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Leaderboard Link */}
+            <Link
+              to="/leaderboard"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 rounded-full hover:from-cyan-500/20 hover:to-purple-500/20 transition-all group"
+            >
+              <Gamepad2 className="w-4 h-4 text-cyan-500 group-hover:text-cyan-400 transition-colors" />
+              <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hidden sm:inline">랭킹</span>
+            </Link>
+            {isLoggedIn && (
+              <div className="flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50 rounded-full">
+                <Coins className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                <span className="text-sm font-bold text-yellow-700 dark:text-yellow-300 tabular-nums">
+                  {user?.cheerPoints?.toLocaleString() || 0} P
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Coach Briefing Widget */}
@@ -323,6 +335,7 @@ export default function Prediction() {
       </div>
 
       <ChatBot />
+      <ComboAnimation />
     </div>
   );
 }

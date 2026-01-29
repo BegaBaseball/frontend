@@ -114,7 +114,7 @@ const ProgressBarWrapper = styled.div`
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
 `;
 
-const GaugeBar = styled(motion.div)<{ color: string }>`
+const GaugeBar = styled(motion.div) <{ color: string }>`
   height: 100%;
   background: ${(props) => props.color};
   position: relative;
@@ -422,336 +422,336 @@ export default function AdvancedMatchCard({
         )}
 
         <DetailWrapper className="mt-4 md:mt-6 overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/80 shadow-lg">
+          <div
+            className="relative overflow-hidden rounded-t-2xl px-4 pt-12 pb-10 text-white"
+            style={{
+              background: `linear-gradient(110deg, ${awayColor} 50%, ${homeColor} 50%)`,
+            }}
+          >
             <div
-              className="relative overflow-hidden rounded-t-2xl px-4 pt-12 pb-10 text-white"
+              className="absolute inset-0 opacity-70"
               style={{
-                background: `linear-gradient(110deg, ${awayColor} 50%, ${homeColor} 50%)`,
+                backgroundImage:
+                  'repeating-linear-gradient(45deg, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 2px, transparent 2px, transparent 8px)',
               }}
-            >
-              <div
-                className="absolute inset-0 opacity-70"
-                style={{
-                  backgroundImage:
-                    'repeating-linear-gradient(45deg, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 2px, transparent 2px, transparent 8px)',
-                }}
-              />
-              <div className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rotate-[20deg] bg-white/30" />
-              <div className="relative flex justify-center">
-                <MetaBadge className="absolute top-0 rounded-full bg-black/30 px-3 py-1 text-[10px] font-semibold backdrop-blur">
-                  {matchMetaLabel || '경기 정보'}
-                </MetaBadge>
+            />
+            <div className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rotate-[20deg] bg-white/30" />
+            <div className="relative flex justify-center">
+              <MetaBadge className="absolute top-0 rounded-full bg-black/30 px-3 py-1 text-[10px] font-semibold backdrop-blur">
+                {matchMetaLabel || '경기 정보'}
+              </MetaBadge>
+            </div>
+            <div className="relative mt-10 flex items-end justify-between gap-3">
+              <div className="flex w-[30%] flex-col items-center text-center">
+                <TeamLogoBox className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-xl font-black shadow-lg ring-4 ring-white/20">
+                  <TeamLogo team={game.awayTeam} size={36} className="h-8 w-8" />
+                </TeamLogoBox>
+                <div className="mt-2 text-sm font-semibold">{awayTeamName}</div>
+                <div className="text-[10px] text-white/80">AWAY</div>
               </div>
-              <div className="relative mt-10 flex items-end justify-between gap-3">
-                <div className="flex w-[30%] flex-col items-center text-center">
-                  <TeamLogoBox className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-xl font-black shadow-lg ring-4 ring-white/20">
-                    <TeamLogo team={game.awayTeam} size={36} className="h-8 w-8" />
-                  </TeamLogoBox>
-                  <div className="mt-2 text-sm font-semibold">{awayTeamName}</div>
-                  <div className="text-[10px] text-white/80">AWAY</div>
+              <ScoreBox
+                ref={scoreBoxRef}
+                $visible={isVisible}
+                className="relative -mb-2 w-[40%] rounded-xl bg-white dark:bg-gray-900 px-3 py-3 text-center text-gray-800 dark:text-gray-100 shadow-2xl"
+              >
+                <div className="flex items-center justify-center gap-2 text-3xl font-extrabold">
+                  <span style={{ color: awayColor }}>{countedScores.away}</span>
+                  <span className="text-gray-300 dark:text-gray-600">:</span>
+                  <span style={{ color: homeColor }}>{countedScores.home}</span>
                 </div>
-                <ScoreBox
-                  ref={scoreBoxRef}
-                  $visible={isVisible}
-                  className="relative -mb-2 w-[40%] rounded-xl bg-white dark:bg-gray-900 px-3 py-3 text-center text-gray-800 dark:text-gray-100 shadow-2xl"
-                >
-                  <div className="flex items-center justify-center gap-2 text-3xl font-extrabold">
-                    <span style={{ color: awayColor }}>{countedScores.away}</span>
-                    <span className="text-gray-300 dark:text-gray-600">:</span>
-                    <span style={{ color: homeColor }}>{countedScores.home}</span>
-                  </div>
-                  <div className="mt-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400">{matchStatusLabel}</div>
-                </ScoreBox>
-                <div className="flex w-[30%] flex-col items-center text-center">
-                  <TeamLogoBox className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-xl font-black shadow-lg ring-4 ring-white/20">
-                    <TeamLogo team={game.homeTeam} size={36} className="h-8 w-8" />
-                  </TeamLogoBox>
-                  <div className="mt-2 text-sm font-semibold">{homeTeamName}</div>
-                  <div className="text-[10px] text-white/80">HOME</div>
-                </div>
+                <div className="mt-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400">{matchStatusLabel}</div>
+              </ScoreBox>
+              <div className="flex w-[30%] flex-col items-center text-center">
+                <TeamLogoBox className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-xl font-black shadow-lg ring-4 ring-white/20">
+                  <TeamLogo team={game.homeTeam} size={36} className="h-8 w-8" />
+                </TeamLogoBox>
+                <div className="mt-2 text-sm font-semibold">{homeTeamName}</div>
+                <div className="text-[10px] text-white/80">HOME</div>
               </div>
             </div>
+          </div>
 
-            <div className="space-y-6 px-4 py-6">
-              {gameDetailLoading && (
-                <div className="text-center text-xs text-gray-500 dark:text-gray-400">경기 정보를 불러오는 중입니다...</div>
-              )}
+          <div className="space-y-6 px-4 py-6">
+            {gameDetailLoading && (
+              <div className="text-center text-xs text-gray-500 dark:text-gray-400">경기 정보를 불러오는 중입니다...</div>
+            )}
 
-              {!gameDetailLoading && (
-                <section>
-                  <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                    <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
-                    스코어보드
-                    {hasExtraInnings && (
-                      <span className="ml-auto text-xs text-gray-400">
-                        {inningPage === 0 ? '연장이닝 보기 →' : '← 정규이닝 보기'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/60">
-                    {hasExtraInnings ? (
-                      <div className="overflow-hidden">
-                        <motion.div
-                          drag="x"
-                          dragConstraints={{ left: 0, right: 0 }}
-                          onDragEnd={handleInningDragEnd}
-                          animate={{ x: inningPage === 0 ? '0%' : '-100%' }}
-                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                          className="flex"
-                        >
-                          {[regularInningCols, extraInningCols].map((cols, index) => (
-                            <div key={index} className="min-w-full px-3 py-3">
-                              <table className="w-full border-collapse text-center text-[13px]">
-                                <thead className="bg-gray-50 dark:bg-gray-800 text-[12px] text-gray-500 dark:text-gray-300">
-                                  <tr>
-                                    <th className="px-2 py-2 text-left">팀</th>
-                                    {cols.map((inning) => (
-                                      <th key={inning} className="px-2 py-2">{inning}</th>
-                                    ))}
-                                    <th className="px-2 py-2 text-red-600">R</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="text-gray-700 dark:text-gray-200">
-                                  <tr>
-                                    <td className="px-2 py-2 text-left font-semibold" style={{ color: awayColor }}>
-                                      {awayTeamName}
-                                    </td>
-                                    {cols.map((inning) => (
-                                      <td key={`away-${inning}`} className="px-2 py-2">
-                                        {inningRows[inning]?.away ?? '-'}
-                                      </td>
-                                    ))}
-                                    <td className="px-2 py-2 font-semibold text-red-600">
-                                      {awayScoreValue}
-                                    </td>
-                                  </tr>
-                                  <tr>
-                                    <td className="px-2 py-2 text-left font-semibold" style={{ color: homeColor }}>
-                                      {homeTeamName}
-                                    </td>
-                                    {cols.map((inning) => (
-                                      <td key={`home-${inning}`} className="px-2 py-2">
-                                        {inningRows[inning]?.home ?? '-'}
-                                      </td>
-                                    ))}
-                                    <td className="px-2 py-2 font-semibold text-red-600">
-                                      {homeScoreValue}
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
-                          ))}
-                        </motion.div>
-                        <div className="mt-3 flex justify-center gap-2">
-                          {[0, 1].map((page) => (
-                            <span
-                              key={page}
-                              className={`h-2 w-2 rounded-full ${inningPage === page ? 'bg-gray-800' : 'bg-gray-200'}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="px-3 py-3">
-                              <table className="w-full border-collapse text-center text-[13px]">
-                                <thead className="bg-gray-50 dark:bg-gray-800 text-[12px] text-gray-500 dark:text-gray-300">
-                            <tr>
-                              <th className="px-2 py-2 text-left">팀</th>
-                              {regularInningCols.map((inning) => (
-                                <th key={inning} className="px-2 py-2">{inning}</th>
-                              ))}
-                              <th className="px-2 py-2 text-red-600">R</th>
-                            </tr>
-                          </thead>
-                          <tbody className="text-gray-700 dark:text-gray-200">
-                            <tr>
-                              <td className="px-2 py-2 text-left font-semibold" style={{ color: awayColor }}>
-                                {awayTeamName}
-                              </td>
-                              {regularInningCols.map((inning) => (
-                                <td key={`away-${inning}`} className="px-2 py-2">
-                                  {inningRows[inning]?.away ?? '-'}
-                                </td>
-                              ))}
-                              <td className="px-2 py-2 font-semibold text-red-600">{awayScoreValue}</td>
-                            </tr>
-                            <tr>
-                              <td className="px-2 py-2 text-left font-semibold" style={{ color: homeColor }}>
-                                {homeTeamName}
-                              </td>
-                              {regularInningCols.map((inning) => (
-                                <td key={`home-${inning}`} className="px-2 py-2">
-                                  {inningRows[inning]?.home ?? '-'}
-                                </td>
-                              ))}
-                              <td className="px-2 py-2 font-semibold text-red-600">{homeScoreValue}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
-
-              {!gameDetailLoading && (
-                <section>
-                  <GaugeContainer>
-                    <GaugeHeader>
-                      <TeamInfo $color={awayColor} $align="left">
-                        <div className="name">{awayTeamName} 응원</div>
-                        <div className="count">
-                          {awayVotes.toLocaleString()}
-                          <span className="percent">({awayPercent.toFixed(1)}%)</span>
-                        </div>
-                      </TeamInfo>
+            {!gameDetailLoading && (
+              <section>
+                <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                  스코어보드
+                  {hasExtraInnings && (
+                    <span className="ml-auto text-xs text-gray-400">
+                      {inningPage === 0 ? '연장이닝 보기 →' : '← 정규이닝 보기'}
+                    </span>
+                  )}
+                </div>
+                <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/60">
+                  {hasExtraInnings ? (
+                    <div className="overflow-hidden">
                       <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        style={{ fontSize: '1.2rem', paddingBottom: '5px' }}
-                        aria-hidden
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        onDragEnd={handleInningDragEnd}
+                        animate={{ x: inningPage === 0 ? '0%' : '-100%' }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        className="flex"
                       >
-                        🔥
+                        {[regularInningCols, extraInningCols].map((cols, index) => (
+                          <div key={index} className="min-w-full px-3 py-3">
+                            <table className="w-full border-collapse text-center text-[13px]">
+                              <thead className="bg-gray-50 dark:bg-gray-800 text-[12px] text-gray-500 dark:text-gray-300">
+                                <tr>
+                                  <th className="px-2 py-2 text-left">팀</th>
+                                  {cols.map((inning) => (
+                                    <th key={inning} className="px-2 py-2">{inning}</th>
+                                  ))}
+                                  <th className="px-2 py-2 text-red-600">R</th>
+                                </tr>
+                              </thead>
+                              <tbody className="text-gray-700 dark:text-gray-200">
+                                <tr>
+                                  <td className="px-2 py-2 text-left font-semibold" style={{ color: awayColor }}>
+                                    {awayTeamName}
+                                  </td>
+                                  {cols.map((inning) => (
+                                    <td key={`away-${inning}`} className="px-2 py-2">
+                                      {inningRows[inning]?.away ?? '-'}
+                                    </td>
+                                  ))}
+                                  <td className="px-2 py-2 font-semibold text-red-600">
+                                    {awayScoreValue}
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td className="px-2 py-2 text-left font-semibold" style={{ color: homeColor }}>
+                                    {homeTeamName}
+                                  </td>
+                                  {cols.map((inning) => (
+                                    <td key={`home-${inning}`} className="px-2 py-2">
+                                      {inningRows[inning]?.home ?? '-'}
+                                    </td>
+                                  ))}
+                                  <td className="px-2 py-2 font-semibold text-red-600">
+                                    {homeScoreValue}
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        ))}
                       </motion.div>
-                      <TeamInfo $color={homeColor} $align="right">
-                        <div className="name">{homeTeamName} 응원</div>
-                        <div className="count">
-                          <span className="percent" style={{ marginRight: '4px' }}>({homePercent.toFixed(1)}%)</span>
-                          {homeVotes.toLocaleString()}
-                        </div>
-                      </TeamInfo>
-                    </GaugeHeader>
-                    <ProgressBarWrapper>
-                      <GaugeBar
-                        color={awayColor}
-                        initial={{ width: '0%' }}
-                        animate={{ width: `${awayPercent}%` }}
-                        transition={{ type: 'spring', stiffness: 50, damping: 20 }}
-                      />
-                      <CenterSlash />
-                      <GaugeBar
-                        color={homeColor}
-                        initial={{ width: '0%' }}
-                        animate={{ width: `${homePercent}%` }}
-                        transition={{ type: 'spring', stiffness: 50, damping: 20 }}
-                      />
-                    </ProgressBarWrapper>
-                    <div className="mt-2 text-center text-[12px] text-gray-500 dark:text-gray-400">
-                      실시간 팬 응원 참여수: {cheeringTotal.toLocaleString()}명
-                    </div>
-                  </GaugeContainer>
-                </section>
-              )}
-
-              {!gameDetailLoading && (
-                <section>
-                  <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                    <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
-                    선발 투수
-                  </div>
-                  <div className="flex items-center rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 px-4 py-4 shadow-sm">
-                    <div className="flex-1 text-center">
-                      <p className="text-xs font-semibold" style={{ color: awayColor }}>
-                        {awayTeamName}
-                      </p>
-                      <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{awayPitcherName}</p>
-                    </div>
-                    <div className="px-3 text-xs font-semibold text-gray-400">VS</div>
-                    <div className="flex-1 text-center">
-                      <p className="text-xs font-semibold" style={{ color: homeColor }}>
-                        {homeTeamName}
-                      </p>
-                      <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{homePitcherName}</p>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {!gameDetailLoading && (attendanceLabel || weatherLabel || gameTimeLabel) && (
-                <section>
-                  <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                    <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
-                    경기 환경
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/60 px-4 py-3 text-[13px]">
-                    <div>
-                      <p className="text-[12px] text-gray-400 dark:text-gray-500">관중</p>
-                      <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{attendanceLabel || '정보 없음'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[12px] text-gray-400 dark:text-gray-500">날씨</p>
-                      <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{weatherLabel || '정보 없음'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[12px] text-gray-400 dark:text-gray-500">경기시간</p>
-                      <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{gameTimeLabel || '정보 없음'}</p>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {!gameDetailLoading && timelineEntries.length > 0 && (
-                <section>
-                  <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                    <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
-                    경기 주요 기록
-                  </div>
-                  <LayoutGroup>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1 bottom-1 w-px bg-gray-200 dark:bg-gray-700 z-0" />
-                      <div className="space-y-4">
-                        {timelineEntries.map((item, index) => {
-                          const isHighlight = item.type === '결승타';
-                          const badgeColor = isHighlight ? awayColor : homeColor;
-                          return (
-                            <TimelineItem key={`${item.type}-${index}`} className="relative">
-                              <TimelineCard
-                                layout
-                                className="ml-6 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/70 px-3 py-2 shadow-sm"
-                              >
-                                <span
-                                  className="absolute left-3 top-3 h-2.5 w-2.5 -translate-x-1/2 rounded-full border z-10"
-                                  style={{
-                                    backgroundColor: isHighlight ? badgeColor : '#ffffff',
-                                    borderColor: badgeColor,
-                                    boxShadow: isHighlight ? `0 0 0 6px ${badgeColor}22` : 'none',
-                                  }}
-                                />
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <EventBadge style={{ backgroundColor: badgeColor }}>
-                                    {item.type}
-                                  </EventBadge>
-                                  <p className="text-[14px] font-semibold text-gray-900 dark:text-gray-100">
-                                    {item.playerName || '기록'}
-                                  </p>
-                                </div>
-                                {item.detail && (
-                                  <p className="mt-1 text-[12px] text-gray-500 dark:text-gray-400">
-                                    {item.detail}
-                                  </p>
-                                )}
-                              </TimelineCard>
-                            </TimelineItem>
-                          );
-                        })}
+                      <div className="mt-3 flex justify-center gap-2">
+                        {[0, 1].map((page) => (
+                          <span
+                            key={page}
+                            className={`h-2 w-2 rounded-full ${inningPage === page ? 'bg-gray-800' : 'bg-gray-200'}`}
+                          />
+                        ))}
                       </div>
                     </div>
-                  </LayoutGroup>
-                </section>
-              )}
-
-              {!gameDetailLoading && Object.keys(inningRows).length === 0 && timelineEntries.length === 0 && (
-                <div className="text-center text-xs text-gray-500 dark:text-gray-400">표시할 경기 상세 정보가 없습니다.</div>
-              )}
-
-              {!gameDetailLoading && summaryGroups['심판']?.length > 0 && (
-                <div className="border-t border-gray-100 dark:border-gray-700 pt-4 text-center text-[11px] text-gray-500 dark:text-gray-400">
-                  심판: {summaryGroups['심판'][0]?.playerName || summaryGroups['심판'][0]?.detail || '정보 없음'}
+                  ) : (
+                    <div className="px-3 py-3">
+                      <table className="w-full border-collapse text-center text-[13px]">
+                        <thead className="bg-gray-50 dark:bg-gray-800 text-[12px] text-gray-500 dark:text-gray-300">
+                          <tr>
+                            <th className="px-2 py-2 text-left">팀</th>
+                            {regularInningCols.map((inning) => (
+                              <th key={inning} className="px-2 py-2">{inning}</th>
+                            ))}
+                            <th className="px-2 py-2 text-red-600">R</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-gray-700 dark:text-gray-200">
+                          <tr>
+                            <td className="px-2 py-2 text-left font-semibold" style={{ color: awayColor }}>
+                              {awayTeamName}
+                            </td>
+                            {regularInningCols.map((inning) => (
+                              <td key={`away-${inning}`} className="px-2 py-2">
+                                {inningRows[inning]?.away ?? '-'}
+                              </td>
+                            ))}
+                            <td className="px-2 py-2 font-semibold text-red-600">{awayScoreValue}</td>
+                          </tr>
+                          <tr>
+                            <td className="px-2 py-2 text-left font-semibold" style={{ color: homeColor }}>
+                              {homeTeamName}
+                            </td>
+                            {regularInningCols.map((inning) => (
+                              <td key={`home-${inning}`} className="px-2 py-2">
+                                {inningRows[inning]?.home ?? '-'}
+                              </td>
+                            ))}
+                            <td className="px-2 py-2 font-semibold text-red-600">{homeScoreValue}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </section>
+            )}
+
+            {!gameDetailLoading && (
+              <section>
+                <GaugeContainer>
+                  <GaugeHeader>
+                    <TeamInfo $color={awayColor} $align="left">
+                      <div className="name">{awayTeamName} 응원</div>
+                      <div className="count">
+                        {awayVotes.toLocaleString()}
+                        <span className="percent">({awayPercent.toFixed(1)}%)</span>
+                      </div>
+                    </TeamInfo>
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                      style={{ fontSize: '1.2rem', paddingBottom: '5px' }}
+                      aria-hidden
+                    >
+                      🔥
+                    </motion.div>
+                    <TeamInfo $color={homeColor} $align="right">
+                      <div className="name">{homeTeamName} 응원</div>
+                      <div className="count">
+                        <span className="percent" style={{ marginRight: '4px' }}>({homePercent.toFixed(1)}%)</span>
+                        {homeVotes.toLocaleString()}
+                      </div>
+                    </TeamInfo>
+                  </GaugeHeader>
+                  <ProgressBarWrapper>
+                    <GaugeBar
+                      color={awayColor}
+                      initial={{ width: '50%' }}
+                      animate={{ width: `${awayPercent}%` }}
+                      transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+                    />
+                    <CenterSlash />
+                    <GaugeBar
+                      color={homeColor}
+                      initial={{ width: '50%' }}
+                      animate={{ width: `${homePercent}%` }}
+                      transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+                    />
+                  </ProgressBarWrapper>
+                  <div className="mt-2 text-center text-[12px] text-gray-500 dark:text-gray-400">
+                    실시간 팬 응원 참여수: {cheeringTotal.toLocaleString()}명
+                  </div>
+                </GaugeContainer>
+              </section>
+            )}
+
+            {!gameDetailLoading && (
+              <section>
+                <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                  선발 투수
+                </div>
+                <div className="flex items-center rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 px-4 py-4 shadow-sm">
+                  <div className="flex-1 text-center">
+                    <p className="text-xs font-semibold" style={{ color: awayColor }}>
+                      {awayTeamName}
+                    </p>
+                    <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{awayPitcherName}</p>
+                  </div>
+                  <div className="px-3 text-xs font-semibold text-gray-400">VS</div>
+                  <div className="flex-1 text-center">
+                    <p className="text-xs font-semibold" style={{ color: homeColor }}>
+                      {homeTeamName}
+                    </p>
+                    <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{homePitcherName}</p>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {!gameDetailLoading && (attendanceLabel || weatherLabel || gameTimeLabel) && (
+              <section>
+                <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                  경기 환경
+                </div>
+                <div className="grid grid-cols-3 gap-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/60 px-4 py-3 text-[13px]">
+                  <div>
+                    <p className="text-[12px] text-gray-400 dark:text-gray-500">관중</p>
+                    <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{attendanceLabel || '정보 없음'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[12px] text-gray-400 dark:text-gray-500">날씨</p>
+                    <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{weatherLabel || '정보 없음'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[12px] text-gray-400 dark:text-gray-500">경기시간</p>
+                    <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{gameTimeLabel || '정보 없음'}</p>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {!gameDetailLoading && timelineEntries.length > 0 && (
+              <section>
+                <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                  경기 주요 기록
+                </div>
+                <LayoutGroup>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1 bottom-1 w-px bg-gray-200 dark:bg-gray-700 z-0" />
+                    <div className="space-y-4">
+                      {timelineEntries.map((item, index) => {
+                        const isHighlight = item.type === '결승타';
+                        const badgeColor = isHighlight ? awayColor : homeColor;
+                        return (
+                          <TimelineItem key={`${item.type}-${index}`} className="relative">
+                            <TimelineCard
+                              layout
+                              className="ml-6 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/70 px-3 py-2 shadow-sm"
+                            >
+                              <span
+                                className="absolute left-3 top-3 h-2.5 w-2.5 -translate-x-1/2 rounded-full border z-10"
+                                style={{
+                                  backgroundColor: isHighlight ? badgeColor : '#ffffff',
+                                  borderColor: badgeColor,
+                                  boxShadow: isHighlight ? `0 0 0 6px ${badgeColor}22` : 'none',
+                                }}
+                              />
+                              <div className="flex flex-wrap items-center gap-2">
+                                <EventBadge style={{ backgroundColor: badgeColor }}>
+                                  {item.type}
+                                </EventBadge>
+                                <p className="text-[14px] font-semibold text-gray-900 dark:text-gray-100">
+                                  {item.playerName || '기록'}
+                                </p>
+                              </div>
+                              {item.detail && (
+                                <p className="mt-1 text-[12px] text-gray-500 dark:text-gray-400">
+                                  {item.detail}
+                                </p>
+                              )}
+                            </TimelineCard>
+                          </TimelineItem>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </LayoutGroup>
+              </section>
+            )}
+
+            {!gameDetailLoading && Object.keys(inningRows).length === 0 && timelineEntries.length === 0 && (
+              <div className="text-center text-xs text-gray-500 dark:text-gray-400">표시할 경기 상세 정보가 없습니다.</div>
+            )}
+
+            {!gameDetailLoading && summaryGroups['심판']?.length > 0 && (
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-4 text-center text-[11px] text-gray-500 dark:text-gray-400">
+                심판: {summaryGroups['심판'][0]?.playerName || summaryGroups['심판'][0]?.detail || '정보 없음'}
+              </div>
+            )}
+          </div>
         </DetailWrapper>
-        </div>
+      </div>
     </Card>
   );
 }

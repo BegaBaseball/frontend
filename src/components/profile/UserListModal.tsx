@@ -57,7 +57,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col p-0 gap-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <DialogContent hideCloseButton={true} className="sm:max-w-md max-h-[80vh] flex flex-col p-0 gap-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <DialogHeader className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-row items-center justify-between space-y-0">
                     <DialogTitle className="text-lg font-bold text-gray-900 dark:text-white">
                         {title}
