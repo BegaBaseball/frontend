@@ -1,5 +1,6 @@
 import styled, { keyframes } from 'styled-components';
 import { useMemo } from 'react';
+import { fonts, crispText, textOutline } from './RetroTheme';
 
 const scroll = keyframes`
   0% { transform: translateX(0); }
@@ -53,39 +54,42 @@ const TickerContent = styled.div`
 `;
 
 const TickerItem = styled.span<{ $type: string }>`
-  font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
+  font-family: ${fonts.retroText};
+  font-size: 12px;
   padding: 0 30px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  letter-spacing: -0.3px;
+  ${crispText}
+  ${textOutline}
 
   ${props => {
     switch (props.$type) {
       case 'fire':
         return `
           color: #ff6600;
-          text-shadow: 0 0 8px rgba(255, 102, 0, 0.5);
+          text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(255, 102, 0, 0.5);
         `;
       case 'streak':
         return `
           color: #00ff00;
-          text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+          text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(0, 255, 0, 0.5);
         `;
       case 'upset':
         return `
           color: #ff00ff;
-          text-shadow: 0 0 8px rgba(255, 0, 255, 0.5);
+          text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(255, 0, 255, 0.5);
         `;
       case 'perfect':
         return `
           color: #ffd700;
-          text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+          text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(255, 215, 0, 0.5);
         `;
       case 'levelup':
         return `
           color: #00ffff;
-          text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+          text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(0, 255, 255, 0.5);
         `;
       default:
         return `
@@ -101,11 +105,14 @@ const TickerItem = styled.span<{ $type: string }>`
 `;
 
 const EmptyTicker = styled.div`
-  font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
-  color: #4a4a6a;
+  font-family: ${fonts.retroText};
+  font-size: 12px;
+  color: #6a6a8a;
   text-align: center;
   padding: 0 20px;
+  letter-spacing: -0.3px;
+  ${crispText}
+  ${textOutline}
 `;
 
 export interface TickerMessage {

@@ -160,14 +160,17 @@ export const usePrediction = () => {
       setAllDatesData(allDates);
 
       // 3. 네비게이션 초기 위치 선정 (Smart Default)
-      // 오늘 날짜가 목록에 있으면 거기서 시작
-      let activeIndex = allDates.findIndex(d => d.date === today);
+      // 오늘 또는 오늘 이후 중 '경기가 있고 아직 종료되지 않은' 가장 가까운 날짜 찾기
+      let activeIndex = allDates.findIndex(d =>
+        d.date >= today && d.games.some(game => game.homeScore === null)
+      );
 
+      // 만약 오늘 이후에 '종료되지 않은' 경기가 없다면 (이미 오늘 다 끝났거나 시즌 말)
       if (activeIndex === -1) {
-        // 오늘 날짜가 없으면: 오늘 이후 가장 가까운(빠른) 경기일 찾기
-        activeIndex = allDates.findIndex(d => d.date > today);
+        // 오늘 날짜가 목록에 있으면 오늘이라도 보여줌
+        activeIndex = allDates.findIndex(d => d.date === today);
 
-        // 오늘 이후 경기도 없으면: 가장 마지막(최신) 경기일 표시
+        // 오늘조차 없으면 가장 마지막(최신) 데이터
         if (activeIndex === -1) {
           activeIndex = allDates.length - 1;
         }

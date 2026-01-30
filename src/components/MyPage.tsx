@@ -190,6 +190,7 @@ export default function MyPage() {
               userRole={user?.role}
               userProvider={user?.provider}
               initialBio={user?.bio}
+              hasPassword={user?.hasPassword}
               onCancel={() => setViewMode('diary')}
               onSave={handleProfileUpdated}
               onChangePassword={() => setViewMode('changePassword')}
@@ -204,6 +205,7 @@ export default function MyPage() {
             <PasswordChangeSection
               onCancel={() => setViewMode('editProfile')}
               onSuccess={() => setViewMode('diary')}
+              hasPassword={user?.hasPassword}
             />
           )
         }

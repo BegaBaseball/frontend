@@ -21,6 +21,7 @@ interface User {
   providerId?: string;
   bio?: string | null;
   cheerPoints?: number; // Added cheerPoints
+  hasPassword?: boolean;
 }
 
 interface AuthState {
@@ -40,7 +41,7 @@ interface AuthState {
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
   setShowPassword: (show: boolean) => void;
-  login: (email: string, name: string, profileImageUrl?: string, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string) => void;
+  login: (email: string, name: string, profileImageUrl?: string, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => void;
   logout: () => void;
   setFavoriteTeam: (team: string, color: string) => void;
   setShowLoginRequiredDialog: (show: boolean) => void;
@@ -84,6 +85,9 @@ export const useAuthStore = create<AuthState>()(
                 role: profile.role,
                 bio: profile.bio,
                 cheerPoints: profile.cheerPoints ?? profile['cheer_points'] ?? 0, // Map cheerPoints (defensive check)
+                provider: profile.provider,
+                providerId: profile.providerId,
+                hasPassword: profile.hasPassword,
               },
               isLoggedIn: true,
               isAdmin: isAdminUser,
@@ -130,7 +134,7 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      login: (email, name, profileImageUrl, role, favoriteTeam, id, cheerPoints, handle) => {
+      login: (email, name, profileImageUrl, role, favoriteTeam, id, cheerPoints, handle, provider) => {
         const isAdminUser = role === 'ROLE_ADMIN' || role === 'ROLE_SUPER_ADMIN';
 
         set({
@@ -138,12 +142,14 @@ export const useAuthStore = create<AuthState>()(
             id: id || 0,
             email: email,
             name: name,
+            // ... (keep existing)
             isAdmin: isAdminUser,
             profileImageUrl: profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User',
             role: role,
             favoriteTeam: favoriteTeam || '없음',
             cheerPoints: cheerPoints || 0,
             handle: handle,
+            provider: provider,
           },
           isLoggedIn: true,
           isAdmin: isAdminUser,

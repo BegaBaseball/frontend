@@ -120,10 +120,9 @@ const GaugeBar = styled(motion.div) <{ color: string }>`
   position: relative;
 `;
 
-const CenterSlash = styled.div`
+const CenterSlash = styled(motion.div)`
   position: absolute;
   top: 0;
-  left: 50%;
   transform: translateX(-50%) skewX(-20deg);
   width: 4px;
   height: 100%;
@@ -628,7 +627,11 @@ export default function AdvancedMatchCard({
                       animate={{ width: `${awayPercent}%` }}
                       transition={{ type: 'spring', stiffness: 50, damping: 20 }}
                     />
-                    <CenterSlash />
+                    <CenterSlash
+                      initial={{ left: '50%' }}
+                      animate={{ left: `${awayPercent}%` }}
+                      transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+                    />
                     <GaugeBar
                       color={homeColor}
                       initial={{ width: '50%' }}

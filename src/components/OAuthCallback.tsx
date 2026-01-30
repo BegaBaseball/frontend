@@ -1,5 +1,5 @@
 // src/components/OAuthCallback.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { consumeOAuth2State } from '../api/auth';
@@ -11,6 +11,8 @@ export default function OAuthCallback() {
   const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
   const [error, setError] = useState(false);
 
+  const hasCalled = useRef(false);
+
   useEffect(() => {
     const state = searchParams.get('state');
 
@@ -18,6 +20,9 @@ export default function OAuthCallback() {
       navigate('/login', { replace: true });
       return;
     }
+
+    if (hasCalled.current) return;
+    hasCalled.current = true;
 
     (async () => {
       try {
@@ -33,7 +38,8 @@ export default function OAuthCallback() {
             favoriteTeam || undefined,
             undefined,
             undefined,
-            handle || undefined
+            handle || undefined,
+            undefined
           );
 
           setTimeout(() => {
