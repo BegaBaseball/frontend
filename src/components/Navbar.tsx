@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotificationStore } from '../store/notificationStore';
 import NotificationPanel from './NotificationPanel';
+import { motion } from 'framer-motion';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -208,7 +209,19 @@ export default function Navbar() {
                   <button
                     className="relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
-                    <Bell className="w-6 h-6" />
+                    <motion.div
+                      animate={unreadCount > 0 ? {
+                        rotate: [0, -15, 12, -10, 5, 0],
+                      } : { rotate: 0 }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: unreadCount > 0 ? Infinity : 0,
+                        repeatDelay: 3,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-primary dark:text-[#4ade80]' : ''}`} />
+                    </motion.div>
 
                     {/* 개선된 알림 배지 */}
                     {unreadCount > 0 && (
@@ -227,30 +240,40 @@ export default function Navbar() {
                   </button>
                 </PopoverTrigger>
 
-                {/* 개선된 팝업 컨텐츠 */}
                 <PopoverContent
-                  className="
-                  w-[calc(100vw-32px)] mr-4 
-                  sm:w-96 sm:mr-0
-                  p-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-xl
-                "
+                  className="w-auto p-0 border-none shadow-none bg-transparent"
                   align="end"
                   sideOffset={8}
                 >
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
-                    <h3 className="font-bold text-sm text-primary dark:text-[#4ade80]">
-                      알림
-                    </h3>
-                    {unreadCount > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {unreadCount}개의 읽지 않은 알림
-                      </span>
-                    )}
-                  </div>
-                  {/* 최대 높이 제한 및 스크롤 추가 */}
-                  <div className="max-h-[60vh] overflow-y-auto">
-                    <NotificationPanel />
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                    className="
+                      w-[calc(100vw-32px)] mr-4 
+                      sm:w-96 sm:mr-0
+                      overflow-hidden rounded-xl
+                      bg-white dark:bg-gray-800 
+                      border border-gray-200 dark:border-gray-700 
+                      shadow-xl
+                    "
+                  >
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+                      <h3 className="font-bold text-sm text-primary dark:text-[#4ade80]">
+                        알림
+                      </h3>
+                      {unreadCount > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {unreadCount}개의 읽지 않은 알림
+                        </span>
+                      )}
+                    </div>
+                    {/* 최대 높이 제한 및 스크롤 추가 */}
+                    <div className="max-h-[60vh] overflow-y-auto">
+                      <NotificationPanel />
+                    </div>
+                  </motion.div>
                 </PopoverContent>
               </Popover>
             )}

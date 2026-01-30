@@ -6,26 +6,27 @@ interface NotificationState {
   unreadCount: number;
   setNotifications: (notifications: NotificationData[]) => void;
   setUnreadCount: (count: number) => void;
-  addNotification: (notification: NotificationData) => void; 
+  addNotification: (notification: NotificationData) => void;
   markAsRead: (notificationId: number) => void;
+  markAllAsRead: () => void;
   removeNotification: (notificationId: number) => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set) => ({
   notifications: [],
   unreadCount: 0,
-  
+
   setNotifications: (notifications) => set({ notifications }),
-  
+
   setUnreadCount: (count) => set({ unreadCount: count }),
-  
+
   // 새 알림 추가 (읽지 않은 개수도 자동 증가)
   addNotification: (notification) =>
     set((state) => ({
       notifications: [notification, ...state.notifications],
       unreadCount: state.unreadCount + 1,
     })),
-  
+
   markAsRead: (notificationId) =>
     set((state) => ({
       notifications: state.notifications.map((n) =>
@@ -33,12 +34,19 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       ),
       unreadCount: Math.max(0, state.unreadCount - 1),
     })),
-  
+
+  // 모든 알림 읽음 처리
+  markAllAsRead: () =>
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
+      unreadCount: 0,
+    })),
+
   removeNotification: (notificationId) =>
     set((state) => {
       const notification = state.notifications.find((n) => n.id === notificationId);
       const wasUnread = notification && !notification.isRead;
-      
+
       return {
         notifications: state.notifications.filter((n) => n.id !== notificationId),
         // ✅ 읽지 않은 알림을 삭제하면 unreadCount도 감소

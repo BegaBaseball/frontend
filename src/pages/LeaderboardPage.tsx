@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLeaderboard, usePowerups } from '../hooks/useLeaderboard';
 import { useAuthStore } from '../store/authStore';
 import RetroLeaderboard from '../components/retro/RetroLeaderboard';
@@ -9,6 +10,7 @@ import type { LeaderboardType } from '../api/leaderboard';
  * useLeaderboard 훅으로 데이터를 가져와 RetroLeaderboard에 전달
  */
 export default function LeaderboardPage() {
+  const navigate = useNavigate();
   const [type, setType] = useState<LeaderboardType>('season');
   const [page, setPage] = useState(0);
 
@@ -22,6 +24,7 @@ export default function LeaderboardPage() {
     tickerMessages,
     isLoading,
     totalPages,
+    refetch,
   } = useLeaderboard(type, page, 10);
 
   const {
@@ -38,6 +41,24 @@ export default function LeaderboardPage() {
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
   }, []);
+
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const handleMyScore = useCallback(() => {
+    if (myRank && myRank.rank > 0) {
+      const pageSize = 10;
+      const targetPage = Math.floor((myRank.rank - 1) / pageSize);
+      setPage(targetPage);
+    } else {
+      alert('아직 랭킹 정보가 없습니다. 예측에 참여해서 첫 점수를 획득해보세요!');
+    }
+  }, [myRank, setPage]);
+
+  const handlePredict = useCallback(() => {
+    navigate('/prediction');
+  }, [navigate]);
 
   const handleUsePowerup = useCallback(async (powerupType: string) => {
     await usePowerup(powerupType);
@@ -65,6 +86,9 @@ export default function LeaderboardPage() {
       currentUserId={currentUserId}
       onTypeChange={handleTypeChange}
       onPageChange={handlePageChange}
+      onRefresh={handleRefresh}
+      onMyScore={handleMyScore}
+      onPredict={handlePredict}
       onUsePowerup={handleUsePowerup}
       totalPages={totalPages}
     />

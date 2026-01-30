@@ -22,6 +22,7 @@ interface ProfileEditSectionProps {
   onChangePassword?: () => void;
   onAccountSettings?: () => void;
   onBlockedUsers?: () => void;
+  hasPassword?: boolean;
 }
 
 export default function ProfileEditSection({
@@ -37,6 +38,7 @@ export default function ProfileEditSection({
   onChangePassword,
   onAccountSettings,
   onBlockedUsers,
+  hasPassword = true,
 }: ProfileEditSectionProps) {
   const {
     profileImage,

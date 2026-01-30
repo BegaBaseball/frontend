@@ -1,4 +1,5 @@
 import styled, { css, keyframes } from 'styled-components';
+import { fonts, crispText, textOutline } from './RetroTheme';
 
 type RankTier = 'ROOKIE' | 'MINOR_LEAGUER' | 'MAJOR_LEAGUER' | 'HALL_OF_FAME';
 
@@ -54,7 +55,6 @@ const Badge = styled.div<{ $rank: RankTier }>`
   background: ${props => rankThemes[props.$rank].bg};
   border: 2px solid ${props => rankThemes[props.$rank].border};
   border-radius: 4px;
-  font-family: 'Press Start 2P', monospace;
   position: relative;
   overflow: hidden;
 
@@ -90,19 +90,24 @@ const Badge = styled.div<{ $rank: RankTier }>`
   }
 
   .level {
-    font-size: 12px;
+    font-family: ${fonts.retroDisplay};
+    font-size: 11px;
     color: ${props => rankThemes[props.$rank].color};
     position: relative;
     z-index: 1;
+    ${crispText}
   }
 
   .title {
-    font-size: 7px;
+    font-family: ${fonts.retroText};
+    font-size: 9px;
     color: ${props => rankThemes[props.$rank].color};
-    opacity: 0.8;
+    opacity: 0.9;
     position: relative;
     z-index: 1;
-    letter-spacing: 0.5px;
+    letter-spacing: -0.3px;
+    ${crispText}
+    ${textOutline}
   }
 `;
 
@@ -114,9 +119,10 @@ const CompactBadge = styled.div<{ $rank: RankTier }>`
   background: ${props => rankThemes[props.$rank].bg};
   border: 2px solid ${props => rankThemes[props.$rank].border};
   border-radius: 3px;
-  font-family: 'Press Start 2P', monospace;
+  font-family: ${fonts.retroDisplay};
   font-size: 8px;
   color: ${props => rankThemes[props.$rank].color};
+  ${crispText}
 
   ${props => props.$rank === 'HALL_OF_FAME' && css`
     box-shadow: 0 0 6px rgba(255,215,0,0.3);

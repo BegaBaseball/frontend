@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/Layout';
 import ChatBot from './components/ChatBot';
+import ScrollToTop from './components/ScrollToTop';
 import { LoginRequiredDialog } from './components/LoginRequiredDialog';
 import { ErrorModalProvider } from './components/contexts/ErrorModalContext';
 import GlobalErrorDialog from './components/GlobalErrorDialog';
@@ -115,6 +116,7 @@ export default function App() {
   return (
     <ErrorModalProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             {/* 공개 라우트 - 로그인 필요 없음 */}

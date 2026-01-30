@@ -11,9 +11,10 @@ import { toast } from 'sonner';
 interface PasswordChangeSectionProps {
     onCancel: () => void;
     onSuccess: () => void;
+    hasPassword?: boolean;
 }
 
-export default function PasswordChangeSection({ onCancel, onSuccess }: PasswordChangeSectionProps) {
+export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword = true }: PasswordChangeSectionProps) {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -44,7 +45,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess }: PasswordC
         setError('');
 
         // Validation
-        if (!currentPassword) {
+        if (hasPassword && !currentPassword) {
             setError('현재 비밀번호를 입력해주세요.');
             return;
         }
@@ -60,7 +61,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess }: PasswordC
             return;
         }
 
-        if (currentPassword === newPassword) {
+        if (hasPassword && currentPassword === newPassword) {
             setError('새 비밀번호는 현재 비밀번호와 달라야 합니다.');
             return;
         }
@@ -72,7 +73,9 @@ export default function PasswordChangeSection({ onCancel, onSuccess }: PasswordC
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
                 <Lock className="w-6 h-6" style={{ color: '#2d5f4f' }} />
-                <h2 className="text-xl font-bold" style={{ color: '#2d5f4f' }}>비밀번호 변경</h2>
+                <h2 className="text-xl font-bold" style={{ color: '#2d5f4f' }}>
+                    {hasPassword ? '비밀번호 변경' : '비밀번호 설정'}
+                </h2>
             </div>
 
             {error && (
@@ -84,30 +87,32 @@ export default function PasswordChangeSection({ onCancel, onSuccess }: PasswordC
             )}
 
             <div className="space-y-6">
-                {/* Current Password */}
-                <div className="space-y-2">
-                    <Label htmlFor="currentPassword" className="text-gray-700 dark:text-gray-300">
-                        현재 비밀번호 *
-                    </Label>
-                    <div className="relative">
-                        <Input
-                            id="currentPassword"
-                            type={showCurrentPassword ? 'text' : 'password'}
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            placeholder="현재 비밀번호를 입력하세요"
-                            className="pr-10"
-                            disabled={mutation.isPending}
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        >
-                            {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
+                {/* Current Password (Only show if user has password) */}
+                {hasPassword && (
+                    <div className="space-y-2">
+                        <Label htmlFor="currentPassword" className="text-gray-700 dark:text-gray-300">
+                            현재 비밀번호 *
+                        </Label>
+                        <div className="relative">
+                            <Input
+                                id="currentPassword"
+                                type={showCurrentPassword ? 'text' : 'password'}
+                                value={currentPassword}
+                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                placeholder="현재 비밀번호를 입력하세요"
+                                className="pr-10"
+                                disabled={mutation.isPending}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                            >
+                                {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* New Password */}
                 <div className="space-y-2">
@@ -181,10 +186,10 @@ export default function PasswordChangeSection({ onCancel, onSuccess }: PasswordC
                     onClick={handleSubmit}
                     className="flex-1 text-white flex items-center justify-center gap-2"
                     style={{ backgroundColor: '#2d5f4f' }}
-                    disabled={mutation.isPending || !currentPassword || !newPassword || !confirmPassword}
+                    disabled={mutation.isPending || (hasPassword && !currentPassword) || !newPassword || !confirmPassword}
                 >
                     <Save className="w-5 h-5" />
-                    {mutation.isPending ? '변경 중...' : '비밀번호 변경'}
+                    {mutation.isPending ? '저장 중...' : (hasPassword ? '비밀번호 변경' : '비밀번호 설정')}
                 </Button>
             </div>
         </div>
