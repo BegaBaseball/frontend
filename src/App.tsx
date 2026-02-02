@@ -21,7 +21,6 @@ const StadiumGuide = lazy(() => import('./components/StadiumGuide'));
 const Prediction = lazy(() => import('./components/Prediction'));
 const Cheer = lazy(() => import('./components/Cheer'));
 const CheerBookmarks = lazy(() => import('./components/CheerBookmarks'));
-const CheerWrite = lazy(() => import('./components/CheerWrite'));
 const CheerDetail = lazy(() => import('./components/CheerDetail'));
 const CheerEdit = lazy(() => import('./components/CheerEdit'));
 const Mate = lazy(() => import('./components/Mate'));
@@ -148,7 +147,6 @@ export default function App() {
                 <Route path="/mate" element={<Mate />} />
                 <Route path="/prediction" element={<Prediction />} />
                 <Route path="/stadium" element={<StadiumGuide />} />
-                <Route path="/cheer/write" element={<CheerWrite />} />
                 <Route path="/cheer/bookmarks" element={<CheerBookmarks />} />
                 <Route path="/cheer/edit/:postId" element={<CheerEdit />} />
                 <Route path="/mate/create" element={<MateCreate />} />

@@ -8,6 +8,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from './ui/dialog';
 import { Button } from './ui/button';
 import { TEAM_DATA } from '../constants/teams';
@@ -126,28 +127,32 @@ export default function CheerWriteModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
-            <DialogContent className="w-full h-full max-w-none max-h-none sm:w-auto sm:h-auto sm:max-w-[600px] sm:max-h-[90vh] p-0 overflow-hidden border-none rounded-none sm:rounded-lg bg-white dark:bg-[#151A23] fixed inset-0 sm:inset-auto">
-                <DialogHeader className="px-4 py-3 border-b border-[#EFF3F4] dark:border-[#232938] flex flex-row items-center justify-between">
-                    <DialogTitle className="text-lg font-bold">새 응원글 작성</DialogTitle>
+            <DialogContent className="w-full h-auto max-w-[95%] sm:max-w-[600px] lg:max-w-[800px] max-h-[90vh] p-0 overflow-hidden border-none rounded-2xl bg-white dark:bg-[#151A23]">
+                <DialogHeader className="px-4 py-3 sm:px-6 sm:py-4 border-b border-[#EFF3F4] dark:border-[#232938] flex flex-row items-center justify-between">
+                    <DialogTitle className="text-lg sm:text-xl font-bold">새 응원글 작성</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        새로운 응원글을 작성하고 이미지를 업로드하는 모달입니다.
+                    </DialogDescription>
                 </DialogHeader>
 
-                <div className="p-4">
-                    <div className="flex gap-3">
-                        <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div className="p-4 sm:p-6 lg:p-8">
+                    <div className="flex gap-3 sm:gap-4">
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+
                             {user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
-                                <TeamLogo teamId={teamId} team={teamLabel} size={40} />
+                                <TeamLogo teamId={teamId} team={teamLabel} size={48} />
                             ) : (
-                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                                <span className="text-sm sm:text-base font-semibold text-slate-600 dark:text-slate-400">
                                     {user?.name?.slice(0, 1) || '?'}
                                 </span>
                             )}
                         </div>
-                        <div className="flex-1 min-w-0 flex flex-col gap-2">
+                        <div className="flex-1 min-w-0 flex flex-col gap-2 sm:gap-3">
                             <TextareaAutosize
                                 autoFocus
                                 placeholder="지금 우리 팀에게 응원을 남겨주세요!"
-                                className="w-full resize-none border-none bg-transparent text-[19px] leading-relaxed text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none focus:ring-0 min-h-[120px]"
-                                minRows={5}
+                                className="w-full resize-none border-none bg-transparent text-[16px] sm:text-[19px] lg:text-[20px] leading-relaxed text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none focus:ring-0 min-h-[150px] sm:min-h-[200px] lg:min-h-[300px]"
+                                minRows={8}
                                 maxRows={15}
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}

@@ -107,16 +107,38 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
 const NO_API_BASE_URL = (import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 export const getSocialLoginUrl = (
   provider: 'kakao' | 'google' | 'naver',
-  params?: { mode?: 'link'; userId?: number }
+  params?: { mode?: 'link'; linkToken?: string }
 ): string => {
   const url = `${NO_API_BASE_URL}/oauth2/authorization/${provider}`;
   if (params) {
     const query = new URLSearchParams();
     if (params.mode) query.append('mode', params.mode);
-    if (params.userId) query.append('userId', params.userId.toString());
+    if (params.linkToken) query.append('linkToken', params.linkToken);
     return `${url}?${query.toString()}`;
   }
   return url;
+};
+
+/**
+ * OAuth2 계정 연동을 위한 Link Token 발급
+ * - 로그인된 상태에서만 호출 가능
+ * - 반환된 토큰을 OAuth2 리다이렉트 URL에 포함
+ */
+export interface LinkTokenResponse {
+  linkToken: string;
+  expiresIn: number;
+}
+
+export const getLinkToken = async (): Promise<LinkTokenResponse> => {
+  try {
+    const response = await api.get<LinkTokenResponse>('/auth/link-token', {
+      skipGlobalErrorHandler: true,
+    } as any);
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || '연동 토큰 발급에 실패했습니다.';
+    throw new Error(errorMessage);
+  }
 };
 
 /**

@@ -553,7 +553,7 @@ export default function Cheer() {
                             </button>
                         </aside>
 
-                        <main className="flex w-full flex-col gap-0 bg-white dark:bg-[#151A23] border-x border-[#EFF3F4] dark:border-[#232938] lg:max-w-[600px]">
+                        <main className="flex w-full flex-col gap-0 bg-slate-50/50 dark:bg-[#0f141a] border-x border-[#EFF3F4] dark:border-[#232938] lg:max-w-[600px]">
                             <nav className="flex items-center border-b border-[#EFF3F4] dark:border-[#232938] px-4 py-3 bg-white/80 dark:bg-[#151A23]">
                                 <div className="flex items-center gap-1 rounded-full bg-slate-100/90 p-1 dark:bg-slate-800/80">
                                     {feedTabs.map((tab) => {
@@ -602,8 +602,8 @@ export default function Cheer() {
 
                             <section
                                 className={cn(
-                                    'relative mx-4 mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-4 transition-all duration-200',
-                                    'bg-white/95 dark:bg-[#151A23] shadow-[0_8px_20px_rgba(15,23,42,0.08)]',
+                                    'relative mx-4 mt-4 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 py-4 transition-all duration-200',
+                                    'bg-white dark:bg-[#151A23] shadow-[0_1px_3px_rgba(0,0,0,0.05)]',
                                     composerDragging && 'bg-sky-50/50 dark:bg-sky-900/30 border-2 border-dashed border-sky-300 dark:border-sky-500'
                                 )}
                                 onDragOver={handleComposerDragOver}
@@ -715,6 +715,8 @@ export default function Cheer() {
                                     </div>
                                 </div>
                             </section>
+
+                            <div className="mt-4 border-b border-slate-100 dark:border-slate-800/50" />
 
                             <section>
                                 {isLoading && currentPosts.length === 0 ? (

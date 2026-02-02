@@ -18,7 +18,7 @@ import { deleteAccount, getConnectedProviders, unlinkProvider } from '../../api/
 import { useAuthStore } from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { getSocialLoginUrl } from '../../api/auth';
+import { getSocialLoginUrl, getLinkToken } from '../../api/auth';
 
 interface AccountSettingsSectionProps {
     userProvider?: string;
@@ -77,13 +77,26 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
         deleteMutation.mutate();
     };
 
-    const handleLinkAccount = (provider: string) => {
-        // 소셜 연동 시작
-        const targetUrl = user?.id
-            ? getSocialLoginUrl(provider.toLowerCase() as 'kakao' | 'google' | 'naver', { mode: 'link', userId: user.id })
-            : getSocialLoginUrl(provider.toLowerCase() as 'kakao' | 'google' | 'naver');
+    const [isLinking, setIsLinking] = useState(false);
 
-        window.location.href = targetUrl;
+    const handleLinkAccount = async (provider: string) => {
+        // 소셜 연동 시작
+        setIsLinking(true);
+        try {
+            // 1. 먼저 Link Token을 발급받음 (인증된 요청)
+            const { linkToken } = await getLinkToken();
+
+            // 2. Link Token을 포함하여 OAuth URL로 리다이렉트
+            const targetUrl = getSocialLoginUrl(
+                provider.toLowerCase() as 'kakao' | 'google' | 'naver',
+                { mode: 'link', linkToken }
+            );
+
+            window.location.href = targetUrl;
+        } catch (error: any) {
+            toast.error(error.message || '연동 토큰 발급에 실패했습니다. 다시 로그인해주세요.');
+            setIsLinking(false);
+        }
     };
 
     const handleUnlinkAccount = (provider: string) => {
@@ -126,9 +139,9 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
                                 해제
                             </Button>
                         ) : (
-                            <Button variant="outline" size="sm" onClick={() => handleLinkAccount('google')}>
+                            <Button variant="outline" size="sm" onClick={() => handleLinkAccount('google')} disabled={isLinking}>
                                 <LinkIcon className="w-4 h-4 mr-2" />
-                                연동
+                                {isLinking ? '연동 중...' : '연동'}
                             </Button>
                         )}
                     </div>
@@ -149,9 +162,9 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
                                 해제
                             </Button>
                         ) : (
-                            <Button variant="outline" size="sm" onClick={() => handleLinkAccount('kakao')}>
+                            <Button variant="outline" size="sm" onClick={() => handleLinkAccount('kakao')} disabled={isLinking}>
                                 <LinkIcon className="w-4 h-4 mr-2" />
-                                연동
+                                {isLinking ? '연동 중...' : '연동'}
                             </Button>
                         )}
                     </div>
@@ -170,9 +183,9 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
                                 해제
                             </Button>
                         ) : (
-                            <Button variant="outline" size="sm" onClick={() => handleLinkAccount('naver')}>
+                            <Button variant="outline" size="sm" onClick={() => handleLinkAccount('naver')} disabled={isLinking}>
                                 <LinkIcon className="w-4 h-4 mr-2" />
-                                연동
+                                {isLinking ? '연동 중...' : '연동'}
                             </Button>
                         )}
                     </div>

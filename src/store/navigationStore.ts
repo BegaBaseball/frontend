@@ -10,7 +10,6 @@ export type ViewType =
   | 'stadium'
   | 'prediction'
   | 'cheer'
-  | 'cheerWrite'
   | 'cheerDetail'
   | 'cheerEdit'
   | 'mate'
@@ -38,7 +37,6 @@ const viewToPath: Record<ViewType, string> = {
   stadium: '/stadium',
   prediction: '/prediction',
   cheer: '/cheer',
-  cheerWrite: '/cheer/write',
   cheerDetail: '/cheer/detail',
   cheerEdit: '/cheer/edit',
   mate: '/mate',
