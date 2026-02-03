@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`;
 
 export default function Navbar() {

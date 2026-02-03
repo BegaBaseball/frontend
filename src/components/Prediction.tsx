@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { TrendingUp, ChevronLeft, ChevronRight, Trophy, Flame, Target, Coins, LineChart, Gamepad2 } from 'lucide-react';
@@ -18,24 +19,38 @@ import {
   AlertDialogTitle,
 } from './ui/alert-dialog';
 import { usePrediction } from '../hooks/usePrediction';
+import { fetchMyPredictionStats } from '../api/prediction';
+import { useRankingsData } from '../api/home';
 import { useAuthStore } from '../store/authStore';
+import { TEAM_NAME_TO_ID } from '../constants/teams';
 import {
   formatDate,
   calculateVotePercentages,
-  calculateVoteAccuracy,
   getGameStatus,
 } from '../utils/prediction';
 import { UserPredictionStat } from '../types/prediction';
 
-// 임시 유저 스탯 데이터 (추후 API 연동 필요)
-const dummyUserStats: UserPredictionStat = {
-  accuracy: 68,
-  streak: 3,
-  totalPredictions: 124,
-  correctPredictions: 85
+const emptyUserStats: UserPredictionStat = {
+  accuracy: 0,
+  streak: 0,
+  totalPredictions: 0,
+  correctPredictions: 0,
+};
+
+const TOTAL_SEASON_GAMES = 144;
+const TEAM_ID_ALIASES: Record<string, string> = {
+  KIA: 'HT',
+  SSG: 'SK',
+  DO: 'OB',
+  KI: 'WO',
+  NX: 'WO',
+  BE: 'HH',
+  MBC: 'LG',
+  SL: 'SK',
 };
 
 export default function Prediction() {
+  const [userStats, setUserStats] = useState<UserPredictionStat>(emptyUserStats);
   const {
     activeTab,
     setActiveTab,
@@ -62,9 +77,98 @@ export default function Prediction() {
 
   const user = useAuthStore((state) => state.user); // Added user
 
+  const seasonYear = useMemo(() => {
+    const parsed = new Date(currentDate);
+    return Number.isNaN(parsed.getTime()) ? new Date().getFullYear() : parsed.getFullYear();
+  }, [currentDate]);
+
+  const { data: rankings = [] } = useRankingsData(seasonYear);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!isLoggedIn) {
+      setUserStats(emptyUserStats);
+      return undefined;
+    }
+
+    const loadStats = async () => {
+      try {
+        const stats = await fetchMyPredictionStats();
+        if (active) {
+          setUserStats(stats);
+        }
+      } catch {
+        if (active) {
+          setUserStats(emptyUserStats);
+        }
+      }
+    };
+
+    loadStats();
+
+    return () => {
+      active = false;
+    };
+  }, [isLoggedIn]);
+
   // 현재 경기 정보
   const currentGame = currentDateGames.length > 0 ? currentDateGames[selectedGame] : null;
   const currentGameId = currentGame?.gameId;
+
+  const normalizeTeamId = (teamId?: string | null) => {
+    if (!teamId) return null;
+    return TEAM_ID_ALIASES[teamId] ?? TEAM_NAME_TO_ID[teamId] ?? teamId;
+  };
+
+  const rankingByTeamId = useMemo(() => {
+    const map = new Map<string, { rank: number; gamesBehind?: number; games: number }>();
+    rankings.forEach((team) => {
+      const normalizedId = normalizeTeamId(team.teamId) ?? team.teamId;
+      map.set(normalizedId, {
+        rank: team.rank,
+        gamesBehind: team.gamesBehind,
+        games: team.games,
+      });
+    });
+    return map;
+  }, [rankings]);
+
+  const buildTeamContext = (teamId?: string) => {
+    if (!teamId) return null;
+    const normalizedId = normalizeTeamId(teamId);
+    if (!normalizedId) return null;
+    const ranking = rankingByTeamId.get(normalizedId);
+    if (!ranking || ranking.gamesBehind == null) return null;
+    const remainingGames = Math.max(0, TOTAL_SEASON_GAMES - ranking.games);
+    if (!Number.isFinite(remainingGames)) return null;
+    return {
+      rank: ranking.rank,
+      gamesBehind: ranking.gamesBehind,
+      remainingGames,
+    };
+  };
+
+  const homeSeasonContext = currentGame ? buildTeamContext(currentGame.homeTeam) : null;
+  const awaySeasonContext = currentGame ? buildTeamContext(currentGame.awayTeam) : null;
+  const canCallAI = !!homeSeasonContext && !!awaySeasonContext;
+  const maxGamesBehind = canCallAI
+    ? Math.max(homeSeasonContext.gamesBehind, awaySeasonContext.gamesBehind)
+    : null;
+  const minRemainingGames = canCallAI
+    ? Math.min(homeSeasonContext.remainingGames, awaySeasonContext.remainingGames)
+    : null;
+  const isMeaningfulGame = !!canCallAI &&
+    ((maxGamesBehind != null && maxGamesBehind <= 2) || (minRemainingGames != null && minRemainingGames <= 20));
+
+  const seasonContext = {
+    home: homeSeasonContext,
+    away: awaySeasonContext,
+    canCallAI,
+    isMeaningfulGame,
+    maxGamesBehind,
+    minRemainingGames,
+  };
 
   // 투표 현황 계산
   const currentVotes = currentGameId ? votes[currentGameId] || { home: 0, away: 0 } : { home: 0, away: 0 };
@@ -74,7 +178,12 @@ export default function Prediction() {
   );
 
   // 경기 상태 확인
-  const { isPastGame, isFutureGame, isToday } = getGameStatus(currentGame, currentDate);
+  const gameStatus = getGameStatus(currentGame, new Date(), {
+    gameStatus: currentGameDetail?.gameStatus,
+    gameDate: currentGameDetail?.gameDate || currentGame?.gameDate || currentDate,
+    startTime: currentGameDetail?.startTime || null,
+  });
+  const { isPastGame, isFutureGame, isToday } = gameStatus;
 
   // 로딩 중 - 스켈레톤 UI
   if (isAuthLoading || loading) {
@@ -204,10 +313,70 @@ export default function Prediction() {
         {/* Coach Briefing Widget */}
         <CoachBriefing
           game={currentGame}
-          votePercentages={votePercentages}
+          gameDetail={currentGameDetail}
+          seasonContext={seasonContext}
           totalVotes={currentVotes.home + currentVotes.away}
-          isToday={isToday}
+          isPastGame={isPastGame}
         />
+
+        {/* User Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
+              <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
+                <Target className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="text-xs text-gray-500 dark:text-gray-400">적중률</p>
+                <p className="text-lg font-black text-gray-900 dark:text-gray-100 tabular-nums">
+                  {userStats.accuracy.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
+              <div className="p-2 bg-orange-50 dark:bg-orange-900/30 rounded-lg">
+                <Flame className="w-5 h-5 text-orange-500 dark:text-orange-300" />
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="text-xs text-gray-500 dark:text-gray-400">연승</p>
+                <p className="text-lg font-black text-gray-900 dark:text-gray-100 tabular-nums">
+                  {userStats.streak}연승
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
+              <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
+                <Trophy className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="text-xs text-gray-500 dark:text-gray-400">누적 예측</p>
+                <p className="text-lg font-black text-gray-900 dark:text-gray-100 tabular-nums">
+                  {userStats.totalPredictions.toLocaleString()}회
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
+              <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                <Coins className="w-5 h-5 text-blue-600 dark:text-blue-300" />
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="text-xs text-gray-500 dark:text-gray-400">적중 횟수</p>
+                <p className="text-lg font-black text-gray-900 dark:text-gray-100 tabular-nums">
+                  {userStats.correctPredictions.toLocaleString()}회
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
 
         {/* Tabs */}
         <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-xl md:rounded-2xl mb-6 md:mb-8 w-full md:w-fit">
@@ -300,10 +469,10 @@ export default function Prediction() {
                     gameDetailLoading={currentGameDetailLoading}
                     userVote={userVote[currentGameId!] || null}
                     votePercentages={votePercentages}
-                    isPastGame={isPastGame}
-                    isFutureGame={isFutureGame}
-                    isToday={isToday}
-                    onVote={(team) => handleVote(team, currentGame, isPastGame)}
+                    isVoteOpen={gameStatus.isVoteOpen}
+                    statusLabel={gameStatus.statusLabel}
+                    isClosed={gameStatus.isClosed}
+                    onVote={(team) => handleVote(team, currentGame, gameStatus.isVoteOpen)}
                   />
                 )}
               </>

@@ -24,6 +24,7 @@ export interface UserProfileApiResponse {
   success: boolean;
   data: UserProfile;
   message?: string;
+  code?: string;
 }
 
 export interface ProfileImageDto {
@@ -59,5 +60,7 @@ export type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory' | 'chan
 
 export interface UserProviderDto {
   provider: string;
+  providerId?: string;
+  email?: string;
   connectedAt: string;
 }

@@ -1,6 +1,8 @@
 import { ChatRequest, VoiceResponse } from '../types/chatbot';
 import { getMockRateLimitSeconds } from '../mock/chatbotRateLimitMock';
-const RAW_AI_API_URL = import.meta.env.VITE_AI_API_URL;
+
+const isCypress = typeof window !== 'undefined' && (window as any).Cypress;
+const RAW_AI_API_URL = isCypress ? '' : import.meta.env.VITE_AI_API_URL;
 const API_BASE = RAW_AI_API_URL ? RAW_AI_API_URL.replace(/\/+$/, '') : '';
 const buildAiUrl = (path: string) => {
   if (!API_BASE) return `/ai${path}`;

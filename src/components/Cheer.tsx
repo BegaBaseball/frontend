@@ -680,6 +680,7 @@ export default function Cheer() {
                                                 )}
                                                 <button
                                                     type="button"
+                                                    data-testid="write-post-btn"
                                                     onClick={handleComposerSubmit}
                                                     className="rounded-full px-4 py-1.5 text-sm font-bold disabled:opacity-60"
                                                     style={{ backgroundColor: teamColor, color: teamContrastText }}

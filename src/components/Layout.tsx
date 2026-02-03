@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import { useNotificationSocket } from '../hooks/useNotificationSocket';
+import { Toaster } from './ui/sonner';
 
 export default function Layout() {
   // WebSocket 연결 관리
@@ -16,6 +17,7 @@ export default function Layout() {
         <Outlet /> {/* 자식 라우트 컴포넌트가 렌더링될 위치 */}
       </main>
       <Footer />
+      <Toaster />
     </>
   );
 }

@@ -4,17 +4,24 @@ import { Game, Ranking, LeagueStartDates } from '../types/home';
 import { DEFAULT_LEAGUE_START_DATES } from '../constants/home';
 import { formatDateForAPI } from '../utils/home';
 
-const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080';
+// Force relative path in Cypress to ensure mocks work
+const RAW_API_BASE_URL = (window as any).Cypress
+    ? ''
+    : (import.meta.env.VITE_API_BASE_URL || '');
+
+const API_PREFIX = RAW_API_BASE_URL
+    ? (RAW_API_BASE_URL.endsWith('/api') ? RAW_API_BASE_URL : `${RAW_API_BASE_URL}/api`)
+    : '/api';
 
 /**
  * 특정 날짜의 경기 데이터 조회
  */
 export const fetchGamesData = async (date: Date): Promise<Game[]> => {
     const apiDate = formatDateForAPI(date);
-    
+
     try {
-        const response = await fetch(`${API_BASE_URL}/api/kbo/schedule?date=${apiDate}`, {
-        credentials: 'include' 
+        const response = await fetch(`${API_PREFIX}/kbo/schedule?date=${apiDate}`, {
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -34,8 +41,8 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
  */
 export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/${year}`, {
-        credentials: 'include' 
+        const response = await fetch(`${API_PREFIX}/kbo/rankings/${year}`, {
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -55,8 +62,8 @@ export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
  */
 export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/kbo/league-start-dates`, {
-        credentials: 'include'
+        const response = await fetch(`${API_PREFIX}/kbo/league-start-dates`, {
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -83,7 +90,7 @@ export const useLeagueStartDates = () => {
 
 export const useGamesData = (date: Date) => {
     const formattedDate = formatDateForAPI(date);
-    
+
     return useQuery({
         queryKey: ['games', formattedDate], // 날짜별로 캐싱
         queryFn: () => fetchGamesData(date),
