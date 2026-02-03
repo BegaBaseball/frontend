@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { parseError } from '../utils/errorUtils';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+// Force relative path in Cypress to ensures mocks work
+const API_BASE_URL = (window as any).Cypress
+    ? '/api'
+    : (import.meta.env.VITE_API_BASE_URL || '/api');
 
 const api = axios.create({
     baseURL: API_BASE_URL,

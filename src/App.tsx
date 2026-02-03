@@ -53,12 +53,7 @@ function ProtectedRoute() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen !bg-white dark:!bg-gray-900 transition-colors duration-200">
-        <LoginRequiredDialog
-          open={showLoginRequiredDialog}
-          onOpenChange={setShowLoginRequiredDialog}
-        />
-      </div>
+      <div className="min-h-screen !bg-white dark:!bg-gray-900 transition-colors duration-200" />
     );
   }
 
@@ -173,6 +168,10 @@ export default function App() {
         </Suspense>
         <ChatBot />
         <GlobalErrorDialog />
+        <LoginRequiredDialog
+          open={useAuthStore((state) => state.showLoginRequiredDialog)}
+          onOpenChange={useAuthStore((state) => state.setShowLoginRequiredDialog)}
+        />
       </BrowserRouter>
     </ErrorModalProvider>
   );

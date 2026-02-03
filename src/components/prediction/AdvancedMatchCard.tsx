@@ -15,9 +15,9 @@ interface AdvancedMatchCardProps {
   gameDetailLoading?: boolean;
   userVote: 'home' | 'away' | null;
   votePercentages: { homePercentage: number; awayPercentage: number; totalVotes: number };
-  isPastGame: boolean;
-  isFutureGame: boolean;
-  isToday: boolean;
+  isVoteOpen: boolean;
+  statusLabel: string;
+  isClosed: boolean;
   onVote: (team: VoteTeam) => void;
 }
 
@@ -137,9 +137,9 @@ export default function AdvancedMatchCard({
   gameDetailLoading = false,
   userVote,
   votePercentages,
-  isPastGame,
-  isFutureGame,
-  isToday,
+  isVoteOpen,
+  statusLabel,
+  isClosed,
   onVote,
 }: AdvancedMatchCardProps) {
   const { homePercentage, awayPercentage, totalVotes } = votePercentages;
@@ -265,11 +265,9 @@ export default function AdvancedMatchCard({
   const lastInning = hasExtraInnings
     ? Math.max(...extraInningScores.map((score) => score.inning))
     : 9;
-  const matchStatusLabel = isPastGame
-    ? `경기 종료${lastInning ? ` (${lastInning}회)` : ''}`
-    : isToday
-      ? '경기 진행중'
-      : '경기 예정';
+  const matchStatusLabel = isClosed && lastInning
+    ? `경기 종료 (${lastInning}회)`
+    : statusLabel;
 
   const cheeringTotal = totalVotes;
   const awayVotes = cheeringTotal === 0
@@ -375,9 +373,10 @@ export default function AdvancedMatchCard({
   return (
     <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-gray-800 transition-colors duration-300 mb-6">
       <div className="p-4 md:p-6">
+        {/* 투표 버튼 영역 */}
 
         {/* 투표 버튼 영역 */}
-        {isFutureGame && !isToday && (
+        {isVoteOpen && (
           <div className="flex gap-2 md:gap-3 mt-4 md:mt-6">
             <Button
               onClick={() => onVote('away')}
@@ -402,6 +401,7 @@ export default function AdvancedMatchCard({
               onClick={() => onVote('home')}
               aria-pressed={userVote === 'home'}
               aria-label={`${getFullTeamName(game.homeTeam)} 승리 예측`}
+              data-testid="vote-home-btn"
               className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
               style={{
                 backgroundColor: TEAM_COLORS[game.homeTeam],

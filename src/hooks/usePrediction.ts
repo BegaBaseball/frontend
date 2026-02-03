@@ -1,6 +1,5 @@
 // hooks/usePrediction.ts
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { useLeaderboardStore } from '../store/leaderboardStore';
@@ -24,7 +23,6 @@ import {
 } from '../utils/prediction';
 
 export const usePrediction = () => {
-  const navigate = useNavigate();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
 
@@ -54,13 +52,10 @@ export const usePrediction = () => {
     description: '',
     onConfirm: () => { },
   });
-  const [showLoginRequiredDialog, setShowLoginRequiredDialog] = useState(false);
-
   // 로그인 체크
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
       setLoading(false);
-      setShowLoginRequiredDialog(true);
     } else if (!isAuthLoading && isLoggedIn) {
       fetchAllGames();
     }
@@ -203,11 +198,11 @@ export const usePrediction = () => {
   };
 
   // 투표하기
-  const handleVote = async (team: VoteTeam, game: Game, isPastGame: boolean) => {
+  const handleVote = async (team: VoteTeam, game: Game, isVoteOpen: boolean) => {
     const gameId = game.gameId;
 
-    if (isPastGame) {
-      toast.error('이미 종료된 경기는 투표할 수 없습니다.');
+    if (!isVoteOpen) {
+      toast.error('현재는 투표할 수 없습니다.');
       return;
     }
 
@@ -255,9 +250,12 @@ export const usePrediction = () => {
     try {
       await submitVote(gameId, team);
 
-      // 포인트 즉시 차감 (UI 업데이트)
-      const { deductCheerPoints } = useAuthStore.getState();
-      deductCheerPoints(1);
+      const hadExistingVote = userVote[gameId] != null;
+      if (!hadExistingVote) {
+        // 포인트 즉시 차감 (UI 업데이트)
+        const { deductCheerPoints } = useAuthStore.getState();
+        deductCheerPoints(1);
+      }
 
       setUserVote(prev => ({ ...prev, [gameId]: team }));
       loadVoteStatus(gameId);
@@ -303,12 +301,6 @@ export const usePrediction = () => {
     }
   };
 
-  // 로그인 페이지로 이동
-  const handleGoToLogin = () => {
-    setShowLoginRequiredDialog(false);
-    navigate('/login');
-  };
-
   // 현재 날짜의 경기 정보
   const currentDateGames = allDatesData[currentDateIndex]?.games || [];
   const currentDate = allDatesData[currentDateIndex]?.date || getTodayString();
@@ -338,13 +330,9 @@ export const usePrediction = () => {
     showConfirmDialog,
     setShowConfirmDialog,
     confirmDialogData,
-    showLoginRequiredDialog,
-    setShowLoginRequiredDialog,
-
     // Handlers
     handleVote,
     goToPreviousDate,
     goToNextDate,
-    handleGoToLogin,
   };
 };

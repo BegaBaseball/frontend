@@ -47,6 +47,7 @@ export interface CoachAnalysisData {
 export interface CoachAnalyzeResponse {
     data?: CoachAnalysisData;
     raw_answer?: string;  // For debugging
+    answer?: string;
     tool_calls?: Array<unknown>;
     verified?: boolean;
     data_sources?: Array<unknown>;

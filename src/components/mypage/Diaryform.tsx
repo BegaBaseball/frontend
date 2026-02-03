@@ -101,6 +101,7 @@ export default function DiaryViewSection() {
                 return (
                   <button
                     key={i}
+                    data-testid={day.isValidDay ? `day-${day.dayNumber}` : undefined}
                     onClick={() =>
                       day.isValidDay &&
                       handleDateSelect(
@@ -226,6 +227,7 @@ export default function DiaryViewSection() {
                 return (
                   <button
                     key={index}
+                    data-testid={`day-${date.getDate()}`}
                     onClick={() => handleDateSelect(date)}
                     className={`border rounded-lg p-2 flex flex-col min-h-[84px] bg-white hover:bg-gray-50 ${isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f]' : ''
                       }`}
@@ -400,7 +402,10 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         {diaryForm.memo && (
           <div className="grid grid-cols-[80px_1fr] gap-2">
             <div className="text-sm text-gray-600">메모</div>
-            <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+            <div
+              data-testid="diary-memo"
+              className="text-gray-700 leading-relaxed whitespace-pre-wrap"
+            >
               {diaryForm.memo}
             </div>
           </div>
@@ -409,6 +414,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
 
       <div className="flex gap-3 justify-center">
         <Button
+          data-testid="edit-diary-btn"
           onClick={() => setIsEditMode(true)}
           className="text-white"
           style={{ backgroundColor: '#2d5f4f' }}
@@ -417,6 +423,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
           수정하기
         </Button>
         <Button
+          data-testid="delete-diary-btn"
           onClick={handleDeleteDiary}
           className="text-white"
           style={{ backgroundColor: '#EF4444' }}
@@ -782,6 +789,7 @@ function DiaryEditMode({
           </Button>
         )}
         <Button
+          data-testid="save-diary-btn"
           className={`${selectedDiary ? 'flex-1' : 'w-full'} text-white`}
           style={{ backgroundColor: '#2d5f4f' }}
           onClick={handleSaveDiary}

@@ -79,17 +79,106 @@ export const calculateVotePercentages = (homeVotes: number, awayVotes: number) =
 };
 
 /**
- * 경기 상태 확인
+ * 경기 상태 확인 (currentDate는 외부에서 주입)
  */
-export const getGameStatus = (game: Game | null, currentDate: string) => {
-  if (!game) return { isPastGame: false, isFutureGame: false, isToday: false };
+export const getGameStatus = (
+  game: Game | null,
+  currentDate: Date,
+  options?: {
+    gameStatus?: string | null;
+    gameDate?: string | null;
+    startTime?: string | null;
+  }
+) => {
+  if (!game) {
+    return {
+      isPastGame: false,
+      isFutureGame: false,
+      isToday: false,
+      isLive: false,
+      isClosed: false,
+      isScheduled: false,
+      hasStarted: false,
+      statusLabel: '경기 예정',
+      isVoteOpen: false,
+      canShowDetails: false,
+    };
+  }
 
-  const today = getTodayString();
-  const isPastGame = game.homeScore != null;
-  const isFutureGame = currentDate > today;
-  const isToday = currentDate === today;
+  const todayKey = currentDate.toISOString().split('T')[0];
+  const normalizedStatus = options?.gameStatus?.toUpperCase() || '';
+  const isClosedStatus = ['FINAL', 'COMPLETED', 'CANCELLED', 'POSTPONED', 'DRAW'].includes(normalizedStatus);
+  const isLiveStatus = ['LIVE', 'IN_PROGRESS', 'PLAYING'].includes(normalizedStatus);
+  const isScheduledStatus = normalizedStatus === 'SCHEDULED';
 
-  return { isPastGame, isFutureGame, isToday };
+  const matchDate = options?.gameDate || game.gameDate || null;
+  const normalizedStartTime = options?.startTime ? options.startTime.slice(0, 5) : null;
+  const startDateTime = matchDate && normalizedStartTime
+    ? new Date(`${matchDate}T${normalizedStartTime}`)
+    : null;
+  const hasValidStartTime = startDateTime != null && !Number.isNaN(startDateTime.getTime());
+  const isDatePast = matchDate ? matchDate < todayKey : false;
+  const isDateFuture = matchDate ? matchDate > todayKey : false;
+  const isToday = matchDate ? matchDate === todayKey : false;
+
+  let hasStarted = false;
+  if (hasValidStartTime && startDateTime) {
+    hasStarted = currentDate >= startDateTime;
+  } else if (matchDate) {
+    hasStarted = isDatePast;
+  }
+
+  const shouldOverrideToScheduled = isDateFuture && !hasStarted;
+  const isClosedEffective = isClosedStatus && !shouldOverrideToScheduled;
+  const isLiveEffective = isLiveStatus && !shouldOverrideToScheduled;
+  const isScheduledEffective = isScheduledStatus || shouldOverrideToScheduled;
+
+  let isPastGame = false;
+  let isFutureGame = false;
+
+  if (normalizedStatus) {
+    if (isClosedEffective) {
+      isPastGame = true;
+    } else if (isLiveEffective) {
+      isPastGame = false;
+      isFutureGame = false;
+    } else if (isScheduledEffective) {
+      isPastGame = false;
+      isFutureGame = isDateFuture;
+    } else {
+      isPastGame = isDatePast;
+      isFutureGame = isDateFuture;
+    }
+  } else {
+    isPastGame = isDatePast || (hasStarted && !isDateFuture);
+    isFutureGame = isDateFuture;
+  }
+
+  const statusLabel = isLiveEffective
+    ? '경기 진행중'
+    : isClosedEffective
+      ? '경기 종료'
+      : isScheduledEffective
+        ? '경기 예정'
+        : hasStarted
+          ? '경기 진행중'
+          : '경기 예정';
+
+  const isVoteOpen = !isClosedEffective && !isLiveEffective && !hasStarted;
+  const canShowDetails = isLiveEffective || isClosedEffective;
+
+  return {
+    isPastGame,
+    isFutureGame,
+    isToday,
+    isLive: isLiveEffective,
+    isClosed: isClosedEffective,
+    isScheduled: isScheduledEffective,
+    hasStarted,
+    statusLabel,
+    isVoteOpen,
+    canShowDetails,
+  };
 };
 
 /**

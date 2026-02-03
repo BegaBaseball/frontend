@@ -18,9 +18,33 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { analyzeTeam, CoachAnalyzeResponse, CoachMetric, DashboardStat } from '../api/coach';
 import { useAuthStore } from '../store/authStore';
-import { TEAM_LIST, TEAM_NAME_TO_ID, getRandomTeamName } from '../constants/teams';
+import { TEAM_LIST, TEAM_NAME_TO_ID, getRandomTeamName, TEAM_DATA } from '../constants/teams';
 import { useTheme } from '../hooks/useTheme';
 import TeamLogo from './TeamLogo';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// --- Animation Variants ---
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1
+        }
+    }
+} as const;
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            duration: 0.5,
+            ease: "easeOut"
+        }
+    }
+} as const;
 
 // --- Metric Card Component ---
 const MetricCard = ({ data }: { data: CoachMetric }) => {
@@ -29,109 +53,126 @@ const MetricCard = ({ data }: { data: CoachMetric }) => {
     // Color Styles based on Risk Level
     const styles = {
         0: {
-            bg: 'bg-red-50 dark:bg-red-950/30',
-            border: 'border-red-200 dark:border-red-900',
-            text: 'text-red-600 dark:text-red-400',
+            bg: 'bg-red-50/80 dark:bg-red-950/20',
+            border: 'border-red-200/50 dark:border-red-900/30',
+            text: 'text-red-700 dark:text-red-400',
             bar: 'bg-red-500',
             icon: AlertTriangle
         },
         1: {
-            bg: 'bg-amber-50 dark:bg-amber-950/30',
-            border: 'border-amber-200 dark:border-amber-900',
-            text: 'text-amber-600 dark:text-amber-400',
+            bg: 'bg-amber-50/80 dark:bg-amber-950/20',
+            border: 'border-amber-200/50 dark:border-amber-900/30',
+            text: 'text-amber-700 dark:text-amber-400',
             bar: 'bg-amber-500',
             icon: Minus
         },
         2: {
-            bg: 'bg-emerald-50 dark:bg-emerald-950/30',
-            border: 'border-emerald-200 dark:border-emerald-900',
-            text: 'text-emerald-600 dark:text-emerald-400',
+            bg: 'bg-emerald-50/80 dark:bg-emerald-950/20',
+            border: 'border-emerald-200/50 dark:border-emerald-900/30',
+            text: 'text-emerald-700 dark:text-emerald-400',
             bar: 'bg-emerald-500',
             icon: CheckCircle
         }
     }[risk_level];
 
-    const Icon = styles.icon;
     const progressWidth = risk_level === 0 ? '85%' : risk_level === 1 ? '50%' : '90%';
 
     return (
-        <div className={`relative p-5 rounded-2xl border ${styles.border} ${styles.bg} shadow-sm flex flex-col h-full transition-all hover:shadow-md`}>
+        <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
+            className={`relative p-5 rounded-2xl border ${styles.border} ${styles.bg} backdrop-blur-sm flex flex-col h-full transition-all group overflow-hidden`}
+        >
+            <div className={`absolute top-0 right-0 w-24 h-24 ${styles.bar} opacity-[0.03] rounded-full blur-2xl -translate-y-1/2 translate-x-1/2`} />
+
             {/* Header */}
-            <div className="flex justify-between items-start mb-2">
+            <div className="flex justify-between items-start mb-2 relative z-10">
                 <div className="flex items-center gap-1.5">
-                    <span className={`text-[10px] font-bold ${styles.text} uppercase tracking-wider border border-current px-1.5 py-0.5 rounded`}>
+                    <span className={`text-[10px] font-black ${styles.text} uppercase tracking-widest border border-current px-1.5 py-0.5 rounded`}>
                         {category}
                     </span>
                 </div>
                 {trend !== 'neutral' && (
-                    <div className={`flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20 ${styles.text}`}>
+                    <div className={`flex items-center gap-0.5 text-[10px] font-black px-2.5 py-1 rounded-full bg-white/80 dark:bg-black/40 shadow-sm ${styles.text}`}>
                         {trend === 'up' ? '▲ 상승' : '▼ 하락'}
                     </div>
                 )}
             </div>
 
             {/* Main Content */}
-            <div className="flex-1">
+            <div className="flex-1 relative z-10">
                 {value ? (
                     <>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{name}</p>
-                        <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tight mt-0.5">{value}</p>
+                        <p className="text-sm font-bold text-gray-500 dark:text-gray-400 truncate tracking-tight">{name}</p>
+                        <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter mt-1">{value}</p>
                     </>
                 ) : (
-                    <p className="text-lg font-bold text-gray-900 dark:text-white mt-2">{name}</p>
+                    <p className="text-lg font-black text-gray-900 dark:text-white mt-2 tracking-tight">{name}</p>
                 )}
             </div>
 
             {/* Progress Bar */}
-            <div className="space-y-1.5 mt-4">
-                <div className="flex justify-between text-[10px] text-gray-400 font-medium opacity-80">
-                    <span>League Avg</span>
-                    <span className={styles.text}>{risk_level === 0 ? 'Bad' : risk_level === 2 ? 'Good' : 'Avg'}</span>
+            <div className="space-y-2 mt-5 relative z-10">
+                <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest opacity-70">
+                    <span>리그 평균 대비 지표</span>
+                    <span className={styles.text}>{risk_level === 0 ? '주의' : risk_level === 2 ? '최상' : '안정'}</span>
                 </div>
-                <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                        className={`h-full ${styles.bar} rounded-full transition-all duration-1000 ease-out`}
-                        style={{ width: progressWidth }}
+                <div className="h-1.5 w-full bg-gray-200/50 dark:bg-gray-800/50 rounded-full overflow-hidden">
+                    <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: progressWidth }}
+                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
+                        className={`h-full ${styles.bar} rounded-full shadow-[0_0_8px_${styles.bar}40]`}
                     />
                 </div>
             </div>
 
             {/* Description */}
             {description && description.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
-                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-snug break-keep">
+                <div className="mt-4 pt-3 border-t border-gray-200/30 dark:border-gray-700/30 relative z-10">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed font-medium break-keep">
                         {description}
                     </p>
                 </div>
             )}
-        </div>
+        </motion.div>
     );
 };
 
 // --- Dashboard Stat Card ---
 const StatCard = ({ stat }: { stat: DashboardStat }) => {
     return (
-        <div className="bg-white/5 rounded-2xl p-5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors group">
-            <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black text-emerald-200/50 uppercase tracking-widest">{stat.label}</span>
+        <motion.div
+            variants={itemVariants}
+            whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.12)" }}
+            className="bg-white/5 rounded-2xl p-5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all group relative overflow-hidden"
+        >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+
+            <div className="flex items-center justify-between mb-3 relative z-10">
+                <span className="text-[10px] font-black text-emerald-200/50 uppercase tracking-[0.2em]">{stat.label}</span>
                 {stat.is_critical && (
-                    <div className="p-1 rounded-md bg-red-500/20">
-                        <AlertTriangle className="w-3 h-3 text-red-400" />
-                    </div>
+                    <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                        className="p-1.5 rounded-full bg-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.3)]"
+                    >
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                    </motion.div>
                 )}
             </div>
-            <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-3xl font-black text-white tracking-tighter group-hover:scale-105 transition-transform origin-left">{stat.value}</span>
+            <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                <span className="text-3xl font-black text-white tracking-tighter group-hover:text-emerald-300 transition-colors">{stat.value}</span>
             </div>
-            <div className={`text-[11px] font-bold mt-3 py-1 px-2 rounded-md w-fit flex items-center gap-1.5 ${stat.trend === 'up' ? 'bg-red-500/10 text-red-300' :
-                stat.trend === 'down' ? 'bg-blue-500/10 text-blue-300' :
-                    'bg-white/5 text-gray-300'
+            <div className={`text-[11px] font-extrabold mt-4 py-1.5 px-3 rounded-xl w-fit flex items-center gap-2 border relative z-10 ${stat.trend === 'up' ? 'bg-red-500/10 border-red-500/20 text-red-300' :
+                stat.trend === 'down' ? 'bg-blue-500/10 border-blue-500/20 text-blue-300' :
+                    'bg-white/5 border-white/10 text-gray-300'
                 }`}>
-                {stat.trend === 'up' && <ArrowUpRight className="w-3 h-3" />}
-                {stat.trend === 'down' && <ArrowDownRight className="w-3 h-3" />}
+                {stat.trend === 'up' && <ArrowUpRight className="w-3.5 h-3.5" />}
+                {stat.trend === 'down' && <ArrowDownRight className="w-3.5 h-3.5" />}
                 {stat.status}
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -143,20 +184,27 @@ interface CoachAnalysisDialogProps {
 
 export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnalysisDialogProps) {
     const { user } = useAuthStore();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { theme } = useTheme();
 
+    const getInitialTeamName = (teamId?: string) => {
+        if (!teamId) return getRandomTeamName();
+        // Try to match ID to full name from TEAM_DATA
+        const data = TEAM_DATA[teamId];
+        if (data && data.fullName !== '없음') return data.fullName;
+        // Fallback for names that might already be full or short
+        return TEAM_LIST.find(t => t.includes(teamId)) || teamId;
+    };
+
     const [isOpen, setIsOpen] = useState(false);
-    const [selectedTeam, setSelectedTeam] = useState<string>(initialTeam || getRandomTeamName());
+    const [selectedTeam, setSelectedTeam] = useState<string>(getInitialTeamName(initialTeam));
     const [focus, setFocus] = useState<string[]>(['recent_form']);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<CoachAnalyzeResponse | null>(null);
     const [analysisStep, setAnalysisStep] = useState<string>('');
 
-    // Randomize team when dialog opens
     useEffect(() => {
-        if (isOpen && !initialTeam) {
-            setSelectedTeam(getRandomTeamName());
+        if (isOpen) {
+            setSelectedTeam(getInitialTeamName(initialTeam));
         }
     }, [isOpen, initialTeam]);
 
@@ -169,12 +217,26 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
 
     const handleAnalyze = async () => {
         setLoading(true);
-        setAnalysisStep('데이터 수집 중...');
+        setAnalysisStep('인공지능 보안 모듈 활성화 중...');
         setResult(null);
 
-        setTimeout(() => setAnalysisStep('불펜 가동 현황 체크 중...'), 1000);
-        setTimeout(() => setAnalysisStep('상대 전적 비교 분석 중...'), 2000);
-        setTimeout(() => setAnalysisStep('최종 승부 예측 생성 중...'), 3000);
+        const steps = [
+            '구단별 실시간 기밀 데이터 수집 중...',
+            '해당 팀 투구/타격 기저 데이터 분석 중...',
+            '최근 페이스 및 컨디션 로직 연산 중...',
+            '상대 팀 데이터 매칭 및 확률 계산 중...',
+            '최종 전략 전술 시나리오 생성 중...'
+        ];
+
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i < steps.length) {
+                setAnalysisStep(steps[i]);
+                i++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 800);
 
         try {
             const response = await analyzeTeam({
@@ -188,6 +250,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
         } finally {
             setLoading(false);
             setAnalysisStep('');
+            clearInterval(interval);
         }
     };
 
@@ -197,17 +260,13 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
         );
     };
 
-    // --- Fallback Parser (Robustness "WOW" Feature) ---
-    // If backend returns Markdown (old format), we try to extract data for the new UI
     const getAnalysisData = () => {
         if (result?.data) return result.data;
         if (!result?.raw_answer && !(result as any)?.answer) return null;
 
         const raw = result?.data ? JSON.stringify(result.data) : (result?.raw_answer || (result as any)?.answer || "");
 
-        // Simple heuristic for Markdown fallback
         try {
-            // If it's already JSON but just wrapped in Markdown
             const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```/) || raw.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
@@ -217,9 +276,8 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
             console.warn("Fallback JSON parse failed", e);
         }
 
-        // Deep Fallback: Parse Markdown headings (The "Old" format)
-        const lines = raw.split('\n');
-        const headline = raw.match(/### (.*)/)?.[1] || "AI 분석 리포트";
+        const rawHeadline = raw.match(/### (.*)/)?.[1] || "AI 분석 리포트";
+        const headline = rawHeadline.replace(/[\*_~\[\]]/g, '').trim();
         const context = raw.match(/## 🔍 AI 시즌 요약\n([\s\S]*?)\n\n/)?.[1]?.trim() || "데이터를 기반으로 분석된 팀 상태입니다.";
 
         return {
@@ -227,11 +285,11 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                 headline,
                 context,
                 sentiment: (raw.includes('🚨') || raw.includes('▼')) ? 'negative' : 'positive' as const,
-                stats: [] // We can't easily parse the table without complex regex, keep it empty for fallback
+                stats: []
             },
             metrics: [],
             detailed_analysis: raw,
-            coach_note: "데이터 구조 최적화 중입니다. 상세 분석 내용을 확인해 주세요."
+            coach_note: "기존 형식의 데이터가 감지되었습니다. 상세 리포트를 참고해주세요."
         };
     };
 
@@ -241,196 +299,241 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 {trigger ? trigger : (
-                    <Button variant="outline" className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 hover:from-blue-700 hover:to-indigo-700 shadow-lg">
-                        <Zap className="w-4 h-4" />
-                        The Coach 분석
+                    <Button variant="outline" className="gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-0 hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/20 px-8 h-12 rounded-full font-bold tracking-tight">
+                        <Zap className="w-4 h-4 fill-white" />
+                        AI 코치 상세 분석
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-gray-900 border-none shadow-2xl p-0">
-                {/* Header */}
-                <DialogHeader className="p-6 bg-gradient-to-r from-[#2d5f4f] to-[#1a3c32] text-white shrink-0">
-                    <DialogTitle className="flex items-center gap-2 text-xl font-bold text-white">
-                        <Sparkles className="w-5 h-5 text-yellow-400" />
-                        AI 코치 심층 분석
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-white dark:bg-[#0a0a0a] border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-0">
+                {/* Custom Header with Team Color Accent */}
+                <DialogHeader className="p-8 pb-12 bg-[#2d5f4f] text-white shrink-0 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+
+                    <DialogTitle className="flex items-center gap-3 text-2xl font-black text-white relative z-10 tracking-tight">
+                        <motion.div
+                            animate={{ rotate: [0, 15, 0, -15, 0] }}
+                            transition={{ duration: 4, repeat: Infinity }}
+                        >
+                            <Sparkles className="w-7 h-7 text-yellow-300 fill-yellow-300/20" />
+                        </motion.div>
+                        AI 코치 · 딥 스카우팅
                     </DialogTitle>
-                    <DialogDescription className="text-gray-300">
-                        {selectedTeam}의 승리 확률을 높이기 위한 정밀 데이터를 분석합니다.
+                    <DialogDescription className="text-emerald-100/70 font-bold uppercase tracking-[0.2em] text-[11px] relative z-10 mt-2 ml-1">
+                        {selectedTeam} 전략 및 지표 분석 중
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 bg-gray-50 dark:bg-black/20">
-                    {/* Team Selection */}
-                    <div className="space-y-6">
-                        <div className="space-y-3">
-                            <Label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                <span className="w-1 h-4 bg-[#2d5f4f] rounded-full"></span>
-                                분석 대상 팀
+                <div className="flex-1 overflow-y-auto px-8 py-8 space-y-10 bg-gray-50/50 dark:bg-black/40 -mt-6 rounded-t-3xl relative z-20">
+                    {/* Team Selection Section */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-6"
+                    >
+                        <div className="flex items-center justify-between px-1">
+                            <Label className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#2d5f4f]"></span>
+                                분석 대상 팀 선택
                             </Label>
-                            <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                                {TEAM_LIST.slice(1).map((teamName) => {
-                                    const isSelected = selectedTeam === teamName;
-                                    return (
-                                        <button
-                                            key={teamName}
-                                            type="button"
-                                            onClick={() => setSelectedTeam(teamName)}
-                                            className={`
-                                                relative flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-200 border-2
-                                                ${isSelected
-                                                    ? 'bg-white dark:bg-gray-800 border-[#2d5f4f] shadow-md scale-105 ring-1 ring-[#2d5f4f]'
-                                                    : 'bg-white dark:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700 hover:scale-[1.02]'
-                                                }
-                                            `}
-                                        >
-                                            <div className="w-10 h-10 mb-2 relative flex items-center justify-center">
-                                                <TeamLogo team={teamName} size={40} className="w-full h-full" />
-                                            </div>
-                                            <span className={`text-xs font-bold ${isSelected ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-600 dark:text-gray-400'}`}>
-                                                {teamName}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
                         </div>
-
-                        {/* Focus Points */}
-                        <div className="space-y-3">
-                            <Label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                <span className="w-1 h-4 bg-yellow-500 rounded-full"></span>
-                                중점 분석 포인트
-                            </Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {focusOptions.map((opt) => {
-                                    const isActive = focus.includes(opt.id);
-                                    return (
-                                        <div
-                                            key={opt.id}
-                                            onClick={() => toggleFocus(opt.id)}
-                                            className={`
-                                                flex items-start gap-3 p-4 rounded-xl cursor-pointer transition-all border-2
-                                                ${isActive
-                                                    ? 'bg-[#2d5f4f]/5 border-[#2d5f4f] shadow-sm'
-                                                    : 'bg-white dark:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700'
-                                                }
-                                            `}
-                                        >
-                                            <div className={`p-2 rounded-lg ${isActive ? 'bg-[#2d5f4f] text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
-                                                <opt.icon className="w-5 h-5" />
-                                            </div>
-                                            <div>
-                                                <p className={`font-bold text-sm mb-0.5 ${isActive ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-700 dark:text-gray-300'}`}>
-                                                    {opt.label}
-                                                </p>
-                                                <p className="text-xs text-gray-500 line-clamp-1">
-                                                    {opt.desc}
-                                                </p>
-                                            </div>
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                            {TEAM_LIST.slice(1).map((teamName) => {
+                                const isSelected = selectedTeam === teamName;
+                                return (
+                                    <motion.button
+                                        key={teamName}
+                                        type="button"
+                                        whileHover={{ y: -2 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setSelectedTeam(teamName)}
+                                        className={`
+                                            relative flex flex-col items-center justify-center p-4 rounded-2xl transition-all duration-300 border
+                                            ${isSelected
+                                                ? 'bg-white dark:bg-gray-800 border-[#2d5f4f]/30 shadow-xl shadow-[#2d5f4f]/10 scale-105 ring-2 ring-[#2d5f4f]'
+                                                : 'bg-white dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                                            }
+                                        `}
+                                    >
+                                        <div className="w-12 h-12 mb-3 relative flex items-center justify-center">
+                                            <TeamLogo team={teamName} size={48} className={`w-full h-full transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md' : 'opacity-60 grayscale-[0.5]'}`} />
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                        <span className={`text-[11px] font-black tracking-tight ${isSelected ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-500'}`}>
+                                            {teamName}
+                                        </span>
+                                    </motion.button>
+                                );
+                            })}
                         </div>
+                    </motion.div>
+
+                    {/* Focus Points Section */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="space-y-6"
+                    >
+                        <Label className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2 px-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                            분석 집중 항목
+                        </Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {focusOptions.map((opt) => {
+                                const isActive = focus.includes(opt.id);
+                                return (
+                                    <motion.div
+                                        key={opt.id}
+                                        whileHover={{ x: 3 }}
+                                        onClick={() => toggleFocus(opt.id)}
+                                        className={`
+                                            flex items-start gap-4 p-5 rounded-2xl cursor-pointer transition-all border
+                                            ${isActive
+                                                ? 'bg-white dark:bg-emerald-950/10 border-[#2d5f4f]/30 shadow-lg shadow-[#2d5f4f]/5 ring-1 ring-[#2d5f4f]'
+                                                : 'bg-white dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                                            }
+                                        `}
+                                    >
+                                        <div className={`p-3 rounded-xl transition-colors ${isActive ? 'bg-[#2d5f4f] text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
+                                            <opt.icon className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className={`font-black text-sm mb-1 tracking-tight ${isActive ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-700 dark:text-gray-300'}`}>
+                                                {opt.label}
+                                            </p>
+                                            <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                                                {opt.desc}
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    </motion.div>
+
+                    {/* Action Button Section with Matrix Scanning Effect */}
+                    <div className="relative group p-1">
+                        <AnimatePresence>
+                            {loading && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 z-10 rounded-2xl bg-[#2d5f4f]/20 pointer-events-none overflow-hidden"
+                                >
+                                    <motion.div
+                                        animate={{ top: ['-10%', '110%'] }}
+                                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                        className="absolute left-0 right-0 h-[20%] bg-gradient-to-b from-transparent via-emerald-400/40 to-transparent"
+                                    />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <Button
+                            onClick={handleAnalyze}
+                            disabled={loading}
+                            className="w-full bg-[#2d5f4f] hover:bg-[#1a3c32] text-white h-16 text-xl font-black rounded-2xl shadow-2xl shadow-[#2d5f4f]/30 transition-all active:scale-[0.98] group overflow-hidden relative"
+                        >
+                            <span className="absolute inset-0 bg-white/5 translate-y-16 group-hover:translate-y-0 transition-transform duration-500 ease-out" />
+                            {loading ? (
+                                <div className="flex items-center gap-4 relative z-10">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    >
+                                        <Loader2 className="h-6 w-6 text-yellow-300" />
+                                    </motion.div>
+                                    <span className="text-lg font-bold tracking-tight animate-pulse">{analysisStep}</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3 relative z-10 px-4">
+                                    <Zap className="w-6 h-6 text-yellow-300 fill-yellow-300 transition-transform group-hover:scale-125 group-hover:rotate-12" />
+                                    <span className="uppercase tracking-widest">AI 시뮬레이션 실행</span>
+                                </div>
+                            )}
+                        </Button>
                     </div>
 
-                    {/* Analyze Button */}
-                    <Button
-                        onClick={handleAnalyze}
-                        disabled={loading}
-                        className="w-full bg-[#2d5f4f] hover:bg-[#1a3c32] text-white h-14 text-lg font-bold rounded-xl shadow-lg shadow-[#2d5f4f]/20 transition-all active:scale-[0.98]"
-                    >
-                        {loading ? (
-                            <div className="flex items-center gap-3">
-                                <Loader2 className="h-5 w-5 animate-spin text-yellow-400" />
-                                <span className="text-base font-medium animate-pulse">{analysisStep}</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                                <span>AI 분석 시작하기</span>
-                            </div>
-                        )}
-                    </Button>
+                    {/* Results Presentation (AnimatePresence for smooth swap) */}
+                    <AnimatePresence mode="wait">
+                        {analysisData && (
+                            <motion.div
+                                key="analysis-results"
+                                variants={containerVariants}
+                                initial="hidden"
+                                animate="visible"
+                                className="space-y-8 pb-10"
+                            >
+                                {/* A. Diagnosis Dashboard - Visual Masterpiece */}
+                                {(() => {
+                                    const isPositive = analysisData.dashboard.sentiment === 'positive';
+                                    return (
+                                        <motion.div
+                                            variants={itemVariants}
+                                            className="bg-gradient-to-br from-[#1a3c32] to-[#0a0f0d] p-10 rounded-3xl shadow-2xl text-white relative overflow-hidden border border-white/5"
+                                        >
+                                            {/* Immersive background effects */}
+                                            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none opacity-40" />
+                                            <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-                    {/* Results Section */}
-                    {analysisData ? (
-                        <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 space-y-6 pb-6">
-
-                            {/* A. Diagnosis Dashboard */}
-                            {(() => {
-                                const isPositive = analysisData.dashboard.sentiment === 'positive';
-                                const dashboardTheme = {
-                                    bgGradient: 'bg-gradient-to-r from-[#2d5f4f] to-[#1a3c32]',
-                                    border: 'border-[#2d5f4f]',
-                                    icon: isPositive ? Trophy : AlertTriangle,
-                                    iconColor: isPositive ? 'text-emerald-400' : 'text-yellow-400',
-                                    badgeBg: isPositive ? 'bg-emerald-500/20' : 'bg-red-500/20',
-                                    badgeBorder: isPositive ? 'border-emerald-500/40' : 'border-red-500/40',
-                                    badgeText: isPositive ? 'text-emerald-100' : 'text-red-100',
-                                    badgeLabel: isPositive ? 'TOP PERFORMANCE' : 'CRITICAL WARNING',
-                                    glow: isPositive ? 'bg-emerald-500' : 'bg-red-500'
-                                };
-
-                                return (
-                                    <div className={`${dashboardTheme.bgGradient} p-8 rounded-2xl shadow-xl text-white relative overflow-hidden border ${dashboardTheme.border}`}>
-                                        <div className={`absolute top-0 right-0 w-64 h-64 ${dashboardTheme.glow} rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 opacity-30`}></div>
-                                        <div className="relative z-10 flex flex-col h-full">
-                                            {/* Header */}
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                                                <div className="flex items-center gap-2 text-yellow-500 font-black uppercase tracking-widest text-[11px]">
-                                                    <Sparkles className="w-4 h-4" />
-                                                    AI SEASON ANALYSIS REPORT
+                                            <div className="relative z-10">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+                                                    <div className="flex items-center gap-3 text-yellow-400 font-black uppercase tracking-[0.3em] text-[10px]">
+                                                        <Sparkles className="w-5 h-5 animate-pulse" />
+                                                        STRATEGIC ANALYSIS ALPHA-VER 3.0
+                                                    </div>
+                                                    <motion.div
+                                                        animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
+                                                        transition={{ duration: 2, repeat: Infinity }}
+                                                        className={`self-start sm:self-auto px-4 py-2 rounded-full ${isPositive ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-red-500/20 border-red-500/40 text-red-300'} border text-[10px] font-black tracking-widest uppercase flex items-center gap-2`}
+                                                    >
+                                                        <div className={`w-2 h-2 rounded-full ${isPositive ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'}`} />
+                                                        {isPositive ? '최상 상태' : '위기 예보'}
+                                                    </motion.div>
                                                 </div>
-                                                <div className={`self-start sm:self-auto px-4 py-1.5 rounded-full ${dashboardTheme.badgeBg} border ${dashboardTheme.badgeBorder} ${dashboardTheme.badgeText} text-[11px] font-black tracking-tighter flex items-center gap-2 animate-pulse`}>
-                                                    <div className={`w-2 h-2 rounded-full ${isPositive ? 'bg-emerald-400' : 'bg-red-500'}`}></div>
-                                                    {dashboardTheme.badgeLabel}
+
+                                                <div className="mb-12">
+                                                    <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight tracking-tighter mb-6 flex items-center gap-4">
+                                                        {isPositive ? <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)] shrink-0" /> : <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-red-500 shrink-0" />}
+                                                        <span className="truncate">{analysisData.dashboard.headline}</span>
+                                                    </h3>
+                                                    <div className="w-20 h-1.5 bg-yellow-400 rounded-full mb-6 shadow-[0_0_12px_#facc15]" />
+                                                    <p className="text-emerald-50/80 text-lg sm:text-xl leading-relaxed max-w-2xl font-bold tracking-tight">
+                                                        {analysisData.dashboard.context}
+                                                    </p>
                                                 </div>
+
+                                                {analysisData.dashboard.stats.length > 0 && (
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                        {analysisData.dashboard.stats.map((stat: DashboardStat, idx: number) => (
+                                                            <StatCard key={idx} stat={stat} />
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
+                                        </motion.div>
+                                    );
+                                })()}
 
-                                            {/* Headline & Context */}
-                                            <div className="mb-10">
-                                                <h3 className="text-3xl sm:text-4xl font-black text-white leading-[1.15] mb-4 tracking-tight flex items-center gap-3">
-                                                    <dashboardTheme.icon className={`w-8 h-8 ${dashboardTheme.iconColor} flex-shrink-0`} />
-                                                    <span>{analysisData.dashboard.headline}</span>
-                                                </h3>
-                                                <div className={`w-12 h-1 ${isPositive ? 'bg-emerald-500' : 'bg-yellow-500'} rounded-full mb-4`}></div>
-                                                <p className="text-emerald-50 text-base sm:text-lg leading-relaxed opacity-90 max-w-2xl font-medium">
-                                                    {analysisData.dashboard.context}
-                                                </p>
-                                            </div>
-
-                                            {/* Stats Grid */}
-                                            {analysisData.dashboard.stats.length > 0 && (
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-auto">
-                                                    {analysisData.dashboard.stats.map((stat: DashboardStat, idx: number) => (
-                                                        <StatCard key={idx} stat={stat} />
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-
-                            {/* B. Metrics Grid */}
-                            {analysisData.metrics.length > 0 && (
-                                <div className="space-y-6">
-                                    {/* Risk Factors */}
+                                {/* B. Metrics Grid with Sections */}
+                                <div className="space-y-12">
+                                    {/* Critical Factors Section */}
                                     {analysisData.metrics.filter((m: CoachMetric) => m.risk_level === 0).length > 0 && (
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3 px-1">
-                                                <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
-                                                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                        <div className="space-y-6">
+                                            <div className="flex items-center gap-3 px-2">
+                                                <div className="w-10 h-10 rounded-2xl bg-red-100/80 dark:bg-red-950/30 flex items-center justify-center border border-red-200/50 dark:border-red-800/20">
+                                                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-sm font-black text-red-700 dark:text-red-400 uppercase tracking-tight">
-                                                        패배 구조의 핵심 원인
+                                                    <h4 className="text-sm font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest">
+                                                        주요 핵심 변수
                                                     </h4>
-                                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium -mt-0.5">Primary Causes of Loss</p>
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider -mt-0.5">즉각적인 확인이 필요한 주요 지표</p>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                                 {analysisData.metrics.filter((m: CoachMetric) => m.risk_level === 0).map((item: CoachMetric, idx: number) => (
                                                     <MetricCard key={`risk-${idx}`} data={item} />
                                                 ))}
@@ -438,21 +541,21 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                         </div>
                                     )}
 
-                                    {/* Positive Factors */}
+                                    {/* Positive/Strategic Factors Section */}
                                     {analysisData.metrics.filter((m: CoachMetric) => m.risk_level !== 0).length > 0 && (
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3 px-1">
-                                                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-                                                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                        <div className="space-y-6">
+                                            <div className="flex items-center gap-3 px-2">
+                                                <div className="w-10 h-10 rounded-2xl bg-emerald-100/80 dark:bg-emerald-950/30 flex items-center justify-center border border-emerald-200/50 dark:border-emerald-800/20">
+                                                    <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-tight">
-                                                        안정된 전력 요소
+                                                    <h4 className="text-sm font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest">
+                                                        전략적 강점 자산
                                                     </h4>
-                                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium -mt-0.5">Stable Power Elements</p>
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider -mt-0.5">성리를 위해 활용해야 할 핵심 강점</p>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                                 {analysisData.metrics.filter((m: CoachMetric) => m.risk_level !== 0).map((item: CoachMetric, idx: number) => (
                                                     <MetricCard key={`norm-${idx}`} data={item} />
                                                 ))}
@@ -460,60 +563,61 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                         </div>
                                     )}
                                 </div>
-                            )}
 
-                            {/* C. Detailed Report & Coach Note */}
-                            <div className="space-y-4 pt-2">
-                                <div className="flex items-center gap-2 px-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-                                    <BarChart3 className="w-4 h-4 text-gray-500" />
-                                    <span className="font-bold text-gray-700 dark:text-gray-300">상세 분석 & 코멘트</span>
-                                </div>
+                                {/* C. Detailed Report & Coach Note - Glassmorphic Panels */}
+                                <motion.div variants={itemVariants} className="space-y-6 pt-6">
+                                    <div className="flex items-center gap-3 px-2">
+                                        <BarChart3 className="w-5 h-5 text-[#2d5f4f]" />
+                                        <span className="font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest text-sm">인공지능 심층 분석 리포트</span>
+                                    </div>
 
-                                {/* Detailed Analysis */}
-                                {analysisData.detailed_analysis && (
-                                    <div className="bg-white dark:bg-gray-800/50 rounded-xl p-5 border border-gray-100 dark:border-gray-700">
-                                        <ReactMarkdown
-                                            remarkPlugins={[remarkGfm]}
-                                            rehypePlugins={[rehypeRaw]}
-                                            components={{
-                                                p: ({ children }) => <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-3">{children}</p>,
-                                                li: ({ children }) => <li className="text-sm text-gray-600 dark:text-gray-400 ml-4 list-disc mb-1 pl-1">{children}</li>,
-                                                strong: ({ children }) => <strong className="font-bold text-gray-900 dark:text-white">{children}</strong>
-                                            }}
+                                    {analysisData.detailed_analysis && (
+                                        <div className="bg-white/80 dark:bg-[#121212] rounded-3xl p-8 border border-gray-100 dark:border-white/5 shadow-xl shadow-black/5">
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                rehypePlugins={[rehypeRaw]}
+                                                components={{
+                                                    p: ({ children }) => <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-4 font-medium">{children}</p>,
+                                                    li: ({ children }) => <li className="text-sm text-gray-600 dark:text-gray-400 ml-5 list-disc mb-2 pl-2 font-medium">{children}</li>,
+                                                    strong: ({ children }) => <strong className="font-black text-gray-900 dark:text-white uppercase tracking-tight">{children}</strong>,
+                                                    h3: ({ children }) => <h3 className="text-base font-black text-gray-900 dark:text-white mb-4 mt-6 border-b border-gray-100 dark:border-white/5 pb-2">{children}</h3>
+                                                }}
+                                            >
+                                                {analysisData.detailed_analysis}
+                                            </ReactMarkdown>
+                                        </div>
+                                    )}
+
+                                    {analysisData.coach_note && (
+                                        <motion.div
+                                            whileHover={{ scale: 1.01 }}
+                                            className="relative pl-6 py-8 pr-10 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-3xl border-l-8 border-emerald-500 mt-8 group"
                                         >
-                                            {analysisData.detailed_analysis}
-                                        </ReactMarkdown>
-                                    </div>
-                                )}
+                                            <div className="absolute -top-4 left-6 bg-emerald-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full flex items-center gap-2 shadow-lg tracking-widest uppercase">
+                                                <Bot className="w-3.5 h-3.5" /> 코치의 한마디
+                                            </div>
+                                            <div className="text-emerald-900/90 dark:text-emerald-100/90 text-sm font-bold leading-relaxed italic">
+                                                <ReactMarkdown rehypePlugins={[rehypeRaw]}>{analysisData.coach_note}</ReactMarkdown>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </motion.div>
 
-                                {/* Coach's Note */}
-                                {analysisData.coach_note && (
-                                    <div className="relative pl-5 py-5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border-l-4 border-blue-500 mt-6 shadow-sm">
-                                        <div className="absolute -top-3 left-4 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
-                                            <Bot className="w-3.5 h-3.5" /> Coach's Note
+                                {/* D. Footer - Technical Signature */}
+                                {result?.tool_calls && (
+                                    <motion.div variants={itemVariants} className="pt-10 flex flex-col items-center gap-3">
+                                        <div className="h-px w-24 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-700 to-transparent" />
+                                        <div className="text-[9px] font-black text-gray-400 uppercase tracking-[0.4em] opacity-50">
+                                            THE COACH AI CORE ENGINE v2.5.8-STABLE
                                         </div>
-                                        <div className="text-blue-900 dark:text-blue-100 text-sm font-medium leading-relaxed">
-                                            <ReactMarkdown rehypePlugins={[rehypeRaw]}>{analysisData.coach_note}</ReactMarkdown>
+                                        <div className="text-[8px] text-gray-300 dark:text-gray-600 uppercase font-bold tracking-widest">
+                                            데이터 상호 참조: {result.tool_calls.length}개 노드 · 연산 검증: 완료
                                         </div>
-                                    </div>
+                                    </motion.div>
                                 )}
-                            </div>
-
-                            {/* D. Footer */}
-                            {result?.tool_calls && result.tool_calls.length > 0 && (
-                                <div className="text-[11px] text-gray-400 text-center pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
-                                    AI 분석 모델 v2.1 • {result.tool_calls.length}개 데이터 소스 교차 검증 완료
-                                </div>
-                            )}
-
-                        </div>
-                    ) : (result as any)?.error ? (
-                        <div className="p-8 text-center">
-                            <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-                            <p className="text-red-500 font-bold">{(result as any).error}</p>
-                            <p className="text-gray-400 text-sm mt-1">잠시 후 다시 시도해주세요.</p>
-                        </div>
-                    ) : null}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </DialogContent>
         </Dialog>

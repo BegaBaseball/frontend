@@ -1,5 +1,5 @@
 import api from './axios';
-import { Game, GameDetail } from '../types/prediction';
+import { Game, GameDetail, UserPredictionStat } from '../types/prediction';
 
 /**
  * 과거 경기 데이터 가져오기
@@ -89,4 +89,12 @@ export const submitVote = async (gameId: string, votedTeam: 'home' | 'away'): Pr
 export const cancelVote = async (gameId: string): Promise<boolean> => {
   await api.delete(`/predictions/${gameId}`);
   return true;
+};
+
+/**
+ * 내 예측 통계 조회
+ */
+export const fetchMyPredictionStats = async (): Promise<UserPredictionStat> => {
+  const response = await api.get<{ success: boolean; data: UserPredictionStat }>('/prediction/stats/me');
+  return response.data.data;
 };

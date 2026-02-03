@@ -2,7 +2,7 @@ import { defineConfig } from 'cypress';
 
 export default defineConfig({
     e2e: {
-        baseUrl: 'http://localhost:3000',
+        baseUrl: 'http://localhost:5176',
         viewportWidth: 1280,
         viewportHeight: 720,
         video: false,
@@ -11,7 +11,12 @@ export default defineConfig({
         requestTimeout: 10000,
         responseTimeout: 30000,
         setupNodeEvents(on, config) {
-            // implement node event listeners here
+            on('task', {
+                log(message) {
+                    console.log(message);
+                    return null;
+                },
+            });
         },
     },
 });
