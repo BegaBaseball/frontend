@@ -9,6 +9,7 @@ export const teamNameMap: { [key: string]: string } = {
     'NC': 'NC',
     'SS': '삼성',
     'WO': '키움',
+    'SSG': 'SSG',
     'SK': 'SSG',
     'HH': '한화',
     'LG': 'LG',

@@ -79,7 +79,9 @@ export const fetchVoteStatus = async (gameId: string): Promise<{ homeVotes: numb
  * 투표하기
  */
 export const submitVote = async (gameId: string, votedTeam: 'home' | 'away'): Promise<boolean> => {
-  await api.post('/predictions/vote', { gameId, votedTeam });
+  await api.post('/predictions/vote', { gameId, votedTeam }, {
+    skipGlobalErrorHandler: true,
+  } as any);
   return true;
 };
 
@@ -87,7 +89,9 @@ export const submitVote = async (gameId: string, votedTeam: 'home' | 'away'): Pr
  * 투표 취소하기
  */
 export const cancelVote = async (gameId: string): Promise<boolean> => {
-  await api.delete(`/predictions/${gameId}`);
+  await api.delete(`/predictions/${gameId}`, {
+    skipGlobalErrorHandler: true,
+  } as any);
   return true;
 };
 

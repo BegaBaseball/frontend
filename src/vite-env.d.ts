@@ -1,6 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  readonly VITE_KAKAO_MAP_KEY?: string;
+  readonly VITE_KAKAO_API_KEY?: string;
   readonly VITE_CHEER_API_URL?: string;
   readonly VITE_SUPABASE_SIGN_FUNCTION_URL?: string;
   readonly VITE_PROXY_TARGET?: string;

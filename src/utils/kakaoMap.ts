@@ -9,39 +9,45 @@ export interface KakaoMapOptions {
   level?: number;
 }
 
-export const loadKakaoMapScript = (onLoad?: () => void, onError?: () => void) => {
+export const loadKakaoMapScript = (onLoad?: () => void, onError?: (message?: string) => void) => {
   if (!KAKAO_API_KEY) {
     console.error('카카오 API 키가 없습니다');
+    onError?.('카카오맵 API 키가 없습니다.');
     return;
   }
 
-  if (window.kakao && window.kakao.maps) {
-    onLoad?.();
+  const handleError = () => {
+    console.error('카카오맵 스크립트 로드 실패');
+    onError?.('카카오맵 스크립트 로드 실패');
+  };
+
+  const handleReady = () => {
+    if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
+      window.kakao.maps.load(() => {
+        onLoad?.();
+      });
+    }
+  };
+
+  if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
+    handleReady();
     return;
   }
 
-  const existingScript = document.querySelector(`script[src*="dapi.kakao.com"]`);
+  const existingScript = document.querySelector('script[src*="dapi.kakao.com/v2/maps/sdk.js"]') as HTMLScriptElement | null;
   if (existingScript) {
+    existingScript.addEventListener('load', handleReady, { once: true });
+    existingScript.addEventListener('error', handleError, { once: true });
     return;
   }
 
   const script = document.createElement('script');
   script.type = 'text/javascript';
-  script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_API_KEY}&libraries=services&autoload=false`;
+  script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_API_KEY}&libraries=services&autoload=false`;
+  script.async = true;
   
-  script.onload = () => {
-    if (window.kakao && window.kakao.maps) {
-      window.kakao.maps.load(() => {
-        
-        onLoad?.();
-      });
-    }
-  };
-  
-  script.onerror = () => {
-    console.error('카카오맵 스크립트 로드 실패');
-    onError?.();
-  };
+  script.onload = handleReady;
+  script.onerror = handleError;
   
   document.head.appendChild(script);
 };

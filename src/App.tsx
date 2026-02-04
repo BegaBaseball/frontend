@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
+import { KAKAO_API_KEY } from './utils/constants';
 import Layout from './components/Layout';
 import ChatBot from './components/ChatBot';
 import ScrollToTop from './components/ScrollToTop';
@@ -98,11 +99,9 @@ export default function App() {
   }, [isLoggedIn]);
 
   useEffect(() => {
-    const KAKAO_KEY = import.meta.env.VITE_KAKAO_API_KEY;
-
-    if (window.Kakao && KAKAO_KEY) {
+    if (window.Kakao && KAKAO_API_KEY) {
       if (!window.Kakao.isInitialized()) {
-        window.Kakao.init(KAKAO_KEY);
+        window.Kakao.init(KAKAO_API_KEY);
       }
     }
   }, []);

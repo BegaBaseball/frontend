@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { useLeaderboardStore } from '../store/leaderboardStore';
 import { Game, DateGames, VoteStatus, ConfirmDialogData, VoteTeam, PredictionTab, GameDetail } from '../types/prediction';
+import { parseError } from '../utils/errorUtils';
 import {
   fetchMatchesByDate,
   fetchMatchesByRange,
@@ -271,20 +272,21 @@ export const usePrediction = () => {
         triggerCombo(currentStreak);
       }
     } catch (error: any) {
-      toast.error(error.message || '투표에 실패했습니다.');
+      const parsedError = parseError(error);
+      toast.error(parsedError.message || '투표에 실패했습니다.');
     }
   };
 
   // 투표 취소 실행
   const executeCancelVote = async (gameId: string) => {
-    const success = await cancelVote(gameId);
-    if (success) {
-
+    try {
+      await cancelVote(gameId);
       setUserVote(prev => ({ ...prev, [gameId]: null }));
       loadVoteStatus(gameId);
       toast.success('투표가 취소되었습니다.');
-    } else {
-      toast.error('투표 취소에 실패했습니다.');
+    } catch (error) {
+      const parsedError = parseError(error);
+      toast.error(parsedError.message || '투표 취소에 실패했습니다.');
     }
   };
 

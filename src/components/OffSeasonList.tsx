@@ -91,7 +91,7 @@ export default function OffSeasonList() {
     const getTeamName = (code: string) => {
         const teamNameMap: { [key: string]: string } = {
             'OB': '두산', 'HT': 'KIA', 'LT': '롯데', 'NC': 'NC', 'SS': '삼성',
-            'WO': '키움', 'SK': 'SSG', 'HH': '한화', 'LG': 'LG', 'KT': 'KT'
+            'WO': '키움', 'SSG': 'SSG', 'HH': '한화', 'LG': 'LG', 'KT': 'KT'
         };
         return teamNameMap[code] || code;
     };

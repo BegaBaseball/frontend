@@ -371,7 +371,7 @@ export default function AdvancedMatchCard({
     .sort((a, b) => (a._inning - b._inning) || (a._index - b._index));
 
   return (
-    <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-gray-800 transition-colors duration-300 mb-6">
+    <Card className="overflow-hidden border border-slate-200/70 shadow-lg bg-white/90 dark:border-slate-700/60 dark:bg-slate-900/70 dark:shadow-xl transition-colors duration-300 mb-6 rounded-2xl">
       <div className="p-4 md:p-6">
         {/* 투표 버튼 영역 */}
 
@@ -420,7 +420,7 @@ export default function AdvancedMatchCard({
           </div>
         )}
 
-        <DetailWrapper className="mt-4 md:mt-6 overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/80 shadow-lg">
+        <DetailWrapper className="mt-4 md:mt-6 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-slate-700/60 dark:bg-slate-950/60 dark:shadow-md">
           <div
             className="relative overflow-hidden rounded-t-2xl px-4 pt-12 pb-10 text-white"
             style={{

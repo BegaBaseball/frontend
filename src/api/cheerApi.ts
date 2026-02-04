@@ -230,8 +230,8 @@ function transformPost(post: any): CheerPost {
         commentCount: post.commentCount || post.comments || 0,
         repostCount: post.repostCount || 0,
         views: post.views,
-        liked: post.liked ?? false,
-        likedByUser: post.liked ?? false,
+        liked: post.liked ?? post.likedByMe ?? false,
+        likedByUser: post.liked ?? post.likedByMe ?? false,
         bookmarked: post.bookmarkedByMe ?? post.isBookmarked ?? false,
         isBookmarked: post.bookmarkedByMe ?? post.isBookmarked ?? false,
         images: post.imageUrls || [],
@@ -381,7 +381,7 @@ export async function cancelRepost(repostId: number): Promise<RepostToggleRespon
 
 // 인용 리포스트
 export async function createQuoteRepost(postId: number, content: string) {
-    const response = await api.post(`/cheer/posts/${postId}/repost`, {
+    const response = await api.post(`/cheer/posts/${postId}/quote`, {
         content
     });
     return transformPost(response.data);
@@ -441,7 +441,7 @@ export async function deleteImage(postId: number, imageUrl: string): Promise<voi
 
 // 이미지 단건 삭제 (ID 기반)
 export async function deleteImageById(imageId: number): Promise<void> {
-    await api.delete(`/cheer/images/${imageId}`);
+    await api.delete(`/images/${imageId}`);
 }
 
 export interface PostImageDto {

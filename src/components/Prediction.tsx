@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from './ui/card';
-import { Button } from './ui/button';
 import { TrendingUp, ChevronLeft, ChevronRight, Trophy, Flame, Target, Coins, LineChart, Gamepad2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ChatBot from './ChatBot';
@@ -8,6 +7,7 @@ import RankingPrediction from './RankingPrediction';
 import ComboAnimation from './retro/ComboAnimation';
 import AdvancedMatchCard from './prediction/AdvancedMatchCard';
 import CoachBriefing from './CoachBriefing';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,6 @@ import { usePrediction } from '../hooks/usePrediction';
 import { fetchMyPredictionStats } from '../api/prediction';
 import { useRankingsData } from '../api/home';
 import { useAuthStore } from '../store/authStore';
-import { TEAM_NAME_TO_ID } from '../constants/teams';
 import {
   formatDate,
   calculateVotePercentages,
@@ -38,16 +37,6 @@ const emptyUserStats: UserPredictionStat = {
 };
 
 const TOTAL_SEASON_GAMES = 144;
-const TEAM_ID_ALIASES: Record<string, string> = {
-  KIA: 'HT',
-  SSG: 'SK',
-  DO: 'OB',
-  KI: 'WO',
-  NX: 'WO',
-  BE: 'HH',
-  MBC: 'LG',
-  SL: 'SK',
-};
 
 export default function Prediction() {
   const [userStats, setUserStats] = useState<UserPredictionStat>(emptyUserStats);
@@ -116,16 +105,10 @@ export default function Prediction() {
   const currentGame = currentDateGames.length > 0 ? currentDateGames[selectedGame] : null;
   const currentGameId = currentGame?.gameId;
 
-  const normalizeTeamId = (teamId?: string | null) => {
-    if (!teamId) return null;
-    return TEAM_ID_ALIASES[teamId] ?? TEAM_NAME_TO_ID[teamId] ?? teamId;
-  };
-
   const rankingByTeamId = useMemo(() => {
     const map = new Map<string, { rank: number; gamesBehind?: number; games: number }>();
     rankings.forEach((team) => {
-      const normalizedId = normalizeTeamId(team.teamId) ?? team.teamId;
-      map.set(normalizedId, {
+      map.set(team.teamId, {
         rank: team.rank,
         gamesBehind: team.gamesBehind,
         games: team.games,
@@ -136,9 +119,7 @@ export default function Prediction() {
 
   const buildTeamContext = (teamId?: string) => {
     if (!teamId) return null;
-    const normalizedId = normalizeTeamId(teamId);
-    if (!normalizedId) return null;
-    const ranking = rankingByTeamId.get(normalizedId);
+    const ranking = rankingByTeamId.get(teamId);
     if (!ranking || ranking.gamesBehind == null) return null;
     const remainingGames = Math.max(0, TOTAL_SEASON_GAMES - ranking.games);
     if (!Number.isFinite(remainingGames)) return null;
@@ -188,23 +169,23 @@ export default function Prediction() {
   // 로딩 중 - 스켈레톤 UI
   if (isAuthLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Title skeleton */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-lg w-10 h-10 animate-pulse" />
-            <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="bg-slate-200 dark:bg-slate-800 p-2 rounded-lg w-10 h-10 animate-pulse" />
+            <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
           </div>
 
           {/* Stats skeleton */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
             {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm animate-pulse">
+              <Card key={i} className="p-4 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md animate-pulse">
                 <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
-                  <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700" />
+                  <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800" />
                   <div className="space-y-2">
-                    <div className="h-3 w-12 bg-gray-200 dark:bg-gray-700 rounded" />
-                    <div className="h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                    <div className="h-3 w-12 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
                   </div>
                 </div>
               </Card>
@@ -212,40 +193,40 @@ export default function Prediction() {
           </div>
 
           {/* Tab skeleton */}
-          <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-xl md:rounded-2xl mb-6 md:mb-8 w-fit animate-pulse">
-            <div className="w-20 h-10 bg-gray-300 dark:bg-gray-700 rounded-lg" />
-            <div className="w-20 h-10 bg-gray-300 dark:bg-gray-700 rounded-lg ml-1" />
+          <div className="flex p-1 bg-slate-200 dark:bg-slate-800 rounded-xl md:rounded-2xl mb-6 md:mb-8 w-fit animate-pulse">
+            <div className="w-20 h-10 bg-slate-300 dark:bg-slate-700 rounded-lg" />
+            <div className="w-20 h-10 bg-slate-300 dark:bg-slate-700 rounded-lg ml-1" />
           </div>
 
           {/* Match card skeleton */}
-          <Card className="p-4 mb-6 bg-white dark:bg-gray-800 border-none shadow-sm animate-pulse">
+          <Card className="p-4 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md animate-pulse">
             <div className="flex items-center justify-between">
-              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full" />
+              <div className="w-10 h-10 bg-slate-200 dark:bg-slate-800 rounded-full" />
               <div className="flex-1 text-center space-y-2 px-4">
-                <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded mx-auto" />
-                <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded mx-auto" />
+                <div className="h-5 w-32 bg-slate-200 dark:bg-slate-800 rounded mx-auto" />
+                <div className="h-4 w-48 bg-slate-200 dark:bg-slate-800 rounded mx-auto" />
               </div>
-              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full" />
+              <div className="w-10 h-10 bg-slate-200 dark:bg-slate-800 rounded-full" />
             </div>
           </Card>
 
-          <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-gray-800 animate-pulse">
-            <div className="h-12 bg-gray-300 dark:bg-gray-700" />
+          <Card className="overflow-hidden border border-slate-200/70 shadow-sm bg-white/90 dark:border-slate-700/60 dark:bg-slate-900/70 dark:shadow-md animate-pulse">
+            <div className="h-12 bg-slate-200 dark:bg-slate-800" />
             <div className="p-6 space-y-6">
               <div className="flex justify-between">
                 <div className="flex flex-col items-center w-1/3 space-y-2">
-                  <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
-                  <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
-                  <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="w-16 h-16 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                  <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
+                  <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
                 </div>
                 <div className="flex flex-col items-center w-1/3 space-y-2">
-                  <div className="h-8 w-12 bg-gray-200 dark:bg-gray-700 rounded" />
-                  <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="h-8 w-12 bg-slate-200 dark:bg-slate-800 rounded" />
+                  <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" />
                 </div>
                 <div className="flex flex-col items-center w-1/3 space-y-2">
-                  <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
-                  <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
-                  <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="w-16 h-16 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                  <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
+                  <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
                 </div>
               </div>
             </div>
@@ -256,15 +237,15 @@ export default function Prediction() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors duration-200">
       {/* 컨펌 다이얼로그 */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700">
           <AlertDialogHeader>
-            <AlertDialogTitle style={{ color: '#2d5f4f' }} className="dark:text-[#4ade80]">
+            <AlertDialogTitle className="text-emerald-700 dark:text-emerald-300">
               {confirmDialogData.title}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-base whitespace-pre-line text-gray-600 dark:text-gray-300">
+            <AlertDialogDescription className="text-base whitespace-pre-line text-slate-600 dark:text-slate-300">
               {confirmDialogData.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -272,8 +253,7 @@ export default function Prediction() {
             <AlertDialogCancel className="dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">취소</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDialogData.onConfirm}
-              className="text-white hover:opacity-90"
-              style={{ backgroundColor: '#2d5f4f' }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-300 dark:text-slate-900 dark:hover:bg-emerald-200"
             >
               확인
             </AlertDialogAction>
@@ -284,25 +264,25 @@ export default function Prediction() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Title */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="bg-[#2d5f4f] dark:bg-[#4ade80] p-2 rounded-lg">
-            <LineChart className="w-6 h-6 text-white dark:text-gray-900" />
+          <div className="bg-emerald-100/70 p-2.5 rounded-xl border border-emerald-200/70 shadow-[0_0_12px_rgba(16,185,129,0.2)] dark:bg-emerald-400/15 dark:border-emerald-400/30 dark:shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+            <LineChart className="w-5 h-5 text-emerald-700 dark:text-emerald-300" />
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-black text-[#2d5f4f] dark:text-[#4ade80]">전력분석실</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">전력분석실</h2>
           </div>
           <div className="flex items-center gap-2">
             {/* Leaderboard Link */}
             <Link
               to="/leaderboard"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 rounded-full hover:from-cyan-500/20 hover:to-purple-500/20 transition-all group"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full hover:border-emerald-400/60 transition-colors group shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:hover:border-emerald-400/70 dark:shadow-md"
             >
-              <Gamepad2 className="w-4 h-4 text-cyan-500 group-hover:text-cyan-400 transition-colors" />
-              <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hidden sm:inline">랭킹</span>
+              <Gamepad2 className="w-4 h-4 text-slate-500 group-hover:text-emerald-600 dark:text-slate-400 dark:group-hover:text-emerald-300 transition-colors" />
+              <span className="text-sm font-semibold text-slate-600 dark:text-slate-300 hidden sm:inline">랭킹</span>
             </Link>
             {isLoggedIn && (
-              <div className="flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50 rounded-full">
-                <Coins className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                <span className="text-sm font-bold text-yellow-700 dark:text-yellow-300 tabular-nums">
+              <div className="flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full shadow-sm dark:bg-emerald-900/40 dark:border-emerald-800/40 dark:shadow-md">
+                <Coins className="w-4 h-4 text-emerald-700 fill-emerald-700 dark:text-emerald-200 dark:fill-emerald-200" />
+                <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-100 tabular-nums">
                   {user?.cheerPoints?.toLocaleString() || 0} P
                 </span>
               </div>
@@ -315,110 +295,124 @@ export default function Prediction() {
           game={currentGame}
           gameDetail={currentGameDetail}
           seasonContext={seasonContext}
-          totalVotes={currentVotes.home + currentVotes.away}
           isPastGame={isPastGame}
         />
 
         {/* User Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm">
-            <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
-              <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
-                <Target className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
+        <Card className="mb-6 md:mb-8 overflow-hidden border border-emerald-200/70 shadow-sm bg-white/90 rounded-2xl dark:bg-emerald-950/40 dark:border-emerald-900/50 dark:shadow-md">
+          <div className="grid grid-cols-2 md:grid-cols-4">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-r border-emerald-100/70 dark:border-emerald-900/40 md:border-b-0">
+              <div className="p-2.5 bg-emerald-100 rounded-xl dark:bg-emerald-900/40">
+                <Target className="w-5 h-5 text-emerald-900 dark:text-emerald-200" />
               </div>
-              <div className="text-center sm:text-left">
-                <p className="text-xs text-gray-500 dark:text-gray-400">적중률</p>
-                <p className="text-lg font-black text-gray-900 dark:text-gray-100 tabular-nums">
+              <div>
+                <p className="text-xs text-emerald-800/70 dark:text-emerald-200/70">적중률</p>
+                <p className="text-lg font-semibold text-emerald-950 dark:text-emerald-100 tabular-nums">
                   {userStats.accuracy.toFixed(1)}%
                 </p>
               </div>
             </div>
-          </Card>
 
-          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm">
-            <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
-              <div className="p-2 bg-orange-50 dark:bg-orange-900/30 rounded-lg">
-                <Flame className="w-5 h-5 text-orange-500 dark:text-orange-300" />
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-emerald-100/70 dark:border-emerald-900/40 md:border-b-0 md:border-r">
+              <div className="p-2.5 bg-emerald-100 rounded-xl dark:bg-emerald-900/40">
+                <Flame className="w-5 h-5 text-emerald-900 dark:text-emerald-200" />
               </div>
-              <div className="text-center sm:text-left">
-                <p className="text-xs text-gray-500 dark:text-gray-400">연승</p>
-                <p className="text-lg font-black text-gray-900 dark:text-gray-100 tabular-nums">
+              <div>
+                <p className="text-xs text-emerald-800/70 dark:text-emerald-200/70">연승</p>
+                <p className="text-lg font-semibold text-emerald-950 dark:text-emerald-100 tabular-nums">
                   {userStats.streak}연승
                 </p>
               </div>
             </div>
-          </Card>
 
-          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm">
-            <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
-              <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
-                <Trophy className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+            <div className="flex items-center gap-3 px-4 py-3 border-r border-emerald-100/70 dark:border-emerald-900/40 md:border-r">
+              <div className="p-2.5 bg-emerald-100 rounded-xl dark:bg-emerald-900/40">
+                <Trophy className="w-5 h-5 text-emerald-900 dark:text-emerald-200" />
               </div>
-              <div className="text-center sm:text-left">
-                <p className="text-xs text-gray-500 dark:text-gray-400">누적 예측</p>
-                <p className="text-lg font-black text-gray-900 dark:text-gray-100 tabular-nums">
+              <div>
+                <p className="text-xs text-emerald-800/70 dark:text-emerald-200/70">누적 예측</p>
+                <p className="text-lg font-semibold text-emerald-950 dark:text-emerald-100 tabular-nums">
                   {userStats.totalPredictions.toLocaleString()}회
                 </p>
               </div>
             </div>
-          </Card>
 
-          <Card className="p-4 bg-white dark:bg-gray-800 border-none shadow-sm">
-            <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
-              <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                <Coins className="w-5 h-5 text-blue-600 dark:text-blue-300" />
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="p-2.5 bg-emerald-100 rounded-xl dark:bg-emerald-900/40">
+                <Coins className="w-5 h-5 text-emerald-900 dark:text-emerald-200" />
               </div>
-              <div className="text-center sm:text-left">
-                <p className="text-xs text-gray-500 dark:text-gray-400">적중 횟수</p>
-                <p className="text-lg font-black text-gray-900 dark:text-gray-100 tabular-nums">
+              <div>
+                <p className="text-xs text-emerald-800/70 dark:text-emerald-200/70">적중 횟수</p>
+                <p className="text-lg font-semibold text-emerald-950 dark:text-emerald-100 tabular-nums">
                   {userStats.correctPredictions.toLocaleString()}회
                 </p>
               </div>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
 
         {/* Tabs */}
-        <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-xl md:rounded-2xl mb-6 md:mb-8 w-full md:w-fit">
+        <div className="relative flex p-1 bg-white/80 border border-slate-200/70 rounded-xl md:rounded-2xl mb-6 md:mb-8 w-full md:w-fit shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md">
           <button
             onClick={() => setActiveTab('match')}
-            className={`flex-1 md:flex-none px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl transition-all text-xs md:text-sm font-bold ${activeTab === 'match'
-              ? 'bg-white dark:bg-gray-700 text-[#2d5f4f] dark:text-white shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            className={`relative flex-1 md:flex-none px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl transition-colors text-xs md:text-sm font-bold ${activeTab === 'match'
+              ? 'text-white'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
           >
-            승부예측
+            {activeTab === 'match' && (
+              <motion.span
+                layoutId="prediction-tab-indicator"
+                className="absolute inset-0 rounded-lg md:rounded-xl bg-emerald-900 shadow-sm dark:bg-emerald-700 z-0"
+                transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+              />
+            )}
+            <span className="relative z-10">승부예측</span>
           </button>
           <button
             onClick={() => setActiveTab('ranking')}
-            className={`flex-1 md:flex-none px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl transition-all text-xs md:text-sm font-bold ${activeTab === 'ranking'
-              ? 'bg-white dark:bg-gray-700 text-[#2d5f4f] dark:text-white shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            className={`relative flex-1 md:flex-none px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl transition-colors text-xs md:text-sm font-bold ${activeTab === 'ranking'
+              ? 'text-white'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
           >
-            순위예측
+            {activeTab === 'ranking' && (
+              <motion.span
+                layoutId="prediction-tab-indicator"
+                className="absolute inset-0 rounded-lg md:rounded-xl bg-emerald-900 shadow-sm dark:bg-emerald-700 z-0"
+                transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+              />
+            )}
+            <span className="relative z-10">순위예측</span>
           </button>
         </div>
 
-        {activeTab === 'match' ? (
-          <>
+        <AnimatePresence mode="wait" initial={false}>
+          {activeTab === 'match' ? (
+            <motion.div
+              key="match"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
             {/* Date Navigation */}
-            <Card className="p-4 mb-6 bg-white dark:bg-gray-800 border-none shadow-sm">
+            <Card className="p-4 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md rounded-2xl">
               <div className="flex items-center justify-between">
                 <button
                   onClick={goToPreviousDate}
                   disabled={currentDateIndex === 0}
                   aria-label="이전 날짜"
-                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[#2d5f4f] dark:text-[#4ade80]"
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-emerald-600 dark:text-emerald-300"
                 >
                   <ChevronLeft size={24} />
                 </button>
 
                 <div className="flex-1 text-center">
-                  <p className="text-lg font-black text-[#2d5f4f] dark:text-[#4ade80] mb-1">
+                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">
                     {formatDate(currentDate)}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
                     {isPastGame
                       ? '지난 경기 결과를 확인하세요'
                       : isFutureGame
@@ -433,7 +427,7 @@ export default function Prediction() {
                   onClick={goToNextDate}
                   disabled={currentDateIndex === allDatesData.length - 1}
                   aria-label="다음 날짜"
-                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[#2d5f4f] dark:text-[#4ade80]"
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-emerald-600 dark:text-emerald-300"
                 >
                   <ChevronRight size={24} />
                 </button>
@@ -451,8 +445,8 @@ export default function Prediction() {
                       aria-pressed={selectedGame === index}
                       aria-label={`${index + 1}경기 선택`}
                       className={`flex-shrink-0 px-4 py-3 min-h-[44px] rounded-full text-sm font-bold transition-all ${selectedGame === index
-                        ? 'bg-[#2d5f4f] text-white shadow-md'
-                        : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-100 dark:hover:bg-gray-700'
+                        ? 'bg-emerald-900 text-white shadow-md dark:bg-emerald-700'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-300 dark:bg-slate-900/70 dark:border-slate-700/60 dark:text-slate-400 dark:hover:border-emerald-400/60'
                         }`}
                     >
                       {index + 1}경기
@@ -477,30 +471,37 @@ export default function Prediction() {
                 )}
               </>
             ) : (
-              <Card className="p-16 text-center bg-white dark:bg-gray-800 border-none shadow-sm flex flex-col items-center justify-center min-h-[400px]">
-                <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-full mb-4">
-                  <TrendingUp className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+              <Card className="p-16 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md flex flex-col items-center justify-center min-h-[400px] rounded-2xl">
+                <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4">
+                  <TrendingUp className="w-8 h-8 text-slate-400 dark:text-slate-400" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
+                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
                   {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
                 </h3>
-                <p className="text-gray-500 dark:text-gray-500">다른 날짜를 확인해보세요!</p>
+                <p className="text-slate-500 dark:text-slate-400">다른 날짜를 확인해보세요!</p>
               </Card>
             )}
-          </>
-        ) : (
-          <>
-            <Card className="p-6 mb-6 bg-white dark:bg-gray-800 border-none shadow-sm text-center">
-              <h3 className="text-xl font-black text-[#2d5f4f] dark:text-[#4ade80] mb-2">
+            </motion.div>
+          ) : (
+            <motion.div
+              key="ranking"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+            <Card className="p-6 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md text-center rounded-2xl">
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
                 2026 시즌 순위 예측
               </h3>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-slate-600 dark:text-slate-400">
                 나만의 드림팀 순위를 완성하고 친구들과 공유해보세요!
               </p>
             </Card>
             <RankingPrediction />
-          </>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <ChatBot />

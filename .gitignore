@@ -9,6 +9,7 @@ yarn-error.log*
 /.vscode
 /.npm-cache
 .env
-/cypress
-/src/assets/stadiums
+.env.*
+!.env.example
 *.log
+/cypress

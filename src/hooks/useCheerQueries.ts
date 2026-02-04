@@ -115,13 +115,11 @@ export const useCheerMutations = () => {
                         ...page,
                         content: page.content.map((p: any) => {
                             if (p.id === postId) {
-                                const isCurrentlyReposted = p.repostedByMe;
                                 return {
                                     ...p,
-                                    repostedByMe: !isCurrentlyReposted,
-                                    repostCount: isCurrentlyReposted
-                                        ? Math.max(0, (p.repostCount || 0) - 1)
-                                        : (p.repostCount || 0) + 1,
+                                    likeCount: p.liked ? p.likeCount - 1 : p.likeCount + 1,
+                                    liked: !p.liked,
+                                    likedByUser: !p.likedByUser,
                                 };
                             }
                             return p;

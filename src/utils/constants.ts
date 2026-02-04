@@ -3,7 +3,7 @@ import { Utensils, Truck, ShoppingBag, ParkingCircle } from 'lucide-react';
 import { CategoryConfig } from '../types/stadium';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 
-export const KAKAO_API_KEY = import.meta.env.VITE_KAKAO_MAP_KEY as string;
+export const KAKAO_API_KEY = (import.meta.env.VITE_KAKAO_MAP_KEY || import.meta.env.VITE_KAKAO_API_KEY || '') as string;
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string || 'http://localhost:8080/api';
 
 // 카카오맵 관련 상수

@@ -9,13 +9,13 @@ export const TEAM_DATA: Record<string, TeamInfo> = {
   '없음': { name: '없음', fullName: '없음', color: '#888888' },
   'LG': { name: 'LG', fullName: 'LG 트윈스', color: '#C30452' },
   'OB': { name: '두산', fullName: '두산 베어스', color: '#131230' },
-  'SK': { name: 'SSG', fullName: 'SSG 랜더스', color: '#CE0E2D' },
+  'SSG': { name: 'SSG', fullName: 'SSG 랜더스', color: '#CE0E2D' },
   'KT': { name: 'KT', fullName: 'KT 위즈', color: '#000000' },
   'WO': { name: '키움', fullName: '키움 히어로즈', color: '#820024' },
   'NC': { name: 'NC', fullName: 'NC 다이노스', color: '#315288' },
   'SS': { name: '삼성', fullName: '삼성 라이온즈', color: '#074CA1' },
   'LT': { name: '롯데', fullName: '롯데 자이언츠', color: '#041E42' },
-  'HT': { name: '기아', fullName: '기아 타이거즈', color: '#EA0029' },
+  'HT': { name: 'KIA', fullName: 'KIA 타이거즈', color: '#EA0029' },
   'HH': { name: '한화', fullName: '한화 이글스', color: '#F37321' },
   'ALLSTAR1': { name: '공지', fullName: '공지사항', color: '#000000' },
 };
@@ -30,7 +30,7 @@ export const TEAM_LIST = [
   'NC 다이노스',
   '삼성 라이온즈',
   '롯데 자이언츠',
-  '기아 타이거즈',
+  'KIA 타이거즈',
   '한화 이글스'
 ];
 
@@ -44,18 +44,19 @@ export const getFullTeamName = (teamId: string): string => {
 export const TEAM_NAME_TO_ID: { [key: string]: string } = {
   'LG': 'LG',
   '두산': 'OB',
-  'SSG': 'SK',
+  'SSG': 'SSG',
   'KT': 'KT',
   '키움': 'WO',
   'NC': 'NC',
   '삼성': 'SS',
   '롯데': 'LT',
   '기아': 'HT',
+  'KIA': 'HT',
   '한화': 'HH',
   // Full Name Mappings
   'LG 트윈스': 'LG',
   '두산 베어스': 'OB',
-  'SSG 랜더스': 'SK',
+  'SSG 랜더스': 'SSG',
   'KT 위즈': 'KT',
   '키움 히어로즈': 'WO',
   'NC 다이노스': 'NC',
@@ -79,6 +80,7 @@ export const TEAM_DESCRIPTIONS: { [key: string]: string } = {
   '삼성': '삼성 라이온즈는 대구를 연고로 하는 KBO 최다 우승팀! 전통과 자부심이 살아있는 명문구단입니다.',
   '롯데': '롯데 자이언츠는 부산을 대표하는 팀으로, 열정적인 팬들의 응원이 가득한 사직구장의 주인공입니다.',
   '기아': 'KIA 타이거즈는 광주를 홈으로 하는 우승 경험이 풍부한 전통의 강호입니다. 강력한 타선이 특징이에요.',
+  'KIA': 'KIA 타이거즈는 광주를 홈으로 하는 우승 경험이 풍부한 전통의 강호입니다. 강력한 타선이 특징이에요.',
   '한화': '한화 이글스는 대전을 연고로 하며, 끈기 있는 경기력과 팬들의 뜨거운 사랑으로 힘내는 팀입니다.',
 };
 

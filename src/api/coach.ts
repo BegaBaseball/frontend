@@ -54,7 +54,10 @@ export interface CoachAnalyzeResponse {
     error?: string;
 }
 
-export async function analyzeTeam(data: AnalyzeRequest): Promise<CoachAnalyzeResponse> {
+export async function analyzeTeam(
+    data: AnalyzeRequest,
+    onStream?: (chunk: string) => void
+): Promise<CoachAnalyzeResponse> {
     const response = await fetch(`${API_URL}/coach/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,5 +69,55 @@ export async function analyzeTeam(data: AnalyzeRequest): Promise<CoachAnalyzeRes
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
     }
 
-    return response.json();
+    // Handle Streaming (SSE)
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let fullAnswer = "";
+    let toolCalls = [];
+    let verified = false;
+    let dataSources = [];
+
+    if (reader) {
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.slice(6);
+                        if (dataStr === '[DONE]') continue;
+
+                        try {
+                            const parsed = JSON.parse(dataStr);
+                            if (parsed.delta) {
+                                fullAnswer += parsed.delta;
+                                if (onStream) onStream(fullAnswer);
+                            }
+                            // Handle meta event
+                            if (parsed.tool_calls) toolCalls = parsed.tool_calls;
+                            if (parsed.verified !== undefined) verified = parsed.verified;
+                            if (parsed.data_sources) dataSources = parsed.data_sources;
+                        } catch (e) {
+                            // ignore partial json
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Streaming error:", error);
+        }
+    } else {
+        return response.json();
+    }
+
+    return {
+        answer: fullAnswer,
+        tool_calls: toolCalls,
+        verified: verified,
+        data_sources: dataSources
+    };
 }

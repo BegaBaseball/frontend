@@ -57,6 +57,7 @@ const MetricCard = ({ data }: { data: CoachMetric }) => {
             border: 'border-red-200/50 dark:border-red-900/30',
             text: 'text-red-700 dark:text-red-400',
             bar: 'bg-red-500',
+            shadow: 'rgba(239, 68, 68, 0.4)',
             icon: AlertTriangle
         },
         1: {
@@ -64,6 +65,7 @@ const MetricCard = ({ data }: { data: CoachMetric }) => {
             border: 'border-amber-200/50 dark:border-amber-900/30',
             text: 'text-amber-700 dark:text-amber-400',
             bar: 'bg-amber-500',
+            shadow: 'rgba(245, 158, 11, 0.4)',
             icon: Minus
         },
         2: {
@@ -71,6 +73,7 @@ const MetricCard = ({ data }: { data: CoachMetric }) => {
             border: 'border-emerald-200/50 dark:border-emerald-900/30',
             text: 'text-emerald-700 dark:text-emerald-400',
             bar: 'bg-emerald-500',
+            shadow: 'rgba(16, 185, 129, 0.4)',
             icon: CheckCircle
         }
     }[risk_level];
@@ -122,7 +125,8 @@ const MetricCard = ({ data }: { data: CoachMetric }) => {
                         initial={{ width: 0 }}
                         animate={{ width: progressWidth }}
                         transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
-                        className={`h-full ${styles.bar} rounded-full shadow-[0_0_8px_${styles.bar}40]`}
+                        className={`h-full ${styles.bar} rounded-full`}
+                        style={{ boxShadow: `0 0 8px ${styles.shadow}` }}
                     />
                 </div>
             </div>
@@ -239,11 +243,17 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
         }, 800);
 
         try {
-            const response = await analyzeTeam({
+            // Streaming Implementation
+            await analyzeTeam({
                 team_id: TEAM_NAME_TO_ID[selectedTeam] || selectedTeam,
                 focus: focus,
+            }, (currentText) => {
+                // Real-time update
+                setResult({ answer: currentText });
+            }).then(finalResult => {
+                setResult(finalResult);
             });
-            setResult(response);
+
         } catch (error) {
             console.error(error);
             setResult({ error: '분석 중 오류가 발생했습니다.' });
