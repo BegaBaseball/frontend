@@ -59,7 +59,7 @@ export default function CheerBookmarks() {
             })}
           </aside>
 
-          <main className="flex w-full flex-col gap-0 bg-white dark:bg-[#151A23] border-x border-[#EFF3F4] dark:border-[#232938] lg:max-w-[600px]">
+          <main className="flex w-full flex-col gap-0 bg-white dark:bg-[#151A23] border-x border-[#EFF3F4] dark:border-[#232938]">
             <div className="border-b border-[#EFF3F4] dark:border-[#232938] px-4 py-4">
               <h1 className="text-lg font-bold text-[#0F172A] dark:text-white">북마크</h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">저장해둔 게시글을 모아볼 수 있어요.</p>

@@ -303,8 +303,20 @@ export default function MateCreate() {
                     onChange={handleFileUpload}
                     className="hidden"
                     disabled={isScanning}
+                    aria-label="티켓 이미지 업로드"
                   />
-                  <label htmlFor="ticketFile" className={`cursor-pointer ${isScanning ? 'pointer-events-none' : ''}`}>
+                  <label
+                    htmlFor="ticketFile"
+                    tabIndex={isScanning ? -1 : 0}
+                    role="button"
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && !isScanning) {
+                        e.preventDefault();
+                        document.getElementById('ticketFile')?.click();
+                      }
+                    }}
+                    className={`cursor-pointer block focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] focus:ring-offset-2 rounded-lg ${isScanning ? 'pointer-events-none' : ''}`}
+                  >
                     {isScanning ? (
                       <div className="flex flex-col items-center gap-3">
                         <Loader2 className="w-16 h-16 text-primary animate-spin" />
@@ -317,7 +329,7 @@ export default function MateCreate() {
                         <p className="text-green-700 dark:text-green-400 font-bold text-lg">
                           {formData.ticketFile.name}
                         </p>
-                        <p className="text-gray-500">클릭하여 다른 파일 선택</p>
+                        <p className="text-gray-500">클릭 또는 Enter로 다른 파일 선택</p>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-3">
@@ -380,12 +392,12 @@ export default function MateCreate() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>홈 팀 *</Label>
+                  <Label id="homeTeam-label">홈 팀 *</Label>
                   <Select
                     value={formData.homeTeam}
                     onValueChange={(value: string) => updateFormData({ homeTeam: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-labelledby="homeTeam-label">
                       <SelectValue placeholder="홈 팀 선택" />
                     </SelectTrigger>
                     <SelectContent>
@@ -402,12 +414,12 @@ export default function MateCreate() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>원정 팀 *</Label>
+                  <Label id="awayTeam-label">원정 팀 *</Label>
                   <Select
                     value={formData.awayTeam}
                     onValueChange={(value: string) => updateFormData({ awayTeam: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-labelledby="awayTeam-label">
                       <SelectValue placeholder="원정 팀 선택" />
                     </SelectTrigger>
                     <SelectContent>
@@ -425,12 +437,12 @@ export default function MateCreate() {
               </div>
 
               <div className="space-y-2">
-                <Label>구장 *</Label>
+                <Label id="stadium-label">구장 *</Label>
                 <Select
                   value={formData.stadium}
                   onValueChange={(value: string) => updateFormData({ stadium: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-labelledby="stadium-label">
                     <SelectValue placeholder="구장 선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -463,14 +475,14 @@ export default function MateCreate() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="participants">모집 인원 *</Label>
+                <Label id="participants-label">모집 인원 *</Label>
                 <Select
                   value={formData.maxParticipants.toString()}
                   onValueChange={(value: string) =>
                     updateFormData({ maxParticipants: parseInt(value) })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-labelledby="participants-label">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -525,12 +537,21 @@ export default function MateCreate() {
                   onChange={(e) => handleDescriptionChange(e.target.value)}
                   placeholder="함께 야구를 즐길 메이트에게 하고 싶은 말을 작성해주세요..."
                   className="min-h-[150px]"
+                  aria-describedby="description-hint description-count"
                 />
                 <div className="flex justify-between text-sm">
-                  <span className={formErrors.description ? 'text-red-500' : 'text-gray-500'}>
+                  <span
+                    id="description-hint"
+                    className={formErrors.description ? 'text-red-500' : 'text-gray-500'}
+                  >
                     {formErrors.description || '10자 이상 200자 이하'}
                   </span>
-                  <span className="text-gray-500">
+                  <span
+                    id="description-count"
+                    className="text-gray-500"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
                     {formData.description.length}/200
                   </span>
                 </div>

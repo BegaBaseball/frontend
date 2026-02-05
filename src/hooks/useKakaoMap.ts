@@ -51,7 +51,7 @@ export const useKakaoMap = (selectedStadium: Stadium | null) => {
       stadiumMarkerRef.current = marker;
 
       const infowindow = new window.kakao.maps.InfoWindow({
-        content: `<div style="padding:8px 12px;font-weight:700;white-space:nowrap;min-width:fit-content;">${selectedStadium.stadiumName}</div>`,
+        content: `<div style="padding:8px 12px;font-weight:700;white-space:nowrap;min-width:fit-content;color:#111827;">${selectedStadium.stadiumName}</div>`,
         removable: false
       });
       infowindow.open(newMap, marker);

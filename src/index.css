@@ -82,6 +82,10 @@
   .dark select {
     color: rgb(243 244 246);
   }
+
+  .kakao-map-container {
+    color: #111827;
+  }
 }
 
 @layer utilities {

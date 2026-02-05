@@ -35,16 +35,66 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
         if (/^\*\*\[.*\]\*\*$/.test(trimmed)) return false;
         if (/핵심\s*변수|승부\s*포인트|요약/.test(trimmed)) return false;
 
+        // Relaxed constraints: allow up to 5 commas and 5 sentences for detailed analysis
         const commaCount = (trimmed.match(/[,，]/g) || []).length;
-        if (commaCount > 2) return false;
+        if (commaCount > 5) return false;
 
         const sentenceSplit = trimmed.split(/[.!?]/).filter((part) => part.trim().length > 0);
-        if (sentenceSplit.length > 2) return false;
+        if (sentenceSplit.length > 5) return false;
 
         return true;
     };
 
     const parseAiBriefing = (rawText: string) => {
+        // First, try parsing as JSON (COACH_PROMPT_V2 format)
+        try {
+            // Clean up potential markdown code fences
+            let jsonText = rawText.trim();
+            if (jsonText.startsWith('```json')) {
+                jsonText = jsonText.slice(7);
+            } else if (jsonText.startsWith('```')) {
+                jsonText = jsonText.slice(3);
+            }
+            if (jsonText.endsWith('```')) {
+                jsonText = jsonText.slice(0, -3);
+            }
+            jsonText = jsonText.trim();
+
+            const parsed = JSON.parse(jsonText);
+            if (parsed.headline || parsed.coach_note) {
+                const title = parsed.headline || briefingLabel;
+                // Use coach_note as message, or construct from analysis
+                let message = parsed.coach_note || '';
+                if (!message && parsed.analysis?.strengths?.[0]) {
+                    message = parsed.analysis.strengths[0];
+                }
+                if (!message && parsed.detailed_markdown) {
+                    // Extract first meaningful line from detailed_markdown
+                    const lines = parsed.detailed_markdown.split('\n').filter((l: string) => l.trim() && !l.startsWith('#'));
+                    message = lines[0] || '';
+                }
+                if (message && isMeaningfulMessage(message)) {
+                    return { title, message };
+                }
+                // If coach_note is empty, try to extract from weaknesses or risks
+                if (!message && parsed.analysis?.weaknesses?.[0]) {
+                    message = parsed.analysis.weaknesses[0];
+                }
+                if (!message && parsed.analysis?.risks?.[0]?.description) {
+                    message = parsed.analysis.risks[0].description;
+                }
+                // If still no message, use headline as title but with a summary message
+                if (title && title !== briefingLabel) {
+                    // Don't repeat the headline - provide context instead
+                    const summaryMessage = message || '상세 분석을 확인하려면 "상세 분석" 버튼을 클릭하세요.';
+                    return { title, message: summaryMessage };
+                }
+            }
+        } catch {
+            // Not JSON, fall through to markdown parsing
+        }
+
+        // Fallback: Parse as markdown (legacy format)
         const lines = rawText
             .split('\n')
             .map(line => line.trim())
@@ -68,6 +118,7 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
         return { title, message };
     };
 
+
     const fallbackMessage = 'AI 분석 내용을 준비하지 못했습니다.';
 
     const buildPastPrompt = (homeTeamName: string, awayTeamName: string) => {
@@ -79,8 +130,9 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
             ? `스코어 ${awayTeamName} ${awayScore}-${homeScore} ${homeTeamName}`
             : '스코어: 미상';
         const baseLines = [
-            '너는 야구 해설위원이다. 1~2문장, 문장당 쉼표 1개 이하.',
-            '단순 스코어 요약 금지.',
+            '너는 데이터 기반 야구 분석 전문가다.',
+            '3~4문장으로 분석하되, 반드시 선수명과 구체적 수치(ERA, OPS, 타율 등)를 포함해라.',
+            '추상적 표현(불안하다, 개선이 필요하다) 대신 수치로 근거를 제시해라.',
         ];
 
         const contextLine = `맥락: 순위 ${homeContext?.rank ?? '미상'}위/${awayContext?.rank ?? '미상'}위, 승차 ${homeContext?.gamesBehind ?? '미상'}/${awayContext?.gamesBehind ?? '미상'}, 잔여 ${homeContext?.remainingGames ?? '미상'}/${awayContext?.remainingGames ?? '미상'}경기`;
@@ -89,7 +141,9 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
     };
 
     const buildPreviewPrompt = (homeTeamName: string, awayTeamName: string) => (
-        `1~2문장, 문장당 쉼표 1개 이하.\n경기: ${awayTeamName} vs ${homeTeamName}\n` +
+        `데이터 기반 분석 전문가로서 3~4문장으로 분석해라.\n` +
+        `반드시 선수명과 구체적 수치(ERA, OPS, 타율 등)를 포함해라.\n` +
+        `경기: ${awayTeamName} vs ${homeTeamName}\n` +
         `맥락: 순위 ${seasonContext?.home?.rank ?? '미상'}위/${seasonContext?.away?.rank ?? '미상'}위, ` +
         `승차 ${seasonContext?.home?.gamesBehind ?? '미상'}/${seasonContext?.away?.gamesBehind ?? '미상'}, ` +
         `잔여 ${seasonContext?.home?.remainingGames ?? '미상'}/${seasonContext?.away?.remainingGames ?? '미상'}경기`
@@ -134,6 +188,25 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
         })
             .then((response) => {
                 if (!active) return;
+
+                // Priority 1: Use structuredData from meta event (pre-parsed by backend)
+                if (response.structuredData) {
+                    const structured = response.structuredData;
+                    const briefing = {
+                        title: structured.headline || briefingLabel,
+                        message: structured.coach_note ||
+                            structured.analysis?.strengths?.[0] ||
+                            structured.analysis?.weaknesses?.[0] ||
+                            '상세 분석을 확인하려면 "상세 분석" 버튼을 클릭하세요.'
+                    };
+                    if (isMeaningfulMessage(briefing.message)) {
+                        cacheRef.current.set(cacheKey, briefing);
+                        setAiBriefing(briefing);
+                        return;
+                    }
+                }
+
+                // Fallback: Parse raw answer text
                 const rawText = response.answer || response.raw_answer || '';
                 if (!rawText) {
                     setAiBriefing(null);

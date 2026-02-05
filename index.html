@@ -29,7 +29,12 @@
 
         // 배경색 즉시 적용으로 깜빡임 최소화
         if (theme === 'dark') {
-          document.body.style.backgroundColor = '#020617';
+          const body = document.body;
+          if (body) {
+            body.style.backgroundColor = '#020617';
+          } else {
+            root.style.backgroundColor = '#020617';
+          }
         }
       })();
     </script>

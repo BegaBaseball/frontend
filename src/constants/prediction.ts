@@ -26,6 +26,21 @@ export const TEAM_FULL_NAMES: { [key: string]: string } = {
   'WO': '키움 히어로즈'
 };
 
+// User-friendly short names for display
+export const TEAM_SHORT_NAMES: { [key: string]: string } = {
+  'LG': 'LG',
+  'OB': '두산',
+  'KT': 'KT',
+  'SSG': 'SSG',
+  'NC': 'NC',
+  'HT': 'KIA',
+  'KIA': 'KIA',
+  'SS': '삼성',
+  'HH': '한화',
+  'LT': '롯데',
+  'WO': '키움'
+};
+
 export const DAYS_OF_WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 
 export const GAME_TIME = '18:30';

@@ -26,6 +26,8 @@ import {
   formatDate,
   calculateVotePercentages,
   getGameStatus,
+  getFullTeamName,
+  getShortTeamName,
 } from '../utils/prediction';
 import { UserPredictionStat } from '../types/prediction';
 
@@ -351,40 +353,63 @@ export default function Prediction() {
           </div>
         </Card>
 
-        {/* Tabs */}
-        <div className="relative flex p-1 bg-white/80 border border-slate-200/70 rounded-xl md:rounded-2xl mb-6 md:mb-8 w-full md:w-fit shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md">
-          <button
-            onClick={() => setActiveTab('match')}
-            className={`relative flex-1 md:flex-none px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl transition-colors text-xs md:text-sm font-bold ${activeTab === 'match'
-              ? 'text-white'
-              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-          >
-            {activeTab === 'match' && (
-              <motion.span
-                layoutId="prediction-tab-indicator"
-                className="absolute inset-0 rounded-lg md:rounded-xl bg-emerald-900 shadow-sm dark:bg-emerald-700 z-0"
-                transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-              />
-            )}
-            <span className="relative z-10">승부예측</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('ranking')}
-            className={`relative flex-1 md:flex-none px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl transition-colors text-xs md:text-sm font-bold ${activeTab === 'ranking'
-              ? 'text-white'
-              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-          >
-            {activeTab === 'ranking' && (
-              <motion.span
-                layoutId="prediction-tab-indicator"
-                className="absolute inset-0 rounded-lg md:rounded-xl bg-emerald-900 shadow-sm dark:bg-emerald-700 z-0"
-                transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-              />
-            )}
-            <span className="relative z-10">순위예측</span>
-          </button>
+        {/* Tabs and Game Selection Container */}
+        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6 md:mb-8">
+          {/* Mode Tabs */}
+          <div className="relative flex p-1 bg-white/80 border border-slate-200/70 rounded-xl shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md">
+            <button
+              onClick={() => setActiveTab('match')}
+              className={`relative px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'match'
+                ? 'text-white'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+            >
+              {activeTab === 'match' && (
+                <motion.span
+                  layoutId="prediction-tab-indicator"
+                  className="absolute inset-0 rounded-lg bg-emerald-900 shadow-sm dark:bg-emerald-700 z-0"
+                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                />
+              )}
+              <span className="relative z-10">승부예측</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('ranking')}
+              className={`relative px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'ranking'
+                ? 'text-white'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+            >
+              {activeTab === 'ranking' && (
+                <motion.span
+                  layoutId="prediction-tab-indicator"
+                  className="absolute inset-0 rounded-lg bg-emerald-900 shadow-sm dark:bg-emerald-700 z-0"
+                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                />
+              )}
+              <span className="relative z-10">순위예측</span>
+            </button>
+          </div>
+
+          {/* Game Selection Tabs */}
+          {activeTab === 'match' && currentDateGames.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+              {currentDateGames.map((game, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedGame(index)}
+                  aria-pressed={selectedGame === index}
+                  aria-label={`${getShortTeamName(game.awayTeam)} vs ${getShortTeamName(game.homeTeam)} 선택`}
+                  className={`flex-shrink-0 px-3 py-2 min-h-[40px] rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${selectedGame === index
+                    ? 'bg-emerald-900 text-white shadow-md dark:bg-emerald-700'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-300 dark:bg-slate-900/70 dark:border-slate-700/60 dark:text-slate-400 dark:hover:border-emerald-400/60'
+                    }`}
+                >
+                  {getShortTeamName(game.awayTeam)} vs {getShortTeamName(game.homeTeam)}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <AnimatePresence mode="wait" initial={false}>
@@ -396,91 +421,89 @@ export default function Prediction() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-            {/* Date Navigation */}
-            <Card className="p-4 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md rounded-2xl">
-              <div className="flex items-center justify-between">
+              {/* Date Navigation & Content Wrapper */}
+              <div className="w-full">
+                {currentDateGames.length > 0 ? (
+                  <>
+
+
+                    {/* Advanced Game Card */}
+                    {currentGame && (
+                      <AdvancedMatchCard
+                        key={currentGame.gameId}
+                        game={currentGame}
+                        gameDetail={currentGameDetail}
+                        gameDetailLoading={currentGameDetailLoading}
+                        userVote={userVote[currentGameId!] || null}
+                        votePercentages={votePercentages}
+                        isVoteOpen={gameStatus.isVoteOpen}
+                        statusLabel={gameStatus.statusLabel}
+                        isClosed={gameStatus.isClosed}
+                        onVote={(team) => handleVote(team, currentGame, gameStatus.isVoteOpen)}
+                        onPrevDate={goToPreviousDate}
+                        onNextDate={goToNextDate}
+                        hasPrevDate={currentDateIndex > 0}
+                        hasNextDate={currentDateIndex < allDatesData.length - 1}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <Card className="relative p-16 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md flex flex-col items-center justify-center min-h-[400px] rounded-2xl">
+                    {/* Navigation Buttons for Empty State */}
+                    <div className="hidden md:block">
+                      <button
+                        onClick={goToPreviousDate}
+                        disabled={currentDateIndex === 0}
+                        className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-slate-500 transition-colors"
+                      >
+                        <ChevronLeft size={36} />
+                      </button>
+                      <button
+                        onClick={goToNextDate}
+                        disabled={currentDateIndex === allDatesData.length - 1}
+                        className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-slate-500 transition-colors"
+                      >
+                        <ChevronRight size={36} />
+                      </button>
+                    </div>
+
+                    <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4">
+                      <TrendingUp className="w-8 h-8 text-slate-400 dark:text-slate-400" />
+                    </div>
+                    <div className="mb-4">
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                        {formatDate(currentDate)}
+                      </p>
+                    </div>
+                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
+                      {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
+                    </h3>
+                    <p className="text-slate-500 dark:text-slate-400">다른 날짜를 확인해보세요!</p>
+                  </Card>
+                )}
+              </div>
+
+
+              {/* Mobile Navigation (Bottom) */}
+              <div className="flex md:hidden items-center justify-between mt-4 px-4">
                 <button
                   onClick={goToPreviousDate}
                   disabled={currentDateIndex === 0}
-                  aria-label="이전 날짜"
-                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-emerald-600 dark:text-emerald-300"
+                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30"
                 >
-                  <ChevronLeft size={24} />
+                  <ChevronLeft size={24} className="text-emerald-600 dark:text-emerald-300" />
                 </button>
-
-                <div className="flex-1 text-center">
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">
-                    {formatDate(currentDate)}
-                  </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                    {isPastGame
-                      ? '지난 경기 결과를 확인하세요'
-                      : isFutureGame
-                        ? '승리가 예상되는 팀을 선택하세요'
-                        : isToday && currentDateGames.length === 0
-                          ? '오늘은 경기가 없습니다'
-                          : '승리가 예상되는 팀을 선택하세요'}
-                  </p>
-                </div>
-
+                <span className="font-medium text-slate-900 dark:text-slate-100">
+                  {formatDate(currentDate)}
+                </span>
                 <button
                   onClick={goToNextDate}
                   disabled={currentDateIndex === allDatesData.length - 1}
-                  aria-label="다음 날짜"
-                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-emerald-600 dark:text-emerald-300"
+                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30"
                 >
-                  <ChevronRight size={24} />
+                  <ChevronRight size={24} className="text-emerald-600 dark:text-emerald-300" />
                 </button>
               </div>
-            </Card>
-
-            {currentDateGames.length > 0 ? (
-              <>
-                {/* Game Selection Tabs */}
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-                  {currentDateGames.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedGame(index)}
-                      aria-pressed={selectedGame === index}
-                      aria-label={`${index + 1}경기 선택`}
-                      className={`flex-shrink-0 px-4 py-3 min-h-[44px] rounded-full text-sm font-bold transition-all ${selectedGame === index
-                        ? 'bg-emerald-900 text-white shadow-md dark:bg-emerald-700'
-                        : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-300 dark:bg-slate-900/70 dark:border-slate-700/60 dark:text-slate-400 dark:hover:border-emerald-400/60'
-                        }`}
-                    >
-                      {index + 1}경기
-                    </button>
-                  ))}
-                </div>
-
-                {/* Advanced Game Card */}
-                {currentGame && (
-                  <AdvancedMatchCard
-                    key={currentGame.gameId}
-                    game={currentGame}
-                    gameDetail={currentGameDetail}
-                    gameDetailLoading={currentGameDetailLoading}
-                    userVote={userVote[currentGameId!] || null}
-                    votePercentages={votePercentages}
-                    isVoteOpen={gameStatus.isVoteOpen}
-                    statusLabel={gameStatus.statusLabel}
-                    isClosed={gameStatus.isClosed}
-                    onVote={(team) => handleVote(team, currentGame, gameStatus.isVoteOpen)}
-                  />
-                )}
-              </>
-            ) : (
-              <Card className="p-16 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md flex flex-col items-center justify-center min-h-[400px] rounded-2xl">
-                <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4">
-                  <TrendingUp className="w-8 h-8 text-slate-400 dark:text-slate-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
-                  {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
-                </h3>
-                <p className="text-slate-500 dark:text-slate-400">다른 날짜를 확인해보세요!</p>
-              </Card>
-            )}
             </motion.div>
           ) : (
             <motion.div
@@ -490,15 +513,15 @@ export default function Prediction() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-            <Card className="p-6 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md text-center rounded-2xl">
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                2026 시즌 순위 예측
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400">
-                나만의 드림팀 순위를 완성하고 친구들과 공유해보세요!
-              </p>
-            </Card>
-            <RankingPrediction />
+              <Card className="p-6 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/60 dark:shadow-md text-center rounded-2xl">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                  2026 시즌 순위 예측
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  나만의 드림팀 순위를 완성하고 친구들과 공유해보세요!
+                </p>
+              </Card>
+              <RankingPrediction />
             </motion.div>
           )}
         </AnimatePresence>
@@ -506,6 +529,6 @@ export default function Prediction() {
 
       <ChatBot />
       <ComboAnimation />
-    </div>
+    </div >
   );
 }

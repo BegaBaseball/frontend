@@ -170,11 +170,20 @@ export default function CheerEdit() {
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 transition-colors ${isDragging ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-gray-400'
+                    tabIndex={isSubmitting ? -1 : 0}
+                    role="button"
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && !isSubmitting) {
+                        e.preventDefault();
+                        const input = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
+                        input?.click();
+                      }
+                    }}
+                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-gray-400'
                       }`}
                   >
                     <Upload className="h-6 w-6" />
-                    <span>클릭 또는 드래그하여 이미지 추가</span>
+                    <span>클릭, Enter 또는 드래그하여 이미지 추가</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -182,6 +191,7 @@ export default function CheerEdit() {
                       className="hidden"
                       onChange={handleFileSelect}
                       disabled={isSubmitting}
+                      aria-label="이미지 파일 선택"
                     />
                   </label>
 
@@ -218,7 +228,7 @@ export default function CheerEdit() {
                               onClick={() => handleDeleteExistingImage(image.id)}
                               className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white shadow-sm transition-all hover:bg-black/75 disabled:opacity-60"
                               disabled={isSubmitting || deletingImageId === image.id}
-                              title="이미지 삭제"
+                              aria-label={`이미지 ${idx + 1} 삭제`}
                             >
                               {deletingImageId === image.id ? (
                                 <span className="text-[10px] font-semibold">삭제</span>
@@ -249,6 +259,7 @@ export default function CheerEdit() {
                             onClick={() => handleRemoveNewFile(index)}
                             className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white shadow-sm transition-all hover:bg-black/75"
                             disabled={isSubmitting}
+                            aria-label={`새 이미지 ${index + 1} 삭제`}
                           >
                             <X className="h-4 w-4" strokeWidth={3} />
                           </button>

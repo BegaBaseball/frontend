@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/button';
 import { getTeamKoreanName } from '../utils/teamNames';
-import { useIsMobile } from '../hooks/use-mobile';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
@@ -49,7 +49,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
   const navigate = useNavigate();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { theme } = useTheme();
-  const isMobile = useIsMobile();
+  const isLargeScreen = useMediaQuery('(min-width: 1024px)');
 
   // Data State
   const [movements, setMovements] = useState<OffseasonMovement[]>([]);
@@ -286,8 +286,8 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
         </div>
 
         <Card className="p-4 md:p-10 overflow-x-auto bg-white dark:bg-gray-900 border-none shadow-xl rounded-2xl md:rounded-3xl ring-1 ring-black/5 dark:ring-white/10">
-          {isMobile ? (
-            /* Mobile: Vertical Timeline Layout */
+          {!isLargeScreen ? (
+            /* Mobile/Tablet: Vertical Timeline Layout */
             <div className="flex flex-col gap-4 py-2">
               {/* 와일드카드 */}
               <div className="relative pl-8 pb-4 border-l-2 border-gray-300 dark:border-gray-600">

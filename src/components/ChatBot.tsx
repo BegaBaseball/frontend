@@ -231,7 +231,11 @@ export default function ChatBot() {
               >
                 <Paperclip className="w-4 h-4" />
               </button>
+              <label htmlFor="chatbot-message-input" className="sr-only">
+                메시지 입력
+              </label>
               <input
+                id="chatbot-message-input"
                 ref={inputRef}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
