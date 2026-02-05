@@ -506,7 +506,7 @@ export default function Cheer() {
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-[#0E1117]">
             <div className="px-6 py-8">
                 <div className="mx-auto w-full max-w-[1008px] xl:max-w-[1136px] lg:-translate-x-4">
-                    <div className="grid grid-cols-1 gap-0 lg:gap-x-4 lg:grid-cols-[72px_600px_320px] xl:grid-cols-[200px_600px_320px]">
+                    <div className="grid grid-cols-1 gap-0 lg:gap-x-4 lg:grid-cols-[72px_1fr_280px] xl:grid-cols-[200px_1fr_320px]">
                         <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
                             {[
                                 { id: 'home', label: '홈', icon: Home, path: '/home' },
@@ -553,7 +553,7 @@ export default function Cheer() {
                             </button>
                         </aside>
 
-                        <main className="flex w-full flex-col gap-0 bg-slate-50/50 dark:bg-[#0f141a] border-x border-[#EFF3F4] dark:border-[#232938] lg:max-w-[600px]">
+                        <main className="flex w-full flex-col gap-0 bg-slate-50/50 dark:bg-[#0f141a] border-x border-[#EFF3F4] dark:border-[#232938]">
                             <nav className="flex items-center border-b border-[#EFF3F4] dark:border-[#232938] px-4 py-3 bg-white/80 dark:bg-[#151A23]">
                                 <div className="flex items-center gap-1 rounded-full bg-slate-100/90 p-1 dark:bg-slate-800/80">
                                     {feedTabs.map((tab) => {
@@ -691,7 +691,7 @@ export default function Cheer() {
                                             </div>
                                         </div>
                                         {composerPreviews.length > 0 && (
-                                            <div className="mt-3 grid grid-cols-3 gap-2">
+                                            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
                                                 {composerPreviews.map((preview, index) => (
                                                     <div
                                                         key={preview.url}
@@ -833,7 +833,7 @@ export default function Cheer() {
                             </section>
                         </main>
 
-                        <aside className="hidden lg:flex w-[320px] flex-col gap-4 sticky top-6 self-start">
+                        <aside className="hidden lg:flex w-[280px] xl:w-[320px] flex-col gap-4 sticky top-6 self-start">
                             <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#232938] p-4 bg-white dark:bg-[#151A23]">
                                 <div className="flex items-center gap-3">
                                     <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center">

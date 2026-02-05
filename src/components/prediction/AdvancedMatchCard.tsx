@@ -3,7 +3,7 @@ import styled, { keyframes, css } from 'styled-components';
 import { LayoutGroup, motion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import TeamLogo from '../TeamLogo';
 import { Game, VoteTeam, GameDetail, GameInningScore, GameSummary } from '../../types/prediction';
 import { TEAM_COLORS, GAME_TIME } from '../../constants/prediction';
@@ -19,6 +19,10 @@ interface AdvancedMatchCardProps {
   statusLabel: string;
   isClosed: boolean;
   onVote: (team: VoteTeam) => void;
+  onPrevDate: () => void;
+  onNextDate: () => void;
+  hasPrevDate: boolean;
+  hasNextDate: boolean;
 }
 
 const popIn = keyframes`
@@ -141,6 +145,10 @@ export default function AdvancedMatchCard({
   statusLabel,
   isClosed,
   onVote,
+  onPrevDate,
+  onNextDate,
+  hasPrevDate,
+  hasNextDate,
 }: AdvancedMatchCardProps) {
   const { homePercentage, awayPercentage, totalVotes } = votePercentages;
   const hasVoteResults = totalVotes > 0;
@@ -435,8 +443,27 @@ export default function AdvancedMatchCard({
               }}
             />
             <div className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rotate-[20deg] bg-white/30" />
+
+            {/* Navigation Buttons (Desktop) */}
+            <div className="hidden md:block">
+              <button
+                onClick={onPrevDate}
+                disabled={!hasPrevDate}
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-10"
+              >
+                <ChevronLeft size={32} />
+              </button>
+              <button
+                onClick={onNextDate}
+                disabled={!hasNextDate}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-10"
+              >
+                <ChevronRight size={32} />
+              </button>
+            </div>
+
             <div className="relative flex justify-center">
-              <MetaBadge className="absolute top-0 rounded-full bg-black/30 px-3 py-1 text-[10px] font-semibold backdrop-blur">
+              <MetaBadge className="absolute top-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold backdrop-blur">
                 {matchMetaLabel || '경기 정보'}
               </MetaBadge>
             </div>

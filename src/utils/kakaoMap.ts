@@ -213,7 +213,7 @@ export const updateMapMarkers = (
       });
 
       const infowindow = new window.kakao.maps.InfoWindow({
-        content: `<div style="padding:8px 12px;font-weight:700;white-space:nowrap;min-width:fit-content;">${place.name}</div>`,
+        content: `<div style="padding:8px 12px;font-weight:700;white-space:nowrap;min-width:fit-content;color:#111827;">${place.name}</div>`,
         removable: false,
       });
 

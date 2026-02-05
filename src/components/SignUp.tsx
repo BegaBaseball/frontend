@@ -159,7 +159,8 @@ export default function SignUp() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              disabled={isLoading || isSuccess}  // ✅ 수정
+              disabled={isLoading || isSuccess}
+              aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -196,7 +197,8 @@ export default function SignUp() {
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              disabled={isLoading || isSuccess}  // ✅ 수정
+              disabled={isLoading || isSuccess}
+              aria-label={showConfirmPassword ? "비밀번호 확인 숨기기" : "비밀번호 확인 보기"}
             >
               {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -208,15 +210,18 @@ export default function SignUp() {
 
         {/* 응원팀 선택 */}
         <div className="space-y-2">
-          <Label htmlFor="favoriteTeam" className="text-gray-700">
+          <Label id="favoriteTeam-label" className="text-gray-700">
             응원팀 선택
           </Label>
           <Select
             value={formData.favoriteTeam}
             onValueChange={(value: string) => handleFieldChange('favoriteTeam', value)}
-            disabled={isLoading || isSuccess}  // ✅ 수정
+            disabled={isLoading || isSuccess}
           >
-            <SelectTrigger className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.favoriteTeam ? 'border-red-500' : ''}`}>
+            <SelectTrigger
+              aria-labelledby="favoriteTeam-label"
+              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.favoriteTeam ? 'border-red-500' : ''}`}
+            >
               <SelectValue placeholder="팀을 선택하세요" />
             </SelectTrigger>
             <SelectContent>

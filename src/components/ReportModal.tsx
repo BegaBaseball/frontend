@@ -54,14 +54,17 @@ export default function ReportModal({ postId, isOpen, onClose }: ReportModalProp
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                    <RadioGroup value={reason} onValueChange={(val: string) => setReason(val as ReportReason)}>
-                        {Object.entries(ReportReasonLabels).map(([key, label]) => (
-                            <div key={key} className="flex items-center space-x-2">
-                                <RadioGroupItem value={key} id={`r-${key}`} />
-                                <Label htmlFor={`r-${key}`}>{label}</Label>
-                            </div>
-                        ))}
-                    </RadioGroup>
+                    <fieldset>
+                        <legend className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">신고 사유 선택</legend>
+                        <RadioGroup value={reason} onValueChange={(val: string) => setReason(val as ReportReason)} aria-label="신고 사유">
+                            {Object.entries(ReportReasonLabels).map(([key, label]) => (
+                                <div key={key} className="flex items-center space-x-2">
+                                    <RadioGroupItem value={key} id={`r-${key}`} />
+                                    <Label htmlFor={`r-${key}`}>{label}</Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                    </fieldset>
                     <div className="grid gap-2">
                         <Label htmlFor="description">추가 설명 (선택)</Label>
                         <Textarea

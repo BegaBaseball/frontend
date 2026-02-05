@@ -272,6 +272,36 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
 
     const getAnalysisData = () => {
         if (result?.data) return result.data;
+
+        // Priority 1: Use structuredData from meta event (pre-parsed by backend)
+        if (result?.structuredData) {
+            const structured = result.structuredData;
+            return {
+                dashboard: {
+                    headline: structured.headline || 'AI 분석 리포트',
+                    context: structured.detailed_markdown || '데이터를 기반으로 분석된 팀 상태입니다.',
+                    sentiment: structured.sentiment || 'neutral',
+                    stats: structured.key_metrics?.map(m => ({
+                        label: m.label,
+                        value: m.value,
+                        status: m.status,
+                        trend: m.trend,
+                        is_critical: m.is_critical
+                    })) || []
+                },
+                metrics: structured.key_metrics?.map(m => ({
+                    category: '핵심지표',
+                    name: m.label,
+                    value: m.value,
+                    description: '',
+                    risk_level: m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2,
+                    trend: m.trend
+                })) || [],
+                detailed_analysis: structured.detailed_markdown || '',
+                coach_note: structured.coach_note || ''
+            };
+        }
+
         if (!result?.raw_answer && !(result as any)?.answer) return null;
 
         const raw = result?.data ? JSON.stringify(result.data) : (result?.raw_answer || (result as any)?.answer || "");
@@ -281,6 +311,34 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
                 if (parsed.dashboard) return parsed;
+
+                // Handle CoachResponse schema (headline, sentiment, etc.)
+                if (parsed.headline) {
+                    return {
+                        dashboard: {
+                            headline: parsed.headline,
+                            context: parsed.detailed_markdown || '',
+                            sentiment: parsed.sentiment || 'neutral',
+                            stats: parsed.key_metrics?.map((m: any) => ({
+                                label: m.label,
+                                value: m.value,
+                                status: m.status,
+                                trend: m.trend,
+                                is_critical: m.is_critical
+                            })) || []
+                        },
+                        metrics: parsed.key_metrics?.map((m: any) => ({
+                            category: '핵심지표',
+                            name: m.label,
+                            value: m.value,
+                            description: '',
+                            risk_level: m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2,
+                            trend: m.trend
+                        })) || [],
+                        detailed_analysis: parsed.detailed_markdown || '',
+                        coach_note: parsed.coach_note || ''
+                    };
+                }
             }
         } catch (e) {
             console.warn("Fallback JSON parse failed", e);

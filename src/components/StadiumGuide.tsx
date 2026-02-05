@@ -161,7 +161,7 @@ export default function StadiumGuide() {
                   <div
                     ref={mapContainer}
                     style={{ width: '100%', height: '500px' }}
-                    className="rounded-2xl overflow-hidden"
+                    className="rounded-2xl overflow-hidden kakao-map-container"
                   />
                 </div>
               ) : (

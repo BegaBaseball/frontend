@@ -133,6 +133,30 @@ export default function RankingPrediction() {
       },
     });
 
+    // Keyboard handler for accessibility
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (alreadySaved || !team) return;
+
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'ArrowUp' && index > 0) {
+          e.preventDefault();
+          moveTeam(index, index - 1);
+          // Focus the element at new position after state update
+          setTimeout(() => {
+            const items = document.querySelectorAll('[data-ranking-item]');
+            (items[index - 1] as HTMLElement)?.focus();
+          }, 0);
+        } else if (e.key === 'ArrowDown' && index < 9) {
+          e.preventDefault();
+          moveTeam(index, index + 1);
+          setTimeout(() => {
+            const items = document.querySelectorAll('[data-ranking-item]');
+            (items[index + 1] as HTMLElement)?.focus();
+          }, 0);
+        }
+      }
+    };
+
     drag(drop(ref));
 
     // 가을야구권(1~5위)과 하위권(6~10위) 색상 구분
@@ -154,13 +178,20 @@ export default function RankingPrediction() {
 
         <div
           ref={ref}
+          data-ranking-item
+          tabIndex={team && !alreadySaved ? 0 : -1}
+          onKeyDown={handleKeyDown}
+          aria-label={team
+            ? `${index + 1}위: ${team.name}${!alreadySaved ? '. Ctrl+화살표로 순위 변경' : ''}`
+            : `${index + 1}위: 팀 미선택`
+          }
           className={`border-2 rounded-xl p-3 transition-all duration-200 ${team
             ? `border-transparent shadow-sm ${!alreadySaved && 'cursor-move hover:scale-[1.01] hover:shadow-md'} ${isPostSeasonZone
               ? 'bg-white dark:bg-gray-800'
               : 'bg-gray-50/80 dark:bg-gray-800/60'
             }`
             : 'border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30'
-            } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'}`}
+            } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'} focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] focus:ring-offset-2`}
         >
           <div className="flex items-center gap-3">
             <div

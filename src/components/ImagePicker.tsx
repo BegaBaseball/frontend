@@ -137,6 +137,7 @@ export default function ImagePicker({
         multiple
         hidden
         onChange={handleSelectFiles}
+        aria-label="이미지 파일 선택"
       />
 
       {selectedFiles.length > 0 && (
@@ -148,6 +149,7 @@ export default function ImagePicker({
                 type="button"
                 onClick={() => onRemoveFile(index)}
                 className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                aria-label={`이미지 ${index + 1} 삭제`}
               >
                 <X className="h-4 w-4" />
               </button>

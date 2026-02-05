@@ -68,7 +68,7 @@ export default function MyPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ marginBottom: '100px' }}>
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28">
         {/* 상단 프로필 카드 */}
         <Card className="p-4 md:p-8 mb-8 dark:bg-gray-800 dark:border-gray-700">
           <div className={`${isDesktop ? 'flex items-start justify-between' : 'space-y-6'}`}>
