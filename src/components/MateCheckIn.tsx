@@ -62,8 +62,8 @@ export default function MateCheckIn() {
     return null;
   }
 
-  const isHost = String(selectedParty.hostId) === String(currentUserId);
-  const myCheckIn = checkInStatus.find(c => String(c.userId) === String(currentUserId));
+  const isHost = selectedParty.hostId === currentUserId;
+  const myCheckIn = checkInStatus.find(c => c.userId === currentUserId);
   const isCheckedIn = !!myCheckIn;
 
   // 전체 참여자 수 계산 (호스트 + 승인된 참여자)
@@ -79,7 +79,7 @@ export default function MateCheckIn() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       const checkInData = {
-        partyId: parseInt(selectedParty.id),
+        partyId: selectedParty.id,
         userId: currentUserId,
         userName: currentUserName,
         location: selectedParty.stadium,
@@ -256,12 +256,12 @@ export default function MateCheckIn() {
               <div className="space-y-3">
                 {/* 호스트 */}
                 <div className={`flex items-center justify-between p-3 rounded-lg ${
-                  checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId))
+                  checkInStatus.some(c => c.userId === selectedParty.hostId)
                     ? 'bg-green-50'
                     : 'bg-gray-50'
                 }`}>
                   <div className="flex items-center gap-3">
-                    {checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId)) ? (
+                    {checkInStatus.some(c => c.userId === selectedParty.hostId) ? (
                       <CheckCircle className="w-5 h-5 text-green-600" />
                     ) : (
                       <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
@@ -269,11 +269,11 @@ export default function MateCheckIn() {
                     <span>{selectedParty.hostName} (호스트)</span>
                   </div>
                   <span className={`text-sm ${
-                    checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId))
+                    checkInStatus.some(c => c.userId === selectedParty.hostId)
                       ? 'text-green-600'
                       : 'text-gray-500'
                   }`}>
-                    {checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId))
+                    {checkInStatus.some(c => c.userId === selectedParty.hostId)
                       ? '체크인 완료'
                       : '대기 중'}
                   </span>
@@ -303,8 +303,8 @@ export default function MateCheckIn() {
                 {/* 다른 참여자들 */}
                 {checkInStatus
                   .filter(c => 
-                    String(c.userId) !== String(currentUserId) && 
-                    String(c.userId) !== String(selectedParty.hostId)
+                    c.userId !== currentUserId &&
+                    c.userId !== selectedParty.hostId
                   )
                   .map((checkIn, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">

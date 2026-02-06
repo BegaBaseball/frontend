@@ -44,6 +44,10 @@ export const api = {
     return this.request(`/stadiums/${stadiumId}/places?category=${category}`);
   },
 
+  async getKboSchedule(date: string) {
+    return this.request(`/kbo/schedule?date=${date}`);
+  },
+
   // User
   async getCurrentUser() {
     return this.request('/auth/mypage');
@@ -58,7 +62,7 @@ export const api = {
   },
 
   // Party
-  async getParties(teamId?: string, stadium?: string, page = 0, size = 9): Promise<{
+  async getParties(teamId?: string, stadium?: string, page = 0, size = 9, searchQuery?: string, gameDate?: string): Promise<{
     content: any[];
     totalElements: number;
     totalPages: number;
@@ -68,6 +72,8 @@ export const api = {
     const params = new URLSearchParams();
     if (teamId) params.append('teamId', teamId);
     if (stadium) params.append('stadium', stadium);
+    if (searchQuery) params.append('searchQuery', searchQuery);
+    if (gameDate) params.append('gameDate', gameDate); // YYYY-MM-DD
     params.append('page', page.toString());
     params.append('size', size.toString());
 
@@ -85,7 +91,15 @@ export const api = {
     return this.request(`/parties/${partyId}`);
   },
 
-  // 파티 삭제 추가
+  // 파티 수정
+  async updateParty(partyId: number, data: any) {
+    return this.request(`/parties/${partyId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // 파티 삭제
   async deleteParty(partyId: string, hostId: number) {
     return this.request(`/parties/${partyId}?hostId=${hostId}`, {
       method: 'DELETE',
@@ -175,5 +189,21 @@ export const api = {
     return this.request(`/notifications/${notificationId}`, {
       method: 'DELETE',
     });
+  },
+
+  // Reviews
+  async createReview(data: { partyId: number; reviewerId: number; revieweeId: number; rating: number; comment?: string }) {
+    return this.request('/reviews', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getPartyReviews(partyId: number) {
+    return this.request(`/reviews/party/${partyId}`);
+  },
+
+  async getUserAverageRating(userId: number): Promise<number> {
+    return this.request(`/reviews/user/${userId}/average`);
   },
 };

@@ -13,10 +13,21 @@ import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Ticket, Loader2 } 
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { api } from '../utils/api';
-import { STADIUMS, TEAMS } from '../utils/constants';
+import { STADIUMS, TEAMS, TEAM_COLORS_MAP } from '../utils/constants';
 import { mapBackendPartyToFrontend } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
+// import { getMatchesForDate, MatchInfo } from '../utils/mockSchedule';
+export interface MatchInfo {
+  id: string;
+  gameTime: string;
+  homeTeam: string;
+  awayTeam: string;
+  stadium: string;
+}
+import { SEAT_CATEGORIES, SeatCategory } from '../utils/stadiumData';
+import { format } from 'date-fns';
 
 export default function MateCreate() {
   const navigate = useNavigate();
@@ -38,6 +49,9 @@ export default function MateCreate() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [availableMatches, setAvailableMatches] = useState<MatchInfo[]>([]);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -138,9 +152,20 @@ export default function MateCreate() {
           }
         }
         if (ticketInfo.section || ticketInfo.row || ticketInfo.seat) {
-          updates.section = [ticketInfo.section, ticketInfo.row, ticketInfo.seat]
+          const ocrSeat = [ticketInfo.section, ticketInfo.row, ticketInfo.seat]
             .filter(Boolean)
             .join(' ');
+          updates.section = ocrSeat;
+          updates.seatDetail = ocrSeat;
+        }
+        if (ticketInfo.peopleCount) {
+          updates.maxParticipants = ticketInfo.peopleCount;
+        }
+        if (ticketInfo.price) {
+          updates.ticketPrice = ticketInfo.price;
+        }
+        if (ticketInfo.reservationNumber) {
+          updates.reservationNumber = ticketInfo.reservationNumber;
         }
 
         updateFormData(updates);
@@ -170,7 +195,7 @@ export default function MateCreate() {
       return formData.gameDate && formData.homeTeam && formData.awayTeam && formData.stadium;
     }
     if (targetStep === 4) {
-      return formData.section && formData.maxParticipants > 0 && formData.ticketPrice > 0;
+      return (formData.seatDetail || formData.section) && formData.maxParticipants > 0 && formData.ticketPrice > 0;
     }
     return true;
   };
@@ -194,6 +219,15 @@ export default function MateCreate() {
     setIsSubmitting(true);
 
     try {
+      // Compose section from structured fields
+      const composedSection = formData.seatDetail
+        ? [
+            formData.cheeringSide === 'HOME' ? '[홈응원]' : formData.cheeringSide === 'AWAY' ? '[원정응원]' : formData.cheeringSide === 'NEUTRAL' ? '[중립]' : '',
+            formData.seatCategory,
+            formData.seatDetail,
+          ].filter(Boolean).join(' ')
+        : formData.section; // Fallback to raw section (from OCR)
+
       const partyData = {
         hostId: currentUserId,
         hostName: currentUserName,
@@ -205,11 +239,12 @@ export default function MateCreate() {
         stadium: formData.stadium,
         homeTeam: formData.homeTeam,
         awayTeam: formData.awayTeam,
-        section: formData.section,
+        section: composedSection,
         maxParticipants: formData.maxParticipants,
         description: formData.description,
-        ticketImageUrl: null,
+        ticketImageUrl: null, // Never send blob: URLs to backend
         ticketPrice: formData.ticketPrice,
+        reservationNumber: formData.reservationNumber,
       };
 
       const createdParty = await api.createParty(partyData);
@@ -241,6 +276,70 @@ export default function MateCreate() {
       setCreateStep(createStep - 1);
     }
   };
+
+  const handleSkipTicket = () => {
+    // Clear ticket file but proceed
+    updateFormData({ ticketFile: null });
+    setCreateStep(2);
+  };
+
+  const selectMatch = (match: MatchInfo) => {
+    updateFormData({
+      gameTime: match.gameTime,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      stadium: match.stadium
+    });
+  };
+
+  const mapTeamId = (backendId: string): string => {
+    if (!backendId) return '';
+    const code = backendId.toUpperCase();
+    const mapping: Record<string, string> = {
+      'LG': 'lg',
+      'KT': 'kt',
+      'NC': 'nc',
+      'SSG': 'ssg',
+      'SK': 'ssg',
+      'OB': 'doosan',
+      'SS': 'samsung',
+      'LT': 'lotte',
+      'HT': 'kia',
+      'KIA': 'kia',
+      'HH': 'hanwha',
+      'WO': 'kiwoom',
+      'KW': 'kiwoom',
+    };
+    return mapping[code] || backendId.toLowerCase();
+  };
+
+  useEffect(() => {
+    const fetchMatches = async () => {
+      if (createStep === 2 && formData.gameDate) {
+        setIsLoadingMatches(true);
+        try {
+          const response = await api.getKboSchedule(formData.gameDate);
+          // HomePageGameDto를 MatchInfo 형식으로 변환
+          const matches: MatchInfo[] = (response || []).map((game: any) => ({
+            id: game.gameId,
+            gameTime: game.time,
+            stadium: game.stadium,
+            homeTeam: mapTeamId(game.homeTeam),
+            awayTeam: mapTeamId(game.awayTeam)
+          }));
+          setAvailableMatches(matches);
+        } catch (error) {
+          console.error('Failed to fetch matches:', error);
+          setAvailableMatches([]);
+        } finally {
+          setIsLoadingMatches(false);
+        }
+      }
+    };
+
+    fetchMatches();
+  }, [createStep, formData.gameDate]);
+
 
   const progressValue = (createStep / 4) * 100;
 
@@ -355,104 +454,126 @@ export default function MateCreate() {
                   </ul>
                 </AlertDescription>
               </Alert>
+
+              {/* Skip Button */}
+              <div className="flex flex-col items-center gap-3 mt-4 border-t pt-4 border-dashed border-gray-200">
+                <Button
+                  variant="ghost"
+                  className="text-gray-500 hover:text-[#2d5f4f] font-medium text-sm"
+                  onClick={handleSkipTicket}
+                >
+                  티켓이 아직 없으신가요? <span className="underline ml-1">직접 입력하기</span>
+                </Button>
+
+                {/* Dev Only: Test Data Button */}
+                <button
+                  onClick={() => {
+                    const testData = {
+                      gameDate: '2026-05-23',
+                      gameTime: '17:00',
+                      homeTeam: 'doosan',
+                      awayTeam: 'lg',
+                      stadium: '잠실야구장',
+                      section: '',
+                      cheeringSide: 'HOME' as const,
+                      seatCategory: '일반/시야',
+                      seatDetail: '1루 네이비석 305블록 12열 15번',
+                      maxParticipants: 1,
+                      ticketPrice: 25000,
+                      reservationNumber: 'T-1234567890',
+                      ticketFile: new File([""], "test-ticket.jpg", { type: "image/jpeg" })
+                    };
+                    updateFormData(testData);
+                    setCreateStep(2);
+                  }}
+                  className="text-[10px] text-gray-300 hover:text-gray-500 transition-colors"
+                >
+                  (테스트 데이터로 채우기)
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Step 2: 경기 정보 확인/수정 */}
           {createStep === 2 && (
             <div className="space-y-6">
               <h2 className="mb-2" style={{ color: '#2d5f4f' }}>
-                경기 정보 확인
+                경기 선택
               </h2>
               <p className="text-sm text-gray-500 mb-6">
-                AI가 추출한 정보를 확인하고 필요시 수정하세요
+                관람하실 경기를 선택해주세요
               </p>
 
-              <div className="space-y-2">
-                <Label htmlFor="gameDate">경기 날짜 *</Label>
-                <Input
-                  id="gameDate"
-                  type="date"
-                  value={formData.gameDate}
-                  onChange={(e) => updateFormData({ gameDate: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="gameTime">경기 시간</Label>
-                <Input
-                  id="gameTime"
-                  type="time"
-                  value={formData.gameTime}
-                  onChange={(e) => updateFormData({ gameTime: e.target.value })}
-                  placeholder="18:30"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label id="homeTeam-label">홈 팀 *</Label>
-                  <Select
-                    value={formData.homeTeam}
-                    onValueChange={(value: string) => updateFormData({ homeTeam: value })}
-                  >
-                    <SelectTrigger aria-labelledby="homeTeam-label">
-                      <SelectValue placeholder="홈 팀 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TEAMS.map((team) => (
-                        <SelectItem key={team.id} value={team.id}>
-                          <div className="flex items-center gap-2">
-                            <TeamLogo teamId={team.id} size="sm" />
-                            {team.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="gameDate">경기 날짜 *</Label>
+                  <Input
+                    id="gameDate"
+                    type="date"
+                    value={formData.gameDate}
+                    onChange={(e) => updateFormData({ gameDate: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="mt-1"
+                  />
                 </div>
 
-                <div className="space-y-2">
-                  <Label id="awayTeam-label">원정 팀 *</Label>
-                  <Select
-                    value={formData.awayTeam}
-                    onValueChange={(value: string) => updateFormData({ awayTeam: value })}
-                  >
-                    <SelectTrigger aria-labelledby="awayTeam-label">
-                      <SelectValue placeholder="원정 팀 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TEAMS.filter((team) => team.id !== formData.homeTeam).map((team) => (
-                        <SelectItem key={team.id} value={team.id}>
-                          <div className="flex items-center gap-2">
-                            <TeamLogo teamId={team.id} size="sm" />
-                            {team.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                {/* Match List */}
+                {formData.gameDate && (
+                  <div className="grid gap-3 pt-2">
+                    {isLoadingMatches ? (
+                      <div className="text-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#2d5f4f] mb-2" />
+                        <p className="text-sm text-gray-500">경기를 불러오는 중입니다...</p>
+                      </div>
+                    ) : availableMatches.length > 0 ? (
+                      availableMatches.map((match) => {
+                        const isSelected = formData.homeTeam === match.homeTeam && formData.awayTeam === match.awayTeam;
+                        const homeColor = TEAM_COLORS_MAP[match.homeTeam.toLowerCase()] || '#333';
+                        const awayColor = TEAM_COLORS_MAP[match.awayTeam.toLowerCase()] || '#333';
 
-              <div className="space-y-2">
-                <Label id="stadium-label">구장 *</Label>
-                <Select
-                  value={formData.stadium}
-                  onValueChange={(value: string) => updateFormData({ stadium: value })}
-                >
-                  <SelectTrigger aria-labelledby="stadium-label">
-                    <SelectValue placeholder="구장 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STADIUMS.map((stadium) => (
-                      <SelectItem key={stadium} value={stadium}>
-                        {stadium}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                        return <div
+                          key={match.id}
+                          onClick={() => selectMatch(match)}
+                          className={`cursor-pointer rounded-xl border p-4 transition-all relative overflow-hidden ${isSelected
+                            ? 'border-[#2d5f4f] bg-green-50 dark:bg-green-900/20 ring-2 ring-[#2d5f4f] ring-offset-1 dark:ring-offset-gray-900'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-[#2d5f4f] hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                        >
+                          <div className="flex justify-between items-center relative z-10">
+                            <div className="flex items-center gap-4 flex-1">
+                              <div className="text-center w-16 text-sm font-bold text-gray-500 dark:text-gray-400">
+                                {match.gameTime}
+                              </div>
+                              <div className="h-8 w-px bg-gray-200 dark:bg-gray-700"></div>
+                              <div className="flex items-center gap-3 flex-1 justify-center">
+                                <span className="font-bold flex items-center gap-2 dark:text-gray-200">
+                                  <TeamLogo teamId={match.awayTeam} size="sm" />
+                                  {TEAMS.find(t => t.id === match.awayTeam)?.name}
+                                </span>
+                                <span className="text-gray-400 text-xs">VS</span>
+                                <span className="font-bold flex items-center gap-2 dark:text-gray-200">
+                                  {TEAMS.find(t => t.id === match.homeTeam)?.name}
+                                  <TeamLogo teamId={match.homeTeam} size="sm" />
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-400 ml-4 min-w-[60px] text-right">
+                              {match.stadium}
+                            </div>
+                          </div>
+                          {/* Background Gradient for selected state */}
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-[#2d5f4f]/5 dark:bg-[#2d5f4f]/20 pointer-events-none"></div>
+                          )}
+                        </div>
+
+                      })
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        경기가 없는 날입니다 😴 <br />
+                        <span className="text-xs">다른 날짜를 선택해주세요</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -464,14 +585,70 @@ export default function MateCreate() {
                 좌석 정보
               </h2>
 
+              {/* 1. Cheering Side Selection */}
+              <div className="space-y-3">
+                <Label>응원 진영 선택 *</Label>
+                <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                  {(['HOME', 'NEUTRAL', 'AWAY'] as const).map((side) => {
+                    const isSelected = formData.cheeringSide === side;
+                    const label = side === 'HOME' ? '🦁 홈 팀 응원' : side === 'AWAY' ? '🐻 원정 팀 응원' : '😐 중립/상관없음';
+                    return (
+                      <button
+                        key={side}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${isSelected ? 'bg-white dark:bg-gray-700 text-[#2d5f4f] dark:text-white shadow-sm ring-1 ring-[#2d5f4f]' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                        onClick={() => updateFormData({ cheeringSide: side })}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Zone Category Chips */}
+              <div className="space-y-3">
+                <Label>좌석 종류 (선택)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(SEAT_CATEGORIES)
+                    .filter(([k]) => ['CHEERING', 'TABLE', 'EXCITING', 'OUTFIELD', 'COMFORT', 'PREMIUM', 'SPECIAL'].includes(k))
+                    .map(([k, v]) => {
+                      const isSelected = formData.seatCategory === v.label;
+                      return (
+                        <button
+                          key={k}
+                          onClick={() => updateFormData({ seatCategory: isSelected ? '' : v.label })}
+                          className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${isSelected
+                            ? 'border-[#2d5f4f] bg-[#2d5f4f]/10 text-[#2d5f4f] font-medium'
+                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-gray-300 hover:border-[#2d5f4f] hover:text-[#2d5f4f]'
+                          }`}
+                        >
+                          {v.icon} {v.label}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="section">좌석 상세 (선택 또는 직접 입력) *</Label>
+                <Label htmlFor="seatDetail">좌석 상세 *</Label>
                 <Input
-                  id="section"
-                  value={formData.section}
-                  onChange={(e) => updateFormData({ section: e.target.value })}
-                  placeholder="예: 블루석 A구역 5열 23번"
+                  id="seatDetail"
+                  value={formData.seatDetail}
+                  onChange={(e) => updateFormData({ seatDetail: e.target.value })}
+                  placeholder="예: 305블록 12열 15번"
+                  className="font-medium"
                 />
+                {(formData.cheeringSide || formData.seatCategory || formData.seatDetail) && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    미리보기: <span className="font-medium text-gray-700 dark:text-gray-300">
+                      {[
+                        formData.cheeringSide === 'HOME' ? '[홈응원]' : formData.cheeringSide === 'AWAY' ? '[원정응원]' : formData.cheeringSide === 'NEUTRAL' ? '[중립]' : '',
+                        formData.seatCategory,
+                        formData.seatDetail,
+                      ].filter(Boolean).join(' ')}
+                    </span>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -539,6 +716,22 @@ export default function MateCreate() {
                   className="min-h-[150px]"
                   aria-describedby="description-hint description-count"
                 />
+                {/* Style Tags */}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {['#열정응원🔥', '#공격때_기립🧍', '#조용한관람🤫', '#먹방진심🍗', '#유니폼필수👕', '#직관승요🧚'].map((tag) => (
+                    <button
+                      key={tag}
+                      className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md text-gray-600 dark:text-gray-300 hover:bg-[#2d5f4f]/10 dark:hover:bg-[#2d5f4f]/30 hover:text-[#2d5f4f] transition-colors"
+                      onClick={() => {
+                        if (!formData.description.includes(tag)) {
+                          handleDescriptionChange(`${formData.description} ${tag}`.trim());
+                        }
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex justify-between text-sm">
                   <span
                     id="description-hint"
@@ -593,21 +786,125 @@ export default function MateCreate() {
               </Button>
             ) : (
               <Button
-                onClick={handleSubmit}
+                onClick={() => setShowConfirmationModal(true)}
                 disabled={!formData.description || formData.description.length < 10 || isSubmitting}
                 className="flex-1 text-white"
                 style={{ backgroundColor: '#2d5f4f' }}
               >
-                {isSubmitting ? '생성 중...' : '파티 만들기'}
+                파티 만들기
               </Button>
             )}
           </div>
         </Card>
-      </div>
+      </div >
+
+      {/* Confirmation Modal */}
+      <Dialog open={showConfirmationModal} onOpenChange={setShowConfirmationModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle style={{ color: '#2d5f4f' }}>파티 생성 확인</DialogTitle>
+            <DialogDescription>
+              아래 내용을 확인하고 파티를 생성하시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Game Info */}
+            <div className="flex items-center justify-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex items-center gap-2">
+                <TeamLogo teamId={formData.awayTeam} size="sm" />
+                <span className="font-bold text-sm">
+                  {TEAMS.find(t => t.id === formData.awayTeam)?.name}
+                </span>
+              </div>
+              <span className="text-gray-400 text-xs font-bold">VS</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm">
+                  {TEAMS.find(t => t.id === formData.homeTeam)?.name}
+                </span>
+                <TeamLogo teamId={formData.homeTeam} size="sm" />
+              </div>
+            </div>
+
+            {/* Date/Time/Stadium */}
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">경기 일시</span>
+                <span className="font-medium">
+                  {formData.gameDate} {formData.gameTime || '18:30'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">경기장</span>
+                <span className="font-medium">{formData.stadium}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">좌석</span>
+                <span className="font-medium">
+                  {formData.seatDetail
+                    ? [
+                        formData.cheeringSide === 'HOME' ? '[홈응원]' : formData.cheeringSide === 'AWAY' ? '[원정응원]' : formData.cheeringSide === 'NEUTRAL' ? '[중립]' : '',
+                        formData.seatCategory,
+                        formData.seatDetail,
+                      ].filter(Boolean).join(' ')
+                    : formData.section}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">모집 인원</span>
+                <span className="font-medium">{formData.maxParticipants}명 (본인 포함)</span>
+              </div>
+            </div>
+
+            {/* Price Info */}
+            <div className="border-t pt-3 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">티켓 가격</span>
+                <span className="font-medium">{formData.ticketPrice.toLocaleString()}원</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">보증금</span>
+                <span className="font-medium">10,000원</span>
+              </div>
+              <div className="flex justify-between font-bold" style={{ color: '#2d5f4f' }}>
+                <span>총 결제 금액</span>
+                <span>{(formData.ticketPrice + 10000).toLocaleString()}원</span>
+              </div>
+            </div>
+
+            {/* Description Preview */}
+            <div className="border-t pt-3">
+              <p className="text-xs text-gray-500 mb-1">소개글</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
+                {formData.description}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmationModal(false)}
+              disabled={isSubmitting}
+            >
+              수정하기
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="text-white"
+              style={{ backgroundColor: '#2d5f4f' }}
+            >
+              {isSubmitting ? '생성 중...' : '확인'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <VerificationRequiredDialog
         isOpen={showVerificationDialog}
         onClose={() => setShowVerificationDialog(false)}
       />
-    </div>
+    </div >
   );
 }

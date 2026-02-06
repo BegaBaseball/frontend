@@ -15,6 +15,7 @@ import {
   Shield,
   Calendar,
   MapPin,
+  Clock,
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
@@ -22,6 +23,10 @@ import { Alert, AlertDescription } from './ui/alert';
 import ChatBot from './ChatBot';
 import { api } from '../utils/api';
 import { Application } from '../types/mate';
+import { formatGameDate } from '../utils/mate';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Pencil } from 'lucide-react';
 
 export default function MateManage() {
   const navigate = useNavigate();
@@ -32,6 +37,13 @@ export default function MateManage() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    section: '',
+    maxParticipants: 2,
+    ticketPrice: 0,
+    description: '',
+  });
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
@@ -83,7 +95,7 @@ export default function MateManage() {
     );
   }
 
-  const isHost = String(selectedParty.hostId) === String(currentUserId);
+  const isHost = selectedParty.hostId === currentUserId;
 
   if (!isHost) {
     return (
@@ -181,6 +193,43 @@ export default function MateManage() {
     navigate(`/mate/${id}/chat`);
   };
 
+  const canEdit = selectedParty.status === 'PENDING' && !applications.some(app => app.isApproved);
+
+  const handleStartEdit = () => {
+    setEditForm({
+      section: selectedParty.section,
+      maxParticipants: selectedParty.maxParticipants,
+      ticketPrice: selectedParty.ticketPrice || 0,
+      description: selectedParty.description,
+    });
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      await api.updateParty(selectedParty.id, editForm);
+      // 로컬 상태 업데이트
+      useMateStore.getState().updateParty(selectedParty.id, editForm);
+      alert('파티 정보가 수정되었습니다.');
+      setIsEditing(false);
+    } catch (error: any) {
+      console.error('파티 수정 중 오류:', error);
+      alert(error.response?.data?.message || '파티 수정에 실패했습니다.');
+    }
+  };
+
+  const getDeadlineText = (deadline?: string) => {
+    if (!deadline) return null;
+    const now = new Date();
+    const deadlineDate = new Date(deadline);
+    const diffMs = deadlineDate.getTime() - now.getTime();
+    if (diffMs <= 0) return '기한 만료';
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    if (hours > 0) return `${hours}시간 ${minutes}분 남음`;
+    return `${minutes}분 남음`;
+  };
+
   const getBadgeIcon = (badge: string) => {
     if (badge === 'verified' || badge === 'VERIFIED') return <Shield className="w-4 h-4 text-blue-500" />;
     if (badge === 'trusted' || badge === 'TRUSTED') return <Star className="w-4 h-4 text-yellow-500" />;
@@ -218,24 +267,34 @@ export default function MateManage() {
       </div>
 
       {showActions && (
-        <div className="flex gap-2">
-          <Button
-            onClick={() => handleApprove(app.id)}
-            className="flex-1 text-white"
-            style={{ backgroundColor: '#2d5f4f' }}
-          >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            승인
-          </Button>
-          <Button
-            onClick={() => handleReject(app.id)}
-            variant="outline"
-            className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
-          >
-            <XCircle className="w-4 h-4 mr-2" />
-            거절
-          </Button>
-        </div>
+        <>
+          {app.responseDeadline && (
+            <div className="flex items-center gap-1.5 text-xs mb-3 px-2 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-md">
+              <Clock className="w-3.5 h-3.5 text-orange-500" />
+              <span className="text-orange-600 dark:text-orange-400 font-medium">
+                응답 기한: {getDeadlineText(app.responseDeadline)}
+              </span>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => handleApprove(app.id)}
+              className="flex-1 text-white"
+              style={{ backgroundColor: '#2d5f4f' }}
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              승인
+            </Button>
+            <Button
+              onClick={() => handleReject(app.id)}
+              variant="outline"
+              className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              거절
+            </Button>
+          </div>
+        </>
       )}
     </Card>
   );
@@ -282,51 +341,112 @@ export default function MateManage() {
 
         {/* Party Info */}
         <Card className="p-6 mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <TeamLogo teamId={selectedParty.teamId} size="md" />
-            <div className="flex-1">
-              <h3 className="mb-1" style={{ color: '#2d5f4f' }}>
-                {selectedParty.stadium}
-              </h3>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  {selectedParty.gameDate}
+          {isEditing ? (
+            <div className="space-y-4">
+              <h3 className="mb-2" style={{ color: '#2d5f4f' }}>파티 정보 수정</h3>
+              <div className="space-y-2">
+                <Label>좌석</Label>
+                <Input
+                  value={editForm.section}
+                  onChange={(e) => setEditForm({ ...editForm, section: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>모집 인원</Label>
+                  <select
+                    value={editForm.maxParticipants}
+                    onChange={(e) => setEditForm({ ...editForm, maxParticipants: parseInt(e.target.value) })}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  >
+                    <option value={2}>2명</option>
+                    <option value={3}>3명</option>
+                    <option value={4}>4명</option>
+                  </select>
                 </div>
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
-                  {selectedParty.section}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  {selectedParty.currentParticipants}/{selectedParty.maxParticipants}명
+                <div className="space-y-2">
+                  <Label>티켓 가격 (원)</Label>
+                  <Input
+                    type="number"
+                    value={editForm.ticketPrice}
+                    onChange={(e) => setEditForm({ ...editForm, ticketPrice: parseInt(e.target.value) || 0 })}
+                  />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>소개글</Label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 min-h-[80px]"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleSaveEdit} className="flex-1 text-white" style={{ backgroundColor: '#2d5f4f' }}>
+                  저장
+                </Button>
+                <Button onClick={() => setIsEditing(false)} variant="outline" className="flex-1">
+                  취소
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-4 mb-4">
+                <TeamLogo teamId={selectedParty.teamId} size="md" />
+                <div className="flex-1">
+                  <h3 className="mb-1" style={{ color: '#2d5f4f' }}>
+                    {selectedParty.stadium}
+                  </h3>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {formatGameDate(selectedParty.gameDate)}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      {selectedParty.section}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      {selectedParty.currentParticipants}/{selectedParty.maxParticipants}명
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          <div className="flex gap-2 mt-4">
-            {approvedApplications.length > 0 && (
-              <Button
-                onClick={handleOpenChat}
-                className="flex-1 text-white"
-                style={{ backgroundColor: '#2d5f4f' }}
-              >
-                <MessageSquare className="w-4 h-4 mr-2" />
-                채팅방 입장
-              </Button>
-            )}
-            
-            {/* 삭제 버튼 */}
-            <Button
-              onClick={handleDeleteParty}
-              disabled={isDeleting}
-              variant="outline"
-              className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
-            >
-              {isDeleting ? '삭제 중...' : '파티 삭제'}
-            </Button>
-          </div>
+              <div className="flex gap-2 mt-4">
+                {canEdit && (
+                  <Button
+                    onClick={handleStartEdit}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    <Pencil className="w-4 h-4 mr-2" />
+                    정보 수정
+                  </Button>
+                )}
+                {approvedApplications.length > 0 && (
+                  <Button
+                    onClick={handleOpenChat}
+                    className="flex-1 text-white"
+                    style={{ backgroundColor: '#2d5f4f' }}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    채팅방 입장
+                  </Button>
+                )}
+                <Button
+                  onClick={handleDeleteParty}
+                  disabled={isDeleting}
+                  variant="outline"
+                  className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  {isDeleting ? '삭제 중...' : '파티 삭제'}
+                </Button>
+              </div>
+            </>
+          )}
         </Card>  
         {/* Applications Tabs */}
         <Tabs defaultValue="pending">

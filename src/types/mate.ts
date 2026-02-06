@@ -1,7 +1,7 @@
 // src/types/mate.ts
 export interface Party {
-  id: string;
-  hostId: string;
+  id: number;
+  hostId: number;
   hostName: string;
   hostProfileImageUrl?: string;
   hostFavoriteTeam?: string;
@@ -25,17 +25,17 @@ export interface Party {
   createdAt: string;
 }
 
-export type PartyStatus = 
-  | 'PENDING' 
-  | 'MATCHED' 
-  | 'FAILED' 
-  | 'SELLING' 
-  | 'SOLD' 
-  | 'CHECKED_IN' 
+export type PartyStatus =
+  | 'PENDING'
+  | 'MATCHED'
+  | 'FAILED'
+  | 'SELLING'
+  | 'SOLD'
+  | 'CHECKED_IN'
   | 'COMPLETED';
 
 export interface Application {
-  id: string;
+  id: number;
   partyId: number;
   applicantId: number;
   applicantName: string;
@@ -47,10 +47,11 @@ export interface Application {
   isApproved: boolean;
   isRejected: boolean;
   createdAt: string;
+  responseDeadline?: string;
 }
 
 export interface CheckIn {
-  id: string;
+  id: number;
   partyId: number;
   userId: number;
   userName: string;
@@ -59,9 +60,9 @@ export interface CheckIn {
 }
 
 export interface ChatMessage {
-  id: string;
-  partyId: string;
-  senderId: string;
+  id: number;
+  partyId: number;
+  senderId: number;
   senderName: string;
   message: string;
   createdAt: string;
@@ -69,15 +70,7 @@ export interface ChatMessage {
 
 export type BadgeType = 'new' | 'verified' | 'trusted';
 
-export type MateStatus = 
-  | 'PENDING' 
-  | 'MATCHED' 
-  | 'CHECKED_IN' 
-  | 'COMPLETED' 
-  | 'FAILED' 
-  | 'SELLING' 
-  | 'SOLD';
-
+// MateParty: 히스토리/목록용 간소화 타입 (Party의 서브셋)
 export interface MateParty {
   id: number;
   hostId: number;
@@ -88,7 +81,7 @@ export interface MateParty {
   section: string;
   currentParticipants: number;
   maxParticipants: number;
-  status: MateStatus;
+  status: PartyStatus;
   description?: string;
   homeTeam: string;
   awayTeam: string;

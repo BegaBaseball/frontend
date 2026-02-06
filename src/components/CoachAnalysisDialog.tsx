@@ -221,15 +221,20 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
 
     const handleAnalyze = async () => {
         setLoading(true);
-        setAnalysisStep('인공지능 보안 모듈 활성화 중...');
+        setAnalysisStep('감독님이 헤드셋 끼고 준비 중...');
         setResult(null);
 
         const steps = [
-            '구단별 실시간 기밀 데이터 수집 중...',
-            '해당 팀 투구/타격 기저 데이터 분석 중...',
-            '최근 페이스 및 컨디션 로직 연산 중...',
-            '상대 팀 데이터 매칭 및 확률 계산 중...',
-            '최종 전략 전술 시나리오 생성 중...'
+            '상대팀 벤치 몰래 훔쳐보는 중...',
+            '타율 계산하다 소수점에서 길 잃은 중...',
+            '불펜에서 몸 푸는 중... 아, 그건 투수고요',
+            '야구의 신에게 잠깐 자문 구하는 중...',
+            '9회말 역전 드라마 시나리오 집필 중...',
+            '감독님 표정 읽기 AI 가동 중...',
+            '사인 보내는 중이니까 조용히 해주세요...',
+            '전술 노트에 커피 쏟아서 다시 쓰는 중...',
+            '삼진 아웃 시뮬레이션 999번째 돌리는 중...',
+            '거의 다 됐습니다, 마지막 사인 확인 중...'
         ];
 
         let i = 0;
@@ -240,7 +245,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
             } else {
                 clearInterval(interval);
             }
-        }, 800);
+        }, 1500);
 
         try {
             // Streaming Implementation

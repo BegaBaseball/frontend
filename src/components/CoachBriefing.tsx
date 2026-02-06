@@ -238,7 +238,7 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
 
     const activeTitle = aiBriefing?.title ?? briefingLabel;
     const activeMessage = aiLoading
-        ? 'AI가 분석 중입니다. 잠시만 기다려주세요.'
+        ? 'AI 코치가 작전판에 낙서 중입니다. 잠시만요!'
         : (aiBriefing?.message ?? fallbackMessage);
 
     // Typewriter effect
@@ -285,7 +285,7 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
                                             <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-200 opacity-70"></span>
                                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-200"></span>
                                         </span>
-                                        {aiLoading ? '데이터 분석 중...' : (isPastGame ? '맥락 분석 중' : '실시간 분석 중')}
+                                        {aiLoading ? '작전 구상 중...' : (isPastGame ? '맥락 분석 중' : '실시간 분석 중')}
                                     </span>
                                 )}
                             </div>

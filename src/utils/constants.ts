@@ -103,4 +103,17 @@ export const PARTY_STATUS_CONFIG: Record<string, { label: string; color: string 
   COMPLETED: { label: '관람 완료', color: '#4b5563' },
 };
 
+export const TEAM_COLORS_MAP: Record<string, string> = {
+  'samsung': '#074CA1', // Samsung Blue
+  'ssg': '#CE0E2D',     // SSG Red
+  'doosan': '#131230',  // Doosan Navy
+  'lg': '#C30452',      // LG Red/Magenta
+  'kiwoom': '#570514',  // Kiwoom Burgundy
+  'kt': '#000000',      // KT Black
+  'nc': '#315288',      // NC Dinos Blue
+  'lotte': '#041E42',   // Lotte Navy
+  'kia': '#EA0029',     // KIA Red
+  'hanwha': '#F37321',  // Hanwha Orange
+};
+
 export const DEPOSIT_AMOUNT = 10000; // 보증금
