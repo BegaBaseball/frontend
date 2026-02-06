@@ -4,11 +4,10 @@ import { Party, PartyStatus, ChatMessage } from '../types/mate';
 
 
 
-
 export interface PartyApplication {
-  id: string;
-  partyId: string;
-  applicantId: string;
+  id: number;
+  partyId: number;
+  applicantId: number;
   applicantName: string;
   applicantBadge: 'verified' | 'trusted' | 'new';
   applicantRating: number;
@@ -21,19 +20,21 @@ export interface PartyApplication {
 }
 
 export interface CheckInRecord {
-  partyId: string;
-  userId: string;
+  partyId: number;
+  userId: number;
   checkedInAt: string;
   location: string;
 }
 
 
 export interface ChatRoom {
-  partyId: string;
-  participants: string[]; // userId array
+  partyId: number;
+  participants: number[];
   lastMessage?: ChatMessage;
   unreadCount: number;
 }
+
+export type CheeringSide = 'HOME' | 'AWAY' | 'NEUTRAL' | '';
 
 export interface PartyFormData {
   gameDate: string;
@@ -42,10 +43,14 @@ export interface PartyFormData {
   awayTeam: string;
   stadium: string;
   section: string;
+  cheeringSide: CheeringSide;
+  seatCategory: string;
+  seatDetail: string;
   maxParticipants: number;
   ticketPrice: number;
   description: string;
   ticketFile: File | null;
+  reservationNumber?: string;
 }
 
 export interface ApplicationFormData {
@@ -58,10 +63,10 @@ interface MateState {
   myParties: Party[];
   myApplications: PartyApplication[];
   checkInRecords: CheckInRecord[];
-  applications: PartyApplication[]; // 모든 신청 목록
+  applications: PartyApplication[];
   chatMessages: ChatMessage[];
   chatRooms: ChatRoom[];
-  currentUserId: string;
+  currentUserId: number | null;
 
   // Search state
   searchQuery: string;
@@ -82,23 +87,23 @@ interface MateState {
   setParties: (parties: Party[]) => void;
   setSelectedParty: (party: Party | null) => void;
   addParty: (party: Party) => void;
-  updateParty: (id: string, updates: Partial<Party>) => void;
-  deleteParty: (id: string) => void;
+  updateParty: (id: number, updates: Partial<Party>) => void;
+  deleteParty: (id: number) => void;
 
   applyToParty: (application: PartyApplication) => void;
-  approveApplication: (applicationId: string, partyId: string) => void;
-  rejectApplication: (applicationId: string) => void;
-  getPartyApplications: (partyId: string) => PartyApplication[];
+  approveApplication: (applicationId: number, partyId: number) => void;
+  rejectApplication: (applicationId: number) => void;
+  getPartyApplications: (partyId: number) => PartyApplication[];
 
   checkIn: (record: CheckInRecord) => void;
 
-  convertToSale: (partyId: string, price: number) => void;
+  convertToSale: (partyId: number, price: number) => void;
 
   // Chat actions
   sendMessage: (message: ChatMessage) => void;
-  getChatMessages: (partyId: string) => ChatMessage[];
-  getChatRoom: (partyId: string) => ChatRoom | undefined;
-  markAsRead: (partyId: string) => void;
+  getChatMessages: (partyId: number) => ChatMessage[];
+  getChatRoom: (partyId: number) => ChatRoom | undefined;
+  markAsRead: (partyId: number) => void;
 
   // Form actions
   setCreateStep: (step: number) => void;
@@ -106,6 +111,7 @@ interface MateState {
   setFormError: (field: 'description' | 'ticketFile', error: string) => void;
   resetForm: () => void;
   validateDescription: (text: string) => string;
+  validateMessage: (text: string) => string;
 
   // Application form actions
   updateApplicationForm: (data: Partial<ApplicationFormData>) => void;
@@ -115,194 +121,15 @@ interface MateState {
 export const useMateStore = create<MateState>()(
   persist(
     (set, get) => ({
-      parties: [
-        {
-          id: '1',
-          hostId: 'currentUser',
-          // ... (I need to be careful not to delete the entire content. I will use a larger block or targeted replacement if possible, but wrapping the whole function requires replacing the start and end.)
-          hostName: '나',
-          hostBadge: 'verified',
-          hostRating: 4.8,
-          teamId: 'doosan',
-          gameDate: '2025-05-15',
-          gameTime: '18:30',
-          stadium: '잠실야구장',
-          homeTeam: 'doosan',
-          awayTeam: 'lg',
-          section: 'B 304',
-          maxParticipants: 3,
-          currentParticipants: 1,
-          description: '같이 응원하실 분! 초보자도 환영합니다. 치맥 준비해갈게요 😊',
-          ticketVerified: true,
-          status: 'PENDING',
-          createdAt: '2025-04-20T10:00:00Z',
-        },
-        {
-          id: '2',
-          hostId: 'user2',
-          hostName: '베어스팬',
-          hostBadge: 'trusted',
-          hostRating: 4.5,
-          teamId: 'doosan',
-          gameDate: '2025-05-16',
-          gameTime: '18:30',
-          stadium: '잠실야구장',
-          homeTeam: 'doosan',
-          awayTeam: 'kia',
-          section: 'A 201',
-          maxParticipants: 2,
-          currentParticipants: 2,
-          description: '주말 경기 같이 보실 분 구해요! 열정적으로 응원해요 🔥',
-          ticketVerified: true,
-          status: 'MATCHED',
-          createdAt: '2025-04-21T14:00:00Z',
-        },
-        {
-          id: '3',
-          hostId: 'user3',
-          hostName: '직관러버',
-          hostBadge: 'new',
-          hostRating: 5.0,
-          teamId: 'kia',
-          gameDate: '2025-05-18',
-          gameTime: '17:00',
-          stadium: '광주-기아 챔피언스필드',
-          homeTeam: 'kia',
-          awayTeam: 'samsung',
-          section: 'C 108',
-          maxParticipants: 4,
-          currentParticipants: 2,
-          description: '즐겁게 야구 보러 가실 분! 분위기 좋게 즐겨요 ⚾',
-          ticketVerified: true,
-          status: 'PENDING',
-          createdAt: '2025-04-22T09:00:00Z',
-        },
-        {
-          id: '4',
-          hostId: 'user4',
-          hostName: 'KT팬',
-          hostBadge: 'trusted',
-          hostRating: 4.6,
-          teamId: 'kt',
-          gameDate: '2025-05-20',
-          gameTime: '18:30',
-          stadium: '수원KT위즈파크',
-          homeTeam: 'kt',
-          awayTeam: 'ssg',
-          section: 'A 103',
-          maxParticipants: 3,
-          currentParticipants: 2,
-          description: '주말 경기 같이 보실 분! 응원용품도 준비해갈게요!',
-          ticketVerified: true,
-          status: 'MATCHED',
-          createdAt: '2025-04-23T11:00:00Z',
-        },
-      ],
+      parties: [],
       selectedParty: null,
       myParties: [],
-      myApplications: [
-        {
-          id: 'myapp1',
-          partyId: '4',
-          applicantId: 'currentUser',
-          applicantName: '나',
-          applicantBadge: 'new',
-          applicantRating: 5.0,
-          message: '같이 응원하고 싶습니다!',
-          depositAmount: 10000,
-          isPaid: true,
-          isApproved: true,
-          isRejected: false,
-          createdAt: '2025-04-24T09:00:00Z',
-        },
-      ],
+      myApplications: [],
       checkInRecords: [],
-      applications: [
-        {
-          id: 'app1',
-          partyId: '1',
-          applicantId: 'user101',
-          applicantName: '야구팬',
-          applicantBadge: 'verified',
-          applicantRating: 4.7,
-          message: '같이 재미있게 경기 봐요! 저도 두산 팬입니다 😊',
-          depositAmount: 10000,
-          isPaid: true,
-          isApproved: false,
-          isRejected: false,
-          createdAt: '2025-04-21T10:00:00Z',
-        },
-        {
-          id: 'app2',
-          partyId: '1',
-          applicantId: 'user102',
-          applicantName: '직관러',
-          applicantBadge: 'trusted',
-          applicantRating: 4.9,
-          message: '직관 좋아하는 사람입니다! 함께 즐겁게 응원해요!',
-          depositAmount: 10000,
-          isPaid: true,
-          isApproved: false,
-          isRejected: false,
-          createdAt: '2025-04-21T14:30:00Z',
-        },
-        {
-          id: 'app3',
-          partyId: '4',
-          applicantId: 'user103',
-          applicantName: 'KT응원단',
-          applicantBadge: 'verified',
-          applicantRating: 4.8,
-          message: '열정적으로 응원합니다!',
-          depositAmount: 10000,
-          isPaid: true,
-          isApproved: true,
-          isRejected: false,
-          createdAt: '2025-04-23T12:00:00Z',
-        },
-      ],
-      chatMessages: [
-        {
-          id: 'msg1',
-          partyId: '4',
-          senderId: 'user4',
-          senderName: 'KT팬',
-          message: '안녕하세요! 경기 당일에 구장 정문에서 만나요',
-          createdAt: '2025-04-25T10:00:00Z',
-        },
-        {
-          id: 'msg2',
-          partyId: '4',
-          senderId: 'currentUser',
-          senderName: '나',
-          message: '네, 좋습니다! 18시까지 갈게요',
-          createdAt: '2025-04-25T10:05:00Z',
-        },
-        {
-          id: 'msg3',
-          partyId: '4',
-          senderId: 'user103',
-          senderName: 'KT응원단',
-          message: '저도 18시에 도착 예정입니다!',
-          createdAt: '2025-04-25T10:10:00Z',
-        },
-      ],
-      chatRooms: [
-        {
-          partyId: '4',
-          participants: ['user4', 'currentUser', 'user103'],
-          lastMessage: {
-            id: 'msg3',
-            partyId: '4',
-            senderId: 'user103',
-            senderName: 'KT응원단',
-            message: '저도 18시에 도착 예정입니다!',
-            createdAt: '2025-04-25T10:10:00Z',
-          },
-          unreadCount: 0,
-        },
-      ],
-      currentUserId: 'currentUser', // 현재 로그인한 사용자 ID
+      applications: [],
+      chatMessages: [],
+      chatRooms: [],
+      currentUserId: null,
 
       // Search state
       searchQuery: '',
@@ -316,10 +143,14 @@ export const useMateStore = create<MateState>()(
         awayTeam: '',
         stadium: '',
         section: '',
+        cheeringSide: '',
+        seatCategory: '',
+        seatDetail: '',
         maxParticipants: 2,
         ticketPrice: 0,
         description: '',
         ticketFile: null,
+        reservationNumber: '',
       },
       formErrors: {
         description: '',
@@ -366,19 +197,16 @@ export const useMateStore = create<MateState>()(
           app.id === applicationId ? { ...app, isApproved: true } : app
         );
 
-        // 채팅방 생성 또는 참여자 추가 (불변성 유지)
         const existingRoomIndex = state.chatRooms.findIndex(room => room.partyId === partyId);
         let updatedChatRooms = [...state.chatRooms];
 
         if (existingRoomIndex !== -1) {
-          // 기존 채팅방이 있으면 참여자 추가
           const existingRoom = updatedChatRooms[existingRoomIndex];
           updatedChatRooms[existingRoomIndex] = {
             ...existingRoom,
             participants: [...new Set([...existingRoom.participants, application.applicantId])]
           };
         } else {
-          // 채팅방 없으면 새로 생성
           const party = state.parties.find(p => p.id === partyId);
           if (party) {
             updatedChatRooms.push({
@@ -418,10 +246,10 @@ export const useMateStore = create<MateState>()(
 
       convertToSale: (partyId, price) => set((state) => ({
         parties: state.parties.map((p) =>
-          p.id === partyId ? { ...p, status: 'SELLING', price } : p
+          p.id === partyId ? { ...p, status: 'SELLING' as PartyStatus, price } : p
         ),
         myParties: state.myParties.map((p) =>
-          p.id === partyId ? { ...p, status: 'SELLING', price } : p
+          p.id === partyId ? { ...p, status: 'SELLING' as PartyStatus, price } : p
         ),
       })),
 
@@ -471,10 +299,14 @@ export const useMateStore = create<MateState>()(
           awayTeam: '',
           stadium: '',
           section: '',
+          cheeringSide: '',
+          seatCategory: '',
+          seatDetail: '',
           maxParticipants: 2,
           ticketPrice: 0,
           description: '',
           ticketFile: null,
+          reservationNumber: '',
         },
         formErrors: {
           description: '',
@@ -490,7 +322,6 @@ export const useMateStore = create<MateState>()(
           return '소개글은 200자를 초과할 수 없습니다.';
         }
 
-        // 금칙어 체크
         const forbiddenWords = ['욕설', '비방', '광고'];
         for (const word of forbiddenWords) {
           if (text.includes(word)) {
@@ -498,7 +329,30 @@ export const useMateStore = create<MateState>()(
           }
         }
 
-        // 연락처 패턴 체크
+        const phonePattern = /\d{3}[-.\\s]?\d{3,4}[-.\\s]?\d{4}/;
+        const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+        if (phonePattern.test(text) || emailPattern.test(text)) {
+          return '연락처 정보는 입력할 수 없습니다. 매칭 후 채팅을 이용해주세요.';
+        }
+
+        return '';
+      },
+
+      validateMessage: (text) => {
+        if (text.length < 5) {
+          return '메시지는 최소 5자 이상 입력해주세요.';
+        }
+        if (text.length > 500) {
+          return '메시지는 500자를 초과할 수 없습니다.';
+        }
+
+        const forbiddenWords = ['욕설', '비방', '광고'];
+        for (const word of forbiddenWords) {
+          if (text.includes(word)) {
+            return '부적절한 단어가 포함되어 있습니다.';
+          }
+        }
+
         const phonePattern = /\d{3}[-.\\s]?\d{3,4}[-.\\s]?\d{4}/;
         const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
         if (phonePattern.test(text) || emailPattern.test(text)) {
@@ -520,13 +374,12 @@ export const useMateStore = create<MateState>()(
       }),
     }), {
     name: 'mate-storage',
-    storage: createJSONStorage(() => sessionStorage), // 세션 스토리지 사용 (브라우저 닫으면 초기화)
+    storage: createJSONStorage(() => sessionStorage),
     partialize: (state) => ({
-      // 유지할 상태 선택
       selectedParty: state.selectedParty,
       createStep: state.createStep,
       formData: state.formData,
-      // ticketFile은 File 객체라 직렬화 불가능하므로 제외 (새로고침 시 재업로드 필요)
+      searchQuery: state.searchQuery,
     }),
   })
 );

@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from './ui/alert';
 import ChatBot from './ChatBot';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../utils/api';
+import { formatGameDate } from '../utils/mate';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { mapBackendPartyToFrontend } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
@@ -101,7 +102,7 @@ export default function MateApply() {
 
     try {
       const applicationData = {
-        partyId: parseInt(selectedParty.id),
+        partyId: selectedParty.id,
         applicantId: currentUserId,
         applicantName: currentUserName,
         applicantBadge: 'NEW',
@@ -169,7 +170,7 @@ export default function MateApply() {
                 {selectedParty.stadium}
               </h3>
               <p className="text-sm text-gray-600">
-                {selectedParty.gameDate} {selectedParty.gameTime}
+                {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime.substring(0, 5)}
               </p>
             </div>
           </div>

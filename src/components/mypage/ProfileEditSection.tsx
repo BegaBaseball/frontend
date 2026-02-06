@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'; // Added imports
 import { Camera, Save, User, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,6 +9,7 @@ import TeamLogo from '../TeamLogo';
 import TeamRecommendationTest from '../TeamRecommendationTest';
 import { useProfileEdit } from '../../hooks/useProfileEdit';
 import { TEAM_DATA } from '../../constants/teams';
+import { DEFAULT_PROFILE_IMAGE } from '../../utils/constants'; // Added import
 
 interface ProfileEditSectionProps {
   profileImage: string;
@@ -16,7 +18,7 @@ interface ProfileEditSectionProps {
   userRole?: string;
   userProvider?: string;
   savedFavoriteTeam: string;
-  initialBio?: string | null; // Added initialBio
+  initialBio?: string | null;
   onCancel: () => void;
   onSave: () => void;
   onChangePassword?: () => void;
@@ -66,6 +68,22 @@ export default function ProfileEditSection({
     onSave,
   });
 
+  // 이미지 에러 핸들링
+  const [imgSrc, setImgSrc] = useState<string | null>(profileImage);
+
+  // 프로필 이미지가 변경되면 상태 업데이트
+  useEffect(() => {
+    setImgSrc(profileImage);
+  }, [profileImage]);
+
+  const handleImageError = () => {
+    if (imgSrc !== DEFAULT_PROFILE_IMAGE) {
+      setImgSrc(DEFAULT_PROFILE_IMAGE);
+    } else {
+      setImgSrc(null);
+    }
+  };
+
   return (
     <>
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-6 md:p-8 mb-6">
@@ -93,8 +111,13 @@ export default function ProfileEditSection({
               <div className="flex flex-col items-center p-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
                 <div className="relative">
                   <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                    {profileImage ? (
-                      <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    {imgSrc ? (
+                      <img
+                        src={imgSrc}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                        onError={handleImageError}
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <User className="w-16 h-16 text-gray-400 dark:text-gray-500" />

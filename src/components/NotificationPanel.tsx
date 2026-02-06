@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText, Repeat2, Trash2, CheckCheck } from 'lucide-react';
+import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText, Repeat2, Trash2, CheckCheck, Clock, Calendar, AlertTriangle, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore } from '../store/notificationStore';
 import { useAuthStore } from '../store/authStore';
@@ -47,9 +47,9 @@ export default function NotificationPanel() {
         markAsRead(notification.id);
       }
 
-      if (notification.type === 'APPLICATION_RECEIVED') {
+      if (notification.type === 'APPLICATION_RECEIVED' || notification.type === 'HOST_RESPONSE_NUDGE') {
         navigate(`/mate/${notification.relatedId}/manage`);
-      } else if (notification.type === 'APPLICATION_APPROVED' || notification.type === 'APPLICATION_REJECTED') {
+      } else if (['APPLICATION_APPROVED', 'APPLICATION_REJECTED', 'PARTY_EXPIRED', 'PARTY_AUTO_COMPLETED', 'GAME_TOMORROW_REMINDER', 'GAME_DAY_REMINDER', 'REVIEW_REQUEST'].includes(notification.type)) {
         navigate(`/mate/${notification.relatedId}`);
       } else if (['POST_COMMENT', 'COMMENT_REPLY', 'POST_LIKE', 'POST_REPOST'].includes(notification.type)) {
         navigate(`/cheer/${notification.relatedId}`);
@@ -89,6 +89,12 @@ export default function NotificationPanel() {
       case 'APPLICATION_RECEIVED': return <Bell className="w-5 h-5 text-blue-500" />;
       case 'APPLICATION_APPROVED': return <Check className="w-5 h-5 text-green-500" />;
       case 'APPLICATION_REJECTED': return <X className="w-5 h-5 text-red-500" />;
+      case 'PARTY_EXPIRED': return <AlertTriangle className="w-5 h-5 text-orange-500" />;
+      case 'PARTY_AUTO_COMPLETED': return <Check className="w-5 h-5 text-gray-500" />;
+      case 'GAME_TOMORROW_REMINDER': return <Calendar className="w-5 h-5 text-blue-500" />;
+      case 'GAME_DAY_REMINDER': return <Calendar className="w-5 h-5 text-green-500" />;
+      case 'HOST_RESPONSE_NUDGE': return <Clock className="w-5 h-5 text-orange-500" />;
+      case 'REVIEW_REQUEST': return <Star className="w-5 h-5 text-yellow-500" />;
       case 'POST_COMMENT': return <MessageCircle className="w-5 h-5 text-blue-500" />;
       case 'COMMENT_REPLY': return <MessageSquare className="w-5 h-5 text-purple-500" />;
       case 'POST_LIKE': return <Heart className="w-5 h-5 text-pink-500 fill-pink-500" />;
@@ -154,7 +160,7 @@ export default function NotificationPanel() {
   // Filter and then Group
   const filteredNotifications = notifications.filter(n => {
     if (activeTab === 'ALL') return true;
-    if (activeTab === 'MATE') return ['APPLICATION_RECEIVED', 'APPLICATION_APPROVED', 'APPLICATION_REJECTED'].includes(n.type);
+    if (activeTab === 'MATE') return ['APPLICATION_RECEIVED', 'APPLICATION_APPROVED', 'APPLICATION_REJECTED', 'PARTY_EXPIRED', 'PARTY_AUTO_COMPLETED', 'GAME_TOMORROW_REMINDER', 'GAME_DAY_REMINDER', 'HOST_RESPONSE_NUDGE', 'REVIEW_REQUEST'].includes(n.type);
     if (activeTab === 'CHEER') return ['POST_COMMENT', 'COMMENT_REPLY', 'POST_LIKE', 'POST_REPOST', 'NEW_FOLLOWER', 'FOLLOWING_NEW_POST'].includes(n.type);
     return true;
   });

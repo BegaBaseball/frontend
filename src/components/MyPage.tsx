@@ -15,9 +15,10 @@ import { useMyPage } from '../hooks/useMyPage';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useQuery } from '@tanstack/react-query';
 import { getFollowCounts } from '../api/followApi';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import UserListModal from './profile/UserListModal';
 import { UserPlus } from 'lucide-react';
+import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 
 export default function MyPage() {
   const {
@@ -62,6 +63,25 @@ export default function MyPage() {
 
   const isDesktop = useMediaQuery('(min-width: 768px)');
 
+  // 이미지 에러 핸들링
+  const [imgSrc, setImgSrc] = useState<string | null>(profileImage);
+
+  // 프로필 이미지가 변경되면 상태 업데이트
+  useEffect(() => {
+    setImgSrc(profileImage);
+  }, [profileImage]);
+
+  const handleImageError = () => {
+    // 1. 현재 이미지가 기본 이미지가 아니라면 -> 기본 이미지로 변경
+    if (imgSrc !== DEFAULT_PROFILE_IMAGE) {
+      setImgSrc(DEFAULT_PROFILE_IMAGE);
+    }
+    // 2. 이미 기본 이미지인데도 에러가 났다면 (혹은 기본 이미지 로드 실패) -> 아예 아이콘으로
+    else {
+      setImgSrc(null);
+    }
+  };
+
   if (!isLoggedIn) {
     return null;
   }
@@ -76,11 +96,12 @@ export default function MyPage() {
             <div className="flex items-center gap-4 md:gap-6">
               <div className="relative flex-shrink-0">
                 <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                  {profileImage ? (
+                  {imgSrc ? (
                     <img
-                      src={profileImage}
+                      src={imgSrc}
                       alt="Profile"
                       className="w-full h-full object-cover"
+                      onError={handleImageError}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

@@ -112,7 +112,7 @@ export default function MateChat() {
 
   // isHost 계산 (조건부 return 전에)
   const isHost = currentUser && selectedParty
-    ? String(selectedParty.hostId) === String(currentUser.id)
+    ? selectedParty.hostId === currentUser.id
     : false;
 
   // 내 신청 정보 확인
@@ -126,7 +126,7 @@ export default function MateChat() {
       try {
         const applications = await api.getApplicationsByApplicant(currentUser.id);
         const myApp = applications.find((app: any) =>
-          String(app.partyId) === String(selectedParty.id)
+          app.partyId === selectedParty.id
         );
 
         setMyApplication(myApp);
@@ -241,7 +241,7 @@ export default function MateChat() {
 
     const newMessage = {
       partyId: selectedParty.id,
-      senderId: String(currentUser.id),
+      senderId: currentUser.id,
       senderName: currentUser.name,
       message: messageText,
     };
@@ -365,7 +365,7 @@ export default function MateChat() {
 
                     <div className="space-y-3">
                       {group.messages.map((msg) => {
-                        const isMyMessage = String(msg.senderId) === String(currentUser.id);
+                        const isMyMessage = msg.senderId === currentUser.id;
                         return (
                           <div
                             key={msg.id}
