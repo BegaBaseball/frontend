@@ -1,15 +1,30 @@
 export interface UserProfile {
+  id: number;
   name: string;
+  handle?: string;
   email: string;
   favoriteTeam: string | null;
   profileImageUrl: string | null;
   role?: string;
+  bio?: string | null;
+  cheerPoints?: number;
+}
+
+export interface PublicUserProfile {
+  id: number;
+  name: string;
+  handle: string;
+  favoriteTeam: string | null;
+  profileImageUrl: string | null;
+  bio?: string | null;
+  cheerPoints?: number;
 }
 
 export interface UserProfileApiResponse {
   success: boolean;
   data: UserProfile;
   message?: string;
+  code?: string;
 }
 
 export interface ProfileImageDto {
@@ -25,6 +40,7 @@ export interface ProfileUpdateData {
   email: string;
   favoriteTeam: string | null;
   profileImageUrl?: string;
+  bio?: string;
 }
 
 export interface ProfileUpdateResponse {
@@ -32,8 +48,19 @@ export interface ProfileUpdateResponse {
   data: {
     token?: string;
     profileImageUrl?: string;
+    name?: string;
+    email?: string;
+    favoriteTeam?: string;
+    bio?: string;
   };
   message?: string;
 }
 
-export type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory';
+export type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory' | 'changePassword' | 'accountSettings' | 'blockedUsers';
+
+export interface UserProviderDto {
+  provider: string;
+  providerId?: string;
+  email?: string;
+  connectedAt: string;
+}

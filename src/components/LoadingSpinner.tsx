@@ -1,14 +1,12 @@
-// export default function LoadingSpinner() {
-//   return (
-//     <div className="min-h-screen flex items-center justify-center bg-white">
-//       <div className="text-center">
-//         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f]"></div>
-//         <p className="mt-4 text-gray-600">로딩 중...</p>
-//       </div>
-//     </div>
-//   );
-// }
+import { Loader2 } from 'lucide-react';
 
 export default function LoadingSpinner() {
-    return null; // ✅ 이렇게만 바꾸기
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background transition-colors duration-200">
+            <div className="text-center">
+                <Loader2 className="inline-block animate-spin h-12 w-12 text-primary" />
+                <p className="mt-4 text-muted-foreground font-medium text-lg">로딩 중...</p>
+            </div>
+        </div>
+    );
 }

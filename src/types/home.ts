@@ -24,6 +24,7 @@ export interface Ranking {
     draws: number;
     winRate: string;
     games: number;
+    gamesBehind?: number;
 }
 
 export interface LeagueStartDates {

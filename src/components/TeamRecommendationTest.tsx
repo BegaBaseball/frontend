@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import TeamLogo from './TeamLogo';
-import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { TeamRecommendationTestProps } from '../types/teamTest';
 import { useTeamTest } from '../hooks/useTeamTest';
 import { getTeamDescription } from '../constants/teams';

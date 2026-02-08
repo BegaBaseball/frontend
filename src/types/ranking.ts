@@ -1,12 +1,7 @@
-// types/ranking.ts (기존 파일에 추가)
-export interface Team {
-  id: string;
-  name: string;
-  shortName: string;
-  fullName: string;
-  color: string;
-  description: string;
-}
+// types/ranking.ts
+// Import and re-export Team from predictionStore to avoid type duplication
+import type { Team } from '../store/predictionStore';
+export type { Team };
 
 export interface SeasonResponse {
   seasonYear: number;

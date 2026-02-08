@@ -3,12 +3,13 @@ import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { fetchSharedPrediction } from '../api/ranking';
 import { restoreTeamsFromIds } from '../utils/ranking';
-import { Team, usePredictionStore } from '../store/predictionStore';
+import { usePredictionStore } from '../store/predictionStore';
+import { Team } from '../types/ranking';
 
 export const useRankingPredictionShare = () => {
   const { userId, seasonYear } = useParams();
   const allTeams = usePredictionStore((state) => state.allTeams);
-  
+
   const [rankings, setRankings] = useState<(Team | null)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

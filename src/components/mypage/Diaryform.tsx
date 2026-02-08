@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Camera, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { ChevronLeft, ChevronRight, Camera, X, Ticket, Loader2 } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { EMOJI_STATS, WINNING_OPTIONS, MAX_PHOTOS } from '../../constants/diary';
@@ -39,12 +40,12 @@ export default function DiaryViewSection() {
   const monthCalendar = useMonthCalendar(currentMonth);
 
   return (
-    <div className="rounded-3xl p-4 md:p-8" style={{ backgroundColor: '#2d5f4f' }}>
+    <div className="rounded-2xl md:rounded-3xl p-3 md:p-8" style={{ backgroundColor: '#2d5f4f' }}>
       {isDesktop ? (
         // 데스크톱: 기존 월간 뷰
-        <div className="grid grid-cols-20 gap-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-10">
           {/* 왼쪽: 캘린더 */}
-          <Card className="p-8 col-span-13">
+          <Card className="p-5 md:p-8 lg:col-span-7">
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() =>
@@ -71,7 +72,7 @@ export default function DiaryViewSection() {
               </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-3">
+            <div className="grid grid-cols-7 gap-2 md:gap-3">
               {monthCalendar.weekDays.map((day) => (
                 <div key={day} className="text-center py-2 text-sm text-gray-500">
                   {day}
@@ -80,51 +81,55 @@ export default function DiaryViewSection() {
 
               {monthCalendar.calendarDays.map((day, i) => {
                 const selectedDateStr = formatDateString(selectedDate);
-                const entry = diaryEntries.find((e) => e.date === day.dateString);
-                const isSelected = selectedDateStr === day.dateString;
+                const dayDateStr = day.dateString;
+                const entry = diaryEntries.find((e) => e.date === dayDateStr);
+                const isSelected = selectedDateStr === dayDateStr;
+
+                // Determine classes based on state
+                let bgClass = '';
+                if (entry) {
+                  if (entry.type === 'attended') {
+                    bgClass = 'bg-[#e8f5f0] dark:bg-[#134e4a]/30 border-[#2d5f4f] dark:border-[#2d5f4f]';
+                  } else {
+                    bgClass = 'bg-[#fef3c7] dark:bg-[#78350f]/30 border-[#fbbf24] dark:border-[#d97706]';
+                  }
+                } else if (day.isValidDay) {
+                  bgClass = 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700';
+                } else {
+                  bgClass = 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-800';
+                }
 
                 return (
                   <button
                     key={i}
+                    data-testid={day.isValidDay ? `day-${day.dayNumber}` : undefined}
                     onClick={() =>
                       day.isValidDay &&
                       handleDateSelect(
                         new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day.dayNumber, 12, 0, 0)
                       )
                     }
-                    className={`border rounded-lg p-2 flex flex-col min-h-[110px] ${
-                      day.isValidDay ? 'bg-white hover:bg-gray-50' : 'bg-gray-50'
-                    } ${isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f]' : ''}`}
-                    style={{
-                      borderColor: entry
-                        ? entry.type === 'attended'
-                          ? '#2d5f4f'
-                          : '#fbbf24'
-                        : '#e5e7eb',
-                      backgroundColor: entry
-                        ? entry.type === 'attended'
-                          ? '#e8f5f0'
-                          : '#fef3c7'
-                        : day.isValidDay
-                        ? 'white'
-                        : '#f9fafb',
-                    }}
+                    className={`border rounded-lg p-2 flex flex-col min-h-[96px] md:min-h-[110px] transition-colors ${bgClass} ${isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f] dark:ring-offset-gray-900' : ''
+                      }`}
                     disabled={!day.isValidDay}
                   >
                     {day.isValidDay && (
                       <>
-                        <div className="text-sm text-center w-full mb-2">{day.dayNumber}</div>
+                        <div className={`text-sm text-center w-full mb-2 ${!day.isValidDay ? 'text-gray-300 dark:text-gray-700' : 'text-gray-900 dark:text-gray-100'
+                          }`}>
+                          {day.dayNumber}
+                        </div>
                         {entry && (
                           <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
                             {entry.team && (
-                              <div className="text-[10px] text-gray-700 font-semibold text-center leading-snug px-1 line-clamp-2">
+                              <div className="text-[10px] font-semibold text-center leading-snug px-1 line-clamp-2 text-gray-700 dark:text-gray-200">
                                 {entry.team}
                               </div>
                             )}
                             <img
                               src={getEmojiByName(entry.emojiName)}
                               alt={entry.emojiName}
-                              className="w-10 h-10 flex-shrink-0"
+                              className="w-9 h-9 md:w-10 md:h-10 flex-shrink-0"
                             />
                           </div>
                         )}
@@ -154,7 +159,7 @@ export default function DiaryViewSection() {
           </Card>
 
           {/* 오른쪽: 다이어리 폼 */}
-          <Card className="p-6 col-span-7">
+          <Card className="p-5 md:p-6 lg:col-span-3">
             <div className="mb-6">
               <h3 style={{ color: '#2d5f4f', fontWeight: 900 }}>
                 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 직관 기록
@@ -207,7 +212,7 @@ export default function DiaryViewSection() {
               </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1.5">
               {weekCalendar.weekDays.map((day) => (
                 <div key={day} className="text-center py-1 text-xs text-gray-500">
                   {day}
@@ -223,10 +228,10 @@ export default function DiaryViewSection() {
                 return (
                   <button
                     key={index}
+                    data-testid={`day-${date.getDate()}`}
                     onClick={() => handleDateSelect(date)}
-                    className={`border rounded-lg p-2 flex flex-col min-h-[100px] bg-white hover:bg-gray-50 ${
-                      isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f]' : ''
-                    }`}
+                    className={`border rounded-lg p-2 flex flex-col min-h-[84px] bg-white hover:bg-gray-50 ${isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f]' : ''
+                      }`}
                     style={{
                       borderColor: entry
                         ? entry.type === 'attended'
@@ -325,7 +330,11 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         className="flex items-center gap-6 p-6 rounded-2xl"
         style={{ backgroundColor: '#f8fcfb' }}
       >
-        <img src={getEmojiByName(diaryForm.emojiName)} alt={diaryForm.emojiName} className="w-20 h-20" />
+        <img
+          src={getEmojiByName(diaryForm.emojiName)}
+          alt={diaryForm.emojiName}
+          className="w-20 h-20 object-contain"
+        />
         <div>
           <div className="text-sm text-gray-500 mb-1">오늘의 기분</div>
           <div className="text-2xl" style={{ fontWeight: 900, color: '#2d5f4f' }}>
@@ -394,7 +403,10 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         {diaryForm.memo && (
           <div className="grid grid-cols-[80px_1fr] gap-2">
             <div className="text-sm text-gray-600">메모</div>
-            <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+            <div
+              data-testid="diary-memo"
+              className="text-gray-700 leading-relaxed whitespace-pre-wrap"
+            >
               {diaryForm.memo}
             </div>
           </div>
@@ -403,6 +415,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
 
       <div className="flex gap-3 justify-center">
         <Button
+          data-testid="edit-diary-btn"
           onClick={() => setIsEditMode(true)}
           className="text-white"
           style={{ backgroundColor: '#2d5f4f' }}
@@ -411,6 +424,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
           수정하기
         </Button>
         <Button
+          data-testid="delete-diary-btn"
           onClick={handleDeleteDiary}
           className="text-white"
           style={{ backgroundColor: '#EF4444' }}
@@ -446,6 +460,67 @@ function DiaryEditMode({
   saveMutation,
   updateMutation,
 }: any) {
+  const [isScanning, setIsScanning] = useState(false);
+
+  const handleTicketScan = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    setIsScanning(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // AI Service Vision API 호출
+      const aiServiceUrl = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8001';
+      const response = await fetch(`${aiServiceUrl}/vision/ticket`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('티켓 분석에 실패했습니다');
+      }
+
+      const ticketInfo = await response.json();
+
+      // 폼 필드 자동 채우기
+      // availableGames에서 매칭되는 경기 찾기
+      if (ticketInfo.homeTeam && ticketInfo.awayTeam) {
+        const matchingGame = availableGames.find((game: any) =>
+          (game.homeTeam.includes(ticketInfo.homeTeam) || ticketInfo.homeTeam.includes(game.homeTeam)) &&
+          (game.awayTeam.includes(ticketInfo.awayTeam) || ticketInfo.awayTeam.includes(game.awayTeam))
+        );
+
+        if (matchingGame) {
+          updateForm({ gameId: matchingGame.id });
+        }
+      }
+
+      // 2. 좌석 정보 매칭
+      const seatUpdates: any = {};
+      if (ticketInfo.section) seatUpdates.section = ticketInfo.section;
+      if (ticketInfo.row) seatUpdates.row = ticketInfo.row;
+      if (ticketInfo.seat) seatUpdates.seat = ticketInfo.seat;
+
+      if (Object.keys(seatUpdates).length > 0) {
+        updateForm(seatUpdates);
+      }
+
+      // 스캔한 티켓 이미지도 사진으로 추가
+      handlePhotoUpload(files);
+
+      toast.success('티켓 분석 완료!', { description: `경기장: ${ticketInfo.stadium || '미확인'} / 날짜: ${ticketInfo.date || '미확인'} / 좌석: ${ticketInfo.section || ''} ${ticketInfo.row || ''} ${ticketInfo.seat || ''}` });
+
+    } catch (error) {
+      console.error('Ticket scan error:', error);
+      toast.error('티켓 분석 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   const allPhotos = [
     ...diaryForm.photos,      // DB에 저장된 URL들
     ...diaryForm.photoFiles,  // 새로 추가한 File 객체들
@@ -453,6 +528,36 @@ function DiaryEditMode({
 
   return (
     <div className="space-y-4">
+      {/* 티켓 스캔 버튼 */}
+      <div className="mb-4">
+        <label className={`
+          flex items-center justify-center gap-2 w-full py-3 px-4 
+          border-2 border-dashed border-[#2d5f4f] rounded-xl cursor-pointer
+          bg-[#f8fcfb] hover:bg-[#e8f5f0] transition-colors
+          ${isScanning ? 'opacity-50 cursor-not-allowed' : ''}
+        `}>
+          {isScanning ? (
+            <>
+              <Loader2 className="w-5 h-5 text-[#2d5f4f] animate-spin" />
+              <span className="text-[#2d5f4f] font-semibold">티켓 분석 중...</span>
+            </>
+          ) : (
+            <>
+              <Ticket className="w-5 h-5 text-[#2d5f4f]" />
+              <span className="text-[#2d5f4f] font-semibold">티켓 사진으로 자동 입력</span>
+            </>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleTicketScan(e.target.files)}
+            className="hidden"
+            disabled={isScanning}
+          />
+        </label>
+        <p className="text-xs text-gray-500 text-center mt-1">티켓 사진을 올리면 AI가 자동으로 정보를 채워줍니다</p>
+      </div>
+
       {/* 직관 유형 선택 */}
       <div>
         <label className="text-sm text-gray-600 mb-3 block">직관 유형</label>
@@ -460,18 +565,16 @@ function DiaryEditMode({
           <button
             type="button"
             onClick={() => updateForm({ type: 'attended' })}
-            className={`flex-1 rounded-lg transition-all ${
-              diaryForm.type === 'attended' ? 'shadow-md scale-105' : 'bg-gray-100'
-            }`}
+            className={`flex-1 rounded-lg transition-all ${diaryForm.type === 'attended' ? 'shadow-md scale-105' : 'bg-gray-100'
+              }`}
             style={{
               backgroundColor: diaryForm.type === 'attended' ? '#2d5f4f' : undefined,
               padding: '10px',
             }}
           >
             <div
-              className={`font-bold ${
-                diaryForm.type === 'attended' ? 'text-white' : 'text-gray-700'
-              }`}
+              className={`font-bold ${diaryForm.type === 'attended' ? 'text-white' : 'text-gray-700'
+                }`}
             >
               직관 완료
             </div>
@@ -479,18 +582,16 @@ function DiaryEditMode({
           <button
             type="button"
             onClick={() => updateForm({ type: 'scheduled' })}
-            className={`flex-1 rounded-lg transition-all ${
-              diaryForm.type === 'scheduled' ? 'shadow-md scale-105' : 'bg-gray-100'
-            }`}
+            className={`flex-1 rounded-lg transition-all ${diaryForm.type === 'scheduled' ? 'shadow-md scale-105' : 'bg-gray-100'
+              }`}
             style={{
               backgroundColor: diaryForm.type === 'scheduled' ? '#fbbf24' : undefined,
               padding: '10px',
             }}
           >
             <div
-              className={`font-bold ${
-                diaryForm.type === 'scheduled' ? 'text-white' : 'text-gray-700'
-              }`}
+              className={`font-bold ${diaryForm.type === 'scheduled' ? 'text-white' : 'text-gray-700'
+                }`}
             >
               직관 예정
             </div>
@@ -502,20 +603,23 @@ function DiaryEditMode({
       {diaryForm.type === 'attended' && (
         <div>
           <label className="text-sm text-gray-600 mb-3 block">오늘의 기분</label>
-          <div className="flex items-center justify-around p-4 bg-gray-50 rounded-2xl">
+          <div className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-2xl overflow-x-auto">
             {EMOJI_STATS.map((item, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => updateForm({ emoji: item.emoji, emojiName: item.name })}
-                className={`p-2 rounded-xl transition-all flex flex-col items-center gap-1 ${
-                  diaryForm.emojiName === item.name
-                    ? 'bg-white shadow-md scale-110'
-                    : 'hover:bg-white/50'
-                }`}
+                className={`flex min-w-[80px] flex-col items-center gap-2 rounded-xl px-3 py-2 transition-all ${diaryForm.emojiName === item.name
+                  ? 'bg-white shadow-md scale-110'
+                  : 'hover:bg-white/50'
+                  }`}
               >
-                <img src={item.emoji} alt={item.name} className="w-12 h-12" />
-                <span className="text-xs text-gray-600">{item.name}</span>
+                <img
+                  src={item.emoji}
+                  alt={item.name}
+                  className="h-12 w-12 object-contain md:h-14 md:w-14"
+                />
+                <span className="text-xs text-gray-600 whitespace-nowrap">{item.name}</span>
               </button>
             ))}
           </div>
@@ -563,12 +667,12 @@ function DiaryEditMode({
 
       {/* 경기 선택 */}
       <div>
-        <label className="text-sm text-gray-500 mb-1 block">경기 선택</label>
+        <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">경기 선택</label>
         {availableGames.length > 0 ? (
           <select
             value={diaryForm.gameId}
             onChange={(e) => updateForm({ gameId: e.target.value })}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] bg-white"
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           >
             <option value="">경기를 선택하세요</option>
             {availableGames.map((game: any) => (
@@ -579,37 +683,73 @@ function DiaryEditMode({
             ))}
           </select>
         ) : (
-          <div className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-center">
+          <div className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-center">
             이 날짜에 예정된 경기가 없습니다
           </div>
         )}
       </div>
 
+      {/* 좌석 정보 (직관 완료시만) */}
+      {diaryForm.type === 'attended' && (
+        <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
+          <label className="text-sm font-bold text-[#2d5f4f]">좌석 정보</label>
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="text"
+              placeholder="구역 (예: 1루 레드석)"
+              value={diaryForm.section || ''}
+              onChange={(e) => updateForm({ section: e.target.value })}
+              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            />
+            <input
+              type="text"
+              placeholder="블록 (예: 101블록)"
+              value={diaryForm.block || ''}
+              onChange={(e) => updateForm({ block: e.target.value })}
+              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            />
+            <input
+              type="text"
+              placeholder="열 (예: 5열)"
+              value={diaryForm.row || ''}
+              onChange={(e) => updateForm({ row: e.target.value })}
+              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            />
+            <input
+              type="text"
+              placeholder="번 (예: 13번)"
+              value={diaryForm.seat || ''}
+              onChange={(e) => updateForm({ seat: e.target.value })}
+              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            />
+          </div>
+        </div>
+      )}
+
       {/* 승패 선택 (직관 완료시만) */}
       {diaryForm.type === 'attended' && (
         <div className="space-y-2">
-          <label className="block text-sm text-gray-500 mb-2">응원 팀 승패</label>
+          <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">응원 팀 승패</label>
           <div className="flex gap-3">
             {WINNING_OPTIONS.map(({ value, label, bg, lightBg, textColor }) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => updateForm({ winningName: value })}
-                className={`flex-1 py-4 px-4 rounded-xl transition-all transform border-2 ${
-                  diaryForm.winningName === value ? 'shadow-lg scale-105' : 'hover:scale-105'
-                }`}
+                className={`flex-1 py-4 px-4 rounded-xl transition-all transform border-2 ${diaryForm.winningName === value ? 'shadow-lg scale-105' : 'hover:scale-105'
+                  }`}
                 style={
                   diaryForm.winningName === value
                     ? {
-                        backgroundColor: bg,
-                        color: 'white',
-                        borderColor: bg,
-                      }
+                      backgroundColor: bg,
+                      color: 'white',
+                      borderColor: bg,
+                    }
                     : {
-                        backgroundColor: lightBg,
-                        color: textColor,
-                        borderColor: lightBg,
-                      }
+                      backgroundColor: lightBg, // Note: You might want to adjust these colors for dark mode too if they are fixed hex codes
+                      color: textColor,
+                      borderColor: lightBg,
+                    }
                 }
               >
                 <div className="font-bold text-lg">{label}</div>
@@ -621,7 +761,7 @@ function DiaryEditMode({
 
       {/* 메모 */}
       <div>
-        <label className="text-sm text-gray-500 mb-1 block">메모</label>
+        <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">메모</label>
         <textarea
           disabled={diaryForm.type === 'scheduled'}
           value={diaryForm.memo}
@@ -630,7 +770,7 @@ function DiaryEditMode({
             diaryForm.type === 'attended' ? '오늘의 직관 경험을 기록해보세요' : '경기 후 입력 가능'
           }
           rows={4}
-          className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] resize-none"
+          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none placeholder-gray-400 dark:placeholder-gray-500"
         />
       </div>
 
@@ -650,6 +790,7 @@ function DiaryEditMode({
           </Button>
         )}
         <Button
+          data-testid="save-diary-btn"
           className={`${selectedDiary ? 'flex-1' : 'w-full'} text-white`}
           style={{ backgroundColor: '#2d5f4f' }}
           onClick={handleSaveDiary}
@@ -658,8 +799,8 @@ function DiaryEditMode({
           {saveMutation.isPending || updateMutation.isPending
             ? '저장 중...'
             : selectedDiary
-            ? '저장하기'
-            : '작성하기'}
+              ? '저장하기'
+              : '작성하기'}
         </Button>
       </div>
     </div>

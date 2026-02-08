@@ -64,7 +64,7 @@ export default function PasswordResetConfirm() {
                   value={formData.newPassword}
                   onChange={(e) => handleFieldChange('newPassword', e.target.value)}
                   onBlur={() => handleFieldBlur('newPassword')}
-                  className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.newPassword ? 'border-red-500' : ''}`}
+                  className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.newPassword ? 'border-red-500' : ''}`}
                   style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
                   placeholder="새 비밀번호를 입력하세요 (최소 8자)"
                   disabled={isLoading || !token}
@@ -74,6 +74,7 @@ export default function PasswordResetConfirm() {
                   onClick={toggleNewPasswordVisibility}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   disabled={isLoading || !token}
+                  aria-label={showNewPassword ? "새 비밀번호 숨기기" : "새 비밀번호 보기"}
                 >
                   {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -101,7 +102,7 @@ export default function PasswordResetConfirm() {
                   value={formData.confirmPassword}
                   onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
                   onBlur={() => handleFieldBlur('confirmPassword')}
-                  className={`bg-gray-50 border-gray-200 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
+                  className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
                   style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
                   placeholder="비밀번호를 다시 입력하세요"
                   disabled={isLoading || !token}
@@ -111,6 +112,7 @@ export default function PasswordResetConfirm() {
                   onClick={toggleConfirmPasswordVisibility}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   disabled={isLoading || !token}
+                  aria-label={showConfirmPassword ? "비밀번호 확인 숨기기" : "비밀번호 확인 보기"}
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>

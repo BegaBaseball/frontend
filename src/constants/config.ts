@@ -30,9 +30,9 @@ export const BRAND_COLORS = {
  */
 export const PAGE_TITLES = {
   home: '홈',
-  cheer: '응원게시판',
+  cheer: '응원석',
   stadium: '구장가이드',
-  prediction: '승부예측',
+  prediction: '전력분석실',
   diary: '직관다이어리',
   login: '로그인',
   signup: '회원가입',
