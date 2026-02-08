@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, ImagePlus, Smile } from 'lucide-react';
+import { toast } from 'sonner';
 import TextareaAutosize from 'react-textarea-autosize';
 import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { useTheme } from '../hooks/useTheme';
@@ -77,7 +78,7 @@ export default function CheerWriteModal({
             });
 
             if (skippedCount > 0) {
-                alert(`이미지 크기는 5MB 이하여야 합니다. (${skippedCount}개 파일 제외됨)`);
+                toast.warning(`이미지 크기는 5MB 이하여야 합니다. (${skippedCount}개 파일 제외됨)`);
             }
 
             if (validFiles.length === 0) {

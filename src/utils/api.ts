@@ -1,8 +1,51 @@
 // src/utils/api.ts
+import type {
+  Party, Application, CheckIn, PartyReview, ChatMessage,
+  CreatePartyRequest, UpdatePartyRequest, CreateApplicationRequest,
+  CreateCheckInRequest, CreateReviewRequest,
+} from '../types/mate';
+import type { UserProfileApiResponse } from '../types/profile';
+import type { NotificationData } from '../types/notification';
+import type { Stadium, Place } from '../types/stadium';
+
+export interface KboScheduleItem {
+  gameId: string;
+  time: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
+export class ApiError extends Error {
+  status: number;
+  data: { message?: string; error?: string; timestamp?: string } | null;
+
+  constructor(message: string, status: number, data: ApiError['data'] = null) {
+    super(message);
+    this.status = status;
+    this.data = data;
+  }
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  code?: string;
+}
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
 export const api = {
-  async request(endpoint: string, options?: RequestInit) {
+  async request<T = unknown>(endpoint: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       credentials: 'include',
       headers: {
@@ -13,157 +56,149 @@ export const api = {
     });
 
     if (!response.ok) {
-      const error: any = new Error(`API Error: ${response.status}`);
-      error.status = response.status;
+      const apiError = new ApiError(`API Error: ${response.status}`, response.status);
       try {
-        error.data = await response.json();
+        apiError.data = await response.json();
       } catch {
-        error.data = null;
+        apiError.data = null;
       }
-      throw error;
+      throw apiError;
     }
 
     if (response.status === 204) {
-      return {};
+      return {} as T;
     }
 
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      return response.json();
+      return response.json() as Promise<T>;
     }
 
-    return {};
+    return {} as T;
   },
 
   // Stadium
-  async getStadiums() {
-    return this.request('/stadiums');
+  async getStadiums(): Promise<Stadium[]> {
+    return this.request<Stadium[]>('/stadiums');
   },
 
-  async getStadiumPlaces(stadiumId: string, category: string) {
-    return this.request(`/stadiums/${stadiumId}/places?category=${category}`);
+  async getStadiumPlaces(stadiumId: string, category: string): Promise<Place[]> {
+    return this.request<Place[]>(`/stadiums/${stadiumId}/places?category=${category}`);
   },
 
-  async getKboSchedule(date: string) {
-    return this.request(`/kbo/schedule?date=${date}`);
+  async getKboSchedule(date: string): Promise<KboScheduleItem[]> {
+    return this.request<KboScheduleItem[]>(`/kbo/schedule?date=${date}`);
   },
 
   // User
-  async getCurrentUser() {
-    return this.request('/auth/mypage');
+  async getCurrentUser(): Promise<UserProfileApiResponse> {
+    return this.request<UserProfileApiResponse>('/auth/mypage');
   },
 
-  async getUserIdByEmail(email: string) {
-    return this.request(`/users/email-to-id?email=${encodeURIComponent(email)}`);
+  async getUserIdByEmail(email: string): Promise<ApiResponse<number>> {
+    return this.request<ApiResponse<number>>(`/users/email-to-id?email=${encodeURIComponent(email)}`);
   },
 
-  async checkSocialVerified(userId: number) {
-    return this.request(`/users/${userId}/social-verified`);
+  async checkSocialVerified(userId: number): Promise<ApiResponse<boolean>> {
+    return this.request<ApiResponse<boolean>>(`/users/${userId}/social-verified`);
   },
 
   // Party
-  async getParties(teamId?: string, stadium?: string, page = 0, size = 9, searchQuery?: string, gameDate?: string): Promise<{
-    content: any[];
-    totalElements: number;
-    totalPages: number;
-    number: number;
-    size: number;
-  }> {
+  async getParties(teamId?: string, stadium?: string, page = 0, size = 9, searchQuery?: string, gameDate?: string): Promise<PaginatedResponse<Party>> {
     const params = new URLSearchParams();
     if (teamId) params.append('teamId', teamId);
     if (stadium) params.append('stadium', stadium);
     if (searchQuery) params.append('searchQuery', searchQuery);
-    if (gameDate) params.append('gameDate', gameDate); // YYYY-MM-DD
+    if (gameDate) params.append('gameDate', gameDate);
     params.append('page', page.toString());
     params.append('size', size.toString());
 
-    return this.request(`/parties?${params}`);
+    return this.request<PaginatedResponse<Party>>(`/parties?${params}`);
   },
 
-  async createParty(data: any) {
-    return this.request('/parties', {
+  async createParty(data: CreatePartyRequest): Promise<Party> {
+    return this.request<Party>('/parties', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  async getPartyById(partyId: string) {
-    return this.request(`/parties/${partyId}`);
+  async getPartyById(partyId: string | number): Promise<Party> {
+    return this.request<Party>(`/parties/${partyId}`);
   },
 
-  // 파티 수정
-  async updateParty(partyId: number, data: any) {
-    return this.request(`/parties/${partyId}`, {
+  async updateParty(partyId: number, data: UpdatePartyRequest): Promise<Party> {
+    return this.request<Party>(`/parties/${partyId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   },
 
-  // 파티 삭제
-  async deleteParty(partyId: string, hostId: number) {
-    return this.request(`/parties/${partyId}?hostId=${hostId}`, {
+  async deleteParty(partyId: string | number, hostId: number): Promise<void> {
+    await this.request(`/parties/${partyId}?hostId=${hostId}`, {
       method: 'DELETE',
     });
   },
 
   // Application
-  async createApplication(data: any) {
-    return this.request('/applications', {
+  async createApplication(data: CreateApplicationRequest): Promise<Application> {
+    return this.request<Application>('/applications', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
-  async getApplicationsByParty(partyId: string) {
-    return this.request(`/applications/party/${partyId}`);
+
+  async getApplicationsByParty(partyId: string | number): Promise<Application[]> {
+    return this.request<Application[]>(`/applications/party/${partyId}`);
   },
 
-  async getApplicationsByApplicant(applicantId: number) {
-    return this.request(`/applications/applicant/${applicantId}`);
+  async getApplicationsByApplicant(applicantId: number | string | null): Promise<Application[]> {
+    if (applicantId === null) return [];
+    return this.request<Application[]>(`/applications/applicant/${applicantId}`);
   },
 
-  async approveApplication(applicationId: string) {
-    return this.request(`/applications/${applicationId}/approve`, {
+  async approveApplication(applicationId: string | number): Promise<Application> {
+    return this.request<Application>(`/applications/${applicationId}/approve`, {
       method: 'POST',
     });
   },
 
-  async rejectApplication(applicationId: string) {
-    return this.request(`/applications/${applicationId}/reject`, {
+  async rejectApplication(applicationId: string | number): Promise<Application> {
+    return this.request<Application>(`/applications/${applicationId}/reject`, {
       method: 'POST',
     });
   },
 
-  // 신청 취소 추가
-  async cancelApplication(applicationId: string, applicantId: number) {
-    return this.request(`/applications/${applicationId}?applicantId=${applicantId}`, {
+  async cancelApplication(applicationId: string | number, applicantId: number): Promise<void> {
+    await this.request(`/applications/${applicationId}?applicantId=${applicantId}`, {
       method: 'DELETE',
     });
   },
 
   // CheckIn
-  async getCheckInsByParty(partyId: string) {
-    return this.request(`/checkin/party/${partyId}`);
+  async getCheckInsByParty(partyId: string | number): Promise<CheckIn[]> {
+    return this.request<CheckIn[]>(`/checkin/party/${partyId}`);
   },
 
-  async createCheckIn(data: any) {
-    return this.request('/checkin', {
+  async createCheckIn(data: CreateCheckInRequest): Promise<CheckIn> {
+    return this.request<CheckIn>('/checkin', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   // Chat
-  async getChatMessages(partyId: string) {
-    return this.request(`/chat/party/${partyId}`);
+  async getChatMessages(partyId: string | number): Promise<ChatMessage[]> {
+    return this.request<ChatMessage[]>(`/chat/party/${partyId}`);
   },
 
-  // Post
+  // Post (cheerboard 타입은 별도 도메인 — 향후 타입 추가)
   async getPosts(teamId?: string) {
     const query = teamId ? `?teamId=${teamId}` : '';
     return this.request(`/posts${query}`);
   },
 
-  async createPost(data: any) {
+  async createPost(data: unknown) {
     return this.request('/posts', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -171,39 +206,39 @@ export const api = {
   },
 
   // Notification
-  async getNotifications(userId: number) {
-    return this.request(`/notifications/user/${userId}`);
+  async getNotifications(userId: number): Promise<NotificationData[]> {
+    return this.request<NotificationData[]>(`/notifications/user/${userId}`);
   },
 
-  async getUnreadCount(userId: number) {
-    return this.request(`/notifications/user/${userId}/unread-count`);
+  async getUnreadCount(userId: number): Promise<number> {
+    return this.request<number>(`/notifications/user/${userId}/unread-count`);
   },
 
-  async markAsRead(notificationId: number) {
-    return this.request(`/notifications/${notificationId}/read`, {
+  async markAsRead(notificationId: number): Promise<void> {
+    await this.request(`/notifications/${notificationId}/read`, {
       method: 'POST',
     });
   },
 
-  async deleteNotification(notificationId: number) {
-    return this.request(`/notifications/${notificationId}`, {
+  async deleteNotification(notificationId: number): Promise<void> {
+    await this.request(`/notifications/${notificationId}`, {
       method: 'DELETE',
     });
   },
 
   // Reviews
-  async createReview(data: { partyId: number; reviewerId: number; revieweeId: number; rating: number; comment?: string }) {
-    return this.request('/reviews', {
+  async createReview(data: CreateReviewRequest): Promise<PartyReview> {
+    return this.request<PartyReview>('/reviews', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  async getPartyReviews(partyId: number) {
-    return this.request(`/reviews/party/${partyId}`);
+  async getPartyReviews(partyId: number): Promise<PartyReview[]> {
+    return this.request<PartyReview[]>(`/reviews/party/${partyId}`);
   },
 
   async getUserAverageRating(userId: number): Promise<number> {
-    return this.request(`/reviews/user/${userId}/average`);
+    return this.request<number>(`/reviews/user/${userId}/average`);
   },
 };

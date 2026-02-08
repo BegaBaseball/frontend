@@ -34,8 +34,8 @@ export default function TestError() {
             // Let's simulate Axios Error structure for manual dispatch to test 'parseError' logic implicitly?
             // No, let's trust the interceptor works if 404 works.
 
-        } catch (e) {
-            console.log('Caught locally:', e);
+        } catch {
+            // error handled locally
         }
     };
 

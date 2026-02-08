@@ -7,6 +7,7 @@ import ChatBot from './components/ChatBot';
 import ScrollToTop from './components/ScrollToTop';
 import { LoginRequiredDialog } from './components/LoginRequiredDialog';
 import { ErrorModalProvider } from './components/contexts/ErrorModalContext';
+import { ConfirmDialogProvider } from './components/contexts/ConfirmDialogContext';
 import GlobalErrorDialog from './components/GlobalErrorDialog';
 import LoadingSpinner from './components/LoadingSpinner';
 
@@ -108,6 +109,7 @@ export default function App() {
 
   return (
     <ErrorModalProvider>
+      <ConfirmDialogProvider>
       <BrowserRouter>
         <ScrollToTop />
         <Suspense fallback={<LoadingSpinner />}>
@@ -172,6 +174,7 @@ export default function App() {
           onOpenChange={useAuthStore((state) => state.setShowLoginRequiredDialog)}
         />
       </BrowserRouter>
+      </ConfirmDialogProvider>
     </ErrorModalProvider>
   );
 }

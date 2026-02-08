@@ -11,6 +11,7 @@ import {
     DialogTitle,
 } from './ui/dialog';
 import { toast } from 'sonner';
+import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 
 interface QuoteRepostEditorProps {
     isOpen: boolean;
@@ -20,6 +21,7 @@ interface QuoteRepostEditorProps {
 
 export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepostEditorProps) {
     const [content, setContent] = useState('');
+    const { confirm } = useConfirmDialog();
     const { quoteRepostMutation } = useCheerMutations();
     const user = useAuthStore((state) => state.user);
 
@@ -61,11 +63,10 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
         );
     };
 
-    const handleClose = () => {
+    const handleClose = async () => {
         if (content.trim() && !quoteRepostMutation.isPending) {
-            if (!confirm('작성 중인 내용이 있습니다. 정말 닫으시겠습니까?')) {
-                return;
-            }
+            const confirmed = await confirm({ title: '작성 취소', description: '작성 중인 내용이 있습니다. 정말 닫으시겠습니까?', confirmLabel: '닫기' });
+            if (!confirmed) return;
         }
         setContent('');
         onClose();

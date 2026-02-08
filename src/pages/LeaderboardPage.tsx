@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useLeaderboard, usePowerups } from '../hooks/useLeaderboard';
 import { useAuthStore } from '../store/authStore';
@@ -52,7 +53,7 @@ export default function LeaderboardPage() {
       const targetPage = Math.floor((myRank.rank - 1) / pageSize);
       setPage(targetPage);
     } else {
-      alert('아직 랭킹 정보가 없습니다. 예측에 참여해서 첫 점수를 획득해보세요!');
+      toast.info('아직 랭킹 정보가 없습니다.', { description: '예측에 참여해서 첫 점수를 획득해보세요!' });
     }
   }, [myRank, setPage]);
 

@@ -5,9 +5,11 @@ import { DiaryEntry, Game } from '../types/diary';
 import { formatDateString } from '../utils/diary';
 import { useDiaryForm } from './useDiaryForm';
 import { toast } from 'sonner';
+import { useConfirmDialog } from '../components/contexts/ConfirmDialogContext';
 
 export const useDiaryView = () => {
   const queryClient = useQueryClient();
+  const { confirm } = useConfirmDialog();
   // const { openErrorModal } = useErrorModal(); // Removed
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -222,9 +224,10 @@ export const useDiaryView = () => {
     }
   };
 
-  const handleDeleteDiary = () => {
+  const handleDeleteDiary = async () => {
     if (!selectedDiary) return;
-    if (window.confirm('정말로 이 다이어리를 삭제하시겠습니까?')) {
+    const confirmed = await confirm({ title: '다이어리 삭제', description: '정말로 이 다이어리를 삭제하시겠습니까?', confirmLabel: '삭제', variant: 'destructive' });
+    if (confirmed) {
       deleteMutation.mutate(selectedDiary.id);
     }
   };

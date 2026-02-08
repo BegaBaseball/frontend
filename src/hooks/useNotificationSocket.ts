@@ -51,13 +51,10 @@ export const useNotificationSocket = () => {
             heartbeatOutgoing: 4000,
 
             onConnect: () => {
-                console.log('Notification WebSocket Connected');
-
                 // 개인 알림 구독
                 client.subscribe(`/topic/notifications/${user.id}`, (message) => {
                     try {
                         const notification: NotificationData = JSON.parse(message.body);
-                        console.log('New notification received:', notification);
                         addNotification(notification);
                         // 알림 수신 시 사용자 정보(포인트 등) 최신화
                         useAuthStore.getState().fetchProfileAndAuthenticate();
@@ -83,7 +80,6 @@ export const useNotificationSocket = () => {
         return () => {
             // 컴포넌트 언마운트 시 연결 해제
             if (clientRef.current) {
-                console.log('Deactivating Notification WebSocket');
                 clientRef.current.deactivate();
                 clientRef.current = null;
             }

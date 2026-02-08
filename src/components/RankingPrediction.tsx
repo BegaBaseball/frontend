@@ -346,10 +346,7 @@ export default function RankingPrediction() {
                 ) : alreadySaved ? (
                   <div className="space-y-2">
                     <Button
-                      onClick={() => {
-                        console.log('버튼 클릭됨!');
-                        handleShare();
-                      }}
+                      onClick={handleShare}
                       variant="outline"
                       className="w-full border-2 border-[#2d5f4f] text-[#2d5f4f] dark:border-emerald-500 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                     >
@@ -365,10 +362,7 @@ export default function RankingPrediction() {
                       저장하기
                     </Button>
                     <Button
-                      onClick={() => {
-                        console.log('버튼 클릭됨!');
-                        handleShare();
-                      }}
+                      onClick={handleShare}
                       variant="outline"
                       className="w-full border-2 border-[#2d5f4f] text-[#2d5f4f] dark:border-emerald-500 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                     >

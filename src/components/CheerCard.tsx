@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2, Heart, MessageCircle, MoreHorizontal, Repeat2, Trash2 } from 'lucide-react';
+import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { CheerPost } from '../api/cheerApi';
 import ImageGrid from './ImageGrid';
 import RollingNumber from './RollingNumber';
@@ -33,6 +34,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     // const toggleLike = useCheerStore((state) => state.toggleLike); // Removed
     // const deletePost = useCheerStore((state) => state.deletePost); // Removed
     const { toggleLikeMutation, deletePostMutation, repostMutation, cancelRepostMutation } = useCheerMutations();
+    const { confirm } = useConfirmDialog();
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
     // const [isRepostModalOpen, setIsRepostModalOpen] = useState(false); // Removed for Popover
     const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
@@ -92,9 +94,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         navigate(`/cheer/edit/${post.id}`);
     };
 
-    const handleDelete = (event: React.MouseEvent) => {
+    const handleDelete = async (event: React.MouseEvent) => {
         event.stopPropagation();
-        if (!confirm('정말 삭제하시겠습니까?')) return;
+        const confirmed = await confirm({ title: '게시글 삭제', description: '정말 삭제하시겠습니까?', confirmLabel: '삭제', variant: 'destructive' });
+        if (!confirmed) return;
         deletePostMutation.mutate(post.id);
     };
 

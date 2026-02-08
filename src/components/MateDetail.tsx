@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
+import QRCode from 'react-qr-code';
+import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { KBO_STADIUMS, StadiumZone } from '../utils/stadiumData';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
@@ -28,28 +31,38 @@ import {
   Plus
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
+import { useAuthStore } from '../store/authStore';
+import UserProfileModal from './profile/UserProfileModal';
 import ChatBot from './ChatBot';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { api } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
 import { DEPOSIT_AMOUNT, TEAM_COLORS_MAP } from '../utils/constants';
-import { formatGameDate, extractHashtags } from '../utils/mate';
+import { formatGameDate, extractHashtags, stripHashtags } from '../utils/mate';
+import ReviewDialog from './ReviewDialog';
+import type { PartyReview } from '../types/mate';
 
 export default function MateDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { confirm } = useConfirmDialog();
   // Correctly access state from the store
   const selectedParty = useMateStore((state) => state.selectedParty);
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
   const updateParty = useMateStore((state) => state.updateParty);
 
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  // Use user from auth store directly
+  const user = useAuthStore((state) => state.user);
+  const currentUserId = user?.id || null;
+
   const [myApplication, setMyApplication] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false); // For Seat View toggle
   const [hostAvgRating, setHostAvgRating] = useState<number | null>(null);
+  const [showHostProfile, setShowHostProfile] = useState(false);
+  const [reviews, setReviews] = useState<PartyReview[]>([]);
+  const [reviewTarget, setReviewTarget] = useState<{ id: number; name: string } | null>(null);
 
   // localStorage에서 파티 정보 복원
   useEffect(() => {
@@ -74,23 +87,6 @@ export default function MateDetail() {
     }
   }, [selectedParty]);
 
-  // 사용자 정보 가져오기
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const userData = await api.getCurrentUser();
-        const userId = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userId.data || userId);
-      } catch (error) {
-        console.error('사용자 정보 가져오기 실패:', error);
-      } finally {
-        setIsLoadingUser(false);
-      }
-    };
-
-    fetchCurrentUser();
-  }, []);
-
   // 호스트 평균 평점 가져오기 (리뷰 기반)
   useEffect(() => {
     if (!selectedParty) return;
@@ -98,6 +94,14 @@ export default function MateDetail() {
       .then((rating) => setHostAvgRating(rating))
       .catch(() => setHostAvgRating(null));
   }, [selectedParty?.hostId]);
+
+  // COMPLETED 파티의 리뷰 목록 가져오기
+  useEffect(() => {
+    if (!selectedParty || selectedParty.status !== 'COMPLETED') return;
+    api.getPartyReviews(selectedParty.id)
+      .then((data) => setReviews(Array.isArray(data) ? data : []))
+      .catch(() => { });
+  }, [selectedParty]);
 
   // 내 신청 정보 가져오기
   useEffect(() => {
@@ -107,7 +111,7 @@ export default function MateDetail() {
       try {
         const applicationsData = await api.getApplicationsByApplicant(currentUserId);
         const myApp = applicationsData.find((app: any) =>
-          app.partyId === selectedParty.id
+          String(app.partyId) === String(selectedParty.id)
         );
         setMyApplication(myApp);
       } catch (error) {
@@ -164,34 +168,29 @@ export default function MateDetail() {
       ? '참여를 취소하시겠습니까?\n\n⚠️ 승인 후 취소 시:\n- 보증금 10,000원은 환불되지 않습니다\n- 티켓 가격만 환불됩니다\n- 취소는 경기 하루 전까지만 가능합니다'
       : '신청을 취소하시겠습니까?\n\n전액 환불됩니다.';
 
-    if (!window.confirm(confirmMessage)) return;
+    const confirmed = await confirm({ title: isApproved ? '참여 취소' : '신청 취소', description: confirmMessage, confirmLabel: '취소하기', variant: 'destructive' });
+    if (!confirmed) return;
 
     setIsCancelling(true);
     try {
       await api.cancelApplication(myApplication.id, currentUserId);
       if (isApproved) {
-        alert('참여가 취소되었습니다.\n티켓 가격만 환불되며, 보증금은 환불되지 않습니다.');
+        toast.success('참여가 취소되었습니다.', { description: '티켓 가격만 환불되며, 보증금은 환불되지 않습니다.' });
       } else {
-        alert('신청이 취소되었습니다.\n결제 금액이 전액 환불됩니다.');
+        toast.success('신청이 취소되었습니다.', { description: '결제 금액이 전액 환불됩니다.' });
       }
       setMyApplication(null);
       const updatedParty = await api.getPartyById(selectedParty.id);
       setSelectedParty(updatedParty);
     } catch (error: any) {
       console.error('신청 취소 중 오류:', error);
-      alert(error.response?.data?.message || '신청 취소 중 오류가 발생했습니다.');
+      toast.error(error.response?.data?.message || '신청 취소 중 오류가 발생했습니다.');
     } finally {
       setIsCancelling(false);
     }
   };
 
-  if (isLoadingUser) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f]"></div>
-      </div>
-    );
-  }
+
 
   if (!selectedParty) return null;
 
@@ -238,7 +237,7 @@ export default function MateDetail() {
   };
   const handleShare = () => {
     if (navigator.share) navigator.share({ title: '직관메이트 파티', text: '함께 직관 가실 분?', url: window.location.href });
-    else alert('공유 링크 복사 완료');
+    else toast.success('공유 링크 복사 완료');
   };
   const handleApply = () => navigate(`/mate/${id}/apply`);
   const handleCheckIn = () => navigate(`/mate/${id}/checkin`);
@@ -426,7 +425,19 @@ export default function MateDetail() {
               {/* QR Code */}
               <div className="hidden md:block border-l border-gray-200 dark:border-gray-700 pl-8">
                 <div className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
-                  <QrCode className="w-20 h-20 text-gray-800" />
+                  <QRCode
+                    value={JSON.stringify({
+                      type: 'MATE_CHECKIN',
+                      partyId: selectedParty.id,
+                      timestamp: new Date().toISOString()
+                    })}
+                    size={80}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    viewBox={`0 0 256 256`}
+                    fgColor="#1a1a1a"
+                    bgColor="#ffffff"
+                    level="Q"
+                  />
                 </div>
                 <p className="text-[10px] text-center text-gray-400 mt-1">ENTRY CODE</p>
               </div>
@@ -444,9 +455,18 @@ export default function MateDetail() {
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
                 <MessageSquare className="w-5 h-5 text-[#2d5f4f]" /> 파티 소개
               </h3>
-              <p className="whitespace-pre-wrap text-gray-600 dark:text-gray-300 leading-relaxed text-sm md:text-base">
-                {selectedParty.description}
+              <p className="whitespace-pre-wrap text-gray-600 dark:text-gray-300 leading-relaxed text-sm md:text-base mb-4">
+                {stripHashtags(selectedParty.description)}
               </p>
+              {hostTags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {hostTags.map((tag, i) => (
+                    <Badge key={i} variant="secondary" className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-none">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </Card>
 
             {/* 결제 정보 (Improved) */}
@@ -523,7 +543,7 @@ export default function MateDetail() {
             {/* Host Profile Card */}
             <Card
               className="p-6 text-center border-none shadow-md bg-white dark:bg-gray-800/80 relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate(`/mypage/${selectedParty.hostId}`)}
+              onClick={() => setShowHostProfile(true)}
             >
               <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-gray-100 to-transparent dark:from-gray-700/50"></div>
 
@@ -550,18 +570,88 @@ export default function MateDetail() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 justify-center mt-4">
-                {hostTags.map((tag, i) => (
-                  <Badge key={i} variant="secondary" className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-none">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+
 
               {/* Click hint */}
               <p className="text-xs text-gray-400 mt-3">클릭하여 프로필 보기</p>
             </Card>
 
+
+            {/* Review Section - COMPLETED parties only */}
+            {selectedParty.status === 'COMPLETED' && currentUserId && (isHost || isApproved) && (
+              <Card className="p-4 mb-4">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-1.5">
+                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                  리뷰
+                </h3>
+                <div className="space-y-2">
+                  {(() => {
+                    // 리뷰 대상 목록 구성
+                    const targets = isHost
+                      ? approvedApplications.map((app) => ({
+                        id: app.applicantId,
+                        name: app.applicantName,
+                      }))
+                      : [{ id: selectedParty.hostId, name: selectedParty.hostName }];
+
+                    if (targets.length === 0) {
+                      return <p className="text-sm text-gray-400">리뷰 대상이 없습니다.</p>;
+                    }
+
+                    return targets.map((target) => {
+                      const myReview = reviews.find(
+                        (r) => r.reviewerId === currentUserId && r.revieweeId === target.id
+                      );
+
+                      return (
+                        <div
+                          key={target.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        >
+                          <div className="flex flex-col gap-1">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {target.name}
+                            </span>
+                            {myReview && (
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((num) => (
+                                  <Star
+                                    key={num}
+                                    className={`w-3.5 h-3.5 ${num <= myReview.rating
+                                      ? 'text-yellow-500 fill-yellow-500'
+                                      : 'text-gray-300'
+                                      }`}
+                                  />
+                                ))}
+                                {myReview.comment && (
+                                  <span className="text-xs text-gray-500 ml-1 truncate max-w-[120px]">
+                                    "{myReview.comment}"
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          {myReview ? (
+                            <Badge variant="outline" className="text-xs text-gray-500">
+                              작성 완료
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs border-[#2d5f4f] text-[#2d5f4f] hover:bg-[#2d5f4f]/10"
+                              onClick={() => setReviewTarget(target)}
+                            >
+                              리뷰 작성
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </Card>
+            )}
 
             {/* Floating Action Buttons (Sticky) */}
             <div className="space-y-3 sticky top-6 z-20">
@@ -663,6 +753,25 @@ export default function MateDetail() {
         </div>
       </div>
       <ChatBot />
+      <UserProfileModal
+        userId={selectedParty?.hostId ?? null}
+        isOpen={showHostProfile}
+        onClose={() => setShowHostProfile(false)}
+      />
+      {reviewTarget && currentUserId && (
+        <ReviewDialog
+          isOpen={reviewTarget !== null}
+          onClose={() => setReviewTarget(null)}
+          partyId={selectedParty.id}
+          reviewerId={currentUserId}
+          reviewee={reviewTarget}
+          onSuccess={() => {
+            api.getPartyReviews(selectedParty.id)
+              .then((data) => setReviews(Array.isArray(data) ? data : []))
+              .catch((err) => console.error('리뷰 목록 갱신 실패:', err));
+          }}
+        />
+      )}
     </div>
   );
 }

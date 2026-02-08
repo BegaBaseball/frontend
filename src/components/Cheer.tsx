@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { parseError } from '../utils/errorUtils';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate } from 'react-router-dom';
@@ -53,7 +54,7 @@ export default function Cheer() {
 
     const handleWriteClick = () => {
         if (!user) {
-            alert('로그인이 필요한 서비스입니다.');
+            toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
         navigate('/cheer/write');
@@ -145,7 +146,7 @@ export default function Cheer() {
         });
 
         if (skippedCount > 0) {
-            alert(`이미지 크기는 5MB 이하여야 합니다. (${skippedCount}개 파일 제외됨)`);
+            toast.warning(`이미지 크기는 5MB 이하여야 합니다. (${skippedCount}개 파일 제외됨)`);
         }
 
         const combinedFiles = [...composerFiles, ...validFiles].slice(0, 10);
@@ -313,11 +314,11 @@ export default function Cheer() {
 
     const handleComposerSubmit = async () => {
         if (!user) {
-            alert('로그인이 필요한 서비스입니다.');
+            toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
         if (!user.favoriteTeam || user.favoriteTeam === '없음') {
-            alert('마이페이지에서 응원팀을 설정해주세요!');
+            toast.warning('마이페이지에서 응원팀을 설정해주세요!');
             return;
         }
         const trimmedContent = composerContent.trim();
@@ -336,7 +337,6 @@ export default function Cheer() {
             setComposerPreviews([]);
         } catch (error) {
             // 에러는 mutation의 onError 또는 내부 catch에서 이미 처리됨
-            console.debug('Post creation cancelled or failed', error);
         } finally {
             setComposerSubmitting(false);
         }
@@ -540,7 +540,7 @@ export default function Cheer() {
                                 type="button"
                                 onClick={() => {
                                     if (!user) {
-                                        alert('로그인이 필요한 서비스입니다.');
+                                        toast.error('로그인이 필요한 서비스입니다.');
                                         return;
                                     }
                                     setIsWriteModalOpen(true);

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -16,6 +18,8 @@ import {
   Calendar,
   MapPin,
   Clock,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
@@ -31,10 +35,13 @@ import { Pencil } from 'lucide-react';
 export default function MateManage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { confirm } = useConfirmDialog();
   const { selectedParty } = useMateStore();
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -50,8 +57,8 @@ export default function MateManage() {
     const fetchCurrentUser = async () => {
       try {
         const userData = await api.getCurrentUser();
-        const userId = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userId.data || userId);
+        const userIdResponse = await api.getUserIdByEmail(userData.data.email);
+        setCurrentUserId(userIdResponse.data);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
       }
@@ -66,18 +73,20 @@ export default function MateManage() {
 
     const fetchApplications = async () => {
       setIsLoading(true);
+      setFetchError(false);
       try {
         const data = await api.getApplicationsByParty(selectedParty.id);
         setApplications(data);
       } catch (error) {
         console.error('신청 목록 불러오기 오류:', error);
+        setFetchError(true);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchApplications();
-  }, [selectedParty]);
+  }, [selectedParty, retryCount]);
 
   if (!selectedParty) {
     return null;
@@ -113,32 +122,32 @@ export default function MateManage() {
   }
 
   // 신청 승인
-  const handleApprove = async (applicationId: string) => {
+  const handleApprove = async (applicationId: string | number) => {
     try {
       await api.approveApplication(applicationId);
-      alert('신청이 승인되었습니다!');
-      
+      toast.success('신청이 승인되었습니다!');
+
       // 신청 목록 다시 불러오기
       const data = await api.getApplicationsByParty(selectedParty.id);
       setApplications(data);
     } catch (error) {
       console.error('신청 승인 중 오류:', error);
-      alert('신청 승인에 실패했습니다.');
+      toast.error('신청 승인에 실패했습니다.');
     }
   };
 
   // 신청 거절
-  const handleReject = async (applicationId: string) => {
+  const handleReject = async (applicationId: string | number) => {
     try {
       await api.rejectApplication(applicationId);
-      alert('신청이 거절되었습니다.');
-      
+      toast.success('신청이 거절되었습니다.');
+
       // 신청 목록 다시 불러오기
       const data = await api.getApplicationsByParty(selectedParty.id);
       setApplications(data);
     } catch (error) {
       console.error('신청 거절 중 오류:', error);
-      alert('신청 거절에 실패했습니다.');
+      toast.error('신청 거절에 실패했습니다.');
     }
   };
 
@@ -148,12 +157,9 @@ export default function MateManage() {
 
     // 승인된 신청자 확인
     const approvedCount = applications.filter(app => app.isApproved).length;
-    
+
     if (approvedCount > 0) {
-      alert(
-        '승인된 참여자가 있어 파티를 삭제할 수 없습니다.\n' +
-        '참여자가 취소하거나 거절 후 삭제해주세요.'
-      );
+      toast.warning('승인된 참여자가 있어 파티를 삭제할 수 없습니다.', { description: '참여자가 취소하거나 거절 후 삭제해주세요.' });
       return;
     }
 
@@ -162,27 +168,26 @@ export default function MateManage() {
     ).length;
 
     let confirmMessage = '파티를 삭제하시겠습니까?\n\n';
-    
+
     if (pendingCount > 0) {
       confirmMessage += `⚠️ 대기 중인 신청 ${pendingCount}건도 함께 삭제됩니다.`;
     } else {
       confirmMessage += '이 작업은 되돌릴 수 없습니다.';
     }
 
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
+    const confirmed = await confirm({ title: '파티 삭제', description: confirmMessage, confirmLabel: '삭제', variant: 'destructive' });
+    if (!confirmed) return;
 
     setIsDeleting(true);
 
     try {
       await api.deleteParty(selectedParty.id, currentUserId);
-      alert('파티가 삭제되었습니다.');
+      toast.success('파티가 삭제되었습니다.');
       navigate('/mate');
     } catch (error: any) {
       console.error('파티 삭제 중 오류:', error);
       const errorMessage = error.message || '파티 삭제에 실패했습니다.';
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsDeleting(false);
     }
@@ -210,11 +215,11 @@ export default function MateManage() {
       await api.updateParty(selectedParty.id, editForm);
       // 로컬 상태 업데이트
       useMateStore.getState().updateParty(selectedParty.id, editForm);
-      alert('파티 정보가 수정되었습니다.');
+      toast.success('파티 정보가 수정되었습니다.');
       setIsEditing(false);
     } catch (error: any) {
       console.error('파티 수정 중 오류:', error);
-      alert(error.response?.data?.message || '파티 수정에 실패했습니다.');
+      toast.error(error.response?.data?.message || '파티 수정에 실패했습니다.');
     }
   };
 
@@ -306,6 +311,23 @@ export default function MateManage() {
           <div className="text-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
             <p className="text-gray-600">신청 목록을 불러오는 중...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-24 bg-white rounded-2xl border border-dashed border-red-200">
+            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-red-400" />
+            <p className="text-gray-600 font-medium">신청 목록을 불러오지 못했습니다</p>
+            <p className="text-gray-400 text-sm mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
+            <Button variant="outline" className="mt-4" onClick={() => setRetryCount((c) => c + 1)}>
+              <RefreshCw className="w-4 h-4 mr-1.5" /> 다시 시도
+            </Button>
           </div>
         </div>
       </div>
@@ -447,7 +469,7 @@ export default function MateManage() {
               </div>
             </>
           )}
-        </Card>  
+        </Card>
         {/* Applications Tabs */}
         <Tabs defaultValue="pending">
           <TabsList className="grid w-full grid-cols-3 mb-6">

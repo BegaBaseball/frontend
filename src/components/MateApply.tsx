@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -19,7 +20,7 @@ import { mapBackendPartyToFrontend } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
 
 export default function MateApply() {
-  const { selectedParty } = useMateStore();
+  const { selectedParty, validateMessage } = useMateStore();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
@@ -36,8 +37,8 @@ export default function MateApply() {
         const userData = await api.getCurrentUser();
         setCurrentUserName(userData.data.name);
 
-        const userId = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userId.data || userId);
+        const userIdResponse = await api.getUserIdByEmail(userData.data.email);
+        setCurrentUserId(userIdResponse.data);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
       }
@@ -52,11 +53,11 @@ export default function MateApply() {
       const fetchParty = async () => {
         try {
           const response = await api.getPartyById(id);
-          const party = mapBackendPartyToFrontend(response.data);
+          const party = mapBackendPartyToFrontend(response);
           useMateStore.getState().setSelectedParty(party);
         } catch (error) {
           console.error("Failed to fetch party:", error);
-          alert("파티 정보를 불러올 수 없습니다.");
+          toast.error('파티 정보를 불러올 수 없습니다.');
           navigate('/mate');
         }
       };
@@ -89,13 +90,16 @@ export default function MateApply() {
 
   const handleSubmit = async () => {
     if (!currentUserId) {
-      alert('로그인이 필요합니다.');
+      toast.error('로그인이 필요합니다.');
       return;
     }
 
-    if (!isSelling && message.length < 10) {
-      alert('메시지를 10자 이상 입력해주세요.');
-      return;
+    if (!isSelling) {
+      const validationError = validateMessage(message);
+      if (validationError) {
+        toast.warning(validationError);
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -109,15 +113,15 @@ export default function MateApply() {
         applicantRating: 5.0,
         message: message || '함께 즐거운 관람 부탁드립니다!',
         depositAmount: isSelling ? sellingPrice : totalAmount,
-        paymentType: isSelling ? 'FULL' : 'DEPOSIT',
+        paymentType: (isSelling ? 'FULL' : 'DEPOSIT') as 'FULL' | 'DEPOSIT',
       };
 
       await api.createApplication(applicationData);
 
       if (isSelling) {
-        alert('티켓 구매가 완료되었습니다!');
+        toast.success('티켓 구매가 완료되었습니다!');
       } else {
-        alert('신청이 완료되었습니다! 호스트의 승인을 기다려주세요.');
+        toast.success('신청이 완료되었습니다!', { description: '호스트의 승인을 기다려주세요.' });
       }
 
       navigate(`/mate/${id}`);
@@ -127,7 +131,7 @@ export default function MateApply() {
         setShowVerificationDialog(true);
       } else {
         console.error('신청 중 오류:', error);
-        alert(error.data?.error || error.message || '신청 중 오류가 발생했습니다.');
+        toast.error(error.data?.error || error.message || '신청 중 오류가 발생했습니다.');
       }
     } finally {
       setIsSubmitting(false);

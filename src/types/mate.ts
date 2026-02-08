@@ -59,10 +59,20 @@ export interface CheckIn {
   checkedInAt: string;
 }
 
-export interface ChatMessage {
+export interface PartyReview {
   id: number;
   partyId: number;
-  senderId: number;
+  reviewerId: number;
+  revieweeId: number;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: number | string;
+  partyId: number | string;
+  senderId: number | string;
   senderName: string;
   message: string;
   createdAt: string;
@@ -95,3 +105,58 @@ export interface MateApplication {
 }
 
 export type MateHistoryTab = 'all' | 'completed' | 'ongoing';
+
+// --- Request Types (matching backend DTOs) ---
+
+export interface CreatePartyRequest {
+  hostId: number;
+  hostName: string;
+  hostBadge?: string;
+  hostRating?: number;
+  teamId: string;
+  gameDate: string;
+  gameTime: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+  section: string;
+  maxParticipants: number;
+  description: string;
+  ticketImageUrl?: string | null;
+  ticketPrice?: number;
+  reservationNumber?: string;
+}
+
+export interface UpdatePartyRequest {
+  status?: PartyStatus;
+  price?: number;
+  description?: string;
+  section?: string;
+  maxParticipants?: number;
+  ticketPrice?: number;
+}
+
+export interface CreateApplicationRequest {
+  partyId: number;
+  applicantId: number;
+  applicantName: string;
+  applicantBadge: string;
+  applicantRating: number;
+  message: string;
+  depositAmount: number;
+  paymentType: 'DEPOSIT' | 'FULL';
+}
+
+export interface CreateCheckInRequest {
+  partyId: number;
+  userId: number;
+  location: string;
+}
+
+export interface CreateReviewRequest {
+  partyId: number;
+  reviewerId: number;
+  revieweeId: number;
+  rating: number;
+  comment?: string;
+}

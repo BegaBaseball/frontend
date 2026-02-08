@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { X, Upload, Loader2 } from 'lucide-react';
 import { compressImages, CompressionOptions } from '../utils/imageCompression';
 
@@ -57,14 +58,14 @@ export default function ImagePicker({
     const maxOriginalSizeMB = enableCompression ? 10 : maxSizeMB;
     const nextFiles = Array.from(files).filter((file) => {
       if (file.size > maxOriginalSizeMB * 1024 * 1024) {
-        alert(`${file.name} 파일이 ${maxOriginalSizeMB}MB 제한을 초과했습니다.`);
+        toast.warning(`${file.name} 파일이 ${maxOriginalSizeMB}MB 제한을 초과했습니다.`);
         return false;
       }
       return true;
     });
 
     if (selectedFiles.length + nextFiles.length > maxImages) {
-      alert(`이미지는 최대 ${maxImages}개까지 선택할 수 있습니다.`);
+      toast.warning(`이미지는 최대 ${maxImages}개까지 선택할 수 있습니다.`);
       return;
     }
 

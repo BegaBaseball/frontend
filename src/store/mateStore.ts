@@ -112,6 +112,7 @@ interface MateState {
   resetForm: () => void;
   validateDescription: (text: string) => string;
   validateMessage: (text: string) => string;
+  validateChatMessage: (text: string) => string;
 
   // Application form actions
   updateApplicationForm: (data: Partial<ApplicationFormData>) => void;
@@ -331,16 +332,17 @@ export const useMateStore = create<MateState>()(
 
         const phonePattern = /\d{3}[-.\\s]?\d{3,4}[-.\\s]?\d{4}/;
         const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-        if (phonePattern.test(text) || emailPattern.test(text)) {
-          return '연락처 정보는 입력할 수 없습니다. 매칭 후 채팅을 이용해주세요.';
+        const urlPattern = /https?:\/\/[^\s]+|www\.[^\s]+/i;
+        if (phonePattern.test(text) || emailPattern.test(text) || urlPattern.test(text)) {
+          return '연락처 정보나 링크는 입력할 수 없습니다. 매칭 후 채팅을 이용해주세요.';
         }
 
         return '';
       },
 
       validateMessage: (text) => {
-        if (text.length < 5) {
-          return '메시지는 최소 5자 이상 입력해주세요.';
+        if (text.length < 10) {
+          return '메시지는 최소 10자 이상 입력해주세요.';
         }
         if (text.length > 500) {
           return '메시지는 500자를 초과할 수 없습니다.';
@@ -355,8 +357,28 @@ export const useMateStore = create<MateState>()(
 
         const phonePattern = /\d{3}[-.\\s]?\d{3,4}[-.\\s]?\d{4}/;
         const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-        if (phonePattern.test(text) || emailPattern.test(text)) {
-          return '연락처 정보는 입력할 수 없습니다. 매칭 후 채팅을 이용해주세요.';
+        const urlPattern = /https?:\/\/[^\s]+|www\.[^\s]+/i;
+        if (phonePattern.test(text) || emailPattern.test(text) || urlPattern.test(text)) {
+          return '연락처 정보나 링크는 입력할 수 없습니다. 매칭 후 채팅을 이용해주세요.';
+        }
+
+        return '';
+      },
+
+      // 채팅 메시지 검증 (길이 제한 없이 금칙어/연락처/URL만 체크)
+      validateChatMessage: (text) => {
+        const forbiddenWords = ['욕설', '비방', '광고'];
+        for (const word of forbiddenWords) {
+          if (text.includes(word)) {
+            return '부적절한 단어가 포함되어 있습니다.';
+          }
+        }
+
+        const phonePattern = /\d{3}[-.\\s]?\d{3,4}[-.\\s]?\d{4}/;
+        const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+        const urlPattern = /https?:\/\/[^\s]+|www\.[^\s]+/i;
+        if (phonePattern.test(text) || emailPattern.test(text) || urlPattern.test(text)) {
+          return '연락처 정보나 링크는 입력할 수 없습니다. 직접 만나서 교환해주세요.';
         }
 
         return '';

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { useCheerStore } from '../store/cheerStore'; // Removed
-import { useCheerMutations, useCheerPost } from './useCheerQueries'; // Added
+import { useConfirmDialog } from '../components/contexts/ConfirmDialogContext';
+import { useCheerMutations, useCheerPost } from './useCheerQueries';
 import * as cheerApi from '../api/cheerApi';
 
 export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
     const navigate = useNavigate();
-    // const { updatePost } = useCheerStore(); // Removed
-    const { updatePostMutation } = useCheerMutations(); // Added
+    const { confirm } = useConfirmDialog();
+    const { updatePostMutation } = useCheerMutations();
     const { data: post, isLoading: loading, error: queryError } = useCheerPost(postId); // Added
 
     // const [post, setPost] = useState<cheerApi.CheerPost | null>(null); // Replaced by query
@@ -69,28 +69,14 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
     };
 
     const handleDeleteExistingImage = async (imgId: number) => {
-        if (!confirm('이미지를 삭제하시겠습니까? (저장 시 반영됩니다)')) return;
+        const confirmed = await confirm({ title: '이미지 삭제', description: '이미지를 삭제하시겠습니까? (저장 시 반영됩니다)', confirmLabel: '삭제', variant: 'destructive' });
+        if (!confirmed) return;
 
         // Optimistically remove from UI
         setExistingImages(prev => prev.filter(img => img.id !== imgId));
         setDeletedImageIds(prev => [...prev, imgId]);
 
-        // Note: Previously this function deleted immediately from server?
-        // Original code: await cheerApi.deleteImageById(imgId);
-        // But for "Edit" form, it's safer to delete on "Save". 
-        // If we want to stick to original behavior (delete immediately):
-        /*
-        setDeletingImageId(imgId);
-        try {
-            await cheerApi.deleteImageById(imgId);
-            setExistingImages(prev => prev.filter(img => img.id !== imgId));
-        } catch (e) {
-            alert('이미지 삭제 실패');
-        } finally {
-            setDeletingImageId(null);
-        }
-        */
-        // Let's stick to original behavior for now to minimize surprise, but refactor to use mutation if we wanted to be pure.
+        // Delete immediately from server (original behavior)
         setDeletingImageId(imgId);
         cheerApi.deleteImageById(imgId)
             .then(() => {

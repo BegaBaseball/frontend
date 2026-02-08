@@ -112,7 +112,9 @@ export const getStatusLabel = (status: PartyStatus): string => {
  */
 export const getDayOfWeek = (dateString: string): string => {
   const days = ['일', '월', '화', '수', '목', '금', '토'];
-  const date = new Date(dateString);
+  // Parse YYYY-MM-DD manually to avoid UTC offset issues
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
   return days[date.getDay()];
 };
 
@@ -148,4 +150,11 @@ export const getStatusStyle = (status: PartyStatus) => {
   };
 
   return styles[status] || styles.PENDING;
+};
+
+/**
+ * description에서 해시태그 제거 (순수 텍스트만 추출)
+ */
+export const stripHashtags = (description: string): string => {
+  return description ? description.replace(/#[^\s#]+/g, '').trim() : '';
 };

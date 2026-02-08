@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -27,6 +28,7 @@ export default function MateChat() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { selectedParty } = useMateStore();
+  const validateChatMessage = useMateStore((state) => state.validateChatMessage);
 
   // 모든 useState를 최상단에 선언
   const [messageText, setMessageText] = useState('');
@@ -58,11 +60,11 @@ export default function MateChat() {
         const result = await api.getCurrentUser();
 
         if (result.success && result.data) {
-          const userIdData = await api.getUserIdByEmail(result.data.email);
-          const userId = userIdData.data || userIdData;
+          const userIdResponse = await api.getUserIdByEmail(result.data.email);
+          const userId = userIdResponse.data;
 
           setCurrentUser({
-            id: typeof userId === 'number' ? userId : parseInt(userId),
+            id: userId,
             email: result.data.email,
             name: result.data.name,
           });
@@ -232,10 +234,18 @@ export default function MateChat() {
     );
   }
 
+
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim() || !isConnected) {
       console.warn('메시지 전송 불가:', { messageText, isConnected });
+      return;
+    }
+
+    const validationError = validateChatMessage(messageText);
+    if (validationError) {
+      toast.warning(validationError);
       return;
     }
 
@@ -382,8 +392,8 @@ export default function MateChat() {
                               )}
                               <div
                                 className={`px-4 py-2 rounded-2xl ${isMyMessage
-                                    ? 'text-white'
-                                    : 'bg-gray-100 text-gray-800'
+                                  ? 'text-white'
+                                  : 'bg-gray-100 text-gray-800'
                                   }`}
                                 style={
                                   isMyMessage ? { backgroundColor: '#2d5f4f' } : {}

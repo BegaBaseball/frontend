@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Camera, X, Ticket, Loader2 } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -510,11 +511,11 @@ function DiaryEditMode({
       // 스캔한 티켓 이미지도 사진으로 추가
       handlePhotoUpload(files);
 
-      alert(`티켓 분석 완료!\n경기장: ${ticketInfo.stadium || '미확인'}\n날짜: ${ticketInfo.date || '미확인'}\n좌석: ${ticketInfo.section || ''} ${ticketInfo.row || ''} ${ticketInfo.seat || ''}`);
+      toast.success('티켓 분석 완료!', { description: `경기장: ${ticketInfo.stadium || '미확인'} / 날짜: ${ticketInfo.date || '미확인'} / 좌석: ${ticketInfo.section || ''} ${ticketInfo.row || ''} ${ticketInfo.seat || ''}` });
 
     } catch (error) {
       console.error('Ticket scan error:', error);
-      alert('티켓 분석 중 오류가 발생했습니다. 다시 시도해주세요.');
+      toast.error('티켓 분석 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsScanning(false);
     }

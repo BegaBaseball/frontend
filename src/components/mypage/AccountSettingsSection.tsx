@@ -18,6 +18,7 @@ import { deleteAccount, getConnectedProviders, unlinkProvider } from '../../api/
 import { useAuthStore } from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useConfirmDialog } from '../contexts/ConfirmDialogContext';
 import { getSocialLoginUrl, getLinkToken } from '../../api/auth';
 
 interface AccountSettingsSectionProps {
@@ -29,6 +30,7 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
     const navigate = useNavigate();
     const { logout, user } = useAuthStore();
     const queryClient = useQueryClient();
+    const { confirm } = useConfirmDialog();
 
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [password, setPassword] = useState('');
@@ -99,8 +101,9 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
         }
     };
 
-    const handleUnlinkAccount = (provider: string) => {
-        if (confirm(`${provider} 연동을 해제하시겠습니까?`)) {
+    const handleUnlinkAccount = async (provider: string) => {
+        const confirmed = await confirm({ title: '계정 연동 해제', description: `${provider} 연동을 해제하시겠습니까?`, confirmLabel: '해제', variant: 'destructive' });
+        if (confirmed) {
             unlinkMutation.mutate(provider);
         }
     };

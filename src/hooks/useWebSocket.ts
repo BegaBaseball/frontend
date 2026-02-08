@@ -2,16 +2,16 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { Client, IMessage } from '@stomp/stompjs';
 
 interface ChatMessage {
-  id: string;
-  partyId: string;
-  senderId: string;
+  id: string | number;
+  partyId: string | number;
+  senderId: string | number;
   senderName: string;
   message: string;
   createdAt: string;
 }
 
 interface UseWebSocketProps {
-  partyId: string;
+  partyId: string | number;
   onMessageReceived: (message: ChatMessage) => void;
   enabled?: boolean;
 }
@@ -35,22 +35,17 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
 
     const client = new Client({
       brokerURL: brokerUrl,
-      debug: (str) => {
-        console.log('STOMP Debug:', str);
-      },
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
     });
 
     client.onConnect = () => {
-      console.log('WebSocket Connected');
       setIsConnected(true);
 
       // 해당 파티 채팅방 구독
       client.subscribe(`/topic/party/${partyId}`, (message: IMessage) => {
         const receivedMessage = JSON.parse(message.body) as ChatMessage;
-        console.log('Message received:', receivedMessage);
         onMessageReceived(receivedMessage);
       });
     };
@@ -61,7 +56,6 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
     };
 
     client.onWebSocketClose = () => {
-      console.log('WebSocket Closed');
       setIsConnected(false);
     };
 
@@ -79,8 +73,8 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
   // 메시지 전송
   const sendMessage = useCallback(
     (message: {
-      partyId: string;
-      senderId: string;
+      partyId: string | number;
+      senderId: string | number;
       senderName: string;
       message: string;
     }) => {
@@ -94,7 +88,6 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
           destination: `/app/chat/${partyId}`,
           body: JSON.stringify(message),
         });
-        console.log('Message sent:', message);
       } catch (error) {
         console.error('Failed to send message:', error);
       }

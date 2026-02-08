@@ -35,7 +35,6 @@ export async function compressImage(
   // 이미 충분히 작은 파일은 압축 건너뛰기
   const maxSizeMB = options.maxSizeMB ?? DEFAULT_OPTIONS.maxSizeMB;
   if (file.size <= maxSizeMB * 1024 * 1024) {
-    console.log(`[ImageCompression] ${file.name}: 이미 ${maxSizeMB}MB 이하, 압축 건너뜀`);
     return file;
   }
 
@@ -52,10 +51,6 @@ export async function compressImage(
     const compressedFile = await imageCompression(file, compressionOptions);
     const compressedSize = compressedFile.size;
     const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
-
-    console.log(
-      `[ImageCompression] ${file.name}: ${formatFileSize(originalSize)} -> ${formatFileSize(compressedSize)} (${ratio}% 감소)`
-    );
 
     // 압축된 파일에 원본 파일명 유지
     return new File([compressedFile], file.name, {

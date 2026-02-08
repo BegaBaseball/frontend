@@ -2,14 +2,16 @@ import { useState, useEffect } from 'react';
 import { OptimizedImage } from './common/OptimizedImage';
 import { useNavigate } from 'react-router-dom';
 import { KBO_STADIUMS, SEAT_CATEGORIES, SeatCategory, StadiumZone } from '../utils/stadiumData';
+import { SEAT_ICONS } from '../utils/seatIcons';
 import { Sun, Cloud, CloudRain, CloudLightning } from 'lucide-react'; // Mock Weather Icons
+import { motion, AnimatePresence } from 'framer-motion';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
-import { Plus, Users, MapPin, Calendar, Shield, Star, Search, TrendingUp, ChevronLeft, ChevronRight, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Users, MapPin, Calendar, Shield, Star, Search, TrendingUp, ChevronLeft, ChevronRight, X, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { Input } from './ui/input';
@@ -18,12 +20,12 @@ import ChatBot from './ChatBot';
 import { useAuthStore } from '../store/authStore';
 import { TEAM_COLORS_MAP } from '../utils/constants';
 import { api } from '../utils/api';
-import { mapBackendPartyToFrontend } from '../utils/mate';
+import { mapBackendPartyToFrontend, formatGameDate, getDayOfWeek } from '../utils/mate';
 import { Party } from '../types/mate';
 import { cn } from '../lib/utils'; // Assuming this exists, or I will use standard template literal
 
-// 날짜 포맷팅 유틸리티
-const formatDate = (date: Date) => {
+// 날짜를 YYYY-MM-DD 문자열로 변환 (필터 비교용)
+const toDateString = (date: Date) => {
   const d = new Date(date);
   const year = d.getFullYear();
   const month = '' + (d.getMonth() + 1);
@@ -31,14 +33,7 @@ const formatDate = (date: Date) => {
   return [year, month.padStart(2, '0'), day.padStart(2, '0')].join('-');
 };
 
-const getDayOfWeek = (date: Date) => {
-  const days = ['일', '월', '화', '수', '목', '금', '토'];
-  return days[date.getDay()];
-};
-
 export default function Mate() {
-  // Force refresh
-  console.log("Mate Component Loaded - Ver 2.0");
   const navigate = useNavigate();
   const { setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
   const currentUser = useAuthStore((state) => state.user);
@@ -115,6 +110,7 @@ export default function Mate() {
   // 상태 변경
   const [parties, setParties] = useState<Party[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -122,6 +118,8 @@ export default function Mate() {
   // 새로운 필터 상태
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('all');
 
   const pageSize = 9;
 
@@ -129,8 +127,9 @@ export default function Mate() {
   useEffect(() => {
     const fetchParties = async () => {
       setIsLoading(true);
+      setFetchError(false);
       try {
-        const dateStr = selectedDate ? formatDate(selectedDate) : undefined;
+        const dateStr = selectedDate ? toDateString(selectedDate) : undefined;
         const data = await api.getParties(undefined, undefined, currentPage, pageSize, searchQuery, dateStr);
         const mappedParties = data.content.map(mapBackendPartyToFrontend);
         setParties(mappedParties);
@@ -138,6 +137,7 @@ export default function Mate() {
         setTotalElements(data.totalElements);
       } catch (error) {
         console.error('파티 목록 불러오기 오류:', error);
+        setFetchError(true);
       } finally {
         setIsLoading(false);
       }
@@ -148,7 +148,7 @@ export default function Mate() {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [currentPage, searchQuery, selectedDate]);
+  }, [currentPage, searchQuery, selectedDate, retryCount]);
 
   const handlePartyClick = (party: Party) => {
     setSelectedParty(party);
@@ -214,7 +214,7 @@ export default function Mate() {
       <Card
         key={party.id}
         className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 rounded-xl"
-        style={{ borderLeft: `5px solid ${homeTeamColor}` }} // Dynamic Team Color Border
+        style={{ border: `4px solid ${homeTeamColor}` }} // Dynamic Team Color Border
         onClick={() => handlePartyClick(party)}
       >
         {/* Dynamic Background Tint on Hover */}
@@ -229,7 +229,7 @@ export default function Mate() {
             <div className="flex justify-between items-center w-full">
               <div className="flex gap-2 items-center flex-wrap">
                 <Badge variant="outline" className="flex items-center gap-1 bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 whitespace-nowrap">
-                  {party.gameDate.replace(/-/g, '.')} ({getDayOfWeek(new Date(party.gameDate))})
+                  {formatGameDate(party.gameDate)}
                   {getWeatherIcon(party.gameDate)}
                 </Badge>
                 <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 truncate max-w-[120px]">
@@ -419,7 +419,7 @@ export default function Mate() {
               전체
             </Button>
             {dateItems.map((date, idx) => {
-              const isSelected = selectedDate && formatDate(selectedDate) === formatDate(date);
+              const isSelected = selectedDate && toDateString(selectedDate) === toDateString(date);
               const isWeekend = date.getDay() === 0 || date.getDay() === 6;
               return (
                 <div
@@ -432,7 +432,7 @@ export default function Mate() {
                       : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-[#2d5f4f] hover:bg-gray-50'}
                             `}
                 >
-                  <span className={`text-xs ${!isSelected && isWeekend ? 'text-red-500' : ''}`}>{getDayOfWeek(date)}</span>
+                  <span className={`text-xs ${!isSelected && isWeekend ? 'text-red-500' : ''}`}>{getDayOfWeek(toDateString(date))}</span>
                   <span className="text-lg font-bold">{date.getDate()}</span>
                 </div>
               );
@@ -470,7 +470,7 @@ export default function Mate() {
                       }`}
                     onClick={() => toggleSearchQuery(zone.name)}
                   >
-                    {SEAT_CATEGORIES[zone.category].icon} {zone.name}
+                    {SEAT_ICONS[zone.category]} {zone.name}
                   </Button>
                 ))
             ) : (
@@ -487,67 +487,122 @@ export default function Mate() {
                       }`}
                     onClick={() => toggleSearchQuery(info.label)}
                   >
-                    {info.icon} {info.label}
+                    {SEAT_ICONS[key as SeatCategory]} {info.label}
                   </Button>
                 ))
             )}
           </div>
         </div>
 
-        <Tabs defaultValue="all" className="mb-6">
-          <TabsList className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl mb-6 inline-flex">
-            <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-[#2d5f4f] data-[state=active]:shadow-sm">전체</TabsTrigger>
-            <TabsTrigger value="recruiting" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-[#2d5f4f] data-[state=active]:shadow-sm">모집 중</TabsTrigger>
-            <TabsTrigger value="matched" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-[#2d5f4f] data-[state=active]:shadow-sm">매칭 완료</TabsTrigger>
-            <TabsTrigger value="selling" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-[#2d5f4f] data-[state=active]:shadow-sm">티켓 판매</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl mb-6 inline-flex relative">
+            {['all', 'recruiting', 'matched', 'selling'].map((tab) => (
+              <TabsTrigger
+                key={tab}
+                value={tab}
+                className="relative rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-300 data-[state=active]:text-white text-gray-500 hover:text-[#166534] bg-transparent"
+              >
+                {activeTab === tab && (
+                  <motion.span
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-[#166534] shadow-sm rounded-lg"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10">
+                  {tab === 'all' && '전체'}
+                  {tab === 'recruiting' && '모집 중'}
+                  {tab === 'matched' && '매칭 완료'}
+                  {tab === 'selling' && '티켓 판매'}
+                </span>
+              </TabsTrigger>
+            ))}
           </TabsList>
 
-          <TabsContent value="all" className="space-y-4">
-            {isLoading ? (
-              <div className="text-center py-20">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2d5f4f] mx-auto opacity-80"></div>
-              </div>
-            ) : parties.length === 0 ? (
-              <div className="text-center py-24 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-                <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p className="text-gray-500 font-medium">조건에 맞는 파티가 없습니다</p>
-                <Button variant="link" className="text-[#2d5f4f]" onClick={() => { setSelectedDate(null); setSearchQuery(''); }}>
-                  조건 초기화
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {parties.map(renderPartyCard)}
-                </div>
-                {/* 페이징 (기존 유지) */}
-                {!searchQuery && !selectedDate && totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-4 mt-8">
-                    <Button variant="outline" onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0} size="sm"><ChevronLeft className="w-4 h-4" />이전</Button>
-                    <span className="text-sm text-gray-500">{currentPage + 1} / {totalPages}</span>
-                    <Button variant="outline" onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={currentPage === totalPages - 1} size="sm">다음<ChevronRight className="w-4 h-4" /></Button>
+          {/* 공통 상태 처리 (로딩, 에러, 빈 결과) */}
+          {isLoading ? (
+            <div className="text-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2d5f4f] mx-auto opacity-80"></div>
+            </div>
+          ) : fetchError ? (
+            <div className="text-center py-24 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-red-200 dark:border-red-900">
+              <AlertCircle className="w-12 h-12 mx-auto mb-3 text-red-400" />
+              <p className="text-gray-600 dark:text-gray-300 font-medium">파티 목록을 불러오지 못했습니다</p>
+              <p className="text-gray-400 text-sm mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
+              <Button variant="outline" className="mt-4" onClick={() => setRetryCount((c) => c + 1)}>
+                <RefreshCw className="w-4 h-4 mr-1.5" /> 다시 시도
+              </Button>
+            </div>
+          ) : parties.length === 0 ? (
+            <div className="text-center py-24 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+              <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500 font-medium">조건에 맞는 파티가 없습니다</p>
+              <Button variant="link" className="text-[#2d5f4f]" onClick={() => { setSelectedDate(null); setSearchQuery(''); }}>
+                조건 초기화
+              </Button>
+            </div>
+          ) : (
+            <>
+              <TabsContent value="all" className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {parties.map(renderPartyCard)}
                   </div>
-                )}
-              </>
-            )}
-          </TabsContent>
+                  {/* 페이징 (기존 유지) */}
+                  {!searchQuery && !selectedDate && totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-4 mt-8">
+                      <Button variant="outline" onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0} size="sm"><ChevronLeft className="w-4 h-4" />이전</Button>
+                      <span className="text-sm text-gray-500">{currentPage + 1} / {totalPages}</span>
+                      <Button variant="outline" onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={currentPage === totalPages - 1} size="sm">다음<ChevronRight className="w-4 h-4" /></Button>
+                    </div>
+                  )}
+                </motion.div>
+              </TabsContent>
 
-          {/* 다른 탭 컨텐츠는 동일한 구조로 렌더링 (단, 필터링된 리스트 사용) */}
-          <TabsContent value="recruiting">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {pendingParties.map(renderPartyCard)}
-            </div>
-          </TabsContent>
-          <TabsContent value="matched">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {matchedParties.map(renderPartyCard)}
-            </div>
-          </TabsContent>
-          <TabsContent value="selling">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {sellingParties.map(renderPartyCard)}
-            </div>
-          </TabsContent>
+              <TabsContent value="recruiting">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {pendingParties.map(renderPartyCard)}
+                  </div>
+                </motion.div>
+              </TabsContent>
+              <TabsContent value="matched">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {matchedParties.map(renderPartyCard)}
+                  </div>
+                </motion.div>
+              </TabsContent>
+              <TabsContent value="selling">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {sellingParties.map(renderPartyCard)}
+                  </div>
+                </motion.div>
+              </TabsContent>
+            </>
+          )}
         </Tabs>
       </div>
 

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import {
@@ -41,6 +43,7 @@ export default function CheerDetail() {
     const { postId } = useParams();
     const navigate = useNavigate();
     const { user } = useAuthStore();
+    const { confirm } = useConfirmDialog();
 
     const parsedPostId = postId ? parseInt(postId) : 0;
     const { data: selectedPost, isLoading: loading, error } = useCheerPost(parsedPostId);
@@ -113,18 +116,20 @@ export default function CheerDetail() {
     };
 
     const handleDelete = async () => {
-        if (!selectedPost || !confirm('정말 삭제하시겠습니까?')) return;
+        if (!selectedPost) return;
+        const deleteConfirmed = await confirm({ title: '게시글 삭제', description: '정말 삭제하시겠습니까?', confirmLabel: '삭제', variant: 'destructive' });
+        if (!deleteConfirmed) return;
         try {
             await deletePostMutation.mutateAsync(selectedPost.id);
             navigate('/cheer');
         } catch (e) {
-            alert('삭제 실패');
+            toast.error('삭제 실패');
         }
     };
 
     const toggleLike = (id: number) => {
         if (!user) {
-            alert('로그인이 필요한 서비스입니다.');
+            toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
         toggleLikeMutation.mutate(id);
@@ -132,7 +137,7 @@ export default function CheerDetail() {
 
     const toggleBookmark = (id: number) => {
         if (!user) {
-            alert('로그인이 필요한 서비스입니다.');
+            toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
         toggleBookmarkMutation.mutate(id);
@@ -147,7 +152,7 @@ export default function CheerDetail() {
     const handleSimpleRepost = () => {
         if (!selectedPost) return;
         if (!user) {
-            alert('로그인이 필요한 서비스입니다.');
+            toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
         setIsRepostPopoverOpen(false);
@@ -156,7 +161,7 @@ export default function CheerDetail() {
 
     const handleQuoteRepost = () => {
         if (!user) {
-            alert('로그인이 필요한 서비스입니다.');
+            toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
         setIsRepostPopoverOpen(false);
@@ -166,7 +171,7 @@ export default function CheerDetail() {
     const handleCancelRepost = () => {
         if (!selectedPost) return;
         if (!user) {
-            alert('로그인이 필요한 서비스입니다.');
+            toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
         setIsRepostPopoverOpen(false);
@@ -176,7 +181,7 @@ export default function CheerDetail() {
     const handleCommentSubmit = async () => {
         if (!selectedPost || !commentText.trim()) return;
         if (!user) {
-            alert('로그인이 필요한 서비스입니다.');
+            toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
 
@@ -214,7 +219,7 @@ export default function CheerDetail() {
         } catch (e) {
             setComments((prev) => prev.filter((comment) => comment.id !== optimisticId));
             setCommentCount((prev) => Math.max(0, prev - 1));
-            alert('댓글 작성 실패');
+            toast.error('댓글 작성 실패');
         } finally {
             setSendingComment(false);
         }
@@ -246,7 +251,7 @@ export default function CheerDetail() {
 
     const handleCommentLike = async (commentId: number) => {
         if (!user) {
-            alert('로그인이 필요한 서비스입니다.');
+            toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
 
@@ -267,13 +272,13 @@ export default function CheerDetail() {
             console.error('Comment like failed', e);
             // Rollback
             setComments((prev) => updateCommentLikes(prev, commentId));
-            alert('좋아요 처리 실패');
+            toast.error('좋아요 처리 실패');
         }
     };
 
     const handleReplyToggle = (commentId: number) => {
         if (!user) {
-            alert('로그인이 필요한 서비스입니다.');
+            toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
         setActiveReplyId((prev) => (prev === commentId ? null : commentId));
@@ -296,7 +301,7 @@ export default function CheerDetail() {
         if (!replyDraft.trim()) return;
         setIsReplyPending(true);
         try {
-            alert('답글 기능은 준비 중입니다.');
+            toast.info('답글 기능은 준비 중입니다.');
             handleReplyCancel();
         } finally {
             setIsReplyPending(false);
@@ -304,7 +309,8 @@ export default function CheerDetail() {
     };
 
     const handleCommentDelete = async (commentId: number) => {
-        if (!confirm('댓글을 삭제하시겠습니까?')) return;
+        const commentDeleteConfirmed = await confirm({ title: '댓글 삭제', description: '댓글을 삭제하시겠습니까?', confirmLabel: '삭제', variant: 'destructive' });
+        if (!commentDeleteConfirmed) return;
 
         // Optimistic update: filter out the deleted comment locally
         const previousComments = [...comments];
@@ -327,7 +333,7 @@ export default function CheerDetail() {
             // Rollback
             setComments(previousComments);
             setCommentCount(previousComments.length); // Approximate, or more precise if needed
-            alert('댓글 삭제 실패');
+            toast.error('댓글 삭제 실패');
         }
     };
 
@@ -516,7 +522,7 @@ export default function CheerDetail() {
                                 open={isRepostPopoverOpen}
                                 onOpenChange={(open: boolean) => {
                                     if (open && !user) {
-                                        alert('로그인이 필요한 서비스입니다.');
+                                        toast.error('로그인이 필요한 서비스입니다.');
                                         return;
                                     }
                                     setIsRepostPopoverOpen(open);

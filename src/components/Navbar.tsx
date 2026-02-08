@@ -37,49 +37,30 @@ export default function Navbar() {
 
 
 
-  // 사용자 ID 가져오기
+  // React to user changes from store
   useEffect(() => {
-    if (!user) {
-      setUserId(null);
-      return;
-    }
-
-    const fetchUserId = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/users/email-to-id?email=${encodeURIComponent(user.email)}`, {
-          credentials: 'include',
-        });
-        const data = await response.json();
-        const id = data.data || data;
-        setUserId(typeof id === 'number' ? id : parseInt(id));
-      } catch (error) {
-        console.error('사용자 ID 조회 오류:', error);
-      }
-    };
-
-    fetchUserId();
+    setUserId(user ? user.id : null);
   }, [user]);
-
 
 
   // 초기 알림 개수만 가져오기 (WebSocket이 실시간으로 업데이트)
   useEffect(() => {
-    if (!userId) return;
+    if (!user?.id) return;
 
     const fetchInitialUnreadCount = async () => {
       try {
-        const countResponse = await fetch(`${API_BASE_URL}/notifications/user/${userId}/unread-count`, {
-          credentials: 'include',
+        // Use api utility for consistent behavior
+        import('../utils/api').then(async ({ api }) => {
+          const count = await api.getUnreadCount(user.id);
+          setUnreadCount(count);
         });
-        const count = await countResponse.json();
-        setUnreadCount(count);
       } catch (error) {
         console.error('읽지 않은 알림 개수 조회 오류:', error);
       }
     };
 
     fetchInitialUnreadCount();
-  }, [userId, setUnreadCount]);
+  }, [user?.id, setUnreadCount]);
   // 페이지 이동 시 모바일 메뉴 닫기
   useEffect(() => {
     setIsMenuOpen(false);

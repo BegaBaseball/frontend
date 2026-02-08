@@ -20,8 +20,8 @@ export default function NotificationPanel() {
 
     const fetchNotifications = async () => {
       try {
-        const userId = await api.getUserIdByEmail(user.email);
-        const id = userId.data || userId;
+        const userIdResponse = await api.getUserIdByEmail(user.email);
+        const id = userIdResponse.data;
 
         const [notifs, count] = await Promise.all([
           api.getNotifications(id),

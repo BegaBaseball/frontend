@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Zap, Coins } from 'lucide-react'; // Added Coins icon
 import { useAuthStore } from '../store/authStore';
@@ -45,7 +46,6 @@ export default function CheerBattleBar({ gameId, homeTeam, awayTeam }: CheerBatt
         const newClient = new Client({
             brokerURL: 'ws://localhost:8080/ws/websocket',
             onConnect: () => {
-                console.log('Connected to Cheer Battle WS for game:', gameId);
                 newClient.subscribe(`/topic/battle/${gameId}`, (message) => {
                     const data = JSON.parse(message.body);
                     setStats(data);
@@ -75,7 +75,7 @@ export default function CheerBattleBar({ gameId, homeTeam, awayTeam }: CheerBatt
         // Check points
         const currentPoints = user?.cheerPoints || 0;
         if (currentPoints < 1) {
-            alert("응원 포인트가 부족합니다! (포인트는 게시글/댓글 좋아요 및 일일 로그인으로 획득 가능)");
+            toast.warning('응원 포인트가 부족합니다!', { description: '포인트는 게시글/댓글 좋아요 및 일일 로그인으로 획득 가능' });
             return;
         }
 
