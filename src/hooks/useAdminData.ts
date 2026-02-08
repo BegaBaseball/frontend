@@ -1,5 +1,6 @@
 // hooks/useAdminData.ts
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query'; // Added
 import {
   fetchAdminStats,
   fetchAdminUsers,
@@ -10,14 +11,15 @@ import {
   deleteAdminMate,
 } from '../api/admin';
 import { AdminUser, AdminStats, AdminPost, AdminMate } from '../types/admin';
-import { useCheerStore } from '../store/cheerStore';
+// import { useCheerStore } from '../store/cheerStore'; // Removed
 
 export const useAdminData = () => {
-  const { removePost } = useCheerStore();
-  
+  // const { removePostFromState } = useCheerStore(); // Removed
+  const queryClient = useQueryClient(); // Added
+
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('users');
-  
+
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [mates, setMates] = useState<AdminMate[]>([]);
@@ -26,7 +28,7 @@ export const useAdminData = () => {
     totalPosts: 0,
     totalMates: 0,
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -63,11 +65,11 @@ export const useAdminData = () => {
     try {
       await deleteAdminUser(userId);
       setSuccessMessage('유저가 삭제되었습니다.');
-      
+
       // 목록 새로고침
       loadUsers(searchTerm || undefined);
       loadStats();
-      
+
       // 3초 후 성공 메시지 제거
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
@@ -92,16 +94,17 @@ export const useAdminData = () => {
     try {
       await deleteAdminPost(postId);
       setSuccessMessage('게시글이 삭제되었습니다.');
-      
-      // Store에서도 삭제
-      removePost(postId);
-      
+
+      // Store에서도 삭제 -> Invalidate Queries
+      // removePostFromState(postId);
+      queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+
       // 목록에서도 삭제
       setPosts(prev => prev.filter(p => p.id !== postId));
-      
+
       // 통계 갱신
       loadStats();
-      
+
       // 3초 후 성공 메시지 제거
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
@@ -126,13 +129,13 @@ export const useAdminData = () => {
     try {
       await deleteAdminMate(mateId);
       setSuccessMessage('메이트 모임이 삭제되었습니다.');
-      
+
       // 목록에서도 삭제
       setMates(prev => prev.filter(m => m.id !== mateId));
-      
+
       // 통계 갱신
       loadStats();
-      
+
       // 3초 후 성공 메시지 제거
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
@@ -173,7 +176,7 @@ export const useAdminData = () => {
     loading,
     error,
     successMessage,
-    
+
     // 액션
     handleDeleteUser,
     handleDeletePost,

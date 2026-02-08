@@ -62,15 +62,19 @@ export const generateRankingText = (rankings: (Team | null)[]): string => {
  * Kakao SDK 초기화 확인
  */
 export const isKakaoSDKReady = (): boolean => {
-  return typeof window !== 'undefined' && !!window.Kakao;
+  return typeof window !== 'undefined' && !!window.Kakao && window.Kakao.isInitialized();
 };
 
 /**
  * Kakao SDK 초기화
  */
-export const initializeKakaoSDK = (appKey: string): void => {
+export const initializeKakaoSDK = (appKey: string | undefined): void => {
+  if (!appKey) {
+    console.warn("Kakao App Key is missing. Kakao SDK initialization skipped.");
+    return;
+  }
+
   if (window.Kakao && !window.Kakao.isInitialized()) {
     window.Kakao.init(appKey);
-    
   }
 };

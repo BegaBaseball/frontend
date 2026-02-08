@@ -1,29 +1,32 @@
-import { Link } from 'react-router-dom';
-import baseballLogo from '/src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 
 
 export default function Footer() {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
   return (
-    <footer className="bg-gray-900 text-white py-12">
+    <footer className="bg-gray-900 text-white py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 mb-6">
-          <img 
-              src={baseballLogo} 
-              alt="baseball" 
-              className="w-10 h-10"
-            />
-          <div>
-            <h3 className="tracking-wider" style={{ fontWeight: 900 }}>
+        <div className="flex flex-row items-center gap-3 mb-4">
+          <img
+            src={baseballLogo}
+            alt="baseball"
+            className="w-8 h-8"
+          />
+          <div className="flex items-baseline gap-2">
+            <h3 className="tracking-wider text-lg" style={{ fontWeight: 900 }}>
               BEGA
             </h3>
-            <p className="text-xs text-gray-400">BASEBALL GUIDE</p>
+            <p className="text-[10px] text-gray-400 uppercase">BASEBALL GUIDE</p>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
           <div>
-            <h4 className="mb-4">서비스</h4>
-            <ul className="space-y-2 text-gray-400">
+            <h4 className="mb-2 text-sm font-bold">서비스</h4>
+            <ul className="space-y-1 text-xs text-gray-400">
               <li>
                 <Link to="/home" className="hover:text-white">
                   홈
@@ -31,7 +34,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/cheer" className="hover:text-white">
-                  응원게시판
+                  응원석
                 </Link>
               </li>
               <li>
@@ -41,7 +44,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/prediction" className="hover:text-white">
-                  승리예측
+                  전력분석실
                 </Link>
               </li>
               <li>
@@ -50,15 +53,18 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/mypage" className="hover:text-white">
-                  직관다이어리
-                </Link>
+                <button
+                  onClick={() => navigate(user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
+                  className="hover:text-white text-left"
+                >
+                  프로필
+                </button>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="mb-4">정보</h4>
-            <ul className="space-y-2 text-gray-400">
+            <h4 className="mb-2 text-sm font-bold">정보</h4>
+            <ul className="space-y-1 text-xs text-gray-400">
               <li>
                 <Link to="/notice" className="hover:text-white">
                   공지사항
@@ -76,16 +82,16 @@ export default function Footer() {
               </li>
             </ul>
           </div>
-          <div>
-            <h4 className="mb-4">고객센터</h4>
-            <ul className="space-y-2 text-gray-400">
+          <div className="col-span-2 md:col-span-1">
+            <h4 className="mb-2 text-sm font-bold">고객센터</h4>
+            <ul className="space-y-1 text-xs text-gray-400">
               <li>이메일: baseballguide251021@gmail.com</li>
               <li>운영시간: 평일 09:00-18:00</li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-gray-800 pt-8 text-center text-gray-400 text-sm">
+        <div className="border-t border-gray-800 pt-4 text-center text-gray-500 text-[10px]">
           <p>© 2025 BEGA (BASEBALL GUIDE). All rights reserved.</p>
         </div>
       </div>

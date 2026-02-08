@@ -10,8 +10,9 @@ const SAVED_EMAIL_KEY = 'savedEmail';
 
 export const useLoginForm = () => {
   const navigate = useNavigate();
-  
+
   const login = useAuthStore((state) => state.login);
+  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
 
   const getSavedEmail = () => {
     try {
@@ -84,9 +85,14 @@ export const useLoginForm = () => {
         formData.email,
         response.data.name,
         undefined, // profileImageUrl는 나중에 마이페이지에서 가져옴
-        response.data.role
+        response.data.role,
+        undefined, // favoriteTeam
+        response.data.id,
+        undefined, // cheerPoints (will be fetched)
+        response.data.handle
       );
 
+      await fetchProfileAndAuthenticate();
       navigate('/home');
     } catch (err: any) {
       console.error('로그인 실패:', err);

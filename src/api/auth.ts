@@ -1,4 +1,6 @@
 // api/auth.ts
+import api from './axios';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 // ========== 타입 정의 ==========
@@ -12,13 +14,17 @@ export interface LoginResponse {
   message: string;
   data: {
     accessToken: string;
+    refreshToken?: string;
+    id: number;
     name: string;
     role: string;
+    handle?: string;
   };
 }
 
 export interface SignUpRequest {
   name: string;
+  handle: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -60,97 +66,102 @@ export interface PasswordResetConfirmResponse {
  * 로그인 API 호출
  */
 export const loginUser = async (credentials: LoginRequest): Promise<LoginResponse> => {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(credentials),
-  });
-
-  if (!response.ok) {
+  try {
+    const response = await api.post<LoginResponse>('/auth/login', credentials, {
+      skipGlobalErrorHandler: true, // 로그인 실패 시 모달 대신 폼 에러 표시
+    } as any);
+    return response.data;
+  } catch (error: any) {
     let errorMessage = '로그인에 실패했습니다.';
-    
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch {
-      if (response.status === 401) {
+
+    if (error.response) {
+      errorMessage = error.response.data?.message || error.response.data?.error || errorMessage;
+      if (error.response.status === 401) {
         errorMessage = '이메일 또는 비밀번호가 일치하지 않습니다.';
-      } else if (response.status === 400) {
-        errorMessage = '입력 정보를 확인해주세요.';
-      } else {
-        errorMessage = `서버 오류: ${response.status}`;
       }
     }
-    
+
     throw new Error(errorMessage);
   }
-
-  return response.json();
-}
+};
 
 /**
  * 회원가입 API 호출
  */
 export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> => {
-  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    const errorMessage = errorData.message || 
-                        (typeof errorData === 'string' ? errorData : `회원가입 실패: ${response.statusText}`);
+  try {
+    const response = await api.post<SignUpResponse>('/auth/signup', data, {
+      skipGlobalErrorHandler: true,
+    } as any);
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message ||
+      (typeof error.response?.data === 'string' ? error.response.data : `회원가입 실패: ${error.message}`);
     throw new Error(errorMessage);
   }
-
-  return response.json();
-}
+};
 
 /**
  * 소셜 로그인 URL 생성
  */
-const NO_API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080/';
-export const getSocialLoginUrl = (provider: 'kakao' | 'google'): string => {
-  // const baseUrl = API_BASE_URL.replace('/api', '');
-  return `${NO_API_BASE_URL}/oauth2/authorization/${provider}`;
+const NO_API_BASE_URL = (import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+export const getSocialLoginUrl = (
+  provider: 'kakao' | 'google' | 'naver',
+  params?: { mode?: 'link'; linkToken?: string }
+): string => {
+  const url = `${NO_API_BASE_URL}/oauth2/authorization/${provider}`;
+  if (params) {
+    const query = new URLSearchParams();
+    if (params.mode) query.append('mode', params.mode);
+    if (params.linkToken) query.append('linkToken', params.linkToken);
+    return `${url}?${query.toString()}`;
+  }
+  return url;
+};
+
+/**
+ * OAuth2 계정 연동을 위한 Link Token 발급
+ * - 로그인된 상태에서만 호출 가능
+ * - 반환된 토큰을 OAuth2 리다이렉트 URL에 포함
+ */
+export interface LinkTokenResponse {
+  linkToken: string;
+  expiresIn: number;
 }
+
+export const getLinkToken = async (): Promise<LinkTokenResponse> => {
+  try {
+    const response = await api.get<LinkTokenResponse>('/auth/link-token', {
+      skipGlobalErrorHandler: true,
+    } as any);
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || '연동 토큰 발급에 실패했습니다.';
+    throw new Error(errorMessage);
+  }
+};
 
 /**
  * 로그아웃 API 호출
  */
 export const logoutUser = async (): Promise<void> => {
-  await fetch(`${API_BASE_URL}/auth/logout`, {
-    method: 'POST',
-    credentials: 'include',
-  });
-}
+  await api.post('/auth/logout');
+};
 
 /**
  * 비밀번호 재설정 요청 API 호출
  */
 export const requestPasswordReset = async (email: string): Promise<PasswordResetResponse> => {
-  const response = await fetch(`${API_BASE_URL}/auth/password/reset/request`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-  });
-
-  if (!response.ok) {
-    let errorMessage = '이메일 발송에 실패했습니다.';
-    try {
-      const data = await response.json();
-      errorMessage = data.message || errorMessage;
-    } catch {
-      errorMessage = `서버 오류 (${response.status})`;
-    }
+  try {
+    const response = await api.post<PasswordResetResponse>('/auth/password/reset/request', { email }, {
+      skipGlobalErrorHandler: true,
+    } as any);
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || '이메일 발송에 실패했습니다.';
     throw new Error(errorMessage);
   }
-
-  return response.json();
-}
+};
 
 /**
  * 비밀번호 재설정 확인 API 호출
@@ -160,21 +171,35 @@ export const confirmPasswordReset = async (
   newPassword: string,
   confirmPassword: string
 ): Promise<PasswordResetConfirmResponse> => {
-  const response = await fetch(`${API_BASE_URL}/auth/password/reset/confirm`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  try {
+    const response = await api.post<PasswordResetConfirmResponse>('/auth/password/reset/confirm', {
       token,
       newPassword,
       confirmPassword,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || data.error || '비밀번호 변경에 실패했습니다.');
+    }, {
+      skipGlobalErrorHandler: true,
+    } as any);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || error.response?.data?.error || '비밀번호 변경에 실패했습니다.');
   }
+};
 
-  return data;
+// ========== OAuth2 State ==========
+
+export interface OAuth2StateData {
+  email: string;
+  name: string;
+  role: string;
+  profileImageUrl: string | null;
+  favoriteTeam: string | null;
+  handle: string | null;
 }
+
+/**
+ * OAuth2 로그인 state에서 사용자 정보를 조회합니다 (일회성).
+ */
+export const consumeOAuth2State = async (stateId: string): Promise<OAuth2StateData> => {
+  const response = await api.get<OAuth2StateData>(`/auth/oauth2/state/${stateId}`);
+  return response.data;
+};

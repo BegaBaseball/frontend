@@ -163,18 +163,18 @@ export const usePredictionStore = create<PredictionState>()(
       // 순위 예측 함수들
       addTeamToRanking: (team) => {
         const { rankings, availableTeams } = get();
-        // 뒤에서부터 빈 자리 찾기 (10위부터 채우기)
-        let lastEmptyIndex = -1;
-        for (let i = rankings.length - 1; i >= 0; i--) {
+        // 앞에서부터 빈 자리 찾기 (1위부터 채우기)
+        let firstEmptyIndex = -1;
+        for (let i = 0; i < rankings.length; i++) {
           if (rankings[i] === null) {
-            lastEmptyIndex = i;
+            firstEmptyIndex = i;
             break;
           }
         }
-        if (lastEmptyIndex === -1) return;
+        if (firstEmptyIndex === -1) return;
         
         const newRankings = [...rankings];
-        newRankings[lastEmptyIndex] = team;
+        newRankings[firstEmptyIndex] = team;
         
         const newAvailableTeams = availableTeams.filter(t => t.id !== team.id);
         

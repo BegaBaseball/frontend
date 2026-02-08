@@ -22,6 +22,10 @@ export interface DiaryEntry {
   photos: string[];
   team: string;
   stadium: string;
+  section?: string;
+  block?: string;
+  row?: string;
+  seat?: string;
 }
 
 export interface DiaryFormData {
@@ -33,6 +37,10 @@ export interface DiaryFormData {
   memo: string;
   photos: string[];
   photoFiles: File[];
+  section?: string;
+  block?: string;
+  row?: string;
+  seat?: string;
 }
 
 export interface SaveDiaryRequest {
@@ -46,6 +54,10 @@ export interface SaveDiaryRequest {
   photos: string[];
   team: string;
   stadium: string;
+  section?: string;
+  block?: string;
+  row?: string;
+  seat?: string;
 }
 
 export interface DiaryStatistics {
@@ -65,6 +77,32 @@ export interface DiaryStatistics {
   firstDiaryDate: string | null;
   cheerPostCount: number;
   mateParticipationCount: number;
+
+  // New Analysis Fields
+  currentWinStreak: number;
+  longestWinStreak: number;
+  currentLossStreak: number;
+
+  opponentWinRates: Record<string, OpponentStats>;
+  bestOpponent: string;
+  worstOpponent: string;
+
+  dayOfWeekStats: Record<string, DayStats>;
+  luckyDay: string;
+  earnedBadges: string[];
+}
+
+export interface OpponentStats {
+  wins: number;
+  losses: number;
+  draws: number;
+  winRate: number;
+}
+
+export interface DayStats {
+  count: number;
+  wins: number;
+  winRate: number;
 }
 
 export interface EmojiStat {
