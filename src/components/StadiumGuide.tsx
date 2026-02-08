@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { MapPin } from 'lucide-react';
@@ -7,10 +7,10 @@ import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constant
 import { openKakaoMapRoute } from '../utils/kakaoMap';
 import { getCategoryIconConfig } from '../utils/stadium';
 import { useStadiumGuide } from '../hooks/useStadiumGuide';
-import { useTheme } from 'next-themes'; // 테마 사용을 위해 추가
+import { useTheme } from '../hooks/useTheme';
 
 export default function StadiumGuide() {
-  const { theme } = useTheme(); // 현재 테마 가져오기
+  const { theme } = useTheme();
   const {
     stadiums,
     selectedStadium,
@@ -101,9 +101,11 @@ export default function StadiumGuide() {
 
             {/* Stadium Info & Map */}
             <div>
-              <h3 className="mb-3 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
-                구장 위치
-              </h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
+                  구장 위치
+                </h3>
+              </div>
 
               {/* 구장 정보 카드 */}
               {selectedStadium && (
@@ -148,7 +150,6 @@ export default function StadiumGuide() {
                 </div>
               )}
 
-              {/* 지도 */}
               {selectedStadium && KAKAO_API_KEY ? (
                 <div
                   className="p-2 rounded-3xl border-2 dark:bg-gray-800 dark:border-gray-700"
@@ -160,7 +161,7 @@ export default function StadiumGuide() {
                   <div
                     ref={mapContainer}
                     style={{ width: '100%', height: '500px' }}
-                    className="rounded-2xl overflow-hidden"
+                    className="rounded-2xl overflow-hidden kakao-map-container"
                   />
                 </div>
               ) : (
@@ -279,25 +280,25 @@ export default function StadiumGuide() {
                         places.map((place) => {
                           const { Icon, color } = getCategoryIconConfig(place.category);
                           const isSelected = selectedPlace?.id === place.id;
-                          
+
                           return (
                             <Card
                               key={place.id}
                               id={`place-${place.id}`}
                               className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-2 dark:bg-gray-800"
                               style={{
-                                backgroundColor: isSelected 
-                                  ? (isDark ? '#1f4436' : THEME_COLORS.primaryLight) 
+                                backgroundColor: isSelected
+                                  ? (isDark ? '#1f4436' : THEME_COLORS.primaryLight)
                                   : (isDark ? '#1f2937' : 'white'),
-                                borderColor: isSelected 
-                                  ? THEME_COLORS.primary 
+                                borderColor: isSelected
+                                  ? THEME_COLORS.primary
                                   : (isDark ? '#374151' : THEME_COLORS.border),
                               }}
                             >
                               <div className="flex items-center justify-between">
                                 {/* 왼쪽: Place 정보 (클릭 가능) */}
-                                <div 
-                                  className="flex-1" 
+                                <div
+                                  className="flex-1"
                                   onClick={() => handlePlaceClick(place)}
                                 >
                                   <div className="flex items-center gap-2 mb-2">

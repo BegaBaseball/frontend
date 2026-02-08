@@ -17,15 +17,15 @@ export default function Login() {
     showPassword,
     isLoading,
     error,
-    rememberEmail, 
+    rememberEmail,
     handleFieldChange,
     handleFieldBlur,
-    handleRememberEmailChange, 
+    handleRememberEmailChange,
     handleSubmit,
     togglePasswordVisibility,
   } = useLoginForm();
 
-  const handleSocialLogin = (provider: 'kakao' | 'google') => {
+  const handleSocialLogin = (provider: 'kakao' | 'google' | 'naver') => {
     if (!isLoading) {
       window.location.href = getSocialLoginUrl(provider);
     }
@@ -86,6 +86,7 @@ export default function Login() {
               onClick={togglePasswordVisibility}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
               disabled={isLoading}
+              aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -93,18 +94,21 @@ export default function Login() {
           {fieldErrors.password && (
             <p className="text-sm text-red-500">* {fieldErrors.password}</p>
           )}
-          
-         <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm text-gray-600">
-              <input 
-                type="checkbox" 
-                className="rounded border-gray-300" 
-                checked={rememberEmail} 
-                onChange={(e) => handleRememberEmailChange(e.target.checked)} 
-                disabled={isLoading} 
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <input
+                id="remember-email"
+                type="checkbox"
+                className="rounded border-gray-300"
+                checked={rememberEmail}
+                onChange={(e) => handleRememberEmailChange(e.target.checked)}
+                disabled={isLoading}
               />
-              이메일 저장 
-            </label>
+              <label htmlFor="remember-email" className="text-sm text-gray-600">
+                이메일 저장
+              </label>
+            </div>
             <button
               type="button"
               onClick={() => navigate('/password/reset')}
@@ -117,11 +121,12 @@ export default function Login() {
         </div>
 
         {/* 로그인 버튼 */}
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ backgroundColor: '#2d5f4f' }}
           disabled={isLoading}
+          aria-busy={isLoading}
         >
           {isLoading ? (
             <span className="flex items-center justify-center gap-2">
@@ -139,7 +144,7 @@ export default function Login() {
         {/* 회원가입 링크 */}
         <p className="text-center text-sm text-gray-600">
           계정이 없으신가요?{' '}
-          <button 
+          <button
             type="button"
             onClick={() => navigate('/signup')}
             className="hover:underline disabled:opacity-50"
@@ -170,8 +175,8 @@ export default function Login() {
           className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ backgroundColor: '#FEE500', color: '#000000' }}
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 3C5.589 3 2 5.792 2 9.22c0 2.155 1.396 4.046 3.505 5.146-.15.554-.976 3.505-1.122 4.045-.174.646.237.637.501.463.21-.138 3.429-2.282 3.996-2.657.373.053.754.08 1.12.08 4.411 0 8-2.792 8-6.22C18 5.793 14.411 3 10 3z" fill="currentColor"/>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M10 3C5.589 3 2 5.792 2 9.22c0 2.155 1.396 4.046 3.505 5.146-.15.554-.976 3.505-1.122 4.045-.174.646.237.637.501.463.21-.138 3.429-2.282 3.996-2.657.373.053.754.08 1.12.08 4.411 0 8-2.792 8-6.22C18 5.793 14.411 3 10 3z" fill="currentColor" />
           </svg>
           카카오로 로그인
         </button>
@@ -182,13 +187,24 @@ export default function Login() {
           disabled={isLoading}
           className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M18.17 8.36h-8.04v3.45h4.62c-.39 2.11-2.26 3.45-4.62 3.45a5.26 5.26 0 1 1 3.42-9.25l2.58-2.58A8.76 8.76 0 1 0 10.13 18.7c4.35 0 8.23-3.02 8.04-10.34z" fill="#4285F4"/>
-            <path d="M18.17 8.36h-8.04v3.45h4.62c-.39 2.11-2.26 3.45-4.62 3.45a5.26 5.26 0 0 1-5.14-4.24l-2.99 2.31A8.76 8.76 0 0 0 10.13 18.7c4.35 0 8.23-3.02 8.04-10.34z" fill="#34A853"/>
-            <path d="M5.14 10.02a5.26 5.26 0 0 1 0-3.36L2.15 4.35a8.76 8.76 0 0 0 0 7.98l2.99-2.31z" fill="#FBBC05"/>
-            <path d="M10.13 4.96c1.39 0 2.63.48 3.61 1.42l2.71-2.71A8.76 8.76 0 0 0 2.15 4.35l2.99 2.31a5.26 5.26 0 0 1 5.14-1.7z" fill="#EA4335"/>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M18.17 8.36h-8.04v3.45h4.62c-.39 2.11-2.26 3.45-4.62 3.45a5.26 5.26 0 1 1 3.42-9.25l2.58-2.58A8.76 8.76 0 1 0 10.13 18.7c4.35 0 8.23-3.02 8.04-10.34z" fill="#4285F4" />
+            <path d="M18.17 8.36h-8.04v3.45h4.62c-.39 2.11-2.26 3.45-4.62 3.45a5.26 5.26 0 0 1-5.14-4.24l-2.99 2.31A8.76 8.76 0 0 0 10.13 18.7c4.35 0 8.23-3.02 8.04-10.34z" fill="#34A853" />
+            <path d="M5.14 10.02a5.26 5.26 0 0 1 0-3.36L2.15 4.35a8.76 8.76 0 0 0 0 7.98l2.99-2.31z" fill="#FBBC05" />
+            <path d="M10.13 4.96c1.39 0 2.63.48 3.61 1.42l2.71-2.71A8.76 8.76 0 0 0 2.15 4.35l2.99 2.31a5.26 5.26 0 0 1 5.14-1.7z" fill="#EA4335" />
           </svg>
           Google로 로그인
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleSocialLogin('naver')}
+          disabled={isLoading}
+          className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ backgroundColor: '#03C75A', color: '#FFFFFF' }}
+        >
+          <span className="font-bold text-lg mr-1 italic">N</span>
+          네이버로 로그인
         </button>
       </div>
     </AuthLayout>

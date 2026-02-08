@@ -1,3 +1,9 @@
+/* Google Font for Retro Leaderboard */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* Korean Pixel Font for better readability */
+@import url('https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -65,12 +71,20 @@
     color: hsl(var(--foreground));
   }
 
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     color: rgb(17 24 39);
   }
 
-  .dark input, .dark textarea, .dark select {
+  .dark input,
+  .dark textarea,
+  .dark select {
     color: rgb(243 244 246);
+  }
+
+  .kakao-map-container {
+    color: #111827;
   }
 }
 
@@ -79,8 +93,17 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Improved image rendering for downscaled images */
+  .image-render-quality {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: high-quality; /* Standard property if supported */
+    transform: translateZ(0); /* Triggers GPU compositing for smoother rendering */
+    backface-visibility: hidden; /* Helps with antialiasing in some browsers */
   }
 }
 
@@ -100,6 +123,7 @@
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -107,13 +131,7 @@
 }
 
 .mobile-menu-popup {
-  width: 380px;
-}
-
-@media (max-width: 420px) {
-  .mobile-menu-popup {
-    width: calc(100vw - 32px);
-  }
+  width: min(380px, calc(100vw - 32px));
 }
 
 /* Shiny button animation for Stove League */
@@ -131,12 +149,10 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(
-    45deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
+  background: linear-gradient(45deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent);
   transform: rotate(45deg);
   animation: shine 3s infinite;
 }
@@ -150,7 +166,155 @@
   0% {
     left: -50%;
   }
+
   100% {
     left: 150%;
   }
+}
+
+/* Admin Dashboard - Stadium Night Theme */
+.admin-page {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Radial gradient utility */
+.bg-gradient-radial {
+  background: radial-gradient(ellipse at center, var(--tw-gradient-from) 0%, var(--tw-gradient-via, transparent) 50%, var(--tw-gradient-to) 100%);
+}
+
+/* Fade in up animation */
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+/* Glow pulse for stat cards */
+@keyframes glow-pulse {
+
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.3;
+    transform: scale(1.05);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* Custom scrollbar for admin tables */
+.admin-page ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-page ::-webkit-scrollbar-track {
+  background: rgb(30 41 59);
+  /* slate-800 */
+  border-radius: 4px;
+}
+
+.admin-page ::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105);
+  /* slate-600 */
+  border-radius: 4px;
+}
+
+.admin-page ::-webkit-scrollbar-thumb:hover {
+  background: rgb(100 116 139);
+  /* slate-500 */
+}
+
+/* Enhanced shadow for elevated elements */
+.shadow-3xl {
+  box-shadow:
+    0 35px 60px -15px rgba(0, 0, 0, 0.5),
+    0 0 40px -10px rgba(245, 158, 11, 0.1);
+}
+
+/* Table row hover glow effect */
+.admin-page table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.admin-page table tbody tr:hover {
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.1);
+}
+
+/* Badge animations */
+.admin-page .badge-glow {
+  position: relative;
+}
+
+.admin-page .badge-glow::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: inherit;
+  filter: blur(8px);
+  opacity: 0.5;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+/* Input focus glow */
+.admin-page input:focus {
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+/* Tab indicator animation */
+.admin-page [role="tablist"] button[data-state="active"] {
+  position: relative;
+}
+
+.admin-page [role="tablist"] button[data-state="active"]::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  opacity: 0.5;
+}
+
+/* Cheer Card Content Expansion */
+.content-expanded {
+  max-height: none;
+  overflow: visible;
+}
+
+.content-collapsed {
+  display: block;
+  /* Reset to simple block, handled by JS truncation */
+}
+
+.content-collapsed::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  /* background: linear-gradient(transparent, var(--card)); */
+  pointer-events: none;
 }

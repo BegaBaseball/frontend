@@ -15,10 +15,11 @@ ENV VITE_PROXY_TARGET=$VITE_PROXY_TARGET
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
+# Copy package files first for better caching
 COPY package.json package-lock.json* .npmrc ./
 
-# Install dependencies with optional packages
-RUN npm install
+# Install dependencies
+RUN npm ci --legacy-peer-deps
 
 COPY . ./
 
@@ -32,35 +33,22 @@ RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
 # Build the project
 RUN npm run build
 
-# Stage 2: Runtime (serve with Vite dev server)
-FROM --platform=$TARGETPLATFORM node:20-slim AS runner
+# Stage 2: Production (Nginx)
+FROM nginx:1.25-alpine AS runner
 
-WORKDIR /app
+# Copy built assets
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-ARG VITE_KAKAO_MAP_KEY
-ARG VITE_API_BASE_URL
-ARG VITE_PROXY_TARGET
-ARG VITE_SUPABASE_URL
-ARG VITE_SUPABASE_ANON_KEY
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
 
-ENV VITE_KAKAO_MAP_KEY=$VITE_KAKAO_MAP_KEY
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-ENV VITE_PROXY_TARGET=$VITE_PROXY_TARGET
-ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
-ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+# Create non-root user for security
+RUN adduser -D -H -u 1000 appuser && \
+    chown -R appuser:appuser /var/cache/nginx /var/log/nginx /usr/share/nginx/html && \
+    touch /var/run/nginx.pid && chown appuser:appuser /var/run/nginx.pid
 
-# Copy built node_modules and source files
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/docs ./docs
-COPY --from=builder /app/index.html ./index.html
-COPY --from=builder /app/vite.config.ts ./vite.config.ts
-COPY --from=builder /app/tsconfig*.json ./
-COPY --from=builder /app/postcss.config.js ./postcss.config.js
-COPY --from=builder /app/tailwind.config.js ./tailwind.config.js
+USER appuser
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["nginx", "-g", "daemon off;"]

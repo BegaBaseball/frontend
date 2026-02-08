@@ -1,17 +1,20 @@
-import { Link } from 'react-router-dom';
-import baseballLogo from '/src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 
 
 export default function Footer() {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
   return (
     <footer className="bg-gray-900 text-white py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-row items-center gap-3 mb-4">
-          <img 
-              src={baseballLogo} 
-              alt="baseball" 
-              className="w-8 h-8"
-            />
+          <img
+            src={baseballLogo}
+            alt="baseball"
+            className="w-8 h-8"
+          />
           <div className="flex items-baseline gap-2">
             <h3 className="tracking-wider text-lg" style={{ fontWeight: 900 }}>
               BEGA
@@ -31,7 +34,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/cheer" className="hover:text-white">
-                  응원게시판
+                  응원석
                 </Link>
               </li>
               <li>
@@ -41,7 +44,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/prediction" className="hover:text-white">
-                  승리예측
+                  전력분석실
                 </Link>
               </li>
               <li>
@@ -50,9 +53,12 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/mypage" className="hover:text-white">
-                  직관다이어리
-                </Link>
+                <button
+                  onClick={() => navigate(user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
+                  className="hover:text-white text-left"
+                >
+                  프로필
+                </button>
               </li>
             </ul>
           </div>

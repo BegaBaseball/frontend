@@ -19,7 +19,7 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
 
   // 클릭 핸들러 추가
   const handleClick = () => {
-    setSelectedParty(party);
+    setSelectedParty(party as any);
     localStorage.setItem('selectedParty', JSON.stringify(party));
     navigate(`/mate/${party.id}`);
   };

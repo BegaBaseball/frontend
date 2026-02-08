@@ -35,6 +35,23 @@ export function ErrorModalProvider({ children }: ErrorModalProviderProps) {
         });
     }, []);
 
+    // 전역 에러 이벤트 리스너
+    React.useEffect(() => {
+        const handleGlobalError = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const errorData = customEvent.detail;
+            openErrorModal({
+                message: errorData.message,
+                statusCode: errorData.statusCode,
+            });
+        };
+
+        window.addEventListener('global-api-error', handleGlobalError);
+        return () => {
+            window.removeEventListener('global-api-error', handleGlobalError);
+        };
+    }, [openErrorModal]);
+
     const value: ErrorModalContextType = {
         ...state,
         openErrorModal,
@@ -44,6 +61,7 @@ export function ErrorModalProvider({ children }: ErrorModalProviderProps) {
     return (
         <ErrorModalContext.Provider value={value}>
             {children}
+            {/* GlobalErrorDialog 컴포넌트를 Provider 내부에서 렌더링하면 사용 편의성 증가 (선택사항) */}
         </ErrorModalContext.Provider>
     );
 }

@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -9,20 +11,24 @@ import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle } from 'l
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import ChatBot from './ChatBot';  
+import ChatBot from './ChatBot';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../utils/api';
+import { formatGameDate } from '../utils/mate';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
+import { mapBackendPartyToFrontend } from '../utils/mate';
+import VerificationRequiredDialog from './VerificationRequiredDialog';
 
 export default function MateApply() {
-  const { selectedParty } = useMateStore();
+  const { selectedParty, validateMessage } = useMateStore();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  
+
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserName, setCurrentUserName] = useState('');
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
@@ -30,9 +36,9 @@ export default function MateApply() {
       try {
         const userData = await api.getCurrentUser();
         setCurrentUserName(userData.data.name);
-        
-        const userId = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userId.data || userId);
+
+        const userIdResponse = await api.getUserIdByEmail(userData.data.email);
+        setCurrentUserId(userIdResponse.data);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
       }
@@ -41,8 +47,40 @@ export default function MateApply() {
     fetchUser();
   }, []);
 
+  // selectedParty가 없는 경우 (새로고침 직후 등) 데이터 불러오기 시도 또는 리다이렉트
+  useEffect(() => {
+    if (!selectedParty && id) {
+      const fetchParty = async () => {
+        try {
+          const response = await api.getPartyById(id);
+          const party = mapBackendPartyToFrontend(response);
+          useMateStore.getState().setSelectedParty(party);
+        } catch (error) {
+          console.error("Failed to fetch party:", error);
+          toast.error('파티 정보를 불러올 수 없습니다.');
+          navigate('/mate');
+        }
+      };
+      fetchParty();
+    }
+  }, [id, selectedParty, navigate]);
+
   if (!selectedParty) {
-    return null;
+    return (
+      <div className="flex justify-center items-center h-screen bg-background dark:bg-gray-900 transition-colors duration-200">
+        <OptimizedImage
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        />
+        <div className="text-center z-10">
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">파티 정보를 불러오는 중입니다...</p>
+          <Button onClick={() => navigate('/mate')} variant="outline" className="dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700">
+            목록으로 돌아가기
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const isSelling = selectedParty.status === 'SELLING';
@@ -52,41 +90,49 @@ export default function MateApply() {
 
   const handleSubmit = async () => {
     if (!currentUserId) {
-      alert('로그인이 필요합니다.');
+      toast.error('로그인이 필요합니다.');
       return;
     }
 
-    if (!isSelling && message.length < 10) {
-      alert('메시지를 10자 이상 입력해주세요.');
-      return;
+    if (!isSelling) {
+      const validationError = validateMessage(message);
+      if (validationError) {
+        toast.warning(validationError);
+        return;
+      }
     }
 
     setIsSubmitting(true);
 
     try {
       const applicationData = {
-        partyId: parseInt(selectedParty.id),
+        partyId: selectedParty.id,
         applicantId: currentUserId,
         applicantName: currentUserName,
         applicantBadge: 'NEW',
         applicantRating: 5.0,
         message: message || '함께 즐거운 관람 부탁드립니다!',
         depositAmount: isSelling ? sellingPrice : totalAmount,
-        paymentType: isSelling ? 'FULL' : 'DEPOSIT',
+        paymentType: (isSelling ? 'FULL' : 'DEPOSIT') as 'FULL' | 'DEPOSIT',
       };
 
       await api.createApplication(applicationData);
 
       if (isSelling) {
-        alert('티켓 구매가 완료되었습니다!');
+        toast.success('티켓 구매가 완료되었습니다!');
       } else {
-        alert('신청이 완료되었습니다! 호스트의 승인을 기다려주세요.');
+        toast.success('신청이 완료되었습니다!', { description: '호스트의 승인을 기다려주세요.' });
       }
-      
+
       navigate(`/mate/${id}`);
-    } catch (error) {
-      console.error('신청 중 오류:', error);
-      alert('신청 중 오류가 발생했습니다.');
+    } catch (error: any) {
+      if (error.status === 403 || error.response?.status === 403 || error.message?.includes('403')) {
+        console.warn('Verification required (403)');
+        setShowVerificationDialog(true);
+      } else {
+        console.error('신청 중 오류:', error);
+        toast.error(error.data?.error || error.message || '신청 중 오류가 발생했습니다.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -94,7 +140,7 @@ export default function MateApply() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <img
+      <OptimizedImage
         src={grassDecor}
         alt=""
         className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
@@ -128,7 +174,7 @@ export default function MateApply() {
                 {selectedParty.stadium}
               </h3>
               <p className="text-sm text-gray-600">
-                {selectedParty.gameDate} {selectedParty.gameTime}
+                {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime.substring(0, 5)}
               </p>
             </div>
           </div>
@@ -259,8 +305,8 @@ export default function MateApply() {
           {isSubmitting
             ? '신청 중...'
             : isSelling
-            ? `${sellingPrice.toLocaleString()}원 결제하기`
-            : `${totalAmount.toLocaleString()}원 결제하기`}
+              ? `${sellingPrice.toLocaleString()}원 결제하기`
+              : `${totalAmount.toLocaleString()}원 결제하기`}
         </Button>
 
         {!isSelling && message.length < 10 && (
@@ -272,6 +318,10 @@ export default function MateApply() {
 
       {/* ChatBot  */}
       <ChatBot />
+      <VerificationRequiredDialog
+        isOpen={showVerificationDialog}
+        onClose={() => setShowVerificationDialog(false)}
+      />
     </div>
   );
 }

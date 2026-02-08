@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -20,17 +21,14 @@ export default function MateCheckIn() {
   const [isChecking, setIsChecking] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState<CheckIn[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserName, setCurrentUserName] = useState('');
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const userData = await api.getCurrentUser();
-        setCurrentUserName(userData.data.name);
-        
-        const userId = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userId.data || userId);
+        const userIdResponse = await api.getUserIdByEmail(userData.data.email);
+        setCurrentUserId(userIdResponse.data);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
       }
@@ -62,8 +60,8 @@ export default function MateCheckIn() {
     return null;
   }
 
-  const isHost = String(selectedParty.hostId) === String(currentUserId);
-  const myCheckIn = checkInStatus.find(c => String(c.userId) === String(currentUserId));
+  const isHost = selectedParty.hostId === currentUserId;
+  const myCheckIn = checkInStatus.find(c => c.userId === currentUserId);
   const isCheckedIn = !!myCheckIn;
 
   // 전체 참여자 수 계산 (호스트 + 승인된 참여자)
@@ -79,9 +77,8 @@ export default function MateCheckIn() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       const checkInData = {
-        partyId: parseInt(selectedParty.id),
+        partyId: selectedParty.id,
         userId: currentUserId,
-        userName: currentUserName,
         location: selectedParty.stadium,
       };
 
@@ -91,17 +88,17 @@ export default function MateCheckIn() {
       const data = await api.getCheckInsByParty(selectedParty.id);
       setCheckInStatus(data);
 
-      alert('체크인이 완료되었습니다!');
+      toast.success('체크인이 완료되었습니다!');
     } catch (error) {
       console.error('체크인 중 오류:', error);
-      alert('체크인 중 오류가 발생했습니다.');
+      toast.error('체크인 중 오류가 발생했습니다.');
     } finally {
       setIsChecking(false);
     }
   };
 
   const handleComplete = () => {
-    alert('경기 관람이 완료되었습니다!');
+    toast.success('경기 관람이 완료되었습니다!');
     navigate('/mate');
   };
 
@@ -241,7 +238,7 @@ export default function MateCheckIn() {
                 <Alert className="mb-6 border-green-200 bg-green-50">
                   <CheckCircle className="w-4 h-4 text-green-600" />
                   <AlertDescription className="text-sm text-green-800">
-                    모든 참여자가 체크인을 완료했습니다!<br/>
+                    모든 참여자가 체크인을 완료했습니다!<br />
                     보증금이 정산되었습니다.
                   </AlertDescription>
                 </Alert>
@@ -255,25 +252,23 @@ export default function MateCheckIn() {
               </h3>
               <div className="space-y-3">
                 {/* 호스트 */}
-                <div className={`flex items-center justify-between p-3 rounded-lg ${
-                  checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId))
+                <div className={`flex items-center justify-between p-3 rounded-lg ${checkInStatus.some(c => c.userId === selectedParty.hostId)
                     ? 'bg-green-50'
                     : 'bg-gray-50'
-                }`}>
+                  }`}>
                   <div className="flex items-center gap-3">
-                    {checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId)) ? (
+                    {checkInStatus.some(c => c.userId === selectedParty.hostId) ? (
                       <CheckCircle className="w-5 h-5 text-green-600" />
                     ) : (
                       <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
                     )}
                     <span>{selectedParty.hostName} (호스트)</span>
                   </div>
-                  <span className={`text-sm ${
-                    checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId))
+                  <span className={`text-sm ${checkInStatus.some(c => c.userId === selectedParty.hostId)
                       ? 'text-green-600'
                       : 'text-gray-500'
-                  }`}>
-                    {checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId))
+                    }`}>
+                    {checkInStatus.some(c => c.userId === selectedParty.hostId)
                       ? '체크인 완료'
                       : '대기 중'}
                   </span>
@@ -281,9 +276,8 @@ export default function MateCheckIn() {
 
                 {/* 본인 */}
                 {!isHost && (
-                  <div className={`flex items-center justify-between p-3 rounded-lg ${
-                    isCheckedIn ? 'bg-green-50' : 'bg-gray-50'
-                  }`}>
+                  <div className={`flex items-center justify-between p-3 rounded-lg ${isCheckedIn ? 'bg-green-50' : 'bg-gray-50'
+                    }`}>
                     <div className="flex items-center gap-3">
                       {isCheckedIn ? (
                         <CheckCircle className="w-5 h-5 text-green-600" />
@@ -292,9 +286,8 @@ export default function MateCheckIn() {
                       )}
                       <span>나 (본인)</span>
                     </div>
-                    <span className={`text-sm ${
-                      isCheckedIn ? 'text-green-600' : 'text-gray-500'
-                    }`}>
+                    <span className={`text-sm ${isCheckedIn ? 'text-green-600' : 'text-gray-500'
+                      }`}>
                       {isCheckedIn ? '체크인 완료' : '대기 중'}
                     </span>
                   </div>
@@ -302,9 +295,9 @@ export default function MateCheckIn() {
 
                 {/* 다른 참여자들 */}
                 {checkInStatus
-                  .filter(c => 
-                    String(c.userId) !== String(currentUserId) && 
-                    String(c.userId) !== String(selectedParty.hostId)
+                  .filter(c =>
+                    c.userId !== currentUserId &&
+                    c.userId !== selectedParty.hostId
                   )
                   .map((checkIn, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">

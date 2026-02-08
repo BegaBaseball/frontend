@@ -18,7 +18,7 @@ export interface AdminStats {
 export interface AdminPost {
   id: number;
   team: string;
-  title: string;
+  content: string;
   author: string;
   createdAt: string;
   likeCount: number;

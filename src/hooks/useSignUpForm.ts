@@ -7,6 +7,7 @@ import { SignUpFormData, FieldErrors, FieldName } from '../types/auth';
 
 const initialFormData: SignUpFormData = {
   name: '',
+  handle: '@',
   email: '',
   password: '',
   confirmPassword: '',
@@ -15,6 +16,7 @@ const initialFormData: SignUpFormData = {
 
 const initialFieldErrors: FieldErrors = {
   name: '',
+  handle: '',
   email: '',
   password: '',
   confirmPassword: '',
@@ -31,7 +33,7 @@ export const useSignUpForm = () => {
 
   const handleFieldChange = (fieldName: FieldName, value: string) => {
     setFormData({ ...formData, [fieldName]: value });
-    
+
     if (fieldErrors[fieldName]) {
       setFieldErrors({ ...fieldErrors, [fieldName]: '' });
     }
@@ -66,6 +68,7 @@ export const useSignUpForm = () => {
     try {
       await signupUser({
         name: formData.name,
+        handle: formData.handle.startsWith('@') ? formData.handle : `@${formData.handle}`,
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
@@ -73,7 +76,7 @@ export const useSignUpForm = () => {
       });
 
       setIsSuccess(true);  // ✅ 성공 상태 설정
-      
+
       // ✅ 3초 후 로그인 페이지로 이동
       setTimeout(() => {
         navigate('/login');

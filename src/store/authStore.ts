@@ -1,39 +1,46 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import Cookies from 'js-cookie';
+import api from '../api/axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-const MYPAGE_API_URL = `${API_BASE_URL}/auth/mypage`; 
+// const MYPAGE_API_URL = `${API_BASE_URL}/auth/mypage`; // Not needed if using api.get('/auth/mypage')
 const AUTH_COOKIE_NAME = 'Authorization';
 
 interface User {
-  id: number;
   email: string;
-  name?: string; 
+  name?: string;
+  handle?: string;
   favoriteTeam?: string;
   favoriteTeamColor?: string;
   isAdmin?: boolean;
   profileImageUrl?: string;
   role?: string;
+  provider?: string;    // 'LOCAL', 'GOOGLE', 'KAKAO', 'NAVER'
+  providerId?: string;
+  bio?: string | null;
+  cheerPoints?: number; // Added cheerPoints
+  hasPassword?: boolean;
 }
 
 interface AuthState {
   user: User | null;
-  isLoggedIn: boolean; 
+  isLoggedIn: boolean;
   isAdmin: boolean;
-  isAuthLoading: boolean;  
+  isAuthLoading: boolean;
   email: string;
   password: string;
   showPassword: boolean;
   showLoginRequiredDialog: boolean;
-  
-  fetchProfileAndAuthenticate: () => Promise<void>; 
+
+  fetchProfileAndAuthenticate: () => Promise<void>;
   setUserProfile: (profile: Omit<User, 'email'> & { email: string, name: string }) => void;
-  
+  deductCheerPoints: (amount: number) => void; // Added action
+
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
   setShowPassword: (show: boolean) => void;
-  login: (email: string, name: string, profileImageUrl?: string, role?: string, favoriteTeam?: string) => void;
+  login: (email: string, name: string, profileImageUrl?: string, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => void;
   logout: () => void;
   setFavoriteTeam: (team: string, color: string) => void;
   setShowLoginRequiredDialog: (show: boolean) => void;
@@ -44,111 +51,126 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      isLoggedIn: false, 
+      isLoggedIn: false,
       isAdmin: false,
       isAuthLoading: false,
       email: '',
       password: '',
       showPassword: false,
-      showLoginRequiredDialog: false, 
+      showLoginRequiredDialog: false,
 
       fetchProfileAndAuthenticate: async () => {
-        set({ isAuthLoading: true }); 
+        set({ isAuthLoading: true });
 
         try {
-          const response = await fetch(MYPAGE_API_URL, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-          });
+          // Using axios api instance to handle 401 interceptor
+          const response = await api.get('/auth/mypage');
 
-          if (response.ok) {
-            const result = await response.json();  
+          if (response.status === 200) {
+            const result = response.data;
             const profile = result.data;
-            const isAdminUser = profile.role === 'ROLE_ADMIN';
+            const isAdminUser = profile.role === 'ROLE_ADMIN' || profile.role === 'ROLE_SUPER_ADMIN';
 
             set({
               user: {
+                id: profile.id,
                 email: profile.email,
                 name: profile.name,
+                handle: profile.handle,
                 favoriteTeam: profile.favoriteTeam,
                 favoriteTeamColor: profile.favoriteTeamColor,
                 isAdmin: isAdminUser,
                 profileImageUrl: profile.profileImageUrl,
                 role: profile.role,
+                bio: profile.bio,
+                cheerPoints: profile.cheerPoints ?? profile['cheer_points'] ?? 0, // Map cheerPoints (defensive check)
+                provider: profile.provider,
+                providerId: profile.providerId,
+                hasPassword: profile.hasPassword,
               },
               isLoggedIn: true,
               isAdmin: isAdminUser,
-              isAuthLoading: false,  
+              isAuthLoading: false,
             });
-            
-          } else if (response.status === 401) {
-            set({ 
-              user: null, 
-              isLoggedIn: false, 
-              isAdmin: false,
-              isAuthLoading: false  
-            });
+
           } else {
-            set({ isAuthLoading: false });  
+            // Should be handled by catch mainly, but if 200 logic fails
+            set({ isAuthLoading: false });
           }
         } catch (error) {
-          set({ 
-            user: null, 
-            isLoggedIn: false, 
+          // 401 errors are handled by interceptor (redirect to login)
+          // For other errors during initial auth check, we just reset state silently to avoid modal on startup
+          set({
+            user: null,
+            isLoggedIn: false,
             isAdmin: false,
-            isAuthLoading: false  
+            isAuthLoading: false
           });
         }
       },
-      
+
       setUserProfile: (profile) => {
         set((state) => ({
-          user: state.user ? { 
-            ...state.user, 
-            ...profile, 
+          user: state.user ? {
+            ...state.user,
+            ...profile,
             name: profile.name,
             profileImageUrl: profile.profileImageUrl || state.user.profileImageUrl
           } : null,
         }));
       },
-      
-      login: (email, name, profileImageUrl, role, favoriteTeam) => { 
-        const isAdminUser = role === 'ROLE_ADMIN';
-        
+
+      deductCheerPoints: (amount) => {
+        set((state) => {
+          if (!state.user) return {};
+          const currentPoints = state.user.cheerPoints || 0;
+          return {
+            user: {
+              ...state.user,
+              cheerPoints: Math.max(0, currentPoints - amount)
+            }
+          };
+        });
+      },
+
+      login: (email, name, profileImageUrl, role, favoriteTeam, id, cheerPoints, handle, provider) => {
+        const isAdminUser = role === 'ROLE_ADMIN' || role === 'ROLE_SUPER_ADMIN';
+
         set({
-          user: { 
-            email: email, 
+          user: {
+            id: id || 0,
+            email: email,
             name: name,
+            // ... (keep existing)
             isAdmin: isAdminUser,
             profileImageUrl: profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User',
             role: role,
-            favoriteTeam: favoriteTeam || '없음', 
+            favoriteTeam: favoriteTeam || '없음',
+            cheerPoints: cheerPoints || 0,
+            handle: handle,
+            provider: provider,
           },
           isLoggedIn: true,
           isAdmin: isAdminUser,
-          isAuthLoading: false,  
+          isAuthLoading: false,
           email: '',
           password: '',
         });
       },
 
       logout: () => {
-        fetch(`${API_BASE_URL}/auth/logout`, {
-          method: 'POST',
-          credentials: 'include',
-        })
-        
-        set({ 
-          user: null, 
-          isLoggedIn: false, 
-          isAdmin: false, 
-          isAuthLoading: false,  
-          email: '', 
-          password: '' 
+        api.post('/auth/logout'); // Global handler will catch errors if any
+
+        set({
+          user: null,
+          isLoggedIn: false,
+          isAdmin: false,
+          isAuthLoading: false,
+          email: '',
+          password: ''
         });
       },
-      
+
       setEmail: (email) => set({ email }),
       setPassword: (password) => set({ password }),
       setShowPassword: (show) => set({ showPassword: show }),
@@ -158,7 +180,7 @@ export const useAuthStore = create<AuthState>()(
         })),
 
       setShowLoginRequiredDialog: (show) => set({ showLoginRequiredDialog: show }),
-      
+
       requireLogin: (callback) => {
         const { isLoggedIn } = get();
         if (!isLoggedIn) {
@@ -177,11 +199,11 @@ export const useAuthStore = create<AuthState>()(
         isLoggedIn: state.isLoggedIn,
         isAdmin: state.isAdmin,
       }),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => (state: AuthState | undefined, error: unknown) => {
         return () => {
           if (state?.isLoggedIn) {
             state.fetchProfileAndAuthenticate();
-          } else {
+          } else if (state) {
             state.isAuthLoading = false;
           }
         };

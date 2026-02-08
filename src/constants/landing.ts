@@ -1,10 +1,10 @@
-import { Home, MessageCircle, MapPin, TrendingUp, Users, BookOpen } from 'lucide-react';
-import homeScreenshot from '/src/assets/home.png';
-import predictionScreenshot from '/src/assets/prediction.png';
-import diaryScreenshot from '/src/assets/diary.png';
-import screenshot2 from '/src/assets/cheer.png';
-import screenshot3 from '/src/assets/stadium.png';
-import mateScreenshot1 from '/src/assets/mate.png';
+import { Home, Megaphone, MapPin, LineChart, Users, BookOpen } from 'lucide-react';
+import homeScreenshot from '../assets/home.png';
+import predictionScreenshot from '../assets/prediction.png';
+import diaryScreenshot from '../assets/diary.png';
+import screenshot2 from '../assets/cheer.png';
+import screenshot3 from '../assets/stadium.png';
+import mateScreenshot1 from '../assets/mate.png';
 import { Feature } from '../types/landing';
 
 export const LANDING_FEATURES: Feature[] = [
@@ -20,8 +20,8 @@ export const LANDING_FEATURES: Feature[] = [
     ]
   },
   {
-    icon: MessageCircle,
-    title: '응원게시판',
+    icon: Megaphone,
+    title: '응원석',
     description: '마이팀 설정으로 필터링하여 우리 팀 소식만 모아보세요',
     image: screenshot2,
     guide: [
@@ -42,9 +42,9 @@ export const LANDING_FEATURES: Feature[] = [
     ]
   },
   {
-    icon: TrendingUp,
-    title: '승리예측',
-    description: '순위예측과 승부예측으로 경기를 더 재미있게 즐기세요',
+    icon: LineChart,
+    title: '전력분석실',
+    description: '전력 분석과 승부 예측으로 경기를 더 재미있게 즐기세요',
     image: predictionScreenshot,
     guide: [
       '스토브리그 시즌: 순위 예측 활성화',

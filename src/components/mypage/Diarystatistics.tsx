@@ -1,11 +1,31 @@
-import { Trophy, TrendingUp, BarChart3 } from 'lucide-react';
+import { useMemo } from 'react';
 import { Card } from '../ui/card';
 import { useDiaryStatistics } from '../../hooks/useDiaryStatistics';
 import StatCard from './StatCard';
 import EmojiStatsCard from './EmojiStatsCard';
+import WinRateChart from './WinRateChart';
+import MonthlyStatsChart from './MonthlyStatsChart';
+import StadiumVisitList from './StadiumVisitList';
+import BadgeShowcase from './BadgeShowcase';
+import OpponentWinRateChart from './OpponentWinRateChart';
+import { Trophy, TrendingUp, BarChart3, Star, Flame } from 'lucide-react';
 
 export default function DiaryStatistics() {
-  const { statistics, emojiStats, isLoading } = useDiaryStatistics();
+  const { statistics, emojiStats, isLoading, diaryEntries } = useDiaryStatistics();
+
+  // Derived data for Monthly Chart
+  const monthlyData = useMemo(() => {
+    const counts: { [key: string]: number } = {};
+    diaryEntries.forEach(entry => {
+      const month = entry.date.substring(5, 7); // '2023-05-12' -> '05'
+      counts[month] = (counts[month] || 0) + 1;
+    });
+
+    // Create array for chart (01~12 or just active months)
+    return Object.entries(counts)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([month, count]) => ({ month: `${parseInt(month)}월`, count }));
+  }, [diaryEntries]);
 
   if (isLoading) {
     return (
@@ -20,104 +40,126 @@ export default function DiaryStatistics() {
   }
 
   return (
-    <>
-      {/* 간단한 통계 정보 */}
-      <Card className="p-8">
+    <div className="space-y-6 lg:space-y-8 animate-fade-in-up">
+      {/* 1. 상단 요약 배지 & 카드 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <BadgeShowcase earnedBadges={statistics.earnedBadges || []} />
+        </div>
+        <div className="lg:col-span-1">
+          <Card className="h-full bg-gradient-to-br from-green-50 to-white dark:from-gray-800 dark:to-gray-900 border-none shadow-md p-6 flex flex-col justify-center items-center text-center">
+            <Flame className="w-10 h-10 text-orange-500 mb-2 animate-pulse" />
+            <h3 className="text-sm font-medium text-gray-500">현재 연승/연패</h3>
+            <div className="text-3xl font-black mt-1">
+              {statistics.currentWinStreak > 0 ? (
+                <span className="text-red-500">{statistics.currentWinStreak}연승 중! 🔥</span>
+              ) : statistics.currentLossStreak > 0 ? (
+                <span className="text-blue-500">{statistics.currentLossStreak}연패.. ☔</span>
+              ) : (
+                <span className="text-gray-400">-</span>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">최장 연승: {statistics.longestWinStreak || 0}연승</p>
+          </Card>
+        </div>
+      </div>
+
+      {/* 2. 대시보드 요약 카드 */}
+      <Card className="p-5 md:p-8 bg-white dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center gap-3">
-          <Trophy className="w-7 h-7" style={{ color: '#2d5f4f' }} />
-          <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>나의 야구 기록</h2>
+          <Trophy className="w-6 h-6 md:w-7 md:h-7 text-[#2d5f4f] dark:text-emerald-400" />
+          <h2 className="text-lg md:text-xl font-black text-[#2d5f4f] dark:text-emerald-400">
+            나의 야구 기록 요약
+          </h2>
         </div>
 
-        <div className="grid grid-cols-4 gap-4 pt-6 border-t">
-          <StatCard value={statistics.totalCount} label="직관 횟수" />
-          <StatCard value={statistics.cheerPostCount || 0} label="응원글" />
-          <StatCard value={`${statistics.winRate.toFixed(1)}%`} label="승률" />
-          <StatCard value={statistics.mateParticipationCount || 0} label="메이트 참여" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 pt-6 border-t border-gray-200 dark:border-gray-700 mt-4">
+          <StatCard value={statistics.totalCount} label="총 직관 횟수" />
+          <StatCard value={statistics.cheerPostCount || 0} label="작성한 응원글" />
+          <StatCard value={`${statistics.winRate.toFixed(0)}%`} label="직관 승률" />
+          <StatCard value={statistics.luckyDay || '-'} label="승리 요일" />
         </div>
       </Card>
 
-      {/* 통계 보기 뷰 */}
-      <div className="space-y-8 mt-8">
-        {/* 월간 통계 */}
-        <Card className="p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <TrendingUp className="w-7 h-7" style={{ color: '#2d5f4f' }} />
-            <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>월간 기분 통계</h2>
-          </div>
+      {/* 3. 차트 그리드 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 h-[350px]">
+          <WinRateChart
+            wins={statistics.totalWins}
+            draws={statistics.totalDraws}
+            losses={statistics.totalLosses}
+            winRate={statistics.winRate}
+          />
+        </div>
 
-          <EmojiStatsCard stats={emojiStats} />
+        <div className="lg:col-span-1 h-[350px]">
+          <OpponentWinRateChart opponentStats={statistics.opponentWinRates || {}} />
+        </div>
 
-          <div className="border-t pt-6 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700">총 직관 횟수</span>
-              <div className="flex items-center gap-2">
-                <span style={{ fontWeight: 900, fontSize: '20px', color: '#2d5f4f' }}>
-                  {statistics.monthlyCount || 0}회
-                </span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700">응원팀 승률</span>
-              <div className="flex items-center gap-2">
-                <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                  {statistics.winRate.toFixed(1)}% ({statistics.totalWins}승{' '}
-                  {statistics.totalDraws}무 {statistics.totalLosses}패)
-                </span>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* 연간 통계 */}
-        <Card className="p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <BarChart3 className="w-7 h-7" style={{ color: '#2d5f4f' }} />
-            <h2 style={{ color: '#2d5f4f', fontWeight: 900 }}>연간 직관 통계</h2>
-          </div>
-
-          <div className="grid grid-cols-3 gap-6 mb-6">
-            <div className="bg-green-50 p-6 rounded-xl text-center">
-              <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                {statistics.yearlyCount || 0}
-              </div>
-              <div className="text-sm text-gray-600">총 직관 횟수</div>
-            </div>
-            <div className="bg-green-50 p-6 rounded-xl text-center">
-              <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                {statistics.yearlyWins || 0}승
-              </div>
-              <div className="text-sm text-gray-600">응원팀 승리</div>
-            </div>
-            <div className="bg-green-50 p-6 rounded-xl text-center">
-              <div className="text-3xl mb-2" style={{ fontWeight: 900, color: '#2d5f4f' }}>
-                {statistics.yearlyWinRate?.toFixed(1) || 0}%
-              </div>
-              <div className="text-sm text-gray-600">연간 승률</div>
-            </div>
-          </div>
-
-          <div className="border-t pt-6 space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700">가장 많이 간 구장</span>
-              <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                {statistics.mostVisitedStadium || '없음'} ({statistics.mostVisitedCount || 0}회)
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700">가장 행복했던 달</span>
-              <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                {statistics.happiestMonth || '없음'} (최고 {statistics.happiestCount || 0}회)
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700">첫 직관</span>
-              <span style={{ fontWeight: 700, color: '#2d5f4f' }}>
-                {statistics.firstDiaryDate || '없음'}
-              </span>
-            </div>
-          </div>
-        </Card>
+        <div className="lg:col-span-1 h-[350px]">
+          <MonthlyStatsChart data={monthlyData} />
+        </div>
       </div>
-    </>
+
+      {/* 4. 구장 & 상세 기록 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="h-[400px]">
+          <StadiumVisitList entries={diaryEntries} />
+        </div>
+
+        <div className="space-y-6">
+          <Card className="p-5 md:p-8 dark:bg-gray-800 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-6">
+              <TrendingUp className="w-6 h-6 md:w-7 md:h-7 text-[#2d5f4f] dark:text-emerald-400" />
+              <h2 className="text-lg md:text-xl font-black text-[#2d5f4f] dark:text-emerald-400">
+                기분 분석
+              </h2>
+            </div>
+            <EmojiStatsCard stats={emojiStats} />
+          </Card>
+
+          <Card className="p-5 md:p-8 dark:bg-gray-800 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-6">
+              <BarChart3 className="w-6 h-6 md:w-7 md:h-7 text-[#2d5f4f] dark:text-emerald-400" />
+              <h2 className="text-lg md:text-xl font-black text-[#2d5f4f] dark:text-emerald-400">
+                상세 기록
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-400 font-medium">최다 방문 구장</span>
+                <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                  {statistics.mostVisitedStadium || '-'} ({statistics.mostVisitedCount}회)
+                </span>
+              </div>
+              <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-400 font-medium">가장 행복했던 달</span>
+                <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                  {statistics.happiestMonth || '-'} ({statistics.happiestCount}회)
+                </span>
+              </div>
+              <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-400 font-medium">상대하기 쉬운 팀</span>
+                <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                  {statistics.bestOpponent || '-'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-400 font-medium">상대하기 어려운 팀</span>
+                <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                  {statistics.worstOpponent || '-'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-400 font-medium">연간 승률</span>
+                <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                  {statistics.yearlyWinRate?.toFixed(1) || 0}% ({statistics.yearlyWins}승 / {statistics.yearlyCount}경기)
+                </span>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
 }

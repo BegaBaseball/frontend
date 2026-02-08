@@ -1,5 +1,6 @@
-import begaCharacter from '/src/assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
-import baseballLogo from '/src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import begaCharacter from '../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
+import { OptimizedImage } from './common/OptimizedImage';
+import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Button } from './ui/button';
 import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
@@ -13,7 +14,7 @@ export default function Landing() {
   const [activeFeature, setActiveFeature] = useState(0);
   const [expandedFeature, setExpandedFeature] = useState<number | null>(null);
   const navigate = useNavigate();
-  
+
   const {
     scrollProgress,
     featureRefs,
@@ -29,10 +30,10 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-white">
       {/* Fixed Header */}
-      <header 
+      <header
         className="fixed top-0 left-0 right-0 z-50 border-b border-gray-100 transition-all duration-300"
-        style={{ 
-          backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(12px)',
         }}
       >
@@ -43,14 +44,14 @@ export default function Landing() {
               <span className="text-lg sm:text-xl font-black text-[#2d5f4f]">BEGA</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
-              <Button 
+              <Button
                 variant="ghost"
                 onClick={() => navigate('/login')}
                 className="text-gray-600 text-sm sm:text-base px-2 sm:px-4"
               >
                 로그인
               </Button>
-              <Button 
+              <Button
                 onClick={() => navigate('/home')}
                 className="bg-[#2d5f4f] text-white rounded-full px-4 sm:px-6 text-sm sm:text-base"
               >
@@ -63,8 +64,8 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16 sm:pt-20">
-        <div 
-          className="absolute inset-0 bg-gradient-to-br from-[#ecfdf5] via-white to-[#f0fdfa]" 
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-[#ecfdf5] via-white to-[#f0fdfa]"
         />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 lg:py-32 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -73,28 +74,28 @@ export default function Landing() {
               <img src={baseballLogo} alt="BEGA Logo" className="w-10 h-10 sm:w-16 sm:h-16" />
               <span className="text-2xl sm:text-3xl font-black text-[#2d5f4f]">BEGA</span>
             </div>
-            
+
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-[#1a1a1a] leading-tight mb-4 sm:mb-6">
               야구를 더<br />
               <span className="text-[#2d5f4f]">스마트</span>하게
             </h1>
-            
+
             <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-8 sm:mb-10 leading-relaxed">
               KBO 야구 팬들을 위한 올인원 플랫폼<br className="hidden sm:block" />
               BEGA와 함께 모든 순간을 특별하게
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
-              <Button 
+              <Button
                 onClick={() => navigate('/home')}
                 className="group bg-[#2d5f4f] text-white py-6 px-8 rounded-full text-lg w-full sm:w-auto"
               >
                 지금 바로 시작하기
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
-                  document.getElementById('features')?.scrollIntoView({ 
+                  document.getElementById('features')?.scrollIntoView({
                     behavior: 'smooth',
                     block: 'start'
                   });
@@ -110,14 +111,14 @@ export default function Landing() {
           {/* Hero Laptop Mockup */}
           <div className="relative mt-8 lg:mt-0 px-4 sm:px-0">
             <div className="absolute top-8 right-[-1rem] w-full h-full rounded-3xl bg-[#d1fae5] -z-10 hidden sm:block" />
-            
+
             <div className="relative z-10">
               <div className="relative p-2 sm:p-3 bg-gray-800 rounded-t-xl sm:rounded-t-2xl shadow-2xl">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 sm:w-32 h-4 sm:h-6 bg-gray-800 rounded-b-lg z-10" />
-                
+
                 <div className="relative overflow-hidden bg-black rounded-lg aspect-[16/10]">
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#2d5f4f] to-[#3d7f5f]">
-                    <img src={begaCharacter} alt="BEGA Character" className="w-16 h-16 sm:w-24 sm:h-24 object-contain" />
+                    <OptimizedImage src={begaCharacter} alt="BEGA Character" className="w-16 h-16 sm:w-24 sm:h-24 object-contain" priority={true} />
                     <div className="text-center">
                       <h1 className="text-white text-2xl sm:text-4xl font-black tracking-wider mb-1">
                         BEGA
@@ -129,9 +130,9 @@ export default function Landing() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="relative h-2 sm:h-3 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-xl sm:rounded-b-2xl shadow-md" />
-              
+
               <div className="absolute left-1/2 -translate-x-1/2 -bottom-4 w-[80%] h-4 bg-gray-900/20 blur-xl rounded-full" />
             </div>
           </div>
@@ -195,15 +196,15 @@ export default function Landing() {
           <div className="mb-6 sm:mb-10">
             <img src={baseballLogo} alt="BEGA Character" className="w-20 h-20 sm:w-28 sm:h-28 mx-auto" />
           </div>
-          
+
           <h2 className="text-3xl sm:text-5xl font-black text-white mb-4 sm:mb-6">
             지금 바로 시작하세요
           </h2>
           <p className="text-white/90 text-lg sm:text-xl mb-8 sm:mb-10 leading-relaxed max-w-2xl mx-auto">
             BEGA와 함께 KBO 야구의 모든 순간을 더욱 특별하게 만들어보세요
           </p>
-          
-          <Button 
+
+          <Button
             onClick={() => navigate('/home')}
             className="group bg-white text-[#2d5f4f] py-4 px-8 sm:py-5 sm:px-10 rounded-full text-lg font-bold shadow-lg hover:shadow-xl transition-all"
           >

@@ -1,103 +1,214 @@
-import { ChatRequest, EdgeFunctionRequest, ChatResponse, VoiceResponse } from '../types/chatbot';
-import Cookies from 'js-cookie';
+import { ChatRequest, VoiceResponse } from '../types/chatbot';
+import { getMockRateLimitSeconds } from '../mock/chatbotRateLimitMock';
 
-const API_URL = import.meta.env.VITE_AI_API_URL || '/ai';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://zyofzvnkputevakepbdm.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1`;
-
-/**
- * Edge Function으로 채팅 메시지 전송
- */
-export async function sendChatMessageToEdge(data: EdgeFunctionRequest): Promise<ChatResponse> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-
-  // 인증 헤더 추가
-  const authToken = Cookies.get('Authorization');
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  } else if (SUPABASE_ANON_KEY) {
-    headers['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`;
-  } else {
-    throw new Error('Supabase anon key가 설정되지 않았습니다.');
-  }
-
-  const response = await fetch(`${EDGE_FUNCTION_URL}/ai-chat`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
-  }
-
-  const result: ChatResponse = await response.json();
-
-  if (result.error) {
-    throw new Error(result.error);
-  }
-
-  return result;
-}
-
+const isCypress = typeof window !== 'undefined' && (window as any).Cypress;
+const RAW_AI_API_URL = isCypress ? '' : import.meta.env.VITE_AI_API_URL;
+const API_BASE = RAW_AI_API_URL ? RAW_AI_API_URL.replace(/\/+$/, '') : '';
+const buildAiUrl = (path: string) => {
+  if (!API_BASE) return `/ai${path}`;
+  if (API_BASE.endsWith('/ai')) return `${API_BASE}${path}`;
+  return `${API_BASE}/ai${path}`;
+};
 /**
  * FastAPI SSE 스트리밍 처리
  */
+export class RateLimitError extends Error {
+  retryAfterSeconds: number;
+
+  constructor(retryAfterSeconds: number) {
+    super('STATUS_429');
+    this.name = 'RateLimitError';
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+const DEFAULT_RETRY_AFTER_SECONDS = 10;
+
+const parseRetryAfterSeconds = (retryAfterHeader: string | null): number | null => {
+  if (!retryAfterHeader) return null;
+
+  const numericValue = Number(retryAfterHeader);
+  if (!Number.isNaN(numericValue) && Number.isFinite(numericValue)) {
+    return Math.max(0, Math.floor(numericValue));
+  }
+
+  const parsedDate = Date.parse(retryAfterHeader);
+  if (!Number.isNaN(parsedDate)) {
+    const diffMs = parsedDate - Date.now();
+    return Math.max(0, Math.ceil(diffMs / 1000));
+  }
+
+  return null;
+};
+
 export async function sendChatMessageStream(
   data: ChatRequest,
   onDelta: (delta: string) => void,
-  onError: (error: string) => void
+  onError: (error: string) => void,
+  onMeta?: (meta: {
+    verified: boolean;
+    dataSources: Array<{ title: string; url?: string; content?: string }>;
+    toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
+  }) => void
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/chat/stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-    credentials: 'include'
-  });
+  const MAX_RETRIES = 3;
+  const READ_TIMEOUT_MS = 30000; // 30 seconds
+  const mockMode = import.meta.env.VITE_MOCK_CHATBOT_RATE_LIMIT;
+  const mockSeconds = getMockRateLimitSeconds(mockMode);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+  if (mockSeconds !== null) {
+    throw new RateLimitError(mockSeconds);
   }
 
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error('Failed to get readable stream from response.');
+  let attempt = 0;
+  let response: Response | null = null;
 
+  while (attempt < MAX_RETRIES) {
+    try {
+      attempt++;
+      response = await fetch(buildAiUrl('/chat/stream'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        break; // Success
+      }
+
+      if (response.status === 429) {
+        const retryAfterHeader = response.headers.get('Retry-After');
+        const retryAfterSeconds = parseRetryAfterSeconds(retryAfterHeader) ?? DEFAULT_RETRY_AFTER_SECONDS;
+        throw new RateLimitError(retryAfterSeconds);
+      }
+
+      // Handle 4xx errors (do not retry unless it's 503)
+      if (response.status !== 503 && response.status >= 400 && response.status < 500) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      }
+
+      // If 5xx or 503, retry
+      if (attempt >= MAX_RETRIES) {
+        if (response.status === 503) throw new Error('STATUS_503');
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      }
+
+      // Backoff delay: 1s, 2s, 4s...
+      const delay = Math.pow(2, attempt - 1) * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        throw error;
+      }
+
+      // Network errors or other fetch exceptions
+      if (attempt >= MAX_RETRIES) {
+        throw error;
+      }
+      // Backoff delay
+      const delay = Math.pow(2, attempt - 1) * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  if (!response || !response.body) {
+    throw new Error('Failed to connect to server after retries.');
+  }
+
+  const reader = response.body.getReader();
   const decoder = new TextDecoder('utf-8');
   let buffer = '';
   let currentEvent = 'message';
 
+  // Read Timeout Management
+  const controller = new AbortController(); // Not used for fetch (already done), but logical concept. 
+  // Actually, we can't easily abort the standard `response.body` reader from outside without canceling the fetch signal, 
+  // but fetch is already done. We can reader.cancel().
+
+  // We'll race reader.read() against a timeout.
+
+  let streamCompleted = false;
+
   while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
+    try {
+      // Race: read vs timeout
+      const readPromise = reader.read();
+      const timeoutPromise = new Promise<{ done: boolean; value?: Uint8Array }>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('READ_TIMEOUT'));
+        }, READ_TIMEOUT_MS);
+      });
 
-    for (const line of lines) {
-      if (line.startsWith('event:')) {
-        currentEvent = line.substring(6).trim();
-      } else if (line.startsWith('data:')) {
-        const dataString = line.substring(5).trim();
-        if (dataString === '[DONE]') break;
+      const { done, value } = await Promise.race([readPromise, timeoutPromise]);
 
-        try {
-          const data = JSON.parse(dataString);
-          if (currentEvent === 'message' && data.delta) {
-            onDelta(data.delta);
-          } else if (currentEvent === 'error') {
-            onError(data.message || '알 수 없는 오류');
+      if (timeoutId) clearTimeout(timeoutId);
+
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('event:')) {
+          currentEvent = line.substring(6).trim();
+        } else if (line.startsWith('data:')) {
+          const dataString = line.substring(5).trim();
+          if (dataString === '[DONE]') {
+            streamCompleted = true;
+            break;
           }
-          currentEvent = 'message';
-        } catch (parseError) {
-          console.warn('Failed to parse SSE data:', line, parseError);
+
+          try {
+            const parsed = JSON.parse(dataString);
+            if (currentEvent === 'message' && parsed.delta) {
+              onDelta(parsed.delta);
+            } else if (currentEvent === 'error') {
+              onError(parsed.message || '알 수 없는 오류');
+              return; // Stop processing on error
+            } else if (currentEvent === 'meta' && onMeta) {
+              onMeta({
+                verified: parsed.verified ?? false,
+                dataSources: (parsed.data_sources || []).map((s: { title?: string; url?: string; content?: string }) => ({
+                  title: s.title || 'Unknown',
+                  url: s.url,
+                  content: s.content,
+                })),
+                toolCalls: (parsed.tool_calls || []).map((t: { tool_name?: string; parameters?: Record<string, unknown> }) => ({
+                  toolName: t.tool_name || 'unknown',
+                  parameters: t.parameters || {},
+                })),
+              });
+            }
+            currentEvent = 'message';
+          } catch (parseError) {
+            console.warn('Failed to parse SSE data:', line, parseError);
+          }
         }
       }
+      if (streamCompleted) break;
+    } catch (error: any) {
+      if (timeoutId) clearTimeout(timeoutId);
+
+      // Clean up reader
+      await reader.cancel();
+
+      if (error.message === 'READ_TIMEOUT') {
+        throw new Error('STREAM_TIMEOUT');
+      }
+      throw error;
     }
+  }
+
+  // 스트림이 [DONE] 시그널 없이 종료된 경우 (서버 비정상 종료 등)
+  if (!streamCompleted) {
+    throw new Error('INCOMPLETE_STREAM');
   }
 }
 
@@ -112,7 +223,7 @@ export async function convertVoiceToText(audioBlob: Blob): Promise<string> {
   const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
-    const response = await fetch(`${API_URL}/chat/voice`, {
+    const response = await fetch(buildAiUrl('/chat/voice'), {
       method: 'POST',
       body: formData,
       signal: controller.signal,

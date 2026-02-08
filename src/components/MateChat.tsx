@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -16,7 +17,8 @@ import {
   Info,
   AlertCircle,
 } from 'lucide-react';
-import { useMateStore, ChatMessage } from '../store/mateStore';
+import { useMateStore } from '../store/mateStore';
+import { ChatMessage } from '../types/mate';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -26,19 +28,20 @@ export default function MateChat() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { selectedParty } = useMateStore();
+  const validateChatMessage = useMateStore((state) => state.validateChatMessage);
 
   // 모든 useState를 최상단에 선언
   const [messageText, setMessageText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentUser, setCurrentUser] = useState<{ 
+  const [currentUser, setCurrentUser] = useState<{
     id: number;
-    email: string; 
-    name: string 
+    email: string;
+    name: string
   } | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [myApplication, setMyApplication] = useState<any>(null);
   const [isCheckingApproval, setIsCheckingApproval] = useState(true);
-  
+
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const handleMessageReceived = useCallback((message: ChatMessage) => {
@@ -55,13 +58,13 @@ export default function MateChat() {
     const fetchUserInfo = async () => {
       try {
         const result = await api.getCurrentUser();
-        
+
         if (result.success && result.data) {
-          const userIdData = await api.getUserIdByEmail(result.data.email);
-          const userId = userIdData.data || userIdData;
-          
+          const userIdResponse = await api.getUserIdByEmail(result.data.email);
+          const userId = userIdResponse.data;
+
           setCurrentUser({
-            id: typeof userId === 'number' ? userId : parseInt(userId),
+            id: userId,
             email: result.data.email,
             name: result.data.name,
           });
@@ -110,8 +113,8 @@ export default function MateChat() {
   }, [messages]);
 
   // isHost 계산 (조건부 return 전에)
-  const isHost = currentUser && selectedParty 
-    ? String(selectedParty.hostId) === String(currentUser.id) 
+  const isHost = currentUser && selectedParty
+    ? selectedParty.hostId === currentUser.id
     : false;
 
   // 내 신청 정보 확인
@@ -124,10 +127,10 @@ export default function MateChat() {
     const checkMyApproval = async () => {
       try {
         const applications = await api.getApplicationsByApplicant(currentUser.id);
-        const myApp = applications.find((app: any) => 
-          String(app.partyId) === String(selectedParty.id)
+        const myApp = applications.find((app: any) =>
+          app.partyId === selectedParty.id
         );
-        
+
         setMyApplication(myApp);
       } catch (error) {
         console.error('신청 정보 확인 실패:', error);
@@ -231,6 +234,8 @@ export default function MateChat() {
     );
   }
 
+
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim() || !isConnected) {
@@ -238,9 +243,15 @@ export default function MateChat() {
       return;
     }
 
+    const validationError = validateChatMessage(messageText);
+    if (validationError) {
+      toast.warning(validationError);
+      return;
+    }
+
     const newMessage = {
       partyId: selectedParty.id,
-      senderId: String(currentUser.id),
+      senderId: currentUser.id,
       senderName: currentUser.name,
       message: messageText,
     };
@@ -364,16 +375,15 @@ export default function MateChat() {
 
                     <div className="space-y-3">
                       {group.messages.map((msg) => {
-                        const isMyMessage = String(msg.senderId) === String(currentUser.id);
+                        const isMyMessage = msg.senderId === currentUser.id;
                         return (
                           <div
                             key={msg.id}
                             className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}
                           >
                             <div
-                              className={`flex flex-col ${
-                                isMyMessage ? 'items-end' : 'items-start'
-                              } max-w-[70%]`}
+                              className={`flex flex-col ${isMyMessage ? 'items-end' : 'items-start'
+                                } max-w-[70%]`}
                             >
                               {!isMyMessage && (
                                 <span className="text-xs text-gray-600 mb-1">
@@ -381,11 +391,10 @@ export default function MateChat() {
                                 </span>
                               )}
                               <div
-                                className={`px-4 py-2 rounded-2xl ${
-                                  isMyMessage
-                                    ? 'text-white'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}
+                                className={`px-4 py-2 rounded-2xl ${isMyMessage
+                                  ? 'text-white'
+                                  : 'bg-gray-100 text-gray-800'
+                                  }`}
                                 style={
                                   isMyMessage ? { backgroundColor: '#2d5f4f' } : {}
                                 }

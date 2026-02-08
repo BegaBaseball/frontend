@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   return {
     appType: 'spa',
     plugins: [react()],
-    
+
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
@@ -77,33 +77,39 @@ export default defineConfig(({ mode }) => {
     define: {
       global: 'globalThis',
     },
-      optimizeDeps: {
-        include: ['sockjs-client'],
-      },
+    optimizeDeps: {
+      include: ['sockjs-client'],
+    },
     build: {
       target: 'esnext',
-      outDir: 'build',
+      outDir: 'dist',
+      chunkSizeWarningLimit: 1000, // Suppress chunk size warnings (default: 500kB)
     },
-    
-  server: {
-    host: '0.0.0.0',
-    port: 3000,
-    open: false,
-    proxy: {
-      '/api': {
-        target: proxyTarget,
-        // target: 'http://localhost:8001',
-        changeOrigin: true,
-        secure: false,
-        // cookieDomainRewrite: 'localhost',
+
+    server: {
+      host: '0.0.0.0',
+      port: 5176,
+      open: false,
+      proxy: {
+        '/api': {
+          target: proxyTarget,
+          // target: 'http://localhost:8001',
+          changeOrigin: true,
+          secure: false,
+          // cookieDomainRewrite: 'localhost',
+        },
+        '/ai': {
+          target: env.AI_INTERNAL_API_URL ?? 'http://localhost:8001',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/ai/, ''),
+        },
+        '/ws': {
+          target: proxyTarget,
+          ws: true,
+          changeOrigin: true,
+        },
       },
-      '/ai': {
-        target: env.VITE_AI_API_URL ?? 'http://localhost:8001',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/ai/, ''),
-      },
-    },
     },
   };
 });
