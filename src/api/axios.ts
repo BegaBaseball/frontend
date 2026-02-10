@@ -2,7 +2,7 @@ import axios from 'axios';
 import { parseError } from '../utils/errorUtils';
 
 // Force relative path in Cypress to ensures mocks work
-const API_BASE_URL = (window as any).Cypress
+const API_BASE_URL = window.Cypress
     ? '/api'
     : (import.meta.env.VITE_API_BASE_URL || '/api');
 

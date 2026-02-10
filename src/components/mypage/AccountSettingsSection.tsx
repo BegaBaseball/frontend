@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useConfirmDialog } from '../contexts/ConfirmDialogContext';
 import { getSocialLoginUrl, getLinkToken } from '../../api/auth';
+import { getApiErrorMessage } from '../../utils/errorUtils';
 
 interface AccountSettingsSectionProps {
     userProvider?: string;
@@ -95,8 +96,8 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
             );
 
             window.location.href = targetUrl;
-        } catch (error: any) {
-            toast.error(error.message || '연동 토큰 발급에 실패했습니다. 다시 로그인해주세요.');
+        } catch (error: unknown) {
+            toast.error(getApiErrorMessage(error, '연동 토큰 발급에 실패했습니다. 다시 로그인해주세요.'));
             setIsLinking(false);
         }
     };

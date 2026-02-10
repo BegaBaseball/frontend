@@ -1,5 +1,7 @@
 // api/auth.ts
 import api from './axios';
+import { getApiErrorMessage } from '../utils/errorUtils';
+import { AxiosError } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
@@ -69,19 +71,13 @@ export const loginUser = async (credentials: LoginRequest): Promise<LoginRespons
   try {
     const response = await api.post<LoginResponse>('/auth/login', credentials, {
       skipGlobalErrorHandler: true, // 로그인 실패 시 모달 대신 폼 에러 표시
-    } as any);
+    });
     return response.data;
-  } catch (error: any) {
-    let errorMessage = '로그인에 실패했습니다.';
-
-    if (error.response) {
-      errorMessage = error.response.data?.message || error.response.data?.error || errorMessage;
-      if (error.response.status === 401) {
-        errorMessage = '이메일 또는 비밀번호가 일치하지 않습니다.';
-      }
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response?.status === 401) {
+      throw new Error('이메일 또는 비밀번호가 일치하지 않습니다.');
     }
-
-    throw new Error(errorMessage);
+    throw new Error(getApiErrorMessage(error, '로그인에 실패했습니다.'));
   }
 };
 
@@ -92,12 +88,15 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
   try {
     const response = await api.post<SignUpResponse>('/auth/signup', data, {
       skipGlobalErrorHandler: true,
-    } as any);
+    });
     return response.data;
-  } catch (error: any) {
-    const errorMessage = error.response?.data?.message ||
-      (typeof error.response?.data === 'string' ? error.response.data : `회원가입 실패: ${error.message}`);
-    throw new Error(errorMessage);
+  } catch (error: unknown) {
+    if (error instanceof AxiosError) {
+      const errorMessage = error.response?.data?.message ||
+        (typeof error.response?.data === 'string' ? error.response.data : `회원가입 실패: ${error.message}`);
+      throw new Error(errorMessage);
+    }
+    throw new Error(getApiErrorMessage(error, '회원가입에 실패했습니다.'));
   }
 };
 
@@ -133,11 +132,10 @@ export const getLinkToken = async (): Promise<LinkTokenResponse> => {
   try {
     const response = await api.get<LinkTokenResponse>('/auth/link-token', {
       skipGlobalErrorHandler: true,
-    } as any);
+    });
     return response.data;
-  } catch (error: any) {
-    const errorMessage = error.response?.data?.message || '연동 토큰 발급에 실패했습니다.';
-    throw new Error(errorMessage);
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '연동 토큰 발급에 실패했습니다.'));
   }
 };
 
@@ -155,11 +153,10 @@ export const requestPasswordReset = async (email: string): Promise<PasswordReset
   try {
     const response = await api.post<PasswordResetResponse>('/auth/password/reset/request', { email }, {
       skipGlobalErrorHandler: true,
-    } as any);
+    });
     return response.data;
-  } catch (error: any) {
-    const errorMessage = error.response?.data?.message || '이메일 발송에 실패했습니다.';
-    throw new Error(errorMessage);
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '이메일 발송에 실패했습니다.'));
   }
 };
 
@@ -178,10 +175,10 @@ export const confirmPasswordReset = async (
       confirmPassword,
     }, {
       skipGlobalErrorHandler: true,
-    } as any);
+    });
     return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || error.response?.data?.error || '비밀번호 변경에 실패했습니다.');
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '비밀번호 변경에 실패했습니다.'));
   }
 };
 

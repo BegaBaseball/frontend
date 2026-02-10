@@ -16,10 +16,13 @@ import { useAuthStore } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
-import { api } from '../utils/api';
+import { api, ApiError } from '../utils/api';
 import { STADIUMS, TEAMS, TEAM_COLORS_MAP } from '../utils/constants';
 import { mapBackendPartyToFrontend } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
+import { getApiErrorMessage } from '../utils/errorUtils';
+import { AxiosError } from 'axios';
+import { analyzeTicket } from '../api/ticket';
 // import { getMatchesForDate, MatchInfo } from '../utils/mockSchedule';
 export interface MatchInfo {
   id: string;
@@ -90,9 +93,10 @@ export default function MateCreate() {
       } catch {
         // 확인 실패 시 무시 (나중에 제출 시 다시 체크됨)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('사용자 정보 가져오기 실패:', error);
-      if (error.status === 401) {
+      if ((error instanceof AxiosError && error.response?.status === 401) ||
+        (error instanceof ApiError && error.status === 401)) {
         useAuthStore.getState().logout();
         useAuthStore.getState().setShowLoginRequiredDialog(true);
       }
@@ -124,18 +128,10 @@ export default function MateCreate() {
     setIsScanning(true);
 
     try {
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
+      const ticketInfo = await analyzeTicket(file);
 
-      const aiServiceUrl = import.meta.env.VITE_AI_API_URL || 'http://localhost:8001';
-      const response = await fetch(`${aiServiceUrl}/vision/ticket`, {
-        method: 'POST',
-        body: formDataUpload,
-      });
-
-      if (response.ok) {
-        const ticketInfo = await response.json();
-        const updates: any = {};
+      if (ticketInfo) {
+        const updates: Record<string, string | number | boolean> = {};
 
         if (ticketInfo.date) {
           updates.gameDate = ticketInfo.date;
@@ -145,26 +141,29 @@ export default function MateCreate() {
           updates.gameTime = ticketInfo.time.substring(0, 5);
         }
         if (ticketInfo.stadium) {
+          const stadiumName = ticketInfo.stadium;
           const matchedStadium = STADIUMS.find(s =>
-            s.includes(ticketInfo.stadium) || ticketInfo.stadium.includes(s)
+            s.includes(stadiumName) || stadiumName.includes(s)
           );
           if (matchedStadium) {
             updates.stadium = matchedStadium;
           } else {
-            updates.stadium = ticketInfo.stadium;
+            updates.stadium = stadiumName;
           }
         }
         if (ticketInfo.homeTeam) {
+          const homeTeamName = ticketInfo.homeTeam;
           const matchedTeam = TEAMS.find(t =>
-            t.name.includes(ticketInfo.homeTeam) || ticketInfo.homeTeam.includes(t.name)
+            t.name.includes(homeTeamName) || homeTeamName.includes(t.name)
           );
           if (matchedTeam) {
             updates.homeTeam = matchedTeam.id;
           }
         }
         if (ticketInfo.awayTeam) {
+          const awayTeamName = ticketInfo.awayTeam;
           const matchedTeam = TEAMS.find(t =>
-            t.name.includes(ticketInfo.awayTeam) || ticketInfo.awayTeam.includes(t.name)
+            t.name.includes(awayTeamName) || awayTeamName.includes(t.name)
           );
           if (matchedTeam) {
             updates.awayTeam = matchedTeam.id;
@@ -274,13 +273,15 @@ export default function MateCreate() {
       resetForm();
       toast.success('파티가 생성되었습니다!');
       navigate(`/mate/${mappedParty.id}`);
-    } catch (error: any) {
-      if (error.status === 403 || error.response?.status === 403 || error.message?.includes('403')) {
+    } catch (error: unknown) {
+      const errorMsg = getApiErrorMessage(error, '파티 생성 중 오류가 발생했습니다.');
+      if ((error instanceof AxiosError && error.response?.status === 403) ||
+        (error instanceof ApiError && error.status === 403)) {
         console.warn('Verification required (403)');
         setShowVerificationDialog(true);
       } else {
         console.error('파티 생성 중 오류:', error);
-        toast.error(error.message || '파티 생성 중 오류가 발생했습니다.');
+        toast.error(errorMsg);
       }
     } finally {
       setIsSubmitting(false);

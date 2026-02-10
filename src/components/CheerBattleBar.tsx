@@ -49,7 +49,7 @@ export default function CheerBattleBar({ gameId, homeTeam, awayTeam }: CheerBatt
                 newClient.subscribe(`/topic/battle/${gameId}`, (message) => {
                     const data = JSON.parse(message.body);
                     setStats(data);
-                    const total = Object.values(data).reduce((a: any, b: any) => a + b, 0) as number;
+                    const total = Object.values(data).reduce((a: number, b: number) => a + b, 0);
                     setTotalVotes(total);
                 });
             },

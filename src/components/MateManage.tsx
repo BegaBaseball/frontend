@@ -20,6 +20,7 @@ import {
   Clock,
   AlertCircle,
   RefreshCw,
+  Ticket,
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
@@ -28,6 +29,7 @@ import ChatBot from './ChatBot';
 import { api } from '../utils/api';
 import { Application } from '../types/mate';
 import { formatGameDate } from '../utils/mate';
+import { getApiErrorMessage } from '../utils/errorUtils';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Pencil } from 'lucide-react';
@@ -184,10 +186,9 @@ export default function MateManage() {
       await api.deleteParty(selectedParty.id, currentUserId);
       toast.success('파티가 삭제되었습니다.');
       navigate('/mate');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('파티 삭제 중 오류:', error);
-      const errorMessage = error.message || '파티 삭제에 실패했습니다.';
-      toast.error(errorMessage);
+      toast.error(getApiErrorMessage(error, '파티 삭제에 실패했습니다.'));
     } finally {
       setIsDeleting(false);
     }
@@ -217,9 +218,9 @@ export default function MateManage() {
       useMateStore.getState().updateParty(selectedParty.id, editForm);
       toast.success('파티 정보가 수정되었습니다.');
       setIsEditing(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('파티 수정 중 오류:', error);
-      toast.error(error.response?.data?.message || '파티 수정에 실패했습니다.');
+      toast.error(getApiErrorMessage(error, '파티 수정에 실패했습니다.'));
     }
   };
 
@@ -248,6 +249,12 @@ export default function MateManage() {
           <div className="flex items-center gap-2 mb-2">
             <span>{app.applicantName}</span>
             {getBadgeIcon(app.applicantBadge)}
+            {app.ticketVerified && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
+                <Ticket className="w-3 h-3" />
+                티켓 인증
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1 text-sm text-gray-500">
             <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />

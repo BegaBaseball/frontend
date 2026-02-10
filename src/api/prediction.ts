@@ -81,7 +81,7 @@ export const fetchVoteStatus = async (gameId: string): Promise<{ homeVotes: numb
 export const submitVote = async (gameId: string, votedTeam: 'home' | 'away'): Promise<boolean> => {
   await api.post('/predictions/vote', { gameId, votedTeam }, {
     skipGlobalErrorHandler: true,
-  } as any);
+  });
   return true;
 };
 
@@ -91,7 +91,7 @@ export const submitVote = async (gameId: string, votedTeam: 'home' | 'away'): Pr
 export const cancelVote = async (gameId: string): Promise<boolean> => {
   await api.delete(`/predictions/${gameId}`, {
     skipGlobalErrorHandler: true,
-  } as any);
+  });
   return true;
 };
 

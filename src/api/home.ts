@@ -5,7 +5,7 @@ import { DEFAULT_LEAGUE_START_DATES } from '../constants/home';
 import { formatDateForAPI } from '../utils/home';
 
 // Force relative path in Cypress to ensure mocks work
-const RAW_API_BASE_URL = (window as any).Cypress
+const RAW_API_BASE_URL = window.Cypress
     ? ''
     : (import.meta.env.VITE_API_BASE_URL || '');
 
