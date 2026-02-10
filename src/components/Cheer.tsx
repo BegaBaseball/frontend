@@ -4,12 +4,12 @@ import { parseError } from '../utils/errorUtils';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Radio, Smile, UserRound, Users, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getTeamDescription, TEAM_DATA } from '../constants/teams';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
-import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages } from '../api/cheerApi';
+import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost } from '../api/cheerApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
 import TeamLogo from './TeamLogo';
@@ -25,6 +25,7 @@ import {
     DEFAULT_BRAND_COLOR,
 } from '../utils/teamColors';
 
+type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
 
 export default function Cheer() {
     const navigate = useNavigate();
@@ -253,7 +254,7 @@ export default function Cheer() {
             };
 
             const updateCache = (key: (string | undefined)[]) => {
-                queryClient.setQueryData(key, (old: any) => {
+                queryClient.setQueryData<CheerInfiniteData>(key, (old) => {
                     if (!old || !old.pages?.length) return old;
                     const firstPage = old.pages[0];
                     const updatedFirstPage = {
@@ -289,11 +290,11 @@ export default function Cheer() {
             const uploadedUrls = result?.uploadedUrls ?? [];
             const uploadFailed = Boolean(result?.uploadFailed);
             const replaceOptimistic = (key: (string | undefined)[]) => {
-                queryClient.setQueryData(key, (old: any) => {
+                queryClient.setQueryData<CheerInfiniteData>(key, (old) => {
                     if (!old || !old.pages?.length) return old;
-                    const updatedPages = old.pages.map((page: any) => ({
+                    const updatedPages = old.pages.map((page) => ({
                         ...page,
-                        content: (page.content ?? []).map((post: any) =>
+                        content: (page.content ?? []).map((post) =>
                             post.id === context.optimisticId
                                 ? {
                                     ...post,
@@ -365,7 +366,7 @@ export default function Cheer() {
                 teamId: 'all',
                 page: pageParam as number,
                 size: 20,
-                postType: activeTabConfig?.postType as any,
+                postType: activeTabConfig?.postType,
                 sort: activeTabConfig?.sort
             });
         },
@@ -410,7 +411,7 @@ export default function Cheer() {
             teamId: 'all',
             page: 0,
             size: 10,
-            postType: activeTabConfig?.postType as any
+            postType: activeTabConfig?.postType
         }),
         refetchInterval: 15000,
         enabled: !isLoading && !activeTabConfig?.sort, // Only poll for default sort (createdAt)
@@ -423,7 +424,7 @@ export default function Cheer() {
         const maxCurrentId = Math.max(...currentPosts.map((p) => p.id));
 
         // Count how many polled posts have ID > maxCurrentId
-        const newCount = polledData.content.filter((p: any) => p.id > maxCurrentId).length;
+        const newCount = polledData.content.filter((p: CheerPost) => p.id > maxCurrentId).length;
 
         if (newCount > 0) {
             setNewPostCount(newCount);
@@ -440,14 +441,14 @@ export default function Cheer() {
                 if (lastPage?.content?.length > 0) {
                     // Safe mapping with null checks
                     const lastPageIds = new Set(
-                        (lastPage.content as any[])
+                        (lastPage.content as CheerPost[])
                             .filter(p => p && typeof p.id === 'number')
                             .map(p => p.id)
                     );
 
                     const previousPagesContent = data.pages.slice(0, -1).flatMap(p => p.content ?? []);
                     const previousIds = new Set(
-                        (previousPagesContent as any[])
+                        (previousPagesContent as CheerPost[])
                             .filter(p => p && typeof p.id === 'number')
                             .map(p => p.id)
                     );

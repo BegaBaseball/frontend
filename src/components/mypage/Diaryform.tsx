@@ -9,6 +9,33 @@ import { useDiaryView } from '../../hooks/useDiaryView';
 import { useWeekCalendar } from '../../hooks/useWeekCalendar';
 import { useMonthCalendar } from '../../hooks/useMonthCalendar';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { useQuery } from '@tanstack/react-query';
+import { analyzeTicket } from '../../api/ticket';
+import { DiaryFormData, DiaryEntry, Game } from '../../types/diary';
+import { UseMutationResult } from '@tanstack/react-query';
+
+interface DiaryReadModeProps {
+  diaryForm: DiaryFormData;
+  selectedDiary: DiaryEntry | undefined;
+  setIsEditMode: (value: boolean) => void;
+  handleDeleteDiary: () => void;
+  deleteMutation: UseMutationResult<void, Error, number>;
+}
+
+interface DiaryEditModeProps {
+  diaryForm: DiaryFormData;
+  updateForm: (updates: Partial<DiaryFormData>) => void;
+  handlePhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  removePhoto: (index: number) => void;
+  availableGames: Game[];
+  selectedDiary: DiaryEntry | undefined;
+  setIsEditMode: (value: boolean) => void;
+  handleDateSelect: (date: Date) => void;
+  selectedDate: Date;
+  handleSaveDiary: () => void;
+  saveMutation: UseMutationResult<unknown, Error, Omit<DiaryEntry, 'id'>>;
+  updateMutation: UseMutationResult<unknown, Error, { id: number; data: DiaryEntry }>;
+}
 
 export default function DiaryViewSection() {
   const {
@@ -222,7 +249,7 @@ export default function DiaryViewSection() {
               {weekCalendar.getWeekDays().map((date: Date, index: number) => {
                 const dayDateStr = formatDateString(date);
                 const selectedDateStr = formatDateString(selectedDate);
-                const entry = diaryEntries.find((e: any) => e.date === dayDateStr);
+                const entry = diaryEntries.find((e: DiaryEntry) => e.date === dayDateStr);
                 const isSelected = selectedDateStr === dayDateStr;
 
                 return (
@@ -318,7 +345,7 @@ export default function DiaryViewSection() {
 }
 
 // ========== 읽기 모드 컴포넌트 ==========
-function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDiary, deleteMutation }: any) {
+function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDiary, deleteMutation }: DiaryReadModeProps) {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -459,7 +486,7 @@ function DiaryEditMode({
   handleSaveDiary,
   saveMutation,
   updateMutation,
-}: any) {
+}: DiaryEditModeProps) {
   const [isScanning, setIsScanning] = useState(false);
 
   const handleTicketScan = async (files: FileList | null) => {
@@ -469,28 +496,19 @@ function DiaryEditMode({
     setIsScanning(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      // AI Service Vision API 호출
-      const aiServiceUrl = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8001';
-      const response = await fetch(`${aiServiceUrl}/vision/ticket`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('티켓 분석에 실패했습니다');
-      }
-
-      const ticketInfo = await response.json();
+      // Backend API 호출 (기존 AI Service 직접 호출에서 변경)
+      const ticketInfo = await analyzeTicket(file);
 
       // 폼 필드 자동 채우기
-      // availableGames에서 매칭되는 경기 찾기
-      if (ticketInfo.homeTeam && ticketInfo.awayTeam) {
-        const matchingGame = availableGames.find((game: any) =>
-          (game.homeTeam.includes(ticketInfo.homeTeam) || ticketInfo.homeTeam.includes(game.homeTeam)) &&
-          (game.awayTeam.includes(ticketInfo.awayTeam) || ticketInfo.awayTeam.includes(game.awayTeam))
+      // 1. gameId 매칭 (백엔드에서 이미 처리해서 내려줌)
+      if (ticketInfo.gameId) {
+        updateForm({ gameId: String(ticketInfo.gameId) });
+      } else if (ticketInfo.homeTeam && ticketInfo.awayTeam) {
+        // 백엔드에서 매칭 실패시 기존 로직으로 재시도
+        const { homeTeam, awayTeam } = ticketInfo;
+        const matchingGame = availableGames.find((game: Game) =>
+          (game.homeTeam.includes(homeTeam) || homeTeam.includes(game.homeTeam)) &&
+          (game.awayTeam.includes(awayTeam) || awayTeam.includes(game.awayTeam))
         );
 
         if (matchingGame) {
@@ -499,7 +517,7 @@ function DiaryEditMode({
       }
 
       // 2. 좌석 정보 매칭
-      const seatUpdates: any = {};
+      const seatUpdates: Partial<DiaryFormData> = {};
       if (ticketInfo.section) seatUpdates.section = ticketInfo.section;
       if (ticketInfo.row) seatUpdates.row = ticketInfo.row;
       if (ticketInfo.seat) seatUpdates.seat = ticketInfo.seat;
@@ -675,7 +693,7 @@ function DiaryEditMode({
             className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           >
             <option value="">경기를 선택하세요</option>
-            {availableGames.map((game: any) => (
+            {availableGames.map((game: Game) => (
               <option key={game.id} value={game.id}>
                 {game.homeTeam} vs {game.awayTeam} - {game.stadium}{' '}
                 {game.score ? `(${game.score})` : ''}

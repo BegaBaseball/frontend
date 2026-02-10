@@ -12,6 +12,7 @@ import {
 } from './ui/dialog';
 import { toast } from 'sonner';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 interface QuoteRepostEditorProps {
     isOpen: boolean;
@@ -55,9 +56,8 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                     setContent('');
                     onClose();
                 },
-                onError: (error: any) => {
-                    const message = error?.response?.data?.message || '인용 리포스트에 실패했습니다.';
-                    toast.error(message);
+                onError: (error: unknown) => {
+                    toast.error(getApiErrorMessage(error, '인용 리포스트에 실패했습니다.'));
                 },
             }
         );

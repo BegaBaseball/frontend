@@ -24,13 +24,6 @@ import {
   AlertDialogTitle,
 } from './ui/alert-dialog';
 
-// Kakao 타입 선언
-declare global {
-  interface Window {
-    Kakao: any;
-  }
-}
-
 export default function RankingPrediction() {
   const navigate = useNavigate();
   const {

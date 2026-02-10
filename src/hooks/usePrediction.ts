@@ -271,7 +271,7 @@ export const usePrediction = () => {
       if (currentStreak > 0) {
         triggerCombo(currentStreak);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const parsedError = parseError(error);
       toast.error(parsedError.message || '투표에 실패했습니다.');
     }

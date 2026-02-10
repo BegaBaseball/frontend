@@ -153,6 +153,7 @@ export interface Comment {
     likedByMe?: boolean;
     authorProfileImageUrl?: string;
     authorHandle?: string;
+    authorTeamId?: string;
     replies?: Comment[];
     authorEmail?: string; // Added for ownership check
 }
@@ -210,8 +211,58 @@ export async function fetchUserPostsByHandle(handle: string, page = 0, size = 20
     return transformPostPage(response.data);
 }
 
+/** Backend response DTOs (before transformation) */
+interface PostDTO {
+  id: number;
+  teamId: string;
+  teamColor?: string;
+  content: string;
+  author: string;
+  authorId: number;
+  authorHandle: string;
+  authorProfileImageUrl?: string;
+  authorTeamId?: string;
+  createdAt: string;
+  updatedAt: string;
+  comments: number;
+  likes: number;
+  likeCount: number;
+  commentCount: number;
+  repostCount: number;
+  views: number;
+  liked: boolean;
+  likedByMe?: boolean;
+  bookmarkedByMe?: boolean;
+  isBookmarked?: boolean;
+  isOwner?: boolean;
+  repostedByMe?: boolean;
+  isHot?: boolean;
+  postType: 'NORMAL' | 'NOTICE' | 'CHEER' | 'FREE';
+  imageUrls?: string[];
+  imageUploadFailed?: boolean;
+  repostOfId?: number;
+  repostType?: RepostType;
+  originalPost?: PostDTO;
+  originalDeleted?: boolean;
+  deleted?: boolean;
+}
+
+interface CommentDTO {
+  id: number;
+  author: string;
+  authorEmail?: string;
+  authorTeamId?: string;
+  authorProfileImageUrl?: string;
+  authorHandle?: string;
+  content: string;
+  createdAt: string;
+  likeCount: number;
+  likedByMe?: boolean;
+  replies?: CommentDTO[];
+}
+
 // 데이터 변환 헬퍼
-function transformPost(post: any): CheerPost {
+function transformPost(post: PostDTO): CheerPost {
     return {
         id: post.id,
         teamId: post.teamId,
@@ -252,7 +303,7 @@ function transformPost(post: any): CheerPost {
 }
 
 // 임베드된 원본 게시글 변환
-function transformEmbeddedPost(post: any): EmbeddedPost {
+function transformEmbeddedPost(post: PostDTO): EmbeddedPost {
     return {
         id: post.id,
         teamId: post.teamId,
@@ -270,7 +321,7 @@ function transformEmbeddedPost(post: any): EmbeddedPost {
     };
 }
 
-function transformPostPage(data: any) {
+function transformPostPage(data: { content: PostDTO[]; last: boolean; totalPages: number; totalElements: number; size: number; number: number }) {
     return {
         content: data.content.map(transformPost),
         last: data.last,
@@ -324,17 +375,17 @@ export async function fetchComments(postId: number, page = 0, size = 20) {
     const response = await api.get(`/cheer/posts/${postId}/comments?page=${page}&size=${size}`);
     const data = response.data;
 
-    const transformComment = (c: any): any => ({
+    const transformComment = (c: CommentDTO): Comment => ({
         id: c.id,
         author: c.author,
-        authorEmail: c.authorEmail,
-        authorTeamId: c.authorTeamId,
-        authorProfileImageUrl: c.authorProfileImageUrl,
-        authorHandle: c.authorHandle,
         content: c.content,
         timeAgo: formatTimeAgo(c.createdAt),
         likeCount: c.likeCount,
         likedByMe: c.likedByMe,
+        authorProfileImageUrl: c.authorProfileImageUrl,
+        authorHandle: c.authorHandle,
+        authorTeamId: c.authorTeamId,
+        authorEmail: c.authorEmail,
         replies: c.replies ? c.replies.map(transformComment) : []
     });
 
@@ -419,7 +470,7 @@ export async function uploadPostImages(postId: number, files: File[]): Promise<s
             'Content-Type': 'multipart/form-data',
         },
         skipGlobalErrorHandler: true, // 직접 에러 처리 (글 작성 실패 메시지 커스텀)
-    } as any);
+    });
     return response.data; // 업로드된 이미지 URL 목록 반환
 }
 

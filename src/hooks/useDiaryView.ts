@@ -81,7 +81,7 @@ export const useDiaryView = () => {
 
   // ========== Save Mutation ==========
   const saveMutation = useMutation({
-    mutationFn: (data: any) => saveDiary(data),
+    mutationFn: (data: Omit<DiaryEntry, 'id'>) => saveDiary(data),
     onSuccess: async (result) => {
       const diaryId = result.id || result.data?.id;
 
@@ -131,7 +131,7 @@ export const useDiaryView = () => {
 
   // ========== Update Mutation ==========
   const updateMutation = useMutation({
-    mutationFn: (params: { id: number; data: any }) => updateDiary(params),
+    mutationFn: (params: { id: number; data: DiaryEntry }) => updateDiary(params),
     onSuccess: async (result, variables) => {
       const diaryId = variables.id;
 

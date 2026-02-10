@@ -18,7 +18,7 @@ export default function GlobalErrorDialog() {
         return '⛔ 요청 실패';
     };
 
-    if (!isOpen || (typeof window !== 'undefined' && (window as any).Cypress)) return null;
+    if (!isOpen || (typeof window !== 'undefined' && window.Cypress)) return null;
 
     const displayStatusCode = statusCode || 0;
 

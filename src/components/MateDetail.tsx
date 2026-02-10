@@ -40,7 +40,8 @@ import { Alert, AlertDescription } from './ui/alert';
 import { DEPOSIT_AMOUNT, TEAM_COLORS_MAP } from '../utils/constants';
 import { formatGameDate, extractHashtags, stripHashtags } from '../utils/mate';
 import ReviewDialog from './ReviewDialog';
-import type { PartyReview } from '../types/mate';
+import type { PartyReview, Application } from '../types/mate';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 export default function MateDetail() {
   const navigate = useNavigate();
@@ -110,7 +111,7 @@ export default function MateDetail() {
     const fetchMyApplication = async () => {
       try {
         const applicationsData = await api.getApplicationsByApplicant(currentUserId);
-        const myApp = applicationsData.find((app: any) =>
+        const myApp = applicationsData.find((app: Application) =>
           String(app.partyId) === String(selectedParty.id)
         );
         setMyApplication(myApp);
@@ -173,7 +174,7 @@ export default function MateDetail() {
 
     setIsCancelling(true);
     try {
-      await api.cancelApplication(myApplication.id, currentUserId);
+      await api.cancelApplication(myApplication.id);
       if (isApproved) {
         toast.success('참여가 취소되었습니다.', { description: '티켓 가격만 환불되며, 보증금은 환불되지 않습니다.' });
       } else {
@@ -182,9 +183,9 @@ export default function MateDetail() {
       setMyApplication(null);
       const updatedParty = await api.getPartyById(selectedParty.id);
       setSelectedParty(updatedParty);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('신청 취소 중 오류:', error);
-      toast.error(error.response?.data?.message || '신청 취소 중 오류가 발생했습니다.');
+      toast.error(getApiErrorMessage(error, '신청 취소 중 오류가 발생했습니다.'));
     } finally {
       setIsCancelling(false);
     }

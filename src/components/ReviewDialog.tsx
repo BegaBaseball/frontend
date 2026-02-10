@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { api } from '../utils/api';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 interface ReviewDialogProps {
   isOpen: boolean;
@@ -44,14 +45,13 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewerId, rev
       });
       onSuccess();
       handleClose();
-    } catch (error: any) {
-      const status = error.status;
-      const msg = error.data?.message || error.message || '';
+    } catch (error: unknown) {
+      const msg = getApiErrorMessage(error, '리뷰 작성에 실패했습니다. 다시 시도해주세요.');
 
-      if (status === 409 || msg.includes('duplicate') || msg.includes('이미') || msg.includes('Duplicate')) {
+      if (msg.includes('duplicate') || msg.includes('이미') || msg.includes('Duplicate') || msg.includes('409')) {
         toast.warning('이미 이 참여자에 대한 리뷰를 작성했습니다.');
       } else {
-        toast.error(msg || '리뷰 작성에 실패했습니다. 다시 시도해주세요.');
+        toast.error(msg);
       }
     } finally {
       setIsSubmitting(false);

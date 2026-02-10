@@ -1,7 +1,9 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, InfiniteData } from '@tanstack/react-query';
 import * as cheerApi from '../api/cheerApi';
-import { PostImageDto, FetchPostsParams, SearchPostsParams } from '../api/cheerApi';
+import { PostImageDto, FetchPostsParams, SearchPostsParams, PageResponse, CheerPost } from '../api/cheerApi';
 import { CHEER_KEYS } from './cheerQueryKeys';
+
+type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
 
 export const useCheerPost = (id: number) => {
     return useQuery({
@@ -52,30 +54,11 @@ export const useCheerMutations = () => {
     const toggleLikeMutation = useMutation({
         mutationFn: cheerApi.toggleLike,
         onMutate: async (postId) => {
-            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
             await queryClient.cancelQueries({ queryKey: ['cheer-post', postId] });
             await queryClient.cancelQueries({ queryKey: ['cheer-posts'] });
             await queryClient.cancelQueries({ queryKey: ['userPosts'] });
 
-            // Snapshot the previous value
             const previousPost = queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]);
-
-            // Snapshot previous lists (we actuall store the previous state of ALL lists is expensive/hard,
-            // generally react-query v5 recommends simpler rollback or just invalidation. 
-            // For v4/v5, setQueriesData returns the old data.
-            // However, to keep it simple and robust, we will just optimistic update and invalidate on error/success.
-            // Getting exact rollback for setQueriesData is complex without verbose code.
-            // Let's rely on standard pattern: Snapshot -> Update -> Error? Rollback.
-
-            // We need to snapshot all 'cheer-posts' queries to rollback correctly? 
-            // Actually, querying all active queries to snapshot is possible.
-            // Simplified approach: Optimistic update, if error -> Invalidate (Refetch). 
-            // Providing exact rollback for infinite lists is often overkill if failure rate is low.
-            // But let's try to do it right if possible. 
-            // Since we can't easily snapshot "all" queries dynamically for rollback in a variable,
-            // we will stick to invalidating on error if we can't rollback perfectly. 
-            // LIMITATION: Use single post snapshot for single post. For lists, we'll try to update.
-            // If error, we'll just invalidate 'cheer-posts' to re-fetch true state.
 
             // Optimistically update single post
             if (previousPost) {
@@ -87,13 +70,13 @@ export const useCheerMutations = () => {
             }
 
             // Optimistically update lists
-            queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.map((post: any) => {
+                        content: page.content.map((post) => {
                             if (post.id === postId) {
                                 return {
                                     ...post,
@@ -107,13 +90,13 @@ export const useCheerMutations = () => {
                 };
             });
 
-            queryClient.setQueriesData({ queryKey: ['userPosts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.map((p: any) => {
+                        content: page.content.map((p) => {
                             if (p.id === postId) {
                                 return {
                                     ...p,
@@ -128,13 +111,13 @@ export const useCheerMutations = () => {
                 };
             });
 
-            queryClient.setQueriesData({ queryKey: ['userPosts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.map((p: any) => {
+                        content: page.content.map((p) => {
                             if (p.id === postId) {
                                 const isCurrentlyReposted = p.repostedByMe;
                                 return {
@@ -157,11 +140,9 @@ export const useCheerMutations = () => {
             if (context?.previousPost) {
                 queryClient.setQueryData(['cheer-post', postId], context.previousPost);
             }
-            // For lists, since we didn't snapshot them perfectly, we force a refetch
             queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
         },
         onSuccess: (data, postId) => {
-            // Update single post with server response
             queryClient.setQueryData(['cheer-post', postId], (old: cheerApi.CheerPost | undefined) => {
                 if (!old) return old;
                 return {
@@ -171,14 +152,13 @@ export const useCheerMutations = () => {
                 };
             });
 
-            // Update lists with server response results (better than invalidating!)
-            queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.map((post: any) => {
+                        content: page.content.map((post) => {
                             if (post.id === postId) {
                                 return {
                                     ...post,
@@ -191,13 +171,6 @@ export const useCheerMutations = () => {
                     })),
                 };
             });
-
-            // Finally invalidate to ensure consistency (optional but recommended)
-            // queryClient.invalidateQueries({ queryKey: ['cheer-posts'] }); 
-            // We can skip invalidation if we are confident in our update, but keeping it safe:
-            // Let's NOT invalidate immediately to prevent UI jumps, but maybe invalidate in background?
-            // Actually, if we updated correctly, we don't need to invalidate immediately. 
-            // StaleTime will handle it.
         },
     });
 
@@ -228,14 +201,12 @@ export const useCheerMutations = () => {
 
     const createPostMutation = useMutation({
         mutationFn: async (data: { teamId: string; content: string; postType?: string; files?: File[] }) => {
-            // 1. Create Post
             const newPost = await cheerApi.createPost({
                 teamId: data.teamId,
                 content: data.content,
                 postType: data.postType,
             });
 
-            // 2. Upload Images if any
             if (newPost && newPost.id && data.files && data.files.length > 0) {
                 await cheerApi.uploadPostImages(newPost.id, data.files);
             }
@@ -253,17 +224,14 @@ export const useCheerMutations = () => {
             newFiles?: File[];
             deletingImageIds?: number[];
         }) => {
-            // 1. Update text content
             await cheerApi.updatePost(id, data);
 
-            // 2. Delete images if requested
             if (deletingImageIds && deletingImageIds.length > 0) {
                 for (const imgId of deletingImageIds) {
                     await cheerApi.deleteImageById(imgId);
                 }
             }
 
-            // 3. Upload new images if any
             if (newFiles && newFiles.length > 0) {
                 await cheerApi.uploadPostImages(id, newFiles);
             }
@@ -283,30 +251,8 @@ export const useCheerMutations = () => {
 
     const deleteCommentMutation = useMutation({
         mutationFn: cheerApi.deleteComment,
-        onMutate: async (commentId) => {
-            // We can't easily find the postId from commentId alone without context,
-            // so we might need to invalidate 'cheer-posts' or specific post comments.
-            // Ideally we should pass postId to onMutate or rely on invalidation.
-            // Optimistic update for comments usually involves filtering local state in the component,
-            // or traversing the cache.
-
-            // Strategy: Since React Query cache for comments is by ['cheer-post', postId, 'comments']?
-            // Actually fetchComments uses `/cheer/posts/${postId}/comments`.
-            // But we don't have postId here. 
-            // Component-level optimistic update (in CheerDetail) is easier for this specific case 
-            // if we don't pass postId.
-            // BUT, let's try to do it right if we can.
-
-            // If we can't implement global optimistic update easily without postId, 
-            // we will just handle success/error and rely on component state or invalidation.
-            // CheerDetail.tsx handles local state for comments, so we can drive the UI from there.
-        },
         onSuccess: () => {
-            // Invalidate all posts to update comment counts
             queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
-            // We can't invalidate specific comment list without postId.
-            // So we will rely on strict component control or general invalidation.
-            // Actually, we should probably accept { commentId, postId } in mutate if we want specific invalidation.
         }
     });
 
@@ -318,7 +264,6 @@ export const useCheerMutations = () => {
 
             const previousPost = queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]);
 
-            // Optimistic update: toggle repostedByMe and update count
             if (previousPost) {
                 const isCurrentlyReposted = previousPost.repostedByMe;
                 queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], {
@@ -330,13 +275,13 @@ export const useCheerMutations = () => {
                 });
             }
 
-            queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.map((p: any) => {
+                        content: page.content.map((p) => {
                             if (p.id === postId) {
                                 const isCurrentlyReposted = p.repostedByMe;
                                 return {
@@ -363,7 +308,6 @@ export const useCheerMutations = () => {
             queryClient.invalidateQueries({ queryKey: ['userPosts'] });
         },
         onSuccess: (response, postId) => {
-            // Update with actual server response
             queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], (old) => {
                 if (!old) return old;
                 return {
@@ -373,13 +317,13 @@ export const useCheerMutations = () => {
                 };
             });
 
-            queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.map((p: any) => {
+                        content: page.content.map((p) => {
                             if (p.id === postId) {
                                 return {
                                     ...p,
@@ -393,13 +337,13 @@ export const useCheerMutations = () => {
                 };
             });
 
-            queryClient.setQueriesData({ queryKey: ['userPosts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.map((p: any) => {
+                        content: page.content.map((p) => {
                             if (p.id === postId) {
                                 return {
                                     ...p,
@@ -424,51 +368,47 @@ export const useCheerMutations = () => {
             await queryClient.cancelQueries({ queryKey: ['cheer-posts'] });
             await queryClient.cancelQueries({ queryKey: ['userPosts'] });
 
-            // Find the repost and its original post in cache
             let originalPostId: number | null = null;
             let repostCountBefore = 0;
 
-            queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
                 if (!old?.pages) return old;
 
-                // Find original post ID
-                old.pages.forEach((page: any) => {
-                    page.content.forEach((p: any) => {
+                old.pages.forEach((page) => {
+                    page.content.forEach((p) => {
                         if (p.id === repostId && p.repostOfId) {
                             originalPostId = p.repostOfId;
                         }
                     });
                 });
 
-                // Find original post to get its repost count
                 if (originalPostId) {
-                    old.pages.forEach((page: any) => {
-                        const originalPost = page.content.find((op: any) => op.id === originalPostId);
+                    old.pages.forEach((page) => {
+                        const originalPost = page.content.find((op) => op.id === originalPostId);
                         if (originalPost && repostCountBefore === 0) {
                             repostCountBefore = originalPost.repostCount || 0;
                         }
                     });
                 }
 
-                // Remove repost from feed
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.filter((p: any) => p.id !== repostId),
+                        content: page.content.filter((p) => p.id !== repostId),
                     })),
                 };
             });
 
-            queryClient.setQueriesData({ queryKey: ['userPosts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
                         content: page.content
-                            .filter((p: any) => p.id !== repostId)
-                            .map((p: any) => {
+                            .filter((p) => p.id !== repostId)
+                            .map((p) => {
                                 if (originalPostId && p.id === originalPostId) {
                                     return {
                                         ...p,
@@ -482,7 +422,6 @@ export const useCheerMutations = () => {
                 };
             });
 
-            // Optimistically update original post's repostCount
             if (originalPostId) {
                 queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', originalPostId], (old) => {
                     if (!old) return old;
@@ -493,13 +432,13 @@ export const useCheerMutations = () => {
                     };
                 });
 
-                queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+                queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
                     if (!old?.pages) return old;
                     return {
                         ...old,
-                        pages: old.pages.map((page: any) => ({
+                        pages: old.pages.map((page) => ({
                             ...page,
-                            content: page.content.map((p: any) => {
+                            content: page.content.map((p) => {
                                 if (p.id === originalPostId) {
                                     return {
                                         ...p,
@@ -517,7 +456,6 @@ export const useCheerMutations = () => {
             return { originalPostId, repostCountBefore };
         },
         onError: (_err, _repostId, context) => {
-            // On error, invalidate all queries to refetch
             queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
             if (context?.originalPostId) {
                 queryClient.invalidateQueries({ queryKey: ['cheer-post', context.originalPostId] });
@@ -525,36 +463,13 @@ export const useCheerMutations = () => {
             queryClient.invalidateQueries({ queryKey: ['userPosts'] });
         },
         onSuccess: (response, repostId) => {
-            // Find original post ID from cache to update
             let originalPostId: number | null = null;
 
-            queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
                 if (!old?.pages) return old;
 
-                // Find original post ID
-                old.pages.forEach((page: any) => {
-                    page.content.forEach((p: any) => {
-                        if (p.id === repostId && p.repostOfId) {
-                            originalPostId = p.repostOfId;
-                        }
-                    });
-                });
-
-                // Remove repost from feed
-                return {
-                    ...old,
-                    pages: old.pages.map((page: any) => ({
-                        ...page,
-                        content: page.content.filter((p: any) => p.id !== repostId),
-                    })),
-                };
-            });
-
-            queryClient.setQueriesData({ queryKey: ['userPosts'] }, (old: any) => {
-                if (!old?.pages) return old;
-
-                old.pages.forEach((page: any) => {
-                    page.content.forEach((p: any) => {
+                old.pages.forEach((page) => {
+                    page.content.forEach((p) => {
                         if (p.id === repostId && p.repostOfId) {
                             originalPostId = p.repostOfId;
                         }
@@ -563,14 +478,33 @@ export const useCheerMutations = () => {
 
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.filter((p: any) => p.id !== repostId),
+                        content: page.content.filter((p) => p.id !== repostId),
                     })),
                 };
             });
 
-            // Update original post with server response
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
+                if (!old?.pages) return old;
+
+                old.pages.forEach((page) => {
+                    page.content.forEach((p) => {
+                        if (p.id === repostId && p.repostOfId) {
+                            originalPostId = p.repostOfId;
+                        }
+                    });
+                });
+
+                return {
+                    ...old,
+                    pages: old.pages.map((page) => ({
+                        ...page,
+                        content: page.content.filter((p) => p.id !== repostId),
+                    })),
+                };
+            });
+
             if (originalPostId) {
                 queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', originalPostId], (old) => {
                     if (!old) return old;
@@ -581,13 +515,13 @@ export const useCheerMutations = () => {
                     };
                 });
 
-                queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+                queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
                     if (!old?.pages) return old;
                     return {
                         ...old,
-                        pages: old.pages.map((page: any) => ({
+                        pages: old.pages.map((page) => ({
                             ...page,
-                            content: page.content.map((p: any) => {
+                            content: page.content.map((p) => {
                                 if (p.id === originalPostId) {
                                     return {
                                         ...p,
@@ -611,7 +545,6 @@ export const useCheerMutations = () => {
         mutationFn: ({ postId, content }: { postId: number; content: string }) =>
             cheerApi.createQuoteRepost(postId, content),
         onSuccess: (newPost, { postId }) => {
-            // 원본 게시글의 리포스트 카운트 업데이트
             queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], (old) => {
                 if (!old) return old;
                 return {
@@ -620,13 +553,13 @@ export const useCheerMutations = () => {
                 };
             });
 
-            queryClient.setQueriesData({ queryKey: ['cheer-posts'] }, (old: any) => {
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
-                    pages: old.pages.map((page: any) => ({
+                    pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.map((p: any) => {
+                        content: page.content.map((p) => {
                             if (p.id === postId) {
                                 return {
                                     ...p,
@@ -639,7 +572,6 @@ export const useCheerMutations = () => {
                 };
             });
 
-            // 게시글 목록 새로고침 (새 인용 리포스트가 피드에 표시되도록)
             queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
             queryClient.invalidateQueries({ queryKey: ['userPosts'] });
         },

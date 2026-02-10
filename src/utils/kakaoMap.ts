@@ -125,7 +125,7 @@ export const searchNearbyPlaces = (
   keyword: string,
   category: string,
   stadium: Stadium,
-  map: any,
+  map: kakao.maps.Map,
   onSuccess: (places: Place[]) => void,
   onError: (error: string) => void
 ) => {
@@ -139,10 +139,10 @@ export const searchNearbyPlaces = (
 
   ps.keywordSearch(
     keyword,
-    (data: any, status: any) => {
+    (data: kakao.maps.services.PlaceSearchResult[], status: string) => {
       if (status === window.kakao.maps.services.Status.OK) {
         const nearbyPlaces = data
-          .filter((place: any) => {
+          .filter((place: kakao.maps.services.PlaceSearchResult) => {
             const distance = calculateDistance(
               stadium.lat,
               stadium.lng,
@@ -152,7 +152,7 @@ export const searchNearbyPlaces = (
             return distance <= MAP_CONFIG.NEARBY_DISTANCE_KM;
           })
           .slice(0, MAP_CONFIG.MAX_SEARCH_RESULTS)
-          .map((place: any, index: number) => ({
+          .map((place: kakao.maps.services.PlaceSearchResult, index: number) => ({
             id: index + 1000,
             stadiumName: stadium.stadiumName,
             category: category,
@@ -185,11 +185,11 @@ export const searchNearbyPlaces = (
  * 지도 마커 업데이트
  */
 export const updateMapMarkers = (
-  map: any,
+  map: kakao.maps.Map,
   places: Place[],
   selectedPlace: Place | null,
-  markersRef: React.MutableRefObject<any[]>,
-  infowindowsRef: React.MutableRefObject<any[]>,
+  markersRef: React.MutableRefObject<kakao.maps.Marker[]>,
+  infowindowsRef: React.MutableRefObject<kakao.maps.InfoWindow[]>,
   onMarkerClick: (place: Place) => void,
   clearMarkers: () => void
 ) => {
@@ -200,8 +200,8 @@ export const updateMapMarkers = (
   try {
     clearMarkers();
 
-    const newMarkers: any[] = [];
-    const newInfowindows: any[] = [];
+    const newMarkers: kakao.maps.Marker[] = [];
+    const newInfowindows: kakao.maps.InfoWindow[] = [];
 
     places.forEach((place) => {
       const position = new window.kakao.maps.LatLng(place.lat, place.lng);

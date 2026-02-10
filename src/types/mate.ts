@@ -46,6 +46,8 @@ export interface Application {
   paymentType: 'DEPOSIT' | 'FULL';
   isApproved: boolean;
   isRejected: boolean;
+  ticketVerified?: boolean;
+  ticketImageUrl?: string;
   createdAt: string;
   responseDeadline?: string;
 }
@@ -141,10 +143,11 @@ export interface CreateApplicationRequest {
   applicantId: number;
   applicantName: string;
   applicantBadge: string;
-  applicantRating: number;
-  message: string;
   depositAmount: number;
   paymentType: 'DEPOSIT' | 'FULL';
+  verificationToken?: string | null;
+  ticketVerified?: boolean;
+  ticketImageUrl?: string | null;
 }
 
 export interface CreateCheckInRequest {

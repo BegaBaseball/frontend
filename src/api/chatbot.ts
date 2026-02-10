@@ -1,7 +1,7 @@
 import { ChatRequest, VoiceResponse } from '../types/chatbot';
 import { getMockRateLimitSeconds } from '../mock/chatbotRateLimitMock';
 
-const isCypress = typeof window !== 'undefined' && (window as any).Cypress;
+const isCypress = typeof window !== 'undefined' && window.Cypress;
 const RAW_AI_API_URL = isCypress ? '' : import.meta.env.VITE_AI_API_URL;
 const API_BASE = RAW_AI_API_URL ? RAW_AI_API_URL.replace(/\/+$/, '') : '';
 const buildAiUrl = (path: string) => {
@@ -193,13 +193,13 @@ export async function sendChatMessageStream(
         }
       }
       if (streamCompleted) break;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (timeoutId) clearTimeout(timeoutId);
 
       // Clean up reader
       await reader.cancel();
 
-      if (error.message === 'READ_TIMEOUT') {
+      if (error instanceof Error && error.message === 'READ_TIMEOUT') {
         throw new Error('STREAM_TIMEOUT');
       }
       throw error;

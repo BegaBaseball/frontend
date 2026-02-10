@@ -7,17 +7,20 @@ import { Card } from './ui/card';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
-import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import ChatBot from './ChatBot';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api } from '../utils/api';
+import { api, ApiError } from '../utils/api';
 import { formatGameDate } from '../utils/mate';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { mapBackendPartyToFrontend } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
+import { analyzeTicket, TicketInfo } from '../api/ticket';
+import { getApiErrorMessage } from '../utils/errorUtils';
+import { AxiosError } from 'axios';
 
 export default function MateApply() {
   const { selectedParty, validateMessage } = useMateStore();
@@ -29,6 +32,9 @@ export default function MateApply() {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserName, setCurrentUserName] = useState('');
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [ticketVerified, setTicketVerified] = useState(false);
+  const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
@@ -88,6 +94,47 @@ export default function MateApply() {
   const totalAmount = ticketAmount + DEPOSIT_AMOUNT;
   const sellingPrice = selectedParty.price || 0;
 
+  // 티켓 인증 핸들러
+  const handleTicketUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('파일 크기는 10MB 이하여야 합니다.');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    setIsScanning(true);
+    try {
+      const result = await analyzeTicket(file);
+      setTicketInfo(result);
+
+      // Only mark as verified if server issued a verification token
+      // (requires meaningful OCR data: date or stadium extracted)
+      if (result.verificationToken) {
+        setTicketVerified(true);
+
+        // 경기 정보 매치 경고
+        if (result.date && result.date !== selectedParty.gameDate) {
+          toast.warning('티켓의 날짜가 파티의 경기 날짜와 다릅니다. 확인해주세요.');
+        }
+
+        toast.success('티켓 인증이 완료되었습니다! 🎫');
+      } else {
+        toast.warning('티켓에서 충분한 정보를 추출하지 못했습니다. 더 선명한 사진으로 다시 시도해주세요.');
+      }
+    } catch (error) {
+      console.error('Ticket OCR error:', error);
+      toast.error('티켓 분석에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!currentUserId) {
       toast.error('로그인이 필요합니다.');
@@ -109,11 +156,14 @@ export default function MateApply() {
         partyId: selectedParty.id,
         applicantId: currentUserId,
         applicantName: currentUserName,
-        applicantBadge: 'NEW',
+        applicantBadge: ticketVerified ? 'VERIFIED' : 'NEW',
         applicantRating: 5.0,
         message: message || '함께 즐거운 관람 부탁드립니다!',
         depositAmount: isSelling ? sellingPrice : totalAmount,
         paymentType: (isSelling ? 'FULL' : 'DEPOSIT') as 'FULL' | 'DEPOSIT',
+        verificationToken: ticketInfo?.verificationToken ?? null,
+        ticketVerified: ticketVerified,
+        ticketImageUrl: null as string | null,
       };
 
       await api.createApplication(applicationData);
@@ -125,13 +175,14 @@ export default function MateApply() {
       }
 
       navigate(`/mate/${id}`);
-    } catch (error: any) {
-      if (error.status === 403 || error.response?.status === 403 || error.message?.includes('403')) {
+    } catch (error: unknown) {
+      if ((error instanceof AxiosError && error.response?.status === 403) ||
+        (error instanceof ApiError && error.status === 403)) {
         console.warn('Verification required (403)');
         setShowVerificationDialog(true);
       } else {
         console.error('신청 중 오류:', error);
-        toast.error(error.data?.error || error.message || '신청 중 오류가 발생했습니다.');
+        toast.error(getApiErrorMessage(error, '신청 중 오류가 발생했습니다.'));
       }
     } finally {
       setIsSubmitting(false);
@@ -212,6 +263,82 @@ export default function MateApply() {
             <p className="text-sm text-gray-500">
               {message.length}/200
             </p>
+          </Card>
+        )}
+
+        {/* Ticket Verification Section (선택) */}
+        {!isSelling && (
+          <Card className="p-6 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Ticket className="w-5 h-5" style={{ color: '#2d5f4f' }} />
+              <h3 style={{ color: '#2d5f4f' }}>티켓 인증 (선택)</h3>
+              {ticketVerified && (
+                <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  인증 완료
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              티켓 사진을 올리면 호스트에게 인증 배지가 표시되어 승인율이 높아집니다.
+            </p>
+
+            {ticketVerified ? (
+              <div className="space-y-3">
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-4 h-4 text-green-600" />
+                    <span className="font-medium text-green-700 dark:text-green-400">티켓 인증 완료</span>
+                  </div>
+                  {ticketInfo && (
+                    <div className="text-sm text-green-600 space-y-1">
+                      {ticketInfo.date && <p>📅 {ticketInfo.date}</p>}
+                      {ticketInfo.stadium && <p>🏟️ {ticketInfo.stadium}</p>}
+                      {(ticketInfo.section || ticketInfo.row || ticketInfo.seat) && (
+                        <p>💺 {[ticketInfo.section, ticketInfo.row, ticketInfo.seat].filter(Boolean).join(' ')}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  className="text-sm text-gray-500"
+                  onClick={() => { setTicketVerified(false); setTicketInfo(null); }}
+                >
+                  다시 인증하기
+                </Button>
+              </div>
+            ) : (
+              <div
+                className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${isScanning
+                  ? 'border-primary bg-slate-50 dark:bg-slate-900/50'
+                  : 'border-slate-300 dark:border-slate-700 hover:border-[#2d5f4f] hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+              >
+                <input
+                  type="file"
+                  id="ticketVerifyFile"
+                  accept="image/*"
+                  onChange={handleTicketUpload}
+                  className="hidden"
+                  disabled={isScanning}
+                />
+                <label htmlFor="ticketVerifyFile" className={`cursor-pointer block ${isScanning ? 'pointer-events-none' : ''}`}>
+                  {isScanning ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                      <p className="text-primary font-medium">AI가 티켓을 분석 중...</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Ticket className="w-10 h-10 text-[#2d5f4f]" />
+                      <p className="text-[#2d5f4f] font-medium">티켓 사진 업로드</p>
+                      <p className="text-xs text-gray-400">JPG, PNG (최대 10MB)</p>
+                    </div>
+                  )}
+                </label>
+              </div>
+            )}
           </Card>
         )}
 

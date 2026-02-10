@@ -5,6 +5,7 @@ import { fetchSharedPrediction } from '../api/ranking';
 import { restoreTeamsFromIds } from '../utils/ranking';
 import { usePredictionStore } from '../store/predictionStore';
 import { Team } from '../types/ranking';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 export const useRankingPredictionShare = () => {
   const { userId, seasonYear } = useParams();
@@ -25,8 +26,8 @@ export const useRankingPredictionShare = () => {
         const data = await fetchSharedPrediction(userId, seasonYear);
         const restoredRankings = restoreTeamsFromIds(data.teamIdsInOrder, allTeams);
         setRankings(restoredRankings);
-      } catch (error: any) {
-        toast.error(error.message || '데이터를 불러오는데 실패했습니다.');
+      } catch (error: unknown) {
+        toast.error(getApiErrorMessage(error, '데이터를 불러오는데 실패했습니다.'));
       } finally {
         setIsLoading(false);
       }

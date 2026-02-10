@@ -5,6 +5,7 @@ import { loginUser } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { validateLoginField, validateLoginForm } from '../utils/validation';
 import { LoginFormData } from '../types/auth';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 const SAVED_EMAIL_KEY = 'savedEmail';
 
@@ -94,9 +95,9 @@ export const useLoginForm = () => {
 
       await fetchProfileAndAuthenticate();
       navigate('/home');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('로그인 실패:', err);
-      setError(err.message || '로그인에 실패했습니다. 다시 시도해주세요.');
+      setError(getApiErrorMessage(err, '로그인에 실패했습니다. 다시 시도해주세요.'));
     } finally {
       setIsLoading(false);
     }
