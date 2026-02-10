@@ -18,7 +18,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
-import { ChatMessage } from '../types/mate';
+import { ChatMessage, Application } from '../types/mate';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -127,7 +127,7 @@ export default function MateChat() {
     const checkMyApproval = async () => {
       try {
         const applications = await api.getApplicationsByApplicant(currentUser.id);
-        const myApp = applications.find((app: any) =>
+        const myApp = applications.find((app: Application) =>
           app.partyId === selectedParty.id
         );
 

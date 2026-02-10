@@ -17,6 +17,7 @@ import {
   initializeKakaoSDK
 } from '../utils/ranking';
 import { KAKAO_APP_KEY } from '../constants/ranking';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 export const useRankingPrediction = () => {
   const navigate = useNavigate();
@@ -92,13 +93,14 @@ export const useRankingPrediction = () => {
         resetRankings();
       }
 
-    } catch (error: any) {
-      if (error.message === 'UNAUTHORIZED') {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, '데이터를 불러오는데 실패했습니다.');
+      if (errorMessage === 'UNAUTHORIZED') {
         toast.error('로그인이 필요한 서비스입니다.');
         navigate('/login');
       } else {
         setIsPredictionPeriod(false);
-        toast.error(error.message || '데이터를 불러오는데 실패했습니다.');
+        toast.error(errorMessage);
       }
     } finally {
       setIsLoading(false);
@@ -161,11 +163,12 @@ export const useRankingPrediction = () => {
       setShowSaveDialog(false);
       setAlreadySaved(true);
 
-    } catch (error: any) {
-      if (error.message.includes('이미')) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, '저장에 실패했습니다.');
+      if (errorMessage.includes('이미')) {
         setAlreadySaved(true);
       }
-      toast.error(error.message || '저장에 실패했습니다.');
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }

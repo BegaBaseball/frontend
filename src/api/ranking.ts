@@ -1,6 +1,7 @@
 // api/ranking.ts (기존 파일에 추가/업데이트)
 import api from './axios';
 import { SeasonResponse, SavedPredictionResponse, SaveRankingRequest } from '../types/ranking';
+import { AxiosError } from 'axios';
 
 /**
  * 현재 예측 가능한 시즌 조회
@@ -19,11 +20,11 @@ export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPre
     const response = await api.get(`/predictions/ranking`, {
       params: { seasonYear },
       skipGlobalErrorHandler: true, // 404는 예외가 아니므로 전역 에러 처리 제외
-    } as any);
+    });
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // 404: 저장된 예측이 없음 - 정상적인 상태이므로 null 반환
-    if (error.response?.status === 404) {
+    if (error instanceof AxiosError && error.response?.status === 404) {
       return null;
     }
     throw error;

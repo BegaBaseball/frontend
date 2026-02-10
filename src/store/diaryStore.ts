@@ -20,6 +20,9 @@ export interface DiaryEntry {
   photos: string[];
   photoFiles: File[];
   winningName: string | null;
+  section?: string;
+  row?: string;
+  seat?: string;
 }
 
 export interface DiaryStatistics {
@@ -54,7 +57,7 @@ interface DiaryState {
   diaryEntries: DiaryEntry[];
   cheerPostCount: number;
   mateParticipationCount: number;
-  
+
   setDate: (date: Date | undefined) => void;
   setCurrentMonth: (month: Date) => void;
   setSelectedEntry: (entry: DiaryEntry | null) => void;
@@ -99,7 +102,7 @@ export const useDiaryStore = create<DiaryState>()(
       diaryEntries: initialEntries,
       cheerPostCount: 0,
       mateParticipationCount: 0,
-      
+
       setDate: (date) => set({ date }),
       setCurrentMonth: (month) => set({ currentMonth: month }),
       setSelectedEntry: (entry) => set({ selectedEntry: entry }),

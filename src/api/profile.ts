@@ -8,6 +8,8 @@ import {
   PublicUserProfile
 } from '../types/profile';
 import api from './axios';
+import { getApiErrorMessage } from '../utils/errorUtils';
+import { AxiosError } from 'axios';
 
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
@@ -22,8 +24,8 @@ export async function fetchPublicUserProfile(userId: number): Promise<PublicUser
       throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
     }
     return response.data.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || '프로필 조회 실패');
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
   }
 }
 
@@ -38,8 +40,8 @@ export async function fetchPublicUserProfileByHandle(handle: string): Promise<Pu
       throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
     }
     return response.data.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || '프로필 조회 실패');
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
   }
 }
 
@@ -54,8 +56,8 @@ export async function fetchUserProfile(): Promise<UserProfile> {
       throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
     }
     return response.data.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || '프로필 조회 실패');
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
   }
 }
 
@@ -78,8 +80,8 @@ export async function uploadProfileImage(file: File): Promise<ProfileImageDto> {
     } else {
       throw new Error(response.data.message || '프로필 이미지 업로드에 실패했습니다.');
     }
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || '프로필 이미지 업로드에 실패했습니다.');
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '프로필 이미지 업로드에 실패했습니다.'));
   }
 }
 
@@ -95,11 +97,11 @@ export async function updateProfile(data: ProfileUpdateData): Promise<ProfileUpd
     }
 
     return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401) {
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response?.status === 401) {
       throw new Error('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
     }
-    throw new Error(error.response?.data?.message || `프로필 저장 실패`);
+    throw new Error(getApiErrorMessage(error, '프로필 저장 실패'));
   }
 }
 
@@ -119,11 +121,11 @@ export async function changePassword(data: ChangePasswordRequest): Promise<void>
     if (!response.data.success) {
       throw new Error(response.data.message || '비밀번호 변경에 실패했습니다.');
     }
-  } catch (error: any) {
-    if (error.response?.status === 401) {
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response?.status === 401) {
       throw new Error('현재 비밀번호가 일치하지 않습니다.');
     }
-    throw new Error(error.response?.data?.message || '비밀번호 변경에 실패했습니다.');
+    throw new Error(getApiErrorMessage(error, '비밀번호 변경에 실패했습니다.'));
   }
 }
 
@@ -139,11 +141,11 @@ export async function deleteAccount(password?: string): Promise<void> {
     if (!response.data.success) {
       throw new Error(response.data.message || '계정 삭제에 실패했습니다.');
     }
-  } catch (error: any) {
-    if (error.response?.status === 401) {
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response?.status === 401) {
       throw new Error('비밀번호가 일치하지 않습니다.');
     }
-    throw new Error(error.response?.data?.message || '계정 삭제에 실패했습니다.');
+    throw new Error(getApiErrorMessage(error, '계정 삭제에 실패했습니다.'));
   }
 }
 
@@ -157,8 +159,8 @@ export async function getConnectedProviders(): Promise<UserProviderDto[]> {
       throw new Error(response.data.message || '연동 정보를 불러올 수 없습니다.');
     }
     return response.data.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || '연동 정보 조회 실패');
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '연동 정보 조회 실패'));
   }
 }
 
@@ -171,7 +173,7 @@ export async function unlinkProvider(provider: string): Promise<void> {
     if (!response.data.success) {
       throw new Error(response.data.message || '연동 해제에 실패했습니다.');
     }
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || '연동 해제 실패');
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '연동 해제 실패'));
   }
 }

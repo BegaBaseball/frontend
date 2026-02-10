@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Party, PartyStatus, ChatMessage } from '../types/mate';
+import { Party, PartyStatus, ChatMessage, MateParty } from '../types/mate';
 
 
 
@@ -85,7 +85,7 @@ interface MateState {
   // Actions
   setSearchQuery: (query: string) => void;
   setParties: (parties: Party[]) => void;
-  setSelectedParty: (party: Party | null) => void;
+  setSelectedParty: (party: Party | MateParty | null) => void;
   addParty: (party: Party) => void;
   updateParty: (id: number, updates: Partial<Party>) => void;
   deleteParty: (id: number) => void;
