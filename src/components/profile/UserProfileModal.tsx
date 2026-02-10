@@ -6,10 +6,11 @@ import { Loader2, User, Trophy, Quote, Users } from 'lucide-react';
 import { PublicUserProfile } from '../../types/profile';
 import { fetchPublicUserProfile } from '../../api/profile';
 import { getTeamKoreanName } from '../../utils/teamNames';
-import { getFollowCounts, FollowCountResponse } from '../../api/followApi';
+import { getFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
 import FollowButton from './FollowButton';
 import BlockButton from './BlockButton';
 import { useAuthStore } from '../../store/authStore';
+import { getApiErrorMessage } from '../../utils/errorUtils';
 
 interface UserProfileModalProps {
     userId: number | null;
@@ -41,9 +42,9 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
         try {
             const data = await fetchPublicUserProfile(id);
             setProfile(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.message || '프로필을 불러오는데 실패했습니다.');
+            setError(getApiErrorMessage(err, '프로필을 불러오는데 실패했습니다.'));
         } finally {
             setIsLoading(false);
         }
@@ -58,7 +59,7 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
         }
     };
 
-    const handleFollowChange = (response: any) => {
+    const handleFollowChange = (response: FollowToggleResponse) => {
         setFollowCounts((prev) => prev ? {
             ...prev,
             followerCount: response.followerCount,

@@ -30,6 +30,7 @@ import {
 } from './ui/popover';
 import { cn } from '../lib/utils';
 import * as cheatApi from '../api/cheerApi';
+import { Comment } from '../api/cheerApi';
 import { CommentItem } from './cheer/CommentItem';
 import TeamLogo from './TeamLogo';
 import { TEAM_DATA } from '../constants/teams';
@@ -316,7 +317,7 @@ export default function CheerDetail() {
         const previousComments = [...comments];
 
         // Helper to remove comment from nested structure
-        const filterComments = (list: any[], targetId: number): any[] => {
+        const filterComments = (list: Comment[], targetId: number): Comment[] => {
             return list.filter(c => c.id !== targetId).map(c => ({
                 ...c,
                 replies: c.replies ? filterComments(c.replies, targetId) : []

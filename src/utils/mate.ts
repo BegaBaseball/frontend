@@ -2,7 +2,33 @@
 import { Party, PartyStatus } from '../types/mate';
 import { MateParty, MateHistoryTab } from '../types/mate';
 
-export const mapBackendPartyToFrontend = (backendParty: any): Party => ({
+interface BackendPartyDTO {
+  id: number;
+  hostId: number;
+  hostName: string;
+  hostProfileImageUrl?: string;
+  hostFavoriteTeam?: string;
+  hostBadge: string;
+  hostRating: number;
+  teamId: string;
+  gameDate: string;
+  gameTime: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+  section: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  description: string;
+  ticketVerified: boolean;
+  ticketImageUrl?: string;
+  status: PartyStatus;
+  price?: number;
+  ticketPrice?: number;
+  createdAt: string;
+}
+
+export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party => ({
   id: backendParty.id,
   hostId: backendParty.hostId,
   hostName: backendParty.hostName,

@@ -307,9 +307,9 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
             };
         }
 
-        if (!result?.raw_answer && !(result as any)?.answer) return null;
+        if (!result?.raw_answer && !result?.answer) return null;
 
-        const raw = result?.data ? JSON.stringify(result.data) : (result?.raw_answer || (result as any)?.answer || "");
+        const raw = result?.data ? JSON.stringify(result.data) : (result?.raw_answer || result?.answer || "");
 
         try {
             const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```/) || raw.match(/\{[\s\S]*\}/);
@@ -324,7 +324,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                             headline: parsed.headline,
                             context: parsed.detailed_markdown || '',
                             sentiment: parsed.sentiment || 'neutral',
-                            stats: parsed.key_metrics?.map((m: any) => ({
+                            stats: parsed.key_metrics?.map((m: { label: string; value: string; status: string; trend: 'up' | 'down' | 'neutral'; is_critical: boolean }) => ({
                                 label: m.label,
                                 value: m.value,
                                 status: m.status,
@@ -332,7 +332,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                 is_critical: m.is_critical
                             })) || []
                         },
-                        metrics: parsed.key_metrics?.map((m: any) => ({
+                        metrics: parsed.key_metrics?.map((m: { label: string; value: string; status: string; trend: 'up' | 'down' | 'neutral' }) => ({
                             category: '핵심지표',
                             name: m.label,
                             value: m.value,

@@ -17,8 +17,11 @@ import { useQuery } from '@tanstack/react-query';
 import { getFollowCounts } from '../api/followApi';
 import { useState, useEffect } from 'react';
 import UserListModal from './profile/UserListModal';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Ticket } from 'lucide-react';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
+import { TicketUploadModal } from './ticket/TicketUploadModal';
+import { useDiaryStore } from '../store/diaryStore';
+import { TicketInfo } from '../api/ticket';
 
 export default function MyPage() {
   const {
@@ -36,6 +39,35 @@ export default function MyPage() {
 
     handleToggleStats,
   } = useMyPage();
+
+  const setDate = useDiaryStore((state) => state.setDate);
+  const setNewEntry = useDiaryStore((state) => state.setNewEntry);
+  const setIsCreateMode = useDiaryStore((state) => state.setIsCreateMode);
+  const setIsDialogOpen = useDiaryStore((state) => state.setIsDialogOpen);
+
+  const handleTicketConfirm = (data: TicketInfo) => {
+    // 다이어리 상태 설정
+    if (data.date) {
+      setDate(new Date(data.date));
+    }
+
+    setNewEntry({
+      date: data.date || new Date().toISOString().split('T')[0],
+      gameId: data.gameId ? Number(data.gameId) : undefined,
+      stadium: data.stadium || '',
+      team: data.homeTeam ? `${data.awayTeam} vs ${data.homeTeam}` : '',
+      section: data.section || '',
+      row: data.row || '',
+      seat: data.seat || '',
+    });
+
+    // 다이어리 작성 모드 활성화
+    setIsCreateMode(true);
+    setIsDialogOpen(true);
+
+    // 뷰 모드 변경
+    setViewMode('diary');
+  };
 
   const [userListModal, setUserListModal] = useState<{
     isOpen: boolean;
@@ -196,6 +228,20 @@ export default function MyPage() {
                 <Edit className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">내 정보 수정</span>
               </Button>
+
+              <TicketUploadModal
+                onConfirm={handleTicketConfirm}
+                onTicketAnalyzed={(data) => console.log('Analyzed Ticket:', data)}
+                trigger={
+                  <Button
+                    className={`flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
+                    style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+                  >
+                    <Ticket className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm md:text-base">티켓 등록</span>
+                  </Button>
+                }
+              />
             </div>
           </div>
         </Card>

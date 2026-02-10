@@ -25,7 +25,7 @@ export type ViewType =
 type NavigationOptions = {
   postId?: number;
   token?: string;
-  [key: string]: any;
+  [key: string]: string | number | boolean | undefined;
 };
 
 const viewToPath: Record<ViewType, string> = {

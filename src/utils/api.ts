@@ -169,8 +169,8 @@ export const api = {
     });
   },
 
-  async cancelApplication(applicationId: string | number, applicantId: number): Promise<void> {
-    await this.request(`/applications/${applicationId}?applicantId=${applicantId}`, {
+  async cancelApplication(applicationId: string | number): Promise<void> {
+    await this.request(`/applications/${applicationId}`, {
       method: 'DELETE',
     });
   },
