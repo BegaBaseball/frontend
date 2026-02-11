@@ -112,7 +112,7 @@ export default function ChatBot() {
           `}
         >
           {/* Header */}
-          <div className="p-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-[#2d5f4f]">
+          <div className="p-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-primary">
             <div className="flex items-center gap-3">
               <img
                 src={chatBotIcon}
@@ -174,7 +174,7 @@ export default function ChatBot() {
                         className={`
                           py-2.5 px-4 rounded-2xl max-w-[85%]
                           ${message.sender === 'user'
-                            ? 'bg-[#2d5f4f] text-white'
+                            ? 'bg-primary text-white'
                             : 'bg-gray-100 dark:bg-gray-700/80 text-gray-900 dark:text-white border border-gray-300 dark:border-white/10'
                           }
                         `}
@@ -217,7 +217,7 @@ export default function ChatBot() {
             <div className={`
               flex items-center gap-2 bg-gray-100 dark:bg-gray-900 rounded-2xl p-2 border border-gray-300 dark:border-white/10
               transition-colors duration-200
-              ${isProcessing ? 'border-[#2d5f4f]/50 bg-gray-100 dark:bg-gray-900/80' : 'focus-within:border-[#2d5f4f] focus-within:bg-gray-50 dark:focus-within:bg-black'}
+              ${isProcessing ? 'border-primary/50 bg-gray-100 dark:bg-gray-900/80' : 'focus-within:border-primary focus-within:bg-gray-50 dark:focus-within:bg-black'}
             `}>
               <button
                 type="button"
@@ -250,7 +250,7 @@ export default function ChatBot() {
                 type="submit"
                 disabled={!isLoggedIn || isProcessing || isRateLimited || !inputMessage.trim()}
                 className={`
-                  bg-[#2d5f4f] text-white border-none rounded-xl p-2
+                  bg-primary text-white border-none rounded-xl p-2
                   ${(!isLoggedIn || isProcessing || isRateLimited || !inputMessage.trim()) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-[#3d7f6f]'}
                   transition-colors
                   min-w-[40px] min-h-[40px] flex items-center justify-center
@@ -278,7 +278,7 @@ export default function ChatBot() {
                         rounded-lg px-3 py-1 text-xs font-semibold
                         ${rateLimitCountdown > 0
                           ? 'cursor-not-allowed bg-amber-100 text-amber-500 dark:bg-amber-400/20 dark:text-amber-200'
-                          : 'bg-[#2d5f4f] text-white hover:bg-[#3d7f6f]'
+                          : 'bg-primary text-white hover:bg-[#3d7f6f]'
                         }
                         transition-colors
                       `}
@@ -314,11 +314,11 @@ export default function ChatBot() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 w-16 h-16 rounded-full bg-[#2d5f4f] border-none
+          className="fixed bottom-5 right-5 w-16 h-16 rounded-full bg-primary border-none
                      shadow-[0_10px_25px_rgba(0,0,0,0.3)] cursor-pointer
                      flex items-center justify-center text-white
                      transition-transform duration-200 hover:scale-110 active:scale-95
-                     focus:outline-none focus:ring-4 focus:ring-[#2d5f4f]/50"
+                     focus:outline-none focus:ring-4 focus:ring-primary/50"
           aria-label="챗봇 열기"
         >
           <img

@@ -46,7 +46,7 @@ export default function Login() {
         {/* 이메일 */}
         <div className="space-y-2">
           <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
-            <Mail className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            <Mail className="w-4 h-4 text-primary" />
             E-mail
           </Label>
           <Input
@@ -55,7 +55,7 @@ export default function Login() {
             value={formData.email}
             onChange={(e) => handleFieldChange('email', e.target.value)}
             onBlur={() => handleFieldBlur('email')}
-            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-2 focus:ring-[#2d5f4f] ${fieldErrors.email ? 'border-red-500' : ''}`}
+            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-2 focus:ring-primary ${fieldErrors.email ? 'border-red-500' : ''}`}
             placeholder="이메일을 입력하세요"
             disabled={isLoading}
           />
@@ -67,7 +67,7 @@ export default function Login() {
         {/* 비밀번호 */}
         <div className="space-y-2">
           <Label htmlFor="password" className="flex items-center gap-2 text-gray-700">
-            <Lock className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            <Lock className="w-4 h-4 text-primary" />
             Password
           </Label>
           <div className="relative">
@@ -77,7 +77,7 @@ export default function Login() {
               value={formData.password}
               onChange={(e) => handleFieldChange('password', e.target.value)}
               onBlur={() => handleFieldBlur('password')}
-              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-2 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
+              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-2 focus:ring-primary pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
               placeholder="비밀번호를 입력하세요"
               disabled={isLoading}
             />
@@ -123,8 +123,7 @@ export default function Login() {
         {/* 로그인 버튼 */}
         <Button
           type="submit"
-          className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ backgroundColor: '#2d5f4f' }}
+          className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed bg-primary"
           disabled={isLoading}
           aria-busy={isLoading}
         >
@@ -147,8 +146,7 @@ export default function Login() {
           <button
             type="button"
             onClick={() => navigate('/signup')}
-            className="hover:underline disabled:opacity-50"
-            style={{ color: '#2d5f4f' }}
+            className="hover:underline disabled:opacity-50 text-primary"
             disabled={isLoading}
           >
             회원가입

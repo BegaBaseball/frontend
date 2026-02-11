@@ -66,7 +66,7 @@ export default function CheerEdit() {
             >
               <ArrowLeft className="h-6 w-6" />
             </button>
-            <h2 style={{ color: '#2d5f4f' }}>응원글 수정</h2>
+            <h2 className="text-primary">응원글 수정</h2>
           </div>
           <div className="flex items-center gap-3">
             <Button
@@ -78,8 +78,7 @@ export default function CheerEdit() {
             </Button>
             <Button
               onClick={handleSubmit}
-              className="text-white"
-              style={{ backgroundColor: '#2d5f4f' }}
+              className="text-white bg-primary"
               disabled={isSubmitting || !content.trim()}
             >
               {isSubmitting ? '수정 중...' : '수정 완료'}
@@ -109,7 +108,7 @@ export default function CheerEdit() {
                 <h2 className="mt-6 mb-4 text-gray-900">수정 권한이 없습니다</h2>
                 <p className="mb-6 text-gray-600 leading-relaxed">
                   이 게시글은{' '}
-                  <span className="font-bold" style={{ color: post.teamColor ?? '#2d5f4f' }}>
+                  <span className="font-bold" style={{ color: post.teamColor ?? 'var(--primary)' }}>
                     {post.team}
                   </span>{' '}
                   팀 게시글입니다.
@@ -117,7 +116,7 @@ export default function CheerEdit() {
                   {favoriteTeam ? (
                     <>
                       회원님의 응원팀(
-                      <span className="font-bold" style={{ color: '#2d5f4f' }}>
+                      <span className="font-bold text-primary">
                         {getTeamNameById(favoriteTeam)}
                       </span>
                       )만 수정이 가능합니다.
@@ -128,8 +127,7 @@ export default function CheerEdit() {
                 </p>
                 <Button
                   onClick={handleCancel}
-                  className="px-8 text-white"
-                  style={{ backgroundColor: '#2d5f4f' }}
+                  className="px-8 text-white bg-primary"
                 >
                   돌아가기
                 </Button>
@@ -143,7 +141,7 @@ export default function CheerEdit() {
 
                 {/* Content */}
                 <div className="space-y-2">
-                  <label className="block text-sm" style={{ color: '#2d5f4f' }}>
+                  <label className="block text-sm text-primary">
                     내용 *
                   </label>
                   <Textarea
@@ -157,7 +155,7 @@ export default function CheerEdit() {
                 {/* Images */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="block text-sm" style={{ color: '#2d5f4f' }}>
+                    <label className="block text-sm text-primary">
                       첨부 이미지
                     </label>
                     <span className="text-xs text-gray-500">
@@ -179,7 +177,7 @@ export default function CheerEdit() {
                         input?.click();
                       }
                     }}
-                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-gray-400'
+                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-gray-400'
                       }`}
                   >
                     <Upload className="h-6 w-6" />

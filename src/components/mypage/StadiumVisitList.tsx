@@ -27,7 +27,7 @@ export default function StadiumVisitList({ entries }: StadiumVisitListProps) {
     return (
         <Card className="h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-bold text-[#2d5f4f] flex items-center gap-2">
+                <CardTitle className="text-lg font-bold text-primary flex items-center gap-2">
                     <MapPin className="w-5 h-5" />
                     구장 도장 깨기
                 </CardTitle>
@@ -43,16 +43,16 @@ export default function StadiumVisitList({ entries }: StadiumVisitListProps) {
                             <div key={item.name} className="space-y-1">
                                 <div className="flex justify-between text-sm">
                                     <span className="font-medium text-gray-700 flex items-center gap-2">
-                                        <span className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${index < 3 ? 'bg-[#2d5f4f] text-white' : 'bg-gray-200 text-gray-600'}`}>
+                                        <span className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${index < 3 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'}`}>
                                             {index + 1}
                                         </span>
                                         {item.name}
                                     </span>
-                                    <span className="font-semibold text-[#2d5f4f]">{item.count}회</span>
+                                    <span className="font-semibold text-primary">{item.count}회</span>
                                 </div>
                                 <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-[#2d5f4f] transition-all duration-500 rounded-full"
+                                        className="h-full bg-primary transition-all duration-500 rounded-full"
                                         style={{ width: `${(item.count / maxCount) * 100}%`, opacity: Math.max(0.3, 1 - (index * 0.15)) }}
                                     />
                                 </div>

@@ -58,6 +58,10 @@ export interface Game {
     home: number;
     away: number;
   };
+  seasonId?: number;
+  leagueType?: string; // 'REGULAR', 'POST', 'PRE'
+  postSeasonSeries?: string;
+  seriesGameNo?: number;
 }
 
 export interface DateGames {

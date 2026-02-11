@@ -20,12 +20,9 @@ export default function NotificationPanel() {
 
     const fetchNotifications = async () => {
       try {
-        const userIdResponse = await api.getUserIdByEmail(user.email);
-        const id = userIdResponse.data;
-
         const [notifs, count] = await Promise.all([
-          api.getNotifications(id),
-          api.getUnreadCount(id),
+          api.getNotifications(),
+          api.getUnreadCount(),
         ]);
 
         setNotifications(notifs);
@@ -178,7 +175,7 @@ export default function NotificationPanel() {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`text-xs font-bold pb-2 border-b-2 transition-colors ${activeTab === tab
-                  ? 'border-[#2d5f4f] dark:border-[#4ade80] text-[#2d5f4f] dark:text-[#4ade80]'
+                  ? 'border-primary text-primary'
                   : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                   }`}
               >
@@ -189,7 +186,7 @@ export default function NotificationPanel() {
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-[#2d5f4f] dark:hover:text-[#4ade80] transition-colors"
+              className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-primary transition-colors"
             >
               <CheckCheck className="w-3 h-3" />
               모두 읽음
