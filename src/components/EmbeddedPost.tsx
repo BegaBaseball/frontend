@@ -45,7 +45,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
             onClick={handleClick}
             className={`mt-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1A1F2B] p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#232938] transition-colors ${className || ''}`}
             style={{
-                borderLeftColor: post.teamColor || '#2d5f4f',
+                borderLeftColor: post.teamColor || 'var(--primary)',
                 borderLeftWidth: '3px',
             }}
         >

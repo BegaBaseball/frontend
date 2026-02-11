@@ -25,7 +25,7 @@ export default function LiveTicker({ games }: LiveTickerProps) {
 
     return (
         <div className="bg-black/90 text-white border-b border-white/10 overflow-hidden relative h-12 flex items-center">
-            <div className="absolute left-0 top-0 bottom-0 bg-[#2d5f4f] px-3 flex items-center z-20 font-bold text-xs shadow-lg">
+            <div className="absolute left-0 top-0 bottom-0 bg-primary px-3 flex items-center z-20 font-bold text-xs shadow-lg">
                 <span className="relative flex h-2 w-2 mr-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>

@@ -72,8 +72,8 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
     return (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
-                <Lock className="w-6 h-6" style={{ color: '#2d5f4f' }} />
-                <h2 className="text-xl font-bold" style={{ color: '#2d5f4f' }}>
+                <Lock className="w-6 h-6 text-primary" />
+                <h2 className="text-xl font-bold text-primary">
                     {hasPassword ? '비밀번호 변경' : '비밀번호 설정'}
                 </h2>
             </div>
@@ -184,8 +184,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                 </Button>
                 <Button
                     onClick={handleSubmit}
-                    className="flex-1 text-white flex items-center justify-center gap-2"
-                    style={{ backgroundColor: '#2d5f4f' }}
+                    className="flex-1 text-white bg-primary flex items-center justify-center gap-2"
                     disabled={mutation.isPending || (hasPassword && !currentPassword) || !newPassword || !confirmPassword}
                 >
                     <Save className="w-5 h-5" />

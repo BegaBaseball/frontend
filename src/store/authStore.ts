@@ -2,9 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import Cookies from 'js-cookie';
 import api from '../api/axios';
+import { DEFAULT_PROFILE_PLACEHOLDER } from '../constants/config';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-// const MYPAGE_API_URL = `${API_BASE_URL}/auth/mypage`; // Not needed if using api.get('/auth/mypage')
 const AUTH_COOKIE_NAME = 'Authorization';
 
 interface User {
@@ -144,7 +143,7 @@ export const useAuthStore = create<AuthState>()(
             name: name,
             // ... (keep existing)
             isAdmin: isAdminUser,
-            profileImageUrl: profileImageUrl || 'https://placehold.co/100x100/374151/ffffff?text=User',
+            profileImageUrl: profileImageUrl || DEFAULT_PROFILE_PLACEHOLDER,
             role: role,
             favoriteTeam: favoriteTeam || '없음',
             cheerPoints: cheerPoints || 0,

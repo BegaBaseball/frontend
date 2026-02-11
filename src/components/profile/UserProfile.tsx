@@ -109,7 +109,7 @@ export default function UserProfile() {
     if (isProfileLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <Loader2 className="h-10 w-10 animate-spin text-[#2d5f4f]" />
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 <p className="mt-4 text-gray-500">프로필을 불러오는 중...</p>
             </div>
         );
@@ -127,7 +127,7 @@ export default function UserProfile() {
                 </p>
                 <button
                     onClick={() => navigate(-1)}
-                    className="flex items-center text-[#2d5f4f] font-medium hover:underline"
+                    className="flex items-center text-primary font-medium hover:underline"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     뒤로 가기

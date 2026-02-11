@@ -3,8 +3,6 @@ import api from './axios';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-
 // ========== 타입 정의 ==========
 export interface LoginRequest {
   email: string;
@@ -103,12 +101,12 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
 /**
  * 소셜 로그인 URL 생성
  */
-const NO_API_BASE_URL = (import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+import { SERVER_BASE_URL } from '../constants/config';
 export const getSocialLoginUrl = (
   provider: 'kakao' | 'google' | 'naver',
   params?: { mode?: 'link'; linkToken?: string }
 ): string => {
-  const url = `${NO_API_BASE_URL}/oauth2/authorization/${provider}`;
+  const url = `${SERVER_BASE_URL}/oauth2/authorization/${provider}`;
   if (params) {
     const query = new URLSearchParams();
     if (params.mode) query.append('mode', params.mode);

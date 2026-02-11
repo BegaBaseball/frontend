@@ -18,6 +18,7 @@ import WelcomeGuide from './WelcomeGuide';
 
 // Constants
 import { CURRENT_SEASON_YEAR } from '../constants/home';
+import { SERVER_BASE_URL } from '../constants/config';
 
 // --- Types ---
 interface Game {
@@ -58,7 +59,6 @@ interface HomeProps {
     onNavigate?: (page: string) => void;
 }
 
-const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080';
 
 // --- Helpers ---
 const GameCardSkeleton = () => (
@@ -148,7 +148,7 @@ export default function Home({ onNavigate }: HomeProps) {
     const loadNavigationData = async (date: Date) => {
         const apiDate = formatDateForAPI(date);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/kbo/schedule/navigation?date=${apiDate}`);
+            const response = await fetch(`${SERVER_BASE_URL}/api/kbo/schedule/navigation?date=${apiDate}`);
             if (response.ok) {
                 const data = await response.json();
                 setNavInfo({
@@ -171,7 +171,7 @@ export default function Home({ onNavigate }: HomeProps) {
     // --- Data Fetching ---
     const loadLeagueStartDates = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/kbo/league-start-dates`);
+            const response = await fetch(`${SERVER_BASE_URL}/api/kbo/league-start-dates`);
             let data: LeagueStartDates;
             if (!response.ok) {
                 // Fallback
@@ -199,7 +199,7 @@ export default function Home({ onNavigate }: HomeProps) {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/kbo/schedule?date=${apiDate}`);
+            const response = await fetch(`${SERVER_BASE_URL}/api/kbo/schedule?date=${apiDate}`);
             if (!response.ok) throw new Error('API Error');
 
             const gamesData: Game[] = await response.json();
@@ -222,7 +222,7 @@ export default function Home({ onNavigate }: HomeProps) {
     const loadRankingsData = async () => {
         setIsRankingsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/kbo/rankings/${CURRENT_SEASON_YEAR}`);
+            const response = await fetch(`${SERVER_BASE_URL}/api/kbo/rankings/${CURRENT_SEASON_YEAR}`);
             if (!response.ok) throw new Error('API Error');
             const rankingsData: Ranking[] = await response.json();
             setRankings(rankingsData);
@@ -262,7 +262,7 @@ export default function Home({ onNavigate }: HomeProps) {
     if (!leagueStartDates) {
         return (
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-                <Loader2 className="w-10 h-10 animate-spin text-[#2d5f4f]" />
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
             </div>
         );
     }
@@ -277,8 +277,8 @@ export default function Home({ onNavigate }: HomeProps) {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b pb-6 border-gray-100 dark:border-gray-800">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <div className="w-1.5 h-8 bg-[#2d5f4f] rounded-full" />
-                            <h1 className="text-3xl font-black tracking-tight text-[#2d5f4f] dark:text-emerald-400">
+                            <div className="w-1.5 h-8 bg-primary rounded-full" />
+                            <h1 className="text-3xl font-black tracking-tight text-primary dark:text-emerald-400">
                                 KBO LEAGUE
                             </h1>
                         </div>
@@ -295,7 +295,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
                 {/* Date Navigation (Green Accent Included) */}
                 <div className="flex items-center justify-center gap-6 bg-white dark:bg-gray-900 py-3 px-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 w-full md:w-fit mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
-                    <Button variant="ghost" size="icon" onClick={() => changeDate('prev')} disabled={!navInfo.hasPrev} className="hover:text-[#2d5f4f] hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
+                    <Button variant="ghost" size="icon" onClick={() => changeDate('prev')} disabled={!navInfo.hasPrev} className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
                         <ChevronLeft className="w-6 h-6" />
                     </Button>
 
@@ -303,12 +303,12 @@ export default function Home({ onNavigate }: HomeProps) {
                         <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-1">
                             {formatDate(selectedDate)}
                         </h2>
-                        <Button variant="link" size="sm" onClick={() => setShowCalendar(true)} className="text-xs text-[#2d5f4f] dark:text-emerald-400 h-auto p-0 font-bold hover:underline opacity-80 hover:opacity-100 transition-opacity">
+                        <Button variant="link" size="sm" onClick={() => setShowCalendar(true)} className="text-xs text-primary dark:text-emerald-400 h-auto p-0 font-bold hover:underline opacity-80 hover:opacity-100 transition-opacity">
                             <CalendarDays className="w-3 h-3 mr-1" /> 날짜 변경
                         </Button>
                     </div>
 
-                    <Button variant="ghost" size="icon" onClick={() => changeDate('next')} disabled={!navInfo.hasNext} className="hover:text-[#2d5f4f] hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
+                    <Button variant="ghost" size="icon" onClick={() => changeDate('next')} disabled={!navInfo.hasNext} className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
                         <ChevronRight className="w-6 h-6" />
                     </Button>
                 </div>
@@ -317,9 +317,9 @@ export default function Home({ onNavigate }: HomeProps) {
                 <Tabs value={activeLeagueTab} onValueChange={handleTabChange} className="w-full">
                     <div className="flex justify-center mb-6">
                         <TabsList className="grid w-full max-w-md grid-cols-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-                            <TabsTrigger value="regular" className="rounded-lg data-[state=active]:bg-[#2d5f4f] data-[state=active]:text-white data-[state=active]:shadow-md transition-all">정규시즌</TabsTrigger>
-                            <TabsTrigger value="postseason" className="rounded-lg data-[state=active]:bg-[#2d5f4f] data-[state=active]:text-white data-[state=active]:shadow-md transition-all">포스트시즌</TabsTrigger>
-                            <TabsTrigger value="koreanseries" className="rounded-lg data-[state=active]:bg-[#2d5f4f] data-[state=active]:text-white data-[state=active]:shadow-md transition-all">한국시리즈</TabsTrigger>
+                            <TabsTrigger value="regular" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">정규시즌</TabsTrigger>
+                            <TabsTrigger value="postseason" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">포스트시즌</TabsTrigger>
+                            <TabsTrigger value="koreanseries" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">한국시리즈</TabsTrigger>
                         </TabsList>
                     </div>
 
@@ -357,7 +357,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 {/* Rankings Table */}
                 <section className="space-y-4">
                     <div className="flex items-center gap-2">
-                        <Trophy className="w-5 h-5 text-[#2d5f4f]" />
+                        <Trophy className="w-5 h-5 text-primary" />
                         <h2 className="text-xl font-bold">팀 순위</h2>
                     </div>
 

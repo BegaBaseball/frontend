@@ -121,8 +121,8 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
     return (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
-                <Settings className="w-6 h-6 text-[#2d5f4f] dark:text-emerald-400" />
-                <h2 className="text-xl font-bold text-[#2d5f4f] dark:text-emerald-400">계정 설정</h2>
+                <Settings className="w-6 h-6 text-primary dark:text-emerald-400" />
+                <h2 className="text-xl font-bold text-primary dark:text-emerald-400">계정 설정</h2>
             </div>
 
             {/* 계정 연동 상태 */}

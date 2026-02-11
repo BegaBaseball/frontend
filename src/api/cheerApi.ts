@@ -1,39 +1,11 @@
 import { formatTimeAgo } from '../utils/time';
 import api from './axios';
-
-// 팀 색상 매핑
-const teamColors: Record<string, string> = {
-    'LG': '#C30452',
-    'KT': '#000000',
-    'SSG': '#CE0E2D',
-    'NC': '#315288',
-    'Doosan': '#131230',
-    'KIA': '#EA0029',
-    'Lotte': '#041E42',
-    'Samsung': '#074CA1',
-    'Hanwha': '#FF6600',
-    'Kiwoom': '#820024',
-    'ALLSTAR1': '#0F172A', // Slate-900 for Admin/Notice
-};
-
-const teamNames: Record<string, string> = {
-    'LG': 'LG 트윈스',
-    'KT': 'KT 위즈',
-    'SSG': 'SSG 랜더스',
-    'NC': 'NC 다이노스',
-    'Doosan': '두산 베어스',
-    'KIA': 'KIA 타이거즈',
-    'Lotte': '롯데 자이언츠',
-    'Samsung': '삼성 라이온즈',
-    'Hanwha': '한화 이글스',
-    'Kiwoom': '키움 히어로즈',
-    'ALLSTAR1': '공지사항',
-};
+import { getTeamColorByAnyKey, TEAM_DATA, getFullTeamName } from '../constants/teams';
 
 export function getTeamNameById(teamId: string | null): string {
     if (!teamId) return '전체';
     if (teamId === 'all') return '전체';
-    return teamNames[teamId] || teamId;
+    return TEAM_DATA[teamId]?.fullName || teamId;
 }
 
 
@@ -267,7 +239,7 @@ function transformPost(post: PostDTO): CheerPost {
         id: post.id,
         teamId: post.teamId,
         team: post.teamId, // compatibility
-        teamColor: teamColors[post.teamId] || '#2d5f4f',
+        teamColor: getTeamColorByAnyKey(post.teamId),
         content: post.content || '',
         author: post.author, // Assuming post.author is string from backend PostSummaryRes
         authorId: post.authorId,
@@ -307,7 +279,7 @@ function transformEmbeddedPost(post: PostDTO): EmbeddedPost {
     return {
         id: post.id,
         teamId: post.teamId,
-        teamColor: post.teamColor || teamColors[post.teamId] || '#2d5f4f',
+        teamColor: post.teamColor || getTeamColorByAnyKey(post.teamId),
         content: post.content || '',
         author: post.author,
         authorHandle: post.authorHandle,

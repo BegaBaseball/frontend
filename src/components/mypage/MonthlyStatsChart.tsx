@@ -20,7 +20,7 @@ export default function MonthlyStatsChart({ data }: { data: { month: string; cou
         return (
             <Card className="h-full">
                 <CardHeader>
-                    <CardTitle className="text-lg font-bold text-[#2d5f4f]">월별 직관 추이</CardTitle>
+                    <CardTitle className="text-lg font-bold text-primary">월별 직관 추이</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center h-[200px] text-gray-400">
                     데이터가 충분하지 않습니다.
@@ -35,7 +35,7 @@ export default function MonthlyStatsChart({ data }: { data: { month: string; cou
     return (
         <Card className="h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-bold text-[#2d5f4f]">월별 직관 추이</CardTitle>
+                <CardTitle className="text-lg font-bold text-primary">월별 직관 추이</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="h-[250px] w-full">

@@ -149,7 +149,7 @@ export default function CheerBookmarks() {
                 className={cn(
                   'flex flex-col items-center justify-center gap-0.5 w-16 h-full transition-colors',
                   isActive
-                    ? 'text-[#2d5f4f] dark:text-[#4ade80]'
+                    ? 'text-primary'
                     : 'text-gray-400 dark:text-gray-500'
                 )}
               >

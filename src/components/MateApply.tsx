@@ -207,7 +207,7 @@ export default function MateApply() {
           뒤로
         </Button>
 
-        <h1 style={{ color: '#2d5f4f' }} className="mb-2">
+        <h1 className="mb-2 text-primary">
           {isSelling ? '티켓 구매' : '파티 참여 신청'}
         </h1>
         <p className="text-gray-600 mb-8">
@@ -221,7 +221,7 @@ export default function MateApply() {
           <div className="flex items-center gap-4 mb-4">
             <TeamLogo teamId={selectedParty.teamId} size="md" />
             <div className="flex-1">
-              <h3 className="mb-1" style={{ color: '#2d5f4f' }}>
+              <h3 className="mb-1 text-primary">
                 {selectedParty.stadium}
               </h3>
               <p className="text-sm text-gray-600">
@@ -246,8 +246,8 @@ export default function MateApply() {
         {!isSelling && (
           <Card className="p-6 mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <MessageSquare className="w-5 h-5" style={{ color: '#2d5f4f' }} />
-              <h3 style={{ color: '#2d5f4f' }}>소개 메시지</h3>
+              <MessageSquare className="w-5 h-5 text-primary" />
+              <h3 className="text-primary">소개 메시지</h3>
             </div>
             <Label htmlFor="message" className="mb-2 block">
               호스트에게 전달할 메시지
@@ -270,8 +270,8 @@ export default function MateApply() {
         {!isSelling && (
           <Card className="p-6 mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <Ticket className="w-5 h-5" style={{ color: '#2d5f4f' }} />
-              <h3 style={{ color: '#2d5f4f' }}>티켓 인증 (선택)</h3>
+              <Ticket className="w-5 h-5 text-primary" />
+              <h3 className="text-primary">티켓 인증 (선택)</h3>
               {ticketVerified && (
                 <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
                   <CheckCircle className="w-3.5 h-3.5" />
@@ -312,7 +312,7 @@ export default function MateApply() {
               <div
                 className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${isScanning
                   ? 'border-primary bg-slate-50 dark:bg-slate-900/50'
-                  : 'border-slate-300 dark:border-slate-700 hover:border-[#2d5f4f] hover:bg-slate-50 dark:hover:bg-slate-800'
+                  : 'border-slate-300 dark:border-slate-700 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
               >
                 <input
@@ -331,8 +331,8 @@ export default function MateApply() {
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2">
-                      <Ticket className="w-10 h-10 text-[#2d5f4f]" />
-                      <p className="text-[#2d5f4f] font-medium">티켓 사진 업로드</p>
+                      <Ticket className="w-10 h-10 text-primary" />
+                      <p className="text-primary font-medium">티켓 사진 업로드</p>
                       <p className="text-xs text-gray-400">JPG, PNG (최대 10MB)</p>
                     </div>
                   )}
@@ -345,8 +345,8 @@ export default function MateApply() {
         {/* Payment Section */}
         <Card className="p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="w-5 h-5" style={{ color: '#2d5f4f' }} />
-            <h3 style={{ color: '#2d5f4f' }}>결제 금액</h3>
+            <CreditCard className="w-5 h-5 text-primary" />
+            <h3 className="text-primary">결제 금액</h3>
           </div>
 
           {!isSelling && (
@@ -367,7 +367,7 @@ export default function MateApply() {
                 <Separator />
                 <div className="flex justify-between items-center">
                   <span className="text-gray-900" style={{ fontWeight: 'bold' }}>총 결제 금액</span>
-                  <span className="text-lg" style={{ color: '#2d5f4f', fontWeight: 'bold' }}>
+                  <span className="text-lg text-primary font-bold">
                     {totalAmount.toLocaleString()}원
                   </span>
                 </div>
@@ -425,9 +425,8 @@ export default function MateApply() {
         <Button
           onClick={handleSubmit}
           disabled={(!isSelling && message.length < 10) || isSubmitting}
-          className="w-full text-white"
+          className="w-full text-white bg-primary"
           size="lg"
-          style={{ backgroundColor: '#2d5f4f' }}
         >
           {isSubmitting
             ? '신청 중...'

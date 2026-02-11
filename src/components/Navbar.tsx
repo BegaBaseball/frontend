@@ -13,8 +13,7 @@ import { motion } from 'framer-motion';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
-const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`;
+const LOGOUT_API_URL = `${import.meta.env.VITE_API_BASE_URL || '/api'}/auth/logout`;
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -133,7 +132,7 @@ export default function Navbar() {
               className="w-10 h-10 transition-transform duration-300 group-hover:rotate-12"
             />
             <div className="flex flex-col items-start">
-              <h1 className="font-black text-xl tracking-widest text-primary dark:text-[#4ade80] leading-none">
+              <h1 className="font-black text-xl tracking-widest text-primary leading-none">
                 BEGA
               </h1>
               <p className="text-[10px] font-bold text-muted-foreground tracking-tight">
@@ -153,15 +152,15 @@ export default function Navbar() {
                     className={`
                       relative px-1 py-1 text-sm lg:text-base font-bold transition-all duration-200
                       ${location.pathname === `/${item.id}`
-                        ? 'text-primary dark:text-[#4ade80]'
-                        : 'text-muted-foreground hover:text-primary dark:hover:text-[#4ade80]'
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-primary'
                       }
                     `}
                   >
                     {item.label}
                     {/* 선택된 메뉴 아래에 작은 점 표시 */}
                     {location.pathname === `/${item.id}` && (
-                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary dark:bg-[#4ade80]" />
+                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
                     )}
                   </button>
                 ))}
@@ -201,7 +200,7 @@ export default function Navbar() {
                         ease: "easeInOut"
                       }}
                     >
-                      <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-primary dark:text-[#4ade80]' : ''}`} />
+                      <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-primary' : ''}`} />
                     </motion.div>
 
                     {/* 개선된 알림 배지 */}
@@ -241,7 +240,7 @@ export default function Navbar() {
                     "
                   >
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
-                      <h3 className="font-bold text-sm text-primary dark:text-[#4ade80]">
+                      <h3 className="font-bold text-sm text-primary">
                         알림
                       </h3>
                       {unreadCount > 0 && (
@@ -267,7 +266,7 @@ export default function Navbar() {
                   <>
                     <button
                       onClick={() => navigate(user?.handle ? `/mypage/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
-                      className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary text-primary dark:border-[#4ade80] dark:text-[#4ade80] font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-white dark:hover:bg-[#4ade80] dark:hover:text-[#064e3b]"
+                      className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary text-primary font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-white dark:hover:text-[#064e3b]"
                     >                                                      {/* 1. 닉네임: 평소 중앙, 호버 시 위로 사라짐 */}
                       <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:-translate-y-full group-hover:opacity-0">
                         {user?.name || '회원'} 님
@@ -291,9 +290,8 @@ export default function Navbar() {
                     )}
                     <Button
                       onClick={handleLogout}
-                      className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1"
+                      className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1 text-primary border-primary"
                       variant="outline"
-                      style={{ color: '#2d5f4f', borderColor: '#2d5f4f' }}
                     >
                       <LogOut className="w-4 h-4" />
                       로그아웃
@@ -302,8 +300,7 @@ export default function Navbar() {
                 ) : (
                   <Button
                     onClick={() => navigate('/login')}
-                    className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white"
-                    style={{ backgroundColor: '#2d5f4f' }}
+                    className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white bg-primary"
                   >
                     로그인
                   </Button>
@@ -349,9 +346,7 @@ export default function Navbar() {
                     key={item.id}
                     onClick={() => navigate(`/${item.id}`)}
                     className={`flex items-center gap-4 w-full text-left py-4 px-4 text-lg font-semibold rounded-xl transition-all duration-200 ${isActive
-                      ? theme === 'dark'
-                        ? 'bg-[#4ade80]/10 text-[#4ade80]'
-                        : 'bg-[#2d5f4f]/10 text-[#2d5f4f]'
+                      ? 'bg-primary/10 text-primary'
                       : theme === 'dark'
                         ? 'text-gray-200 hover:bg-gray-800'
                         : 'text-gray-700 hover:bg-gray-100'
@@ -384,8 +379,7 @@ export default function Navbar() {
                     }`}
                   aria-label="프로필로 이동"
                 >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${theme === 'dark' ? 'bg-[#4ade80]/20 text-[#4ade80]' : 'bg-[#2d5f4f]/10 text-[#2d5f4f]'
-                    }`}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
                     {user?.name?.charAt(0) || '?'}
                   </div>
                   <div className="flex-1 text-left">
@@ -428,8 +422,7 @@ export default function Navbar() {
             ) : (
               <Button
                 onClick={() => navigate('/login')}
-                className="w-full py-6 text-base font-semibold text-white rounded-xl"
-                style={{ backgroundColor: '#2d5f4f' }}
+                className="w-full py-6 text-base font-semibold text-white rounded-xl bg-primary"
               >
                 로그인
               </Button>

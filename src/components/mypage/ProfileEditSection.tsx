@@ -89,7 +89,7 @@ export default function ProfileEditSection({
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-6 md:p-8 mb-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-[#2d5f4f] dark:text-emerald-400">내 정보 수정</h2>
+          <h2 className="text-xl font-bold text-primary dark:text-emerald-400">내 정보 수정</h2>
         </div>
 
         {/* ✅ 에러 Alert */}
@@ -125,9 +125,9 @@ export default function ProfileEditSection({
                     )}
                   </div>
                   <label
-                    className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white dark:bg-gray-700 border-2 border-[#2d5f4f] dark:border-emerald-500 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md transition-colors"
+                    className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white dark:bg-gray-700 border-2 border-primary dark:border-emerald-500 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md transition-colors"
                   >
-                    <Camera className="w-5 h-5 text-[#2d5f4f] dark:text-emerald-400" />
+                    <Camera className="w-5 h-5 text-primary dark:text-emerald-400" />
                     <input
                       type="file"
                       accept="image/*"
@@ -137,7 +137,7 @@ export default function ProfileEditSection({
                     />
                   </label>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#2d5f4f] dark:text-emerald-400">{name}</h3>
+                <h3 className="mt-4 text-lg font-semibold text-primary dark:text-emerald-400">{name}</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">{email}</p>
               </div>
 
@@ -286,7 +286,7 @@ export default function ProfileEditSection({
                     <Button
                       variant="ghost"
                       onClick={() => setShowTeamTest(true)}
-                      className="text-sm flex items-center h-auto py-1 px-2 text-[#2d5f4f] dark:text-emerald-400 hover:bg-green-50 dark:hover:bg-emerald-900/20"
+                      className="text-sm flex items-center h-auto py-1 px-2 text-primary dark:text-emerald-400 hover:bg-green-50 dark:hover:bg-emerald-900/20"
                       disabled={isLoading}
                     >
                       구단 테스트 해보기
@@ -342,8 +342,7 @@ export default function ProfileEditSection({
                 </Button>
                 <Button
                   onClick={handleSave}
-                  className="flex-1 text-white flex items-center justify-center gap-2"
-                  style={{ backgroundColor: '#2d5f4f' }}
+                  className="flex-1 text-white bg-primary flex items-center justify-center gap-2"
                   disabled={isLoading}
                 >
                   <Save className="w-5 h-5" />

@@ -126,7 +126,7 @@ export default function MateChat() {
 
     const checkMyApproval = async () => {
       try {
-        const applications = await api.getApplicationsByApplicant(currentUser.id);
+        const applications = await api.getMyApplications();
         const myApp = applications.find((app: Application) =>
           app.partyId === selectedParty.id
         );
@@ -147,7 +147,7 @@ export default function MateChat() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">사용자 정보를 불러오는 중...</p>
         </div>
       </div>
@@ -166,8 +166,7 @@ export default function MateChat() {
           </Alert>
           <Button
             onClick={() => window.location.href = '/login'}
-            className="mt-4 text-white"
-            style={{ backgroundColor: '#2d5f4f' }}
+            className="mt-4 text-white bg-primary"
           >
             로그인하기
           </Button>
@@ -188,8 +187,7 @@ export default function MateChat() {
           </Alert>
           <Button
             onClick={() => navigate('/mate')}
-            className="mt-4 text-white"
-            style={{ backgroundColor: '#2d5f4f' }}
+            className="mt-4 text-white bg-primary"
           >
             파티 목록으로
           </Button>
@@ -203,7 +201,7 @@ export default function MateChat() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">승인 정보 확인 중...</p>
         </div>
       </div>
@@ -321,7 +319,7 @@ export default function MateChat() {
               <TeamLogo teamId={selectedParty.teamId} size="sm" />
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 style={{ color: '#2d5f4f' }}>
+                  <h3 className="text-primary">
                     {selectedParty.stadium}
                   </h3>
                   {isHost && (
@@ -392,12 +390,9 @@ export default function MateChat() {
                               )}
                               <div
                                 className={`px-4 py-2 rounded-2xl ${isMyMessage
-                                  ? 'text-white'
+                                  ? 'text-white bg-primary'
                                   : 'bg-gray-100 text-gray-800'
                                   }`}
-                                style={
-                                  isMyMessage ? { backgroundColor: '#2d5f4f' } : {}
-                                }
                               >
                                 <p className="whitespace-pre-wrap break-words">
                                   {msg.message}
@@ -430,8 +425,7 @@ export default function MateChat() {
             <Button
               type="submit"
               disabled={!messageText.trim() || !isConnected}
-              className="text-white px-6"
-              style={{ backgroundColor: '#2d5f4f' }}
+              className="text-white px-6 bg-primary"
             >
               <Send className="w-4 h-4" />
             </Button>

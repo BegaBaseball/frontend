@@ -236,7 +236,7 @@ export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: Tick
                     {ticketData ? (
                         <Button
                             onClick={handleConfirm}
-                            className="bg-[#2d5f4f] hover:bg-[#2d5f4f]/90 text-white font-bold"
+                            className="bg-primary hover:bg-primary/90 text-white font-bold"
                         >
                             기록하러 가기
                         </Button>
@@ -244,7 +244,7 @@ export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: Tick
                         <Button
                             disabled={!previewUrl || isLoading}
                             onClick={() => fileInputRef.current?.click()}
-                            className="bg-[#2d5f4f] hover:bg-[#2d5f4f]/90 text-white font-bold"
+                            className="bg-primary hover:bg-primary/90 text-white font-bold"
                         >
                             이미지 분석하기
                         </Button>

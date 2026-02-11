@@ -40,7 +40,8 @@ export default function RankingItem({
 
   drag(drop(ref));
 
-  const backgroundColor = index < PLAYOFF_TEAMS ? '#2d5f4f' : '#9ca3af';
+  const isPlayoffTeam = index < PLAYOFF_TEAMS;
+  const badgeClassName = isPlayoffTeam ? 'bg-primary' : 'bg-gray-400';
 
   return (
     <div
@@ -53,8 +54,7 @@ export default function RankingItem({
     >
       <div className="flex items-center gap-3">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0"
-          style={{ backgroundColor, fontWeight: 900, fontSize: '1.1rem' }}
+          className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 font-black text-lg ${badgeClassName}`}
         >
           {index + 1}
         </div>

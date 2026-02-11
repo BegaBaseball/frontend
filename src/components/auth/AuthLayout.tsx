@@ -23,7 +23,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
             right: '-80px',
             width: '600px',
             height: '400px',
-            background: 'linear-gradient(135deg, #2d5f4f 0%, #3d7f5f 100%)',
+            background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #3d7f5f 100%)',
             transform: 'rotate(-15deg)'
           }}
         />
@@ -34,7 +34,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
             left: '-240px',
             width: '500px',
             height: '500px',
-            background: 'linear-gradient(45deg, #2d5f4f 0%, #4a9070 100%)',
+            background: 'linear-gradient(45deg, hsl(var(--primary)) 0%, #4a9070 100%)',
             transform: 'rotate(25deg)'
           }}
         />
@@ -45,7 +45,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
             left: '-160px',
             width: '550px',
             height: '450px',
-            background: 'linear-gradient(90deg, #2d5f4f 0%, #3d7f5f 100%)',
+            background: 'linear-gradient(90deg, hsl(var(--primary)) 0%, #3d7f5f 100%)',
             transform: 'rotate(-20deg)'
           }}
         />
@@ -56,7 +56,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
             right: '-192px',
             width: '500px',
             height: '500px',
-            background: 'linear-gradient(180deg, #3d7f5f 0%, #2d5f4f 100%)',
+            background: 'linear-gradient(180deg, #3d7f5f 0%, hsl(var(--primary)) 100%)',
             transform: 'rotate(15deg)'
           }}
         />
@@ -74,7 +74,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
         <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden">
           <div className="grid md:grid-cols-2">
             {/* Left - Character */}
-            <div className="p-12 flex flex-col items-center justify-center relative overflow-hidden" style={{ backgroundColor: '#2d5f4f' }}>
+            <div className="p-12 flex flex-col items-center justify-center relative overflow-hidden bg-primary">
               <OptimizedImage
                 src={grassDecor}
                 alt=""
@@ -98,13 +98,13 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
                 <button
                   onClick={() => navigate('/home')}
                   className="absolute flex items-center gap-2 bg-white rounded-full px-3 py-2 transition-all hover:scale-105 z-50"
+                  className="border-2 border-primary"
                   style={{
-                    border: '2px solid #2d5f4f',
                     top: '38px',
                     right: '48px',
                   }}
                 >
-                  <Home className="w-5 h-5" style={{ color: '#2d5f4f' }} />
+                  <Home className="w-5 h-5 text-primary" />
                 </button>
               )}
 

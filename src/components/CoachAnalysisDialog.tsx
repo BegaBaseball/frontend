@@ -250,7 +250,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
         try {
             // Streaming Implementation
             await analyzeTeam({
-                team_id: TEAM_NAME_TO_ID[selectedTeam] || selectedTeam,
+                home_team_id: TEAM_NAME_TO_ID[selectedTeam] || selectedTeam,
                 focus: focus,
             }, (currentText) => {
                 // Real-time update
@@ -380,7 +380,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
             </DialogTrigger>
             <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-white dark:bg-[#0a0a0a] border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-0">
                 {/* Custom Header with Team Color Accent */}
-                <DialogHeader className="p-8 pb-12 bg-[#2d5f4f] text-white shrink-0 relative overflow-hidden">
+                <DialogHeader className="p-8 pb-12 bg-primary text-white shrink-0 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
@@ -407,7 +407,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                     >
                         <div className="flex items-center justify-between px-1">
                             <Label className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#2d5f4f]"></span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                                 분석 대상 팀 선택
                             </Label>
                         </div>
@@ -424,7 +424,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                         className={`
                                             relative flex flex-col items-center justify-center p-4 rounded-2xl transition-all duration-300 border
                                             ${isSelected
-                                                ? 'bg-white dark:bg-gray-800 border-[#2d5f4f]/30 shadow-xl shadow-[#2d5f4f]/10 scale-105 ring-2 ring-[#2d5f4f]'
+                                                ? 'bg-white dark:bg-gray-800 border-primary/30 shadow-xl shadow-primary/10 scale-105 ring-2 ring-primary'
                                                 : 'bg-white dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
                                             }
                                         `}
@@ -432,7 +432,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                         <div className="w-12 h-12 mb-3 relative flex items-center justify-center">
                                             <TeamLogo team={teamName} size={48} className={`w-full h-full transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md' : 'opacity-60 grayscale-[0.5]'}`} />
                                         </div>
-                                        <span className={`text-[11px] font-black tracking-tight ${isSelected ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-500'}`}>
+                                        <span className={`text-[11px] font-black tracking-tight ${isSelected ? 'text-primary' : 'text-gray-500'}`}>
                                             {teamName}
                                         </span>
                                     </motion.button>
@@ -463,16 +463,16 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                         className={`
                                             flex items-start gap-4 p-5 rounded-2xl cursor-pointer transition-all border
                                             ${isActive
-                                                ? 'bg-white dark:bg-emerald-950/10 border-[#2d5f4f]/30 shadow-lg shadow-[#2d5f4f]/5 ring-1 ring-[#2d5f4f]'
+                                                ? 'bg-white dark:bg-emerald-950/10 border-primary/30 shadow-lg shadow-primary/5 ring-1 ring-primary'
                                                 : 'bg-white dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
                                             }
                                         `}
                                     >
-                                        <div className={`p-3 rounded-xl transition-colors ${isActive ? 'bg-[#2d5f4f] text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
+                                        <div className={`p-3 rounded-xl transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
                                             <opt.icon className="w-5 h-5" />
                                         </div>
                                         <div className="flex-1">
-                                            <p className={`font-black text-sm mb-1 tracking-tight ${isActive ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-700 dark:text-gray-300'}`}>
+                                            <p className={`font-black text-sm mb-1 tracking-tight ${isActive ? 'text-primary' : 'text-gray-700 dark:text-gray-300'}`}>
                                                 {opt.label}
                                             </p>
                                             <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
@@ -493,7 +493,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
-                                    className="absolute inset-0 z-10 rounded-2xl bg-[#2d5f4f]/20 pointer-events-none overflow-hidden"
+                                    className="absolute inset-0 z-10 rounded-2xl bg-primary/20 pointer-events-none overflow-hidden"
                                 >
                                     <motion.div
                                         animate={{ top: ['-10%', '110%'] }}
@@ -507,7 +507,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                         <Button
                             onClick={handleAnalyze}
                             disabled={loading}
-                            className="w-full bg-[#2d5f4f] hover:bg-[#1a3c32] text-white h-16 text-xl font-black rounded-2xl shadow-2xl shadow-[#2d5f4f]/30 transition-all active:scale-[0.98] group overflow-hidden relative"
+                            className="w-full bg-primary hover:bg-primary-dark text-white h-16 text-xl font-black rounded-2xl shadow-2xl shadow-primary/30 transition-all active:scale-[0.98] group overflow-hidden relative"
                         >
                             <span className="absolute inset-0 bg-white/5 translate-y-16 group-hover:translate-y-0 transition-transform duration-500 ease-out" />
                             {loading ? (
@@ -640,7 +640,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                 {/* C. Detailed Report & Coach Note - Glassmorphic Panels */}
                                 <motion.div variants={itemVariants} className="space-y-6 pt-6">
                                     <div className="flex items-center gap-3 px-2">
-                                        <BarChart3 className="w-5 h-5 text-[#2d5f4f]" />
+                                        <BarChart3 className="w-5 h-5 text-primary" />
                                         <span className="font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest text-sm">인공지능 심층 분석 리포트</span>
                                     </div>
 

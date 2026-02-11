@@ -50,8 +50,7 @@ export default function VerificationRequiredDialog({ isOpen, onClose }: Verifica
                     </Button>
                     <Button
                         onClick={handleGoToSettings}
-                        className="flex-1 text-white"
-                        style={{ backgroundColor: '#2d5f4f' }}
+                        className="flex-1 text-white bg-primary"
                     >
                         계정 연동하러 가기
                     </Button>

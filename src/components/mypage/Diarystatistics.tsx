@@ -31,8 +31,7 @@ export default function DiaryStatistics() {
     return (
       <div className="text-center py-20">
         <div
-          className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4"
-          style={{ borderColor: '#2d5f4f' }}
+          className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"
         ></div>
         <p className="text-gray-600">통계를 불러오는 중...</p>
       </div>
@@ -67,8 +66,8 @@ export default function DiaryStatistics() {
       {/* 2. 대시보드 요약 카드 */}
       <Card className="p-5 md:p-8 bg-white dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center gap-3">
-          <Trophy className="w-6 h-6 md:w-7 md:h-7 text-[#2d5f4f] dark:text-emerald-400" />
-          <h2 className="text-lg md:text-xl font-black text-[#2d5f4f] dark:text-emerald-400">
+          <Trophy className="w-6 h-6 md:w-7 md:h-7 text-primary dark:text-emerald-400" />
+          <h2 className="text-lg md:text-xl font-black text-primary dark:text-emerald-400">
             나의 야구 기록 요약
           </h2>
         </div>
@@ -110,8 +109,8 @@ export default function DiaryStatistics() {
         <div className="space-y-6">
           <Card className="p-5 md:p-8 dark:bg-gray-800 dark:border-gray-700">
             <div className="flex items-center gap-3 mb-6">
-              <TrendingUp className="w-6 h-6 md:w-7 md:h-7 text-[#2d5f4f] dark:text-emerald-400" />
-              <h2 className="text-lg md:text-xl font-black text-[#2d5f4f] dark:text-emerald-400">
+              <TrendingUp className="w-6 h-6 md:w-7 md:h-7 text-primary dark:text-emerald-400" />
+              <h2 className="text-lg md:text-xl font-black text-primary dark:text-emerald-400">
                 기분 분석
               </h2>
             </div>
@@ -120,39 +119,39 @@ export default function DiaryStatistics() {
 
           <Card className="p-5 md:p-8 dark:bg-gray-800 dark:border-gray-700">
             <div className="flex items-center gap-3 mb-6">
-              <BarChart3 className="w-6 h-6 md:w-7 md:h-7 text-[#2d5f4f] dark:text-emerald-400" />
-              <h2 className="text-lg md:text-xl font-black text-[#2d5f4f] dark:text-emerald-400">
+              <BarChart3 className="w-6 h-6 md:w-7 md:h-7 text-primary dark:text-emerald-400" />
+              <h2 className="text-lg md:text-xl font-black text-primary dark:text-emerald-400">
                 상세 기록
               </h2>
             </div>
             <div className="grid grid-cols-1 gap-3">
               <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-400 font-medium">최다 방문 구장</span>
-                <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                <span className="font-bold text-primary dark:text-emerald-400">
                   {statistics.mostVisitedStadium || '-'} ({statistics.mostVisitedCount}회)
                 </span>
               </div>
               <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-400 font-medium">가장 행복했던 달</span>
-                <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                <span className="font-bold text-primary dark:text-emerald-400">
                   {statistics.happiestMonth || '-'} ({statistics.happiestCount}회)
                 </span>
               </div>
               <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-400 font-medium">상대하기 쉬운 팀</span>
-                <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                <span className="font-bold text-primary dark:text-emerald-400">
                   {statistics.bestOpponent || '-'}
                 </span>
               </div>
               <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-400 font-medium">상대하기 어려운 팀</span>
-                <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                <span className="font-bold text-primary dark:text-emerald-400">
                   {statistics.worstOpponent || '-'}
                 </span>
               </div>
               <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-400 font-medium">연간 승률</span>
-                <span className="font-bold text-[#2d5f4f] dark:text-emerald-400">
+                <span className="font-bold text-primary dark:text-emerald-400">
                   {statistics.yearlyWinRate?.toFixed(1) || 0}% ({statistics.yearlyWins}승 / {statistics.yearlyCount}경기)
                 </span>
               </div>

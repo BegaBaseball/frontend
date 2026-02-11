@@ -78,7 +78,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                 >
                     {isLoading ? (
                         <div className="flex justify-center p-8">
-                            <Loader2 className="h-8 w-8 animate-spin text-[#2d5f4f]" />
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
                     ) : users.length > 0 ? (
                         <div className="divide-y divide-gray-100 dark:divide-gray-700/50">

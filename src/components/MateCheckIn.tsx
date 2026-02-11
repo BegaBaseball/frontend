@@ -120,7 +120,7 @@ export default function MateCheckIn() {
           뒤로
         </Button>
 
-        <h1 style={{ color: '#2d5f4f' }} className="mb-2">
+        <h1 className="mb-2 text-primary">
           체크인
         </h1>
         <p className="text-gray-600 mb-8">
@@ -132,7 +132,7 @@ export default function MateCheckIn() {
           <div className="flex items-center gap-4 mb-4">
             <TeamLogo teamId={selectedParty.teamId} size="lg" />
             <div className="flex-1">
-              <h3 className="mb-1" style={{ color: '#2d5f4f' }}>
+              <h3 className="mb-1 text-primary">
                 {selectedParty.stadium}
               </h3>
               <p className="text-sm text-gray-600">
@@ -185,9 +185,9 @@ export default function MateCheckIn() {
                   className="w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: '#e8f5f0' }}
                 >
-                  <MapPin className="w-12 h-12" style={{ color: '#2d5f4f' }} />
+                  <MapPin className="w-12 h-12 text-primary" />
                 </div>
-                <h3 className="mb-2" style={{ color: '#2d5f4f' }}>
+                <h3 className="mb-2 text-primary">
                   체크인 준비 완료
                 </h3>
                 <p className="text-gray-600">
@@ -198,9 +198,8 @@ export default function MateCheckIn() {
               <Button
                 onClick={handleCheckIn}
                 disabled={isChecking}
-                className="w-full text-white"
+                className="w-full text-white bg-primary"
                 size="lg"
-                style={{ backgroundColor: '#2d5f4f' }}
               >
                 {isChecking ? (
                   <>
@@ -247,7 +246,7 @@ export default function MateCheckIn() {
 
             {/* Participant Status */}
             <Card className="p-6 mb-6">
-              <h3 className="mb-4" style={{ color: '#2d5f4f' }}>
+              <h3 className="mb-4 text-primary">
                 참여자 체크인 현황
               </h3>
               <div className="space-y-3">

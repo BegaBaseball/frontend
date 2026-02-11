@@ -149,6 +149,31 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
         `잔여 ${seasonContext?.home?.remainingGames ?? '미상'}/${seasonContext?.away?.remainingGames ?? '미상'}경기`
     );
 
+    const getSeasonBanner = () => {
+        if (!seasonContext || !seasonContext.home || !seasonContext.away) return null;
+        const { home, away } = seasonContext;
+
+        const leagueName = game?.leagueType === 'POST' ? '포스트시즌' : '정규시즌';
+        const rankDiff = Math.abs(home.rank - away.rank);
+        const gb = Math.abs(home.gamesBehind - away.gamesBehind).toFixed(1);
+
+        return (
+            <div className="flex flex-wrap items-center gap-2 mb-3 text-xs md:text-sm font-medium text-emerald-300/90 bg-black/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 w-fit">
+                <span className="text-emerald-100">{leagueName}</span>
+                <span className="w-px h-3 bg-white/10 mx-1" />
+                <span>{home.rank}위 vs {away.rank}위</span>
+                {game?.leagueType !== 'POST' && (
+                    <>
+                        <span className="w-px h-3 bg-white/10 mx-1" />
+                        <span>승차 {gb}G</span>
+                        <span className="w-px h-3 bg-white/10 mx-1" />
+                        <span>잔여 {home.remainingGames}경기</span>
+                    </>
+                )}
+            </div>
+        );
+    };
+
     useEffect(() => {
         if (!game) {
             setAiBriefing(null);
@@ -162,7 +187,7 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
             return;
         }
 
-        const cacheKey = `${game.gameId}-${isPastGame ? 'past' : 'preview'}`;
+        const cacheKey = `${game.gameId}-${isPastGame ? 'past' : 'preview'}-v2`;
         const cached = cacheRef.current.get(cacheKey);
         if (cached) {
             setAiBriefing(cached);
@@ -173,15 +198,27 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
         let active = true;
         const homeTeamName = TEAM_DATA[game.homeTeam]?.fullName || game.homeTeam;
         const awayTeamName = TEAM_DATA[game.awayTeam]?.fullName || game.awayTeam;
-        const teamId = TEAM_NAME_TO_ID[homeTeamName] || game.homeTeam;
+        const homeId = TEAM_NAME_TO_ID[homeTeamName] || game.homeTeam;
+        const awayId = TEAM_NAME_TO_ID[awayTeamName] || game.awayTeam;
+
         const questionOverride = isPastGame
             ? buildPastPrompt(homeTeamName, awayTeamName)
             : buildPreviewPrompt(homeTeamName, awayTeamName);
 
         setAiBriefing(null);
         setAiLoading(true);
+
         analyzeTeam({
-            team_id: teamId,
+            home_team_id: homeId,
+            away_team_id: awayId,
+            league_context: {
+                season: game.seasonId,
+                league_type: game.leagueType,
+                round: game.postSeasonSeries,
+                game_no: game.seriesGameNo,
+                home: seasonContext?.home,
+                away: seasonContext?.away
+            },
             focus: ['matchup', 'recent_form'],
             game_id: game.gameId,
             question_override: questionOverride,
@@ -234,7 +271,7 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
         return () => {
             active = false;
         };
-    }, [game?.gameId, isPastGame, canCallAI, seasonContext?.home, seasonContext?.away]);
+    }, [game?.gameId, isPastGame, canCallAI, seasonContext]);
 
     const activeTitle = aiBriefing?.title ?? briefingLabel;
     const activeMessage = aiLoading
@@ -289,6 +326,8 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
                                     </span>
                                 )}
                             </div>
+
+                            {getSeasonBanner()}
 
                             <AnimatePresence mode="wait">
                                 <motion.h4

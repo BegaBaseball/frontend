@@ -21,7 +21,9 @@ const teamLogoImages: Record<string, string> = {
   HH: hanwhaLogo,
   '한화': hanwhaLogo,
   'Hanwha': hanwhaLogo,
+  KH: kiwoomLogo,
   WO: kiwoomLogo,
+  KI: kiwoomLogo,
   '키움': kiwoomLogo,
   'Kiwoom': kiwoomLogo,
   SS: samsungLogo,
@@ -31,7 +33,9 @@ const teamLogoImages: Record<string, string> = {
   '롯데': lotteLogo,
   'Lotte': lotteLogo,
   'LOTTE': lotteLogo,
+  DB: doosanLogo,
   OB: doosanLogo,
+  DO: doosanLogo,
   '두산': doosanLogo,
   'Doosan': doosanLogo,
   HT: kiaLogo,
@@ -40,6 +44,8 @@ const teamLogoImages: Record<string, string> = {
   'Kia': kiaLogo,
   SK: ssgLogo,
   'SSG': ssgLogo,
+  NX: kiwoomLogo,
+  '넥센': kiwoomLogo,
   'NC': ncLogo,
   'LG': lgLogo,
   'KT': ktLogo,
@@ -55,6 +61,9 @@ export const teamIdToName: Record<string, string> = {
   'doosan': '두산',
   'kia': '기아',
   'ssg': 'SSG',
+  'sk': 'SSG',
+  'nx': '키움',
+  'nexen': '키움',
   'nc': 'NC',
   'lg': 'LG',
   'kt': 'KT',
@@ -95,8 +104,8 @@ export default function TeamLogo({ team, teamId, size = 64, className = '' }: Te
     // 로고가 없는 경우 기본 표시
     return (
       <div
-        className={`rounded-full bg-white/90 flex items-center justify-center ${className}`}
-        style={!isResponsive ? { width: numericSize, height: numericSize, fontWeight: 900, fontSize: Number(numericSize) * 0.28, color: '#2d5f4f' } : { fontWeight: 900, color: '#2d5f4f' }}
+        className={`rounded-full bg-white/90 flex items-center justify-center text-primary ${className}`}
+        style={!isResponsive ? { width: numericSize, height: numericSize, fontWeight: 900, fontSize: Number(numericSize) * 0.28 } : { fontWeight: 900 }}
       >
         {teamName || team || '?'}
       </div>

@@ -166,8 +166,7 @@ function CommentItemComponent({
                   disabled={
                     !canInteract || isReplyPending || replyDraft.trim().length === 0
                   }
-                  className="flex items-center gap-2 text-white"
-                  style={{ backgroundColor: '#2d5f4f' }}
+                  className="flex items-center gap-2 text-white bg-primary"
                 >
                   <Send className="h-4 w-4" />
                   답글 작성

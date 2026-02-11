@@ -57,8 +57,8 @@ export default function NoticePage() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Megaphone className="h-7 w-7" style={{ color: '#2d5f4f' }} />
-            <h1 style={{ color: '#2d5f4f' }}>공지사항</h1>
+            <Megaphone className="h-7 w-7 text-primary" />
+            <h1 className="text-primary">공지사항</h1>
           </div>
           <div className="flex items-center gap-3">
             <Button
@@ -73,8 +73,7 @@ export default function NoticePage() {
             {isAdmin && (
               <Button
                 onClick={() => navigate('/cheer/write')}
-                className="text-white"
-                style={{ backgroundColor: '#2d5f4f' }}
+                className="text-white bg-primary"
               >
                 <PenSquare className="mr-2 h-4 w-4" />
                 글쓰기
@@ -168,8 +167,7 @@ export default function NoticePage() {
                         variant={isActive ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => handlePageChange(page)}
-                        className={`w-9 px-0 ${isActive ? 'font-bold' : ''}`}
-                        style={isActive ? { backgroundColor: '#2d5f4f', color: 'white', borderColor: '#2d5f4f' } : undefined}
+                        className={`w-9 px-0 ${isActive ? 'font-bold bg-primary text-white border-primary' : ''}`}
                       >
                         {page}
                       </Button>

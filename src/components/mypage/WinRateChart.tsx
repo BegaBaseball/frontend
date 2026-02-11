@@ -22,7 +22,7 @@ export default function WinRateChart({ wins, draws, losses, winRate }: WinRateCh
         return (
             <Card className="h-full">
                 <CardHeader>
-                    <CardTitle className="text-lg font-bold text-[#2d5f4f]">승률 분석</CardTitle>
+                    <CardTitle className="text-lg font-bold text-primary">승률 분석</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center h-[200px] text-gray-400">
                     아직 기록된 경기가 없습니다.
@@ -34,7 +34,7 @@ export default function WinRateChart({ wins, draws, losses, winRate }: WinRateCh
     return (
         <Card className="h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-bold text-[#2d5f4f]">승리요정 분석</CardTitle>
+                <CardTitle className="text-lg font-bold text-primary">승리요정 분석</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="h-[250px] w-full relative">
@@ -63,7 +63,7 @@ export default function WinRateChart({ wins, draws, losses, winRate }: WinRateCh
 
                     {/* Center Label */}
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 -mt-4 text-center">
-                        <div className="text-3xl font-black text-[#2d5f4f]">{winRate.toFixed(0)}%</div>
+                        <div className="text-3xl font-black text-primary">{winRate.toFixed(0)}%</div>
                         <div className="text-xs text-gray-500 font-semibold">승률</div>
                     </div>
                 </div>

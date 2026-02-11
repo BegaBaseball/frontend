@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Input } from "./ui/input";
 import { useIsMobile } from '../hooks/use-mobile';
 import { Card } from './ui/card';
+import { SERVER_BASE_URL } from '../constants/config';
 import {
     Table,
     TableBody,
@@ -26,7 +27,6 @@ interface OffseasonMovement {
     estimatedAmount: number;
 }
 
-const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080';
 
 const formatRemarks = (text: string) => {
     if (!text) return text;
@@ -37,7 +37,7 @@ const formatRemarks = (text: string) => {
         <span>
             {parts.map((part, i) => {
                 if (part.match(/(\d+(?:,\d+)*)\s*(?:억|만\s*원|만\s*달러|달러)/)) {
-                    return <span key={i} className="font-bold text-[#2d5f4f] dark:text-[#4ade80]">{part}</span>;
+                    return <span key={i} className="font-bold text-primary">{part}</span>;
                 }
                 return part;
             })}
@@ -59,7 +59,7 @@ export default function OffSeasonList() {
 
         const fetchMovements = async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/api/kbo/offseason/movements`);
+                const res = await fetch(`${SERVER_BASE_URL}/api/kbo/offseason/movements`);
                 if (res.ok) {
                     const data = await res.json();
                     setMovements(data);
@@ -90,8 +90,12 @@ export default function OffSeasonList() {
     // Use shared team name utility
     const getTeamName = (code: string) => {
         const teamNameMap: { [key: string]: string } = {
-            'OB': '두산', 'HT': 'KIA', 'LT': '롯데', 'NC': 'NC', 'SS': '삼성',
-            'WO': '키움', 'SSG': 'SSG', 'HH': '한화', 'LG': 'LG', 'KT': 'KT'
+            'DB': '두산', 'OB': '두산', 'DO': '두산',
+            'KIA': 'KIA', 'HT': 'KIA',
+            'LT': '롯데', 'NC': 'NC', 'SS': '삼성',
+            'KH': '키움', 'WO': '키움', 'KI': '키움', 'NX': '키움',
+            'SSG': 'SSG', 'SK': 'SSG',
+            'HH': '한화', 'LG': 'LG', 'KT': 'KT'
         };
         return teamNameMap[code] || code;
     };
@@ -103,7 +107,7 @@ export default function OffSeasonList() {
                 {/* Back Navigation */}
                 <button
                     onClick={() => navigate('/offseason')}
-                    className="group flex items-center gap-2 text-gray-500 hover:text-[#2d5f4f] dark:text-gray-400 dark:hover:text-[#4ade80] transition-colors"
+                    className="group flex items-center gap-2 text-gray-500 hover:text-primary dark:text-gray-400 transition-colors"
                 >
                     <div className="bg-white dark:bg-gray-800 p-2 rounded-full shadow-sm group-hover:shadow-md transition-all border border-gray-100 dark:border-gray-700">
                         <ChevronLeft className="w-5 h-5" />
@@ -112,7 +116,7 @@ export default function OffSeasonList() {
                 </button>
 
                 {/* Mini Hero Banner */}
-                <section className="relative overflow-hidden rounded-xl md:rounded-2xl shadow-lg border-none" style={{ backgroundColor: '#2d5f4f' }}>
+                <section className="relative overflow-hidden rounded-xl md:rounded-2xl shadow-lg border-none bg-primary">
                     <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('/grid-pattern.svg')] bg-center"></div>
                     <div className="px-5 py-6 md:px-8 md:py-8 relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
@@ -168,10 +172,10 @@ export default function OffSeasonList() {
                         filteredList.map((item) => (
                             <Card
                                 key={item.id}
-                                className={`p-4 ${item.bigEvent ? 'border-l-4 border-l-[#2d5f4f] bg-emerald-50/30 dark:bg-emerald-900/10' : 'bg-white dark:bg-gray-900'}`}
+                                className={`p-4 ${item.bigEvent ? 'border-l-4 border-l-primary bg-emerald-50/30 dark:bg-emerald-900/10' : 'bg-white dark:bg-gray-900'}`}
                             >
                                 <div className="flex items-center justify-between mb-2">
-                                    <Badge variant="outline" className={`text-xs ${item.bigEvent ? 'bg-[#2d5f4f] text-white border-[#2d5f4f]' : ''}`}>
+                                    <Badge variant="outline" className={`text-xs ${item.bigEvent ? 'bg-primary text-white border-primary' : ''}`}>
                                         {item.section}
                                     </Badge>
                                     <span className="text-xs text-gray-400">{item.date}</span>
@@ -179,7 +183,7 @@ export default function OffSeasonList() {
                                 <div className="flex items-center gap-3 mb-2">
                                     <TeamLogo team={getTeamName(item.team)} size={28} />
                                     <div>
-                                        <p className={`font-bold ${item.bigEvent ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-900 dark:text-white'}`}>
+                                        <p className={`font-bold ${item.bigEvent ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>
                                             {item.player}
                                         </p>
                                         <p className="text-xs text-gray-500">{getTeamName(item.team)}</p>
@@ -222,11 +226,11 @@ export default function OffSeasonList() {
                                     filteredList.map((item) => (
                                         <TableRow
                                             key={item.id}
-                                            className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${item.bigEvent ? 'border-l-4 border-l-[#2d5f4f] bg-emerald-50/30 dark:bg-emerald-900/5' : ''}`}
+                                            className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${item.bigEvent ? 'border-l-4 border-l-primary bg-emerald-50/30 dark:bg-emerald-900/5' : ''}`}
                                         >
                                             <TableCell className="text-center text-sm text-gray-500">{item.date}</TableCell>
                                             <TableCell className="text-center">
-                                                <Badge variant="outline" className={`whitespace-nowrap ${item.bigEvent ? 'bg-[#2d5f4f] text-white border-[#2d5f4f]' : 'bg-white dark:bg-gray-700'}`}>
+                                                <Badge variant="outline" className={`whitespace-nowrap ${item.bigEvent ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-gray-700'}`}>
                                                     {item.section}
                                                 </Badge>
                                             </TableCell>
@@ -236,7 +240,7 @@ export default function OffSeasonList() {
                                                     <span className="font-bold text-sm hidden md:inline">{getTeamName(item.team)}</span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className={`text-center font-bold text-base ${item.bigEvent ? 'text-[#2d5f4f] dark:text-[#4ade80]' : 'text-gray-900 dark:text-gray-100'}`}>{item.player}</TableCell>
+                                            <TableCell className={`text-center font-bold text-base ${item.bigEvent ? 'text-primary' : 'text-gray-900 dark:text-gray-100'}`}>{item.player}</TableCell>
                                             <TableCell className="text-sm md:text-base text-gray-700 dark:text-gray-300">
                                                 {formatRemarks(item.remarks)}
                                             </TableCell>

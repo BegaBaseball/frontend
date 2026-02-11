@@ -37,7 +37,8 @@ import ChatBot from './ChatBot';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { api } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
-import { DEPOSIT_AMOUNT, TEAM_COLORS_MAP } from '../utils/constants';
+import { DEPOSIT_AMOUNT } from '../utils/constants';
+import { getTeamColorByAnyKey } from '../constants/teams';
 import { formatGameDate, extractHashtags, stripHashtags } from '../utils/mate';
 import ReviewDialog from './ReviewDialog';
 import type { PartyReview, Application } from '../types/mate';
@@ -110,7 +111,7 @@ export default function MateDetail() {
 
     const fetchMyApplication = async () => {
       try {
-        const applicationsData = await api.getApplicationsByApplicant(currentUserId);
+        const applicationsData = await api.getMyApplications();
         const myApp = applicationsData.find((app: Application) =>
           String(app.partyId) === String(selectedParty.id)
         );
@@ -246,7 +247,7 @@ export default function MateDetail() {
   const handleOpenChat = () => navigate(`/mate/${id}/chat`);
 
   // UI Helpers
-  const homeTeamColor = TEAM_COLORS_MAP[selectedParty.homeTeam.toLowerCase()] || '#2d5f4f';
+  const homeTeamColor = getTeamColorByAnyKey(selectedParty.homeTeam);
   const getSeatBadgeColor = (section: string) => {
     if (section.includes('응원')) return 'bg-red-100 text-red-700 border-red-200';
     if (section.includes('테이블')) return 'bg-purple-100 text-purple-700 border-purple-200';
@@ -382,7 +383,7 @@ export default function MateDetail() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 text-xs text-gray-500 hover:text-[#2d5f4f]"
+                    className="h-6 text-xs text-gray-500 hover:text-primary"
                     onClick={() => setShowSeatViewGuide(!showSeatViewGuide)}
                   >
                     <MapIcon className="w-3 h-3 mr-1" /> {showSeatViewGuide ? '닫기' : '위치/시야 보기'}
@@ -400,9 +401,9 @@ export default function MateDetail() {
                     </h4>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                       직관 후 이 좌석의 뷰를 공유해주시면<br />
-                      <span className="text-[#2d5f4f] font-bold">50 포인트</span>를 즉시 적립해 다려요!
+                      <span className="text-primary font-bold">50 포인트</span>를 즉시 적립해 다려요!
                     </p>
-                    <Button size="sm" className="bg-[#2d5f4f] hover:bg-[#234b3e] text-white rounded-full h-8 text-xs">
+                    <Button size="sm" className="bg-primary hover:bg-primary-hover text-white rounded-full h-8 text-xs">
                       <Plus className="w-3 h-3 mr-1" />
                       첫 번째 사진 등록하기
                     </Button>
@@ -454,7 +455,7 @@ export default function MateDetail() {
             {/* 파티 소개 */}
             <Card className="p-6 border-none shadow-md bg-white dark:bg-gray-800/80 backdrop-blur-sm">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
-                <MessageSquare className="w-5 h-5 text-[#2d5f4f]" /> 파티 소개
+                <MessageSquare className="w-5 h-5 text-primary" /> 파티 소개
               </h3>
               <p className="whitespace-pre-wrap text-gray-600 dark:text-gray-300 leading-relaxed text-sm md:text-base mb-4">
                 {stripHashtags(selectedParty.description)}
@@ -473,7 +474,7 @@ export default function MateDetail() {
             {/* 결제 정보 (Improved) */}
             <Card className="p-6 border-none shadow-md bg-white dark:bg-gray-800/80">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
-                <Info className="w-5 h-5 text-[#2d5f4f]" /> 비용 안내
+                <Info className="w-5 h-5 text-primary" /> 비용 안내
               </h3>
 
               {/* Surface Color Box for Dark Mode */}
@@ -509,8 +510,8 @@ export default function MateDetail() {
                     </div>
                     <Separator className="bg-gray-200 dark:bg-gray-600 my-2" />
                     <div className="flex justify-between items-center text-lg">
-                      <span className="font-bold text-[#2d5f4f] dark:text-[#5abba6]">총 결제 금액</span>
-                      <span className="font-black text-[#2d5f4f] dark:text-[#5abba6]">
+                      <span className="font-bold text-primary dark:text-[#5abba6]">총 결제 금액</span>
+                      <span className="font-black text-primary dark:text-[#5abba6]">
                         {((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT).toLocaleString()}원
                       </span>
                     </div>
@@ -527,7 +528,7 @@ export default function MateDetail() {
             {/* 좌석 시야 */}
             <Card className="p-6 border-none shadow-md overflow-hidden bg-white dark:bg-gray-800/80">
               <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-[#2d5f4f]" /> 좌석 시야
+                <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
               </h3>
               <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center relative overflow-hidden group">
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
@@ -640,7 +641,7 @@ export default function MateDetail() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-xs border-[#2d5f4f] text-[#2d5f4f] hover:bg-[#2d5f4f]/10"
+                              className="text-xs border-primary text-primary hover:bg-primary/10"
                               onClick={() => setReviewTarget(target)}
                             >
                               리뷰 작성
@@ -661,8 +662,7 @@ export default function MateDetail() {
                 <>
                   <Button
                     onClick={handleManageParty}
-                    className="w-full text-white shadow-xl hover:shadow-2xl transition-all h-14 text-lg font-bold"
-                    style={{ backgroundColor: '#2d5f4f' }}
+                    className="w-full text-white shadow-xl hover:shadow-2xl transition-all h-14 text-lg font-bold bg-primary"
                   >
                     <Settings className="w-5 h-5 mr-2" />
                     신청 관리 ({pendingApplications.length})
@@ -671,7 +671,7 @@ export default function MateDetail() {
                     <Button
                       onClick={handleOpenChat}
                       variant="outline"
-                      className="w-full h-12 border-[#2d5f4f] text-[#2d5f4f] hover:bg-[#2d5f4f]/10"
+                      className="w-full h-12 border-primary text-primary hover:bg-primary/10"
                     >
                       <MessageSquare className="w-5 h-5 mr-2" />
                       채팅방 입장
@@ -685,8 +685,7 @@ export default function MateDetail() {
                     <>
                       <Button
                         onClick={handleOpenChat}
-                        className="w-full text-white h-14 text-lg font-bold shadow-lg"
-                        style={{ backgroundColor: '#2d5f4f' }}
+                        className="w-full text-white h-14 text-lg font-bold shadow-lg bg-primary"
                       >
                         <MessageSquare className="w-5 h-5 mr-2" />
                         채팅방 입장
@@ -709,8 +708,7 @@ export default function MateDetail() {
                       {selectedParty.status === 'PENDING' && !myApplication && (
                         <Button
                           onClick={handleApply}
-                          className="w-full text-white h-14 text-xl font-bold shadow-xl hover:shadow-2xl hover:bg-[#234b3e] transition-all"
-                          style={{ backgroundColor: '#2d5f4f' }}
+                          className="w-full text-white h-14 text-xl font-bold shadow-xl hover:shadow-2xl hover:bg-primary-hover transition-all bg-primary"
                         >
                           참여하기
                         </Button>

@@ -11,8 +11,6 @@ import api from './axios';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
 
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-
 /**
  * 다른 사용자 프로필 조회 (공개 정보 - ID 기준)
  */

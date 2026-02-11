@@ -54,7 +54,7 @@ export default function PasswordResetConfirm() {
             {/* 새 비밀번호 */}
             <div className="space-y-2">
               <Label htmlFor="newPassword" className="flex items-center gap-2 text-gray-700">
-                <Lock className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+                <Lock className="w-4 h-4 text-primary" />
                 새 비밀번호
               </Label>
               <div className="relative">
@@ -64,8 +64,7 @@ export default function PasswordResetConfirm() {
                   value={formData.newPassword}
                   onChange={(e) => handleFieldChange('newPassword', e.target.value)}
                   onBlur={() => handleFieldBlur('newPassword')}
-                  className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.newPassword ? 'border-red-500' : ''}`}
-                  style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+                  className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary pr-10 ${fieldErrors.newPassword ? 'border-red-500' : ''}`}
                   placeholder="새 비밀번호를 입력하세요 (최소 8자)"
                   disabled={isLoading || !token}
                 />
@@ -92,7 +91,7 @@ export default function PasswordResetConfirm() {
             {/* 비밀번호 확인 */}
             <div className="space-y-2">
               <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-gray-700">
-                <Lock className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+                <Lock className="w-4 h-4 text-primary" />
                 비밀번호 확인
               </Label>
               <div className="relative">
@@ -102,8 +101,7 @@ export default function PasswordResetConfirm() {
                   value={formData.confirmPassword}
                   onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
                   onBlur={() => handleFieldBlur('confirmPassword')}
-                  className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
-                  style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+                  className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
                   placeholder="비밀번호를 다시 입력하세요"
                   disabled={isLoading || !token}
                 />
@@ -135,10 +133,9 @@ export default function PasswordResetConfirm() {
               </ul>
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#2d5f4f' }}
+            <Button
+              type="submit"
+              className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed bg-primary"
               disabled={isLoading || !token}
             >
               {isLoading ? '변경 중...' : '비밀번호 변경'}
@@ -147,9 +144,8 @@ export default function PasswordResetConfirm() {
         </>
       ) : (
         <div className="text-center py-8">
-          <div 
-            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ backgroundColor: '#2d5f4f' }}
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 bg-primary"
           >
             <Check className="w-10 h-10 text-white" />
           </div>
@@ -158,10 +154,9 @@ export default function PasswordResetConfirm() {
             비밀번호가 성공적으로 변경되었습니다.<br />
             새로운 비밀번호로 로그인해주세요.
           </p>
-          <Button 
+          <Button
             onClick={() => navigate('/login')}
-            className="w-full text-white py-6 rounded-full hover:opacity-90"
-            style={{ backgroundColor: '#2d5f4f' }}
+            className="w-full text-white py-6 rounded-full hover:opacity-90 bg-primary"
           >
             로그인하기
           </Button>

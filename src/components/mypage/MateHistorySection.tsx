@@ -16,8 +16,7 @@ function MateHistoryContent({ tab }: MateHistoryContentProps) {
     return (
       <div className="text-center py-8">
         <div
-          className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4"
-          style={{ borderColor: '#2d5f4f' }}
+          className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"
         ></div>
         <p className="text-gray-600">메이트 내역을 불러오는 중...</p>
       </div>
@@ -53,7 +52,7 @@ export default function MateHistorySection() {
   return (
     <div className="space-y-6">
       <Card className="p-8">
-        <h2 className="mb-6" style={{ color: '#2d5f4f', fontWeight: 900 }}>
+        <h2 className="mb-6 text-primary" style={{ fontWeight: 900 }}>
           참여한 메이트
         </h2>
 
@@ -66,9 +65,9 @@ export default function MateHistorySection() {
               className={`px-4 py-2 -mb-px ${
                 mateHistoryTab === tab.key ? 'border-b-2 font-bold' : 'text-gray-500'
               }`}
+              className={mateHistoryTab === tab.key ? 'border-primary text-primary' : ''}
               style={{
-                borderColor: mateHistoryTab === tab.key ? '#2d5f4f' : 'transparent',
-                color: mateHistoryTab === tab.key ? '#2d5f4f' : undefined,
+                borderColor: mateHistoryTab === tab.key ? undefined : 'transparent',
               }}
             >
               {tab.label}

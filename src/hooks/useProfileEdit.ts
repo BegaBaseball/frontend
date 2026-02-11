@@ -5,6 +5,7 @@ import { ProfileUpdateData } from '../types/profile';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
+import { DEFAULT_PROFILE_PLACEHOLDER } from '../constants/config';
 
 interface UseProfileEditProps {
   initialProfileImage: string;
@@ -172,7 +173,7 @@ export const useProfileEdit = ({
       if (finalImageUrl) {
         updatedProfile.profileImageUrl = finalImageUrl;
       } else if (newProfileImageFile === null) {
-        const isPlaceholder = profileImage === 'https://placehold.co/100x100/374151/ffffff?text=User';
+        const isPlaceholder = profileImage === DEFAULT_PROFILE_PLACEHOLDER;
         const isLocalAsset = profileImage === DEFAULT_PROFILE_IMAGE
           || profileImage.startsWith('/assets/')
           || profileImage.startsWith('/src/assets/');

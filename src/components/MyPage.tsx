@@ -144,7 +144,7 @@ export default function MyPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2 md:gap-3 mb-2">
-                  <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2d5f4f' }}>
+                  <h2 className="text-xl md:text-2xl font-bold text-primary">
                     {name}
                   </h2>
                   <div className="flex items-center gap-2">
@@ -172,10 +172,10 @@ export default function MyPage() {
                 className="text-center group cursor-pointer"
                 onClick={() => setUserListModal({ isOpen: true, type: 'followers', title: '팔로워' })}
               >
-                <span className="font-bold text-lg text-gray-900 dark:text-white block group-hover:text-[#2d5f4f] transition-colors">
+                <span className="font-bold text-lg text-gray-900 dark:text-white block group-hover:text-primary transition-colors">
                   {formatCount(followCounts?.followerCount || 0)}
                 </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 group-hover:text-[#2d5f4f] transition-colors">
+                <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 group-hover:text-primary transition-colors">
                   <Users className="w-3.5 h-3.5" />
                   팔로워
                 </span>
@@ -185,10 +185,10 @@ export default function MyPage() {
                 className="text-center group cursor-pointer"
                 onClick={() => setUserListModal({ isOpen: true, type: 'following', title: '팔로잉' })}
               >
-                <span className="font-bold text-lg text-gray-900 dark:text-white block group-hover:text-[#2d5f4f] transition-colors">
+                <span className="font-bold text-lg text-gray-900 dark:text-white block group-hover:text-primary transition-colors">
                   {formatCount(followCounts?.followingCount || 0)}
                 </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 group-hover:text-[#2d5f4f] transition-colors">
+                <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 group-hover:text-primary transition-colors">
                   <UserPlus className="w-3.5 h-3.5" />
                   팔로잉
                 </span>
@@ -203,16 +203,14 @@ export default function MyPage() {
 
               <Button
                 onClick={() => setViewMode('mateHistory')}
-                className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap"
-                style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+                className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-primary text-primary hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap"
               >
                 <Users className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">메이트 내역</span>
               </Button>
               <Button
                 onClick={handleToggleStats}
-                className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap"
-                style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+                className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-primary text-primary hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap"
               >
                 <BarChart3 className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">
@@ -222,8 +220,7 @@ export default function MyPage() {
 
               <Button
                 onClick={() => setViewMode('editProfile')}
-                className={`flex items-center justify-center gap-2 text-white h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
-                style={{ backgroundColor: '#2d5f4f' }}
+                className={`flex items-center justify-center gap-2 text-white bg-primary h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
               >
                 <Edit className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">내 정보 수정</span>
@@ -234,8 +231,7 @@ export default function MyPage() {
                 onTicketAnalyzed={(data) => console.log('Analyzed Ticket:', data)}
                 trigger={
                   <Button
-                    className={`flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
-                    style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+                    className={`flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-primary text-primary hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
                   >
                     <Ticket className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm md:text-base">티켓 등록</span>

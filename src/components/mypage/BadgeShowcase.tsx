@@ -28,7 +28,7 @@ export default function BadgeShowcase({ earnedBadges = [] }: BadgeShowcaseProps)
     return (
         <Card className="h-full bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-none shadow-md">
             <CardHeader>
-                <CardTitle className="text-lg font-bold text-[#2d5f4f] dark:text-emerald-400 flex items-center gap-2">
+                <CardTitle className="text-lg font-bold text-primary dark:text-emerald-400 flex items-center gap-2">
                     업적 배지 ({earnedBadges.length}/{BADGES.length})
                 </CardTitle>
             </CardHeader>

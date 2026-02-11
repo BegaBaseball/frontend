@@ -14,7 +14,7 @@ export default function EmojiStatsCard({ stats }: EmojiStatsCardProps) {
             alt={item.name}
             className="w-20 h-20 mx-auto mb-2 object-contain"
           />
-          <div className="text-2xl mb-1" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+          <div className="text-2xl mb-1 text-primary" style={{ fontWeight: 900 }}>
             {item.count}
           </div>
           <div className="text-sm text-gray-600">{item.name}</div>

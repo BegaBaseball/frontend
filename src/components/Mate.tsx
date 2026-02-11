@@ -18,7 +18,7 @@ import { Input } from './ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import ChatBot from './ChatBot';
 import { useAuthStore } from '../store/authStore';
-import { TEAM_COLORS_MAP } from '../utils/constants';
+import { getTeamColorByAnyKey } from '../constants/teams';
 import { api } from '../utils/api';
 import { mapBackendPartyToFrontend, formatGameDate, getDayOfWeek } from '../utils/mate';
 import { Party } from '../types/mate';
@@ -47,7 +47,7 @@ export default function Mate() {
       stadium.homeTeam.toLowerCase().split('/').some(team => normalized.includes(team.toLowerCase())) ||
       (stadium.id === 'Daegu' && normalized.includes('삼성')) ||
       (stadium.id === 'Jamsil' && (normalized.includes('lg') || normalized.includes('두산'))) ||
-      (stadium.id === 'Incheon' && normalized.includes('ssg')) ||
+      (stadium.id === 'Incheon' && (normalized.includes('ssg') || normalized.includes('sk'))) ||
       (stadium.id === 'Gwangju' && normalized.includes('kia')) ||
       (stadium.id === 'Suwon' && normalized.includes('kt')) ||
       (stadium.id === 'Changwon' && normalized.includes('nc')) ||
@@ -207,7 +207,7 @@ export default function Mate() {
   const dateItems = generateDateItems();
 
   const renderPartyCard = (party: Party) => {
-    const homeTeamColor = TEAM_COLORS_MAP[party.homeTeam.toLowerCase()] || '#2d5f4f';
+    const homeTeamColor = getTeamColorByAnyKey(party.homeTeam);
     const progressPercent = Math.min(100, (party.currentParticipants / party.maxParticipants) * 100);
 
     return (
@@ -291,7 +291,7 @@ export default function Mate() {
         <div className="px-4 pb-4">
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-3 border border-gray-100 dark:border-gray-700 flex justify-between items-center">
             <div className="flex items-center gap-2 text-gray-900 dark:text-white font-medium">
-              <MapPin className="w-4 h-4 text-[#2d5f4f]" />
+              <MapPin className="w-4 h-4 text-primary" />
               <span className="truncate font-semibold">{getZoneName(party.stadium, party.section)}</span>
             </div>
 
@@ -299,14 +299,14 @@ export default function Mate() {
               {party.status === 'SELLING' && party.price ? (
                 <>
                   <span className="text-xs text-gray-400">판매가</span>
-                  <span className="text-lg font-black text-[#2d5f4f] dark:text-[#4ade80]">
+                  <span className="text-lg font-black text-primary">
                     {party.price.toLocaleString()}
                     <span className="text-sm font-normal text-gray-500 ml-0.5">원</span>
                   </span>
                 </>
               ) : (
                 <>
-                  <span className="text-lg font-black text-[#2d5f4f] dark:text-[#4ade80]">
+                  <span className="text-lg font-black text-primary">
                     {(party.ticketPrice || 0).toLocaleString()}
                     <span className="text-sm font-normal text-gray-500 ml-0.5">원</span>
                   </span>
@@ -321,7 +321,7 @@ export default function Mate() {
             <div className="flex items-center gap-2">
               <Avatar className="w-6 h-6 border border-gray-200">
                 <AvatarImage src={party.hostProfileImageUrl || undefined} className="object-cover" />
-                <AvatarFallback className="text-[10px] bg-[#2d5f4f] text-white">
+                <AvatarFallback className="text-[10px] bg-primary text-white">
                   {party.hostName.slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
@@ -335,13 +335,13 @@ export default function Mate() {
             {/* Participant Progress */}
             <div className="flex flex-col items-end gap-1 w-24">
               <div className="flex items-center gap-1 text-xs text-gray-500">
-                <span className="font-medium text-[#2d5f4f]">{party.currentParticipants}</span>
+                <span className="font-medium text-primary">{party.currentParticipants}</span>
                 <span className="text-gray-300">/</span>
                 <span>{party.maxParticipants}명</span>
               </div>
               <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#2d5f4f] transition-all duration-500"
+                  className="h-full bg-primary transition-all duration-500"
                   style={{ width: `${progressPercent}%` }}
                 ></div>
               </div>
@@ -364,7 +364,7 @@ export default function Mate() {
         {/* 헤더 영역 */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 style={{ color: '#2d5f4f' }} className="text-2xl font-bold mb-1">
+            <h1 className="text-2xl font-bold mb-1 text-primary">
               직관 메이트 찾기
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">함께 응원할 직관 친구를 찾아보세요!</p>
@@ -374,14 +374,13 @@ export default function Mate() {
               variant="ghost"
               size="sm"
               onClick={() => setIsGuideOpen(!isGuideOpen)}
-              className="text-gray-500 hover:text-[#2d5f4f]"
+              className="text-gray-500 hover:text-primary"
             >
               {isGuideOpen ? '가이드 닫기' : '이용 가이드'}
             </Button>
             <Button
               onClick={() => navigate('/mate/create')}
-              className="rounded-full px-5 shadow-lg hover:shadow-xl transition-all"
-              style={{ backgroundColor: '#2d5f4f' }}
+              className="rounded-full px-5 shadow-lg hover:shadow-xl transition-all bg-primary"
             >
               <Plus className="w-5 h-5 mr-1" />
               파티 만들기
@@ -391,10 +390,10 @@ export default function Mate() {
 
         {/* 이용 가이드 (Toggle) */}
         {isGuideOpen && (
-          <Card className="p-4 mb-6 border bg-[#f0f7f4] dark:bg-[#1f4438]/20 border-[#2d5f4f]/20 animate-in slide-in-from-top-2">
+          <Card className="p-4 mb-6 border bg-[#f0f7f4] dark:bg-[#1f4438]/20 border-primary/20 animate-in slide-in-from-top-2">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="mb-2 font-bold text-[#2d5f4f] text-sm">🦺 안전한 직관을 위한 가이드</h3>
+                <h3 className="mb-2 font-bold text-primary text-sm">🦺 안전한 직관을 위한 가이드</h3>
                 <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
                   <li>• <strong>보증금 제도:</strong> 노쇼 방지를 위해 소정의 보증금이 있을 수 있습니다.</li>
                   <li>• <strong>티켓 인증:</strong> 티켓 판매글은 예매 내역 인증 마크를 확인하세요.</li>
@@ -414,7 +413,7 @@ export default function Mate() {
             <Button
               variant={selectedDate === null ? 'default' : 'outline'}
               onClick={() => setSelectedDate(null)}
-              className={selectedDate === null ? 'bg-[#2d5f4f] text-white border-transparent' : 'border-gray-300 text-gray-500'}
+              className={selectedDate === null ? 'bg-primary text-white border-transparent' : 'border-gray-300 text-gray-500'}
             >
               전체
             </Button>
@@ -428,8 +427,8 @@ export default function Mate() {
                   className={`
                                 flex flex-col items-center justify-center min-w-[60px] h-[70px] rounded-xl border cursor-pointer transition-all
                                 ${isSelected
-                      ? 'bg-[#2d5f4f] border-[#2d5f4f] text-white shadow-md'
-                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-[#2d5f4f] hover:bg-gray-50'}
+                      ? 'bg-primary border-primary text-white shadow-md'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-gray-50'}
                             `}
                 >
                   <span className={`text-xs ${!isSelected && isWeekend ? 'text-red-500' : ''}`}>{getDayOfWeek(toDateString(date))}</span>
@@ -449,7 +448,7 @@ export default function Mate() {
               placeholder="팀명, 구장, 좌석으로 검색해 보세요 (예: 삼성 블루존)"
               value={searchQuery || ''}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-[#2d5f4f] focus:border-[#2d5f4f]"
+              className="pl-10 h-12 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-primary focus:border-primary"
             />
           </div>
 
@@ -465,8 +464,8 @@ export default function Mate() {
                     key={zone.id}
                     variant="outline"
                     className={`rounded-full whitespace-nowrap transition-colors ${searchQuery?.includes(zone.name)
-                      ? "bg-[#2d5f4f] text-white border-transparent"
-                      : "border-gray-300 text-gray-600 dark:text-gray-300 hover:border-[#2d5f4f] hover:text-[#2d5f4f]"
+                      ? "bg-primary text-white border-transparent"
+                      : "border-gray-300 text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary"
                       }`}
                     onClick={() => toggleSearchQuery(zone.name)}
                   >
@@ -482,8 +481,8 @@ export default function Mate() {
                     key={key}
                     variant="outline"
                     className={`rounded-full whitespace-nowrap transition-colors ${searchQuery?.includes(info.label)
-                      ? "bg-[#2d5f4f] text-white border-transparent"
-                      : "border-gray-300 text-gray-600 dark:text-gray-300 hover:border-[#2d5f4f] hover:text-[#2d5f4f]"
+                      ? "bg-primary text-white border-transparent"
+                      : "border-gray-300 text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary"
                       }`}
                     onClick={() => toggleSearchQuery(info.label)}
                   >
@@ -523,7 +522,7 @@ export default function Mate() {
           {/* 공통 상태 처리 (로딩, 에러, 빈 결과) */}
           {isLoading ? (
             <div className="text-center py-20">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2d5f4f] mx-auto opacity-80"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto opacity-80"></div>
             </div>
           ) : fetchError ? (
             <div className="text-center py-24 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-red-200 dark:border-red-900">
@@ -538,7 +537,7 @@ export default function Mate() {
             <div className="text-center py-24 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
               <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p className="text-gray-500 font-medium">조건에 맞는 파티가 없습니다</p>
-              <Button variant="link" className="text-[#2d5f4f]" onClick={() => { setSelectedDate(null); setSearchQuery(''); }}>
+              <Button variant="link" className="text-primary" onClick={() => { setSelectedDate(null); setSearchQuery(''); }}>
                 조건 초기화
               </Button>
             </div>

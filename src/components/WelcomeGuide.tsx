@@ -49,7 +49,7 @@ const SLIDES_DATA: readonly Slide[] = [
     subtitle: 'BASEBALL GUIDE',
     description: 'KBO 야구 팬들을 위한 올인원 플랫폼, BEGA와 함께 모든 순간을 특별하게',
     icon: 'baseball',
-    color: '#2d5f4f',
+    color: 'hsl(var(--primary))',
     isIntro: true
   },
   {
@@ -57,7 +57,7 @@ const SLIDES_DATA: readonly Slide[] = [
     subtitle: '실시간 경기 정보',
     description: '실시간 경기 정보, 스토브리그 소식을 확인하세요',
     icon: 'home',
-    color: '#2d5f4f',
+    color: 'hsl(var(--primary))',
     features: [
       '홈 화면에서 오늘의 경기 일정 확인',
       'KBO LIVE로 실시간 경기 현황 체크',
@@ -365,11 +365,10 @@ export default function WelcomeGuide() {
             {currentSlideData.isIntro && (
               <div className="space-y-2 sm:space-y-3 md:space-y-4 max-w-md px-2">
                 <Card
-                  className="p-3 sm:p-4 md:p-6 border-2 dark:bg-[#1a2e28]"
-                  style={{ borderColor: '#2d5f4f', backgroundColor: undefined }}
+                  className="p-3 sm:p-4 md:p-6 border-2 border-primary dark:bg-[#1a2e28]"
                 >
                   <div className="text-left mb-2 sm:mb-3 md:mb-4 bg-[#f0f9f6] dark:bg-transparent rounded-lg p-2 sm:p-0">
-                    <h4 className="mb-1 text-xs sm:text-sm md:text-base" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+                    <h4 className="mb-1 text-xs sm:text-sm md:text-base text-primary" style={{ fontWeight: 900 }}>
                       7가지 핵심 기능
                     </h4>
                     <p className="text-[11px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">

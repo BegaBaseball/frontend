@@ -60,7 +60,7 @@ export default function SignUp() {
         {/* 닉네임 */}
         <div className="space-y-2">
           <Label htmlFor="name" className="flex items-center gap-2 text-gray-700">
-            <User className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            <User className="w-4 h-4 text-primary" />
             닉네임
           </Label>
           <Input
@@ -69,8 +69,7 @@ export default function SignUp() {
             value={formData.name}
             onChange={(e) => handleFieldChange('name', e.target.value)}
             onBlur={() => handleFieldBlur('name')}
-            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.name ? 'border-red-500' : ''}`}
-            style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary ${fieldErrors.name ? 'border-red-500' : ''}`}
             placeholder="홍길동"
             disabled={isLoading || isSuccess}  // ✅ 수정
           />
@@ -82,7 +81,7 @@ export default function SignUp() {
         {/* 핸들 (사용자 아이디) */}
         <div className="space-y-2">
           <Label htmlFor="handle" className="flex items-center gap-2 text-gray-700">
-            <User className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            <User className="w-4 h-4 text-primary" />
             사용자 핸들 (@)
           </Label>
           <Input
@@ -101,8 +100,7 @@ export default function SignUp() {
               }
             }}
             onBlur={() => handleFieldBlur('handle')}
-            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.handle ? 'border-red-500' : ''}`}
-            style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary ${fieldErrors.handle ? 'border-red-500' : ''}`}
             placeholder="@username"
             disabled={isLoading || isSuccess}
           />
@@ -118,7 +116,7 @@ export default function SignUp() {
         {/* 이메일 */}
         <div className="space-y-2">
           <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
-            <Mail className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            <Mail className="w-4 h-4 text-primary" />
             이메일
           </Label>
           <Input
@@ -127,8 +125,7 @@ export default function SignUp() {
             value={formData.email}
             onChange={(e) => handleFieldChange('email', e.target.value)}
             onBlur={() => handleFieldBlur('email')}
-            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.email ? 'border-red-500' : ''}`}
-            style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary ${fieldErrors.email ? 'border-red-500' : ''}`}
             placeholder="example@email.com"
             disabled={isLoading || isSuccess}  // ✅ 수정
           />
@@ -140,7 +137,7 @@ export default function SignUp() {
         {/* 비밀번호 */}
         <div className="space-y-2">
           <Label htmlFor="password" className="flex items-center gap-2 text-gray-700">
-            <Lock className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            <Lock className="w-4 h-4 text-primary" />
             비밀번호
           </Label>
           <div className="relative">
@@ -150,8 +147,7 @@ export default function SignUp() {
               value={formData.password}
               onChange={(e) => handleFieldChange('password', e.target.value)}
               onBlur={() => handleFieldBlur('password')}
-              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
-              style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
               placeholder="8자 이상 입력"
               disabled={isLoading || isSuccess}  // ✅ 수정
             />
@@ -178,7 +174,7 @@ export default function SignUp() {
         {/* 비밀번호 확인 */}
         <div className="space-y-2">
           <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-gray-700">
-            <Lock className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+            <Lock className="w-4 h-4 text-primary" />
             비밀번호 확인
           </Label>
           <div className="relative">
@@ -188,8 +184,7 @@ export default function SignUp() {
               value={formData.confirmPassword}
               onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
               onBlur={() => handleFieldBlur('confirmPassword')}
-              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
-              style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
               placeholder="비밀번호 재입력"
               disabled={isLoading || isSuccess}  // ✅ 수정
             />
@@ -220,7 +215,7 @@ export default function SignUp() {
           >
             <SelectTrigger
               aria-labelledby="favoriteTeam-label"
-              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${fieldErrors.favoriteTeam ? 'border-red-500' : ''}`}
+              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ${fieldErrors.favoriteTeam ? 'border-red-500' : ''}`}
             >
               <SelectValue placeholder="팀을 선택하세요" />
             </SelectTrigger>
@@ -253,8 +248,7 @@ export default function SignUp() {
               type="button"
               variant="ghost"
               onClick={() => setShowTeamTest(true)}
-              className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50"
-              style={{ color: '#2d5f4f' }}
+              className="text-sm flex items-center h-auto py-1 px-2 hover:bg-green-50 text-primary"
               disabled={isLoading || isSuccess}  // ✅ 수정
             >
               구단 테스트 해보기
@@ -278,8 +272,7 @@ export default function SignUp() {
         {/* ✅ 수정된 버튼 */}
         <Button
           type="submit"
-          className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          style={{ backgroundColor: isSuccess ? '#10b981' : '#2d5f4f' }}  // ✅ 성공 시 초록색
+          className={`w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isSuccess ? 'bg-emerald-500' : 'bg-primary'}`}
           disabled={isLoading || isSuccess}  // ✅ 수정
         >
           {isLoading ? (
@@ -317,8 +310,7 @@ export default function SignUp() {
           <button
             type="button"
             onClick={() => navigate('/login')}
-            className="hover:underline disabled:opacity-50"
-            style={{ color: '#2d5f4f' }}
+            className="hover:underline disabled:opacity-50 text-primary"
             disabled={isLoading || isSuccess}  // ✅ 수정
           >
             로그인

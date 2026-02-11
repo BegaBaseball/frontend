@@ -19,7 +19,7 @@ export default function EndOfFeed() {
       <button
         type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="mt-4 text-sm font-semibold text-[#2d5f4f] hover:underline"
+        className="mt-4 text-sm font-semibold text-primary hover:underline"
       >
         처음으로 돌아가기
       </button>
