@@ -823,7 +823,7 @@ export default function Cheer() {
                                         </div>
                                     ) : isFetchingNextPage ? (
                                         <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#2d5f4f] border-t-transparent" />
+                                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                                             불러오는 중...
                                         </div>
                                     ) : null}
@@ -952,7 +952,7 @@ export default function Cheer() {
                                 className={cn(
                                     'flex flex-col items-center justify-center gap-0.5 w-16 h-full transition-colors',
                                     isActive
-                                        ? 'text-[#2d5f4f] dark:text-[#4ade80]'
+                                        ? 'text-primary'
                                         : 'text-gray-400 dark:text-gray-500'
                                 )}
                                 style={isActive ? { color: teamAccent } : undefined}

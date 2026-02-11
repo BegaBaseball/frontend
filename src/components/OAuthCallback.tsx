@@ -77,8 +77,8 @@ export default function OAuthCallback() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
-        <p style={{ color: '#2d5f4f', fontWeight: 700 }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-primary font-bold">
           로그인 처리 중...
         </p>
       </div>

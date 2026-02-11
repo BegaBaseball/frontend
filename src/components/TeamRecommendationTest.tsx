@@ -47,7 +47,7 @@ export default function TeamRecommendationTest({
                   <img src={baseballLogo} alt="Baseball" className="w-full h-full" />
                 </div>
                 <div className="flex-1">
-                  <h3 style={{ color: '#2d5f4f' }}>나와 딱 맞는 팀 찾기</h3>
+                  <h3 className="text-primary">나와 딱 맞는 팀 찾기</h3>
                   <p className="text-sm text-gray-600 mt-1">
                     {currentQuestion + 1}번째 질문 / 총 {totalQuestions}문항
                   </p>
@@ -58,8 +58,7 @@ export default function TeamRecommendationTest({
               <div className="relative">
                 <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full rounded-full"
-                    style={{ backgroundColor: '#2d5f4f' }}
+                    className="h-full rounded-full bg-primary"
                     initial={{ width: 0 }}
                     animate={{ width: `${progress}%` }}
                     transition={{ duration: 0.5 }}
@@ -82,10 +81,9 @@ export default function TeamRecommendationTest({
                 >
                   {/* Question Card */}
                   <div
-                    className="mb-3 p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border-2 flex-shrink-0"
-                    style={{ borderColor: '#2d5f4f' }}
+                    className="mb-3 p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-primary flex-shrink-0"
                   >
-                    <h4 className="mb-1" style={{ color: '#2d5f4f' }}>
+                    <h4 className="mb-1 text-primary">
                       {currentQuestionData.question}
                     </h4>
                     {currentQuestionData.description && (
@@ -109,13 +107,10 @@ export default function TeamRecommendationTest({
                             p-3 rounded-lg border-2 text-left transition-all
                             ${
                               selectedAnswer === index
-                                ? 'bg-green-50 shadow-lg'
+                                ? 'bg-green-50 shadow-lg border-primary'
                                 : 'border-gray-200 bg-white hover:bg-green-50/50 hover:shadow-md'
                             }
                           `}
-                          style={
-                            selectedAnswer === index ? { borderColor: '#2d5f4f' } : {}
-                          }
                         >
                           <div className="flex items-center gap-2">
                             {/* Option Letter */}
@@ -124,15 +119,10 @@ export default function TeamRecommendationTest({
                                 w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all flex-shrink-0
                                 ${
                                   selectedAnswer === index
-                                    ? 'text-white shadow-lg'
+                                    ? 'text-white shadow-lg bg-primary'
                                     : 'bg-gray-100 text-gray-600'
                                 }
                               `}
-                              style={
-                                selectedAnswer === index
-                                  ? { backgroundColor: '#2d5f4f' }
-                                  : {}
-                              }
                             >
                               {String.fromCharCode(65 + index)}
                             </div>
@@ -145,8 +135,7 @@ export default function TeamRecommendationTest({
                               <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
-                                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                                style={{ backgroundColor: '#2d5f4f' }}
+                                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-primary"
                               >
                                 <ChevronRight className="w-4 h-4 text-white" />
                               </motion.div>
@@ -194,14 +183,13 @@ export default function TeamRecommendationTest({
               {/* Result Text */}
               <div className="mb-3">
                 <div
-                  className="inline-block mb-2 px-4 py-1 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 border-2"
-                  style={{ borderColor: '#2d5f4f' }}
+                  className="inline-block mb-2 px-4 py-1 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 border-2 border-primary"
                 >
-                  <span className="text-sm" style={{ color: '#2d5f4f' }}>
+                  <span className="text-sm text-primary">
                     테스트 완료!
                   </span>
                 </div>
-                <h3 className="mb-3" style={{ color: '#2d5f4f' }}>
+                <h3 className="mb-3 text-primary">
                   당신에게 추천하는 팀은
                 </h3>
               </div>
@@ -209,23 +197,21 @@ export default function TeamRecommendationTest({
               {/* Team Logo and Name */}
               <div className="mb-4">
                 <div
-                  className="flex justify-center mb-3 p-4 bg-white rounded-3xl shadow-xl border-4 inline-block"
-                  style={{ borderColor: '#2d5f4f' }}
+                  className="flex justify-center mb-3 p-4 bg-white rounded-3xl shadow-xl border-4 border-primary inline-block"
                 >
                   <div className="w-20 h-20">
                     <TeamLogo team={recommendedTeam} size="lg" />
                   </div>
                 </div>
 
-                <h2 className="mb-2" style={{ color: '#2d5f4f' }}>
+                <h2 className="mb-2 text-primary">
                   {recommendedTeam}
                 </h2>
               </div>
 
               {/* Team Description */}
               <div
-                className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 mb-4 text-left border-2"
-                style={{ borderColor: '#2d5f4f' }}
+                className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 mb-4 text-left border-2 border-primary"
               >
                 <p className="text-sm text-gray-700 leading-relaxed">
                   {getTeamDescription(recommendedTeam)}
@@ -245,11 +231,10 @@ export default function TeamRecommendationTest({
                           flex items-center justify-between p-2.5 rounded-lg transition-all border-2
                           ${
                             team === recommendedTeam
-                              ? 'bg-gradient-to-r from-green-100 to-emerald-100 shadow-lg'
+                              ? 'bg-gradient-to-r from-green-100 to-emerald-100 shadow-lg border-primary'
                               : 'bg-white border-gray-200'
                           }
                         `}
-                        style={team === recommendedTeam ? { borderColor: '#2d5f4f' } : {}}
                       >
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 flex-shrink-0">
@@ -258,12 +243,11 @@ export default function TeamRecommendationTest({
                           <span className="text-sm">{team}</span>
                         </div>
                         <span
-                          className="text-sm"
-                          style={
+                          className={`text-sm ${
                             team === recommendedTeam
-                              ? { color: '#2d5f4f' }
-                              : { color: '#6b7280' }
-                          }
+                              ? 'text-primary'
+                              : 'text-gray-500'
+                          }`}
                         >
                           {score}점
                         </span>
@@ -276,16 +260,14 @@ export default function TeamRecommendationTest({
               <div className="flex flex-col gap-2">
                 <Button
                   onClick={handleAcceptRecommendation}
-                  className="w-full py-4 text-white rounded-full shadow-lg hover:shadow-xl transition-all"
-                  style={{ backgroundColor: '#2d5f4f' }}
+                  className="w-full py-4 text-white rounded-full shadow-lg hover:shadow-xl transition-all bg-primary"
                 >
                   {recommendedTeam} 팬으로 시작하기
                 </Button>
                 <Button
                   variant="outline"
                   onClick={handleReset}
-                  className="w-full py-4 rounded-full border-2"
-                  style={{ borderColor: '#2d5f4f', color: '#2d5f4f' }}
+                  className="w-full py-4 rounded-full border-2 border-primary text-primary"
                 >
                   다시 테스트하기
                 </Button>

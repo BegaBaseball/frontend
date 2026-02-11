@@ -113,8 +113,7 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewerId, rev
           <Button
             onClick={handleSubmit}
             disabled={rating === 0 || isSubmitting}
-            className="text-white"
-            style={{ backgroundColor: '#2d5f4f' }}
+            className="text-white bg-primary"
           >
             {isSubmitting ? '제출 중...' : '리뷰 제출'}
           </Button>

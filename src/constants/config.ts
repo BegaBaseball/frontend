@@ -1,9 +1,9 @@
 // constants/config.ts
 
 /**
- * API 기본 URL
+ * 직접 접근 base URL (OAuth 리다이렉트, 이미지 등 — 프록시 미경유)
  */
-export const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080';
+export const SERVER_BASE_URL = (import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 
 /**
  * 현재 시즌 연도
@@ -16,14 +16,9 @@ export const CURRENT_SEASON = 2025;
 export const DEFAULT_DATE = new Date(2025, 9, 26);
 
 /**
- * 브랜드 색상
+ * 기본 프로필 이미지 placeholder
  */
-export const BRAND_COLORS = {
-  primary: '#2d5f4f',      // 메인 녹색
-  secondary: '#3d7f5f',    // 보조 녹색
-  light: '#f0f9f4',        // 연한 녹색
-  gray: '#9ca3af',         // 회색
-} as const;
+export const DEFAULT_PROFILE_PLACEHOLDER = 'https://placehold.co/100x100/374151/ffffff?text=User';
 
 /**
  * 페이지 제목

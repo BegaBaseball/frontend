@@ -87,7 +87,7 @@ export default function FollowButton({
             <Button
                 onClick={handleToggleFollow}
                 disabled={isLoading}
-                className={`${buttonSize} bg-[#2d5f4f] hover:bg-[#234a3d] text-white ${className || ''}`}
+                className={`${buttonSize} bg-primary hover:bg-primary-hover text-white ${className || ''}`}
                 style={style}
             >
                 {isLoading ? (
@@ -110,7 +110,7 @@ export default function FollowButton({
                     <Button
                         variant="outline"
                         disabled={isLoading}
-                        className={`${buttonSize} border-[#2d5f4f] text-[#2d5f4f] hover:bg-[#2d5f4f]/10`}
+                        className={`${buttonSize} border-primary text-primary hover:bg-primary/10`}
                     >
                         {isLoading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -154,7 +154,7 @@ export default function FollowButton({
             onClick={handleToggleFollow}
             variant="outline"
             disabled={isLoading}
-            className={`${buttonSize} border-[#2d5f4f] text-[#2d5f4f] hover:bg-[#2d5f4f]/10`}
+            className={`${buttonSize} border-primary text-primary hover:bg-primary/10`}
         >
             {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

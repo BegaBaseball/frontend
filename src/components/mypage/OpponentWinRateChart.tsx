@@ -24,7 +24,7 @@ export default function OpponentWinRateChart({ opponentStats = {} }: OpponentWin
         return (
             <Card className="h-full">
                 <CardHeader>
-                    <CardTitle className="text-lg font-bold text-[#2d5f4f]">상대팀별 승률</CardTitle>
+                    <CardTitle className="text-lg font-bold text-primary">상대팀별 승률</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center h-[200px] text-gray-400">
                     데이터가 부족합니다.
@@ -36,7 +36,7 @@ export default function OpponentWinRateChart({ opponentStats = {} }: OpponentWin
     return (
         <Card className="h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-bold text-[#2d5f4f]">상대팀별 직관 승률 (Top 8)</CardTitle>
+                <CardTitle className="text-lg font-bold text-primary">상대팀별 직관 승률 (Top 8)</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="h-[300px] w-full">

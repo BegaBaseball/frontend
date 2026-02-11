@@ -642,7 +642,7 @@ export default function CheerDetail() {
                                 <Button
                                     onClick={handleCommentSubmit}
                                     disabled={!commentText.trim() || sendingComment}
-                                    className="h-11 sm:h-auto bg-[#2d5f4f] text-white sm:w-auto"
+                                    className="h-11 sm:h-auto bg-primary text-white sm:w-auto"
                                 >
                                     등록
                                 </Button>
@@ -654,7 +654,7 @@ export default function CheerDetail() {
                                 </p>
                                 <Button
                                     onClick={() => navigate('/login')}
-                                    className="bg-[#2d5f4f] text-white hover:bg-[#234a3d]"
+                                    className="bg-primary text-white hover:bg-primary-hover"
                                 >
                                     로그인하기
                                 </Button>

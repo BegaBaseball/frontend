@@ -2,7 +2,10 @@
 const API_URL = import.meta.env.VITE_AI_API_URL || '/ai';
 
 export interface AnalyzeRequest {
-    team_id: string;
+    team_id?: string; // deprecated: use home_team_id
+    home_team_id?: string;
+    away_team_id?: string;
+    league_context?: any;
     focus?: string[];
     game_id?: string;
     question_override?: string;

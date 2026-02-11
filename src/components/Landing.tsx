@@ -41,7 +41,7 @@ export default function Landing() {
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center gap-2">
               <img src={baseballLogo} alt="BEGA" className="w-6 h-6 sm:w-8 sm:h-8" />
-              <span className="text-lg sm:text-xl font-black text-[#2d5f4f]">BEGA</span>
+              <span className="text-lg sm:text-xl font-black text-primary">BEGA</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
               <Button
@@ -53,7 +53,7 @@ export default function Landing() {
               </Button>
               <Button
                 onClick={() => navigate('/home')}
-                className="bg-[#2d5f4f] text-white rounded-full px-4 sm:px-6 text-sm sm:text-base"
+                className="bg-primary text-white rounded-full px-4 sm:px-6 text-sm sm:text-base"
               >
                 시작하기
               </Button>
@@ -72,12 +72,12 @@ export default function Landing() {
           <div className="text-center lg:text-left">
             <div className="flex items-center justify-center lg:justify-start gap-2 sm:gap-3 mb-4 sm:mb-8">
               <img src={baseballLogo} alt="BEGA Logo" className="w-10 h-10 sm:w-16 sm:h-16" />
-              <span className="text-2xl sm:text-3xl font-black text-[#2d5f4f]">BEGA</span>
+              <span className="text-2xl sm:text-3xl font-black text-primary">BEGA</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-[#1a1a1a] leading-tight mb-4 sm:mb-6">
               야구를 더<br />
-              <span className="text-[#2d5f4f]">스마트</span>하게
+              <span className="text-primary">스마트</span>하게
             </h1>
 
             <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-8 sm:mb-10 leading-relaxed">
@@ -88,7 +88,7 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
               <Button
                 onClick={() => navigate('/home')}
-                className="group bg-[#2d5f4f] text-white py-6 px-8 rounded-full text-lg w-full sm:w-auto"
+                className="group bg-primary text-white py-6 px-8 rounded-full text-lg w-full sm:w-auto"
               >
                 지금 바로 시작하기
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -101,7 +101,7 @@ export default function Landing() {
                   });
                 }}
                 variant="outline"
-                className="border-2 border-[#2d5f4f] text-[#2d5f4f] bg-transparent py-6 px-8 rounded-full text-lg w-full sm:w-auto hover:bg-[#2d5f4f]/10"
+                className="border-2 border-primary text-primary bg-transparent py-6 px-8 rounded-full text-lg w-full sm:w-auto hover:bg-primary/10"
               >
                 더 알아보기
               </Button>
@@ -117,7 +117,7 @@ export default function Landing() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 sm:w-32 h-4 sm:h-6 bg-gray-800 rounded-b-lg z-10" />
 
                 <div className="relative overflow-hidden bg-black rounded-lg aspect-[16/10]">
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#2d5f4f] to-[#3d7f5f]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary to-[#3d7f5f]">
                     <OptimizedImage src={begaCharacter} alt="BEGA Character" className="w-16 h-16 sm:w-24 sm:h-24 object-contain" priority={true} />
                     <div className="text-center">
                       <h1 className="text-white text-2xl sm:text-4xl font-black tracking-wider mb-1">
@@ -145,7 +145,7 @@ export default function Landing() {
           {/* Title */}
           <div className="text-center mb-12 sm:mb-24">
             <div className="inline-block px-4 py-2 mb-4 sm:mb-6 bg-[#ecfdf5] rounded-full">
-              <span className="text-sm font-semibold text-[#2d5f4f]">주요 기능</span>
+              <span className="text-sm font-semibold text-primary">주요 기능</span>
             </div>
             <h2 className="text-3xl sm:text-5xl font-black text-[#1a1a1a] mb-4 sm:mb-6 leading-tight">
               BEGA에서 사용 가능한<br className="sm:hidden" /> 기능들
@@ -206,7 +206,7 @@ export default function Landing() {
 
           <Button
             onClick={() => navigate('/home')}
-            className="group bg-white text-[#2d5f4f] py-4 px-8 sm:py-5 sm:px-10 rounded-full text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+            className="group bg-white text-primary py-4 px-8 sm:py-5 sm:px-10 rounded-full text-lg font-bold shadow-lg hover:shadow-xl transition-all"
           >
             무료로 시작하기
             <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -222,7 +222,7 @@ export default function Landing() {
               <div className="flex items-center gap-3 mb-3">
                 <img src={baseballLogo} alt="BEGA" className="w-7 h-7" />
                 <div className="flex items-baseline gap-2">
-                  <span className="text-lg font-black text-[#2d5f4f]">BEGA</span>
+                  <span className="text-lg font-black text-primary">BEGA</span>
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">BASEBALL GUIDE</span>
                 </div>
               </div>

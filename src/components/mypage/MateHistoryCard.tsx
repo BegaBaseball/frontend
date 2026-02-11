@@ -31,7 +31,7 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
 
         <div className="flex-1">
           <div className="flex items-center justify-between mb-2">
-            <h3 style={{ color: '#2d5f4f', fontWeight: 700 }}>
+            <h3 className="text-primary" style={{ fontWeight: 700 }}>
               {party.stadium}
             </h3>
             <span
@@ -68,7 +68,7 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
           )}
           {/* 상세보기 힌트 추가 */}
           <div className="mt-3 pt-3 border-t">
-            <span className="text-sm" style={{ color: '#2d5f4f' }}>
+            <span className="text-sm text-primary">
               상세보기 →
             </span>
           </div>
