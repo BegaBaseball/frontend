@@ -69,11 +69,6 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
         } : null);
     };
 
-    const getTeamColor = (teamName: string | null) => {
-        // You might want to share this logic with other components or import it
-        return teamName ? '#2d5f4f' : '#888';
-    };
-
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-md bg-white dark:bg-gray-800">
@@ -84,7 +79,7 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
                 <div className="flex flex-col items-center justify-center p-4 space-y-6">
                     {isLoading ? (
                         <div className="flex flex-col items-center py-8">
-                            <Loader2 className="h-8 w-8 animate-spin text-[#2d5f4f]" />
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             <p className="mt-2 text-sm text-gray-500">프로필 불러오는 중...</p>
                         </div>
                     ) : error ? (
@@ -108,7 +103,7 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
                                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.name}</h3>
                                 {profile.favoriteTeam ? (
                                     <Badge variant="secondary" className="px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200">
-                                        <Trophy className="w-3 h-3 mr-1 text-[#2d5f4f]" />
+                                        <Trophy className="w-3 h-3 mr-1 text-primary" />
                                         {getTeamKoreanName(profile.favoriteTeam)}
                                     </Badge>
                                 ) : (

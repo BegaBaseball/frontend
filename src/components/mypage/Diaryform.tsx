@@ -67,7 +67,7 @@ export default function DiaryViewSection() {
   const monthCalendar = useMonthCalendar(currentMonth);
 
   return (
-    <div className="rounded-2xl md:rounded-3xl p-3 md:p-8" style={{ backgroundColor: '#2d5f4f' }}>
+    <div className="rounded-2xl md:rounded-3xl p-3 md:p-8 bg-primary">
       {isDesktop ? (
         // 데스크톱: 기존 월간 뷰
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-10">
@@ -116,7 +116,7 @@ export default function DiaryViewSection() {
                 let bgClass = '';
                 if (entry) {
                   if (entry.type === 'attended') {
-                    bgClass = 'bg-[#e8f5f0] dark:bg-[#134e4a]/30 border-[#2d5f4f] dark:border-[#2d5f4f]';
+                    bgClass = 'bg-[#e8f5f0] dark:bg-[#134e4a]/30 border-primary dark:border-primary';
                   } else {
                     bgClass = 'bg-[#fef3c7] dark:bg-[#78350f]/30 border-[#fbbf24] dark:border-[#d97706]';
                   }
@@ -136,7 +136,7 @@ export default function DiaryViewSection() {
                         new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day.dayNumber, 12, 0, 0)
                       )
                     }
-                    className={`border rounded-lg p-2 flex flex-col min-h-[96px] md:min-h-[110px] transition-colors ${bgClass} ${isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f] dark:ring-offset-gray-900' : ''
+                    className={`border rounded-lg p-2 flex flex-col min-h-[96px] md:min-h-[110px] transition-colors ${bgClass} ${isSelected ? 'ring-2 ring-offset-1 ring-primary dark:ring-offset-gray-900' : ''
                       }`}
                     disabled={!day.isValidDay}
                   >
@@ -170,15 +170,13 @@ export default function DiaryViewSection() {
             <div className="flex items-center gap-6 mt-6 justify-center">
               <div className="flex items-center gap-2">
                 <div
-                  className="w-4 h-4 rounded"
-                  style={{ backgroundColor: '#e8f5f0', border: '2px solid #2d5f4f' }}
+                  className="w-4 h-4 rounded bg-[#e8f5f0] border-2 border-primary"
                 />
                 <span className="text-sm text-gray-600">직관 완료</span>
               </div>
               <div className="flex items-center gap-2">
                 <div
-                  className="w-4 h-4 rounded"
-                  style={{ backgroundColor: '#fef3c7', border: '2px solid #fbbf24' }}
+                  className="w-4 h-4 rounded bg-[#fef3c7] border-2 border-[#fbbf24]"
                 />
                 <span className="text-sm text-gray-600">직관 예정</span>
               </div>
@@ -188,7 +186,7 @@ export default function DiaryViewSection() {
           {/* 오른쪽: 다이어리 폼 */}
           <Card className="p-5 md:p-6 lg:col-span-3">
             <div className="mb-6">
-              <h3 style={{ color: '#2d5f4f', fontWeight: 900 }}>
+              <h3 className="text-primary" style={{ fontWeight: 900 }}>
                 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 직관 기록
               </h3>
             </div>
@@ -257,20 +255,13 @@ export default function DiaryViewSection() {
                     key={index}
                     data-testid={`day-${date.getDate()}`}
                     onClick={() => handleDateSelect(date)}
-                    className={`border rounded-lg p-2 flex flex-col min-h-[84px] bg-white hover:bg-gray-50 ${isSelected ? 'ring-2 ring-offset-1 ring-[#2d5f4f]' : ''
-                      }`}
-                    style={{
-                      borderColor: entry
+                    className={`border rounded-lg p-2 flex flex-col min-h-[84px] hover:bg-gray-50 ${isSelected ? 'ring-2 ring-offset-1 ring-primary' : ''} ${
+                      entry
                         ? entry.type === 'attended'
-                          ? '#2d5f4f'
-                          : '#fbbf24'
-                        : '#e5e7eb',
-                      backgroundColor: entry
-                        ? entry.type === 'attended'
-                          ? '#e8f5f0'
-                          : '#fef3c7'
-                        : 'white',
-                    }}
+                          ? 'bg-[#e8f5f0] border-primary'
+                          : 'bg-[#fef3c7] border-[#fbbf24]'
+                        : 'bg-white border-gray-200'
+                    }`}
                   >
                     <div className="text-sm text-center w-full mb-1">{date.getDate()}</div>
                     {entry && (
@@ -290,15 +281,13 @@ export default function DiaryViewSection() {
             <div className="flex items-center gap-4 mt-4 justify-center text-xs">
               <div className="flex items-center gap-1">
                 <div
-                  className="w-3 h-3 rounded"
-                  style={{ backgroundColor: '#e8f5f0', border: '2px solid #2d5f4f' }}
+                  className="w-3 h-3 rounded bg-[#e8f5f0] border-2 border-primary"
                 />
                 <span className="text-gray-600">직관 완료</span>
               </div>
               <div className="flex items-center gap-1">
                 <div
-                  className="w-3 h-3 rounded"
-                  style={{ backgroundColor: '#fef3c7', border: '2px solid #fbbf24' }}
+                  className="w-3 h-3 rounded bg-[#fef3c7] border-2 border-[#fbbf24]"
                 />
                 <span className="text-gray-600">직관 예정</span>
               </div>
@@ -308,7 +297,7 @@ export default function DiaryViewSection() {
           {/* 다이어리 폼 */}
           <Card className="p-4">
             <div className="mb-6">
-              <h3 style={{ color: '#2d5f4f', fontWeight: 900 }}>
+              <h3 className="text-primary" style={{ fontWeight: 900 }}>
                 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 직관 기록
               </h3>
             </div>
@@ -349,7 +338,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h3 style={{ fontWeight: 900, color: '#2d5f4f' }}>직관 기록</h3>
+        <h3 className="text-primary" style={{ fontWeight: 900 }}>직관 기록</h3>
       </div>
 
       {/* 오늘의 기분 */}
@@ -364,7 +353,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         />
         <div>
           <div className="text-sm text-gray-500 mb-1">오늘의 기분</div>
-          <div className="text-2xl" style={{ fontWeight: 900, color: '#2d5f4f' }}>
+          <div className="text-2xl text-primary" style={{ fontWeight: 900 }}>
             {diaryForm.emojiName}
           </div>
         </div>
@@ -373,7 +362,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
       {/* 사진 */}
       {diaryForm.photos && diaryForm.photos.length > 0 && (
         <div>
-          <div className="text-sm mb-3" style={{ color: '#2d5f4f', fontWeight: 700 }}>
+          <div className="text-sm mb-3 text-primary" style={{ fontWeight: 700 }}>
             사진
           </div>
           {diaryForm.photos.length === 1 ? (
@@ -409,20 +398,20 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
       <div className="space-y-4">
         <div className="grid grid-cols-[80px_1fr] gap-2">
           <div className="text-sm text-gray-600">경기</div>
-          <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+          <div className="font-bold text-primary">
             {selectedDiary?.team || '경기 정보 없음'}
           </div>
         </div>
         <div className="grid grid-cols-[80px_1fr] gap-2">
           <div className="text-sm text-gray-600">구장</div>
-          <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+          <div className="font-bold text-primary">
             {selectedDiary?.stadium || '구장 정보 없음'}
           </div>
         </div>
         {diaryForm.winningName && (
           <div className="grid grid-cols-[80px_1fr] gap-2">
             <div className="text-sm text-gray-600">승패</div>
-            <div style={{ fontWeight: 700, color: '#2d5f4f' }}>
+            <div className="font-bold text-primary">
               {getWinningLabel(diaryForm.winningName)}
             </div>
           </div>
@@ -444,8 +433,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         <Button
           data-testid="edit-diary-btn"
           onClick={() => setIsEditMode(true)}
-          className="text-white"
-          style={{ backgroundColor: '#2d5f4f' }}
+          className="text-white bg-primary"
           disabled={deleteMutation.isPending}
         >
           수정하기
@@ -550,19 +538,19 @@ function DiaryEditMode({
       <div className="mb-4">
         <label className={`
           flex items-center justify-center gap-2 w-full py-3 px-4 
-          border-2 border-dashed border-[#2d5f4f] rounded-xl cursor-pointer
+          border-2 border-dashed border-primary rounded-xl cursor-pointer
           bg-[#f8fcfb] hover:bg-[#e8f5f0] transition-colors
           ${isScanning ? 'opacity-50 cursor-not-allowed' : ''}
         `}>
           {isScanning ? (
             <>
-              <Loader2 className="w-5 h-5 text-[#2d5f4f] animate-spin" />
-              <span className="text-[#2d5f4f] font-semibold">티켓 분석 중...</span>
+              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+              <span className="text-primary font-semibold">티켓 분석 중...</span>
             </>
           ) : (
             <>
-              <Ticket className="w-5 h-5 text-[#2d5f4f]" />
-              <span className="text-[#2d5f4f] font-semibold">티켓 사진으로 자동 입력</span>
+              <Ticket className="w-5 h-5 text-primary" />
+              <span className="text-primary font-semibold">티켓 사진으로 자동 입력</span>
             </>
           )}
           <input
@@ -583,10 +571,9 @@ function DiaryEditMode({
           <button
             type="button"
             onClick={() => updateForm({ type: 'attended' })}
-            className={`flex-1 rounded-lg transition-all ${diaryForm.type === 'attended' ? 'shadow-md scale-105' : 'bg-gray-100'
+            className={`flex-1 rounded-lg transition-all ${diaryForm.type === 'attended' ? 'shadow-md scale-105 bg-primary' : 'bg-gray-100'
               }`}
             style={{
-              backgroundColor: diaryForm.type === 'attended' ? '#2d5f4f' : undefined,
               padding: '10px',
             }}
           >
@@ -666,7 +653,7 @@ function DiaryEditMode({
               </div>
             ))}
             {allPhotos.length < MAX_PHOTOS && (
-              <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#2d5f4f] hover:bg-gray-50">
+              <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50">
                 <Camera className="w-8 h-8 text-gray-400 mb-2" />
                 <span className="text-xs text-gray-500">사진 추가</span>
                 <input
@@ -690,7 +677,7 @@ function DiaryEditMode({
           <select
             value={diaryForm.gameId}
             onChange={(e) => updateForm({ gameId: e.target.value })}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           >
             <option value="">경기를 선택하세요</option>
             {availableGames.map((game: Game) => (
@@ -710,7 +697,7 @@ function DiaryEditMode({
       {/* 좌석 정보 (직관 완료시만) */}
       {diaryForm.type === 'attended' && (
         <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
-          <label className="text-sm font-bold text-[#2d5f4f]">좌석 정보</label>
+          <label className="text-sm font-bold text-primary">좌석 정보</label>
           <div className="grid grid-cols-2 gap-3">
             <input
               type="text"
@@ -788,7 +775,7 @@ function DiaryEditMode({
             diaryForm.type === 'attended' ? '오늘의 직관 경험을 기록해보세요' : '경기 후 입력 가능'
           }
           rows={4}
-          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2d5f4f] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none placeholder-gray-400 dark:placeholder-gray-500"
+          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none placeholder-gray-400 dark:placeholder-gray-500"
         />
       </div>
 
@@ -809,8 +796,7 @@ function DiaryEditMode({
         )}
         <Button
           data-testid="save-diary-btn"
-          className={`${selectedDiary ? 'flex-1' : 'w-full'} text-white`}
-          style={{ backgroundColor: '#2d5f4f' }}
+          className={`${selectedDiary ? 'flex-1' : 'w-full'} text-white bg-primary`}
           onClick={handleSaveDiary}
           disabled={saveMutation.isPending || updateMutation.isPending}
         >

@@ -1,6 +1,7 @@
 // utils/prediction.ts
 import { Game, DateGames } from '../types/prediction';
-import { TEAM_FULL_NAMES, TEAM_SHORT_NAMES, DAYS_OF_WEEK } from '../constants/prediction';
+import { DAYS_OF_WEEK } from '../constants/prediction';
+import { TEAM_DATA, getFullTeamName as _getFullTeamName } from '../constants/teams';
 
 /**
  * 날짜별로 경기 그룹화 (오래된 날짜부터 최신 날짜 순)
@@ -25,14 +26,14 @@ export const groupByDate = (games: Game[]): DateGames[] => {
  * 팀 짧은 이름 → 전체 이름 변환
  */
 export const getFullTeamName = (shortName: string): string => {
-  return TEAM_FULL_NAMES[shortName] || shortName;
+  return TEAM_DATA[shortName]?.fullName || shortName;
 };
 
 /**
  * 팀 코드 → 사용자 친화적 짧은 이름 변환
  */
 export const getShortTeamName = (code: string): string => {
-  return TEAM_SHORT_NAMES[code] || code;
+  return TEAM_DATA[code]?.name || code;
 };
 
 /**

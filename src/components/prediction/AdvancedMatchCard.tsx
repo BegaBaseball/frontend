@@ -6,7 +6,8 @@ import { Button } from '../ui/button';
 import { TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import TeamLogo from '../TeamLogo';
 import { Game, VoteTeam, GameDetail, GameInningScore, GameSummary } from '../../types/prediction';
-import { TEAM_COLORS, GAME_TIME } from '../../constants/prediction';
+import { GAME_TIME } from '../../constants/prediction';
+import { getTeamColorByAnyKey } from '../../constants/teams';
 import { getFullTeamName } from '../../utils/prediction';
 
 interface AdvancedMatchCardProps {
@@ -258,8 +259,8 @@ export default function AdvancedMatchCard({
   );
   const hasExtraInnings = extraInningScores.length > 0;
 
-  const awayColor = TEAM_COLORS[game.awayTeam];
-  const homeColor = TEAM_COLORS[game.homeTeam];
+  const awayColor = getTeamColorByAnyKey(game.awayTeam);
+  const homeColor = getTeamColorByAnyKey(game.homeTeam);
   const awayTeamName = getFullTeamName(game.awayTeam);
   const homeTeamName = getFullTeamName(game.homeTeam);
   const matchDateValue = gameDetail?.gameDate || game.gameDate;
@@ -392,7 +393,7 @@ export default function AdvancedMatchCard({
               aria-label={`${getFullTeamName(game.awayTeam)} 승리 예측`}
               className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
               style={{
-                backgroundColor: TEAM_COLORS[game.awayTeam],
+                backgroundColor: getTeamColorByAnyKey(game.awayTeam),
                 fontWeight: 700,
                 opacity: userVote === 'away' ? 1 : userVote === 'home' ? 0.4 : 1,
                 transform: userVote === 'away' ? 'scale(1.02)' : 'scale(1)'
@@ -412,7 +413,7 @@ export default function AdvancedMatchCard({
               data-testid="vote-home-btn"
               className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
               style={{
-                backgroundColor: TEAM_COLORS[game.homeTeam],
+                backgroundColor: getTeamColorByAnyKey(game.homeTeam),
                 fontWeight: 700,
                 opacity: userVote === 'home' ? 1 : userVote === 'away' ? 0.4 : 1,
                 transform: userVote === 'home' ? 'scale(1.02)' : 'scale(1)'

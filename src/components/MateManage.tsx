@@ -183,7 +183,7 @@ export default function MateManage() {
     setIsDeleting(true);
 
     try {
-      await api.deleteParty(selectedParty.id, currentUserId);
+      await api.deleteParty(selectedParty.id);
       toast.success('파티가 삭제되었습니다.');
       navigate('/mate');
     } catch (error: unknown) {
@@ -272,7 +272,7 @@ export default function MateManage() {
 
       <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
         <span>결제 금액:</span>
-        <span style={{ color: '#2d5f4f' }}>{app.depositAmount.toLocaleString()}원</span>
+        <span className="text-primary">{app.depositAmount.toLocaleString()}원</span>
         <Badge variant="outline" className="ml-2">
           {app.paymentType === 'DEPOSIT' ? '보증금' : '전액결제'}
         </Badge>
@@ -291,8 +291,7 @@ export default function MateManage() {
           <div className="flex gap-2">
             <Button
               onClick={() => handleApprove(app.id)}
-              className="flex-1 text-white"
-              style={{ backgroundColor: '#2d5f4f' }}
+              className="flex-1 text-white bg-primary"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
               승인
@@ -316,7 +315,7 @@ export default function MateManage() {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2d5f4f] mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-gray-600">신청 목록을 불러오는 중...</p>
           </div>
         </div>
@@ -363,7 +362,7 @@ export default function MateManage() {
           뒤로
         </Button>
 
-        <h1 style={{ color: '#2d5f4f' }} className="mb-2">
+        <h1 className="mb-2 text-primary">
           파티 관리
         </h1>
         <p className="text-gray-600 mb-8">신청 목록을 확인하고 승인/거절하세요</p>
@@ -372,7 +371,7 @@ export default function MateManage() {
         <Card className="p-6 mb-6">
           {isEditing ? (
             <div className="space-y-4">
-              <h3 className="mb-2" style={{ color: '#2d5f4f' }}>파티 정보 수정</h3>
+              <h3 className="mb-2 text-primary">파티 정보 수정</h3>
               <div className="space-y-2">
                 <Label>좌석</Label>
                 <Input
@@ -411,7 +410,7 @@ export default function MateManage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleSaveEdit} className="flex-1 text-white" style={{ backgroundColor: '#2d5f4f' }}>
+                <Button onClick={handleSaveEdit} className="flex-1 text-white bg-primary">
                   저장
                 </Button>
                 <Button onClick={() => setIsEditing(false)} variant="outline" className="flex-1">
@@ -424,7 +423,7 @@ export default function MateManage() {
               <div className="flex items-center gap-4 mb-4">
                 <TeamLogo teamId={selectedParty.teamId} size="md" />
                 <div className="flex-1">
-                  <h3 className="mb-1" style={{ color: '#2d5f4f' }}>
+                  <h3 className="mb-1 text-primary">
                     {selectedParty.stadium}
                   </h3>
                   <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -458,8 +457,7 @@ export default function MateManage() {
                 {approvedApplications.length > 0 && (
                   <Button
                     onClick={handleOpenChat}
-                    className="flex-1 text-white"
-                    style={{ backgroundColor: '#2d5f4f' }}
+                    className="flex-1 text-white bg-primary"
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     채팅방 입장

@@ -16,7 +16,7 @@ export interface KboScheduleItem {
   awayTeam: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export class ApiError extends Error {
   status: number;
@@ -134,8 +134,8 @@ export const api = {
     });
   },
 
-  async deleteParty(partyId: string | number, hostId: number): Promise<void> {
-    await this.request(`/parties/${partyId}?hostId=${hostId}`, {
+  async deleteParty(partyId: string | number): Promise<void> {
+    await this.request(`/parties/${partyId}`, {
       method: 'DELETE',
     });
   },
@@ -152,9 +152,8 @@ export const api = {
     return this.request<Application[]>(`/applications/party/${partyId}`);
   },
 
-  async getApplicationsByApplicant(applicantId: number | string | null): Promise<Application[]> {
-    if (applicantId === null) return [];
-    return this.request<Application[]>(`/applications/applicant/${applicantId}`);
+  async getMyApplications(): Promise<Application[]> {
+    return this.request<Application[]>('/applications/my');
   },
 
   async approveApplication(applicationId: string | number): Promise<Application> {
@@ -206,12 +205,12 @@ export const api = {
   },
 
   // Notification
-  async getNotifications(userId: number): Promise<NotificationData[]> {
-    return this.request<NotificationData[]>(`/notifications/user/${userId}`);
+  async getNotifications(): Promise<NotificationData[]> {
+    return this.request<NotificationData[]>('/notifications/my');
   },
 
-  async getUnreadCount(userId: number): Promise<number> {
-    return this.request<number>(`/notifications/user/${userId}/unread-count`);
+  async getUnreadCount(): Promise<number> {
+    return this.request<number>('/notifications/my/unread-count');
   },
 
   async markAsRead(notificationId: number): Promise<void> {

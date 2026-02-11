@@ -49,7 +49,7 @@ export default function PasswordReset() {
 
             <div className="space-y-2">
               <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
-                <Mail className="w-4 h-4" style={{ color: '#2d5f4f' }} />
+                <Mail className="w-4 h-4 text-primary" />
                 E-mail
               </Label>
               <Input
@@ -58,8 +58,7 @@ export default function PasswordReset() {
                 value={email}
                 onChange={(e) => handleEmailChange(e.target.value)}
                 onBlur={handleEmailBlur}
-                className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-[#2d5f4f] ${emailError ? 'border-red-500' : ''}`}
-                style={{ '--tw-ring-color': '#2d5f4f' } as React.CSSProperties}
+                className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary ${emailError ? 'border-red-500' : ''}`}
                 placeholder="이메일을 입력하세요"
                 disabled={isLoading}
               />
@@ -68,10 +67,9 @@ export default function PasswordReset() {
               )}
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#2d5f4f' }}
+            <Button
+              type="submit"
+              className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed bg-primary"
               disabled={isLoading}
             >
               {isLoading ? '전송 중...' : '재설정 링크 보내기'}
@@ -80,23 +78,21 @@ export default function PasswordReset() {
         </>
       ) : (
         <div className="text-center py-8">
-          <div 
-            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ backgroundColor: '#2d5f4f' }}
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 bg-primary"
           >
             <Check className="w-10 h-10 text-white" />
           </div>
           <h2 className="mb-4">이메일을 확인해주세요</h2>
           <p className="text-gray-600 mb-8">
-            <span style={{ color: '#2d5f4f' }}>{email}</span> 로<br />
+            <span className="text-primary">{email}</span> 로<br />
             비밀번호 재설정 링크를 보냈습니다.<br />
             이메일을 확인하고 링크를 클릭해주세요.
           </p>
-          
-          <Button 
+
+          <Button
             onClick={() => navigate('/login')}
-            className="w-full py-6 rounded-full hover:bg-gray-50 border-2"
-            style={{ borderColor: '#2d5f4f', color: '#2d5f4f', backgroundColor: 'white' }}
+            className="w-full py-6 rounded-full hover:bg-gray-50 border-2 border-primary text-primary bg-white"
           >
             로그인으로 돌아가기
           </Button>

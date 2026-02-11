@@ -54,8 +54,8 @@ export async function fetchAllParties(): Promise<MateParty[]> {
 /**
  * 사용자의 신청 내역 조회
  */
-export async function fetchUserApplications(userId: number): Promise<MateApplication[]> {
-  const response = await fetch(`/api/applications/applicant/${userId}`, {
+export async function fetchMyApplications(): Promise<MateApplication[]> {
+  const response = await fetch(`${API_BASE}/applications/my`, {
     credentials: 'include',
   });
 
@@ -76,7 +76,7 @@ export async function fetchMyParties(): Promise<MateParty[]> {
     const userId = await fetchUserIdByEmail(userData.data.email);
 
     // 2. 백엔드에서 필터링된 내 파티 목록 가져오기
-    const response = await fetch(`${API_BASE}/parties/my/${userId}`, {
+    const response = await fetch(`${API_BASE}/parties/my`, {
       credentials: 'include',
     });
 
