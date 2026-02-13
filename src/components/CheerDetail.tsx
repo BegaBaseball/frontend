@@ -34,6 +34,7 @@ import { Comment } from '../api/cheerApi';
 import { CommentItem } from './cheer/CommentItem';
 import TeamLogo from './TeamLogo';
 import { TEAM_DATA } from '../constants/teams';
+import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
 import UserProfileModal from './profile/UserProfileModal';
@@ -406,9 +407,14 @@ export default function CheerDetail() {
                                     <div className="h-full w-full rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-300 overflow-hidden">
                                         {selectedPost.authorProfileImageUrl ? (
                                             <img
-                                                src={selectedPost.authorProfileImageUrl}
+                                                src={selectedPost.authorProfileImageUrl.includes('/assets/')
+                                                    ? DEFAULT_PROFILE_IMAGE
+                                                    : selectedPost.authorProfileImageUrl}
                                                 alt={selectedPost.author}
                                                 className="h-full w-full object-cover"
+                                                onError={(event) => {
+                                                    event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+                                                }}
                                             />
                                         ) : (
                                             <img

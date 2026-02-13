@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-// import { useCheerStore } from './cheerStore'; // Removed
 
 export type ViewType =
   | 'home'

@@ -149,6 +149,32 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
         `잔여 ${seasonContext?.home?.remainingGames ?? '미상'}/${seasonContext?.away?.remainingGames ?? '미상'}경기`
     );
 
+    const resolveSeasonYear = () => {
+        const dateText = game?.gameDate;
+        if (dateText) {
+            const match = String(dateText).match(/^(\d{4})/);
+            if (match) {
+                const parsed = Number(match[1]);
+                if (Number.isInteger(parsed) && parsed >= 1982 && parsed <= 2100) {
+                    return parsed;
+                }
+            }
+        }
+
+        const seasonId = game?.seasonId;
+        if (seasonId !== undefined && seasonId !== null) {
+            const match = String(seasonId).match(/^(\d{4})/);
+            if (match) {
+                const parsed = Number(match[1]);
+                if (Number.isInteger(parsed) && parsed >= 1982 && parsed <= 2100) {
+                    return parsed;
+                }
+            }
+        }
+
+        return undefined;
+    };
+
     const getSeasonBanner = () => {
         if (!seasonContext || !seasonContext.home || !seasonContext.away) return null;
         const { home, away } = seasonContext;
@@ -200,6 +226,7 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
         const awayTeamName = TEAM_DATA[game.awayTeam]?.fullName || game.awayTeam;
         const homeId = TEAM_NAME_TO_ID[homeTeamName] || game.homeTeam;
         const awayId = TEAM_NAME_TO_ID[awayTeamName] || game.awayTeam;
+        const seasonYear = resolveSeasonYear();
 
         const questionOverride = isPastGame
             ? buildPastPrompt(homeTeamName, awayTeamName)
@@ -213,6 +240,7 @@ export default function CoachBriefing({ game, gameDetail, seasonContext, isPastG
             away_team_id: awayId,
             league_context: {
                 season: game.seasonId,
+                season_year: seasonYear,
                 league_type: game.leagueType,
                 round: game.postSeasonSeries,
                 game_no: game.seriesGameNo,

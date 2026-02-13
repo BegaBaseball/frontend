@@ -24,7 +24,6 @@ import VerificationRequiredDialog from './VerificationRequiredDialog';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
 import { analyzeTicket } from '../api/ticket';
-// import { getMatchesForDate, MatchInfo } from '../utils/mockSchedule';
 export interface MatchInfo {
   id: string;
   gameTime: string;

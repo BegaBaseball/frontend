@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Stadium, Place, CategoryType } from '../types/stadium';
 import { api } from '../utils/api';
 import { loadKakaoMapScript, searchNearbyPlaces, updateMapMarkers } from '../utils/kakaoMap';
@@ -82,6 +83,7 @@ export const useStadiumGuide = () => {
       } catch (error) {
         console.error('장소 목록 로드 실패:', error);
         setPlaces([]);
+        toast.error('장소 목록을 불러오지 못했습니다.');
       } finally {
         setLoading(false);
       }
@@ -95,7 +97,7 @@ export const useStadiumGuide = () => {
         selectedStadium,
         map,
         setPlaces,
-        (error) => console.error(error)
+        (error) => { console.error(error); toast.error('주변 편의점을 검색하지 못했습니다.'); }
       );
     } else if (selectedCategory === 'parking') {
       if (!map) return;
@@ -105,7 +107,7 @@ export const useStadiumGuide = () => {
         selectedStadium,
         map,
         setPlaces,
-        (error) => console.error(error)
+        (error) => { console.error(error); toast.error('주변 주차장을 검색하지 못했습니다.'); }
       );
     } else {
       fetchPlaces(selectedStadium.stadiumId, selectedCategory);

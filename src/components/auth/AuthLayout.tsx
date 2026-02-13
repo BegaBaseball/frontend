@@ -97,8 +97,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
               {showHomeButton && (
                 <button
                   onClick={() => navigate('/home')}
-                  className="absolute flex items-center gap-2 bg-white rounded-full px-3 py-2 transition-all hover:scale-105 z-50"
-                  className="border-2 border-primary"
+                  className="absolute flex items-center gap-2 bg-white rounded-full px-3 py-2 transition-all hover:scale-105 z-50 border-2 border-primary"
                   style={{
                     top: '38px',
                     right: '48px',

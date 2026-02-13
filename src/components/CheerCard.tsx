@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Heart, MessageCircle, MoreHorizontal, Repeat2, Trash2 } from 'lucide-react';
+import { Bookmark, Edit2, Heart, MessageCircle, MoreHorizontal, Repeat2, Trash2 } from 'lucide-react';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { CheerPost } from '../api/cheerApi';
 import ImageGrid from './ImageGrid';
 import RollingNumber from './RollingNumber';
 import TeamLogo from './TeamLogo';
+import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import { TEAM_DATA } from '../constants/teams';
 import CommentModal from './CommentModal';
-// import RepostModal from './RepostModal'; // Removed
 import QuoteRepostEditor from './QuoteRepostEditor';
 import EmbeddedPost from './EmbeddedPost';
 import { useCheerMutations } from '../hooks/useCheerQueries';
@@ -31,16 +31,17 @@ interface CheerCardProps {
 
 function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const navigate = useNavigate();
-    // const toggleLike = useCheerStore((state) => state.toggleLike); // Removed
-    // const deletePost = useCheerStore((state) => state.deletePost); // Removed
-    const { toggleLikeMutation, deletePostMutation, repostMutation, cancelRepostMutation } = useCheerMutations();
+    const { toggleLikeMutation, toggleBookmarkMutation, deletePostMutation, repostMutation, cancelRepostMutation } = useCheerMutations();
     const { confirm } = useConfirmDialog();
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
-    // const [isRepostModalOpen, setIsRepostModalOpen] = useState(false); // Removed for Popover
     const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
     const [isPopoverOpen, setIsPopoverOpen] = useState(false); // New state for manually closing popover if needed
 
     const contentText = post.content?.trim() || '';
+    const resolveProfileImage = (imageUrl?: string) => {
+        if (!imageUrl) return null;
+        return imageUrl.includes('/assets/') ? DEFAULT_PROFILE_IMAGE : imageUrl;
+    };
 
     // Use a ref-like derived value OR helper function defined inside the component
     const normalizeContent = (text: string) => {
@@ -61,7 +62,9 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const commentCount = statsSource.commentCount ?? post.comments;
     const likeCount = statsSource.likeCount ?? post.likes;
     const repostCount = statsSource.repostCount ?? post.repostCount;
+    const bookmarkCount = post.bookmarkCount ?? 0;
     const repostActive = post.repostedByMe || (post.repostType && post.isOwner);
+    const bookmarkActive = Boolean(post.isBookmarked ?? post.bookmarked);
 
     const [likeAnimating, setLikeAnimating] = useState(false);
     const [commentAnimating, setCommentAnimating] = useState(false);
@@ -87,6 +90,11 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         likeTimerRef.current = window.setTimeout(() => {
             setLikeAnimating(false);
         }, 450);
+    };
+
+    const handleBookmarkClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
+        toggleBookmarkMutation.mutate(post.id);
     };
 
     const handleEdit = (event: React.MouseEvent) => {
@@ -227,21 +235,27 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         }}
                     >
                         {(post.repostType === 'SIMPLE' && post.originalPost) ? (
-                            post.originalPost.authorProfileImageUrl ? (
+                            resolveProfileImage(post.originalPost.authorProfileImageUrl) ? (
                                 <img
-                                    src={post.originalPost.authorProfileImageUrl}
+                                    src={resolveProfileImage(post.originalPost.authorProfileImageUrl) || DEFAULT_PROFILE_IMAGE}
                                     alt={post.originalPost.author}
                                     className="h-full w-full object-cover image-render-quality"
+                                    onError={(event) => {
+                                        event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+                                    }}
                                 />
                             ) : (
                                 post.originalPost.author?.slice(0, 1) || '?'
                             )
                         ) : (
-                            post.authorProfileImageUrl ? (
+                            resolveProfileImage(post.authorProfileImageUrl) ? (
                                 <img
-                                    src={post.authorProfileImageUrl}
+                                    src={resolveProfileImage(post.authorProfileImageUrl) || DEFAULT_PROFILE_IMAGE}
                                     alt={post.author}
                                     className="h-full w-full object-cover image-render-quality"
+                                    onError={(event) => {
+                                        event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+                                    }}
                                 />
                             ) : (
                                 post.author?.slice(0, 1) || '?'
@@ -512,6 +526,28 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                 />
                             </span>
                             <RollingNumber value={likeCount} />
+                        </button>
+
+                        <button
+                            type="button"
+                            className={`group/bookmark flex items-center gap-1.5 rounded-full transition-colors ${bookmarkActive ? 'text-yellow-500' : 'hover:text-yellow-500'
+                                }`}
+                            onClick={handleBookmarkClick}
+                            aria-label={bookmarkActive ? '북마크 취소' : '북마크'}
+                            aria-pressed={bookmarkActive}
+                        >
+                            <span
+                                className={`relative rounded-full p-2 transition-all duration-200 ${bookmarkActive ? 'bg-yellow-50 dark:bg-yellow-500/20' : 'group-hover/bookmark:bg-yellow-50 dark:group-hover/bookmark:bg-yellow-500/20'
+                                    }`}
+                            >
+                                <Bookmark
+                                    className={`h-[18px] w-[18px] transition-all duration-200 ${bookmarkActive
+                                        ? 'fill-yellow-500 text-yellow-500 scale-110'
+                                        : 'fill-transparent'
+                                        }`}
+                                />
+                            </span>
+                            <RollingNumber value={bookmarkCount} />
                         </button>
                     </div>
                 </div>
