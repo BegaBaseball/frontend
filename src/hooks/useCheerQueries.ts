@@ -177,25 +177,182 @@ export const useCheerMutations = () => {
     const toggleBookmarkMutation = useMutation({
         mutationFn: cheerApi.toggleBookmark,
         onMutate: async (postId) => {
+            await queryClient.cancelQueries({ queryKey: ['cheer-posts'] });
+            await queryClient.cancelQueries({ queryKey: ['userPosts'] });
+            await queryClient.cancelQueries({ queryKey: ['cheer-bookmarks'] });
             await queryClient.cancelQueries({ queryKey: ['cheer-post', postId] });
+
             const previousPost = queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]);
+            const previousCheerPosts = queryClient.getQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] });
+            const previousUserPosts = queryClient.getQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] });
+            const previousBookmarks = queryClient.getQueryData<PageResponse<CheerPost>>(['cheer-bookmarks']);
+
+            const applyOptimisticToggleOnInfinite = (old: CheerInfiniteData | undefined) => {
+                if (!old?.pages) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map((page) => ({
+                        ...page,
+                        content: page.content.map((post) => {
+                            if (post.id !== postId) return post;
+                            const currentBookmarked = post.isBookmarked ?? post.bookmarked ?? false;
+                            const nextBookmarked = !currentBookmarked;
+                            const nextBookmarkCount = Math.max(
+                                0,
+                                (post.bookmarkCount ?? 0) + (nextBookmarked ? 1 : -1)
+                            );
+                            return {
+                                ...post,
+                                isBookmarked: nextBookmarked,
+                                bookmarked: nextBookmarked,
+                                bookmarkCount: nextBookmarkCount,
+                            };
+                        }),
+                    })),
+                };
+            };
+
+            const applyOptimisticToggleOnPage = (old: PageResponse<CheerPost> | undefined) => {
+                if (!old?.content) return old;
+                return {
+                    ...old,
+                    content: old.content.map((post) => {
+                        if (post.id !== postId) return post;
+                        const currentBookmarked = post.isBookmarked ?? post.bookmarked ?? false;
+                        const nextBookmarked = !currentBookmarked;
+                        const nextBookmarkCount = Math.max(
+                            0,
+                            (post.bookmarkCount ?? 0) + (nextBookmarked ? 1 : -1)
+                        );
+                        return {
+                            ...post,
+                            isBookmarked: nextBookmarked,
+                            bookmarked: nextBookmarked,
+                            bookmarkCount: nextBookmarkCount,
+                        };
+                    }),
+                };
+            };
 
             if (previousPost) {
+                const currentBookmarked = previousPost.isBookmarked ?? previousPost.bookmarked ?? false;
+                const nextBookmarked = !currentBookmarked;
+                const nextBookmarkCount = Math.max(
+                    0,
+                    (previousPost.bookmarkCount ?? 0) + (nextBookmarked ? 1 : -1)
+                );
                 queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], {
                     ...previousPost,
-                    isBookmarked: !previousPost.isBookmarked,
+                    isBookmarked: nextBookmarked,
+                    bookmarked: nextBookmarked,
+                    bookmarkCount: nextBookmarkCount,
                 });
             }
-            return { previousPost };
+
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) =>
+                applyOptimisticToggleOnInfinite(old)
+            );
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) =>
+                applyOptimisticToggleOnInfinite(old)
+            );
+            queryClient.setQueryData<PageResponse<CheerPost>>(['cheer-bookmarks'], (old) =>
+                applyOptimisticToggleOnPage(old)
+            );
+
+            return {
+                previousPost,
+                previousCheerPosts,
+                previousUserPosts,
+                previousBookmarks,
+            };
         },
         onError: (_err, postId, context) => {
             if (context?.previousPost) {
                 queryClient.setQueryData(['cheer-post', postId], context.previousPost);
             }
+            context?.previousCheerPosts?.forEach(([queryKey, data]) => {
+                queryClient.setQueryData(queryKey, data);
+            });
+            context?.previousUserPosts?.forEach(([queryKey, data]) => {
+                queryClient.setQueryData(queryKey, data);
+            });
+            if (context?.previousBookmarks) {
+                queryClient.setQueryData(['cheer-bookmarks'], context.previousBookmarks);
+            }
         },
-        onSuccess: (_data, postId) => {
+        onSuccess: (data, postId) => {
+            const bookmarked = Boolean(data.bookmarked);
+            const bookmarkCount = typeof data.count === 'number' ? data.count : undefined;
+
+            queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    isBookmarked: bookmarked,
+                    bookmarked,
+                    bookmarkCount: bookmarkCount ?? old.bookmarkCount,
+                };
+            });
+
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
+                if (!old?.pages) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map((page) => ({
+                        ...page,
+                        content: page.content.map((post) => {
+                            if (post.id !== postId) return post;
+                            return {
+                                ...post,
+                                isBookmarked: bookmarked,
+                                bookmarked,
+                                bookmarkCount: bookmarkCount ?? post.bookmarkCount,
+                            };
+                        }),
+                    })),
+                };
+            });
+
+            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
+                if (!old?.pages) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map((page) => ({
+                        ...page,
+                        content: page.content.map((post) => {
+                            if (post.id !== postId) return post;
+                            return {
+                                ...post,
+                                isBookmarked: bookmarked,
+                                bookmarked,
+                                bookmarkCount: bookmarkCount ?? post.bookmarkCount,
+                            };
+                        }),
+                    })),
+                };
+            });
+
+            queryClient.setQueryData<PageResponse<CheerPost>>(['cheer-bookmarks'], (old) => {
+                if (!old?.content) return old;
+                return {
+                    ...old,
+                    content: old.content.map((post) => {
+                        if (post.id !== postId) return post;
+                        return {
+                            ...post,
+                            isBookmarked: bookmarked,
+                            bookmarked,
+                            bookmarkCount: bookmarkCount ?? post.bookmarkCount,
+                        };
+                    }),
+                };
+            });
+        },
+        onSettled: (_data, _error, postId) => {
             queryClient.invalidateQueries({ queryKey: ['cheer-post', postId] });
             queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+            queryClient.invalidateQueries({ queryKey: ['cheer-bookmarks'] });
         },
     });
 

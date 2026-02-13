@@ -109,7 +109,7 @@ export const api = {
     if (teamId) params.append('teamId', teamId);
     if (stadium) params.append('stadium', stadium);
     if (searchQuery) params.append('searchQuery', searchQuery);
-    if (gameDate) params.append('gameDate', gameDate);
+    if (gameDate) params.append('date', gameDate);
     params.append('page', page.toString());
     params.append('size', size.toString());
 

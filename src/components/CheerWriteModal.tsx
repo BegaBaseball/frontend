@@ -13,6 +13,7 @@ import {
 } from './ui/dialog';
 import { Button } from './ui/button';
 import { TEAM_DATA } from '../constants/teams';
+import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import TeamLogo from './TeamLogo';
 import { useAuthStore } from '../store/authStore';
 
@@ -121,6 +122,7 @@ export default function CheerWriteModal({
             onClose();
         } catch (error) {
             console.error(error);
+            toast.error('게시글 작성에 실패했습니다. 다시 시도해주세요.');
         } finally {
             setIsSubmitting(false);
         }
@@ -140,7 +142,16 @@ export default function CheerWriteModal({
                     <div className="flex gap-3 sm:gap-4">
                         <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
 
-                            {user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
+                            {user?.profileImageUrl ? (
+                                <img
+                                    src={user.profileImageUrl.includes('/assets/') ? DEFAULT_PROFILE_IMAGE : user.profileImageUrl}
+                                    alt={user?.name || '프로필'}
+                                    className="h-full w-full object-cover"
+                                    onError={(event) => {
+                                        event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+                                    }}
+                                />
+                            ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
                                 <TeamLogo teamId={teamId} team={teamLabel} size={48} />
                             ) : (
                                 <span className="text-sm sm:text-base font-semibold text-slate-600 dark:text-slate-400">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText, Repeat2, Trash2, CheckCheck, Clock, Calendar, AlertTriangle, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -57,6 +58,7 @@ export default function NotificationPanel() {
       }
     } catch (error) {
       console.error('알림 처리 오류:', error);
+      toast.error('알림 처리 중 오류가 발생했습니다.');
     }
   };
 
@@ -67,6 +69,7 @@ export default function NotificationPanel() {
       removeNotification(notificationId);
     } catch (error) {
       console.error('알림 삭제 오류:', error);
+      toast.error('알림 삭제에 실패했습니다.');
     }
   };
 
@@ -78,6 +81,7 @@ export default function NotificationPanel() {
       markAllAsRead();
     } catch (error) {
       console.error('일괄 읽음 처리 오류:', error);
+      toast.error('일괄 읽음 처리에 실패했습니다.');
     }
   };
 
