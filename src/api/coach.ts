@@ -1,11 +1,30 @@
 
 const API_URL = import.meta.env.VITE_AI_API_URL || '/ai';
 
+export interface AnalyzeLeagueContext {
+    season?: number | string;
+    season_year?: number;
+    league_type?: string;
+    round?: string;
+    game_no?: number;
+    game_date?: string;
+    home?: {
+        rank: number;
+        gamesBehind: number;
+        remainingGames: number;
+    } | null;
+    away?: {
+        rank: number;
+        gamesBehind: number;
+        remainingGames: number;
+    } | null;
+}
+
 export interface AnalyzeRequest {
     team_id?: string; // deprecated: use home_team_id
     home_team_id?: string;
     away_team_id?: string;
-    league_context?: any;
+    league_context?: AnalyzeLeagueContext;
     focus?: string[];
     game_id?: string;
     question_override?: string;

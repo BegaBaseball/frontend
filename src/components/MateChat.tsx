@@ -71,6 +71,7 @@ export default function MateChat() {
         }
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
+        toast.error('사용자 정보를 불러오지 못했습니다.');
       } finally {
         setIsLoadingUser(false);
       }
@@ -96,6 +97,7 @@ export default function MateChat() {
         setMessages(data);
       } catch (error) {
         console.error('메시지 불러오기 실패:', error);
+        toast.error('이전 메시지를 불러오지 못했습니다.');
       }
     };
 
@@ -134,6 +136,7 @@ export default function MateChat() {
         setMyApplication(myApp);
       } catch (error) {
         console.error('신청 정보 확인 실패:', error);
+        toast.error('신청 정보를 확인하지 못했습니다.');
       } finally {
         setIsCheckingApproval(false);
       }

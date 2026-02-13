@@ -11,11 +11,9 @@ import {
   deleteAdminMate,
 } from '../api/admin';
 import { AdminUser, AdminStats, AdminPost, AdminMate } from '../types/admin';
-// import { useCheerStore } from '../store/cheerStore'; // Removed
 
 export const useAdminData = () => {
-  // const { removePostFromState } = useCheerStore(); // Removed
-  const queryClient = useQueryClient(); // Added
+  const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('users');

@@ -5,10 +5,9 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import TeamLogo from '../TeamLogo';
-import { Game, VoteTeam, GameDetail, GameInningScore, GameSummary } from '../../types/prediction';
+import { Game, VoteTeam, GameDetail } from '../../types/prediction';
 import { GAME_TIME } from '../../constants/prediction';
-import { getTeamColorByAnyKey } from '../../constants/teams';
-import { getFullTeamName } from '../../utils/prediction';
+import { getTeamColorByAnyKey, getFullTeamName } from '../../constants/teams';
 
 interface AdvancedMatchCardProps {
   game: Game;

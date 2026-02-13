@@ -18,10 +18,10 @@ import {
   groupByDate,
   getTodayString,
   getTomorrowString,
-  getFullTeamName,
   formatDate,
   generateDateRange
 } from '../utils/prediction';
+import { getFullTeamName } from '../constants/teams';
 
 export const usePrediction = () => {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);

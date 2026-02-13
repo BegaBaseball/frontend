@@ -33,6 +33,15 @@ const toDateString = (date: Date) => {
   return [year, month.padStart(2, '0'), day.padStart(2, '0')].join('-');
 };
 
+const isLegacyHostAvatarUrl = (url?: string) => {
+  if (!url) return true;
+  const normalized = url.toLowerCase();
+  return url.startsWith('/assets/')
+    || url.startsWith('/src/assets/')
+    || url.startsWith('blob:')
+    || normalized.includes('supabase.co');
+};
+
 export default function Mate() {
   const navigate = useNavigate();
   const { setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
@@ -120,6 +129,7 @@ export default function Mate() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [activeTab, setActiveTab] = useState('all');
+  const [brokenHostAvatarIds, setBrokenHostAvatarIds] = useState<Set<number>>(new Set());
 
   const pageSize = 9;
 
@@ -209,6 +219,8 @@ export default function Mate() {
   const renderPartyCard = (party: Party) => {
     const homeTeamColor = getTeamColorByAnyKey(party.homeTeam);
     const progressPercent = Math.min(100, (party.currentParticipants / party.maxParticipants) * 100);
+    const shouldFallbackAvatar = brokenHostAvatarIds.has(party.id) || isLegacyHostAvatarUrl(party.hostProfileImageUrl);
+    const hostAvatarSrc = shouldFallbackAvatar ? undefined : party.hostProfileImageUrl;
 
     return (
       <Card
@@ -320,7 +332,18 @@ export default function Mate() {
           <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-3">
             <div className="flex items-center gap-2">
               <Avatar className="w-6 h-6 border border-gray-200">
-                <AvatarImage src={party.hostProfileImageUrl || undefined} className="object-cover" />
+                <AvatarImage
+                  src={hostAvatarSrc}
+                  className="object-cover"
+                  onError={() => {
+                    setBrokenHostAvatarIds((prev) => {
+                      if (prev.has(party.id)) return prev;
+                      const next = new Set(prev);
+                      next.add(party.id);
+                      return next;
+                    });
+                  }}
+                />
                 <AvatarFallback className="text-[10px] bg-primary text-white">
                   {party.hostName.slice(0, 2)}
                 </AvatarFallback>

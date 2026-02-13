@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { toast } from 'sonner';
 import { Client, IMessage } from '@stomp/stompjs';
 
 interface ChatMessage {
@@ -90,6 +91,7 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
         });
       } catch (error) {
         console.error('Failed to send message:', error);
+        toast.error('메시지 전송에 실패했습니다.');
       }
     },
     [partyId, isConnected]

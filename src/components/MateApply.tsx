@@ -47,6 +47,7 @@ export default function MateApply() {
         setCurrentUserId(userIdResponse.data);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
+        toast.error('사용자 정보를 불러오지 못했습니다.');
       }
     };
 

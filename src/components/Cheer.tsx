@@ -9,7 +9,7 @@ import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Radio, Smil
 import { cn } from '../lib/utils';
 import { getTeamDescription, TEAM_DATA } from '../constants/teams';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
-import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost } from '../api/cheerApi';
+import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost } from '../api/cheerApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
 import TeamLogo from './TeamLogo';
@@ -35,7 +35,7 @@ export default function Cheer() {
     const feedTabs = useMemo(
         () => [
             { key: 'all', label: '전체', postType: undefined },
-            { key: 'popular', label: '인기', postType: undefined, sort: 'views,desc' },
+            { key: 'popular', label: '인기', postType: undefined },
             { key: 'following', label: '팔로우', postType: undefined, requireAuth: true },
         ],
         []
@@ -237,20 +237,36 @@ export default function Cheer() {
             const optimisticId = Date.now() * -1;
             const optimisticPost = {
                 id: optimisticId,
+                teamId: user?.favoriteTeam || 'ALL',
                 team: user?.favoriteTeam || 'ALL',
                 teamColor,
                 content: payload.content,
                 author: user?.name || user?.email || '나',
+                authorId: user?.id || 0,
+                authorHandle: user?.handle || '',
+                authorProfileImageUrl: user?.profileImageUrl,
+                authorTeamId: user?.favoriteTeam || undefined,
                 timeAgo: '방금 전',
                 comments: 0,
                 likes: 0,
+                likeCount: 0,
+                commentCount: 0,
+                repostCount: 0,
                 views: 0,
                 isHot: false,
+                liked: false,
                 likedByUser: false,
+                bookmarked: false,
                 isBookmarked: false,
                 images: composerPreviews.map((preview) => preview.url),
+                imageUrls: composerPreviews.map((preview) => preview.url),
                 imageUploadFailed: false,
                 postType: payload.postType ?? 'CHEER',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                isOwner: true,
+                repostedByMe: false,
+                originalDeleted: false,
             };
 
             const updateCache = (key: (string | undefined)[]) => {
@@ -299,7 +315,9 @@ export default function Cheer() {
                                 ? {
                                     ...post,
                                     ...createdPost,
+                                    authorProfileImageUrl: createdPost.authorProfileImageUrl ?? post.authorProfileImageUrl,
                                     images: uploadedUrls.length > 0 ? uploadedUrls : post.images ?? createdPost.images,
+                                    imageUrls: uploadedUrls.length > 0 ? uploadedUrls : post.imageUrls ?? createdPost.imageUrls,
                                     imageUploadFailed: uploadFailed,
                                 }
                                 : post
@@ -360,6 +378,13 @@ export default function Cheer() {
                     size: 20,
                 });
             }
+            if (activeFeedTab === 'popular') {
+                return fetchHotPosts({
+                    page: pageParam as number,
+                    size: 20,
+                    algorithm: 'HYBRID',
+                });
+            }
             return fetchPosts({
                 // Force 'all' to allow viewing/commenting on all posts regardless of user's favorite team.
                 // Previously: teamId: favoriteTeamId || 'all' (Restricted view)
@@ -414,7 +439,7 @@ export default function Cheer() {
             postType: activeTabConfig?.postType
         }),
         refetchInterval: 15000,
-        enabled: !isLoading && !activeTabConfig?.sort, // Only poll for default sort (createdAt)
+        enabled: !isLoading && activeFeedTab === 'all',
     });
 
     useEffect(() => {
@@ -619,14 +644,17 @@ export default function Cheer() {
                                 )}
                                 <div className="flex gap-3">
                                     <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden">
-                                        {user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
-                                            <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
-                                        ) : user?.profileImageUrl ? (
+                                        {user?.profileImageUrl ? (
                                             <img
                                                 src={user.profileImageUrl.includes('/assets/') ? DEFAULT_PROFILE_IMAGE : user.profileImageUrl}
                                                 alt={user?.name || '프로필'}
                                                 className="h-full w-full object-cover"
+                                                onError={(event) => {
+                                                    event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+                                                }}
                                             />
+                                        ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
+                                            <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
                                         ) : (
                                             <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
                                                 {user?.name?.slice(0, 1) || '?'}

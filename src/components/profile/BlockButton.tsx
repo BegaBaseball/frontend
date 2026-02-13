@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Ban, Loader2 } from 'lucide-react';
 import { toggleBlock, BlockToggleResponse } from '../../api/blockApi';
@@ -51,6 +52,7 @@ export default function BlockButton({
             onBlockChange?.(response);
         } catch (error) {
             console.error('Failed to toggle block:', error);
+            toast.error('차단 처리에 실패했습니다.');
         } finally {
             setIsLoading(false);
         }

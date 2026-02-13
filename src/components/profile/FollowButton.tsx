@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Bell, BellOff, UserPlus, UserMinus, Loader2 } from 'lucide-react';
 import { toggleFollow, updateFollowNotify, FollowToggleResponse } from '../../api/followApi';
@@ -40,6 +41,14 @@ export default function FollowButton({
     const [notifyNewPosts, setNotifyNewPosts] = useState(initialNotify);
     const [isLoading, setIsLoading] = useState(false);
 
+    useEffect(() => {
+        setIsFollowing(initialFollowing);
+    }, [initialFollowing]);
+
+    useEffect(() => {
+        setNotifyNewPosts(initialNotify);
+    }, [initialNotify]);
+
     // Don't show follow button for own profile or if blocked
     if (user && userId && Number(user.id) === Number(userId)) {
         return null;
@@ -60,6 +69,7 @@ export default function FollowButton({
             onFollowChange?.(response);
         } catch (error) {
             console.error('Failed to toggle follow:', error);
+            toast.error('팔로우 처리에 실패했습니다.');
         } finally {
             setIsLoading(false);
         }
@@ -75,6 +85,7 @@ export default function FollowButton({
             onFollowChange?.(response);
         } catch (error) {
             console.error('Failed to toggle notify:', error);
+            toast.error('알림 설정 변경에 실패했습니다.');
         } finally {
             setIsLoading(false);
         }

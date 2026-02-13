@@ -63,9 +63,10 @@ export default function MateHistorySection() {
               key={tab.key}
               onClick={() => setMateHistoryTab(tab.key)}
               className={`px-4 py-2 -mb-px ${
-                mateHistoryTab === tab.key ? 'border-b-2 font-bold' : 'text-gray-500'
+                mateHistoryTab === tab.key
+                  ? 'border-b-2 font-bold border-primary text-primary'
+                  : 'text-gray-500'
               }`}
-              className={mateHistoryTab === tab.key ? 'border-primary text-primary' : ''}
               style={{
                 borderColor: mateHistoryTab === tab.key ? undefined : 'transparent',
               }}

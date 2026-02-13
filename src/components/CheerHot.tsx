@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Flame } from 'lucide-react';
-import { fetchPosts, CheerPost } from '../api/cheerApi';
+import { fetchHotPosts, CheerPost } from '../api/cheerApi';
 import CheerCard from './CheerCard';
 
 export default function CheerHot() {
@@ -10,8 +10,7 @@ export default function CheerHot() {
     useEffect(() => {
         const loadHotPosts = async () => {
             try {
-                // Fetch top 5 posts sorted by likes
-                const data = await fetchPosts({ teamId: 'all', page: 0, size: 5, sort: 'likeCount,desc' });
+                const data = await fetchHotPosts({ page: 0, size: 5, algorithm: 'TIME_DECAY' });
                 setHotPosts(data.content);
             } catch (error) {
                 console.error("Failed to load hot posts", error);
