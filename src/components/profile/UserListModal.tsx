@@ -2,7 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
-import { Loader2, User, X } from 'lucide-react';
+import { AlertCircle, Loader2, User, X } from 'lucide-react';
 import { getFollowers, getFollowing } from '../../api/followApi';
 import FollowButton from './FollowButton';
 import { useNavigate } from 'react-router-dom';
@@ -26,6 +26,8 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
         hasNextPage,
         isFetchingNextPage,
         isLoading,
+        isError,
+        refetch,
     } = useInfiniteQuery({
         queryKey: ['userList', userId, type],
         queryFn: ({ pageParam = 0 }) => {
@@ -79,6 +81,16 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                     {isLoading ? (
                         <div className="flex justify-center p-8">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : isError ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                            <AlertCircle className="h-8 w-8 text-red-500 mb-3" />
+                            <p className="text-gray-900 dark:text-gray-100 font-medium mb-3">
+                                목록을 불러오지 못했습니다.
+                            </p>
+                            <Button variant="outline" onClick={() => refetch()}>
+                                다시 시도
+                            </Button>
                         </div>
                     ) : users.length > 0 ? (
                         <div className="divide-y divide-gray-100 dark:divide-gray-700/50">

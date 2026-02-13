@@ -33,6 +33,7 @@ export interface CheerPost {
     teamColor: string; // Added for compatibility
     likeCount: number;
     commentCount: number;
+    bookmarkCount: number;
     repostCount: number;
     views: number;
     isHot: boolean;
@@ -77,6 +78,14 @@ export interface FetchPostsParams {
     sort?: string;
 }
 
+export type PopularFeedAlgorithm = 'TIME_DECAY' | 'ENGAGEMENT_RATE' | 'HYBRID';
+
+export interface FetchHotPostsParams {
+    page?: number;
+    size?: number;
+    algorithm?: PopularFeedAlgorithm;
+}
+
 export interface SearchPostsParams {
     q: string;
     teamId?: string | null;
@@ -88,6 +97,11 @@ export interface SearchPostsParams {
 export interface LikeToggleResponse {
     liked: boolean;
     likes: number;
+}
+
+export interface BookmarkToggleResponse {
+    bookmarked: boolean;
+    count: number;
 }
 
 export interface RepostToggleResponse {
@@ -149,9 +163,16 @@ export const fetchPosts = async (params: FetchPostsParams = {}): Promise<PageRes
 };
 
 // 인기 게시글 목록 조회
-export const fetchHotPosts = async (params: FetchPostsParams = {}): Promise<PageResponse<CheerPost>> => {
-    const { page = 0, size = 20 } = params;
-    const response = await api.get(`/cheer/posts/hot?page=${page}&size=${size}`);
+export const fetchHotPosts = async (params: FetchHotPostsParams = {}): Promise<PageResponse<CheerPost>> => {
+    const { page = 0, size = 20, algorithm } = params;
+    const searchParams = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString(),
+    });
+    if (algorithm) {
+        searchParams.append('algorithm', algorithm);
+    }
+    const response = await api.get(`/cheer/posts/hot?${searchParams.toString()}`);
     return transformPostPage(response.data);
 };
 
@@ -200,6 +221,7 @@ interface PostDTO {
   likes: number;
   likeCount: number;
   commentCount: number;
+  bookmarkCount?: number;
   repostCount: number;
   views: number;
   liked: boolean;
@@ -251,6 +273,7 @@ function transformPost(post: PostDTO): CheerPost {
         likes: post.likes || 0,
         likeCount: post.likeCount || post.likes || 0,
         commentCount: post.commentCount || post.comments || 0,
+        bookmarkCount: post.bookmarkCount ?? 0,
         repostCount: post.repostCount || 0,
         views: post.views,
         liked: post.liked ?? post.likedByMe ?? false,
@@ -385,7 +408,7 @@ export async function toggleCommentLike(commentId: number): Promise<LikeToggleRe
 }
 
 // 북마크 토글
-export async function toggleBookmark(postId: number) {
+export async function toggleBookmark(postId: number): Promise<BookmarkToggleResponse> {
     const response = await api.post(`/cheer/posts/${postId}/bookmark`);
     return response.data;
 }

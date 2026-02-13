@@ -1,9 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchPublicUserProfileByHandle } from '../../api/profile';
 import { fetchUserPostsByHandle } from '../../api/cheerApi';
-import { getFollowCounts } from '../../api/followApi';
+import { getFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -31,6 +31,7 @@ import UserListModal from './UserListModal';
 export default function UserProfile() {
     const { handle } = useParams<{ handle: string }>();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const currentUser = useAuthStore((state) => state.user);
 
     const [userListModal, setUserListModal] = useState<{
@@ -44,7 +45,7 @@ export default function UserProfile() {
     });
 
     // URL에 @가 없는 경우 붙여줌 (UX)
-    const normalizedHandle = handle?.startsWith('@') ? handle : `@${handle}`;
+    const normalizedHandle = handle ? (handle.startsWith('@') ? handle : `@${handle}`) : undefined;
 
     const {
         data: profile,
@@ -52,7 +53,7 @@ export default function UserProfile() {
         error: profileError,
     } = useQuery({
         queryKey: ['publicProfile', normalizedHandle],
-        queryFn: () => fetchPublicUserProfileByHandle(normalizedHandle),
+        queryFn: () => fetchPublicUserProfileByHandle(normalizedHandle!),
         enabled: !!normalizedHandle,
         retry: 0,
     });
@@ -70,9 +71,11 @@ export default function UserProfile() {
         hasNextPage,
         isFetchingNextPage,
         isLoading: isPostsLoading,
+        isError: isPostsError,
+        refetch: refetchPosts,
     } = useInfiniteQuery({
         queryKey: ['userPosts', normalizedHandle],
-        queryFn: ({ pageParam = 0 }) => fetchUserPostsByHandle(normalizedHandle, pageParam),
+        queryFn: ({ pageParam = 0 }) => fetchUserPostsByHandle(normalizedHandle!, pageParam),
         getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
         enabled: !!profile?.id, // Only fetch posts if user exists
         initialPageParam: 0,
@@ -80,6 +83,21 @@ export default function UserProfile() {
 
     // 팀 테마 색상 계산
     const theme = useMemo(() => getTeamTheme(profile?.favoriteTeam), [profile?.favoriteTeam]);
+
+    const handleFollowChange = useCallback(
+        (response: FollowToggleResponse) => {
+            if (!profile?.id) return;
+            queryClient.setQueryData<FollowCountResponse>(['followCounts', profile.id], (prev) => ({
+                followerCount: response.followerCount,
+                followingCount: response.followingCount,
+                isFollowedByMe: response.following,
+                notifyNewPosts: response.notifyNewPosts,
+                blockedByMe: prev?.blockedByMe ?? false,
+                blockingMe: prev?.blockingMe ?? false,
+            }));
+        },
+        [profile?.id, queryClient]
+    );
 
     // Infinite scroll handler
     useEffect(() => {
@@ -256,6 +274,11 @@ export default function UserProfile() {
                     <div className="flex gap-3 mt-4 px-6 mb-6">
                         <FollowButton
                             userId={profile.id}
+                            initialFollowing={followCounts?.isFollowedByMe ?? false}
+                            initialNotify={followCounts?.notifyNewPosts ?? false}
+                            initialBlocked={followCounts?.blockedByMe ?? false}
+                            initialBlocking={followCounts?.blockingMe ?? false}
+                            onFollowChange={handleFollowChange}
                             size="default"
                             showNotifyOption={true}
                             className="flex-1"
@@ -267,12 +290,11 @@ export default function UserProfile() {
                         <Button
                             variant="outline"
                             className="flex-1"
-                            onClick={() => {
-                                // TODO: 메시지 기능 구현 시 연결
-                            }}
+                            disabled
+                            title="메시지 기능 준비 중"
                         >
                             <MessageCircle className="w-4 h-4 mr-2" />
-                            메시지
+                            메시지 (준비중)
                         </Button>
                     </div>
                 )}
@@ -311,6 +333,16 @@ export default function UserProfile() {
                 {isPostsLoading ? (
                     <div className="flex justify-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin" style={{ color: theme.primary }} />
+                    </div>
+                ) : isPostsError ? (
+                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700">
+                        <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-500" />
+                        <p className="text-gray-600 dark:text-gray-300 mb-4">
+                            게시글을 불러오지 못했습니다.
+                        </p>
+                        <Button variant="outline" onClick={() => refetchPosts()}>
+                            다시 시도
+                        </Button>
                     </div>
                 ) : uniquePosts.length > 0 ? (
                     <div className="space-y-4">

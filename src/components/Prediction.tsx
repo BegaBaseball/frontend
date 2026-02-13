@@ -26,9 +26,9 @@ import {
   formatDate,
   calculateVotePercentages,
   getGameStatus,
-  getFullTeamName,
   getShortTeamName,
 } from '../utils/prediction';
+import { getFullTeamName } from '../constants/teams';
 import { UserPredictionStat } from '../types/prediction';
 
 const emptyUserStats: UserPredictionStat = {
