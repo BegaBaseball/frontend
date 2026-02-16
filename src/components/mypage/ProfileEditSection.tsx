@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react'; // Added imports
-import { Camera, Save, User, AlertCircle } from 'lucide-react';
+import { Camera, Save, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -9,10 +8,10 @@ import TeamLogo from '../TeamLogo';
 import TeamRecommendationTest from '../TeamRecommendationTest';
 import { useProfileEdit } from '../../hooks/useProfileEdit';
 import { TEAM_DATA } from '../../constants/teams';
-import { DEFAULT_PROFILE_IMAGE } from '../../utils/constants'; // Added import
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 
 interface ProfileEditSectionProps {
-  profileImage: string;
+  profileImage: string | null;
   name: string;
   email: string;
   userRole?: string;
@@ -68,28 +67,12 @@ export default function ProfileEditSection({
     onSave,
   });
 
-  // 이미지 에러 핸들링
-  const [imgSrc, setImgSrc] = useState<string | null>(profileImage);
-
-  // 프로필 이미지가 변경되면 상태 업데이트
-  useEffect(() => {
-    setImgSrc(profileImage);
-  }, [profileImage]);
-
-  const handleImageError = () => {
-    if (imgSrc !== DEFAULT_PROFILE_IMAGE) {
-      setImgSrc(DEFAULT_PROFILE_IMAGE);
-    } else {
-      setImgSrc(null);
-    }
-  };
-
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-6 md:p-8 mb-6">
+      <div className="bg-white dark:bg-card rounded-2xl shadow-lg border-2 border-gray-100 dark:border-border p-6 md:p-8 mb-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-primary dark:text-emerald-400">내 정보 수정</h2>
+          <h2 className="text-xl font-bold text-primary">내 정보 수정</h2>
         </div>
 
         {/* ✅ 에러 Alert */}
@@ -105,29 +88,20 @@ export default function ProfileEditSection({
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
 
           {/* Left Column - Profile Image & Quick Actions */}
-          <div className="md:col-span-4 lg:col-span-3 md:border-r md:border-gray-200 md:dark:border-gray-700 md:pr-6">
+          <div className="md:col-span-4 lg:col-span-3 md:border-r md:border-gray-200 md:dark:border-border md:pr-6">
             <div className="md:sticky md:top-8 space-y-6">
               {/* Profile Image */}
-              <div className="flex flex-col items-center p-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+              <div className="flex flex-col items-center p-6 bg-gray-50 dark:bg-secondary/70 rounded-xl border border-gray-200 dark:border-border">
                 <div className="relative">
-                  <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                    {imgSrc ? (
-                      <img
-                        src={imgSrc}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                        onError={handleImageError}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <User className="w-16 h-16 text-gray-400 dark:text-gray-500" />
-                      </div>
-                    )}
-                  </div>
+                  <ProfileAvatar
+                    src={profileImage}
+                    alt="Profile"
+                    className="w-32 h-32"
+                  />
                   <label
-                    className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white dark:bg-gray-700 border-2 border-primary dark:border-emerald-500 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md transition-colors"
+                    className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white dark:bg-secondary border-2 border-primary dark:border-primary flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md transition-colors"
                   >
-                    <Camera className="w-5 h-5 text-primary dark:text-emerald-400" />
+                    <Camera className="w-5 h-5 text-primary" />
                     <input
                       type="file"
                       accept="image/*"
@@ -137,8 +111,8 @@ export default function ProfileEditSection({
                     />
                   </label>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-primary dark:text-emerald-400">{name}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{email}</p>
+                <h3 className="mt-4 text-lg font-semibold text-primary">{name}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{email}</p>
               </div>
 
               {/* Quick Actions - Desktop Only */}
@@ -160,7 +134,7 @@ export default function ProfileEditSection({
                   <Button
                     variant="ghost"
                     onClick={onAccountSettings}
-                    className="w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    className="w-full text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300"
                     disabled={isLoading}
                   >
                     ⚙️ 계정 설정
@@ -173,7 +147,7 @@ export default function ProfileEditSection({
                   <Button
                     variant="ghost"
                     onClick={onBlockedUsers}
-                    className="w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    className="w-full text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300"
                     disabled={isLoading}
                   >
                     🚫 차단 관리
@@ -201,8 +175,8 @@ export default function ProfileEditSection({
                   disabled={isLoading}
                 />
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">닉네임은 20자 이하로 입력해주세요</p>
-                  <p className={`text-xs ${name.length > 20 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <p className="text-xs text-gray-500 dark:text-gray-300">닉네임은 20자 이하로 입력해주세요</p>
+                  <p className={`text-xs ${name.length > 20 ? 'text-red-500' : 'text-gray-500 dark:text-gray-300'}`}>
                     {name.length}/20
                   </p>
                 </div>
@@ -240,7 +214,7 @@ export default function ProfileEditSection({
                   disabled={isLoading}
                 />
                 <div className="flex justify-end">
-                  <p className={`text-xs ${bio.length > 500 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <p className={`text-xs ${bio.length > 500 ? 'text-red-500' : 'text-gray-500 dark:text-gray-300'}`}>
                     {bio.length}/500
                   </p>
                 </div>
@@ -282,11 +256,11 @@ export default function ProfileEditSection({
                     </SelectContent>
                   </Select>
                   <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">응원구단은 응원석에서 사용됩니다</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-300">응원구단은 응원석에서 사용됩니다</p>
                     <Button
                       variant="ghost"
                       onClick={() => setShowTeamTest(true)}
-                      className="text-sm flex items-center h-auto py-1 px-2 text-primary dark:text-emerald-400 hover:bg-green-50 dark:hover:bg-emerald-900/20"
+                      className="text-sm flex items-center h-auto py-1 px-2 text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
                       disabled={isLoading}
                     >
                       구단 테스트 해보기
@@ -296,7 +270,7 @@ export default function ProfileEditSection({
               )}
 
               {/* Mobile Only - Quick Actions */}
-              <div className="md:hidden space-y-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="md:hidden space-y-3 pt-6 border-t border-gray-200 dark:border-border">
                 {/* Password Change Button (LOCAL users only) */}
                 {(!userProvider || userProvider === 'LOCAL') && onChangePassword && (
                   <Button
@@ -314,7 +288,7 @@ export default function ProfileEditSection({
                   <Button
                     variant="ghost"
                     onClick={onAccountSettings}
-                    className="w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    className="w-full text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300"
                     disabled={isLoading}
                   >
                     ⚙️ 계정 설정
@@ -327,7 +301,7 @@ export default function ProfileEditSection({
                   <Button
                     variant="ghost"
                     onClick={onBlockedUsers}
-                    className="w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    className="w-full text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300"
                     disabled={isLoading}
                   >
                     🚫 차단 관리
@@ -336,7 +310,7 @@ export default function ProfileEditSection({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-border">
                 <Button variant="outline" className="flex-1" onClick={onCancel} disabled={isLoading}>
                   취소
                 </Button>

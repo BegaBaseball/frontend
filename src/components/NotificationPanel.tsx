@@ -171,7 +171,7 @@ export default function NotificationPanel() {
   return (
     <div>
       {/* Header with Tabs & Mark All Read */}
-      <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 border-b border-gray-100 dark:border-gray-700">
+      <div className="sticky top-0 bg-white dark:bg-card z-10 border-b border-gray-100 dark:border-border">
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex gap-4">
             {(['ALL', 'MATE', 'CHEER'] as TabType[]).map((tab) => (
@@ -202,13 +202,13 @@ export default function NotificationPanel() {
       <div className="p-0 min-h-[300px]">
         {filteredNotifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="bg-gray-100 dark:bg-gray-700 p-6 rounded-full mb-4">
-              <Bell className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+            <div className="bg-gray-100 dark:bg-secondary p-6 rounded-full mb-4">
+              <Bell className="w-8 h-8 text-gray-400 dark:text-gray-300" />
             </div>
             <p className="text-gray-900 dark:text-gray-100 font-bold mb-1">
               새로운 알림이 없습니다
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-500 dark:text-gray-300">
               {activeTab === 'ALL' ? '새로운 소식이 도착하면 알려드릴게요!' : '해당 카테고리의 알림이 없습니다.'}
             </p>
           </div>
@@ -218,7 +218,7 @@ export default function NotificationPanel() {
               {Object.entries(groupedNotifications).map(([groupName, groupNotifs]) => (
                 groupNotifs.length > 0 && (
                   <div key={groupName}>
-                    <div className="px-4 py-2 bg-gray-50/50 dark:bg-gray-800/50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    <div className="px-4 py-2 bg-gray-50/50 dark:bg-card/50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                       {groupName}
                     </div>
                     {groupNotifs.map((notification) => (
@@ -230,14 +230,14 @@ export default function NotificationPanel() {
                         exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
                         onClick={() => handleNotificationClick(notification)}
                         className={`relative group p-4 cursor-pointer transition-colors duration-500 ${notification.isRead
-                          ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                          ? 'bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-gray-700/50'
                           : 'bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20'
                           }`}
                       >
                         <div className="flex gap-3 pr-6">
                           {/* Icon/Avatar Area */}
                           <div className="flex-shrink-0 mt-0.5">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${notification.isRead ? 'bg-gray-100 dark:bg-gray-700' : 'bg-white dark:bg-gray-800 ring-2 ring-blue-100 dark:ring-blue-900'
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${notification.isRead ? 'bg-gray-100 dark:bg-secondary' : 'bg-white dark:bg-card ring-2 ring-blue-100 dark:ring-blue-900'
                               }`}>
                               {getNotificationIcon(notification.type)}
                             </div>
@@ -253,7 +253,7 @@ export default function NotificationPanel() {
                                 {formatTime(notification.createdAt)}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                            <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed">
                               {renderMessageWithBold(notification.message)}
                             </p>
                           </div>

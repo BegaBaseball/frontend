@@ -147,13 +147,13 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         return (
             <div
                 onClick={() => navigate(`/cheer/${post.id}`)}
-                className="px-2 py-3 transition-all duration-200 cursor-pointer hover:bg-slate-50 dark:hover:bg-[#1F2533] rounded-lg dark:bg-[#1A1F2B] dark:border-l-2 dark:border-l-red-500"
+                className="px-2 py-3 transition-all duration-200 cursor-pointer hover:bg-slate-50 dark:hover:bg-secondary rounded-lg dark:bg-card dark:border dark:border-border"
             >
-                <div className="flex items-center justify-between mb-2 text-xs text-[#536471] dark:text-slate-400">
+                <div className="flex items-center justify-between mb-2 text-xs text-[#536471] dark:text-gray-300">
                     <span className="font-semibold">{post.team}</span>
                     <span>{post.timeAgo}</span>
                 </div>
-                <div className="text-sm text-[#0f1419] dark:text-slate-200 leading-relaxed mb-3">
+                <div className="text-sm text-[#0f1419] dark:text-gray-100 leading-relaxed mb-3">
                     {displayContent.split('\n').map((line, i) => (
                         <React.Fragment key={i}>
                             {line}
@@ -173,7 +173,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         {isExpanded ? '접기' : '더보기'}
                     </button>
                 )}
-                <div className="flex items-center gap-4 text-xs text-[#536471] dark:text-slate-400">
+                <div className="flex items-center gap-4 text-xs text-[#536471] dark:text-gray-300">
                     <span className="flex items-center gap-1">
                         <MessageCircle className="h-4 w-4" />
                         <RollingNumber value={commentCount} />
@@ -181,7 +181,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     <span className="flex items-center gap-1">
                         <Heart className={`h-4 w-4 transition-all duration-200 ${post.likedByUser
                             ? 'fill-rose-500 text-rose-500'
-                            : 'fill-transparent dark:text-slate-400'
+                            : 'fill-transparent dark:text-gray-300'
                             }`} />
                         <RollingNumber value={likeCount} />
                     </span>
@@ -193,11 +193,11 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     // Main Feed Tweet Style
     return (
         <div
-            className="group rounded-2xl border border-[#EFF3F4] dark:border-[#232938] bg-white dark:bg-[#151A23] px-4 py-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+            className="group rounded-2xl border border-border/70 dark:border-border bg-white dark:bg-card px-4 py-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
         >
             {/* 리포스트 표시 */}
             {post.repostType && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-2 ml-12">
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-300 mb-2 ml-14">
                     <Repeat2 className="w-3.5 h-3.5" />
                     <span>
                         {(post.authorHandle === post.originalPost?.authorHandle || post.author === post.originalPost?.author)
@@ -220,9 +220,9 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 className="flex gap-3"
             >
 
-                <div className="relative h-10 w-10 flex-shrink-0">
+                <div className="relative h-11 w-11 flex-shrink-0">
                     <div
-                        className="h-full w-full rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-300 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                        className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-gray-200 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={(e) => {
                             e.stopPropagation();
                             const targetHandle = (post.repostType === 'SIMPLE' && post.originalPost)
@@ -264,7 +264,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     </div>
                     {/* Team Logo: Use Original's team if Simple Repost */}
                     {((post.repostType === 'SIMPLE' && post.originalPost && post.originalPost.teamId) || post.authorTeamId) && (
-                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white dark:bg-slate-600 ring-2 ring-white dark:ring-slate-600 overflow-hidden flex items-center justify-center">
+                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white dark:bg-secondary ring-2 ring-white dark:ring-border overflow-hidden flex items-center justify-center">
                             <TeamLogo
                                 team={((post.repostType === 'SIMPLE' && post.originalPost) ? (TEAM_DATA[post.originalPost.teamId as keyof typeof TEAM_DATA]?.name || post.originalPost.teamId) : (TEAM_DATA[post.authorTeamId as keyof typeof TEAM_DATA]?.name || post.authorTeamId))}
                                 size={20}
@@ -291,7 +291,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             >
                                 {(post.repostType === 'SIMPLE' && post.originalPost) ? post.originalPost.author : post.author}
                             </span>
-                            <span className="text-[#536471] dark:text-slate-400 truncate">
+                            <span className="text-[#536471] dark:text-gray-300 truncate">
                                 {(post.repostType === 'SIMPLE' && post.originalPost)
                                     ? (post.originalPost.authorHandle || '')
                                     : (post.authorHandle || `@${(post.team || 'user').toLowerCase()}`)}
@@ -309,18 +309,18 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                     <button
                                         type="button"
                                         onClick={(event) => event.stopPropagation()}
-                                        className="rounded-full p-1 text-[#64748B] dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#0f1419] dark:hover:text-white"
+                                        className="rounded-full p-1 text-[#64748B] dark:text-gray-300 transition-colors hover:bg-slate-100 dark:hover:bg-secondary hover:text-[#0f1419] dark:hover:text-white"
                                         aria-label="게시글 옵션"
                                     >
                                         <MoreHorizontal className="h-4 w-4" />
                                     </button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="dark:bg-slate-800 dark:border-slate-700">
-                                    <DropdownMenuItem onClick={handleEdit} className="dark:hover:bg-slate-700 dark:text-slate-200">
+                                <DropdownMenuContent align="end" className="dark:bg-card dark:border-border">
+                                    <DropdownMenuItem onClick={handleEdit} className="dark:hover:bg-secondary dark:text-gray-100">
                                         <Edit2 className="mr-2 h-4 w-4" />
                                         수정하기
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500 dark:hover:bg-slate-700">
+                                    <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500 dark:hover:bg-secondary">
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         삭제하기
                                     </DropdownMenuItem>
@@ -331,7 +331,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
                     {/* Title Display Removed */}
                     <div
-                        className="mt-0.5 text-[16px] leading-[22px] text-[#0f1419] dark:text-slate-200 transition-all duration-300"
+                        className="mt-0.5 text-[16px] leading-[22px] text-[#0f1419] dark:text-gray-100 transition-all duration-300"
                     >
                         {(post.repostType === 'SIMPLE' && post.originalPost)
                             ? (post.originalPost.content ? post.originalPost.content.split('\n').map((line, i) => (
@@ -387,7 +387,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         </div>
                     ) : null}
 
-                    <div className="mt-3 flex items-center justify-between max-w-[420px] text-[13px] text-[#536471] dark:text-slate-400">
+                    <div className="mt-3 flex items-center justify-between max-w-[420px] text-[13px] text-[#536471] dark:text-gray-300">
                         <button
                             type="button"
                             className="group/comment flex items-center gap-1.5 rounded-full transition-colors hover:text-sky-500"
@@ -475,7 +475,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                                             {/* ^ Crude visual for "Undo" or just use Undo2 icon if available */}
                                                         </div>
                                                     ) : (
-                                                        <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                        <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
                                                     )}
                                                 </div>
                                                 <div>
@@ -489,7 +489,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                                 className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                             >
                                                 <div className="flex items-center justify-center w-5 h-5">
-                                                    <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                    <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
                                                 </div>
                                                 <div>
                                                     <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">

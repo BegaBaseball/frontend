@@ -63,7 +63,7 @@ export const LoginRequiredDialog = ({
           <AlertDialogCancel onClick={handleCancel}>취소</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleGoToLogin}
-            className="text-white bg-primary"
+            className="text-white bg-primary-dark hover:bg-primary"
           >
             로그인하러 가기
           </AlertDialogAction>

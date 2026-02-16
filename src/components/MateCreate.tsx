@@ -383,7 +383,7 @@ export default function MateCreate() {
   const progressValue = (createStep / 4) * 100;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
       <OptimizedImage
         src={grassDecor}
         alt=""
@@ -428,10 +428,10 @@ export default function MateCreate() {
                 <Label>예매내역 스크린샷</Label>
                 <div
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isScanning
-                    ? 'border-primary bg-slate-50 dark:bg-slate-900/50'
+                    ? 'border-primary bg-slate-50 dark:bg-card/60'
                     : formData.ticketFile
                       ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                      : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900'
+                      : 'border-slate-300 dark:border-border bg-slate-50 dark:bg-card/60 hover:bg-slate-100 dark:hover:bg-slate-900'
                     }`}
                 >
                   <input
@@ -576,14 +576,14 @@ export default function MateCreate() {
                           onClick={() => selectMatch(match)}
                           className={`cursor-pointer rounded-xl border p-4 transition-all relative overflow-hidden ${isSelected
                             ? 'border-primary bg-green-50 dark:bg-green-900/20 ring-2 ring-primary ring-offset-1 dark:ring-offset-gray-900'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                            : 'border-gray-200 dark:border-border hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                         >
                           <div className="flex justify-between items-center relative z-10">
                             <div className="flex items-center gap-4 flex-1">
-                              <div className="text-center w-16 text-sm font-bold text-gray-500 dark:text-gray-400">
+                              <div className="text-center w-16 text-sm font-bold text-gray-500 dark:text-gray-300">
                                 {match.gameTime}
                               </div>
-                              <div className="h-8 w-px bg-gray-200 dark:bg-gray-700"></div>
+                              <div className="h-8 w-px bg-gray-200 dark:bg-secondary"></div>
                               <div className="flex items-center gap-3 flex-1 justify-center">
                                 <span className="font-bold flex items-center gap-2 dark:text-gray-200">
                                   <TeamLogo teamId={match.awayTeam} size="sm" />
@@ -608,7 +608,7 @@ export default function MateCreate() {
 
                       })
                     ) : (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-300 bg-gray-50 dark:bg-card rounded-lg">
                         경기가 없는 날입니다 😴 <br />
                         <span className="text-xs">다른 날짜를 선택해주세요</span>
                       </div>
@@ -658,7 +658,7 @@ export default function MateCreate() {
                     onClick={() => updateFormData({ cheeringSide: 'NEUTRAL' })}
                     className={`flex flex-col items-center justify-center rounded-xl border-2 transition-all duration-200 ${formData.cheeringSide === 'NEUTRAL'
                       ? 'bg-gray-500 text-white ring-4 ring-gray-300 ring-offset-2 scale-[1.02] border-transparent shadow-md'
-                      : 'border-gray-200 text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800'
+                      : 'border-gray-200 text-gray-500 hover:bg-gray-100 dark:border-border dark:hover:bg-gray-800'
                       }`}
                   >
                     <span className="text-3xl mb-1">😐</span>
@@ -715,10 +715,10 @@ export default function MateCreate() {
                           onClick={() => updateFormData({ seatCategory: isSelected ? '' : v.label })}
                           className={`p-4 rounded-xl border-2 text-left transition-all duration-200 flex items-start gap-3 hover:shadow-sm ${isSelected
                             ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                            : 'border-gray-100 hover:border-primary/50 bg-white dark:bg-gray-800 dark:border-gray-700'
+                            : 'border-gray-100 hover:border-primary/50 bg-white dark:bg-card dark:border-border'
                             }`}
                         >
-                          <div className={`p-2 rounded-full text-2xl shrink-0 flex items-center justify-center w-12 h-12 ${isSelected ? 'bg-white' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                          <div className={`p-2 rounded-full text-2xl shrink-0 flex items-center justify-center w-12 h-12 ${isSelected ? 'bg-white' : 'bg-gray-50 dark:bg-secondary'}`}>
                             {SEAT_ICONS[k as SeatCategory]}
                           </div>
                           <div>
@@ -797,7 +797,7 @@ export default function MateCreate() {
 
                 {/* Preview */}
                 {(formData.cheeringSide || formData.seatCategory || formData.seatDetail) && (
-                  <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center justify-between">
+                  <div className="mt-4 p-4 bg-gray-50 dark:bg-card rounded-lg flex items-center justify-between">
                     <span className="text-sm text-gray-500">미리보기</span>
                     <span className="font-bold text-gray-700 dark:text-gray-300">
                       {[
@@ -883,7 +883,7 @@ export default function MateCreate() {
                   {['#열정응원🔥', '#공격때_기립🧍', '#조용한관람🤫', '#먹방진심🍗', '#유니폼필수👕', '#직관승요🧚'].map((tag) => (
                     <button
                       key={tag}
-                      className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md text-gray-600 dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-primary/30 hover:text-primary transition-colors"
+                      className="text-xs px-2 py-1 bg-gray-100 dark:bg-card rounded-md text-gray-600 dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-primary/30 hover:text-primary transition-colors"
                       onClick={() => {
                         if (!formData.description.includes(tag)) {
                           handleDescriptionChange(`${formData.description} ${tag}`.trim());
@@ -970,7 +970,7 @@ export default function MateCreate() {
 
           <div className="space-y-4 py-4">
             {/* Game Info */}
-            <div className="flex items-center justify-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center justify-center gap-3 p-4 bg-gray-50 dark:bg-card rounded-lg">
               <div className="flex items-center gap-2">
                 <TeamLogo teamId={formData.awayTeam} size="sm" />
                 <span className="font-bold text-sm">

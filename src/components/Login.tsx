@@ -33,9 +33,9 @@ export default function Login() {
 
   return (
     <AuthLayout showHomeButton={true}>
-      <h2 className="text-center mb-8">SIGN IN</h2>
+      <h2 className="text-center mb-8 text-gray-900">SIGN IN</h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" style={{ colorScheme: 'light' }}>
         {/* 서버 에러 메시지 */}
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -55,7 +55,7 @@ export default function Login() {
             value={formData.email}
             onChange={(e) => handleFieldChange('email', e.target.value)}
             onBlur={() => handleFieldBlur('email')}
-            className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-2 focus:ring-primary ${fieldErrors.email ? 'border-red-500' : ''}`}
+            className={`!bg-gray-50 !border-gray-200 !text-gray-900 placeholder:!text-gray-500 focus:ring-2 focus:ring-primary [&:-webkit-autofill]:!shadow-[0_0_0_30px_rgb(249,250,251)_inset] [&:-webkit-autofill]:!text-gray-900 [&:-webkit-autofill]:[-webkit-text-fill-color:#111827] ${fieldErrors.email ? '!border-red-500' : ''}`}
             placeholder="이메일을 입력하세요"
             disabled={isLoading}
           />
@@ -77,7 +77,7 @@ export default function Login() {
               value={formData.password}
               onChange={(e) => handleFieldChange('password', e.target.value)}
               onBlur={() => handleFieldBlur('password')}
-              className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-2 focus:ring-primary pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
+              className={`!bg-gray-50 !border-gray-200 !text-gray-900 placeholder:!text-gray-500 focus:ring-2 focus:ring-primary pr-10 [&:-webkit-autofill]:!shadow-[0_0_0_30px_rgb(249,250,251)_inset] [&:-webkit-autofill]:!text-gray-900 [&:-webkit-autofill]:[-webkit-text-fill-color:#111827] ${fieldErrors.password ? '!border-red-500' : ''}`}
               placeholder="비밀번호를 입력하세요"
               disabled={isLoading}
             />
@@ -100,12 +100,12 @@ export default function Login() {
               <input
                 id="remember-email"
                 type="checkbox"
-                className="rounded border-gray-300"
+                className="h-4 w-4 rounded border-gray-300 bg-white accent-primary text-primary dark:!bg-white dark:!border-gray-300"
                 checked={rememberEmail}
                 onChange={(e) => handleRememberEmailChange(e.target.checked)}
                 disabled={isLoading}
               />
-              <label htmlFor="remember-email" className="text-sm text-gray-600">
+              <label htmlFor="remember-email" className="text-sm text-gray-600 dark:!text-gray-600">
                 이메일 저장
               </label>
             </div>
@@ -123,7 +123,7 @@ export default function Login() {
         {/* 로그인 버튼 */}
         <Button
           type="submit"
-          className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed bg-primary"
+          className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed bg-primary-dark hover:bg-primary"
           disabled={isLoading}
           aria-busy={isLoading}
         >

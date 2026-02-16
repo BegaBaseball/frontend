@@ -59,13 +59,13 @@ function CommentItemComponent({
   return (
     <div
       className={`${depth === 0
-        ? 'border-b border-gray-100 dark:border-gray-800 pb-6 last:border-b-0 last:pb-0'
+        ? 'border-b border-gray-100 dark:border-border pb-6 last:border-b-0 last:pb-0'
         : 'pl-10 pt-4'
         }`}
     >
       <div className="flex gap-4">
         <div className="flex flex-col items-center gap-2">
-          {isReply ? <CornerDownRight className="h-4 w-4 text-gray-300 dark:text-gray-600" /> : null}
+          {isReply ? <CornerDownRight className="h-4 w-4 text-gray-300 dark:text-gray-300" /> : null}
           <div
             className="cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => {
@@ -90,7 +90,7 @@ function CommentItemComponent({
               >
                 {comment.author}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-gray-500 dark:text-gray-300">
                 {comment.isPending ? '전송 중...' : comment.timeAgo}
               </p>
             </div>
@@ -108,12 +108,12 @@ function CommentItemComponent({
           <p className="mt-2 whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed">
             {comment.content}
           </p>
-          <div className="mt-3 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+          <div className="mt-3 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-300">
             <button
               onClick={() => onCommentLike(comment.id)}
               disabled={!canLike || isCommentLikePending}
               className={`flex items-center gap-1 transition-colors hover:text-red-500 ${isCommentLiked ? 'text-red-500' : ''
-                } ${!canLike ? 'cursor-not-allowed text-gray-400 dark:text-gray-600 hover:text-gray-400 dark:hover:text-gray-600' : ''}`}
+                } ${!canLike ? 'cursor-not-allowed text-gray-400 dark:text-gray-300 hover:text-gray-400 dark:hover:text-gray-600' : ''}`}
             >
               <span className="relative flex h-8 w-8 items-center justify-center rounded-full transition-colors">
                 {isCommentLikeAnimating && (
@@ -130,13 +130,13 @@ function CommentItemComponent({
                 onClick={() => !repliesComingSoon && onReplyToggle(comment.id)}
                 disabled={!canInteract || repliesComingSoon}
                 className={`flex items-center gap-1.5 transition-colors ${repliesComingSoon
-                    ? 'cursor-not-allowed text-gray-400 dark:text-gray-600'
+                    ? 'cursor-not-allowed text-gray-400 dark:text-gray-300'
                     : 'hover:text-gray-700 dark:hover:text-gray-300 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600'
                   }`}
               >
                 답글 달기
                 {repliesComingSoon && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                  <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-200 dark:bg-secondary text-gray-500 dark:text-gray-300">
                     준비 중
                   </span>
                 )}
@@ -145,12 +145,12 @@ function CommentItemComponent({
           </div>
 
           {repliesEnabled && isReplyOpen && (
-            <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4">
+            <div className="mt-4 rounded-lg border border-gray-200 dark:border-border bg-gray-50 dark:bg-card/50 p-4">
               <Textarea
                 value={replyDraft}
                 onChange={(e) => onReplyChange(comment.id, e.target.value)}
                 placeholder="답글을 입력하세요"
-                className="min-h-[80px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 dark:text-white dark:placeholder:text-gray-500"
+                className="min-h-[80px] bg-white dark:bg-background border-gray-200 dark:border-border dark:text-white dark:placeholder:text-gray-500"
                 disabled={!canInteract || isReplyPending}
               />
               <div className="mt-3 flex justify-end gap-2">

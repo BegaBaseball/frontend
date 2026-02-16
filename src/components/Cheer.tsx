@@ -12,6 +12,7 @@ import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost } from '../api/cheerApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
+import { motion } from 'framer-motion';
 import TeamLogo from './TeamLogo';
 import CheerCard from './CheerCard';
 import CheerHot from './CheerHot';
@@ -529,7 +530,7 @@ export default function Cheer() {
     }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     return (
-        <div className="min-h-screen bg-[#f7f9f9] dark:bg-[#0E1117]">
+        <div className="min-h-screen bg-[#f7f9f9] dark:bg-background">
             <div className="px-6 py-8">
                 <div className="mx-auto w-full max-w-[1008px] xl:max-w-[1136px] lg:-translate-x-4">
                     <div className="grid grid-cols-1 gap-0 lg:gap-x-4 lg:grid-cols-[72px_1fr_280px] xl:grid-cols-[200px_1fr_320px]">
@@ -551,8 +552,8 @@ export default function Cheer() {
                                         className={cn(
                                             'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-[18px] font-semibold transition-colors',
                                             isActive
-                                                ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white'
-                                                : 'text-[#334155] hover:bg-[#F1F5F9] dark:text-slate-400 dark:hover:bg-slate-800'
+                                                ? 'bg-slate-100 text-slate-900 dark:bg-secondary dark:text-white'
+                                                : 'text-[#334155] hover:bg-[#F1F5F9] dark:text-gray-300 dark:hover:bg-secondary'
                                         )}
                                         style={isActive ? { backgroundColor: `${teamColor}1A` } : undefined}
                                     >
@@ -579,29 +580,36 @@ export default function Cheer() {
                             </button>
                         </aside>
 
-                        <main className="flex w-full flex-col gap-0 bg-slate-50/50 dark:bg-[#0f141a] border-x border-[#EFF3F4] dark:border-[#232938]">
-                            <nav className="flex items-center border-b border-[#EFF3F4] dark:border-[#232938] px-4 py-3 bg-white/80 dark:bg-[#151A23]">
-                                <div className="flex items-center gap-1 rounded-full bg-slate-100/90 p-1 dark:bg-slate-800/80">
+                        <main className="flex w-full flex-col gap-0 bg-slate-50/50 dark:bg-card">
+                            <nav className="flex items-center border-b border-border/70 dark:border-border px-4 py-3 bg-white/80 dark:bg-card">
+                                <div className="flex items-center gap-1 rounded-full bg-slate-100/90 p-1 dark:bg-secondary dark:border dark:border-border">
                                     {feedTabs.map((tab) => {
                                         const isActive = activeFeedTab === tab.key;
                                         return (
-                                            <button
+                                            <motion.button
                                                 key={tab.key}
                                                 type="button"
                                                 onClick={() => setActiveFeedTab(tab.key)}
+                                                whileHover={{ y: -1 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                                                 className={cn(
                                                     'relative px-4 py-2 text-[14px] font-semibold rounded-full transition-all duration-200',
                                                     isActive
-                                                        ? 'bg-white text-[#0F172A] shadow-sm ring-1 ring-black/5 dark:bg-slate-700 dark:text-white dark:ring-white/10'
-                                                        : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-slate-400 dark:hover:bg-slate-700/60 dark:hover:text-white'
+                                                        ? 'text-[#0F172A] dark:text-gray-100'
+                                                        : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-gray-300 dark:hover:bg-secondary dark:hover:text-white'
                                                 )}
-                                                style={isActive ? {
-                                                    color: teamAccent,
-                                                    boxShadow: `0 4px 12px ${toRgba(teamAccent, 0.15)}`
-                                                } : undefined}
+                                                style={isActive ? { color: teamAccent } : undefined}
                                             >
-                                                {tab.label}
-                                            </button>
+                                                {isActive && (
+                                                    <motion.span
+                                                        layoutId="cheer-feed-tab-indicator"
+                                                        className="absolute inset-0 rounded-full bg-white dark:bg-card shadow-sm ring-1 ring-black/5 dark:ring-border"
+                                                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                                                    />
+                                                )}
+                                                <span className="relative z-10">{tab.label}</span>
+                                            </motion.button>
                                         );
                                     })}
                                 </div>
@@ -628,8 +636,8 @@ export default function Cheer() {
 
                             <section
                                 className={cn(
-                                    'relative mx-4 mt-4 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 py-4 transition-all duration-200',
-                                    'bg-white dark:bg-[#151A23] shadow-[0_1px_3px_rgba(0,0,0,0.05)]',
+                                    'relative mx-4 mt-4 rounded-2xl border border-slate-200 dark:border-border px-4 py-4 transition-all duration-200',
+                                    'bg-white dark:bg-card shadow-[0_1px_3px_rgba(0,0,0,0.05)]',
                                     composerDragging && 'bg-sky-50/50 dark:bg-sky-900/30 border-2 border-dashed border-sky-300 dark:border-sky-500'
                                 )}
                                 onDragOver={handleComposerDragOver}
@@ -643,7 +651,7 @@ export default function Cheer() {
                                     </div>
                                 )}
                                 <div className="flex gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden">
+                                    <div className="h-11 w-11 rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden">
                                         {user?.profileImageUrl ? (
                                             <img
                                                 src={user.profileImageUrl.includes('/assets/') ? DEFAULT_PROFILE_IMAGE : user.profileImageUrl}
@@ -656,7 +664,7 @@ export default function Cheer() {
                                         ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
                                             <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
                                         ) : (
-                                            <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                                            <span className="text-sm font-semibold text-slate-600 dark:text-gray-300">
                                                 {user?.name?.slice(0, 1) || '?'}
                                             </span>
                                         )}
@@ -670,20 +678,20 @@ export default function Cheer() {
                                             value={composerContent}
                                             onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setComposerContent(event.target.value)}
                                         />
-                                        <div className="mt-2 flex items-center justify-between border-t border-[#EFF3F4] dark:border-[#232938] pt-2">
-                                            <div className="flex items-center gap-2 text-[#536471] dark:text-slate-500">
+                                        <div className="mt-2 flex items-center justify-between border-t border-border/70 dark:border-border pt-2">
+                                            <div className="flex items-center gap-2 text-[#536471] dark:text-gray-300">
                                                 <button
                                                     type="button"
                                                     className={`group relative rounded-full p-1 transition-colors ${composerFiles.length >= 10
                                                         ? 'opacity-50 cursor-not-allowed'
-                                                        : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                                                        : 'hover:bg-slate-100 dark:hover:bg-secondary'
                                                         }`}
                                                     onClick={() => fileInputRef.current?.click()}
                                                     aria-label="이미지 첨부"
                                                     disabled={composerFiles.length >= 10}
                                                 >
                                                     <ImagePlus className="h-4 w-4" />
-                                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block whitespace-nowrap rounded bg-slate-800 dark:bg-slate-600 px-2 py-1 text-xs text-white shadow-lg">
+                                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block whitespace-nowrap rounded bg-slate-800 dark:bg-secondary px-2 py-1 text-xs text-white shadow-lg">
                                                         최대 10장, 각 5MB 이하
                                                     </span>
                                                 </button>
@@ -705,7 +713,7 @@ export default function Cheer() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {!composerContent.trim() && (
-                                                    <span className="text-xs text-slate-400 dark:text-slate-500">내용을 입력해 주세요</span>
+                                                    <span className="text-xs text-slate-400 dark:text-gray-300">내용을 입력해 주세요</span>
                                                 )}
                                                 <button
                                                     type="button"
@@ -746,36 +754,34 @@ export default function Cheer() {
                                 </div>
                             </section>
 
-                            <div className="mt-4 border-b border-slate-100 dark:border-slate-800/50" />
-
-                            <section>
+                            <section className="mt-4">
                                 {isLoading && currentPosts.length === 0 ? (
-                                    <div className="divide-y divide-[#EFF3F4] dark:divide-[#232938]">
+                                    <div className="divide-y divide-border/70 dark:divide-border/70">
                                         {[1, 2, 3].map((index) => (
                                             <div key={index} className="px-4 py-4 animate-pulse">
                                                 <div className="flex gap-3">
                                                     {/* Profile skeleton */}
-                                                    <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+                                                    <div className="h-11 w-11 rounded-full bg-slate-200 dark:bg-secondary flex-shrink-0" />
 
                                                     <div className="flex-1 space-y-3">
                                                         {/* Author and time skeleton */}
                                                         <div className="flex items-center gap-2">
-                                                            <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
-                                                            <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                                                            <div className="h-4 w-24 bg-slate-200 dark:bg-secondary rounded" />
+                                                            <div className="h-3 w-16 bg-slate-200 dark:bg-secondary rounded" />
                                                         </div>
 
                                                         {/* Content skeleton - multiple lines with varying widths */}
                                                         <div className="space-y-2">
-                                                            <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded" />
-                                                            <div className="h-4 w-5/6 bg-slate-200 dark:bg-slate-700 rounded" />
-                                                            <div className="h-4 w-4/6 bg-slate-200 dark:bg-slate-700 rounded" />
+                                                            <div className="h-4 w-full bg-slate-200 dark:bg-secondary rounded" />
+                                                            <div className="h-4 w-5/6 bg-slate-200 dark:bg-secondary rounded" />
+                                                            <div className="h-4 w-4/6 bg-slate-200 dark:bg-secondary rounded" />
                                                         </div>
 
                                                         {/* Stats skeleton */}
                                                         <div className="flex gap-4 pt-2">
-                                                            <div className="h-4 w-12 bg-slate-200 dark:bg-slate-700 rounded" />
-                                                            <div className="h-4 w-12 bg-slate-200 dark:bg-slate-700 rounded" />
-                                                            <div className="h-4 w-12 bg-slate-200 dark:bg-slate-700 rounded" />
+                                                            <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
+                                                            <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
+                                                            <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -790,7 +796,7 @@ export default function Cheer() {
                                                 <p className="text-[16px] font-semibold text-red-500 dark:text-red-400">
                                                     게시글을 불러오는데 실패했습니다
                                                 </p>
-                                                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                                <p className="mt-1 text-sm text-slate-500 dark:text-gray-300">
                                                     네트워크 연결을 확인해주세요
                                                 </p>
                                             </div>
@@ -798,15 +804,15 @@ export default function Cheer() {
                                         <button
                                             type="button"
                                             onClick={() => queryClient.invalidateQueries({ queryKey: ['cheer-posts', activeFeedTab] })}
-                                            className="rounded-full bg-slate-100 dark:bg-slate-700 px-6 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                                            className="rounded-full bg-slate-100 dark:bg-secondary px-6 py-2.5 text-sm font-semibold text-slate-700 dark:text-gray-200 hover:bg-slate-200 dark:hover:bg-secondary transition-colors"
                                         >
                                             다시 시도
                                         </button>
                                     </div>
                                 ) : activeFeedTab === 'following' && !user ? (
-                                    <div className="border-b border-[#EFF3F4] dark:border-[#232938] px-6 py-12 text-center">
-                                        <p className="text-[#64748B] dark:text-slate-400">로그인이 필요합니다</p>
-                                        <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">팔로우한 유저의 글을 보려면 로그인해주세요.</p>
+                                    <div className="border-b border-border/70 dark:border-border px-6 py-12 text-center">
+                                        <p className="text-[#64748B] dark:text-gray-300">로그인이 필요합니다</p>
+                                        <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">팔로우한 유저의 글을 보려면 로그인해주세요.</p>
                                         <button
                                             type="button"
                                             onClick={() => navigate('/login')}
@@ -817,16 +823,16 @@ export default function Cheer() {
                                         </button>
                                     </div>
                                 ) : currentPosts.length === 0 ? (
-                                    <div className="border-b border-[#EFF3F4] dark:border-[#232938] px-6 py-12 text-center">
+                                    <div className="border-b border-border/70 dark:border-border px-6 py-12 text-center">
                                         {activeFeedTab === 'following' ? (
                                             <>
-                                                <p className="text-[#64748B] dark:text-slate-400">팔로우한 유저가 없습니다</p>
-                                                <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">다른 유저를 팔로우하면 여기에 글이 표시됩니다!</p>
+                                                <p className="text-[#64748B] dark:text-gray-300">팔로우한 유저가 없습니다</p>
+                                                <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">다른 유저를 팔로우하면 여기에 글이 표시됩니다!</p>
                                             </>
                                         ) : (
                                             <>
-                                                <p className="text-[#64748B] dark:text-slate-400">아직 작성된 응원글이 없습니다.</p>
-                                                <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">첫 번째 응원글을 남겨보세요!</p>
+                                                <p className="text-[#64748B] dark:text-gray-300">아직 작성된 응원글이 없습니다.</p>
+                                                <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">첫 번째 응원글을 남겨보세요!</p>
                                             </>
                                         )}
                                     </div>
@@ -839,18 +845,18 @@ export default function Cheer() {
                                 )}
                                 <div ref={sentinelRef} className="flex min-h-[120px] items-center justify-center">
                                     {queryError && currentPosts.length > 0 ? (
-                                        <div className="flex flex-col items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                                        <div className="flex flex-col items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
                                             <span>추가 게시글을 불러오지 못했습니다.</span>
                                             <button
                                                 type="button"
                                                 onClick={() => fetchNextPage()}
-                                                className="rounded-full border border-slate-200 dark:border-slate-600 px-4 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                className="rounded-full border border-slate-200 dark:border-border px-4 py-1.5 text-xs font-semibold text-slate-600 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-secondary"
                                             >
                                                 다시 시도
                                             </button>
                                         </div>
                                     ) : isFetchingNextPage ? (
-                                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
                                             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                                             불러오는 중...
                                         </div>
@@ -863,45 +869,45 @@ export default function Cheer() {
                         </main>
 
                         <aside className="hidden lg:flex w-[280px] xl:w-[320px] flex-col gap-4 sticky top-6 self-start">
-                            <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#232938] p-4 bg-white dark:bg-[#151A23]">
+                            <div className="rounded-2xl border border-border/70 dark:border-border p-4 bg-white dark:bg-card">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center">
+                                    <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-secondary flex items-center justify-center">
                                         <TeamLogo teamId={teamLogoId} team={teamLabel} size={48} />
                                     </div>
                                     <div>
                                         <p className="text-sm font-semibold text-[#0F172A] dark:text-white">팀 정보 요약</p>
-                                        <p className="text-xs text-[#64748B] dark:text-slate-400">{teamName}</p>
+                                        <p className="text-xs text-[#64748B] dark:text-gray-300">{teamName}</p>
                                     </div>
                                 </div>
-                                <p className="mt-3 text-sm text-[#64748B] dark:text-slate-400 leading-relaxed">{teamDescription}</p>
+                                <p className="mt-3 text-sm text-[#64748B] dark:text-gray-300 leading-relaxed">{teamDescription}</p>
                             </div>
 
-                            <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#232938] p-4 bg-white dark:bg-[#151A23]">
+                            <div className="rounded-2xl border border-border/70 dark:border-border p-4 bg-white dark:bg-card">
                                 <p className="text-sm font-semibold text-[#0F172A] dark:text-white">오늘 경기</p>
                                 {isGamesLoading ? (
                                     <div className="mt-3 space-y-3">
-                                        <div className="h-4 w-32 rounded bg-slate-100 dark:bg-slate-800" />
-                                        <div className="h-12 rounded bg-slate-100 dark:bg-slate-800" />
-                                        <div className="h-9 w-full rounded-full bg-slate-100 dark:bg-slate-800" />
+                                        <div className="h-4 w-32 rounded bg-slate-100 dark:bg-secondary" />
+                                        <div className="h-12 rounded bg-slate-100 dark:bg-secondary" />
+                                        <div className="h-9 w-full rounded-full bg-slate-100 dark:bg-secondary" />
                                     </div>
                                 ) : isGamesError ? (
-                                    <div className="mt-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 px-3 py-3 text-sm text-[#64748B] dark:text-slate-400">
+                                    <div className="mt-3 rounded-xl bg-slate-50 dark:bg-secondary/70 px-3 py-3 text-sm text-[#64748B] dark:text-gray-300">
                                         경기 정보를 불러오지 못했습니다.
                                         <button
                                             type="button"
                                             onClick={() => refetchGames()}
-                                            className="mt-3 w-full rounded-full border border-slate-200 dark:border-slate-600 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                            className="mt-3 w-full rounded-full border border-slate-200 dark:border-border py-2 text-xs font-semibold text-slate-600 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-secondary"
                                         >
                                             다시 시도
                                         </button>
                                     </div>
                                 ) : featuredGame ? (
                                     <div className="mt-3 space-y-3">
-                                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-300">
                                             <span>{featuredGame.stadium}</span>
                                             <span>{featuredGame.time}</span>
                                         </div>
-                                        <div className="rounded-xl border border-slate-100 dark:border-slate-700 px-3 py-3">
+                                        <div className="rounded-xl border border-slate-100 dark:border-border px-3 py-3">
                                             <div className="flex items-center justify-between gap-2">
                                                 <div className="flex items-center gap-2">
                                                     <TeamLogo team={featuredGame.awayTeam} size={28} />
@@ -932,7 +938,7 @@ export default function Cheer() {
                                                         'rounded-full px-3 py-1 text-xs font-semibold',
                                                         featuredGame.gameStatus === 'PLAYING'
                                                             ? 'bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-300'
-                                                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                                                            : 'bg-slate-100 text-slate-600 dark:bg-secondary dark:text-gray-200'
                                                     )}
                                                 >
                                                     {featuredGame.gameStatus === 'PLAYING' ? 'LIVE' : featuredGame.gameStatusKr || '예정'}
@@ -941,14 +947,14 @@ export default function Cheer() {
                                         </div>
                                         <button
                                             type="button"
-                                            className="w-full rounded-full border border-slate-200 dark:border-slate-600 py-2 text-sm font-semibold text-[#0F172A] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700"
+                                            className="w-full rounded-full border border-slate-200 dark:border-border py-2 text-sm font-semibold text-[#0F172A] dark:text-white hover:bg-slate-50 dark:hover:bg-secondary"
                                             onClick={() => navigate('/prediction')}
                                         >
                                             경기 상세 보기
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="mt-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 px-3 py-3 text-sm text-[#64748B] dark:text-slate-400">
+                                    <div className="mt-3 rounded-xl bg-slate-50 dark:bg-secondary/70 px-3 py-3 text-sm text-[#64748B] dark:text-gray-300">
                                         오늘 예정된 경기가 없습니다.
                                     </div>
                                 )}
@@ -962,7 +968,7 @@ export default function Cheer() {
             </div>
 
             {/* Mobile Bottom Navigation */}
-            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#151A23] border-t border-[#EFF3F4] dark:border-[#232938] z-40 safe-area-bottom">
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-border/70 dark:border-border z-40 safe-area-bottom">
                 <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
                     {[
                         { id: 'home', label: '홈', icon: Home, path: '/home' },
@@ -981,7 +987,7 @@ export default function Cheer() {
                                     'flex flex-col items-center justify-center gap-0.5 w-16 h-full transition-colors',
                                     isActive
                                         ? 'text-primary'
-                                        : 'text-gray-400 dark:text-gray-500'
+                                        : 'text-gray-400 dark:text-gray-300'
                                 )}
                                 style={isActive ? { color: teamAccent } : undefined}
                             >

@@ -11,6 +11,7 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
+import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import {
   Calendar,
   MapPin,
@@ -28,18 +29,19 @@ import {
   Info,
   Map as MapIcon,
   HelpCircle,
-  Plus
+  Plus,
+  User
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import { useAuthStore } from '../store/authStore';
 import UserProfileModal from './profile/UserProfileModal';
-import ChatBot from './ChatBot';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { api } from '../utils/api';
+import LoadingSpinner from './LoadingSpinner';
 import { Alert, AlertDescription } from './ui/alert';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
-import { formatGameDate, extractHashtags, stripHashtags } from '../utils/mate';
+import { formatGameDate, extractHashtags, mapBackendPartyToFrontend, stripHashtags } from '../utils/mate';
 import ReviewDialog from './ReviewDialog';
 import type { PartyReview, Application } from '../types/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
@@ -48,13 +50,12 @@ export default function MateDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { confirm } = useConfirmDialog();
-  // Correctly access state from the store
-  const selectedParty = useMateStore((state) => state.selectedParty);
+  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
   const updateParty = useMateStore((state) => state.updateParty);
+  const user = useAuthStore((state) => state.user);
 
   // Use user from auth store directly
-  const user = useAuthStore((state) => state.user);
   const currentUserId = user?.id || null;
 
   const [myApplication, setMyApplication] = useState<any>(null);
@@ -65,29 +66,8 @@ export default function MateDetail() {
   const [showHostProfile, setShowHostProfile] = useState(false);
   const [reviews, setReviews] = useState<PartyReview[]>([]);
   const [reviewTarget, setReviewTarget] = useState<{ id: number; name: string } | null>(null);
-
-  // localStorage에서 파티 정보 복원
-  useEffect(() => {
-    if (!selectedParty) {
-      const savedParty = localStorage.getItem('selectedParty');
-      if (savedParty) {
-        try {
-          const party = JSON.parse(savedParty);
-          setSelectedParty(party);
-        } catch (error) {
-          console.error('파티 정보 복원 실패:', error);
-          localStorage.removeItem('selectedParty');
-        }
-      }
-    }
-  }, [selectedParty, setSelectedParty]);
-
-  // selectedParty가 변경될 때 localStorage에 저장
-  useEffect(() => {
-    if (selectedParty) {
-      localStorage.setItem('selectedParty', JSON.stringify(selectedParty));
-    }
-  }, [selectedParty]);
+  const selectedPartyId = selectedParty?.id;
+  const selectedPartyStatus = selectedParty?.status;
 
   // 호스트 평균 평점 가져오기 (리뷰 기반)
   useEffect(() => {
@@ -103,7 +83,7 @@ export default function MateDetail() {
     api.getPartyReviews(selectedParty.id)
       .then((data) => setReviews(Array.isArray(data) ? data : []))
       .catch(() => { });
-  }, [selectedParty]);
+  }, [selectedPartyId, selectedPartyStatus]);
 
   // 내 신청 정보 가져오기
   useEffect(() => {
@@ -122,7 +102,7 @@ export default function MateDetail() {
     };
 
     fetchMyApplication();
-  }, [selectedParty, currentUserId]);
+  }, [selectedPartyId, currentUserId]);
 
   // 파티 신청 목록 가져오기 (호스트인 경우)
   useEffect(() => {
@@ -141,7 +121,7 @@ export default function MateDetail() {
     };
 
     fetchApplications();
-  }, [selectedParty, currentUserId]);
+  }, [selectedPartyId, selectedParty?.hostId, currentUserId]);
 
   const isGameTomorrow = () => {
     if (!selectedParty) return false;
@@ -183,7 +163,7 @@ export default function MateDetail() {
       }
       setMyApplication(null);
       const updatedParty = await api.getPartyById(selectedParty.id);
-      setSelectedParty(updatedParty);
+      setSelectedParty(mapBackendPartyToFrontend(updatedParty));
     } catch (error: unknown) {
       console.error('신청 취소 중 오류:', error);
       toast.error(getApiErrorMessage(error, '신청 취소 중 오류가 발생했습니다.'));
@@ -194,7 +174,26 @@ export default function MateDetail() {
 
 
 
-  if (!selectedParty) return null;
+  if (isPartyLoading) {
+    return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." />;
+  }
+
+  if (partyError || !selectedParty) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <Alert>
+            <AlertDescription>
+              {partyError || '파티 정보를 찾을 수 없습니다.'}
+            </AlertDescription>
+          </Alert>
+          <Button variant="outline" className="mt-4" onClick={() => navigate('/mate')}>
+            목록으로 이동
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const isHost = selectedParty.hostId === currentUserId;
   const isApproved = myApplication?.isApproved || false;
@@ -278,7 +277,7 @@ export default function MateDetail() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
       <OptimizedImage
         src={grassDecor}
         alt=""
@@ -346,10 +345,10 @@ export default function MateDetail() {
           </div>
 
           {/* Ticket Body */}
-          <div className="bg-white dark:bg-gray-800 p-6 md:p-8 border-t-4 border-dashed border-gray-200 dark:border-gray-700 relative">
+          <div className="bg-white dark:bg-card p-6 md:p-8 border-t-4 border-dashed border-gray-200 dark:border-border relative">
             {/* Punch Holes for Ticket realism */}
-            <div className="absolute -left-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-gray-900 rounded-full"></div>
-            <div className="absolute -right-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-gray-900 rounded-full"></div>
+            <div className="absolute -left-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
+            <div className="absolute -right-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
 
             <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
               {/* Seat Info with Visualization */}
@@ -392,14 +391,14 @@ export default function MateDetail() {
 
                 {/* UGC Seat View Guide Area */}
                 {showSeatViewGuide && (
-                  <div className="mt-4 mb-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-4 text-center animate-in zoom-in-95 duration-200">
-                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <div className="mt-4 mb-4 bg-gray-50 dark:bg-secondary/70 rounded-xl border border-dashed border-gray-300 dark:border-border p-4 text-center animate-in zoom-in-95 duration-200">
+                    <div className="w-10 h-10 bg-gray-200 dark:bg-border rounded-full flex items-center justify-center mx-auto mb-2">
                       <span className="text-xl">📷</span>
                     </div>
                     <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1">
                       아직 등록된 시야가 없어요
                     </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    <p className="text-xs text-gray-500 dark:text-gray-300 mb-3">
                       직관 후 이 좌석의 뷰를 공유해주시면<br />
                       <span className="text-primary font-bold">50 포인트</span>를 즉시 적립해 다려요!
                     </p>
@@ -412,7 +411,7 @@ export default function MateDetail() {
                 <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-2">
                   {selectedParty.section}
                 </h2>
-                <div className="flex items-center justify-center md:justify-start gap-4 text-gray-500 dark:text-gray-400">
+                <div className="flex items-center justify-center md:justify-start gap-4 text-gray-500 dark:text-gray-300">
                   <div className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
                     <span>{selectedParty.currentParticipants}/{selectedParty.maxParticipants}명</span>
@@ -425,7 +424,7 @@ export default function MateDetail() {
               </div>
 
               {/* QR Code */}
-              <div className="hidden md:block border-l border-gray-200 dark:border-gray-700 pl-8">
+              <div className="hidden md:block border-l border-gray-200 dark:border-border pl-8">
                 <div className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
                   <QRCode
                     value={JSON.stringify({
@@ -453,7 +452,7 @@ export default function MateDetail() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* 파티 소개 */}
-            <Card className="p-6 border-none shadow-md bg-white dark:bg-gray-800/80 backdrop-blur-sm">
+            <Card className="p-6 border-none shadow-md bg-white dark:bg-card/80 backdrop-blur-sm">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
                 <MessageSquare className="w-5 h-5 text-primary" /> 파티 소개
               </h3>
@@ -472,13 +471,13 @@ export default function MateDetail() {
             </Card>
 
             {/* 결제 정보 (Improved) */}
-            <Card className="p-6 border-none shadow-md bg-white dark:bg-gray-800/80">
+            <Card className="p-6 border-none shadow-md bg-white dark:bg-card/80">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
                 <Info className="w-5 h-5 text-primary" /> 비용 안내
               </h3>
 
               {/* Surface Color Box for Dark Mode */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5 border border-gray-100 dark:border-gray-600">
+              <div className="bg-gray-50 dark:bg-secondary/70 rounded-xl p-5 border border-gray-100 dark:border-border">
                 {selectedParty.status === 'SELLING' ? (
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-gray-600 dark:text-gray-300">티켓 판매가</span>
@@ -489,14 +488,14 @@ export default function MateDetail() {
                 ) : (
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600 dark:text-gray-400">티켓 가격</span>
+                      <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
                       <span className="font-semibold text-gray-900 dark:text-gray-200">
                         {(selectedParty.ticketPrice || 0).toLocaleString()}원
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-600 dark:text-gray-400">보증금</span>
+                        <span className="text-gray-600 dark:text-gray-300">보증금</span>
                         <div className="group relative">
                           <HelpCircle className="w-3.5 h-3.5 text-gray-400 cursor-help" />
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50">
@@ -508,7 +507,7 @@ export default function MateDetail() {
                         {DEPOSIT_AMOUNT.toLocaleString()}원
                       </span>
                     </div>
-                    <Separator className="bg-gray-200 dark:bg-gray-600 my-2" />
+                    <Separator className="bg-gray-200 dark:bg-border my-2" />
                     <div className="flex justify-between items-center text-lg">
                       <span className="font-bold text-primary dark:text-[#5abba6]">총 결제 금액</span>
                       <span className="font-black text-primary dark:text-[#5abba6]">
@@ -526,11 +525,11 @@ export default function MateDetail() {
             </Card>
 
             {/* 좌석 시야 */}
-            <Card className="p-6 border-none shadow-md overflow-hidden bg-white dark:bg-gray-800/80">
+            <Card className="p-6 border-none shadow-md overflow-hidden bg-white dark:bg-card/80">
               <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
               </h3>
-              <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center relative overflow-hidden group">
+              <div className="aspect-video bg-gray-200 dark:bg-secondary rounded-xl flex items-center justify-center relative overflow-hidden group">
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                   <Button variant="secondary" className="bg-white/90 text-gray-800 hover:bg-white shadow-lg backdrop-blur-sm">
                     {selectedParty.stadium} {selectedParty.section} 시야 보기
@@ -544,25 +543,31 @@ export default function MateDetail() {
           <div className="space-y-4">
             {/* Host Profile Card */}
             <Card
-              className="p-6 text-center border-none shadow-md bg-white dark:bg-gray-800/80 relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+              className="p-6 text-center border-none shadow-md bg-white dark:bg-card/80 relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
               onClick={() => setShowHostProfile(true)}
             >
               <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-gray-100 to-transparent dark:from-gray-700/50"></div>
 
               <div className="relative relative-z-10 mb-2">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-lg mx-auto bg-white">
-                  <OptimizedImage
-                    src={selectedParty.hostProfileImageUrl || ''}
-                    alt={selectedParty.hostName}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-border shadow-lg mx-auto bg-white">
+                  {selectedParty.hostProfileImageUrl ? (
+                    <OptimizedImage
+                      src={selectedParty.hostProfileImageUrl}
+                      alt={selectedParty.hostName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-100 dark:bg-secondary flex items-center justify-center">
+                      <User className="w-10 h-10 text-gray-400" />
+                    </div>
+                  )}
                 </div>
                 {/* Manner Temperature Bar (Carrot Market Style) */}
                 <div className="mt-3 mb-1">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <span className="font-bold text-lg text-gray-900 dark:text-white">{selectedParty.hostName}</span>
                   </div>
-                  <div className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+                  <div className="inline-flex items-center gap-2 bg-gray-100 dark:bg-secondary px-3 py-1 rounded-full">
                     <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
                     <span className="text-xs font-bold text-gray-900 dark:text-white">{mannerScore.toFixed(1)}</span>
                     <div className="w-16 h-1.5 bg-gray-300 rounded-full overflow-hidden">
@@ -608,7 +613,7 @@ export default function MateDetail() {
                       return (
                         <div
                           key={target.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-card rounded-lg"
                         >
                           <div className="flex flex-col gap-1">
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -751,7 +756,6 @@ export default function MateDetail() {
           </div>
         </div>
       </div>
-      <ChatBot />
       <UserProfileModal
         userId={selectedParty?.hostId ?? null}
         isOpen={showHostProfile}

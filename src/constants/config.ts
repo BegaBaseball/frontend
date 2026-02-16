@@ -16,11 +16,6 @@ export const CURRENT_SEASON = 2025;
 export const DEFAULT_DATE = new Date(2025, 9, 26);
 
 /**
- * 기본 프로필 이미지 placeholder
- */
-export const DEFAULT_PROFILE_PLACEHOLDER = 'https://placehold.co/100x100/374151/ffffff?text=User';
-
-/**
  * 페이지 제목
  */
 export const PAGE_TITLES = {

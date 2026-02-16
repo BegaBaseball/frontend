@@ -67,7 +67,7 @@ export default function DiaryViewSection() {
   const monthCalendar = useMonthCalendar(currentMonth);
 
   return (
-    <div className="rounded-2xl md:rounded-3xl p-3 md:p-8 bg-primary">
+    <div className="diary-green-surface rounded-2xl md:rounded-3xl p-3 md:p-8 bg-primary dark:bg-primary-dark">
       {isDesktop ? (
         // 데스크톱: 기존 월간 뷰
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-10">
@@ -116,14 +116,14 @@ export default function DiaryViewSection() {
                 let bgClass = '';
                 if (entry) {
                   if (entry.type === 'attended') {
-                    bgClass = 'bg-[#e8f5f0] dark:bg-[#134e4a]/30 border-primary dark:border-primary';
+                    bgClass = 'bg-[#e8f5f0] dark:bg-secondary border-primary dark:border-primary';
                   } else {
-                    bgClass = 'bg-[#fef3c7] dark:bg-[#78350f]/30 border-[#fbbf24] dark:border-[#d97706]';
+                    bgClass = 'bg-[#fef3c7] dark:bg-secondary border-[#fbbf24] dark:border-border';
                   }
                 } else if (day.isValidDay) {
-                  bgClass = 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700';
+                  bgClass = 'bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-border';
                 } else {
-                  bgClass = 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-800';
+                  bgClass = 'bg-gray-50 dark:bg-background border-gray-100 dark:border-border';
                 }
 
                 return (
@@ -142,7 +142,7 @@ export default function DiaryViewSection() {
                   >
                     {day.isValidDay && (
                       <>
-                        <div className={`text-sm text-center w-full mb-2 ${!day.isValidDay ? 'text-gray-300 dark:text-gray-700' : 'text-gray-900 dark:text-gray-100'
+                        <div className={`text-sm text-center w-full mb-2 ${!day.isValidDay ? 'text-gray-300 dark:text-gray-300' : 'text-gray-900 dark:text-gray-100'
                           }`}>
                           {day.dayNumber}
                         </div>
@@ -672,12 +672,12 @@ function DiaryEditMode({
 
       {/* 경기 선택 */}
       <div>
-        <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">경기 선택</label>
+        <label className="text-sm text-gray-500 dark:text-gray-300 mb-1 block">경기 선택</label>
         {availableGames.length > 0 ? (
           <select
             value={diaryForm.gameId}
             onChange={(e) => updateForm({ gameId: e.target.value })}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full p-2 border border-gray-300 dark:border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-card text-gray-900 dark:text-gray-100"
           >
             <option value="">경기를 선택하세요</option>
             {availableGames.map((game: Game) => (
@@ -688,7 +688,7 @@ function DiaryEditMode({
             ))}
           </select>
         ) : (
-          <div className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-center">
+          <div className="w-full p-2 border border-gray-300 dark:border-border rounded-lg bg-gray-50 dark:bg-card/50 text-gray-500 dark:text-gray-300 text-center">
             이 날짜에 예정된 경기가 없습니다
           </div>
         )}
@@ -696,7 +696,7 @@ function DiaryEditMode({
 
       {/* 좌석 정보 (직관 완료시만) */}
       {diaryForm.type === 'attended' && (
-        <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
+        <div className="space-y-3 p-4 bg-gray-50 dark:bg-card/50 rounded-xl border border-gray-100 dark:border-border">
           <label className="text-sm font-bold text-primary">좌석 정보</label>
           <div className="grid grid-cols-2 gap-3">
             <input
@@ -704,28 +704,28 @@ function DiaryEditMode({
               placeholder="구역 (예: 1루 레드석)"
               value={diaryForm.section || ''}
               onChange={(e) => updateForm({ section: e.target.value })}
-              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+              className="p-2 border rounded-lg text-sm dark:bg-secondary dark:border-border dark:text-gray-100"
             />
             <input
               type="text"
               placeholder="블록 (예: 101블록)"
               value={diaryForm.block || ''}
               onChange={(e) => updateForm({ block: e.target.value })}
-              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+              className="p-2 border rounded-lg text-sm dark:bg-secondary dark:border-border dark:text-gray-100"
             />
             <input
               type="text"
               placeholder="열 (예: 5열)"
               value={diaryForm.row || ''}
               onChange={(e) => updateForm({ row: e.target.value })}
-              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+              className="p-2 border rounded-lg text-sm dark:bg-secondary dark:border-border dark:text-gray-100"
             />
             <input
               type="text"
               placeholder="번 (예: 13번)"
               value={diaryForm.seat || ''}
               onChange={(e) => updateForm({ seat: e.target.value })}
-              className="p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+              className="p-2 border rounded-lg text-sm dark:bg-secondary dark:border-border dark:text-gray-100"
             />
           </div>
         </div>
@@ -734,7 +734,7 @@ function DiaryEditMode({
       {/* 승패 선택 (직관 완료시만) */}
       {diaryForm.type === 'attended' && (
         <div className="space-y-2">
-          <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">응원 팀 승패</label>
+          <label className="block text-sm text-gray-500 dark:text-gray-300 mb-2">응원 팀 승패</label>
           <div className="flex gap-3">
             {WINNING_OPTIONS.map(({ value, label, bg, lightBg, textColor }) => (
               <button
@@ -766,7 +766,7 @@ function DiaryEditMode({
 
       {/* 메모 */}
       <div>
-        <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">메모</label>
+        <label className="text-sm text-gray-500 dark:text-gray-300 mb-1 block">메모</label>
         <textarea
           disabled={diaryForm.type === 'scheduled'}
           value={diaryForm.memo}
@@ -775,7 +775,7 @@ function DiaryEditMode({
             diaryForm.type === 'attended' ? '오늘의 직관 경험을 기록해보세요' : '경기 후 입력 가능'
           }
           rows={4}
-          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none placeholder-gray-400 dark:placeholder-gray-500"
+          className="w-full p-2 border border-gray-300 dark:border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-card text-gray-900 dark:text-gray-100 resize-none placeholder-gray-400 dark:placeholder-gray-500"
         />
       </div>
 

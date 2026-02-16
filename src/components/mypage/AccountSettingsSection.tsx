@@ -119,18 +119,18 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-8 mb-6">
+        <div className="bg-white dark:bg-card rounded-2xl shadow-lg border-2 border-gray-100 dark:border-border p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
-                <Settings className="w-6 h-6 text-primary dark:text-emerald-400" />
-                <h2 className="text-xl font-bold text-primary dark:text-emerald-400">계정 설정</h2>
+                <Settings className="w-6 h-6 text-primary" />
+                <h2 className="text-xl font-bold text-primary">계정 설정</h2>
             </div>
 
             {/* 계정 연동 상태 */}
-            <div className="mb-8 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="mb-8 p-4 bg-gray-50 dark:bg-secondary/70 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">로그인 연동 관리</h3>
                 <div className="space-y-3">
                     {/* Google */}
-                    <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between p-3 bg-white dark:bg-card rounded border border-gray-200 dark:border-border">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center p-1.5">
                                 <svg className="w-full h-full" viewBox="0 0 24 24">
@@ -143,7 +143,7 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
                             <div className="flex flex-col">
                                 <span className="font-medium">Google</span>
                                 {isConnected('google') && getConnectedEmail('google') && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">{getConnectedEmail('google')}</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-300">{getConnectedEmail('google')}</span>
                                 )}
                             </div>
                         </div>
@@ -161,7 +161,7 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
                     </div>
 
                     {/* Kakao */}
-                    <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between p-3 bg-white dark:bg-card rounded border border-gray-200 dark:border-border">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center p-1.5">
                                 <svg className="w-full h-full" viewBox="0 0 24 24" fill="#3C1E1E">
@@ -171,7 +171,7 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
                             <div className="flex flex-col">
                                 <span className="font-medium">Kakao</span>
                                 {isConnected('kakao') && getConnectedEmail('kakao') && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">{getConnectedEmail('kakao')}</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-300">{getConnectedEmail('kakao')}</span>
                                 )}
                             </div>
                         </div>
@@ -189,7 +189,7 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
                     </div>
 
                     {/* Naver */}
-                    <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between p-3 bg-white dark:bg-card rounded border border-gray-200 dark:border-border">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-[#03C75A] flex items-center justify-center p-1.5">
                                 <span className="text-white font-bold text-xs italic">N</span>
@@ -197,7 +197,7 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
                             <div className="flex flex-col">
                                 <span className="font-medium">Naver</span>
                                 {isConnected('naver') && getConnectedEmail('naver') && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">{getConnectedEmail('naver')}</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-300">{getConnectedEmail('naver')}</span>
                                 )}
                             </div>
                         </div>
@@ -217,7 +217,7 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
             </div>
 
             {/* 위험 구역 */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <div className="border-t border-gray-200 dark:border-border pt-6">
                 <h3 className="text-sm font-medium text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
                     위험 구역
@@ -245,7 +245,7 @@ export default function AccountSettingsSection({ userProvider, onCancel }: Accou
             </div>
 
             {/* 뒤로가기 버튼 */}
-            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-border">
                 <Button variant="outline" className="w-full" onClick={onCancel}>
                     돌아가기
                 </Button>

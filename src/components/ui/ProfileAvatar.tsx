@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { User } from 'lucide-react';
 
 interface ProfileAvatarProps {
-  src?: string | null;
+  src?: string | null | undefined;
   alt: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
@@ -10,6 +10,10 @@ interface ProfileAvatarProps {
 
 export function ProfileAvatar({ src, alt, size = 'md', className = '' }: ProfileAvatarProps) {
   const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [src]);
 
   const sizeClasses = {
     sm: 'h-10 w-10',
@@ -28,7 +32,8 @@ export function ProfileAvatar({ src, alt, size = 'md', className = '' }: Profile
       <img
         src={src}
         alt={alt}
-        className={`${sizeClasses[size]} rounded-full object-cover border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 image-render-quality ${className}`}
+        data-testid="profile-avatar-image"
+        className={`${sizeClasses[size]} rounded-full object-cover border border-gray-200 dark:border-border bg-gray-100 dark:bg-card image-render-quality ${className}`}
         onError={() => setImageError(true)}
       />
     );
@@ -36,9 +41,10 @@ export function ProfileAvatar({ src, alt, size = 'md', className = '' }: Profile
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center ${className}`}
+      data-testid="profile-avatar-fallback"
+      className={`${sizeClasses[size]} rounded-full bg-gray-100 dark:bg-card border border-gray-200 dark:border-border flex items-center justify-center ${className}`}
     >
-      <User className={`${iconSizes[size]} text-gray-400 dark:text-gray-500`} />
+      <User className={`${iconSizes[size]} text-gray-400 dark:text-gray-300`} />
     </div>
   );
 }
