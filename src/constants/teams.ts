@@ -173,14 +173,47 @@ const TEAM_NAME_TO_CODE: Record<string, string> = {
  * 어떤 키 형식이든 팀 색상 반환
  */
 export const getTeamColorByAnyKey = (key: string): string => {
-  const canonicalFromCode = resolveTeamCode(key);
+  const normalizedKey = key?.trim() || '';
+  const canonicalFromCode = resolveTeamCode(normalizedKey);
   if (TEAM_DATA[canonicalFromCode]?.color) return TEAM_DATA[canonicalFromCode].color!;
 
-  const codeFromId = TEAM_ID_TO_CODE[key.toLowerCase()];
+  const codeFromName = TEAM_NAME_TO_ID[normalizedKey];
+  if (codeFromName && TEAM_DATA[codeFromName]?.color) return TEAM_DATA[codeFromName].color!;
+
+  const codeFromId = TEAM_ID_TO_CODE[normalizedKey.toLowerCase()];
   if (codeFromId && TEAM_DATA[codeFromId]?.color) return TEAM_DATA[codeFromId].color!;
 
-  const codeFromName = TEAM_NAME_TO_CODE[key];
-  if (codeFromName && TEAM_DATA[codeFromName]?.color) return TEAM_DATA[codeFromName].color!;
+  const codeFromPascalName = TEAM_NAME_TO_CODE[key];
+  if (codeFromPascalName && TEAM_DATA[codeFromPascalName]?.color) return TEAM_DATA[codeFromPascalName].color!;
+
+  if (normalizedKey.includes('/')) {
+    const pairTeam = normalizedKey
+      .split('/')
+      .map((teamKey) => teamKey.trim())
+      .find((teamKey) => {
+        const code = resolveTeamCode(teamKey);
+        if (TEAM_DATA[code]?.color) return true;
+
+        const mappedCode = TEAM_NAME_TO_ID[teamKey];
+        if (mappedCode && TEAM_DATA[mappedCode]?.color) return true;
+
+        const mappedCodeFromId = TEAM_ID_TO_CODE[teamKey.toLowerCase()];
+        if (mappedCodeFromId && TEAM_DATA[mappedCodeFromId]?.color) return true;
+
+        return false;
+      });
+
+    if (pairTeam) {
+      const code = resolveTeamCode(pairTeam);
+      if (TEAM_DATA[code]?.color) return TEAM_DATA[code].color!;
+
+      const mappedCode = TEAM_NAME_TO_ID[pairTeam];
+      if (mappedCode && TEAM_DATA[mappedCode]?.color) return TEAM_DATA[mappedCode].color!;
+
+      const mappedCodeFromId = TEAM_ID_TO_CODE[pairTeam.toLowerCase()];
+      if (mappedCodeFromId && TEAM_DATA[mappedCodeFromId]?.color) return TEAM_DATA[mappedCodeFromId].color!;
+    }
+  }
 
   return '#888888';
 };

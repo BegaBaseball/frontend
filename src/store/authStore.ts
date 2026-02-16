@@ -1,10 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import Cookies from 'js-cookie';
 import api from '../api/axios';
-import { DEFAULT_PROFILE_PLACEHOLDER } from '../constants/config';
-
-const AUTH_COOKIE_NAME = 'Authorization';
 
 interface User {
   id: number;
@@ -14,7 +10,7 @@ interface User {
   favoriteTeam?: string;
   favoriteTeamColor?: string;
   isAdmin?: boolean;
-  profileImageUrl?: string;
+  profileImageUrl?: string | null;
   role?: string;
   provider?: string;    // 'LOCAL', 'GOOGLE', 'KAKAO', 'NAVER'
   providerId?: string;
@@ -34,18 +30,27 @@ interface AuthState {
   showLoginRequiredDialog: boolean;
 
   fetchProfileAndAuthenticate: () => Promise<void>;
-  setUserProfile: (profile: Omit<User, 'email'> & { email: string, name: string }) => void;
+  setUserProfile: (profile: Partial<Omit<User, 'id'>> & { email: string; name: string }) => void;
   deductCheerPoints: (amount: number) => void; // Added action
 
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
   setShowPassword: (show: boolean) => void;
-  login: (email: string, name: string, profileImageUrl?: string, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => void;
+  login: (email: string, name: string, profileImageUrl?: string | null, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => void;
   logout: () => void;
   setFavoriteTeam: (team: string, color: string) => void;
   setShowLoginRequiredDialog: (show: boolean) => void;
   requireLogin: (callback?: () => void) => boolean;
 }
+
+const normalizeProfileImageUrl = (value?: string | null) => {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue.length > 0 ? trimmedValue : null;
+};
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -80,7 +85,7 @@ export const useAuthStore = create<AuthState>()(
                 favoriteTeam: profile.favoriteTeam,
                 favoriteTeamColor: profile.favoriteTeamColor,
                 isAdmin: isAdminUser,
-                profileImageUrl: profile.profileImageUrl,
+                profileImageUrl: normalizeProfileImageUrl(profile.profileImageUrl),
                 role: profile.role,
                 bio: profile.bio,
                 cheerPoints: profile.cheerPoints ?? profile['cheer_points'] ?? 0, // Map cheerPoints (defensive check)
@@ -110,14 +115,25 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setUserProfile: (profile) => {
-        set((state) => ({
-          user: state.user ? {
-            ...state.user,
-            ...profile,
-            name: profile.name,
-            profileImageUrl: profile.profileImageUrl || state.user.profileImageUrl
-          } : null,
-        }));
+        set((state) => {
+          const mergedProfile = state.user
+            ? {
+              ...state.user,
+              ...profile,
+            }
+            : null;
+
+          if (!mergedProfile || !('profileImageUrl' in profile)) {
+            return { user: mergedProfile };
+          }
+
+          return {
+            user: {
+              ...mergedProfile,
+              profileImageUrl: normalizeProfileImageUrl(profile.profileImageUrl),
+            },
+          };
+        });
       },
 
       deductCheerPoints: (amount) => {
@@ -133,7 +149,7 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      login: (email, name, profileImageUrl, role, favoriteTeam, id, cheerPoints, handle, provider) => {
+      login: (email, name, profileImageUrl, role, favoriteTeam, id, cheerPoints, handle, provider, hasPassword) => {
         const isAdminUser = role === 'ROLE_ADMIN' || role === 'ROLE_SUPER_ADMIN';
 
         set({
@@ -143,12 +159,13 @@ export const useAuthStore = create<AuthState>()(
             name: name,
             // ... (keep existing)
             isAdmin: isAdminUser,
-            profileImageUrl: profileImageUrl || DEFAULT_PROFILE_PLACEHOLDER,
+            profileImageUrl: normalizeProfileImageUrl(profileImageUrl),
             role: role,
             favoriteTeam: favoriteTeam || '없음',
             cheerPoints: cheerPoints || 0,
             handle: handle,
             provider: provider,
+            hasPassword,
           },
           isLoggedIn: true,
           isAdmin: isAdminUser,

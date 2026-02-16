@@ -62,7 +62,7 @@ interface HomeProps {
 
 // --- Helpers ---
 const GameCardSkeleton = () => (
-    <Card className="overflow-hidden h-full border-none shadow-sm bg-white dark:bg-gray-800">
+    <Card className="overflow-hidden h-full border-none shadow-sm bg-white dark:bg-card">
         <CardContent className="p-6">
             <div className="flex justify-between items-center mb-4">
                 <Skeleton className="h-4 w-1/3 rounded-full" />
@@ -261,20 +261,20 @@ export default function Home({ onNavigate }: HomeProps) {
 
     if (!leagueStartDates) {
         return (
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+            <div className="min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center">
                 <Loader2 className="w-10 h-10 animate-spin text-primary" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300 pb-20">
+        <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-300 pb-20">
             <WelcomeGuide />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
                 {/* Header (Green Accent Included) */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b pb-6 border-gray-100 dark:border-gray-800">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b pb-6 border-gray-100 dark:border-border">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <div className="w-1.5 h-8 bg-primary rounded-full" />
@@ -282,7 +282,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                 KBO LEAGUE
                             </h1>
                         </div>
-                        <p className="text-gray-500 dark:text-gray-400 font-medium pl-4">
+                        <p className="text-gray-500 dark:text-gray-300 font-medium pl-4">
                             {CURRENT_SEASON_YEAR} 시즌 경기 일정 및 순위
                         </p>
                     </div>
@@ -294,7 +294,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 </div>
 
                 {/* Date Navigation (Green Accent Included) */}
-                <div className="flex items-center justify-center gap-6 bg-white dark:bg-gray-900 py-3 px-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 w-full md:w-fit mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
+                <div className="flex items-center justify-center gap-6 bg-white dark:bg-background py-3 px-6 rounded-2xl shadow-sm border border-gray-100 dark:border-border w-full md:w-fit mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
                     <Button variant="ghost" size="icon" onClick={() => changeDate('prev')} disabled={!navInfo.hasPrev} className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
                         <ChevronLeft className="w-6 h-6" />
                     </Button>
@@ -316,7 +316,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 {/* Filters (Green Accent Included) */}
                 <Tabs value={activeLeagueTab} onValueChange={handleTabChange} className="w-full">
                     <div className="flex justify-center mb-6">
-                        <TabsList className="grid w-full max-w-md grid-cols-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                        <TabsList className="grid w-full max-w-md grid-cols-3 bg-gray-100 dark:bg-card p-1 rounded-xl">
                             <TabsTrigger value="regular" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">정규시즌</TabsTrigger>
                             <TabsTrigger value="postseason" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">포스트시즌</TabsTrigger>
                             <TabsTrigger value="koreanseries" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">한국시리즈</TabsTrigger>
@@ -361,7 +361,7 @@ export default function Home({ onNavigate }: HomeProps) {
                         <h2 className="text-xl font-bold">팀 순위</h2>
                     </div>
 
-                    <Card className="overflow-hidden border-0 shadow-sm">
+                    <Card className="overflow-hidden shadow-sm border border-gray-200 dark:border-border bg-white dark:bg-card">
                         {isRankingsLoading ? (
                             <div className="p-8 space-y-2">
                                 <Skeleton className="h-10 w-full" />
@@ -370,7 +370,7 @@ export default function Home({ onNavigate }: HomeProps) {
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 uppercase">
+                                    <thead className="bg-gray-100 dark:bg-secondary text-gray-600 dark:text-gray-200 uppercase border-b border-gray-200 dark:border-border">
                                         <tr>
                                             <th className="px-6 py-3">순위</th>
                                             <th className="px-6 py-3">팀</th>
@@ -381,19 +381,22 @@ export default function Home({ onNavigate }: HomeProps) {
                                             <th className="px-6 py-3 text-right">승률</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                    <tbody>
                                         {rankings.map(team => (
-                                            <tr key={team.teamId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                                <td className="px-6 py-4 font-bold">{team.rank}</td>
-                                                <td className="px-6 py-4 flex items-center gap-3">
+                                            <tr
+                                                key={team.teamId}
+                                                className="border-b border-gray-100 dark:border-border/70 last:border-b-0 odd:bg-white even:bg-gray-50/70 dark:odd:bg-card dark:even:bg-secondary/40 hover:bg-emerald-50/50 dark:hover:bg-secondary/70 transition-colors dark:text-gray-100"
+                                            >
+                                                <td className="px-6 py-4 font-bold text-gray-900 dark:text-gray-100">{team.rank}</td>
+                                                <td className="px-6 py-4 flex items-center gap-3 font-medium text-gray-900 dark:text-gray-100">
                                                     <TeamLogo team={team.shortName || team.teamName} teamId={team.teamId} size={24} />
                                                     {team.teamName}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">{team.games}</td>
-                                                <td className="px-6 py-4 text-right text-red-500 font-medium">{team.wins}</td>
-                                                <td className="px-6 py-4 text-right text-blue-500">{team.losses}</td>
-                                                <td className="px-6 py-4 text-right text-gray-400">{team.draws}</td>
-                                                <td className="px-6 py-4 text-right font-bold">{team.winRate}</td>
+                                                <td className="px-6 py-4 text-right text-red-500 dark:text-red-400 font-medium">{team.wins}</td>
+                                                <td className="px-6 py-4 text-right text-blue-500 dark:text-blue-400">{team.losses}</td>
+                                                <td className="px-6 py-4 text-right text-gray-400 dark:text-gray-300">{team.draws}</td>
+                                                <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">{team.winRate}</td>
                                             </tr>
                                         ))}
                                     </tbody>

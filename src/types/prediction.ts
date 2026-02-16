@@ -74,12 +74,6 @@ export interface VoteStatus {
   away: number;
 }
 
-export interface ConfirmDialogData {
-  title: string;
-  description: string;
-  onConfirm: () => void;
-}
-
 export interface UserPredictionStat {
   accuracy: number; // 적중률 (%)
   streak: number;   // 연승 횟수

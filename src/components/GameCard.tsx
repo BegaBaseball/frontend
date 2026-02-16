@@ -47,8 +47,8 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
         };
       case 'CANCELLED':
         return {
-          bg: 'bg-gray-100 dark:bg-gray-800',
-          color: 'text-gray-600 dark:text-gray-400',
+          bg: 'bg-gray-100 dark:bg-card',
+          color: 'text-gray-600 dark:text-gray-300',
           text: '경기 취소'
         };
       case 'POSTPONED':
@@ -75,8 +75,8 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
     <Card
       className={`group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl border-0
         ${featured
-          ? 'bg-white/90 dark:bg-gray-800/90 shadow-xl ring-1 ring-black/5'
-          : 'bg-white/80 dark:bg-gray-800/50 shadow-md hover:bg-white dark:hover:bg-gray-800'
+          ? 'bg-white/90 dark:bg-card/90 shadow-xl ring-1 ring-black/5'
+          : 'bg-white/80 dark:bg-card/50 shadow-md hover:bg-white dark:hover:bg-gray-800'
         } backdrop-blur-sm`}
     >
       {/* Spotlight Effect Gradient (on hover) */}
@@ -93,11 +93,11 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
-              className="bg-gray-100/50 dark:bg-gray-700/50 border-0 text-gray-600 dark:text-gray-300 backdrop-blur-sm"
+              className="bg-gray-100/50 dark:bg-secondary/70 border-0 text-gray-600 dark:text-gray-300 backdrop-blur-sm"
             >
               {(game.stadium ?? '').replace('구장', '')}
             </Badge>
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 font-mono">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-300 font-mono">
               {game.time}
             </span>
           </div>
@@ -115,7 +115,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
           {/* Away Team */}
           <div className="flex-1 flex flex-col items-center gap-3 group/team">
             <div className="relative">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 xl:w-20 xl:h-20 flex items-center justify-center p-3 bg-white dark:bg-gray-700/30 rounded-2xl shadow-sm group-hover/team:shadow-md group-hover/team:scale-105 transition-all duration-300">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 xl:w-20 xl:h-20 flex items-center justify-center p-3 bg-white dark:bg-secondary/30 rounded-2xl shadow-sm group-hover/team:shadow-md group-hover/team:scale-105 transition-all duration-300">
                 <TeamLogo team={game.awayTeam} size="full" className="w-full h-full object-contain drop-shadow-sm" />
               </div>
             </div>
@@ -129,16 +129,16 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
             {(game.gameStatus === 'PLAYING' || game.gameStatus === 'COMPLETED') &&
               game.homeScore !== undefined && game.awayScore !== undefined ? (
               <div className="flex items-center gap-2 sm:gap-4 font-black text-2xl sm:text-3xl xl:text-4xl">
-                <span className={`${game.awayScore > game.homeScore ? 'text-gray-900 dark:text-white scale-110' : 'text-gray-400 dark:text-gray-600'} transition-all duration-300`}>
+                <span className={`${game.awayScore > game.homeScore ? 'text-gray-900 dark:text-white scale-110' : 'text-gray-400 dark:text-gray-300'} transition-all duration-300`}>
                   {game.awayScore}
                 </span>
-                <span className="text-gray-300 dark:text-gray-700 text-lg sm:text-2xl -mt-1">:</span>
-                <span className={`${game.homeScore > game.awayScore ? 'text-gray-900 dark:text-white scale-110' : 'text-gray-400 dark:text-gray-600'} transition-all duration-300`}>
+                <span className="text-gray-300 dark:text-gray-300 text-lg sm:text-2xl -mt-1">:</span>
+                <span className={`${game.homeScore > game.awayScore ? 'text-gray-900 dark:text-white scale-110' : 'text-gray-400 dark:text-gray-300'} transition-all duration-300`}>
                   {game.homeScore}
                 </span>
               </div>
             ) : (
-              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 font-black text-gray-300 dark:text-gray-600 text-sm sm:text-xl italic font-serif">
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-gray-50 dark:bg-card font-black text-gray-300 dark:text-gray-300 text-sm sm:text-xl italic font-serif">
                 VS
               </div>
             )}
@@ -147,7 +147,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
           {/* Home Team */}
           <div className="flex-1 flex flex-col items-center gap-3 group/team">
             <div className="relative">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 xl:w-20 xl:h-20 flex items-center justify-center p-3 bg-white dark:bg-gray-700/30 rounded-2xl shadow-sm group-hover/team:shadow-md group-hover/team:scale-105 transition-all duration-300">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 xl:w-20 xl:h-20 flex items-center justify-center p-3 bg-white dark:bg-secondary/30 rounded-2xl shadow-sm group-hover/team:shadow-md group-hover/team:scale-105 transition-all duration-300">
                 <TeamLogo team={game.homeTeam} size="full" className="w-full h-full object-contain drop-shadow-sm" />
               </div>
             </div>
@@ -167,7 +167,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
               예매하기
             </Button>
           ) : game.gameInfo ? (
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400 line-clamp-1 px-4 py-1 bg-gray-50 dark:bg-gray-800/50 rounded-full">
+            <p className="text-xs text-center text-gray-500 dark:text-gray-300 line-clamp-1 px-4 py-1 bg-gray-50 dark:bg-card/50 rounded-full">
               {game.gameInfo}
             </p>
           ) : null}

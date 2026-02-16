@@ -101,15 +101,15 @@ export default function OffSeasonList() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors pb-20">
+        <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors pb-20">
             <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
 
                 {/* Back Navigation */}
                 <button
                     onClick={() => navigate('/offseason')}
-                    className="group flex items-center gap-2 text-gray-500 hover:text-primary dark:text-gray-400 transition-colors"
+                    className="group flex items-center gap-2 text-gray-500 hover:text-primary dark:text-gray-300 transition-colors"
                 >
-                    <div className="bg-white dark:bg-gray-800 p-2 rounded-full shadow-sm group-hover:shadow-md transition-all border border-gray-100 dark:border-gray-700">
+                    <div className="bg-white dark:bg-card p-2 rounded-full shadow-sm group-hover:shadow-md transition-all border border-gray-100 dark:border-border">
                         <ChevronLeft className="w-5 h-5" />
                     </div>
                     <span className="font-bold">스토브리그 홈으로</span>
@@ -144,7 +144,7 @@ export default function OffSeasonList() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <Input
                         placeholder="선수명, 구단, 내용으로 검색..."
-                        className="pl-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-12 text-lg shadow-sm rounded-xl"
+                        className="pl-10 bg-white dark:bg-card border-gray-200 dark:border-border h-12 text-lg shadow-sm rounded-xl"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -158,9 +158,9 @@ export default function OffSeasonList() {
                         <div className="space-y-3">
                             {[1, 2, 3].map((i) => (
                                 <Card key={i} className="p-4 animate-pulse">
-                                    <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
-                                    <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
-                                    <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                    <div className="h-4 w-20 bg-gray-200 dark:bg-secondary rounded mb-3"></div>
+                                    <div className="h-5 w-32 bg-gray-200 dark:bg-secondary rounded mb-2"></div>
+                                    <div className="h-4 w-full bg-gray-200 dark:bg-secondary rounded"></div>
                                 </Card>
                             ))}
                         </div>
@@ -172,7 +172,7 @@ export default function OffSeasonList() {
                         filteredList.map((item) => (
                             <Card
                                 key={item.id}
-                                className={`p-4 ${item.bigEvent ? 'border-l-4 border-l-primary bg-emerald-50/30 dark:bg-emerald-900/10' : 'bg-white dark:bg-gray-900'}`}
+                                className={`p-4 ${item.bigEvent ? 'border-l-4 border-l-primary bg-emerald-50/30 dark:bg-emerald-900/10' : 'bg-white dark:bg-background'}`}
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <Badge variant="outline" className={`text-xs ${item.bigEvent ? 'bg-primary text-white border-primary' : ''}`}>
@@ -189,7 +189,7 @@ export default function OffSeasonList() {
                                         <p className="text-xs text-gray-500">{getTeamName(item.team)}</p>
                                     </div>
                                 </div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                                     {formatRemarks(item.remarks)}
                                 </p>
                             </Card>
@@ -197,10 +197,10 @@ export default function OffSeasonList() {
                     )}
                 </div>
             ) : (
-                <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
+                <div className="bg-white dark:bg-background rounded-xl shadow-lg border border-gray-100 dark:border-border overflow-hidden">
                     <div className="overflow-x-auto">
                         <Table>
-                            <TableHeader className="bg-gray-50 dark:bg-gray-800">
+                            <TableHeader className="bg-gray-50 dark:bg-card">
                                 <TableRow>
                                     <TableHead className="w-[120px] text-center font-bold text-gray-700 dark:text-gray-300">날짜</TableHead>
                                     <TableHead className="w-[100px] text-center font-bold text-gray-700 dark:text-gray-300">구분</TableHead>
@@ -230,7 +230,7 @@ export default function OffSeasonList() {
                                         >
                                             <TableCell className="text-center text-sm text-gray-500">{item.date}</TableCell>
                                             <TableCell className="text-center">
-                                                <Badge variant="outline" className={`whitespace-nowrap ${item.bigEvent ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-gray-700'}`}>
+                                                <Badge variant="outline" className={`whitespace-nowrap ${item.bigEvent ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-secondary'}`}>
                                                     {item.section}
                                                 </Badge>
                                             </TableCell>

@@ -58,7 +58,7 @@ export default function PasswordReset() {
                 value={email}
                 onChange={(e) => handleEmailChange(e.target.value)}
                 onBlur={handleEmailBlur}
-                className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary ${emailError ? 'border-red-500' : ''}`}
+                className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary ${emailError ? 'border-red-500' : ''}`}
                 placeholder="이메일을 입력하세요"
                 disabled={isLoading}
               />

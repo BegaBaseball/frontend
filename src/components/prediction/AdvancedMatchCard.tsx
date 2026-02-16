@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment, useRef } from 'react';
+import { ReactNode, useState, useEffect, Fragment, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { LayoutGroup, motion } from 'framer-motion';
 import { Card } from '../ui/card';
@@ -23,6 +23,7 @@ interface AdvancedMatchCardProps {
   onNextDate: () => void;
   hasPrevDate: boolean;
   hasNextDate: boolean;
+  coachBriefing?: ReactNode;
 }
 
 const popIn = keyframes`
@@ -149,6 +150,7 @@ export default function AdvancedMatchCard({
   onNextDate,
   hasPrevDate,
   hasNextDate,
+  coachBriefing,
 }: AdvancedMatchCardProps) {
   const { homePercentage, awayPercentage, totalVotes } = votePercentages;
   const hasVoteResults = totalVotes > 0;
@@ -378,8 +380,31 @@ export default function AdvancedMatchCard({
     }))
     .sort((a, b) => (a._inning - b._inning) || (a._index - b._index));
 
+  const matchEnvironmentSection = !gameDetailLoading && (attendanceLabel || weatherLabel || gameTimeLabel) ? (
+    <section>
+      <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+        <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
+        경기 환경
+      </div>
+      <div className="grid grid-cols-3 gap-3 rounded-xl border border-gray-100 dark:border-border bg-white dark:bg-secondary/40 px-4 py-3 text-[13px]">
+        <div>
+          <p className="text-[12px] text-gray-400 dark:text-gray-300">관중</p>
+          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{attendanceLabel || '정보 없음'}</p>
+        </div>
+        <div>
+          <p className="text-[12px] text-gray-400 dark:text-gray-300">날씨</p>
+          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{weatherLabel || '정보 없음'}</p>
+        </div>
+        <div>
+          <p className="text-[12px] text-gray-400 dark:text-gray-300">경기시간</p>
+          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{gameTimeLabel || '정보 없음'}</p>
+        </div>
+      </div>
+    </section>
+  ) : null;
+
   return (
-    <Card className="overflow-hidden border border-slate-200/70 shadow-lg bg-white/90 dark:border-slate-700/60 dark:bg-slate-900/70 dark:shadow-xl transition-colors duration-300 mb-6 rounded-2xl">
+    <Card className="overflow-hidden border border-slate-200/70 shadow-lg bg-white/90 dark:border-border dark:bg-card dark:shadow-xl transition-colors duration-300 mb-6 rounded-2xl">
       <div className="p-4 md:p-6">
         {/* 투표 버튼 영역 */}
 
@@ -428,22 +453,13 @@ export default function AdvancedMatchCard({
           </div>
         )}
 
-        <DetailWrapper className="mt-4 md:mt-6 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-slate-700/60 dark:bg-slate-950/60 dark:shadow-md">
+        <DetailWrapper className="mt-4 md:mt-6 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-border dark:bg-card dark:shadow-md">
           <div
             className="relative overflow-hidden rounded-t-2xl px-4 pt-12 pb-10 text-white"
             style={{
               background: `linear-gradient(110deg, ${awayColor} 50%, ${homeColor} 50%)`,
             }}
           >
-            <div
-              className="absolute inset-0 opacity-70"
-              style={{
-                backgroundImage:
-                  'repeating-linear-gradient(45deg, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 2px, transparent 2px, transparent 8px)',
-              }}
-            />
-            <div className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rotate-[20deg] bg-white/30" />
-
             {/* Navigation Buttons (Desktop) */}
             <div className="hidden md:block">
               <button
@@ -469,8 +485,8 @@ export default function AdvancedMatchCard({
             </div>
             <div className="relative mt-10 flex items-end justify-between gap-3">
               <div className="flex w-[30%] flex-col items-center text-center">
-                <TeamLogoBox className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-xl font-black shadow-lg ring-4 ring-white/20">
-                  <TeamLogo team={game.awayTeam} size={36} className="h-8 w-8" />
+                <TeamLogoBox className="flex h-14 w-14 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)]">
+                  <TeamLogo team={game.awayTeam} size={44} className="h-11 w-11" />
                 </TeamLogoBox>
                 <div className="mt-2 text-sm font-semibold">{awayTeamName}</div>
                 <div className="text-[10px] text-white/80">AWAY</div>
@@ -478,18 +494,18 @@ export default function AdvancedMatchCard({
               <ScoreBox
                 ref={scoreBoxRef}
                 $visible={isVisible}
-                className="relative -mb-2 w-[40%] rounded-xl bg-white dark:bg-gray-900 px-3 py-3 text-center text-gray-800 dark:text-gray-100 shadow-2xl"
+                className="relative -mb-2 w-[40%] rounded-xl border border-white/50 bg-white/80 backdrop-blur-md px-3 py-3 text-center text-gray-900 shadow-2xl dark:border-white/20 dark:bg-black/30 dark:text-white"
               >
                 <div className="flex items-center justify-center gap-2 text-3xl font-extrabold">
                   <span style={{ color: awayColor }}>{countedScores.away}</span>
-                  <span className="text-gray-300 dark:text-gray-600">:</span>
+                  <span className="text-gray-300 dark:text-gray-300">:</span>
                   <span style={{ color: homeColor }}>{countedScores.home}</span>
                 </div>
-                <div className="mt-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400">{matchStatusLabel}</div>
+                <div className="mt-1 text-[11px] font-semibold text-gray-500 dark:text-gray-300">{matchStatusLabel}</div>
               </ScoreBox>
               <div className="flex w-[30%] flex-col items-center text-center">
-                <TeamLogoBox className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-xl font-black shadow-lg ring-4 ring-white/20">
-                  <TeamLogo team={game.homeTeam} size={36} className="h-8 w-8" />
+                <TeamLogoBox className="flex h-14 w-14 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)]">
+                  <TeamLogo team={game.homeTeam} size={44} className="h-11 w-11" />
                 </TeamLogoBox>
                 <div className="mt-2 text-sm font-semibold">{homeTeamName}</div>
                 <div className="text-[10px] text-white/80">HOME</div>
@@ -499,13 +515,13 @@ export default function AdvancedMatchCard({
 
           <div className="space-y-6 px-4 py-6">
             {gameDetailLoading && (
-              <div className="text-center text-xs text-gray-500 dark:text-gray-400">경기 정보를 불러오는 중입니다...</div>
+              <div className="text-center text-xs text-gray-500 dark:text-gray-300">경기 정보를 불러오는 중입니다...</div>
             )}
 
             {!gameDetailLoading && (
               <section>
                 <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
                   스코어보드
                   {hasExtraInnings && (
                     <span className="ml-auto text-xs text-gray-400">
@@ -513,7 +529,7 @@ export default function AdvancedMatchCard({
                     </span>
                   )}
                 </div>
-                <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/60">
+                <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-border bg-white dark:bg-secondary/40">
                   {hasExtraInnings ? (
                     <div className="overflow-hidden">
                       <motion.div
@@ -526,40 +542,40 @@ export default function AdvancedMatchCard({
                       >
                         {[regularInningCols, extraInningCols].map((cols, index) => (
                           <div key={index} className="min-w-full px-3 py-3">
-                            <table className="w-full border-collapse text-center text-[13px]">
-                              <thead className="bg-gray-50 dark:bg-gray-800 text-[12px] text-gray-500 dark:text-gray-300">
+                            <table className="w-full table-fixed border-collapse text-center text-[13px]">
+                              <thead className="bg-gray-100 dark:bg-border/60 text-[12px] text-gray-600 dark:text-gray-200 border-b border-gray-200 dark:border-border">
                                 <tr>
-                                  <th className="px-2 py-2 text-left">팀</th>
+                                  <th className="px-2 py-2 text-left font-semibold">팀</th>
                                   {cols.map((inning) => (
-                                    <th key={inning} className="px-2 py-2">{inning}</th>
+                                    <th key={inning} className="px-2 py-2 border-l border-gray-200 dark:border-border/70">{inning}</th>
                                   ))}
-                                  <th className="px-2 py-2 text-red-600">R</th>
+                                  <th className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600">R</th>
                                 </tr>
                               </thead>
                               <tbody className="text-gray-700 dark:text-gray-200">
-                                <tr>
-                                  <td className="px-2 py-2 text-left font-semibold" style={{ color: awayColor }}>
+                                <tr className="border-b border-gray-100 dark:border-border/70 bg-white dark:bg-card hover:bg-emerald-50/50 dark:hover:bg-secondary/50 transition-colors">
+                                  <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={{ color: awayColor }}>
                                     {awayTeamName}
                                   </td>
                                   {cols.map((inning) => (
-                                    <td key={`away-${inning}`} className="px-2 py-2">
+                                    <td key={`away-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
                                       {inningRows[inning]?.away ?? '-'}
                                     </td>
                                   ))}
-                                  <td className="px-2 py-2 font-semibold text-red-600">
+                                  <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">
                                     {awayScoreValue}
                                   </td>
                                 </tr>
-                                <tr>
-                                  <td className="px-2 py-2 text-left font-semibold" style={{ color: homeColor }}>
+                                <tr className="border-b border-gray-100 dark:border-border/70 bg-gray-50/70 dark:bg-secondary/50 hover:bg-emerald-50/50 dark:hover:bg-secondary/60 transition-colors">
+                                  <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={{ color: homeColor }}>
                                     {homeTeamName}
                                   </td>
                                   {cols.map((inning) => (
-                                    <td key={`home-${inning}`} className="px-2 py-2">
+                                    <td key={`home-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
                                       {inningRows[inning]?.home ?? '-'}
                                     </td>
                                   ))}
-                                  <td className="px-2 py-2 font-semibold text-red-600">
+                                  <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">
                                     {homeScoreValue}
                                   </td>
                                 </tr>
@@ -572,45 +588,45 @@ export default function AdvancedMatchCard({
                         {[0, 1].map((page) => (
                           <span
                             key={page}
-                            className={`h-2 w-2 rounded-full ${inningPage === page ? 'bg-gray-800' : 'bg-gray-200'}`}
+                            className={`h-2 w-2 rounded-full ${inningPage === page ? 'bg-gray-800 dark:bg-gray-100' : 'bg-gray-200 dark:bg-border'}`}
                           />
                         ))}
                       </div>
                     </div>
                   ) : (
                     <div className="px-3 py-3">
-                      <table className="w-full border-collapse text-center text-[13px]">
-                        <thead className="bg-gray-50 dark:bg-gray-800 text-[12px] text-gray-500 dark:text-gray-300">
+                      <table className="w-full table-fixed border-collapse text-center text-[13px]">
+                        <thead className="bg-gray-100 dark:bg-border/60 text-[12px] text-gray-600 dark:text-gray-200 border-b border-gray-200 dark:border-border">
                           <tr>
-                            <th className="px-2 py-2 text-left">팀</th>
+                            <th className="px-2 py-2 text-left font-semibold">팀</th>
                             {regularInningCols.map((inning) => (
-                              <th key={inning} className="px-2 py-2">{inning}</th>
+                              <th key={inning} className="px-2 py-2 border-l border-gray-200 dark:border-border/70">{inning}</th>
                             ))}
-                            <th className="px-2 py-2 text-red-600">R</th>
+                            <th className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600">R</th>
                           </tr>
                         </thead>
                         <tbody className="text-gray-700 dark:text-gray-200">
-                          <tr>
-                            <td className="px-2 py-2 text-left font-semibold" style={{ color: awayColor }}>
+                          <tr className="border-b border-gray-100 dark:border-border/70 bg-white dark:bg-card hover:bg-emerald-50/50 dark:hover:bg-secondary/50 transition-colors">
+                            <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={{ color: awayColor }}>
                               {awayTeamName}
                             </td>
                             {regularInningCols.map((inning) => (
-                              <td key={`away-${inning}`} className="px-2 py-2">
+                              <td key={`away-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
                                 {inningRows[inning]?.away ?? '-'}
                               </td>
                             ))}
-                            <td className="px-2 py-2 font-semibold text-red-600">{awayScoreValue}</td>
+                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">{awayScoreValue}</td>
                           </tr>
-                          <tr>
-                            <td className="px-2 py-2 text-left font-semibold" style={{ color: homeColor }}>
+                          <tr className="border-b border-gray-100 dark:border-border/70 bg-gray-50/70 dark:bg-secondary/50 hover:bg-emerald-50/50 dark:hover:bg-secondary/60 transition-colors">
+                            <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={{ color: homeColor }}>
                               {homeTeamName}
                             </td>
                             {regularInningCols.map((inning) => (
-                              <td key={`home-${inning}`} className="px-2 py-2">
+                              <td key={`home-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
                                 {inningRows[inning]?.home ?? '-'}
                               </td>
                             ))}
-                            <td className="px-2 py-2 font-semibold text-red-600">{homeScoreValue}</td>
+                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">{homeScoreValue}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -666,7 +682,7 @@ export default function AdvancedMatchCard({
                       transition={{ type: 'spring', stiffness: 50, damping: 20 }}
                     />
                   </ProgressBarWrapper>
-                  <div className="mt-2 text-center text-[12px] text-gray-500 dark:text-gray-400">
+                  <div className="mt-2 text-center text-[12px] text-gray-500 dark:text-gray-300">
                     실시간 팬 응원 참여수: {cheeringTotal.toLocaleString()}명
                   </div>
                 </GaugeContainer>
@@ -676,10 +692,10 @@ export default function AdvancedMatchCard({
             {!gameDetailLoading && (
               <section>
                 <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
                   선발 투수
                 </div>
-                <div className="flex items-center rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 px-4 py-4 shadow-sm">
+                <div className="flex items-center rounded-xl border border-gray-100 dark:border-border bg-gray-50 dark:bg-secondary/40 px-4 py-4 shadow-sm">
                   <div className="flex-1 text-center">
                     <p className="text-xs font-semibold" style={{ color: awayColor }}>
                       {awayTeamName}
@@ -697,38 +713,17 @@ export default function AdvancedMatchCard({
               </section>
             )}
 
-            {!gameDetailLoading && (attendanceLabel || weatherLabel || gameTimeLabel) && (
-              <section>
-                <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
-                  경기 환경
-                </div>
-                <div className="grid grid-cols-3 gap-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/60 px-4 py-3 text-[13px]">
-                  <div>
-                    <p className="text-[12px] text-gray-400 dark:text-gray-500">관중</p>
-                    <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{attendanceLabel || '정보 없음'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[12px] text-gray-400 dark:text-gray-500">날씨</p>
-                    <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{weatherLabel || '정보 없음'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[12px] text-gray-400 dark:text-gray-500">경기시간</p>
-                    <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{gameTimeLabel || '정보 없음'}</p>
-                  </div>
-                </div>
-              </section>
-            )}
+            {!gameDetailLoading && coachBriefing}
 
             {!gameDetailLoading && timelineEntries.length > 0 && (
               <section>
                 <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
                   경기 주요 기록
                 </div>
                 <LayoutGroup>
                   <div className="relative">
-                    <span className="absolute left-3 top-1 bottom-1 w-px bg-gray-200 dark:bg-gray-700 z-0" />
+                    <span className="absolute left-3 top-1 bottom-1 w-px bg-gray-200 dark:bg-border z-0" />
                     <div className="space-y-4">
                       {timelineEntries.map((item, index) => {
                         const isHighlight = item.type === '결승타';
@@ -737,7 +732,7 @@ export default function AdvancedMatchCard({
                           <TimelineItem key={`${item.type}-${index}`} className="relative">
                             <TimelineCard
                               layout
-                              className="ml-6 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/70 px-3 py-2 shadow-sm"
+                              className="ml-6 rounded-lg border border-gray-100 dark:border-border bg-white dark:bg-secondary/40 px-3 py-2 shadow-sm"
                             >
                               <span
                                 className="absolute left-3 top-3 h-2.5 w-2.5 -translate-x-1/2 rounded-full border z-10"
@@ -756,7 +751,7 @@ export default function AdvancedMatchCard({
                                 </p>
                               </div>
                               {item.detail && (
-                                <p className="mt-1 text-[12px] text-gray-500 dark:text-gray-400">
+                                <p className="mt-1 text-[12px] text-gray-500 dark:text-gray-300">
                                   {item.detail}
                                 </p>
                               )}
@@ -771,14 +766,15 @@ export default function AdvancedMatchCard({
             )}
 
             {!gameDetailLoading && Object.keys(inningRows).length === 0 && timelineEntries.length === 0 && (
-              <div className="text-center text-xs text-gray-500 dark:text-gray-400">표시할 경기 상세 정보가 없습니다.</div>
+              <div className="text-center text-xs text-gray-500 dark:text-gray-300">표시할 경기 상세 정보가 없습니다.</div>
             )}
 
             {!gameDetailLoading && summaryGroups['심판']?.length > 0 && (
-              <div className="border-t border-gray-100 dark:border-gray-700 pt-4 text-center text-[11px] text-gray-500 dark:text-gray-400">
+              <div className="border-t border-gray-100 dark:border-border pt-4 text-center text-[11px] text-gray-500 dark:text-gray-300">
                 심판: {summaryGroups['심판'][0]?.playerName || summaryGroups['심판'][0]?.detail || '정보 없음'}
               </div>
             )}
+            {matchEnvironmentSection}
           </div>
         </DetailWrapper>
       </div>
