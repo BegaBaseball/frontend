@@ -1,14 +1,15 @@
 // hooks/usePrediction.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { useLeaderboardStore } from '../store/leaderboardStore';
-import { Game, DateGames, VoteStatus, ConfirmDialogData, VoteTeam, PredictionTab, GameDetail } from '../types/prediction';
+import { useOptionalConfirmDialog } from '../components/contexts/ConfirmDialogContext';
+import { Game, DateGames, VoteStatus, VoteTeam, PredictionTab, GameDetail } from '../types/prediction';
 import { parseError } from '../utils/errorUtils';
 import {
   fetchMatchesByDate,
   fetchMatchesByRange,
-  fetchAllUserVotes as fetchAllUserVotesAPI,
+  fetchAllUserVotesBulk as fetchAllUserVotesBulkAPI,
   fetchVoteStatus,
   submitVote,
   cancelVote,
@@ -23,9 +24,36 @@ import {
 } from '../utils/prediction';
 import { getFullTeamName } from '../constants/teams';
 
+type UserVoteRecord = {
+  [key: string]: VoteTeam | null;
+};
+
+type UserVoteBatchState = {
+  votes: UserVoteRecord;
+  fetchedAt: number;
+};
+
+const USER_VOTE_BATCH_TTL_MS = 30 * 1000;
+const predictionUserVoteRequests = new Map<string, Promise<UserVoteRecord>>();
+const predictionUserVoteCache = new Map<string, UserVoteBatchState>();
+
 export const usePrediction = () => {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
+  const optionalConfirmDialog = useOptionalConfirmDialog();
+  const fallbackConfirm = (
+    options: Parameters<NonNullable<typeof optionalConfirmDialog>['confirm']>[0]
+  ) => new Promise<boolean>((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve(false);
+      return;
+    }
+    const message = options.description
+      ? `${options.title}\n\n${options.description}`
+      : options.title;
+    resolve(window.confirm(message));
+  });
+  const confirm = optionalConfirmDialog?.confirm ?? fallbackConfirm;
 
   // 탭 관리
   const [activeTab, setActiveTab] = useState<PredictionTab>('match');
@@ -35,6 +63,7 @@ export const usePrediction = () => {
   const [allDatesData, setAllDatesData] = useState<DateGames[]>([]);
   const [currentDateIndex, setCurrentDateIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const user = useAuthStore((state) => state.user);
 
   // 투표 현황
   const [votes, setVotes] = useState<{ [key: string]: VoteStatus }>({});
@@ -45,14 +74,8 @@ export const usePrediction = () => {
   // 경기 상세 정보
   const [gameDetails, setGameDetails] = useState<{ [key: string]: GameDetail | null }>({});
   const [gameDetailLoading, setGameDetailLoading] = useState<{ [key: string]: boolean }>({});
+  const isFetchingAllGamesRef = useRef(false);
 
-  // 다이얼로그 상태
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [confirmDialogData, setConfirmDialogData] = useState<ConfirmDialogData>({
-    title: '',
-    description: '',
-    onConfirm: () => { },
-  });
   // 로그인 체크
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
@@ -103,6 +126,12 @@ export const usePrediction = () => {
 
   // 모든 경기 데이터 가져오기
   const fetchAllGames = async () => {
+    if (isFetchingAllGamesRef.current) {
+      return;
+    }
+
+    isFetchingAllGamesRef.current = true;
+
     try {
       setLoading(true);
 
@@ -177,8 +206,39 @@ export const usePrediction = () => {
       // 종료되지 않은 전 경기 사용자 투표 조회 (투표 가능 게임들)
       const interactiveGames = allMatches.filter(game => game.homeScore === null);
       if (interactiveGames.length > 0) {
-        const userVotes = await fetchAllUserVotesAPI(interactiveGames);
-        setUserVote(userVotes);
+        const gameIds = Array.from(
+          new Set(
+            interactiveGames
+              .map((game) => game.gameId)
+              .filter((gameId) => !!gameId)
+          )
+        ).sort();
+        const cacheKey = `${user?.id || 'anonymous'}:${gameIds.join('|')}`;
+        const cachedBatch = predictionUserVoteCache.get(cacheKey);
+        const now = Date.now();
+
+        if (cachedBatch && now - cachedBatch.fetchedAt < USER_VOTE_BATCH_TTL_MS) {
+          setUserVote(cachedBatch.votes);
+        } else {
+          const inFlight = predictionUserVoteRequests.get(cacheKey);
+          const batchPromise: Promise<{ [key: string]: VoteTeam | null }> = inFlight
+            ? inFlight
+            : fetchAllUserVotesBulkAPI(gameIds).finally(() => {
+                predictionUserVoteRequests.delete(cacheKey);
+              });
+
+          predictionUserVoteRequests.set(cacheKey, batchPromise);
+          const userVotes = await batchPromise;
+
+          if (Object.keys(userVotes).length > 0) {
+            predictionUserVoteCache.set(cacheKey, {
+              votes: userVotes,
+              fetchedAt: Date.now(),
+            });
+          }
+
+          setUserVote(userVotes);
+        }
       }
 
     } catch (error) {
@@ -186,6 +246,7 @@ export const usePrediction = () => {
       // We just need to stop loading.
     } finally {
       setLoading(false);
+      isFetchingAllGamesRef.current = false;
     }
   };
 
@@ -216,29 +277,21 @@ export const usePrediction = () => {
         ? getFullTeamName(game.homeTeam)
         : getFullTeamName(game.awayTeam);
 
-      setConfirmDialogData({
+      const confirmed = await confirm({
         title: '투표 변경',
         description: `현재 ${currentTeamName} 승리로 투표하셨습니다.\n${newTeamName}(으)로 변경하시겠습니까?`,
-        onConfirm: () => {
-          setShowConfirmDialog(false);
-          executeVote(gameId, team, game);
-        },
       });
-      setShowConfirmDialog(true);
+      if (confirmed) executeVote(gameId, team, game);
       return;
     }
 
     // 같은 팀 두 번 클릭 시 취소 확인
     if (userVote[gameId] === team) {
-      setConfirmDialogData({
+      const confirmed = await confirm({
         title: '투표 취소',
         description: '투표를 취소하시겠습니까?\n\n(❗️ 주의: 사용된 포인트는 반환되지 않습니다)',
-        onConfirm: () => {
-          setShowConfirmDialog(false);
-          executeCancelVote(gameId);
-        },
       });
-      setShowConfirmDialog(true);
+      if (confirmed) executeCancelVote(gameId);
       return;
     }
 
@@ -328,10 +381,6 @@ export const usePrediction = () => {
     isAuthLoading,
     isLoggedIn,
 
-    // Dialog
-    showConfirmDialog,
-    setShowConfirmDialog,
-    confirmDialogData,
     // Handlers
     handleVote,
     goToPreviousDate,

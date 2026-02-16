@@ -45,7 +45,7 @@ export default function RepostModal({
     return (
         <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
             <DialogContent className="sm:max-w-[340px] p-0 gap-0">
-                <DialogHeader className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                <DialogHeader className="px-4 py-3 border-b border-gray-100 dark:border-border">
                     <DialogTitle className="text-base font-semibold text-center">
                         리포스트
                     </DialogTitle>
@@ -82,10 +82,10 @@ export default function RepostModal({
                         ) : (
                             // 남의 리포스트라면 -> "재리포스트 불가" 안내
                             <div className="px-4 py-6 text-center">
-                                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 mx-auto mb-3 flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-card mx-auto mb-3 flex items-center justify-center">
                                     <Repeat2 className="w-6 h-6 text-gray-400" />
                                 </div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                <p className="text-sm text-gray-500 dark:text-gray-300">
                                     리포스트된 글은 다시 리포스트할 수 없습니다.
                                 </p>
                             </div>
@@ -99,12 +99,12 @@ export default function RepostModal({
                             >
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isRepostedByMe
                                     ? 'bg-emerald-100 dark:bg-emerald-900/30'
-                                    : 'bg-gray-100 dark:bg-gray-800'
+                                    : 'bg-gray-100 dark:bg-card'
                                     }`}>
                                     {isRepostedByMe ? (
                                         <Undo2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                                     ) : (
-                                        <Repeat2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                                        <Repeat2 className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                                     )}
                                 </div>
                                 <div className="flex-1 text-left">
@@ -114,7 +114,7 @@ export default function RepostModal({
                                         }`}>
                                         {isRepostedByMe ? '리포스트 취소' : '리포스트'}
                                     </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    <p className="text-xs text-gray-500 dark:text-gray-300">
                                         {isRepostedByMe
                                             ? '내 프로필에서 제거됩니다'
                                             : '내 프로필에 바로 공유됩니다'}
@@ -127,14 +127,14 @@ export default function RepostModal({
                                 onClick={handleQuoteRepost}
                                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                             >
-                                <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                                    <Quote className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                                <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-card flex items-center justify-center">
+                                    <Quote className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                                 </div>
                                 <div className="flex-1 text-left">
                                     <p className="font-medium text-gray-900 dark:text-white">
                                         인용하기
                                     </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    <p className="text-xs text-gray-500 dark:text-gray-300">
                                         내 의견을 덧붙여 공유합니다
                                     </p>
                                 </div>
@@ -144,10 +144,10 @@ export default function RepostModal({
                 </div>
 
                 {/* 닫기 버튼 */}
-                <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800">
+                <div className="px-4 py-3 border-t border-gray-100 dark:border-border">
                     <button
                         onClick={onClose}
-                        className="w-full py-2.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                        className="w-full py-2.5 text-sm font-medium text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                     >
                         취소
                     </button>

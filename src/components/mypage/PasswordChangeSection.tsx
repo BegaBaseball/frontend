@@ -70,7 +70,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-8 mb-6">
+        <div className="bg-white dark:bg-card rounded-2xl shadow-lg border-2 border-gray-100 dark:border-border p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
                 <Lock className="w-6 h-6 text-primary" />
                 <h2 className="text-xl font-bold text-primary">
@@ -173,7 +173,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-border">
                 <Button
                     variant="outline"
                     className="flex-1"

@@ -1,6 +1,16 @@
 import api from './axios';
 import { Game, GameDetail, UserPredictionStat } from '../types/prediction';
 
+export interface MyVotesRequest {
+    gameIds: string[];
+}
+
+export interface MyVotesResponse {
+    votes: {
+        [key: string]: 'home' | 'away' | null;
+    };
+}
+
 /**
  * 과거 경기 데이터 가져오기
  */
@@ -61,6 +71,23 @@ export const fetchAllUserVotes = async (games: Game[]): Promise<{ [key: string]:
   }
 
   return votes;
+};
+
+export const fetchAllUserVotesBulk = async (
+    gameIds: string[]
+): Promise<{ [key: string]: 'home' | 'away' | null }> => {
+    if (!gameIds.length) {
+        return {};
+    }
+
+    try {
+        const response = await api.post<MyVotesResponse>('/predictions/my-votes', {
+            gameIds: Array.from(new Set(gameIds)).filter((gameId) => gameId),
+        } as MyVotesRequest);
+        return response.data?.votes || {};
+    } catch {
+        return {};
+    }
 };
 
 /**

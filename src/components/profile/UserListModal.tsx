@@ -59,8 +59,8 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent hideCloseButton={true} className="sm:max-w-md max-h-[80vh] flex flex-col p-0 gap-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <DialogHeader className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-row items-center justify-between space-y-0">
+            <DialogContent hideCloseButton={true} className="sm:max-w-md max-h-[80vh] flex flex-col p-0 gap-0 bg-white dark:bg-card border-gray-200 dark:border-border">
+                <DialogHeader className="p-4 border-b border-gray-100 dark:border-border flex flex-row items-center justify-between space-y-0">
                     <DialogTitle className="text-lg font-bold text-gray-900 dark:text-white">
                         {title}
                     </DialogTitle>
@@ -100,8 +100,8 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                                         className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 mr-4"
                                         onClick={() => handleUserClick(user.handle)}
                                     >
-                                        <Avatar className="h-10 w-10 border border-gray-200 dark:border-gray-700">
-                                            <AvatarImage src={user.profileImageUrl || ''} />
+                                        <Avatar className="h-10 w-10 border border-gray-200 dark:border-border">
+                                            <AvatarImage src={user.profileImageUrl} />
                                             <AvatarFallback className="bg-gray-100 text-gray-400">
                                                 <User className="h-5 w-5" />
                                             </AvatarFallback>
@@ -110,7 +110,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                                             <span className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
                                                 {user.name}
                                             </span>
-                                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                            <span className="text-xs text-gray-500 dark:text-gray-300 truncate">
                                                 {user.handle}
                                             </span>
                                         </div>
@@ -137,13 +137,13 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                            <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
+                            <div className="w-12 h-12 bg-gray-100 dark:bg-card rounded-full flex items-center justify-center mb-3">
                                 <User className="h-6 w-6 text-gray-400" />
                             </div>
                             <p className="text-gray-900 dark:text-gray-100 font-medium mb-1">
                                 {type === 'followers' ? '아직 팔로워가 없습니다.' : '아직 팔로잉하는 유저가 없습니다.'}
                             </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                            <p className="text-sm text-gray-500 dark:text-gray-300">
                                 {type === 'followers'
                                     ? '게시글을 작성하고 소통하여 팔로워를 늘려보세요!'
                                     : '관심 있는 유저를 찾아보세요!'}

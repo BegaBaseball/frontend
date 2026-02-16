@@ -1,6 +1,6 @@
 // src/utils/api.ts
 import type {
-  Party, Application, CheckIn, PartyReview, ChatMessage,
+  Party, Application, CheckIn, PartyReview, ChatMessage, PartyStatus,
   CreatePartyRequest, UpdatePartyRequest, CreateApplicationRequest,
   CreateCheckInRequest, CreateReviewRequest,
 } from '../types/mate';
@@ -104,10 +104,11 @@ export const api = {
   },
 
   // Party
-  async getParties(teamId?: string, stadium?: string, page = 0, size = 9, searchQuery?: string, gameDate?: string): Promise<PaginatedResponse<Party>> {
+  async getParties(teamId?: string, stadium?: string, page = 0, size = 9, status?: PartyStatus, searchQuery?: string, gameDate?: string): Promise<PaginatedResponse<Party>> {
     const params = new URLSearchParams();
     if (teamId) params.append('teamId', teamId);
     if (stadium) params.append('stadium', stadium);
+    if (status) params.append('status', status);
     if (searchQuery) params.append('searchQuery', searchQuery);
     if (gameDate) params.append('date', gameDate);
     params.append('page', page.toString());

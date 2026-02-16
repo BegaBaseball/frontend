@@ -1,21 +1,19 @@
 import TeamLogo from './TeamLogo';
 import RankingItem from './ranking/RankingItem';
 import { useRankingPredictionShare } from '../hooks/useRankingPredictionShare';
+import LoadingSpinner from './LoadingSpinner';
 
 export default function RankingPredictionShare() {
   const { seasonYear, rankings, isLoading } = useRankingPredictionShare();
 
   if (isLoading) {
     return (
-      <div className="text-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-gray-600">로딩 중...</p>
-      </div>
+      <LoadingSpinner size="lg" text="로딩 중..." fullScreen={false} />
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-background">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6 text-center text-primary">
           {seasonYear} KBO 시즌 순위 예측
