@@ -11,21 +11,22 @@ import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle, Ticket, 
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import ChatBot from './ChatBot';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import { api, ApiError } from '../utils/api';
 import { formatGameDate } from '../utils/mate';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
-import { mapBackendPartyToFrontend } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
 import { analyzeTicket, TicketInfo } from '../api/ticket';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
+import LoadingSpinner from './LoadingSpinner';
 
 export default function MateApply() {
-  const { selectedParty, validateMessage } = useMateStore();
+  const { validateMessage } = useMateStore();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
 
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,35 +55,21 @@ export default function MateApply() {
     fetchUser();
   }, []);
 
-  // selectedParty가 없는 경우 (새로고침 직후 등) 데이터 불러오기 시도 또는 리다이렉트
-  useEffect(() => {
-    if (!selectedParty && id) {
-      const fetchParty = async () => {
-        try {
-          const response = await api.getPartyById(id);
-          const party = mapBackendPartyToFrontend(response);
-          useMateStore.getState().setSelectedParty(party);
-        } catch (error) {
-          console.error("Failed to fetch party:", error);
-          toast.error('파티 정보를 불러올 수 없습니다.');
-          navigate('/mate');
-        }
-      };
-      fetchParty();
-    }
-  }, [id, selectedParty, navigate]);
+  if (isPartyLoading) {
+    return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." fullScreen />;
+  }
 
-  if (!selectedParty) {
+  if (partyError || !selectedParty) {
     return (
-      <div className="flex justify-center items-center h-screen bg-background dark:bg-gray-900 transition-colors duration-200">
+      <div className="flex justify-center items-center h-screen bg-background dark:bg-background transition-colors duration-200">
         <OptimizedImage
           src={grassDecor}
           alt=""
           className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
         />
         <div className="text-center z-10">
-          <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">파티 정보를 불러오는 중입니다...</p>
-          <Button onClick={() => navigate('/mate')} variant="outline" className="dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700">
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">{partyError || '파티 정보를 불러오는 중입니다...'}</p>
+          <Button onClick={() => navigate('/mate')} variant="outline" className="dark:bg-card dark:text-gray-200 dark:border-border dark:hover:bg-gray-700">
             목록으로 돌아가기
           </Button>
         </div>
@@ -191,7 +178,7 @@ export default function MateApply() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
       <OptimizedImage
         src={grassDecor}
         alt=""
@@ -312,8 +299,8 @@ export default function MateApply() {
             ) : (
               <div
                 className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${isScanning
-                  ? 'border-primary bg-slate-50 dark:bg-slate-900/50'
-                  : 'border-slate-300 dark:border-slate-700 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800'
+                  ? 'border-primary bg-slate-50 dark:bg-card/60'
+                  : 'border-slate-300 dark:border-border hover:border-primary hover:bg-slate-50 dark:hover:bg-secondary'
                   }`}
               >
                 <input
@@ -443,8 +430,6 @@ export default function MateApply() {
         )}
       </div>
 
-      {/* ChatBot  */}
-      <ChatBot />
       <VerificationRequiredDialog
         isOpen={showVerificationDialog}
         onClose={() => setShowVerificationDialog(false)}

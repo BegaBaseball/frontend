@@ -29,7 +29,7 @@ export default function StadiumGuide() {
   const isDark = theme === 'dark';
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Title */}
@@ -67,7 +67,7 @@ export default function StadiumGuide() {
                 <select
                   value={selectedStadium?.stadiumId || ''}
                   onChange={(e) => handleStadiumChange(e.target.value)}
-                  className="w-full py-6 px-4 pr-12 bg-white dark:bg-gray-800 border-2 rounded-2xl text-base cursor-pointer dark:text-gray-200"
+                  className="w-full py-6 px-4 pr-12 bg-white dark:bg-card border-2 rounded-2xl text-base cursor-pointer dark:text-gray-200"
                   style={{
                     borderColor: isDark ? '#374151' : THEME_COLORS.primary,
                     appearance: 'none',
@@ -110,7 +110,7 @@ export default function StadiumGuide() {
               {/* 구장 정보 카드 */}
               {selectedStadium && (
                 <div
-                  className="mb-4 p-4 rounded-xl border-2 dark:bg-gray-800 dark:border-gray-700"
+                  className="mb-4 p-4 rounded-xl border-2 dark:bg-card dark:border-border"
                   style={{
                     backgroundColor: isDark ? undefined : THEME_COLORS.primaryBg,
                     borderColor: isDark ? '#374151' : THEME_COLORS.primary,
@@ -125,12 +125,12 @@ export default function StadiumGuide() {
                         </h4>
                       </div>
                       {selectedStadium.address && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
                           📍 {selectedStadium.address}
                         </p>
                       )}
                       {selectedStadium.phone && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">📞 {selectedStadium.phone}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">📞 {selectedStadium.phone}</p>
                       )}
                     </div>
                     <Button
@@ -152,7 +152,7 @@ export default function StadiumGuide() {
 
               {selectedStadium && KAKAO_API_KEY ? (
                 <div
-                  className="p-2 rounded-3xl border-2 dark:bg-gray-800 dark:border-gray-700"
+                  className="p-2 rounded-3xl border-2 dark:bg-card dark:border-border"
                   style={{
                     backgroundColor: isDark ? undefined : THEME_COLORS.primaryLight,
                     borderColor: isDark ? '#374151' : THEME_COLORS.primary,
@@ -166,7 +166,7 @@ export default function StadiumGuide() {
                 </div>
               ) : (
                 <Card
-                  className="p-12 flex flex-col items-center justify-center rounded-3xl border-2 dark:bg-gray-800 dark:border-gray-700"
+                  className="p-12 flex flex-col items-center justify-center rounded-3xl border-2 dark:bg-card dark:border-border"
                   style={{
                     backgroundColor: isDark ? undefined : THEME_COLORS.primaryLight,
                     borderColor: isDark ? '#374151' : THEME_COLORS.primary,
@@ -177,8 +177,8 @@ export default function StadiumGuide() {
                   <h4 style={{ color: THEME_COLORS.primary, fontWeight: 700 }}>
                     {selectedStadium?.stadiumName || '구장을 선택하세요'}
                   </h4>
-                  <p className="text-gray-600 dark:text-gray-400 mt-2">주변 지도</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500 mt-4">
+                  <p className="text-gray-600 dark:text-gray-300 mt-2">주변 지도</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-300 mt-4">
                     {!KAKAO_API_KEY ? '* 카카오맵 API 키를 설정해주세요' : '* 지도 로딩 중...'}
                   </p>
                 </Card>
@@ -202,7 +202,7 @@ export default function StadiumGuide() {
                     <button
                       key={config.key}
                       onClick={() => setSelectedCategory(config.key)}
-                      className="py-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 dark:bg-gray-800"
+                      className="py-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 dark:bg-card"
                       style={{
                         backgroundColor: isSelected ? config.bgColor : (isDark ? '#1f2937' : 'white'),
                         borderColor: isSelected ? config.borderColor : (isDark ? '#374151' : THEME_COLORS.border),
@@ -244,7 +244,7 @@ export default function StadiumGuide() {
 
               {loading ? (
                 <div
-                  className="rounded-2xl border-2 flex items-center justify-center dark:bg-gray-800 dark:border-gray-700"
+                  className="rounded-2xl border-2 flex items-center justify-center dark:bg-card dark:border-border"
                   style={{
                     height: '550px',
                     borderColor: isDark ? '#374151' : THEME_COLORS.border,
@@ -256,12 +256,12 @@ export default function StadiumGuide() {
                       className="inline-block animate-spin rounded-full h-8 w-8 border-b-2"
                       style={{ borderColor: THEME_COLORS.primary }}
                     ></div>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">로딩 중...</p>
+                    <p className="mt-2 text-gray-600 dark:text-gray-300">로딩 중...</p>
                   </div>
                 </div>
               ) : (
                 <div
-                  className="rounded-2xl border-2 overflow-hidden dark:bg-gray-800 dark:border-gray-700"
+                  className="rounded-2xl border-2 overflow-hidden dark:bg-card dark:border-border"
                   style={{
                     height: '550px',
                     borderColor: isDark ? '#374151' : THEME_COLORS.border,
@@ -285,7 +285,7 @@ export default function StadiumGuide() {
                             <Card
                               key={place.id}
                               id={`place-${place.id}`}
-                              className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-2 dark:bg-gray-800"
+                              className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-2 dark:bg-card"
                               style={{
                                 backgroundColor: isSelected
                                   ? (isDark ? '#1f4436' : THEME_COLORS.primaryLight)
@@ -306,18 +306,18 @@ export default function StadiumGuide() {
                                     <h4 className="dark:text-white" style={{ fontWeight: 700 }}>{place.name}</h4>
                                   </div>
                                   {place.description && (
-                                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
+                                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">
                                       {place.description}
                                     </p>
                                   )}
                                   {place.address && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">📍 {place.address}</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300">📍 {place.address}</p>
                                   )}
                                   {place.phone && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">📞 {place.phone}</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300">📞 {place.phone}</p>
                                   )}
                                   {place.openTime && place.closeTime && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    <p className="text-sm text-gray-600 dark:text-gray-300">
                                       ⏰ {place.openTime} - {place.closeTime}
                                     </p>
                                   )}
@@ -350,7 +350,7 @@ export default function StadiumGuide() {
                           );
                         })
                       ) : (
-                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-300">
                           {selectedStadium ? (
                             selectedCategory === 'store' || selectedCategory === 'parking' ? (
                               `주변 ${CATEGORY_CONFIGS[selectedCategory].label}을 검색 중입니다...`

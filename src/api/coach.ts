@@ -1,5 +1,12 @@
 
-const API_URL = import.meta.env.VITE_AI_API_URL || '/ai';
+const API_URL = (() => {
+  if (typeof window !== 'undefined' && window.Cypress) {
+    return '/ai';
+  }
+
+  return import.meta.env.VITE_AI_API_URL || '/ai';
+})();
+const APP_API_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export interface AnalyzeLeagueContext {
     season?: number | string;
@@ -27,6 +34,7 @@ export interface AnalyzeRequest {
     league_context?: AnalyzeLeagueContext;
     focus?: string[];
     game_id?: string;
+    request_mode?: 'auto_brief' | 'manual_detail';
     question_override?: string;
 }
 
@@ -95,21 +103,71 @@ export interface CoachAnalyzeResponse {
     data_sources?: Array<unknown>;
     error?: string;
     structuredData?: CoachStructuredResponse;  // Parsed response from meta event
+    resolved_focus?: string[];
+    focus_signature?: string;
+    question_signature?: string;
+    cache_key_version?: string;
+    cache_state?: string;
+    cached?: boolean;
+    in_progress?: boolean;
+    focus_section_missing?: boolean;
+    missing_focus_sections?: string[];
+}
+
+export interface AnalyzeOptions {
+    signal?: AbortSignal;
+}
+
+function isAbortLikeError(error: unknown): boolean {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+        return true;
+    }
+    if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+            return true;
+        }
+        const message = error.message.toLowerCase();
+        return message.includes('aborterror') || message.includes('aborted');
+    }
+    return String(error ?? '').toLowerCase().includes('abort');
 }
 
 export async function analyzeTeam(
     data: AnalyzeRequest,
-    onStream?: (chunk: string) => void
+    onStream?: (chunk: string) => void,
+    options?: AnalyzeOptions
 ): Promise<CoachAnalyzeResponse> {
-    const response = await fetch(`${API_URL}/coach/analyze`, {
+    const requestInit: RequestInit = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(data),
-    });
+        signal: options?.signal,
+    };
+
+    let response = await fetch(`${API_URL}/coach/analyze`, requestInit);
+    if (response.status === 401) {
+        const refreshResponse = await fetch(`${APP_API_URL}/auth/reissue`, {
+            method: 'POST',
+            credentials: 'include',
+        });
+        if (refreshResponse.ok) {
+            response = await fetch(`${API_URL}/coach/analyze`, requestInit);
+        }
+    }
 
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        let errorDetail = errorText;
+        try {
+            const parsed = JSON.parse(errorText);
+            if (parsed?.detail) {
+                errorDetail = String(parsed.detail);
+            }
+        } catch {
+            // keep raw text
+        }
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorDetail}`);
     }
 
     // Handle Streaming (SSE)
@@ -120,6 +178,15 @@ export async function analyzeTeam(
     let verified = false;
     let dataSources: Array<unknown> = [];
     let structuredData: CoachStructuredResponse | undefined = undefined;
+    let resolvedFocus: string[] | undefined = undefined;
+    let focusSignature: string | undefined = undefined;
+    let questionSignature: string | undefined = undefined;
+    let cacheKeyVersion: string | undefined = undefined;
+    let cacheState: string | undefined = undefined;
+    let cached: boolean | undefined = undefined;
+    let inProgress: boolean | undefined = undefined;
+    let focusSectionMissing: boolean | undefined = undefined;
+    let missingFocusSections: string[] | undefined = undefined;
 
     if (reader) {
         try {
@@ -164,6 +231,15 @@ export async function analyzeTeam(
                                 if (parsed.tool_calls) toolCalls = parsed.tool_calls;
                                 if (parsed.verified !== undefined) verified = parsed.verified;
                                 if (parsed.data_sources) dataSources = parsed.data_sources;
+                                if (Array.isArray(parsed.resolved_focus)) resolvedFocus = parsed.resolved_focus;
+                                if (typeof parsed.focus_signature === 'string') focusSignature = parsed.focus_signature;
+                                if (typeof parsed.question_signature === 'string') questionSignature = parsed.question_signature;
+                                if (typeof parsed.cache_key_version === 'string') cacheKeyVersion = parsed.cache_key_version;
+                                if (typeof parsed.cache_state === 'string') cacheState = parsed.cache_state;
+                                if (typeof parsed.in_progress === 'boolean') inProgress = parsed.in_progress;
+                                if (parsed.cached !== undefined) cached = Boolean(parsed.cached);
+                                if (parsed.focus_section_missing !== undefined) focusSectionMissing = Boolean(parsed.focus_section_missing);
+                                if (Array.isArray(parsed.missing_focus_sections)) missingFocusSections = parsed.missing_focus_sections;
                             }
 
                             // Reset event type after processing data
@@ -175,7 +251,11 @@ export async function analyzeTeam(
                 }
             }
         } catch (error) {
+            if (isAbortLikeError(error)) {
+                throw error instanceof Error ? error : new DOMException('aborted', 'AbortError');
+            }
             console.error("Streaming error:", error);
+            throw error instanceof Error ? error : new Error(String(error));
         }
     } else {
         return response.json();
@@ -186,6 +266,15 @@ export async function analyzeTeam(
         tool_calls: toolCalls,
         verified: verified,
         data_sources: dataSources,
-        structuredData: structuredData
+        structuredData: structuredData,
+        resolved_focus: resolvedFocus,
+        focus_signature: focusSignature,
+        question_signature: questionSignature,
+        cache_key_version: cacheKeyVersion,
+        cache_state: cacheState,
+        cached: cached,
+        in_progress: inProgress,
+        focus_section_missing: focusSectionMissing,
+        missing_focus_sections: missingFocusSections
     };
 }

@@ -75,7 +75,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
             <DialogContent className="sm:max-w-[500px] p-0 gap-0 max-h-[90vh] overflow-hidden flex flex-col">
-                <DialogHeader className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+                <DialogHeader className="px-4 py-3 border-b border-gray-100 dark:border-border flex-shrink-0">
                     <div className="flex items-center justify-between">
                         <button
                             onClick={handleClose}
@@ -93,7 +93,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                             className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${
                                 canSubmit
                                     ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                                    : 'bg-gray-200 dark:bg-secondary text-gray-400 cursor-not-allowed'
                             }`}
                         >
                             {quoteRepostMutation.isPending ? (
@@ -108,7 +108,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                 <div className="flex-1 overflow-y-auto p-4">
                     {/* 작성자 정보 */}
                     <div className="flex gap-3">
-                        <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary overflow-hidden flex-shrink-0">
                             {user?.profileImageUrl ? (
                                 <img
                                     src={user.profileImageUrl}
@@ -116,7 +116,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                                     className="h-full w-full object-cover"
                                 />
                             ) : (
-                                <div className="h-full w-full flex items-center justify-center text-sm font-medium text-slate-500 dark:text-slate-400">
+                                <div className="h-full w-full flex items-center justify-center text-sm font-medium text-slate-500 dark:text-gray-300">
                                     {user?.name?.slice(0, 1) || '?'}
                                 </div>
                             )}
@@ -127,7 +127,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                                 <span className="font-semibold text-gray-900 dark:text-white">
                                     {user?.name || '사용자'}
                                 </span>
-                                <span className="text-gray-500 dark:text-gray-400">
+                                <span className="text-gray-500 dark:text-gray-300">
                                     {user?.handle || '@user'}
                                 </span>
                             </div>
@@ -149,7 +149,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                 </div>
 
                 {/* 하단 글자 수 표시 */}
-                <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
+                <div className="px-4 py-3 border-t border-gray-100 dark:border-border flex-shrink-0">
                     <div className="flex justify-end">
                         <span
                             className={`text-sm ${

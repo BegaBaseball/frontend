@@ -16,7 +16,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 158 35% 27%;
+    --primary: 164 41% 23%; /* BMW Isle of Man Green-inspired */
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -28,30 +28,30 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 158 35% 27%;
+    --ring: 164 41% 23%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 0 0% 0%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 0 0% 0%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 0 0% 0%;
     --popover-foreground: 210 40% 98%;
-    --primary: 142 71% 45%;
-    --primary-foreground: 144 65% 8%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 164 40% 42%; /* BMW Isle of Man Green-inspired (dark, higher contrast) */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 220 14% 12%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 219 24% 18%;
+    --muted-foreground: 215 20% 80%;
+    --accent: 220 14% 12%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142 71% 45%;
+    --border: 216 16% 30%;
+    --input: 216 16% 24%;
+    --ring: 164 40% 42%;
   }
 }
 
@@ -134,9 +134,15 @@
   width: min(380px, calc(100vw - 32px));
 }
 
+/* Diary section only: add a subtle white outline to dark green emphasis text */
+.diary-green-surface .text-primary {
+  -webkit-text-stroke: 0.35px rgba(255, 255, 255, 0.9);
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
 /* Shiny button animation for Stove League */
 .shiny-button {
-  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  background: linear-gradient(135deg, #3d7e6d 0%, #235346 100%);
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -159,7 +165,7 @@
 
 .shiny-button:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 20px rgba(74, 222, 128, 0.4);
+  box-shadow: 0 4px 20px rgba(35, 83, 70, 0.4);
 }
 
 @keyframes shine {

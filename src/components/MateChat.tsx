@@ -7,6 +7,7 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
+import LoadingSpinner from './LoadingSpinner';
 import { Badge } from './ui/badge';
 import {
   ChevronLeft,
@@ -22,12 +23,13 @@ import { ChatMessage, Application } from '../types/mate';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import { api } from '../utils/api';
 
 export default function MateChat() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { selectedParty } = useMateStore();
+  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
   const validateChatMessage = useMateStore((state) => state.validateChatMessage);
 
   // 모든 useState를 최상단에 선언
@@ -146,12 +148,26 @@ export default function MateChat() {
   }, [selectedParty, currentUser, isHost]);
 
   // 조건부 return들
-  if (isLoadingUser) {
+  if (isLoadingUser || isPartyLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">사용자 정보를 불러오는 중...</p>
+      <LoadingSpinner text="사용자 정보를 불러오는 중..." />
+    );
+  }
+
+  if (partyError || !selectedParty) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Alert>
+            <Info className="w-4 h-4" />
+            <AlertDescription>{partyError || '파티 정보를 찾을 수 없습니다.'}</AlertDescription>
+          </Alert>
+          <Button
+            onClick={() => navigate('/mate')}
+            className="mt-4 text-white bg-primary"
+          >
+            목록으로 돌아가기
+          </Button>
         </div>
       </div>
     );
@@ -178,36 +194,10 @@ export default function MateChat() {
     );
   }
 
-  if (!selectedParty) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Alert>
-            <Info className="w-4 h-4" />
-            <AlertDescription>
-              파티를 선택해주세요.
-            </AlertDescription>
-          </Alert>
-          <Button
-            onClick={() => navigate('/mate')}
-            className="mt-4 text-white bg-primary"
-          >
-            파티 목록으로
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   // 승인 체크 중
   if (isCheckingApproval) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">승인 정보 확인 중...</p>
-        </div>
-      </div>
+      <LoadingSpinner text="승인 정보 확인 중..." />
     );
   }
 
@@ -234,8 +224,6 @@ export default function MateChat() {
       </div>
     );
   }
-
-
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,7 +287,7 @@ export default function MateChat() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200 flex flex-col">
       <img
         src={grassDecor}
         alt=""

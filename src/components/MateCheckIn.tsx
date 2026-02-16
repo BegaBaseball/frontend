@@ -6,21 +6,22 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Separator } from './ui/separator';
 import { CheckCircle, MapPin, Calendar, Users, ChevronLeft, Loader2 } from 'lucide-react';
-import { useMateStore } from '../store/mateStore';
+import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import ChatBot from './ChatBot';
+import LoadingSpinner from './LoadingSpinner';
 import { api } from '../utils/api';
 import { CheckIn } from '../types/mate';
 
 export default function MateCheckIn() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { selectedParty } = useMateStore();
+  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
 
   const [isChecking, setIsChecking] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState<CheckIn[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
@@ -31,6 +32,8 @@ export default function MateCheckIn() {
         setCurrentUserId(userIdResponse.data);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
+      } finally {
+        setIsLoadingUser(false);
       }
     };
 
@@ -56,8 +59,33 @@ export default function MateCheckIn() {
     return () => clearInterval(interval);
   }, [selectedParty]);
 
-  if (!selectedParty || !currentUserId) {
-    return null;
+  if (isPartyLoading || isLoadingUser) {
+    return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." />;
+  }
+
+  if (partyError || !selectedParty || !currentUserId) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
+        <img
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+          <Alert>
+            <AlertDescription>{partyError || '파티 정보를 찾을 수 없습니다.'}</AlertDescription>
+          </Alert>
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/mate')}
+            className="mt-4"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            목록으로
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const isHost = selectedParty.hostId === currentUserId;
@@ -103,7 +131,7 @@ export default function MateCheckIn() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
       <img
         src={grassDecor}
         alt=""
@@ -324,7 +352,6 @@ export default function MateCheckIn() {
         )}
       </div>
 
-      <ChatBot />
     </div>
   );
 }

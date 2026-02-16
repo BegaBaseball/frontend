@@ -130,8 +130,8 @@ export default function CheerWriteModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
-            <DialogContent className="w-full h-auto max-w-[95%] sm:max-w-[600px] lg:max-w-[800px] max-h-[90vh] p-0 overflow-hidden border-none rounded-2xl bg-white dark:bg-[#151A23]">
-                <DialogHeader className="px-4 py-3 sm:px-6 sm:py-4 border-b border-[#EFF3F4] dark:border-[#232938] flex flex-row items-center justify-between">
+            <DialogContent className="w-full h-auto max-w-[95%] sm:max-w-[600px] lg:max-w-[800px] max-h-[90vh] p-0 overflow-hidden border-none rounded-2xl bg-white dark:bg-card">
+                <DialogHeader className="px-4 py-3 sm:px-6 sm:py-4 border-b border-[#EFF3F4] dark:border-border flex flex-row items-center justify-between">
                     <DialogTitle className="text-lg sm:text-xl font-bold">새 응원글 작성</DialogTitle>
                     <DialogDescription className="sr-only">
                         새로운 응원글을 작성하고 이미지를 업로드하는 모달입니다.
@@ -140,7 +140,7 @@ export default function CheerWriteModal({
 
                 <div className="p-4 sm:p-6 lg:p-8">
                     <div className="flex gap-3 sm:gap-4">
-                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
 
                             {user?.profileImageUrl ? (
                                 <img
@@ -154,7 +154,7 @@ export default function CheerWriteModal({
                             ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
                                 <TeamLogo teamId={teamId} team={teamLabel} size={48} />
                             ) : (
-                                <span className="text-sm sm:text-base font-semibold text-slate-600 dark:text-slate-400">
+                                <span className="text-sm sm:text-base font-semibold text-slate-600 dark:text-gray-300">
                                     {user?.name?.slice(0, 1) || '?'}
                                 </span>
                             )}
@@ -186,7 +186,7 @@ export default function CheerWriteModal({
                                 </div>
                             )}
 
-                            <div className="mt-4 flex items-center justify-between border-t border-[#EFF3F4] dark:border-[#232938] pt-3">
+                            <div className="mt-4 flex items-center justify-between border-t border-[#EFF3F4] dark:border-border pt-3">
                                 <div className="flex items-center gap-1">
                                     <button
                                         type="button"

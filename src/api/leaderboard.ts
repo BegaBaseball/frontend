@@ -32,6 +32,8 @@ export interface UserLeaderboardStats {
   experiencePoints: number;
   nextLevelExp: number;
   accuracy?: number;
+  totalPredictions?: number;
+  correctPredictions?: number;
 }
 
 export interface HotStreak {

@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
+import LoadingSpinner from './LoadingSpinner';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -25,8 +26,8 @@ import {
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import ChatBot from './ChatBot';
 import { api } from '../utils/api';
+import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import { Application } from '../types/mate';
 import { formatGameDate } from '../utils/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
@@ -38,7 +39,7 @@ export default function MateManage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { confirm } = useConfirmDialog();
-  const { selectedParty } = useMateStore();
+  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,8 +91,23 @@ export default function MateManage() {
     fetchApplications();
   }, [selectedParty, retryCount]);
 
-  if (!selectedParty) {
-    return null;
+  if (isPartyLoading) {
+    return <LoadingSpinner text="파티 정보를 불러오는 중..." fullScreen />;
+  }
+
+  if (partyError || !selectedParty) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-background">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Alert>
+            <AlertDescription>{partyError || '파티 정보를 찾을 수 없습니다.'}</AlertDescription>
+          </Alert>
+          <Button onClick={() => navigate('/mate')} className="mt-4">
+            목록으로 이동
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (!currentUserId) {
@@ -314,10 +330,7 @@ export default function MateManage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">신청 목록을 불러오는 중...</p>
-          </div>
+          <LoadingSpinner size="lg" text="신청 목록을 불러오는 중..." fullScreen={false} />
         </div>
       </div>
     );
@@ -345,7 +358,7 @@ export default function MateManage() {
   const rejectedApplications = applications.filter(app => app.isRejected);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
       <img
         src={grassDecor}
         alt=""
@@ -532,7 +545,6 @@ export default function MateManage() {
         </Tabs>
       </div>
 
-      <ChatBot />
     </div>
   );
 }

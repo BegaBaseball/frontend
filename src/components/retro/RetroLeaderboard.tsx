@@ -7,7 +7,7 @@ import {
 } from './RetroTheme';
 import LeaderboardRow, { LeaderboardEntry } from './LeaderboardRow';
 import { TickerMessage } from './NewsTicker';
-import { UserStats } from './UserStatsPanel';
+import type { UserLeaderboardStats } from '../../api/leaderboard';
 
 import mascotRight from '../../assets/images/mascot_v3.png';
 import stadiumBg from '../../assets/images/stadium_bg.png';
@@ -255,6 +255,52 @@ const InfoText = styled.div`
   width: 100%;
 `;
 
+const MigrationStatsPanel = styled.div`
+  width: 90%;
+  max-width: 800px;
+  margin: 0 auto 20px auto;
+  padding: 14px;
+  border: 3px solid #00ff00;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 14px rgba(0, 255, 0, 0.2);
+  position: relative;
+`;
+
+const MigrationStatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const MigrationStatCard = styled.div`
+  border: 2px solid #00b800;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 10px;
+  text-align: center;
+
+  .label {
+    color: #66ff66;
+    font-size: 11px;
+    font-family: ${fonts.retroText};
+    margin-bottom: 6px;
+    ${crispText}
+  }
+
+  .value {
+    font-size: 20px;
+    font-family: ${fonts.retroDisplay};
+    color: #fff;
+    ${crispText}
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+  }
+`;
+
 const RulesOverlay = styled(motion.div)`
   position: absolute;
   top: 0;
@@ -312,7 +358,7 @@ type LeaderboardType = 'season' | 'monthly' | 'weekly';
 
 interface RetroLeaderboardProps {
   leaderboard?: LeaderboardEntry[];
-  userStats?: UserStats | null;
+  userStats?: UserLeaderboardStats | null;
   tickerMessages?: TickerMessage[];
   hotStreaks?: LeaderboardEntry[];
   powerups?: Record<string, number>;
@@ -345,6 +391,25 @@ export default function RetroLeaderboard({
 }: RetroLeaderboardProps) {
 
   const [showRules, setShowRules] = useState(false);
+  const hasPredictionStats = !!(
+    userStats &&
+    ((userStats.accuracy ?? 0) > 0 ||
+      (userStats.currentStreak ?? 0) > 0 ||
+      (userStats.totalPredictions ?? 0) > 0 ||
+      (userStats.correctPredictions ?? 0) > 0)
+  );
+  const predictionAccuracy = hasPredictionStats && typeof userStats.accuracy === 'number'
+    ? `${userStats.accuracy.toFixed(1)}%`
+    : '-';
+  const predictionStreak = hasPredictionStats && typeof userStats.currentStreak === 'number'
+    ? `${userStats.currentStreak}연승`
+    : '-';
+  const predictionTotal = hasPredictionStats && typeof userStats.totalPredictions === 'number'
+    ? `${userStats.totalPredictions.toLocaleString()}회`
+    : '-';
+  const predictionCorrect = hasPredictionStats && typeof userStats.correctPredictions === 'number'
+    ? `${userStats.correctPredictions.toLocaleString()}회`
+    : '-';
 
   const displayLeaderboard = leaderboard ?? [];
 
@@ -357,6 +422,27 @@ export default function RetroLeaderboard({
             <CharacterSprite src={mascotRight} alt="Mascot" />
           </CharacterFrame>
         </TitleWrapper>
+
+        <MigrationStatsPanel>
+          <MigrationStatsGrid>
+            <MigrationStatCard>
+              <div className="label">적중률</div>
+              <div className="value">{predictionAccuracy}</div>
+            </MigrationStatCard>
+            <MigrationStatCard>
+              <div className="label">연승</div>
+              <div className="value">{predictionStreak}</div>
+            </MigrationStatCard>
+            <MigrationStatCard>
+              <div className="label">누적 예측</div>
+              <div className="value">{predictionTotal}</div>
+            </MigrationStatCard>
+            <MigrationStatCard>
+              <div className="label">적중 횟수</div>
+              <div className="value">{predictionCorrect}</div>
+            </MigrationStatCard>
+          </MigrationStatsGrid>
+        </MigrationStatsPanel>
 
         <ScoreboardWrapper>
           <ScoreboardBox>

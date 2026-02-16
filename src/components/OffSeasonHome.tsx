@@ -114,7 +114,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
   };
 
   return (
-    <div className="space-y-8 md:space-y-12 min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors px-4 py-6 md:p-8">
+    <div className="space-y-8 md:space-y-12 min-h-screen bg-gray-50 dark:bg-background transition-colors px-4 py-6 md:p-8">
       <button
         onClick={() => navigate('/home')}
         className="text-sm mb-2 flex items-center gap-2 group transition-all border-2 border-primary text-primary px-4 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -146,7 +146,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       </section>
 
       {/* Countdown Card */}
-      <Card className="overflow-hidden shadow-2xl bg-white dark:bg-gray-900 border-none rounded-2xl md:rounded-3xl">
+      <Card className="overflow-hidden shadow-2xl bg-white dark:bg-background border-none rounded-2xl md:rounded-3xl">
         <div className="text-center py-12 md:py-16 px-6 relative overflow-hidden bg-gradient-to-br from-[#1a3c34] to-primary">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-white rounded-full blur-3xl"></div>
@@ -181,36 +181,36 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="p-4 md:p-6 border-none bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/10 animate-pulse">
+              <Card key={i} className="p-4 md:p-6 border-none bg-white dark:bg-background ring-1 ring-black/5 dark:ring-white/10 animate-pulse">
                 <div className="flex items-start gap-4 md:gap-5">
-                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gray-200 dark:bg-secondary"></div>
                   <div className="flex-1 space-y-3">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-secondary rounded w-1/4"></div>
+                    <div className="h-5 bg-gray-200 dark:bg-secondary rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-secondary rounded w-1/2"></div>
                   </div>
                 </div>
               </Card>
             ))}
           </div>
         ) : bigEvents.length === 0 ? (
-          <Card className="p-10 md:p-16 text-center border-none bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/10">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          <Card className="p-10 md:p-16 text-center border-none bg-white dark:bg-background ring-1 ring-black/5 dark:ring-white/10">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-card flex items-center justify-center">
               <TrendingUp className="w-8 h-8 text-gray-400" />
             </div>
-            <p className="text-gray-500 dark:text-gray-400 font-medium">아직 등록된 주요 이적 소식이 없습니다.</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">새로운 소식이 등록되면 여기에 표시됩니다.</p>
+            <p className="text-gray-500 dark:text-gray-300 font-medium">아직 등록된 주요 이적 소식이 없습니다.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-300 mt-2">새로운 소식이 등록되면 여기에 표시됩니다.</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {bigEvents.map((news, index) => (
-              <Card key={news.id} className="p-4 md:p-6 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer border-none bg-white dark:bg-gray-900 group ring-1 ring-black/5 dark:ring-white/10 relative overflow-hidden">
+              <Card key={news.id} className="p-4 md:p-6 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer border-none bg-white dark:bg-background group ring-1 ring-black/5 dark:ring-white/10 relative overflow-hidden">
                 {/* Highlight Background Effect */}
                 <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-400/10 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
 
                 <div className="flex items-start gap-4 md:gap-5 relative z-10">
                   <div className="flex-shrink-0">
-                    <div className="flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 dark:bg-gray-800 dark:border-gray-700 shadow-sm">
+                    <div className="flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 dark:bg-card dark:border-border shadow-sm">
                       <TeamLogo team={getTeamName(news.team)} size={36} className="md:w-11 md:h-11" />
                     </div>
                   </div>
@@ -222,7 +222,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                     <p className="text-gray-900 dark:text-white text-base md:text-lg font-bold group-hover:text-primary transition-colors line-clamp-1">
                       {news.player} ({getTeamName(news.team)})
                     </p>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-1">
+                    <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-1">
                       {formatRemarks(news.remarks)}
                     </div>
                   </div>
@@ -237,7 +237,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       <section className="flex justify-center pb-10">
         <Button
           onClick={() => navigate('/offseason/list')}
-          className="bg-white dark:bg-gray-800 text-primary border border-primary/20 hover:bg-primary/5 rounded-full px-8 py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+          className="bg-white dark:bg-card text-primary border border-primary/20 hover:bg-primary/5 rounded-full px-8 py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
         >
           전체 이적 현황 보러가기 ({movements.length}건)
           <ChevronDown className="w-5 h-5 ml-2 -rotate-90" />
@@ -255,10 +255,10 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {awards.map((award, index) => (
-            <Card key={index} className="overflow-hidden hover:shadow-xl transition-all border-none bg-white dark:bg-gray-900 group ring-1 ring-black/5 dark:ring-white/10">
+            <Card key={index} className="overflow-hidden hover:shadow-xl transition-all border-none bg-white dark:bg-background group ring-1 ring-black/5 dark:ring-white/10">
               <div className="p-5 md:p-6">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-xl md:rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm transition-transform group-hover:rotate-6">
+                  <div className="flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-xl md:rounded-2xl bg-gray-50 dark:bg-card border border-gray-100 dark:border-border shadow-sm transition-transform group-hover:rotate-6">
                     <TeamLogo team={award.team} size={36} className="md:w-11 md:h-11" />
                   </div>
                   <div className="flex-1">
@@ -266,8 +266,8 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                     <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{award.playerName}</p>
                   </div>
                 </div>
-                <div className="pt-3 md:pt-4 border-t border-gray-100 dark:border-gray-800">
-                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium leading-relaxed">{award.stats}</p>
+                <div className="pt-3 md:pt-4 border-t border-gray-100 dark:border-border">
+                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium leading-relaxed">{award.stats}</p>
                 </div>
               </div>
             </Card>
@@ -284,16 +284,16 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
           <h3 className="text-xl md:text-2xl font-black text-primary">2025 포스트시즌 결과</h3>
         </div>
 
-        <Card className="p-4 md:p-10 overflow-x-auto bg-white dark:bg-gray-900 border-none shadow-xl rounded-2xl md:rounded-3xl ring-1 ring-black/5 dark:ring-white/10">
+        <Card className="p-4 md:p-10 overflow-x-auto bg-white dark:bg-card border border-gray-200 dark:border-border shadow-xl rounded-2xl md:rounded-3xl">
           {!isLargeScreen ? (
             /* Mobile/Tablet: Vertical Timeline Layout */
             <div className="flex flex-col gap-4 py-2">
               {/* 와일드카드 */}
-              <div className="relative pl-8 pb-4 border-l-2 border-gray-300 dark:border-gray-600">
-                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600"></div>
-                <span className="text-xs font-bold text-gray-400 mb-2 block">와일드카드</span>
+              <div className="relative pl-8 pb-4 border-l-2 border-gray-300 dark:border-border">
+                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-gray-300 dark:bg-border"></div>
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-300 mb-2 block">와일드카드</span>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
                     <span className="text-xs font-bold text-gray-500 w-6">5위</span>
                     <TeamLogo team="NC" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">NC</span>
@@ -310,9 +310,9 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
               {/* 준플레이오프 */}
               <div className="relative pl-8 pb-4 border-l-2 border-primary">
                 <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-primary"></div>
-                <span className="text-xs font-bold text-gray-400 mb-2 block">준플레이오프</span>
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-300 mb-2 block">준플레이오프</span>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
                     <span className="text-xs font-bold text-gray-500 w-6">3위</span>
                     <TeamLogo team="SSG" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">SSG</span>
@@ -329,7 +329,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
               {/* 플레이오프 */}
               <div className="relative pl-8 pb-4 border-l-2 border-primary">
                 <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-primary"></div>
-                <span className="text-xs font-bold text-gray-400 mb-2 block">플레이오프</span>
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-300 mb-2 block">플레이오프</span>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary">
                     <span className="text-xs font-bold text-primary w-6">2위</span>
@@ -337,7 +337,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                     <span className="font-bold text-gray-900 dark:text-white text-sm">한화</span>
                     <Badge className="ml-auto text-[10px] bg-primary text-white">승</Badge>
                   </div>
-                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
                     <span className="text-xs font-bold text-gray-500 w-6">준PO</span>
                     <TeamLogo team="삼성" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">삼성</span>
@@ -359,7 +359,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                     <span className="font-bold text-white">LG</span>
                     <Badge className="ml-auto text-[10px] bg-yellow-400 text-black">V3</Badge>
                   </div>
-                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 opacity-70">
+                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border opacity-70">
                     <span className="text-xs font-bold text-gray-500 w-6">PO</span>
                     <TeamLogo team="한화" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">한화</span>
@@ -374,13 +374,13 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
               {/* WC Stage (Left - Lowest) */}
               <div className="flex flex-col gap-4 relative z-10 translate-y-20">
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs font-bold text-gray-400 text-center">와일드카드</span>
+                  <span className="text-xs font-bold text-gray-400 dark:text-gray-300 text-center">와일드카드</span>
                   <div className="flex flex-col gap-3 relative">
                     {/* Connector Line for WC: Goes UP to Semi */}
-                    <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
-                    <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
+                    <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-border"></div>
+                    <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-border"></div>
 
-                    <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-44">
+                    <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-44">
                       <span className="text-sm font-bold text-gray-500 w-8">5위</span>
                       <TeamLogo team="NC" size={24} />
                       <span className="font-bold text-gray-900 dark:text-white">NC</span>
@@ -397,16 +397,16 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
 
               {/* Semi-PO Stage (Step Up) */}
               <div className="flex flex-col gap-4 relative z-10 translate-y-8">
-                <span className="text-xs font-bold text-gray-400 text-center">준플레이오프</span>
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-300 text-center">준플레이오프</span>
                 <div className="flex flex-col gap-8 relative">
                   {/* Incoming Connector from WC */}
                   <div className="absolute left-[-48px] bottom-[26px] w-[48px] h-[2px] bg-primary"></div>
 
                   {/* Outgoing Connector to PO */}
-                  <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
-                  <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
+                  <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-border"></div>
+                  <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-border"></div>
 
-                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-48">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-48">
                     <span className="text-sm font-bold text-gray-500 w-8">3위</span>
                     <TeamLogo team="SSG" size={24} />
                     <span className="font-bold text-gray-900 dark:text-white">SSG</span>
@@ -423,14 +423,14 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
 
               {/* PO Stage (Step Up) */}
               <div className="flex flex-col gap-4 relative z-10 -translate-y-4">
-                <span className="text-xs font-bold text-gray-400 text-center">플레이오프</span>
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-300 text-center">플레이오프</span>
                 <div className="flex flex-col gap-8 relative">
                   {/* Incoming Connector from Semi */}
                   <div className="absolute left-[-48px] bottom-[26px] w-[48px] h-[2px] bg-primary"></div>
 
                   {/* Outgoing Connector to KS */}
-                  <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-gray-600"></div>
-                  <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-gray-600"></div>
+                  <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-border"></div>
+                  <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-border"></div>
 
 
                   <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary w-52">
@@ -439,7 +439,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                     <span className="font-bold text-gray-900 dark:text-white">한화</span>
                     <Badge className="ml-auto text-[10px] bg-primary text-white">승</Badge>
                   </div>
-                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-52">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-52">
                     <span className="text-sm font-bold text-gray-500 w-8">준PO</span>
                     <TeamLogo team="삼성" size={24} />
                     <span className="font-bold text-gray-900 dark:text-white">삼성</span>
@@ -464,7 +464,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                     <span className="font-bold text-white text-lg">LG</span>
                     <Badge className="ml-auto text-[10px] bg-yellow-400 text-black hover:bg-yellow-500">V3</Badge>
                   </div>
-                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-60 opacity-70">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-60 opacity-70">
                     <span className="text-sm font-bold text-gray-500 w-8">PO</span>
                     <TeamLogo team="한화" size={24} />
                     <span className="font-bold text-gray-900 dark:text-white">한화</span>
@@ -485,44 +485,47 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
           <h3 className="text-xl md:text-2xl font-black text-primary">최종 순위</h3>
         </div>
 
-        <Card className="overflow-hidden shadow-2xl border-none bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl ring-1 ring-black/5 dark:ring-white/10">
+        <Card className="overflow-hidden shadow-2xl border border-gray-200 dark:border-border bg-white dark:bg-card rounded-2xl md:rounded-3xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead>
-                <tr className="bg-primary dark:bg-[#1a3c34]">
-                  <th className="py-4 px-4 md:px-6 text-white font-bold uppercase text-[10px] md:text-xs">순위</th>
-                  <th className="py-4 px-4 md:px-6 text-white font-bold uppercase text-[10px] md:text-xs">팀명</th>
-                  <th className="py-4 px-4 md:px-6 text-white font-bold uppercase text-[10px] md:text-xs text-center hidden sm:table-cell">경기</th>
-                  <th className="py-4 px-4 md:px-6 text-white font-bold uppercase text-[10px] md:text-xs text-center">승/패</th>
-                  <th className="py-4 px-4 md:px-6 text-white font-bold uppercase text-[10px] md:text-xs text-center">승률</th>
+              <thead className="bg-gray-100 dark:bg-secondary text-gray-600 dark:text-gray-200 uppercase border-b border-gray-200 dark:border-border">
+                <tr>
+                  <th className="py-4 px-4 md:px-6 font-bold text-[10px] md:text-xs">순위</th>
+                  <th className="py-4 px-4 md:px-6 font-bold text-[10px] md:text-xs">팀명</th>
+                  <th className="py-4 px-4 md:px-6 font-bold text-[10px] md:text-xs text-center hidden sm:table-cell">경기</th>
+                  <th className="py-4 px-4 md:px-6 font-bold text-[10px] md:text-xs text-center">승/패</th>
+                  <th className="py-4 px-4 md:px-6 font-bold text-[10px] md:text-xs text-center">승률</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              <tbody>
                 {rankings.map((team: Ranking) => (
-                  <tr key={team.rank} className={`group transition-colors ${team.rank <= 3 ? 'bg-emerald-50/30 dark:bg-emerald-900/5' : ''} hover:bg-gray-50 dark:hover:bg-gray-800/50`}>
+                  <tr
+                    key={team.rank}
+                    className={`group border-b border-gray-100 dark:border-border/70 last:border-b-0 transition-colors odd:bg-white even:bg-gray-50/70 dark:odd:bg-card dark:even:bg-secondary/40 hover:bg-emerald-50/50 dark:hover:bg-secondary/70 dark:text-gray-100 ${team.rank <= 3 ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''}`}
+                  >
                     <td className="py-4 px-4 md:px-6">
-                      <div className={`w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center text-white shadow-md font-black text-xs md:text-base ${team.rank <= 3 ? 'bg-primary scale-105' : 'bg-gray-400 dark:bg-gray-700'}`}>
+                      <div className={`w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center text-white shadow-md font-black text-xs md:text-base ${team.rank <= 3 ? 'bg-primary scale-105' : 'bg-gray-400 dark:bg-secondary'}`}>
                         {team.rank}
                       </div>
                     </td>
                     <td className="py-4 px-4 md:px-6">
                       <div className="flex items-center gap-2 md:gap-4">
-                        <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm flex-shrink-0">
+                        <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-white dark:bg-card border border-gray-100 dark:border-border shadow-sm flex-shrink-0">
                           <TeamLogo team={team.teamId} size={24} className="md:w-7 md:h-7" />
                         </div>
-                        <span className="text-gray-900 dark:text-white font-bold text-xs md:text-base truncate max-w-[70px] md:max-w-none">
+                        <span className="text-gray-900 dark:text-gray-100 font-bold text-xs md:text-base truncate max-w-[70px] md:max-w-none">
                           {team.teamName}
                         </span>
                       </div>
                     </td>
-                    <td className="py-4 px-4 md:px-6 text-center text-gray-600 dark:text-gray-400 text-xs hidden sm:table-cell">{team.games}</td>
+                    <td className="py-4 px-4 md:px-6 text-center text-gray-600 dark:text-gray-200 text-xs hidden sm:table-cell">{team.games}</td>
                     <td className="py-4 px-4 md:px-6 text-center">
                       <div className="flex flex-col md:flex-row items-center justify-center gap-0 md:gap-1.5">
                         <span className="text-emerald-600 font-bold text-xs md:text-sm">{team.wins}승</span>
                         <span className="text-rose-600 dark:text-rose-400 font-bold text-xs md:text-sm">{team.losses}패</span>
                       </div>
                     </td>
-                    <td className="py-4 px-4 md:px-6 text-center font-black text-gray-900 dark:text-white text-xs md:text-lg tabular-nums">{team.winRate}</td>
+                    <td className="py-4 px-4 md:px-6 text-center font-black text-gray-900 dark:text-gray-100 text-xs md:text-lg tabular-nums">{team.winRate}</td>
                   </tr>
                 ))}
               </tbody>

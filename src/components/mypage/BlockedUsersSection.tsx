@@ -34,20 +34,20 @@ export default function BlockedUsersSection() {
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-8 mb-6">
+        <div className="bg-white dark:bg-card rounded-2xl shadow-lg border-2 border-gray-100 dark:border-border p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
                 <Ban className="w-6 h-6 text-red-500" />
                 <h2 className="text-xl font-bold text-red-500">차단 관리</h2>
             </div>
 
             <div className="mb-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-gray-300">
                     차단한 사용자는 내 게시글을 볼 수 없으며, 나에게 메시지를 보낼 수 없습니다.
                 </p>
             </div>
 
             <div
-                className="max-h-[400px] overflow-y-auto custom-scrollbar border border-gray-200 dark:border-gray-700 rounded-lg"
+                className="max-h-[400px] overflow-y-auto custom-scrollbar border border-gray-200 dark:border-border rounded-lg"
                 onScroll={handleScroll}
             >
                 {isLoading ? (
@@ -61,8 +61,8 @@ export default function BlockedUsersSection() {
                                 <div
                                     className="flex items-center gap-3 flex-1 min-w-0 mr-4"
                                 >
-                                    <Avatar className="h-10 w-10 border border-gray-200 dark:border-gray-700">
-                                        <AvatarImage src={user.profileImageUrl || ''} />
+                                    <Avatar className="h-10 w-10 border border-gray-200 dark:border-border">
+                                        <AvatarImage src={user.profileImageUrl} />
                                         <AvatarFallback className="bg-gray-100 text-gray-400">
                                             <User className="h-5 w-5" />
                                         </AvatarFallback>
@@ -71,7 +71,7 @@ export default function BlockedUsersSection() {
                                         <span className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
                                             {user.name}
                                         </span>
-                                        <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                        <span className="text-xs text-gray-500 dark:text-gray-300 truncate">
                                             {user.handle}
                                         </span>
                                     </div>
@@ -96,7 +96,7 @@ export default function BlockedUsersSection() {
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
+                        <div className="w-12 h-12 bg-gray-100 dark:bg-card rounded-full flex items-center justify-center mb-3">
                             <Ban className="h-6 w-6 text-gray-400" />
                         </div>
                         <p className="text-gray-900 dark:text-gray-100 font-medium mb-1">

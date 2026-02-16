@@ -25,9 +25,9 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
     if (post.deleted) {
         return (
             <div
-                className="mt-3 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4"
+                className="mt-3 rounded-xl border border-dashed border-gray-200 dark:border-border bg-gray-50 dark:bg-card/50 p-4"
             >
-                <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500">
+                <div className="flex items-center gap-2 text-gray-400 dark:text-gray-300">
                     <Trash2 className="h-4 w-4" />
                     <span className="text-sm">삭제된 게시글입니다</span>
                 </div>
@@ -43,7 +43,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
     return (
         <div
             onClick={handleClick}
-            className={`mt-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1A1F2B] p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#232938] transition-colors ${className || ''}`}
+            className={`mt-3 rounded-xl border border-gray-200 dark:border-border bg-gray-50 dark:bg-secondary p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-secondary transition-colors ${className || ''}`}
             style={{
                 borderLeftColor: post.teamColor || 'var(--primary)',
                 borderLeftWidth: '3px',
@@ -51,7 +51,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
         >
             {/* 작성자 정보 */}
             <div className="flex items-center gap-2 mb-2">
-                <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-600 overflow-hidden flex-shrink-0">
+                <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-secondary overflow-hidden flex-shrink-0">
                     {post.authorProfileImageUrl ? (
                         <img
                             src={post.authorProfileImageUrl}
@@ -59,7 +59,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                             className="h-full w-full object-cover image-render-quality"
                         />
                     ) : (
-                        <div className="h-full w-full flex items-center justify-center text-xs font-medium text-slate-500 dark:text-slate-400">
+                        <div className="h-full w-full flex items-center justify-center text-xs font-medium text-slate-500 dark:text-gray-300">
                             {post.author?.slice(0, 1) || '?'}
                         </div>
                     )}
@@ -68,7 +68,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                     <span className="font-semibold text-gray-900 dark:text-white truncate">
                         {post.author}
                     </span>
-                    <span className="text-gray-500 dark:text-gray-400 truncate">
+                    <span className="text-gray-500 dark:text-gray-300 truncate">
                         {post.authorHandle} · {formatTimeAgo(post.createdAt)}
                     </span>
                 </div>

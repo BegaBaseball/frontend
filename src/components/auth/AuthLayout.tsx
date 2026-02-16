@@ -3,6 +3,7 @@ import grassDecor from '../../assets/3aa01761d11828a81213baa8e622fec91540199d.pn
 import { OptimizedImage } from '../common/OptimizedImage';
 import { Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { type CSSProperties } from 'react';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -11,9 +12,14 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children, showHomeButton = false }: AuthLayoutProps) {
   const navigate = useNavigate();
+  const darkPrimary: CSSProperties = {
+    '--primary': '164 41% 23%',
+    '--primary-foreground': '210 40% 98%',
+    '--ring': '164 41% 23%',
+  };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden" style={darkPrimary}>
       {/* Background decorative shapes */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div
@@ -23,7 +29,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
             right: '-80px',
             width: '600px',
             height: '400px',
-            background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #3d7f5f 100%)',
+            background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #2f6c5c 100%)',
             transform: 'rotate(-15deg)'
           }}
         />
@@ -34,7 +40,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
             left: '-240px',
             width: '500px',
             height: '500px',
-            background: 'linear-gradient(45deg, hsl(var(--primary)) 0%, #4a9070 100%)',
+            background: 'linear-gradient(45deg, hsl(var(--primary)) 0%, #3d7e6d 100%)',
             transform: 'rotate(25deg)'
           }}
         />
@@ -45,7 +51,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
             left: '-160px',
             width: '550px',
             height: '450px',
-            background: 'linear-gradient(90deg, hsl(var(--primary)) 0%, #3d7f5f 100%)',
+            background: 'linear-gradient(90deg, hsl(var(--primary)) 0%, #2f6c5c 100%)',
             transform: 'rotate(-20deg)'
           }}
         />
@@ -56,7 +62,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
             right: '-192px',
             width: '500px',
             height: '500px',
-            background: 'linear-gradient(180deg, #3d7f5f 0%, hsl(var(--primary)) 100%)',
+            background: 'linear-gradient(180deg, #2f6c5c 0%, hsl(var(--primary)) 100%)',
             transform: 'rotate(15deg)'
           }}
         />

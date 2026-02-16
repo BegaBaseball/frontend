@@ -39,7 +39,7 @@ export interface ProfileUpdateData {
   name: string;
   email: string;
   favoriteTeam: string | null;
-  profileImageUrl?: string;
+  profileImageUrl?: string | null;
   bio?: string;
 }
 
@@ -47,7 +47,7 @@ export interface ProfileUpdateResponse {
   success: boolean;
   data: {
     token?: string;
-    profileImageUrl?: string;
+    profileImageUrl?: string | null;
     name?: string;
     email?: string;
     favoriteTeam?: string;

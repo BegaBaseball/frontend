@@ -64,7 +64,7 @@ export default function PasswordResetConfirm() {
                   value={formData.newPassword}
                   onChange={(e) => handleFieldChange('newPassword', e.target.value)}
                   onBlur={() => handleFieldBlur('newPassword')}
-                  className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary pr-10 ${fieldErrors.newPassword ? 'border-red-500' : ''}`}
+                  className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary pr-10 ${fieldErrors.newPassword ? 'border-red-500' : ''}`}
                   placeholder="새 비밀번호를 입력하세요 (최소 8자)"
                   disabled={isLoading || !token}
                 />
@@ -101,7 +101,7 @@ export default function PasswordResetConfirm() {
                   value={formData.confirmPassword}
                   onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
                   onBlur={() => handleFieldBlur('confirmPassword')}
-                  className={`bg-gray-50 dark:bg-gray-50 border-gray-200 text-gray-900 dark:text-gray-900 focus:ring-primary ring-primary pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
+                  className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
                   placeholder="비밀번호를 다시 입력하세요"
                   disabled={isLoading || !token}
                 />

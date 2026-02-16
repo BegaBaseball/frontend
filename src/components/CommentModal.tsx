@@ -68,26 +68,26 @@ export default function CommentModal({ isOpen, onClose, post }: CommentModalProp
 
     return (
         <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none rounded-none sm:rounded-xl bg-white dark:bg-[#151A23]">
-                <DialogHeader className="px-4 py-3 border-b border-[#EFF3F4] dark:border-[#232938] flex flex-row items-center justify-between">
+            <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none rounded-none sm:rounded-xl bg-white dark:bg-card">
+                <DialogHeader className="px-4 py-3 border-b border-[#EFF3F4] dark:border-border flex flex-row items-center justify-between">
                     <DialogTitle className="text-lg font-bold">답글 남기기</DialogTitle>
                 </DialogHeader>
 
                 <div className="p-4">
                     {/* Original Post Preview */}
                     <div className="flex gap-3 mb-6 relative">
-                        <div className="absolute left-[19px] top-10 bottom-0 w-0.5 bg-slate-100 dark:bg-slate-800" />
-                        <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
+                        <div className="absolute left-[19px] top-10 bottom-0 w-0.5 bg-slate-100 dark:bg-secondary" />
+                        <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary flex-shrink-0 flex items-center justify-center overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
                             <TeamLogo team={teamLabel} size={40} />
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-1">
                                 <span className="font-bold text-[15px] dark:text-white">{post.author}</span>
-                                <span className="text-[14px] text-slate-500 dark:text-slate-400">@{post.authorHandle || post.author}</span>
+                                <span className="text-[14px] text-slate-500 dark:text-gray-300">@{post.authorHandle || post.author}</span>
                                 <span className="text-slate-400">·</span>
-                                <span className="text-[14px] text-slate-500 dark:text-slate-400">{post.timeAgo}</span>
+                                <span className="text-[14px] text-slate-500 dark:text-gray-300">{post.timeAgo}</span>
                             </div>
-                            <p className="text-[15px] text-slate-700 dark:text-slate-300 line-clamp-3 mb-2">{post.content}</p>
+                            <p className="text-[15px] text-slate-700 dark:text-gray-200 line-clamp-3 mb-2">{post.content}</p>
                             <div className="text-[14px] text-slate-400">
                                 <span className="text-indigo-500 font-medium">@{post.authorHandle || post.author}</span> 님에게 답글 남기는 중
                             </div>
@@ -96,11 +96,11 @@ export default function CommentModal({ isOpen, onClose, post }: CommentModalProp
 
                     {/* Reply Area */}
                     <div className="flex gap-3 mt-4">
-                        <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
+                        <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary flex-shrink-0 flex items-center justify-center overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
                             {user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
                                 <TeamLogo team={TEAM_DATA[user.favoriteTeam]?.name || user.favoriteTeam} size={40} />
                             ) : (
-                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                                <span className="text-sm font-semibold text-slate-600 dark:text-gray-300">
                                     {user?.name?.slice(0, 1) || '?'}
                                 </span>
                             )}
@@ -116,13 +116,13 @@ export default function CommentModal({ isOpen, onClose, post }: CommentModalProp
                                 onChange={(e) => setContent(e.target.value)}
                             />
 
-                            <div className="mt-4 flex items-center justify-between border-t border-[#EFF3F4] dark:border-[#232938] pt-3">
+                            <div className="mt-4 flex items-center justify-between border-t border-[#EFF3F4] dark:border-border pt-3">
                                 <div className="flex items-center gap-1">
                                     <div className="relative" ref={emojiPickerRef}>
                                         <button
                                             type="button"
                                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                                            className="p-2 text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                                            className="p-2 text-indigo-500 hover:bg-slate-100 dark:hover:bg-secondary rounded-full transition-colors"
                                         >
                                             <Smile className="w-5 h-5" />
                                         </button>

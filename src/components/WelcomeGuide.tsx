@@ -248,7 +248,7 @@ export default function WelcomeGuide() {
   return (
     <Dialog open={showWelcome} onOpenChange={(isOpen: boolean) => !isOpen && handleClose()}>
       <DialogContent
-        className="max-w-3xl w-[95vw] sm:w-[90vw] md:w-full max-h-[90vh] p-0 overflow-hidden border-0 bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl"
+        className="max-w-3xl w-[95vw] sm:w-[90vw] md:w-full max-h-[90vh] p-0 overflow-hidden border-0 bg-white dark:bg-background rounded-xl sm:rounded-2xl"
         hideCloseButton
       >
         <DialogTitle className="sr-only">
@@ -350,7 +350,7 @@ export default function WelcomeGuide() {
                 {currentSlideData.features.map((feature: string, index: number) => (
                   <Card
                     key={index}
-                    className="px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 border-l-4 text-left bg-white dark:bg-gray-800"
+                    className="px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 border-l-4 text-left bg-white dark:bg-card"
                     style={{ borderLeftColor: currentSlideData.color }}
                   >
                     <span className="text-[11px] sm:text-xs md:text-sm text-gray-700 dark:text-gray-200 leading-relaxed" style={{ fontWeight: 600 }}>
@@ -365,7 +365,7 @@ export default function WelcomeGuide() {
             {currentSlideData.isIntro && (
               <div className="space-y-2 sm:space-y-3 md:space-y-4 max-w-md px-2">
                 <Card
-                  className="p-3 sm:p-4 md:p-6 border-2 border-primary dark:bg-[#1a2e28]"
+                  className="p-3 sm:p-4 md:p-6 border-2 border-primary dark:bg-secondary"
                 >
                   <div className="text-left mb-2 sm:mb-3 md:mb-4 bg-[#f0f9f6] dark:bg-transparent rounded-lg p-2 sm:p-0">
                     <h4 className="mb-1 text-xs sm:text-sm md:text-base text-primary" style={{ fontWeight: 900 }}>
@@ -385,7 +385,7 @@ export default function WelcomeGuide() {
           </div>
 
           {/* Footer Navigation */}
-          <div className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 bg-gray-50 dark:bg-gray-800 border-t dark:border-gray-700">
+          <div className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 bg-gray-50 dark:bg-card border-t dark:border-border">
             <div className="flex items-center justify-between">
               {/* Progress Dots */}
               <div className="flex gap-0.5 sm:gap-1">
@@ -416,7 +416,7 @@ export default function WelcomeGuide() {
                   <Button
                     variant="outline"
                     onClick={handlePrev}
-                    className="gap-1 sm:gap-2 text-xs sm:text-sm h-9 sm:h-10 px-2.5 sm:px-4 min-w-[44px] dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                    className="gap-1 sm:gap-2 text-xs sm:text-sm h-9 sm:h-10 px-2.5 sm:px-4 min-w-[44px] dark:border-border dark:text-gray-200 dark:hover:bg-gray-700"
                     aria-label="이전 슬라이드"
                   >
                     <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -448,16 +448,16 @@ export default function WelcomeGuide() {
                   variant="ghost"
                   size="sm"
                   onClick={handleClose}
-                  className="text-[11px] sm:text-xs md:text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 h-auto p-1.5 min-h-[44px] min-w-[44px]"
+                  className="text-[11px] sm:text-xs md:text-sm text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 h-auto p-1.5 min-h-[44px] min-w-[44px]"
                 >
                   건너뛰기
                 </Button>
-                <span className="text-gray-300 dark:text-gray-600">|</span>
+                <span className="text-gray-300 dark:text-gray-300">|</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleDontShowAgain}
-                  className="text-[11px] sm:text-xs md:text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 h-auto p-1.5 min-h-[44px]"
+                  className="text-[11px] sm:text-xs md:text-sm text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 h-auto p-1.5 min-h-[44px]"
                 >
                   다시 보지 않기
                 </Button>

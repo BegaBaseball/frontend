@@ -5,7 +5,6 @@ import { fetchUserProfile } from '../api/profile';
 import { useAuthStore } from '../store/authStore';
 import { useNavigationStore } from '../store/navigationStore';
 import { ViewMode } from '../types/profile';
-import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 
 const VALID_VIEW_MODES: ViewMode[] = ['diary', 'stats', 'editProfile', 'mateHistory', 'changePassword', 'accountSettings', 'blockedUsers'];
 
@@ -65,7 +64,7 @@ export const useMyPage = () => {
   }, [isLoggedIn, navigateToLogin]);
 
   // ========== Computed Values ==========
-  const profileImage = profile?.profileImageUrl || DEFAULT_PROFILE_IMAGE;
+  const profileImage = profile?.profileImageUrl ?? null;
   const name = profile?.name || '로딩 중...';
   const handle = profile?.handle || '';
   const email = profile?.email || 'loading@...';

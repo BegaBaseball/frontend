@@ -1,7 +1,6 @@
-import { Edit, BarChart3, Users, User, Coins } from 'lucide-react';
+import { Edit, BarChart3, Ticket, UserPlus, Users, Coins } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import ChatBot from './ChatBot';
 import TeamLogo from './TeamLogo';
 import ProfileEditSection from './mypage/ProfileEditSection';
 import PasswordChangeSection from './mypage/PasswordChangeSection';
@@ -15,13 +14,12 @@ import { useMyPage } from '../hooks/useMyPage';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useQuery } from '@tanstack/react-query';
 import { getFollowCounts } from '../api/followApi';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import UserListModal from './profile/UserListModal';
-import { UserPlus, Ticket } from 'lucide-react';
-import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import { TicketUploadModal } from './ticket/TicketUploadModal';
 import { useDiaryStore } from '../store/diaryStore';
 import { TicketInfo } from '../api/ticket';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 
 export default function MyPage() {
   const {
@@ -32,7 +30,6 @@ export default function MyPage() {
     handle,
     email,
     savedFavoriteTeam,
-    isLoading,
     viewMode,
     setViewMode,
     handleProfileUpdated,
@@ -95,56 +92,28 @@ export default function MyPage() {
 
   const isDesktop = useMediaQuery('(min-width: 768px)');
 
-  // 이미지 에러 핸들링
-  const [imgSrc, setImgSrc] = useState<string | null>(profileImage);
-
-  // 프로필 이미지가 변경되면 상태 업데이트
-  useEffect(() => {
-    setImgSrc(profileImage);
-  }, [profileImage]);
-
-  const handleImageError = () => {
-    // 1. 현재 이미지가 기본 이미지가 아니라면 -> 기본 이미지로 변경
-    if (imgSrc !== DEFAULT_PROFILE_IMAGE) {
-      setImgSrc(DEFAULT_PROFILE_IMAGE);
-    }
-    // 2. 이미 기본 이미지인데도 에러가 났다면 (혹은 기본 이미지 로드 실패) -> 아예 아이콘으로
-    else {
-      setImgSrc(null);
-    }
-  };
-
   if (!isLoggedIn) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28">
         {/* 상단 프로필 카드 */}
-        <Card className="p-4 md:p-8 mb-8 dark:bg-gray-800 dark:border-gray-700">
-          <div className={`${isDesktop ? 'flex items-start justify-between' : 'space-y-6'}`}>
+          <Card className="p-4 md:p-8 mb-8 dark:bg-card dark:border-border">
+            <div className={`${isDesktop ? 'flex items-start justify-between' : 'space-y-6'}`}>
             {/* 프로필 정보 */}
-            <div className="flex items-center gap-4 md:gap-6">
-              <div className="relative flex-shrink-0">
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                  {imgSrc ? (
-                    <img
-                      src={imgSrc}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                      onError={handleImageError}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <User className="w-10 h-10 md:w-12 md:h-12 text-gray-400 dark:text-gray-600" />
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-4 md:gap-6">
+                <div className="relative flex-shrink-0">
+                  <ProfileAvatar
+                    src={profileImage}
+                    alt="Profile"
+                    className="w-20 h-20 md:w-24 md:h-24"
+                  />
               </div>
               <div>
                 <div className="flex items-center gap-2 md:gap-3 mb-2">
-                  <h2 className="text-xl md:text-2xl font-bold text-primary">
+                  <h2 className="text-xl md:text-2xl font-bold text-primary dark:text-primary-light">
                     {name}
                   </h2>
                   <div className="flex items-center gap-2">
@@ -155,8 +124,8 @@ export default function MyPage() {
                     )}
                   </div>
                 </div>
-                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-1">{handle ? (handle.startsWith('@') ? handle : `@${handle}`) : ''}</p>
-                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-500 mb-2">{email}</p>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-1">{handle ? (handle.startsWith('@') ? handle : `@${handle}`) : ''}</p>
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mb-2">{email}</p>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 text-xs font-semibold text-yellow-700 dark:text-yellow-400">
                     <Coins className="w-3.5 h-3.5 fill-yellow-500 text-yellow-600 dark:text-yellow-400" />
@@ -175,12 +144,12 @@ export default function MyPage() {
                 <span className="font-bold text-lg text-gray-900 dark:text-white block group-hover:text-primary transition-colors">
                   {formatCount(followCounts?.followerCount || 0)}
                 </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 group-hover:text-primary transition-colors">
+                <span className="text-sm text-gray-500 dark:text-gray-300 flex items-center gap-1 group-hover:text-primary transition-colors">
                   <Users className="w-3.5 h-3.5" />
                   팔로워
                 </span>
               </button>
-              <div className="h-8 w-px bg-gray-200 dark:bg-gray-700"></div>
+              <div className="h-8 w-px bg-gray-200 dark:bg-border"></div>
               <button
                 className="text-center group cursor-pointer"
                 onClick={() => setUserListModal({ isOpen: true, type: 'following', title: '팔로잉' })}
@@ -188,7 +157,7 @@ export default function MyPage() {
                 <span className="font-bold text-lg text-gray-900 dark:text-white block group-hover:text-primary transition-colors">
                   {formatCount(followCounts?.followingCount || 0)}
                 </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 group-hover:text-primary transition-colors">
+                <span className="text-sm text-gray-500 dark:text-gray-300 flex items-center gap-1 group-hover:text-primary transition-colors">
                   <UserPlus className="w-3.5 h-3.5" />
                   팔로잉
                 </span>
@@ -203,14 +172,14 @@ export default function MyPage() {
 
               <Button
                 onClick={() => setViewMode('mateHistory')}
-                className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-primary text-primary hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap"
+                className="flex items-center justify-center gap-2 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 md:h-11 px-4 whitespace-nowrap"
               >
                 <Users className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">메이트 내역</span>
               </Button>
               <Button
                 onClick={handleToggleStats}
-                className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-primary text-primary hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap"
+                className="flex items-center justify-center gap-2 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 md:h-11 px-4 whitespace-nowrap"
               >
                 <BarChart3 className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">
@@ -220,7 +189,7 @@ export default function MyPage() {
 
               <Button
                 onClick={() => setViewMode('editProfile')}
-                className={`flex items-center justify-center gap-2 text-white bg-primary h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
+                className={`flex items-center justify-center gap-2 text-white bg-primary-dark hover:bg-primary h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
               >
                 <Edit className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">내 정보 수정</span>
@@ -231,7 +200,7 @@ export default function MyPage() {
                 onTicketAnalyzed={(data) => console.log('Analyzed Ticket:', data)}
                 trigger={
                   <Button
-                    className={`flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-primary text-primary hover:bg-gray-50 dark:hover:bg-gray-700 h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
+                    className={`flex items-center justify-center gap-2 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
                   >
                     <Ticket className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm md:text-base">티켓 등록</span>
@@ -301,8 +270,6 @@ export default function MyPage() {
           )
         }
       </div >
-
-      <ChatBot />
 
       {/* User List Modal */}
       {

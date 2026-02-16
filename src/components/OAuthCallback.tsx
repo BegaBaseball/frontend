@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { consumeOAuth2State } from '../api/auth';
+import LoadingSpinner from './LoadingSpinner';
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function OAuthCallback() {
           login(
             email,
             name,
-            profileImageUrl || undefined,
+            profileImageUrl ?? null,
             role || undefined,
             favoriteTeam || undefined,
             undefined,
@@ -75,13 +76,6 @@ export default function OAuthCallback() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-primary font-bold">
-          로그인 처리 중...
-        </p>
-      </div>
-    </div>
+    <LoadingSpinner text="로그인 처리 중..." />
   );
 }

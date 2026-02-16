@@ -146,9 +146,9 @@ export default function ChatBot() {
           >
             {!isLoggedIn ? (
               <div className="flex items-center justify-center h-full">
-                <div className="text-center p-6 rounded-2xl bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-white/10">
+                <div className="text-center p-6 rounded-2xl bg-gray-100 dark:bg-card/50 border border-gray-300 dark:border-white/10">
                   <h3 className="text-gray-900 dark:text-white font-bold mb-2">로그인이 필요합니다</h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
                   <a
                     href="/login"
                     className="inline-block py-2.5 px-6 rounded-xl text-gray-900 dark:text-white bg-gray-200 dark:bg-white/10
@@ -175,7 +175,7 @@ export default function ChatBot() {
                           py-2.5 px-4 rounded-2xl max-w-[85%]
                           ${message.sender === 'user'
                             ? 'bg-primary text-white'
-                            : 'bg-gray-100 dark:bg-gray-700/80 text-gray-900 dark:text-white border border-gray-300 dark:border-white/10'
+                            : 'bg-gray-100 dark:bg-secondary/80 text-gray-900 dark:text-white border border-gray-300 dark:border-white/10'
                           }
                         `}
                       >
@@ -186,7 +186,7 @@ export default function ChatBot() {
                         ) : (
                           <p className="m-0 text-sm">{message.text}</p>
                         )}
-                        <p className={`mt-1 text-[11px] ${message.sender === 'user' ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
+                        <p className={`mt-1 text-[11px] ${message.sender === 'user' ? 'text-white/70' : 'text-gray-500 dark:text-gray-300'}`}>
                           {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -195,11 +195,11 @@ export default function ChatBot() {
                 })}
                 {isTyping && (
                   <div className="flex justify-start">
-                    <div className="py-3 px-4 rounded-2xl bg-gray-100 dark:bg-gray-700/80 border border-gray-300 dark:border-white/10">
+                    <div className="py-3 px-4 rounded-2xl bg-gray-100 dark:bg-secondary/80 border border-gray-300 dark:border-white/10">
                       <div className="flex gap-1">
-                        <span className="w-1.5 h-1.5 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                        <span className="w-1.5 h-1.5 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="w-1.5 h-1.5 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce"></span>
+                        <span className="w-1.5 h-1.5 bg-gray-500 dark:bg-border rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                        <span className="w-1.5 h-1.5 bg-gray-500 dark:bg-border rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                        <span className="w-1.5 h-1.5 bg-gray-500 dark:bg-border rounded-full animate-bounce"></span>
                       </div>
                     </div>
                   </div>
@@ -215,15 +215,15 @@ export default function ChatBot() {
             className="p-4 border-t border-gray-200 dark:border-white/10"
           >
             <div className={`
-              flex items-center gap-2 bg-gray-100 dark:bg-gray-900 rounded-2xl p-2 border border-gray-300 dark:border-white/10
+              flex items-center gap-2 bg-gray-100 dark:bg-background rounded-2xl p-2 border border-gray-300 dark:border-white/10
               transition-colors duration-200
-              ${isProcessing ? 'border-primary/50 bg-gray-100 dark:bg-gray-900/80' : 'focus-within:border-primary focus-within:bg-gray-50 dark:focus-within:bg-black'}
+              ${isProcessing ? 'border-primary/50 bg-gray-100 dark:bg-background/80' : 'focus-within:border-primary focus-within:bg-gray-50 dark:focus-within:bg-black'}
             `}>
               <button
                 type="button"
                 disabled={!isLoggedIn || isProcessing}
                 className={`
-                  text-gray-500 dark:text-gray-400 bg-transparent border-none p-2
+                  text-gray-500 dark:text-gray-300 bg-transparent border-none p-2
                   ${!isLoggedIn || isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:text-gray-700 dark:hover:text-gray-200'}
                   transition-colors
                 `}

@@ -341,27 +341,27 @@ export default function CheerDetail() {
 
     if (loading && !selectedPost) {
         return (
-            <div className="min-h-screen bg-white dark:bg-gray-900 pb-20">
-                <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b px-4 h-14 flex items-center justify-between">
-                    <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-800" />
-                    <div className="h-4 w-40 rounded bg-gray-100 dark:bg-gray-800" />
+            <div className="min-h-screen bg-white dark:bg-background pb-20">
+                <div className="sticky top-0 z-10 bg-white/80 dark:bg-background/80 backdrop-blur-md border-b px-4 h-14 flex items-center justify-between">
+                    <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-card" />
+                    <div className="h-4 w-40 rounded bg-gray-100 dark:bg-card" />
                     <div className="w-9" />
                 </div>
                 <div className="max-w-3xl mx-auto p-5 space-y-6">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-800" />
+                        <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-card" />
                         <div className="space-y-2">
-                            <div className="h-3 w-24 rounded bg-gray-100 dark:bg-gray-800" />
-                            <div className="h-3 w-32 rounded bg-gray-100 dark:bg-gray-800" />
+                            <div className="h-3 w-24 rounded bg-gray-100 dark:bg-card" />
+                            <div className="h-3 w-32 rounded bg-gray-100 dark:bg-card" />
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <div className="h-5 w-2/3 rounded bg-gray-100 dark:bg-gray-800" />
-                        <div className="h-4 w-full rounded bg-gray-100 dark:bg-gray-800" />
-                        <div className="h-4 w-5/6 rounded bg-gray-100 dark:bg-gray-800" />
-                        <div className="h-4 w-4/6 rounded bg-gray-100 dark:bg-gray-800" />
+                        <div className="h-5 w-2/3 rounded bg-gray-100 dark:bg-card" />
+                        <div className="h-4 w-full rounded bg-gray-100 dark:bg-card" />
+                        <div className="h-4 w-5/6 rounded bg-gray-100 dark:bg-card" />
+                        <div className="h-4 w-4/6 rounded bg-gray-100 dark:bg-card" />
                     </div>
-                    <div className="h-40 rounded-2xl bg-gray-100 dark:bg-gray-800" />
+                    <div className="h-40 rounded-2xl bg-gray-100 dark:bg-card" />
                 </div>
             </div>
         );
@@ -380,9 +380,9 @@ export default function CheerDetail() {
     const repostActive = selectedPost.repostedByMe || (selectedPost.repostType && selectedPost.isOwner);
 
     return (
-        <div className="min-h-screen bg-[#f7f9f9] dark:bg-[#0E1117] pb-24 sm:pb-20">
+        <div className="min-h-screen bg-[#f7f9f9] dark:bg-background pb-24 sm:pb-20">
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+            <div className="sticky top-0 z-10 bg-white/80 dark:bg-background/80 backdrop-blur-md border-b px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
                 <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                     <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -391,7 +391,7 @@ export default function CheerDetail() {
             </div>
 
             <div className="mx-auto w-full max-w-[880px] px-4 sm:px-6 lg:px-8">
-                <article className="mt-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#151A23] shadow-sm">
+                <article className="mt-6 rounded-2xl border border-gray-100 dark:border-border bg-white dark:bg-card shadow-sm">
                     <div className="px-4 sm:px-6 lg:px-8 py-6">
                         {/* Post Meta */}
                         <div className="flex items-start justify-between gap-4">
@@ -404,7 +404,7 @@ export default function CheerDetail() {
                                         }
                                     }}
                                 >
-                                    <div className="h-full w-full rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-300 overflow-hidden">
+                                    <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-gray-200 overflow-hidden">
                                         {selectedPost.authorProfileImageUrl ? (
                                             <img
                                                 src={selectedPost.authorProfileImageUrl.includes('/assets/')
@@ -476,7 +476,7 @@ export default function CheerDetail() {
                             {!selectedPost.isOwner && user && (
                                 <button
                                     onClick={() => setIsReportModalOpen(true)}
-                                    className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                                    className="p-2 text-gray-400 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                                     title="신고하기"
                                 >
                                     <Flag className="w-5 h-5" />
@@ -495,7 +495,7 @@ export default function CheerDetail() {
                         {selectedPost.images && selectedPost.images.length > 0 && (
                             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {selectedPost.images.map((img, idx) => (
-                                    <div key={idx} className="overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+                                    <div key={idx} className="overflow-hidden rounded-xl bg-slate-100 dark:bg-secondary">
                                         <img
                                             src={img}
                                             alt={`uploaded-${idx}`}
@@ -507,21 +507,21 @@ export default function CheerDetail() {
                         )}
 
                         {/* Action Buttons */}
-                        <div className="mt-6 flex flex-wrap items-center gap-2 sm:gap-4 py-4 border-t border-b border-gray-100 dark:border-gray-800 text-sm">
+                        <div className="mt-6 flex flex-wrap items-center gap-2 sm:gap-4 py-4 border-t border-b border-gray-100 dark:border-border text-sm">
                             <button
                                 onClick={() => toggleLike(selectedPost.id)}
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
                                     selectedPost.likedByUser
                                         ? "bg-red-50 dark:bg-red-900/20 text-red-500"
-                                        : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                                        : "bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
                                 )}
                             >
                                 <Heart className={cn("w-5 h-5", selectedPost.likedByUser && "fill-current")} />
                                 <span className="font-semibold">{selectedPost.likes}</span>
                             </button>
 
-                            <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                            <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary transition-colors">
                                 <MessageSquare className="w-5 h-5" />
                                 <span className="font-semibold">{commentCount}</span>
                             </button>
@@ -541,7 +541,7 @@ export default function CheerDetail() {
                                             "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
                                             repostActive
                                                 ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600"
-                                                : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                                                : "bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
                                         )}
                                         aria-label={repostActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
                                         aria-pressed={repostActive}
@@ -585,7 +585,7 @@ export default function CheerDetail() {
                                                                 <div className="absolute top-0 right-0 w-2 h-0.5 bg-red-500 rotate-45 transform origin-center" />
                                                             </div>
                                                         ) : (
-                                                            <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                            <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
                                                         )}
                                                     </div>
                                                     <div>
@@ -599,7 +599,7 @@ export default function CheerDetail() {
                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                 >
                                                     <div className="flex items-center justify-center w-5 h-5">
-                                                        <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                        <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
                                                     </div>
                                                     <div>
                                                         <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -619,7 +619,7 @@ export default function CheerDetail() {
                                     "flex items-center gap-2 px-4 py-2 rounded-full transition-colors sm:ml-auto",
                                     selectedPost.isBookmarked
                                         ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600"
-                                        : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                                        : "bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
                                 )}
                             >
                                 <Bookmark className={cn("w-5 h-5", selectedPost.isBookmarked && "fill-current")} />
@@ -629,7 +629,7 @@ export default function CheerDetail() {
                 </article>
 
                 {/* Comment Section */}
-                <section className="mt-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#151A23] shadow-sm">
+                <section className="mt-6 rounded-2xl border border-gray-100 dark:border-border bg-white dark:bg-card shadow-sm">
                     <div className="px-4 sm:px-6 lg:px-8 py-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-bold text-[15px] sm:text-[16px]">댓글 {commentCount}개</h3>
@@ -643,7 +643,7 @@ export default function CheerDetail() {
                                     onChange={(e) => setCommentText(e.target.value)}
                                     placeholder="댓글을 남겨주세요."
                                     disabled={sendingComment}
-                                    className="min-h-[88px] sm:min-h-[96px] bg-gray-50 dark:bg-gray-900 resize-none"
+                                    className="min-h-[88px] sm:min-h-[96px] bg-gray-50 dark:bg-background resize-none"
                                 />
                                 <Button
                                     onClick={handleCommentSubmit}
@@ -654,8 +654,8 @@ export default function CheerDetail() {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center gap-3 mb-8 p-6 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                            <div className="flex flex-col items-center gap-3 mb-8 p-6 rounded-xl bg-gray-50 dark:bg-card/50 border border-gray-200 dark:border-border">
+                                <p className="text-sm text-gray-500 dark:text-gray-300">
                                     댓글을 작성하려면 로그인이 필요합니다.
                                 </p>
                                 <Button
@@ -669,7 +669,7 @@ export default function CheerDetail() {
 
                         {/* Comment List */}
                         {commentsError ? (
-                            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm text-gray-600 dark:text-gray-300">
+                            <div className="rounded-xl border border-gray-200 dark:border-border bg-white dark:bg-background p-4 text-sm text-gray-600 dark:text-gray-300">
                                 <p>{commentsError}</p>
                                 <Button
                                     variant="outline"
@@ -684,17 +684,17 @@ export default function CheerDetail() {
                             <div className="space-y-4">
                                 {[1, 2, 3].map((item) => (
                                     <div key={item} className="flex gap-4 animate-pulse">
-                                        <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                        <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-secondary" />
                                         <div className="flex-1 space-y-2">
-                                            <div className="h-3 w-24 rounded bg-gray-200 dark:bg-gray-700" />
-                                            <div className="h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
-                                            <div className="h-4 w-5/6 rounded bg-gray-200 dark:bg-gray-700" />
+                                            <div className="h-3 w-24 rounded bg-gray-200 dark:bg-secondary" />
+                                            <div className="h-4 w-full rounded bg-gray-200 dark:bg-secondary" />
+                                            <div className="h-4 w-5/6 rounded bg-gray-200 dark:bg-secondary" />
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : comments.length === 0 ? (
-                            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                            <div className="rounded-xl border border-gray-200 dark:border-border bg-white dark:bg-background p-6 text-center text-sm text-gray-500 dark:text-gray-300">
                                 아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
                             </div>
                         ) : (

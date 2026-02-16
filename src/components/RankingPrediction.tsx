@@ -7,6 +7,7 @@ import TeamLogo from './TeamLogo';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
 import { OptimizedImage } from './common/OptimizedImage';
+import LoadingSpinner from './LoadingSpinner';
 import firstPlaceImage from '../assets/f552d9266ac817e0c86b657dead0069395c6da11.png';
 import { useRankingPrediction } from '../hooks/useRankingPrediction';
 import { useDrag, useDrop } from 'react-dnd';
@@ -53,31 +54,26 @@ export default function RankingPrediction() {
   // 로딩 중 UI
   if (isAuthLoading || isLoading) {
     return (
-      <div className="text-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-gray-600">
-          {isAuthLoading ? '로그인 확인 중...' : '불러오는 중...'}
-        </p>
-      </div>
+      <LoadingSpinner size="lg" text={isAuthLoading ? '로그인 확인 중...' : '불러오는 중...'} fullScreen={false} />
     );
   }
 
   // 로그인 안 되어 있으면 로그인 유도 메시지 표시
   if (!isLoggedIn) {
     return (
-      <Card className="p-8 md:p-12 text-center bg-white dark:bg-gray-800 border-none shadow-sm">
-        <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-full w-fit mx-auto mb-4">
-          <LogIn className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+      <Card className="p-8 md:p-12 text-center bg-white dark:bg-card border border-gray-200 dark:border-border shadow-sm">
+        <div className="bg-gray-100 dark:bg-secondary p-4 rounded-full w-fit mx-auto mb-4">
+          <LogIn className="w-8 h-8 text-gray-400 dark:text-gray-300" />
         </div>
         <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
           로그인이 필요합니다
         </h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">
+        <p className="text-gray-500 dark:text-gray-300 mb-6">
           순위 예측에 참여하려면 로그인해주세요.
         </p>
         <Button
           onClick={() => navigate('/login')}
-          className="text-white bg-primary px-6 py-2"
+          className="text-white bg-primary-dark hover:bg-primary px-6 py-2"
         >
           로그인하기
         </Button>
@@ -176,17 +172,17 @@ export default function RankingPrediction() {
             ? `${index + 1}위: ${team.name}${!alreadySaved ? '. Ctrl+화살표로 순위 변경' : ''}`
             : `${index + 1}위: 팀 미선택`
           }
-          className={`border-2 rounded-xl p-3 transition-all duration-200 ${team
-            ? `border-transparent shadow-sm ${!alreadySaved && 'cursor-move hover:scale-[1.01] hover:shadow-md'} ${isPostSeasonZone
-              ? 'bg-white dark:bg-gray-800'
-              : 'bg-gray-50/80 dark:bg-gray-800/60'
+          className={`border rounded-xl p-3 transition-all duration-200 ${team
+            ? `shadow-sm ${!alreadySaved && 'cursor-move hover:scale-[1.01] hover:shadow-md'} ${isPostSeasonZone
+              ? 'bg-white dark:bg-card border-primary/30 dark:border-primary/50'
+              : 'bg-gray-50/80 dark:bg-secondary/40 border-gray-200 dark:border-border'
             }`
-            : 'border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30'
+            : 'border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-secondary/40'
             } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'} focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
         >
           <div className="flex items-center gap-3">
             <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${rankBadgeClassName} font-black text-lg ${isPostSeasonZone ? 'ring-2 ring-emerald-100 dark:ring-emerald-900' : ''}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${rankBadgeClassName} font-black text-lg ${isPostSeasonZone ? 'ring-2 ring-primary/20 dark:ring-primary/40' : ''}`}
             >
               {index + 1}
             </div>
@@ -194,10 +190,10 @@ export default function RankingPrediction() {
             {team ? (
               <div className="flex items-center gap-3 flex-1">
                 {!alreadySaved && <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />}
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 border border-gray-100 flex-shrink-0">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-secondary/40 border border-gray-100 dark:border-border flex-shrink-0">
                   <TeamLogo team={team.shortName} size={32} />
                 </div>
-                <span style={{ fontWeight: 700 }} className={`flex-1 ${isPostSeasonZone ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                <span style={{ fontWeight: 700 }} className={`flex-1 ${isPostSeasonZone ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-300'}`}>
                   {team.name}
                 </span>
                 {!alreadySaved && (
@@ -213,7 +209,7 @@ export default function RankingPrediction() {
                 )}
               </div>
             ) : (
-              <div className="flex-1 text-center text-gray-400 dark:text-gray-500 text-sm">
+              <div className="flex-1 text-center text-gray-400 dark:text-gray-300 text-sm">
                 팀을 선택하세요
               </div>
             )}
@@ -226,20 +222,20 @@ export default function RankingPrediction() {
   return (
     <DndProvider backend={HTML5Backend}>
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <AlertDialogContent className="dark:bg-gray-800 dark:border-gray-700">
+        <AlertDialogContent className="dark:bg-card dark:border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-primary dark:text-emerald-400">순위 확정</AlertDialogTitle>
-            <AlertDialogDescription className="dark:text-gray-400">
+            <AlertDialogTitle className="text-primary">순위 확정</AlertDialogTitle>
+            <AlertDialogDescription className="dark:text-gray-300">
               한번 저장하면 순위 변경이 불가능합니다.<br />
               이대로 순위를 확정하시겠습니까?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSaving} className="dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">취소</AlertDialogCancel>
+            <AlertDialogCancel disabled={isSaving} className="dark:bg-secondary dark:text-white dark:hover:bg-secondary">취소</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmSave}
               disabled={isSaving}
-              className="text-white bg-primary hover:bg-primary-hover dark:bg-emerald-600 dark:hover:bg-emerald-700"
+              className="text-white bg-primary-dark hover:bg-primary"
             >
               {isSaving ? '저장 중...' : '확인'}
             </AlertDialogAction>
@@ -251,11 +247,11 @@ export default function RankingPrediction() {
         {/* Rankings Area - 왼쪽 */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-primary dark:text-emerald-400 font-bold text-lg">예상 순위</h2>
+            <h2 className="text-primary font-bold text-lg">예상 순위</h2>
             {!alreadySaved && (
               <Button
                 onClick={resetRankings}
-                className="flex items-center gap-2 border-2 border-primary text-primary dark:border-emerald-500 dark:text-emerald-400 dark:bg-transparent hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                className="flex items-center gap-2 border-2 border-primary text-primary dark:border-primary dark:text-primary dark:bg-transparent hover:bg-primary/10 dark:hover:bg-primary/20"
                 variant="outline"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -274,36 +270,36 @@ export default function RankingPrediction() {
         {/* Team Selection Area - 오른쪽 */}
         <div className="mt-6 md:mt-[60px]">
           {alreadySaved && (
-            <div className="mb-4 px-6 py-8 rounded-lg bg-green-50 dark:bg-green-900/20 text-primary dark:text-green-400">
+            <div className="mb-4 px-6 py-8 rounded-lg bg-green-50 dark:bg-green-900/20 text-primary dark:text-primary">
               <p className="text-base font-bold text-center">
                 저장된 예측입니다
               </p>
             </div>
           )}
 
-          <h2 className="mb-4 text-primary dark:text-emerald-400 font-bold text-lg">
+          <h2 className="mb-4 text-primary font-bold text-lg">
             팀 선택
-            <span className="text-sm text-gray-500 dark:text-gray-400 ml-2 font-normal">
+            <span className="text-sm text-gray-500 dark:text-gray-300 ml-2 font-normal">
               ({availableTeams.length}/10)
             </span>
           </h2>
 
-          <div className="rounded-xl border-2 border-primary dark:border-emerald-500 bg-white dark:bg-gray-800 overflow-hidden">
+          <div className="rounded-xl border-2 border-primary dark:border-primary bg-white dark:bg-card overflow-hidden">
             {availableTeams.length > 0 ? (
-              <div className="divide-y dark:divide-gray-700">
+              <div>
                 {availableTeams.map((team) => (
                   <button
                     key={team.id}
                     onClick={() => handleTeamClick(team)}
                     disabled={alreadySaved}
-                    className={`w-full p-2 transition-colors text-left ${!alreadySaved && 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                    className={`w-full p-2 transition-colors text-left border-b border-gray-100 dark:border-border/70 last:border-b-0 ${!alreadySaved && 'hover:bg-gray-50 dark:hover:bg-secondary'
                       } ${alreadySaved && 'opacity-50 cursor-not-allowed'}`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 border border-gray-100 flex-shrink-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-secondary/40 border border-gray-100 dark:border-border flex-shrink-0">
                         <TeamLogo team={team.shortName} size={32} />
                       </div>
-                      <span className="font-semibold text-gray-900 dark:text-white">{team.name}</span>
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">{team.name}</span>
                     </div>
                   </button>
                 ))}
@@ -314,7 +310,7 @@ export default function RankingPrediction() {
                   <OptimizedImage src={firstPlaceImage} alt="First Place" className="w-full h-auto object-contain" />
                 </div>
 
-                <p className="mb-4 text-primary dark:text-emerald-400 font-black text-2xl">
+                <p className="mb-4 text-primary font-black text-2xl">
                   1위
                 </p>
 
@@ -329,7 +325,7 @@ export default function RankingPrediction() {
                 {!isPredictionSaved && !alreadySaved ? (
                   <Button
                     onClick={handleCompletePrediction}
-                    className="w-full text-white bg-primary hover:bg-primary-hover dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                    className="w-full text-white bg-primary-dark hover:bg-primary"
                   >
                     예측 완료
                   </Button>
@@ -338,7 +334,7 @@ export default function RankingPrediction() {
                     <Button
                       onClick={handleShare}
                       variant="outline"
-                      className="w-full border-2 border-primary text-primary dark:border-emerald-500 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                      className="w-full border-2 border-primary text-primary dark:border-primary dark:text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
                     >
                       공유하기
                     </Button>
@@ -347,14 +343,14 @@ export default function RankingPrediction() {
                   <div className="space-y-2">
                     <Button
                       onClick={handleSave}
-                      className="w-full text-white bg-primary hover:bg-primary-hover dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                      className="w-full text-white bg-primary-dark hover:bg-primary"
                     >
                       저장하기
                     </Button>
                     <Button
                       onClick={handleShare}
                       variant="outline"
-                      className="w-full border-2 border-primary text-primary dark:border-emerald-500 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                      className="w-full border-2 border-primary text-primary dark:border-primary dark:text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
                     >
                       공유하기
                     </Button>

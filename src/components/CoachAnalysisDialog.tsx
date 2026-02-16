@@ -46,6 +46,21 @@ const itemVariants = {
     }
 } as const;
 
+const isAbortError = (error: unknown): boolean => {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+        return true;
+    }
+    if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+            return true;
+        }
+        const text = error.message.toLowerCase();
+        return text.includes('abort') || text.includes('aborted');
+    }
+    const text = String(error ?? '').toLowerCase();
+    return text.includes('aborterror') || text.includes('aborted') || text.includes('abort');
+};
+
 // --- Metric Card Component ---
 const MetricCard = ({ data }: { data: CoachMetric }) => {
     const { category, name, value, description, risk_level, trend } = data;
@@ -106,7 +121,7 @@ const MetricCard = ({ data }: { data: CoachMetric }) => {
             <div className="flex-1 relative z-10">
                 {value ? (
                     <>
-                        <p className="text-sm font-bold text-gray-500 dark:text-gray-400 truncate tracking-tight">{name}</p>
+                        <p className="text-sm font-bold text-gray-500 dark:text-gray-300 truncate tracking-tight">{name}</p>
                         <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter mt-1">{value}</p>
                     </>
                 ) : (
@@ -116,11 +131,11 @@ const MetricCard = ({ data }: { data: CoachMetric }) => {
 
             {/* Progress Bar */}
             <div className="space-y-2 mt-5 relative z-10">
-                <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest opacity-70">
+                <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest opacity-70">
                     <span>리그 평균 대비 지표</span>
                     <span className={styles.text}>{risk_level === 0 ? '주의' : risk_level === 2 ? '최상' : '안정'}</span>
                 </div>
-                <div className="h-1.5 w-full bg-gray-200/50 dark:bg-gray-800/50 rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-gray-200/50 dark:bg-card/50 rounded-full overflow-hidden">
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: progressWidth }}
@@ -133,8 +148,8 @@ const MetricCard = ({ data }: { data: CoachMetric }) => {
 
             {/* Description */}
             {description && description.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-gray-200/30 dark:border-gray-700/30 relative z-10">
-                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed font-medium break-keep">
+                <div className="mt-4 pt-3 border-t border-gray-200/30 dark:border-border/30 relative z-10">
+                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed font-medium break-keep">
                         {description}
                     </p>
                 </div>
@@ -184,9 +199,24 @@ const StatCard = ({ stat }: { stat: DashboardStat }) => {
 interface CoachAnalysisDialogProps {
     trigger?: React.ReactNode;
     initialTeam?: string;
+    gameId?: string;
+    gameDate?: string;
+    seasonId?: number | string;
+    leagueType?: string;
+    round?: string;
+    gameNo?: number;
 }
 
-export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnalysisDialogProps) {
+export default function CoachAnalysisDialog({
+    trigger,
+    initialTeam,
+    gameId,
+    gameDate,
+    seasonId,
+    leagueType,
+    round,
+    gameNo
+}: CoachAnalysisDialogProps) {
     const { user } = useAuthStore();
     const { theme } = useTheme();
 
@@ -218,6 +248,57 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
         { id: 'matchup', label: '상대 전적', icon: Users, desc: '이번 시즌 상대 승률' },
         { id: 'starter', label: '선발 투수', icon: Zap, desc: '선발 맞대결 분석' },
     ];
+    const focusLabelMap: Record<string, string> = {
+        recent_form: '최근 전력',
+        bullpen: '불펜 상태',
+        starter: '선발 투수',
+        matchup: '상대 전적',
+        batting: '타격 생산성',
+    };
+    const focusOrder = ['recent_form', 'bullpen', 'starter', 'matchup', 'batting'];
+    const normalizeFocusLocal = (values: string[]) => {
+        const seen = new Set<string>();
+        return values
+            .map(value => String(value || '').trim().toLowerCase())
+            .filter(value => {
+                if (!focusOrder.includes(value)) return false;
+                if (seen.has(value)) return false;
+                seen.add(value);
+                return true;
+            })
+            .sort((a, b) => focusOrder.indexOf(a) - focusOrder.indexOf(b));
+    };
+
+    const resolveFallbackSeasonYear = () => {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const month = now.getMonth() + 1;
+        return month <= 2 ? currentYear - 1 : currentYear;
+    };
+
+    const resolveSeasonYear = () => {
+        if (gameDate) {
+            const match = String(gameDate).match(/^(\d{4})/);
+            if (match) {
+                const parsed = Number(match[1]);
+                if (Number.isInteger(parsed) && parsed >= 1982 && parsed <= 2100) {
+                    return parsed;
+                }
+            }
+        }
+
+        if (seasonId !== undefined && seasonId !== null) {
+            const match = String(seasonId).match(/^(\d{4})/);
+            if (match) {
+                const parsed = Number(match[1]);
+                if (Number.isInteger(parsed) && parsed >= 1982 && parsed <= 2100) {
+                    return parsed;
+                }
+            }
+        }
+
+        return resolveFallbackSeasonYear();
+    };
 
     const handleAnalyze = async () => {
         setLoading(true);
@@ -248,10 +329,21 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
         }, 1500);
 
         try {
+            const seasonYear = resolveSeasonYear();
             // Streaming Implementation
-            await analyzeTeam({
-                home_team_id: TEAM_NAME_TO_ID[selectedTeam] || selectedTeam,
-                focus: focus,
+                await analyzeTeam({
+                    home_team_id: TEAM_NAME_TO_ID[selectedTeam] || selectedTeam,
+                    request_mode: 'manual_detail',
+                    focus: focus,
+                    game_id: gameId,
+                    league_context: {
+                    season: seasonId,
+                    season_year: seasonYear,
+                    game_date: gameDate,
+                    league_type: leagueType,
+                    round: round,
+                    game_no: gameNo,
+                },
             }, (currentText) => {
                 // Real-time update
                 setResult({ answer: currentText });
@@ -261,7 +353,21 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
 
         } catch (error) {
             console.error(error);
-            setResult({ error: '분석 중 오류가 발생했습니다.' });
+            const message = error instanceof Error ? error.message : String(error ?? '');
+            if (isAbortError(error)) {
+                return;
+            }
+            if (message.includes('unable_to_resolve_analysis_year')) {
+                setResult({
+                    error: '시즌 연도를 확인하지 못했습니다. 날짜/시즌 정보를 다시 확인해주세요.'
+                });
+            } else if (message.includes('status: 401')) {
+                setResult({
+                    error: '인증이 만료되었습니다. 다시 로그인 후 시도해주세요.'
+                });
+            } else {
+                setResult({ error: '분석 중 오류가 발생했습니다.' });
+            }
         } finally {
             setLoading(false);
             setAnalysisStep('');
@@ -367,6 +473,11 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
     };
 
     const analysisData = getAnalysisData();
+    const selectedFocusNormalized = normalizeFocusLocal(focus);
+    const resolvedFocus = normalizeFocusLocal(result?.resolved_focus || []);
+    const hasFocusMeta = typeof result?.focus_signature === 'string';
+    const focusMismatch = hasFocusMeta
+        && selectedFocusNormalized.join('+') !== resolvedFocus.join('+');
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -378,7 +489,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-white dark:bg-[#0a0a0a] border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-0">
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-white dark:bg-secondary border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-0">
                 {/* Custom Header with Team Color Accent */}
                 <DialogHeader className="p-8 pb-12 bg-primary text-white shrink-0 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
@@ -406,7 +517,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                         className="space-y-6"
                     >
                         <div className="flex items-center justify-between px-1">
-                            <Label className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                            <Label className="text-xs font-black text-gray-400 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                                 분석 대상 팀 선택
                             </Label>
@@ -424,8 +535,8 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                         className={`
                                             relative flex flex-col items-center justify-center p-4 rounded-2xl transition-all duration-300 border
                                             ${isSelected
-                                                ? 'bg-white dark:bg-gray-800 border-primary/30 shadow-xl shadow-primary/10 scale-105 ring-2 ring-primary'
-                                                : 'bg-white dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                                                ? 'bg-white dark:bg-card border-primary/30 shadow-xl shadow-primary/10 scale-105 ring-2 ring-primary'
+                                                : 'bg-white dark:bg-card/50 border-gray-100 dark:border-border hover:border-gray-200 dark:hover:border-gray-700'
                                             }
                                         `}
                                     >
@@ -448,7 +559,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                         transition={{ delay: 0.1 }}
                         className="space-y-6"
                     >
-                        <Label className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2 px-1">
+                        <Label className="text-xs font-black text-gray-400 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2 px-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
                             분석 집중 항목
                         </Label>
@@ -464,11 +575,11 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                             flex items-start gap-4 p-5 rounded-2xl cursor-pointer transition-all border
                                             ${isActive
                                                 ? 'bg-white dark:bg-emerald-950/10 border-primary/30 shadow-lg shadow-primary/5 ring-1 ring-primary'
-                                                : 'bg-white dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                                                : 'bg-white dark:bg-card/50 border-gray-100 dark:border-border hover:border-gray-200 dark:hover:border-gray-700'
                                             }
                                         `}
                                     >
-                                        <div className={`p-3 rounded-xl transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
+                                        <div className={`p-3 rounded-xl transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-secondary text-gray-400'}`}>
                                             <opt.icon className="w-5 h-5" />
                                         </div>
                                         <div className="flex-1">
@@ -507,6 +618,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                         <Button
                             onClick={handleAnalyze}
                             disabled={loading}
+                            data-testid="coach-analysis-run-button"
                             className="w-full bg-primary hover:bg-primary-dark text-white h-16 text-xl font-black rounded-2xl shadow-2xl shadow-primary/30 transition-all active:scale-[0.98] group overflow-hidden relative"
                         >
                             <span className="absolute inset-0 bg-white/5 translate-y-16 group-hover:translate-y-0 transition-transform duration-500 ease-out" />
@@ -530,6 +642,43 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                     </div>
 
                     {/* Results Presentation (AnimatePresence for smooth swap) */}
+                    {hasFocusMeta && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="rounded-2xl border border-emerald-200/50 dark:border-emerald-900/30 bg-emerald-50/70 dark:bg-emerald-950/10 p-4 space-y-2"
+                        >
+                            <p className="text-xs font-black tracking-widest uppercase text-emerald-700 dark:text-emerald-300">
+                                이번 분석 기준 focus
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {resolvedFocus.length > 0 ? (
+                                    resolvedFocus.map((focusId) => (
+                                        <span
+                                            key={focusId}
+                                            className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-200"
+                                        >
+                                            {focusLabelMap[focusId] || focusId}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-200">
+                                        종합 분석
+                                    </span>
+                                )}
+                            </div>
+                            {focusMismatch && (
+                                <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                                    선택한 focus와 실제 적용된 focus가 달라 일부 항목이 자동으로 제외되었습니다.
+                                </p>
+                            )}
+                            {result?.focus_section_missing && (
+                                <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                                    일부 focus 섹션이 누락되어 다음 재생성에서 보강될 수 있습니다.
+                                </p>
+                            )}
+                        </motion.div>
+                    )}
                     <AnimatePresence mode="wait">
                         {analysisData && (
                             <motion.div
@@ -603,7 +752,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                                     <h4 className="text-sm font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest">
                                                         주요 핵심 변수
                                                     </h4>
-                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider -mt-0.5">즉각적인 확인이 필요한 주요 지표</p>
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider -mt-0.5">즉각적인 확인이 필요한 주요 지표</p>
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -625,7 +774,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                                     <h4 className="text-sm font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest">
                                                         전략적 강점 자산
                                                     </h4>
-                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider -mt-0.5">성리를 위해 활용해야 할 핵심 강점</p>
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider -mt-0.5">성리를 위해 활용해야 할 핵심 강점</p>
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -645,13 +794,13 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                     </div>
 
                                     {analysisData.detailed_analysis && (
-                                        <div className="bg-white/80 dark:bg-[#121212] rounded-3xl p-8 border border-gray-100 dark:border-white/5 shadow-xl shadow-black/5">
+                                        <div className="bg-white/80 dark:bg-secondary rounded-3xl p-8 border border-gray-100 dark:border-white/5 shadow-xl shadow-black/5">
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 rehypePlugins={[rehypeRaw]}
                                                 components={{
-                                                    p: ({ children }) => <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-4 font-medium">{children}</p>,
-                                                    li: ({ children }) => <li className="text-sm text-gray-600 dark:text-gray-400 ml-5 list-disc mb-2 pl-2 font-medium">{children}</li>,
+                                                    p: ({ children }) => <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4 font-medium">{children}</p>,
+                                                    li: ({ children }) => <li className="text-sm text-gray-600 dark:text-gray-300 ml-5 list-disc mb-2 pl-2 font-medium">{children}</li>,
                                                     strong: ({ children }) => <strong className="font-black text-gray-900 dark:text-white uppercase tracking-tight">{children}</strong>,
                                                     h3: ({ children }) => <h3 className="text-base font-black text-gray-900 dark:text-white mb-4 mt-6 border-b border-gray-100 dark:border-white/5 pb-2">{children}</h3>
                                                 }}
@@ -683,7 +832,7 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                                         <div className="text-[9px] font-black text-gray-400 uppercase tracking-[0.4em] opacity-50">
                                             THE COACH AI CORE ENGINE v2.5.8-STABLE
                                         </div>
-                                        <div className="text-[8px] text-gray-300 dark:text-gray-600 uppercase font-bold tracking-widest">
+                                        <div className="text-[8px] text-gray-300 dark:text-gray-300 uppercase font-bold tracking-widest">
                                             데이터 상호 참조: {result.tool_calls.length}개 노드 · 연산 검증: 완료
                                         </div>
                                     </motion.div>
@@ -691,6 +840,18 @@ export default function CoachAnalysisDialog({ trigger, initialTeam }: CoachAnaly
                             </motion.div>
                         )}
                     </AnimatePresence>
+
+                    {result?.error && !analysisData && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="rounded-2xl border border-red-200/60 dark:border-red-900/40 bg-red-50/80 dark:bg-red-950/20 p-4"
+                        >
+                            <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+                                {result.error}
+                            </p>
+                        </motion.div>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>

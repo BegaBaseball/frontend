@@ -71,7 +71,7 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-md bg-white dark:bg-gray-800">
+            <DialogContent className="sm:max-w-md bg-white dark:bg-card">
                 <DialogHeader>
                     <DialogTitle className="text-center text-xl font-bold dark:text-white">사용자 프로필</DialogTitle>
                 </DialogHeader>
@@ -91,7 +91,7 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
                             {/* Profile Image */}
                             <div className="relative">
                                 <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
-                                    <AvatarImage src={profile.profileImageUrl || ''} className="object-cover" />
+                                    <AvatarImage src={profile.profileImageUrl} className="object-cover" />
                                     <AvatarFallback className="bg-gray-100 text-gray-400">
                                         <User className="w-12 h-12" />
                                     </AvatarFallback>
@@ -144,8 +144,8 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
                             )}
 
                             {/* Bio Section */}
-                            <div className="w-full bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5 relative mt-4">
-                                <Quote className="absolute top-4 left-4 w-4 h-4 text-gray-300 dark:text-gray-500" />
+                            <div className="w-full bg-gray-50 dark:bg-secondary/70 rounded-xl p-5 relative mt-4">
+                                <Quote className="absolute top-4 left-4 w-4 h-4 text-gray-300 dark:text-gray-300" />
                                 <div className="px-4 text-center">
                                     {profile.bio ? (
                                         <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">

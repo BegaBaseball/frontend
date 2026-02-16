@@ -89,3 +89,7 @@ export function useConfirmDialog(): ConfirmDialogContextType {
   }
   return context;
 }
+
+export function useOptionalConfirmDialog(): ConfirmDialogContextType | null {
+  return useContext(ConfirmDialogContext);
+}

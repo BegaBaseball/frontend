@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { uploadProfileImage, updateProfile } from '../api/profile';
-import { ProfileUpdateData } from '../types/profile';
+import { ProfileUpdateData, UserProfile } from '../types/profile';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
-import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
-import { DEFAULT_PROFILE_PLACEHOLDER } from '../constants/config';
 
 interface UseProfileEditProps {
-  initialProfileImage: string;
+  initialProfileImage: string | null;
   initialName: string;
   initialEmail: string;
   initialFavoriteTeam: string;
@@ -53,22 +51,85 @@ export const useProfileEdit = ({
     mutationFn: async (data: ProfileUpdateData) => {
       return await updateProfile(data);
     },
-    onSuccess: (response) => {
+    onSuccess: async (response, variables) => {
+      const { setUserProfile, fetchProfileAndAuthenticate, user } = useAuthStore.getState();
+
       // 토큰 업데이트
       if (response.data.token) {
         localStorage.setItem('authToken', response.data.token);
       }
 
       // Blob URL 해제
-      if (profileImage.startsWith('blob:')) {
+      if (profileImage?.startsWith('blob:')) {
         URL.revokeObjectURL(profileImage);
       }
 
-      // ✅ AuthStore 동기화: favoriteTeam 업데이트
-      const { setFavoriteTeam, setUserProfile, fetchProfileAndAuthenticate } = useAuthStore.getState();
+      const resolvedProfileImageUrl = response.data.profileImageUrl ?? variables.profileImageUrl;
+
+      const cachedProfilePatch: Partial<UserProfile> = {
+        name: response.data.name ?? name.trim(),
+        email,
+        favoriteTeam: response.data.favoriteTeam ?? editingFavoriteTeam,
+        bio: response.data.bio ?? (bio.trim() || null),
+      };
+
+      if (resolvedProfileImageUrl !== undefined) {
+        cachedProfilePatch.profileImageUrl = resolvedProfileImageUrl;
+      }
+
+      const updatedUserProfilePatch: {
+        email: string;
+        name: string;
+        favoriteTeam?: string | null;
+        profileImageUrl?: string | null;
+        bio?: string | null;
+      } = {
+        email,
+        name: cachedProfilePatch.name,
+      };
+
+      if (cachedProfilePatch.favoriteTeam !== undefined) {
+        updatedUserProfilePatch.favoriteTeam = cachedProfilePatch.favoriteTeam;
+      }
+      if (cachedProfilePatch.profileImageUrl !== undefined) {
+        updatedUserProfilePatch.profileImageUrl = cachedProfilePatch.profileImageUrl;
+      }
+      if (cachedProfilePatch.bio !== undefined) {
+        updatedUserProfilePatch.bio = cachedProfilePatch.bio;
+      }
+
+      setUserProfile(updatedUserProfilePatch);
+
+      queryClient.setQueryData<UserProfile>(['userProfile'], (previousProfile) => {
+        const baseProfile = previousProfile ?? (user
+          ? {
+            id: user.id,
+            email: user.email,
+            name: user.name || name,
+            handle: user.handle,
+            favoriteTeam: user.favoriteTeam || null,
+            profileImageUrl: user.profileImageUrl ?? null,
+            role: user.role,
+            bio: user.bio ?? null,
+            cheerPoints: user.cheerPoints,
+          }
+          : null);
+
+        if (!baseProfile) return previousProfile;
+
+        return {
+          ...baseProfile,
+          ...previousProfile,
+          ...cachedProfilePatch,
+        };
+      });
 
       // 1. 프로필 정보 갱신 (헤더, 사이드바 등)
-      fetchProfileAndAuthenticate();
+      try {
+        await fetchProfileAndAuthenticate();
+      } catch (error) {
+        console.error('프로필 조회 동기화 실패:', error);
+      }
 
       // 2. 게시글 목록 갱신 (작성한 글의 프로필 이미지 업데이트 반영)
       queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
@@ -103,7 +164,7 @@ export const useProfileEdit = ({
 
     try {
       // 기존 Blob URL 해제
-      if (profileImage.startsWith('blob:')) {
+      if (profileImage && profileImage.startsWith('blob:')) {
         URL.revokeObjectURL(profileImage);
       }
 
@@ -153,7 +214,7 @@ export const useProfileEdit = ({
     setNameError('');
 
     try {
-      let finalImageUrl: string | undefined = undefined;
+      let finalImageUrl: string | null | undefined = undefined;
 
       // 이미지 업로드 (있는 경우)
       if (newProfileImageFile) {
@@ -169,18 +230,9 @@ export const useProfileEdit = ({
         bio: bio.trim() || undefined,
       };
 
-      // 이미지 URL 추가 (업로드했거나 기존 URL 유지)
+      // 이미지 URL 추가 (새로운 업로드가 완료된 경우에만 전달)
       if (finalImageUrl) {
         updatedProfile.profileImageUrl = finalImageUrl;
-      } else if (newProfileImageFile === null) {
-        const isPlaceholder = profileImage === DEFAULT_PROFILE_PLACEHOLDER;
-        const isLocalAsset = profileImage === DEFAULT_PROFILE_IMAGE
-          || profileImage.startsWith('/assets/')
-          || profileImage.startsWith('/src/assets/');
-
-        if (!isPlaceholder && !isLocalAsset) {
-          updatedProfile.profileImageUrl = profileImage;
-        }
       }
 
       // 프로필 업데이트
