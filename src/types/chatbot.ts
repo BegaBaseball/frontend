@@ -2,6 +2,7 @@ export interface Message {
   text: string;
   sender: 'user' | 'bot';
   timestamp: Date;
+  isError?: boolean;
   // Metadata for enhanced UI
   verified?: boolean;
   citations?: Array<{

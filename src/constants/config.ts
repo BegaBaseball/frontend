@@ -1,9 +1,58 @@
 // constants/config.ts
 
+const LOOPBACK_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  '0:0:0:0:0:0:0:1',
+]);
+
+const normalizeHost = (host: string): string => host.toLowerCase().trim();
+
+const normalizeBaseUrl = (value: string): string => value.trim().replace(/\/$/, '');
+
+const isLoopbackHost = (host: string): boolean => LOOPBACK_HOSTS.has(normalizeHost(host));
+
+const parseProxyPort = (value: string): string => {
+  try {
+    const target = new URL(value);
+    if (target.port) {
+      return `:${target.port}`;
+    }
+  } catch {
+    // ignore
+  }
+
+  return '';
+};
+
+const resolveDefaultServerBaseUrl = (): string => {
+  const manualServerBase = normalizeBaseUrl(import.meta.env.VITE_NO_API_BASE_URL || '');
+
+  if (manualServerBase) {
+    return manualServerBase;
+  }
+
+  const proxyTarget = (import.meta.env.VITE_PROXY_TARGET || 'http://localhost:8080').trim();
+  const pageHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  const pageProtocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
+
+  try {
+    const target = new URL(proxyTarget);
+    const backendHost = isLoopbackHost(pageHost)
+      ? pageHost
+      : (target.hostname || 'localhost');
+    return `${pageProtocol}//${backendHost}${parseProxyPort(proxyTarget)}`;
+  } catch {
+    const fallbackHost = isLoopbackHost(pageHost) ? pageHost : 'localhost';
+    return `${pageProtocol}//${fallbackHost}:8080`;
+  }
+};
+
 /**
  * 직접 접근 base URL (OAuth 리다이렉트, 이미지 등 — 프록시 미경유)
  */
-export const SERVER_BASE_URL = (import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+export const SERVER_BASE_URL = resolveDefaultServerBaseUrl().replace(/\/$/, '');
 
 /**
  * 현재 시즌 연도

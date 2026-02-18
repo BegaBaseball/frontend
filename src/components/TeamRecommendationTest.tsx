@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
@@ -6,7 +7,31 @@ import TeamLogo from './TeamLogo';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { TeamRecommendationTestProps } from '../types/teamTest';
 import { useTeamTest } from '../hooks/useTeamTest';
-import { getTeamDescription } from '../constants/teams';
+import { FRANCHISE_TEAM_IDS, TEAM_DATA, getTeamDescription } from '../constants/teams';
+
+const TEAM_TIE_BREAK_RANK = FRANCHISE_TEAM_IDS.reduce<Record<string, number>>((acc, teamId, index) => {
+  acc[teamId] = index;
+  return acc;
+}, {});
+
+const getTieBreakRank = (team: string): number => TEAM_TIE_BREAK_RANK[team] ?? Number.MAX_SAFE_INTEGER;
+
+const compareTeamScores = (a: [string, number], b: [string, number]): number => {
+  if (a[1] !== b[1]) {
+    return b[1] - a[1];
+  }
+
+  const rankA = getTieBreakRank(a[0]);
+  const rankB = getTieBreakRank(b[0]);
+
+  if (rankA !== rankB) {
+    return rankA - rankB;
+  }
+
+  return a[0].localeCompare(b[0]);
+};
+
+const getTeamDisplayName = (team: string): string => TEAM_DATA[team]?.fullName || TEAM_DATA[team]?.name || team;
 
 export default function TeamRecommendationTest({
   isOpen,
@@ -30,9 +55,16 @@ export default function TeamRecommendationTest({
     handleAcceptRecommendation,
   } = useTeamTest(onSelectTeam, onClose);
 
+  const sortedTeamScores = useMemo(
+    () => Object.entries(teamScores).sort(compareTeamScores),
+    [teamScores]
+  );
+
+  const recommendedTeamLabel = getTeamDisplayName(recommendedTeam);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col bg-white dark:bg-card border-gray-200 dark:border-border">
         <DialogTitle className="sr-only">응원구단 추천 테스트</DialogTitle>
         <DialogDescription className="sr-only">
           7개의 질문에 답하여 당신에게 맞는 KBO 구단을 찾아보세요
@@ -48,7 +80,7 @@ export default function TeamRecommendationTest({
                 </div>
                 <div className="flex-1">
                   <h3 className="text-primary">나와 딱 맞는 팀 찾기</h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                     {currentQuestion + 1}번째 질문 / 총 {totalQuestions}문항
                   </p>
                 </div>
@@ -56,7 +88,7 @@ export default function TeamRecommendationTest({
 
               {/* Progress Bar */}
               <div className="relative">
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-gray-200 dark:bg-secondary rounded-full overflow-hidden">
                   <motion.div
                     className="h-full rounded-full bg-primary"
                     initial={{ width: 0 }}
@@ -81,13 +113,13 @@ export default function TeamRecommendationTest({
                 >
                   {/* Question Card */}
                   <div
-                    className="mb-3 p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-primary flex-shrink-0"
+                    className="mb-3 p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-primary/15 dark:to-emerald-900/20 border-2 border-primary flex-shrink-0"
                   >
                     <h4 className="mb-1 text-primary">
                       {currentQuestionData.question}
                     </h4>
                     {currentQuestionData.description && (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
                         {currentQuestionData.description}
                       </p>
                     )}
@@ -107,8 +139,8 @@ export default function TeamRecommendationTest({
                             p-3 rounded-lg border-2 text-left transition-all
                             ${
                               selectedAnswer === index
-                                ? 'bg-green-50 shadow-lg border-primary'
-                                : 'border-gray-200 bg-white hover:bg-green-50/50 hover:shadow-md'
+                                ? 'bg-green-50 dark:bg-primary/20 shadow-lg border-primary'
+                                : 'border-gray-200 dark:border-border bg-white dark:bg-card/60 hover:bg-green-50/50 dark:hover:bg-primary/15 hover:shadow-md'
                             }
                           `}
                         >
@@ -120,14 +152,14 @@ export default function TeamRecommendationTest({
                                 ${
                                   selectedAnswer === index
                                     ? 'text-white shadow-lg bg-primary'
-                                    : 'bg-gray-100 text-gray-600'
+                                    : 'bg-gray-100 dark:bg-secondary text-gray-600 dark:text-gray-300'
                                 }
                               `}
                             >
                               {String.fromCharCode(65 + index)}
                             </div>
 
-                            <span className="flex-1 text-sm text-gray-900">
+                            <span className="flex-1 text-sm text-gray-900 dark:text-gray-100">
                               {answer.label}
                             </span>
 
@@ -150,12 +182,12 @@ export default function TeamRecommendationTest({
             </div>
 
             {/* Navigation - Fixed at bottom */}
-            <div className="flex items-center justify-between pt-3 border-t border-gray-200 flex-shrink-0">
+            <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-border flex-shrink-0">
               <Button
                 variant="outline"
                 onClick={handlePrevious}
-                disabled={!canGoPrevious}
-                className="flex items-center gap-2 rounded-full px-4 py-2"
+                disabled={!canGoPrevious || selectedAnswer !== null}
+                className="flex items-center gap-2 rounded-full px-4 py-2 dark:border-border dark:bg-card dark:text-gray-100 dark:hover:bg-secondary"
               >
                 <ChevronLeft className="w-4 h-4" />
                 이전
@@ -163,7 +195,7 @@ export default function TeamRecommendationTest({
               <Button
                 variant="ghost"
                 onClick={onClose}
-                className="text-gray-500 rounded-full px-4 py-2"
+                className="text-gray-500 dark:text-gray-300 rounded-full px-4 py-2 dark:hover:bg-secondary"
               >
                 나중에 할게요
               </Button>
@@ -183,7 +215,7 @@ export default function TeamRecommendationTest({
               {/* Result Text */}
               <div className="mb-3">
                 <div
-                  className="inline-block mb-2 px-4 py-1 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 border-2 border-primary"
+                  className="inline-block mb-2 px-4 py-1 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 dark:from-primary/25 dark:to-emerald-900/30 border-2 border-primary"
                 >
                   <span className="text-sm text-primary">
                     테스트 완료!
@@ -197,7 +229,7 @@ export default function TeamRecommendationTest({
               {/* Team Logo and Name */}
               <div className="mb-4">
                 <div
-                  className="flex justify-center mb-3 p-4 bg-white rounded-3xl shadow-xl border-4 border-primary inline-block"
+                  className="flex justify-center mb-3 p-4 bg-white dark:bg-secondary/60 rounded-3xl shadow-xl border-4 border-primary inline-block"
                 >
                   <div className="w-20 h-20">
                     <TeamLogo team={recommendedTeam} size="lg" />
@@ -205,34 +237,35 @@ export default function TeamRecommendationTest({
                 </div>
 
                 <h2 className="mb-2 text-primary">
-                  {recommendedTeam}
+                  {recommendedTeamLabel}
                 </h2>
               </div>
 
               {/* Team Description */}
               <div
-                className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 mb-4 text-left border-2 border-primary"
+                className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-primary/15 dark:to-emerald-900/20 rounded-xl p-4 mb-4 text-left border-2 border-primary"
               >
-                <p className="text-sm text-gray-700 leading-relaxed">
+                <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
                   {getTeamDescription(recommendedTeam)}
                 </p>
               </div>
 
               {/* Scores Summary */}
               <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">팀별 점수</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">팀별 점수</p>
                 <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto px-1">
-                  {Object.entries(teamScores)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([team, score]) => (
+                  {sortedTeamScores.map(([team, score]) => {
+                    const teamLabel = getTeamDisplayName(team);
+
+                    return (
                       <div
                         key={team}
                         className={`
                           flex items-center justify-between p-2.5 rounded-lg transition-all border-2
                           ${
                             team === recommendedTeam
-                              ? 'bg-gradient-to-r from-green-100 to-emerald-100 shadow-lg border-primary'
-                              : 'bg-white border-gray-200'
+                              ? 'bg-gradient-to-r from-green-100 to-emerald-100 dark:from-primary/25 dark:to-emerald-900/30 shadow-lg border-primary'
+                              : 'bg-white dark:bg-card/60 border-gray-200 dark:border-border'
                           }
                         `}
                       >
@@ -240,19 +273,20 @@ export default function TeamRecommendationTest({
                           <div className="w-7 h-7 flex-shrink-0">
                             <TeamLogo team={team} size="sm" />
                           </div>
-                          <span className="text-sm">{team}</span>
+                          <span className="text-sm text-gray-900 dark:text-gray-100">{teamLabel}</span>
                         </div>
                         <span
                           className={`text-sm ${
                             team === recommendedTeam
                               ? 'text-primary'
-                              : 'text-gray-500'
+                              : 'text-gray-500 dark:text-gray-300'
                           }`}
                         >
                           {score}점
                         </span>
                       </div>
-                    ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -262,16 +296,16 @@ export default function TeamRecommendationTest({
                   onClick={handleAcceptRecommendation}
                   className="w-full py-4 text-white rounded-full shadow-lg hover:shadow-xl transition-all bg-primary"
                 >
-                  {recommendedTeam} 팬으로 시작하기
+                  {recommendedTeamLabel} 팬으로 시작하기
                 </Button>
                 <Button
                   variant="outline"
                   onClick={handleReset}
-                  className="w-full py-4 rounded-full border-2 border-primary text-primary"
+                  className="w-full py-4 rounded-full border-2 border-primary text-primary dark:text-primary-light dark:border-primary/70"
                 >
                   다시 테스트하기
                 </Button>
-                <Button variant="ghost" onClick={onClose} className="text-gray-500 py-2">
+                <Button variant="ghost" onClick={onClose} className="text-gray-500 dark:text-gray-300 py-2 dark:hover:bg-secondary">
                   나중에 선택하기
                 </Button>
               </div>

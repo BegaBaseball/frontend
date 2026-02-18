@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import QRCode from 'react-qr-code';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -10,7 +10,16 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
+import { Skeleton } from './ui/skeleton';
 import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from './ui/dialog';
+import { Input } from './ui/input';
 import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import {
   Calendar,
@@ -30,14 +39,14 @@ import {
   Map as MapIcon,
   HelpCircle,
   Plus,
-  User
+  User,
+  RefreshCw,
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import { useAuthStore } from '../store/authStore';
 import UserProfileModal from './profile/UserProfileModal';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { api } from '../utils/api';
-import LoadingSpinner from './LoadingSpinner';
 import { Alert, AlertDescription } from './ui/alert';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
@@ -58,9 +67,12 @@ export default function MateDetail() {
   // Use user from auth store directly
   const currentUserId = user?.id || null;
 
-  const [myApplication, setMyApplication] = useState<any>(null);
-  const [applications, setApplications] = useState<any[]>([]);
+  const [myApplication, setMyApplication] = useState<Application | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showSaleDialog, setShowSaleDialog] = useState(false);
+  const [salePrice, setSalePrice] = useState('');
+  const [salePriceError, setSalePriceError] = useState('');
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false); // For Seat View toggle
   const [hostAvgRating, setHostAvgRating] = useState<number | null>(null);
   const [showHostProfile, setShowHostProfile] = useState(false);
@@ -95,7 +107,7 @@ export default function MateDetail() {
         const myApp = applicationsData.find((app: Application) =>
           String(app.partyId) === String(selectedParty.id)
         );
-        setMyApplication(myApp);
+        setMyApplication(myApp ?? null);
       } catch (error) {
         console.error('내 신청 정보 가져오기 실패:', error);
       }
@@ -175,21 +187,78 @@ export default function MateDetail() {
 
 
   if (isPartyLoading) {
-    return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." />;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
+        <div className="max-w-3xl mx-auto px-4 py-6">
+          <Skeleton className="h-8 w-24 mb-4" />
+          {/* 티켓 스켈레톤 */}
+          <div className="rounded-3xl shadow-2xl overflow-hidden mb-8">
+            <Skeleton className="h-64 w-full" />
+            <div className="bg-white dark:bg-card p-6">
+              <div className="flex gap-8 items-center justify-between">
+                <div className="flex-1 space-y-3">
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-10 w-48" />
+                  <Skeleton className="h-5 w-40" />
+                </div>
+                <Skeleton className="h-20 w-20 hidden md:block" />
+              </div>
+            </div>
+          </div>
+          {/* 상세 정보 스켈레톤 */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="p-6 border-none shadow-md">
+                <Skeleton className="h-6 w-32 mb-4" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-5/6 mb-2" />
+                <Skeleton className="h-4 w-4/6" />
+              </Card>
+              <Card className="p-6 border-none shadow-md">
+                <Skeleton className="h-6 w-24 mb-4" />
+                <div className="space-y-3">
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-px w-full" />
+                  <Skeleton className="h-7 w-full" />
+                </div>
+              </Card>
+            </div>
+            <div className="space-y-4">
+              <Card className="p-6 border-none shadow-md">
+                <Skeleton className="h-24 w-24 rounded-full mx-auto mb-3" />
+                <Skeleton className="h-5 w-32 mx-auto mb-2" />
+                <Skeleton className="h-4 w-24 mx-auto" />
+              </Card>
+              <Skeleton className="h-14 w-full rounded-lg" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (partyError || !selectedParty) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center">
         <div className="text-center max-w-md px-4">
-          <Alert>
-            <AlertDescription>
-              {partyError || '파티 정보를 찾을 수 없습니다.'}
-            </AlertDescription>
-          </Alert>
-          <Button variant="outline" className="mt-4" onClick={() => navigate('/mate')}>
-            목록으로 이동
-          </Button>
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+            파티를 불러오지 못했습니다
+          </h2>
+          <p className="text-gray-500 dark:text-gray-300 mb-4 text-sm">
+            {partyError || '파티 정보를 찾을 수 없습니다.'}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => navigate('/mate')}>
+              <ChevronLeft className="w-4 h-4 mr-1" /> 목록으로
+            </Button>
+            <Button className="bg-primary text-white" onClick={() => window.location.reload()}>
+              <RefreshCw className="w-4 h-4 mr-1" /> 다시 시도
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -232,9 +301,25 @@ export default function MateDetail() {
   };
 
   const canConvertToSale = (selectedParty.status === 'PENDING' || selectedParty.status === 'FAILED') && isGameSoon();
-  const handleConvertToSale = () => {
-    const price = prompt('판매 가격을 입력해주세요 (원):');
-    if (price && !isNaN(Number(price))) updateParty(selectedParty.id, { status: 'SELLING', price: Number(price) });
+
+  const handleOpenSaleDialog = () => {
+    setSalePrice('');
+    setSalePriceError('');
+    setShowSaleDialog(true);
+  };
+
+  const handleConfirmSale = () => {
+    const parsed = parseInt(salePrice, 10);
+    if (!salePrice || isNaN(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+      setSalePriceError('양의 정수를 입력해주세요.');
+      return;
+    }
+    if (parsed < 100) {
+      setSalePriceError('최소 100원 이상 입력해주세요.');
+      return;
+    }
+    updateParty(selectedParty.id, { status: 'SELLING', price: parsed });
+    setShowSaleDialog(false);
   };
   const handleShare = () => {
     if (navigator.share) navigator.share({ title: '직관메이트 파티', text: '함께 직관 가실 분?', url: window.location.href });
@@ -275,6 +360,11 @@ export default function MateDetail() {
 
   const currentZone = selectedParty ? resolveSeatZone(selectedParty.stadium, selectedParty.section) : null;
 
+  const qrCodeValue = useMemo(() => JSON.stringify({
+    type: 'MATE_CHECKIN',
+    partyId: selectedParty?.id,
+    createdAt: selectedParty?.createdAt,
+  }), [selectedParty?.id, selectedParty?.createdAt]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
@@ -423,15 +513,11 @@ export default function MateDetail() {
                 </div>
               </div>
 
-              {/* QR Code */}
-              <div className="hidden md:block border-l border-gray-200 dark:border-border pl-8">
-                <div className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+              {/* QR Code - 모바일: 중앙 정렬 / 데스크톱: 우측 구분선 포함 */}
+              <div className="flex flex-col items-center md:border-l md:border-gray-200 md:dark:border-border md:pl-8">
+                <div className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm max-w-full">
                   <QRCode
-                    value={JSON.stringify({
-                      type: 'MATE_CHECKIN',
-                      partyId: selectedParty.id,
-                      timestamp: new Date().toISOString()
-                    })}
+                    value={qrCodeValue}
                     size={80}
                     style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                     viewBox={`0 0 256 256`}
@@ -548,7 +634,7 @@ export default function MateDetail() {
             >
               <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-gray-100 to-transparent dark:from-gray-700/50"></div>
 
-              <div className="relative relative-z-10 mb-2">
+              <div className="relative z-10 mb-2">
                 <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-border shadow-lg mx-auto bg-white">
                   {selectedParty.hostProfileImageUrl ? (
                     <OptimizedImage
@@ -682,6 +768,15 @@ export default function MateDetail() {
                       채팅방 입장
                     </Button>
                   )}
+                  {canConvertToSale && (
+                    <Button
+                      onClick={handleOpenSaleDialog}
+                      variant="outline"
+                      className="w-full h-12 border-orange-400 text-orange-600 hover:bg-orange-50"
+                    >
+                      판매 전환
+                    </Button>
+                  )}
                 </>
               ) : (
                 /* Participant Actions */
@@ -775,6 +870,49 @@ export default function MateDetail() {
           }}
         />
       )}
+
+      {/* 판매 전환 Dialog */}
+      <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>티켓 판매 전환</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+              판매 가격 (원)
+            </label>
+            <Input
+              type="number"
+              min={100}
+              step={1}
+              placeholder="예: 15000"
+              value={salePrice}
+              onChange={(e) => {
+                setSalePrice(e.target.value);
+                setSalePriceError('');
+              }}
+              className="mt-1"
+            />
+            {salePriceError && (
+              <p className="text-sm text-red-500 mt-1">{salePriceError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowSaleDialog(false)}
+            >
+              취소
+            </Button>
+            <Button
+              className="bg-primary text-white"
+              onClick={handleConfirmSale}
+            >
+              확인
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

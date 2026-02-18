@@ -1,6 +1,7 @@
 import { Edit, BarChart3, Ticket, UserPlus, Users, Coins } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { Skeleton } from './ui/skeleton';
 import TeamLogo from './TeamLogo';
 import ProfileEditSection from './mypage/ProfileEditSection';
 import PasswordChangeSection from './mypage/PasswordChangeSection';
@@ -32,8 +33,8 @@ export default function MyPage() {
     viewMode,
     setViewMode,
     handleProfileUpdated,
-
     handleToggleStats,
+    isLoading: isProfileLoading,
   } = useMyPage();
 
   const followTargetUserId = profile?.id || user?.id || 0;
@@ -103,6 +104,39 @@ export default function MyPage() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28">
         {/* 상단 프로필 카드 */}
           <Card className="p-4 md:p-8 mb-8 dark:bg-card dark:border-border">
+            {isProfileLoading ? (
+              <div className={`${isDesktop ? 'flex items-start justify-between' : 'space-y-6'}`}>
+                {/* 프로필 정보 스켈레톤 */}
+                <div className="flex items-center gap-4 md:gap-6">
+                  <Skeleton className="w-20 h-20 md:w-24 md:h-24 rounded-full flex-shrink-0" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-7 w-36" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </div>
+                </div>
+                {/* 팔로워/팔로잉 스켈레톤 */}
+                <div className={`flex items-center gap-6 ${isDesktop ? 'mr-auto ml-12' : 'mt-4'}`}>
+                  <div className="text-center space-y-1">
+                    <Skeleton className="h-6 w-10 mx-auto" />
+                    <Skeleton className="h-4 w-14 mx-auto" />
+                  </div>
+                  <div className="h-8 w-px bg-gray-200 dark:bg-border" />
+                  <div className="text-center space-y-1">
+                    <Skeleton className="h-6 w-10 mx-auto" />
+                    <Skeleton className="h-4 w-14 mx-auto" />
+                  </div>
+                </div>
+                {/* 버튼 스켈레톤 */}
+                <div className={`${isDesktop ? 'flex items-center gap-3' : 'grid grid-cols-2 gap-3'}`}>
+                  <Skeleton className="h-10 w-28 rounded-md" />
+                  <Skeleton className="h-10 w-28 rounded-md" />
+                  <Skeleton className="h-10 w-28 rounded-md" />
+                  <Skeleton className="h-10 w-28 rounded-md" />
+                </div>
+              </div>
+            ) : (
             <div className={`${isDesktop ? 'flex items-start justify-between' : 'space-y-6'}`}>
             {/* 프로필 정보 */}
               <div className="flex items-center gap-4 md:gap-6">
@@ -212,6 +246,7 @@ export default function MyPage() {
               />
             </div>
           </div>
+            )}
         </Card>
 
         {/* 컨텐츠 영역 */}

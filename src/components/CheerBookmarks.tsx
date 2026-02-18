@@ -106,8 +106,23 @@ export default function CheerBookmarks() {
                 </button>
               </div>
             ) : bookmarkedPosts.length === 0 ? (
-              <div className="px-6 py-16 text-center text-sm text-slate-500 dark:text-gray-300">
-                아직 저장한 게시글이 없습니다.
+              <div className="px-6 py-16 text-center">
+                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center mx-auto mb-4">
+                  <Bookmark className="h-8 w-8 text-slate-400 dark:text-gray-300" />
+                </div>
+                <p className="text-sm font-semibold text-slate-700 dark:text-gray-200 mb-1">
+                  아직 북마크한 게시글이 없습니다
+                </p>
+                <p className="text-xs text-slate-400 dark:text-gray-400 mb-5">
+                  응원 게시판에서 마음에 드는 게시글을 북마크해보세요
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/cheer')}
+                  className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                >
+                  응원 게시판으로 이동
+                </button>
               </div>
             ) : (
               <div className="px-4 py-4 space-y-3">

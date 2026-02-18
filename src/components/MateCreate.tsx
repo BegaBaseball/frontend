@@ -546,7 +546,7 @@ export default function MateCreate() {
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="gameDate">경기 날짜 *</Label>
+                  <Label htmlFor="gameDate">경기 날짜 <span className="text-red-500 ml-0.5">*</span></Label>
                   <Input
                     id="gameDate"
                     type="date"
@@ -628,7 +628,7 @@ export default function MateCreate() {
 
               {/* 1. Cheering Side Selection (Visual Blocks) */}
               <div className="space-y-3">
-                <Label className="text-lg font-bold">응원 진영 선택 *</Label>
+                <Label className="text-lg font-bold">응원 진영 선택 <span className="text-red-500 ml-0.5">*</span></Label>
                 <div className="grid grid-cols-3 gap-3 h-28">
                   {/* Home Team */}
                   <button
@@ -737,7 +737,7 @@ export default function MateCreate() {
 
               {/* 3. Seat Detail (Structured Inputs) */}
               <div className="space-y-3">
-                <Label className="text-lg font-bold" htmlFor="seatDetail">좌석 상세 *</Label>
+                <Label className="text-lg font-bold" htmlFor="seatDetail">좌석 상세 <span className="text-red-500 ml-0.5">*</span></Label>
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className="text-xs text-gray-500 mb-1 block">구역/블록</label>
@@ -811,7 +811,7 @@ export default function MateCreate() {
               </div>
 
               <div className="space-y-2">
-                <Label id="participants-label" className="text-lg font-bold">모집 인원 *</Label>
+                <Label id="participants-label" className="text-lg font-bold">모집 인원 <span className="text-red-500 ml-0.5">*</span></Label>
                 <Select
                   value={formData.maxParticipants.toString()}
                   onValueChange={(value: string) =>
@@ -830,7 +830,7 @@ export default function MateCreate() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ticketPrice" className="text-lg font-bold">티켓 가격 (1인당) *</Label>
+                <Label htmlFor="ticketPrice" className="text-lg font-bold">티켓 가격 (1인당) <span className="text-red-500 ml-0.5">*</span></Label>
                 <div className="relative">
                   <Input
                     id="ticketPrice"
@@ -869,11 +869,15 @@ export default function MateCreate() {
               </h2>
 
               <div className="space-y-2">
-                <Label htmlFor="description">소개글 *</Label>
+                <Label htmlFor="description">소개글 <span className="text-red-500 ml-0.5">*</span></Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleDescriptionChange(e.target.value)}
+                  onBlur={() => {
+                    const error = validateDescription(formData.description);
+                    setFormError('description', error);
+                  }}
                   placeholder="함께 야구를 즐길 메이트에게 하고 싶은 말을 작성해주세요..."
                   className="min-h-[150px]"
                   aria-describedby="description-hint description-count"
@@ -903,11 +907,17 @@ export default function MateCreate() {
                   </span>
                   <span
                     id="description-count"
-                    className="text-gray-500"
+                    className={
+                      formData.description.length > 190
+                        ? 'text-red-500 font-semibold'
+                        : formData.description.length > 160
+                          ? 'text-amber-500'
+                          : 'text-gray-500'
+                    }
                     aria-live="polite"
                     aria-atomic="true"
                   >
-                    {formData.description.length}/200
+                    {formData.description.length}/200자
                   </span>
                 </div>
               </div>

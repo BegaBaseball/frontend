@@ -23,7 +23,17 @@ export const loadKakaoMapScript = (onLoad?: () => void, onError?: (message?: str
 
   const handleReady = () => {
     if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
+      let isResolved = false;
+      const timeoutId = window.setTimeout(() => {
+        if (!isResolved) {
+          console.error('카카오맵 SDK 초기화 타임아웃');
+          onError?.('지도를 초기화하지 못했습니다. 카카오맵 도메인 허용 설정을 확인해주세요.');
+        }
+      }, 5000);
+
       window.kakao.maps.load(() => {
+        isResolved = true;
+        window.clearTimeout(timeoutId);
         onLoad?.();
       });
     }
