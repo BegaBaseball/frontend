@@ -10,7 +10,7 @@ import { useStadiumGuide } from '../hooks/useStadiumGuide';
 import { useTheme } from '../hooks/useTheme';
 
 export default function StadiumGuide() {
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
   const {
     stadiums,
     selectedStadium,
@@ -20,13 +20,15 @@ export default function StadiumGuide() {
     selectedPlace,
     loading,
     error,
+    isMapReady,
     mapContainer,
     handleStadiumChange,
     handlePlaceClick,
   } = useStadiumGuide();
 
   // 다크 모드인지 확인
-  const isDark = theme === 'dark';
+  const effectiveTheme = resolvedTheme ?? theme;
+  const isDark = effectiveTheme === 'dark';
 
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
@@ -150,7 +152,7 @@ export default function StadiumGuide() {
                 </div>
               )}
 
-              {selectedStadium && KAKAO_API_KEY ? (
+              {selectedStadium && KAKAO_API_KEY && isMapReady ? (
                 <div
                   className="p-2 rounded-3xl border-2 dark:bg-card dark:border-border"
                   style={{
@@ -179,7 +181,7 @@ export default function StadiumGuide() {
                   </h4>
                   <p className="text-gray-600 dark:text-gray-300 mt-2">주변 지도</p>
                   <p className="text-sm text-gray-500 dark:text-gray-300 mt-4">
-                    {!KAKAO_API_KEY ? '* 카카오맵 API 키를 설정해주세요' : '* 지도 로딩 중...'}
+                    {!KAKAO_API_KEY ? '* 카카오맵 API 키를 설정해주세요' : '* 지도 로딩 중이거나 현재 도메인에서 지도를 사용할 수 없습니다.'}
                   </p>
                 </Card>
               )}
@@ -204,9 +206,15 @@ export default function StadiumGuide() {
                       onClick={() => setSelectedCategory(config.key)}
                       className="py-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 dark:bg-card"
                       style={{
-                        backgroundColor: isSelected ? config.bgColor : (isDark ? '#1f2937' : 'white'),
-                        borderColor: isSelected ? config.borderColor : (isDark ? '#374151' : THEME_COLORS.border),
-                        color: isSelected ? config.color : (isDark ? '#9ca3af' : THEME_COLORS.gray),
+                        backgroundColor: isSelected
+                          ? (isDark ? `${config.color}22` : config.bgColor)
+                          : (isDark ? '#1f2937' : 'white'),
+                        borderColor: isSelected
+                          ? config.borderColor
+                          : (isDark ? '#374151' : THEME_COLORS.border),
+                        color: isSelected
+                          ? config.color
+                          : (isDark ? '#9ca3af' : THEME_COLORS.gray),
                       }}
                     >
                       <Icon className="w-6 h-6" />
