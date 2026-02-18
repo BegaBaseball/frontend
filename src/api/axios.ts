@@ -1,10 +1,8 @@
 import axios from 'axios';
 import { parseError } from '../utils/errorUtils';
+import { getApiBaseUrl } from './apiBase';
 
-// Force relative path in Cypress to ensures mocks work
-const API_BASE_URL = window.Cypress
-    ? '/api'
-    : (import.meta.env.VITE_API_BASE_URL || '/api');
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -14,31 +12,62 @@ const api = axios.create({
     },
 });
 
+let reissueInFlight: Promise<void> | null = null;
+let hasSessionExpired = false;
+
+const skipReissueRequestPaths = [
+    '/auth/login',
+    '/auth/signup',
+    '/auth/mypage',
+    '/auth/reissue',
+    '/auth/logout',
+];
+
 // Response Interceptor
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        const requestUrl = response.config?.url || '';
+        if (requestUrl.includes('/auth/login') || requestUrl.includes('/auth/reissue') || requestUrl.includes('/auth/mypage')) {
+            hasSessionExpired = false;
+        }
+        return response;
+    },
     async (error) => {
         const originalRequest = error.config;
 
+        if (hasSessionExpired) {
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
-            // Log for excluded paths
-            if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/signup')) {
+            if (skipReissueRequestPaths.some((path) => originalRequest.url?.includes(path))) {
+                hasSessionExpired = false;
                 return Promise.reject(error);
             }
 
             originalRequest._retry = true;
+            if (!reissueInFlight) {
+                reissueInFlight = axios.post(`${API_BASE_URL}/auth/reissue`, {}, { withCredentials: true, skipGlobalErrorHandler: true })
+                    .then(() => {
+                        hasSessionExpired = false;
+                    })
+                    .finally(() => {
+                        reissueInFlight = null;
+                    });
+            }
 
             try {
-                // 토큰 재발급 요청 (Refresh Token은 Cookie에 있으므로 withCredentials=true로 자동 전송)
-                await axios.post(`${API_BASE_URL}/auth/reissue`, {}, { withCredentials: true });
+                await reissueInFlight;
 
                 // 재발급 성공 시 원래 요청 재시도
                 return api(originalRequest);
             } catch (reissueError) {
                 // 재발급 실패 시 (Refresh Token 만료 등)
-                console.error('Session expired. Please login again.');
-                // window.location.href = '/login'; // Redirect to login caused infinite loop
-                window.dispatchEvent(new CustomEvent('auth-session-expired'));
+                if (!hasSessionExpired) {
+                    hasSessionExpired = true;
+                    console.error('Session expired. Please login again.');
+                    window.dispatchEvent(new CustomEvent('auth-session-expired'));
+                }
 
                 return Promise.reject(reissueError);
             }

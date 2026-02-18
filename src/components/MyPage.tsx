@@ -4,11 +4,9 @@ import { Card } from './ui/card';
 import TeamLogo from './TeamLogo';
 import ProfileEditSection from './mypage/ProfileEditSection';
 import PasswordChangeSection from './mypage/PasswordChangeSection';
-import AccountSettingsSection from './mypage/AccountSettingsSection';
 import DiaryViewSection from './mypage/Diaryform';
 import DiaryStatistics from './mypage/Diarystatistics';
 import MateHistorySection from './mypage/MateHistorySection';
-import BlockedUsersSection from './mypage/BlockedUsersSection';
 import { useMyPage } from '../hooks/useMyPage';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
@@ -22,9 +20,10 @@ import { TicketInfo } from '../api/ticket';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 
 export default function MyPage() {
-  const {
+    const {
     isLoggedIn,
     user,
+    profile,
     profileImage,
     name,
     handle,
@@ -36,6 +35,9 @@ export default function MyPage() {
 
     handleToggleStats,
   } = useMyPage();
+
+  const followTargetUserId = profile?.id || user?.id || 0;
+  const canLoadFollowCounts = followTargetUserId > 0;
 
   const setDate = useDiaryStore((state) => state.setDate);
   const setNewEntry = useDiaryStore((state) => state.setNewEntry);
@@ -78,9 +80,9 @@ export default function MyPage() {
 
   // 팔로워/팔로잉 카운트 조회
   const { data: followCounts } = useQuery({
-    queryKey: ['followCounts', user?.id],
-    queryFn: () => getFollowCounts(Number(user!.id)),
-    enabled: !!user?.id,
+    queryKey: ['followCounts', followTargetUserId],
+    queryFn: () => getFollowCounts(followTargetUserId),
+    enabled: canLoadFollowCounts,
   });
 
   const formatCount = (count: number): string => {
@@ -107,7 +109,8 @@ export default function MyPage() {
                 <div className="relative flex-shrink-0">
                   <ProfileAvatar
                     src={profileImage}
-                    alt="Profile"
+                    alt={name}
+                    fallbackName={name}
                     className="w-20 h-20 md:w-24 md:h-24"
                   />
               </div>
@@ -213,7 +216,7 @@ export default function MyPage() {
 
         {/* 컨텐츠 영역 */}
         {
-          viewMode === 'editProfile' && (
+          (viewMode === 'editProfile' || viewMode === 'accountSettings' || viewMode === 'blockedUsers') && (
             <ProfileEditSection
               profileImage={profileImage}
               name={name}
@@ -223,11 +226,23 @@ export default function MyPage() {
               userProvider={user?.provider}
               initialBio={user?.bio}
               hasPassword={user?.hasPassword}
+              activeSection={
+                viewMode === 'accountSettings'
+                  ? 'accountSettings'
+                  : viewMode === 'blockedUsers'
+                    ? 'blockedUsers'
+                    : 'profile'
+              }
+              onSectionChange={(section) => {
+                if (section === 'profile') {
+                  setViewMode('editProfile');
+                } else {
+                  setViewMode(section);
+                }
+              }}
               onCancel={() => setViewMode('diary')}
               onSave={handleProfileUpdated}
               onChangePassword={() => setViewMode('changePassword')}
-              onAccountSettings={() => setViewMode('accountSettings')}
-              onBlockedUsers={() => setViewMode('blockedUsers')}
             />
           )
         }
@@ -248,27 +263,7 @@ export default function MyPage() {
 
         {viewMode === 'mateHistory' && <MateHistorySection />}
 
-        {
-          viewMode === 'accountSettings' && (
-            <AccountSettingsSection
-              userProvider={user?.provider}
-              onCancel={() => setViewMode('editProfile')}
-            />
-          )
-        }
-
-        {
-          viewMode === 'blockedUsers' && (
-            <div className="max-w-3xl mx-auto">
-              <BlockedUsersSection />
-              <div className="mt-4 flex justify-end">
-                <Button variant="outline" onClick={() => setViewMode('editProfile')}>
-                  돌아가기
-                </Button>
-              </div>
-            </div>
-          )
-        }
+        
       </div >
 
       {/* User List Modal */}

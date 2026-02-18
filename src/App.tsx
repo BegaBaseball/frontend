@@ -45,13 +45,21 @@ const TestError = lazy(() => import('./components/TestError')); // Test Purpose 
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 
 function ProtectedRoute() {
-  const { isLoggedIn, showLoginRequiredDialog, setShowLoginRequiredDialog } = useAuthStore();
+  const { isLoggedIn, isAuthLoading, setShowLoginRequiredDialog } = useAuthStore();
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isAuthLoading && !isLoggedIn) {
       setShowLoginRequiredDialog(true);
     }
-  }, [isLoggedIn, setShowLoginRequiredDialog]);
+  }, [isAuthLoading, isLoggedIn, setShowLoginRequiredDialog]);
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
@@ -81,11 +89,14 @@ export default function App() {
   const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
-
+  useEffect(() => {
+    fetchProfileAndAuthenticate();
+  }, [fetchProfileAndAuthenticate]);
 
   useEffect(() => {
     const handleSessionExpired = () => {
-      useAuthStore.getState().logout();
+      useAuthStore.getState().logout(true);
+      useAuthStore.getState().setShowLoginRequiredDialog(true);
       // Optional: Show a toast or dialog saying "Session expired"
     };
 

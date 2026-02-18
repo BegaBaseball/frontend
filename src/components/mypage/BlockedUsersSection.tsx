@@ -1,6 +1,7 @@
+import { type UIEvent } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { getBlockedUsers } from '../../api/blockApi';
-import { Loader2, Ban, User } from 'lucide-react';
+import { Loader2, Ban, User, Info } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import BlockButton from '../profile/BlockButton';
 
@@ -22,7 +23,7 @@ export default function BlockedUsersSection() {
 
     const users = data?.pages.flatMap((page) => page.content) || [];
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const handleScroll = (e: UIEvent<HTMLDivElement>) => {
         const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
         if (scrollHeight - scrollTop <= clientHeight * 1.5 && hasNextPage && !isFetchingNextPage) {
             fetchNextPage();
@@ -44,6 +45,9 @@ export default function BlockedUsersSection() {
                 <p className="text-sm text-gray-500 dark:text-gray-300">
                     차단한 사용자는 내 게시글을 볼 수 없으며, 나에게 메시지를 보낼 수 없습니다.
                 </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                    상대방 프로필에서 <span className="font-medium text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
+                </p>
             </div>
 
             <div
@@ -55,7 +59,7 @@ export default function BlockedUsersSection() {
                         <Loader2 className="h-8 w-8 animate-spin text-red-500" />
                     </div>
                 ) : users.length > 0 ? (
-                    <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
+            <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
                         {users.map((user) => (
                             <div key={user.id} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                                 <div
@@ -96,11 +100,15 @@ export default function BlockedUsersSection() {
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                        <div className="w-12 h-12 bg-gray-100 dark:bg-card rounded-full flex items-center justify-center mb-3">
-                            <Ban className="h-6 w-6 text-gray-400" />
+                        <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-3">
+                            <Ban className="h-6 w-6 text-red-500" />
                         </div>
                         <p className="text-gray-900 dark:text-gray-100 font-medium mb-1">
                             차단한 사용자가 없습니다.
+                        </p>
+                        <p className="mt-2 text-xs text-primary dark:text-primary font-medium inline-flex items-center gap-1 justify-center">
+                            <Info className="w-3.5 h-3.5" />
+                            상대방 프로필에서 <span className="text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
                         </p>
                     </div>
                 )}

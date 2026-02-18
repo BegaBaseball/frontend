@@ -5,7 +5,8 @@ import {
   ProfileUpdateData,
   ProfileUpdateResponse,
   UserProviderDto,
-  PublicUserProfile
+  PublicUserProfile,
+  DeviceSessionItem,
 } from '../types/profile';
 import api from './axios';
 import { getApiErrorMessage } from '../utils/errorUtils';
@@ -112,6 +113,12 @@ export interface ChangePasswordRequest {
   confirmPassword: string;
 }
 
+export interface NicknameCheckResponse {
+  available: boolean;
+  message?: string;
+  normalized?: string;
+}
+
 export async function changePassword(data: ChangePasswordRequest): Promise<void> {
   try {
     const response = await api.put('/auth/password', data);
@@ -173,5 +180,94 @@ export async function unlinkProvider(provider: string): Promise<void> {
     }
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '연동 해제 실패'));
+  }
+}
+
+/**
+ * 로그인 기기 목록 조회
+ */
+export async function getDeviceSessions(): Promise<DeviceSessionItem[]> {
+  try {
+    const response = await api.get<{ success: boolean; data: DeviceSessionItem | DeviceSessionItem[]; message?: string }>(`/auth/sessions`);
+    if (!response.data.success) {
+      return [];
+    }
+
+    const data = response.data.data;
+    if (!data) {
+      return [];
+    }
+
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    return [data];
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '기기 목록 조회에 실패했습니다.'));
+  }
+}
+
+/**
+ * 특정 기기 세션 종료
+ */
+export async function deleteDeviceSession(sessionId: string): Promise<string> {
+  try {
+    const response = await api.delete<{ success: boolean; message?: string; data?: never }>(`/auth/sessions/${sessionId}`);
+    if (!response.data.success) {
+      throw new Error(response.data.message || '기기 세션을 종료하지 못했습니다.');
+    }
+
+    return response.data.message || '기기 세션이 종료되었습니다.';
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '기기 세션 종료에 실패했습니다.'));
+  }
+}
+
+/**
+ * 현재 기기 제외 전체 세션 종료
+ */
+export async function deleteOtherDeviceSessions(): Promise<string> {
+  try {
+    const response = await api.delete<{ success: boolean; message?: string; data?: never }>('/auth/sessions', {
+      params: { allExceptCurrent: true },
+    });
+    if (!response.data.success) {
+      throw new Error(response.data.message || '세션 종료에 실패했습니다.');
+    }
+
+    return response.data.message || '현재 기기 제외 다른 기기 로그아웃이 완료되었습니다.';
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '기기 세션 종료에 실패했습니다.'));
+  }
+}
+
+/**
+ * 닉네임 중복/사용 가능 여부 체크
+ */
+export async function checkNicknameAvailability(name: string): Promise<NicknameCheckResponse> {
+  try {
+    const response = await api.get<{ success: boolean; message?: string; data?: NicknameCheckResponse }>(`/auth/check-name`, {
+      params: { name },
+    });
+
+    if (!response.data.success) {
+      return {
+        available: false,
+        message: response.data.message || '현재 닉네임을 사용할 수 없습니다.',
+      };
+    }
+
+    const payload = response.data.data || {};
+    if (typeof payload.available === 'boolean') {
+      return payload;
+    }
+
+    return {
+      available: false,
+      message: response.data.message || '사용 여부를 확인할 수 없습니다.',
+    };
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '닉네임 중복 확인에 실패했습니다.'));
   }
 }

@@ -6,12 +6,12 @@ import { CheerPost } from '../api/cheerApi';
 import ImageGrid from './ImageGrid';
 import RollingNumber from './RollingNumber';
 import TeamLogo from './TeamLogo';
-import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import { TEAM_DATA } from '../constants/teams';
 import CommentModal from './CommentModal';
 import QuoteRepostEditor from './QuoteRepostEditor';
 import EmbeddedPost from './EmbeddedPost';
 import { useCheerMutations } from '../hooks/useCheerQueries';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -40,7 +40,8 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const contentText = post.content?.trim() || '';
     const resolveProfileImage = (imageUrl?: string) => {
         if (!imageUrl) return null;
-        return imageUrl.includes('/assets/') ? DEFAULT_PROFILE_IMAGE : imageUrl;
+        if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
+        return imageUrl;
     };
 
     // Use a ref-like derived value OR helper function defined inside the component
@@ -220,7 +221,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 className="flex gap-3"
             >
 
-                <div className="relative h-11 w-11 flex-shrink-0">
+                <div className="relative h-10 w-10 flex-shrink-0">
                     <div
                         className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-gray-200 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={(e) => {
@@ -236,26 +237,26 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     >
                         {(post.repostType === 'SIMPLE' && post.originalPost) ? (
                             resolveProfileImage(post.originalPost.authorProfileImageUrl) ? (
-                                <img
-                                    src={resolveProfileImage(post.originalPost.authorProfileImageUrl) || DEFAULT_PROFILE_IMAGE}
-                                    alt={post.originalPost.author}
-                                    className="h-full w-full object-cover image-render-quality"
-                                    onError={(event) => {
-                                        event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
-                                    }}
+                                <ProfileAvatar
+                                    src={resolveProfileImage(post.originalPost.authorProfileImageUrl) || undefined}
+                                    alt={post.originalPost.author || '프로필'}
+                                    fallbackName={post.originalPost.author || '프로필'}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full"
                                 />
                             ) : (
                                 post.originalPost.author?.slice(0, 1) || '?'
                             )
                         ) : (
                             resolveProfileImage(post.authorProfileImageUrl) ? (
-                                <img
-                                    src={resolveProfileImage(post.authorProfileImageUrl) || DEFAULT_PROFILE_IMAGE}
-                                    alt={post.author}
-                                    className="h-full w-full object-cover image-render-quality"
-                                    onError={(event) => {
-                                        event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
-                                    }}
+                                <ProfileAvatar
+                                    src={resolveProfileImage(post.authorProfileImageUrl) || undefined}
+                                    alt={post.author || '프로필'}
+                                    fallbackName={post.author || '프로필'}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full"
                                 />
                             ) : (
                                 post.author?.slice(0, 1) || '?'

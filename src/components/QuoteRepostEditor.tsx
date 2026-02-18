@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 
 interface QuoteRepostEditorProps {
     isOpen: boolean;
@@ -25,6 +26,11 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
     const { confirm } = useConfirmDialog();
     const { quoteRepostMutation } = useCheerMutations();
     const user = useAuthStore((state) => state.user);
+    const resolveProfileImage = (imageUrl?: string) => {
+        if (!imageUrl) return null;
+        if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
+        return imageUrl;
+    };
 
     const MAX_LENGTH = 500;
     const remainingChars = MAX_LENGTH - content.length;
@@ -110,10 +116,13 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                     <div className="flex gap-3">
                         <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary overflow-hidden flex-shrink-0">
                             {user?.profileImageUrl ? (
-                                <img
-                                    src={user.profileImageUrl}
+                                <ProfileAvatar
+                                    src={resolveProfileImage(user.profileImageUrl) || undefined}
                                     alt={user.name || '프로필'}
-                                    className="h-full w-full object-cover"
+                                    fallbackName={user.name || '프로필'}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full"
                                 />
                             ) : (
                                 <div className="h-full w-full flex items-center justify-center text-sm font-medium text-slate-500 dark:text-gray-300">

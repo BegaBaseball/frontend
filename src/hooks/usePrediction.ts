@@ -63,6 +63,8 @@ export const usePrediction = () => {
   const [allDatesData, setAllDatesData] = useState<DateGames[]>([]);
   const [currentDateIndex, setCurrentDateIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [matchesLoadState, setMatchesLoadState] = useState<'idle' | 'ready' | 'empty' | 'error'>('idle');
+  const [matchesLoadErrorMessage, setMatchesLoadErrorMessage] = useState<string | null>(null);
   const user = useAuthStore((state) => state.user);
 
   // 투표 현황
@@ -80,7 +82,10 @@ export const usePrediction = () => {
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
       setLoading(false);
+      setMatchesLoadState('idle');
+      setMatchesLoadErrorMessage(null);
     } else if (!isAuthLoading && isLoggedIn) {
+      setMatchesLoadState('idle');
       fetchAllGames();
     }
   }, [isLoggedIn, isAuthLoading]);
@@ -131,6 +136,8 @@ export const usePrediction = () => {
     }
 
     isFetchingAllGamesRef.current = true;
+    setMatchesLoadState('idle');
+    setMatchesLoadErrorMessage(null);
 
     try {
       setLoading(true);
@@ -143,12 +150,14 @@ export const usePrediction = () => {
       const endDate = `${currentYear}-12-31`;
 
       const allMatches = await fetchMatchesByRange(startDate, endDate);
+      const allMatchCount = allMatches.length;
 
       // 1. 실제 경기가 있는 날짜들만 그룹화 (빈 날짜 자동 스킵)
       let allDates = groupByDate(allMatches);
 
       // 데이터가 아예 없으면 "오늘"만 표시 (빈 화면)
-      if (allDates.length === 0) {
+      if (allMatchCount === 0) {
+        setMatchesLoadState('empty');
         allDates = [{ date: today, games: [] }];
         setAllDatesData(allDates);
         setCurrentDateIndex(0);
@@ -202,6 +211,7 @@ export const usePrediction = () => {
       }
 
       setCurrentDateIndex(activeIndex !== -1 ? activeIndex : 0);
+      setMatchesLoadState('ready');
 
       // 종료되지 않은 전 경기 사용자 투표 조회 (투표 가능 게임들)
       const interactiveGames = allMatches.filter(game => game.homeScore === null);
@@ -242,8 +252,11 @@ export const usePrediction = () => {
       }
 
     } catch (error) {
-      // Global handler catches this for major fetch errors (games list).
-      // We just need to stop loading.
+      const fallbackDate = getTodayString();
+      setMatchesLoadState('error');
+      setMatchesLoadErrorMessage('예측 경기 목록 조회에 실패했습니다.');
+      setAllDatesData([{ date: fallbackDate, games: [] }]);
+      setCurrentDateIndex(0);
     } finally {
       setLoading(false);
       isFetchingAllGamesRef.current = false;
@@ -380,6 +393,8 @@ export const usePrediction = () => {
     currentGameDetailLoading,
     isAuthLoading,
     isLoggedIn,
+    matchesLoadState,
+    matchesLoadErrorMessage,
 
     // Handlers
     handleVote,

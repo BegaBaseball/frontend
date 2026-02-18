@@ -97,7 +97,7 @@ export default function MateCreate() {
       console.error('사용자 정보 가져오기 실패:', error);
       if ((error instanceof AxiosError && error.response?.status === 401) ||
         (error instanceof ApiError && error.status === 401)) {
-        useAuthStore.getState().logout();
+        useAuthStore.getState().logout(true);
         useAuthStore.getState().setShowLoginRequiredDialog(true);
       }
     }

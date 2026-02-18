@@ -13,9 +13,9 @@ import {
 } from './ui/dialog';
 import { Button } from './ui/button';
 import { TEAM_DATA } from '../constants/teams';
-import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import TeamLogo from './TeamLogo';
 import { useAuthStore } from '../store/authStore';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 
 interface CheerWriteModalProps {
     isOpen: boolean;
@@ -47,6 +47,11 @@ export default function CheerWriteModal({
     const { theme } = useTheme();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
+    const resolveProfileImage = (imageUrl?: string) => {
+        if (!imageUrl) return null;
+        if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
+        return imageUrl;
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -143,13 +148,13 @@ export default function CheerWriteModal({
                         <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
 
                             {user?.profileImageUrl ? (
-                                <img
-                                    src={user.profileImageUrl.includes('/assets/') ? DEFAULT_PROFILE_IMAGE : user.profileImageUrl}
+                                <ProfileAvatar
+                                    src={resolveProfileImage(user.profileImageUrl) || undefined}
                                     alt={user?.name || '프로필'}
-                                    className="h-full w-full object-cover"
-                                    onError={(event) => {
-                                        event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
-                                    }}
+                                    fallbackName={user?.name || '프로필'}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full"
                                 />
                             ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
                                 <TeamLogo teamId={teamId} team={teamLabel} size={48} />

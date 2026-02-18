@@ -1,4 +1,6 @@
 
+import { getApiBaseUrl } from './apiBase';
+
 const API_URL = (() => {
   if (typeof window !== 'undefined' && window.Cypress) {
     return '/ai';
@@ -6,7 +8,7 @@ const API_URL = (() => {
 
   return import.meta.env.VITE_AI_API_URL || '/ai';
 })();
-const APP_API_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const APP_API_URL = getApiBaseUrl();
 
 export interface AnalyzeLeagueContext {
     season?: number | string;
