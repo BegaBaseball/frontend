@@ -4,6 +4,7 @@ import { Client } from '@stomp/stompjs';
 import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { NotificationData } from '../types/notification';
+import { getApiBaseUrl } from '../api/apiBase';
 
 export const useNotificationSocket = () => {
     const { user } = useAuthStore();
@@ -25,7 +26,7 @@ export const useNotificationSocket = () => {
             return;
         }
 
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+        const apiBaseUrl = getApiBaseUrl();
         let wsBaseUrl = '';
 
         if (apiBaseUrl.startsWith('http')) {

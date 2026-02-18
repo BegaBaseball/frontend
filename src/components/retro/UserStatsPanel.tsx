@@ -2,6 +2,7 @@ import styled, { keyframes, css } from 'styled-components';
 import LevelBadge, { getRankTier } from './LevelBadge';
 import PixelProgressBar from './PixelProgressBar';
 import { StreakCounter, RetroDivider, fonts, crispText, textOutline } from './RetroTheme';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 
 const pulse = keyframes`
   0%, 100% { opacity: 1; }
@@ -83,13 +84,13 @@ const Avatar = styled.div`
   font-size: 32px;
   box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
   overflow: hidden;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
 `;
+
+const resolveProfileImage = (imageUrl?: string) => {
+  if (!imageUrl) return null;
+  if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
+  return imageUrl;
+};
 
 const UserInfo = styled.div`
   .label {
@@ -352,7 +353,14 @@ export default function UserStatsPanel({ stats }: UserStatsPanelProps) {
         <UserSection>
           <Avatar>
             {stats.profileImageUrl ? (
-              <img src={stats.profileImageUrl} alt={stats.userName} />
+              <ProfileAvatar
+                src={resolveProfileImage(stats.profileImageUrl) || undefined}
+                alt={stats.userName}
+                fallbackName={stats.userName}
+                width={64}
+                height={64}
+                className="rounded-full"
+              />
             ) : (
               '🧑'
             )}

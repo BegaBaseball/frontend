@@ -1,0 +1,24 @@
+{
+    "games": [
+        {
+            "id": 101,
+            "date": "2025-04-01",
+            "homeTeam": "Hanwha Eagles",
+            "awayTeam": "LG Twins",
+            "stadium": "Daejeon Hanbat Baseball Stadium",
+            "time": "18:30"
+        },
+        {
+            "id": 102,
+            "date": "2025-04-01",
+            "homeTeam": "SSG Landers",
+            "awayTeam": "KT Wiz",
+            "stadium": "Incheon SSG Landers Field",
+            "time": "18:30"
+        }
+    ],
+    "userPrediction": {
+        "gameId": 101,
+        "predictedWinner": "Hanwha Eagles"
+    }
+}

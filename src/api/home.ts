@@ -3,15 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Game, Ranking, LeagueStartDates } from '../types/home';
 import { DEFAULT_LEAGUE_START_DATES } from '../constants/home';
 import { formatDateForAPI } from '../utils/home';
+import { getApiBaseUrl } from './apiBase';
 
-// Force relative path in Cypress to ensure mocks work
-const RAW_API_BASE_URL = window.Cypress
-    ? ''
-    : (import.meta.env.VITE_API_BASE_URL || '');
-
-const API_PREFIX = RAW_API_BASE_URL
-    ? (RAW_API_BASE_URL.endsWith('/api') ? RAW_API_BASE_URL : `${RAW_API_BASE_URL}/api`)
-    : '/api';
+const API_PREFIX = getApiBaseUrl();
 
 /**
  * 특정 날짜의 경기 데이터 조회

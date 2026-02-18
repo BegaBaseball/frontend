@@ -70,6 +70,8 @@ export const TEAM_LIST = [
   '한화 이글스'
 ];
 
+export const FRANCHISE_TEAM_IDS = ['LG', 'DB', 'SSG', 'KT', 'KH', 'NC', 'SS', 'LT', 'KIA', 'HH'] as const;
+
 export const getFullTeamName = (teamId: string): string => {
   const normalized = resolveTeamCode(teamId);
   return TEAM_DATA[normalized]?.fullName || teamId;

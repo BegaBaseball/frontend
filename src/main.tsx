@@ -29,7 +29,13 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="kbo-theme">
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        storageKey="kbo-theme"
+        disableTransitionOnChange
+      >
         <App />
       </ThemeProvider>
     </QueryClientProvider>

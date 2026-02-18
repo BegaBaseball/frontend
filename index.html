@@ -21,9 +21,17 @@
     <script>
       (function() {
         // kbo-theme (신규) 또는 bega-theme (구형) 확인
-        const theme = localStorage.getItem('kbo-theme') || localStorage.getItem('bega-theme') || 'light';
+        const storedTheme = localStorage.getItem('kbo-theme') || localStorage.getItem('bega-theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        // next-themes는 시스템 모드일 때 실제 적용 클래스는 dark/light로 바인딩됨
+        const theme = storedTheme === 'dark'
+          ? 'dark'
+          : storedTheme === 'light'
+            ? 'light'
+            : systemPrefersDark ? 'dark' : 'light';
+
         const root = document.documentElement;
-        
         root.classList.remove('light', 'dark');
         root.classList.add(theme);
 
@@ -35,6 +43,9 @@
           } else {
             root.style.backgroundColor = '#020617';
           }
+        } else {
+          document.body && (document.body.style.backgroundColor = '#ffffff');
+          root.style.backgroundColor = '';
         }
       })();
     </script>
