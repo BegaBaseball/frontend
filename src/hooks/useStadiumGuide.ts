@@ -70,10 +70,12 @@ export const useStadiumGuide = () => {
 
   // ========== 장소 검색 ==========
   useEffect(() => {
-    if (!selectedStadium || !isMapReady) return;
+    if (!selectedStadium) return;
 
     setSelectedPlace(null);
-    clearMarkers();
+    if (isMapReady) {
+      clearMarkers();
+    }
 
     const fetchPlaces = async (stadiumId: string, category: string) => {
       try {
@@ -90,7 +92,10 @@ export const useStadiumGuide = () => {
     };
 
     if (selectedCategory === 'store') {
-      if (!map) return;
+      if (!isMapReady || !map) {
+        setPlaces([]);
+        return;
+      }
       searchNearbyPlaces(
         '편의점',
         'store',
@@ -100,7 +105,10 @@ export const useStadiumGuide = () => {
         (error) => { console.error(error); toast.error('주변 편의점을 검색하지 못했습니다.'); }
       );
     } else if (selectedCategory === 'parking') {
-      if (!map) return;
+      if (!isMapReady || !map) {
+        setPlaces([]);
+        return;
+      }
       searchNearbyPlaces(
         '주차장',
         'parking',
@@ -159,6 +167,7 @@ export const useStadiumGuide = () => {
     selectedPlace,
     loading,
     error,
+    isMapReady,
 
     // Map
     mapContainer,
