@@ -8,6 +8,7 @@ import type { UserProfileApiResponse } from '../types/profile';
 import type { NotificationData } from '../types/notification';
 import type { Stadium, Place } from '../types/stadium';
 import { getApiBaseUrl } from '../api/apiBase';
+import { SERVER_BASE_URL } from '../constants/config';
 
 export interface KboScheduleItem {
   gameId: string;
@@ -18,6 +19,7 @@ export interface KboScheduleItem {
 }
 
 const API_BASE_URL = getApiBaseUrl();
+const FALLBACK_API_BASE_URL = `${SERVER_BASE_URL.replace(/\/$/, '')}/api`;
 
 export class ApiError extends Error {
   status: number;
@@ -45,9 +47,33 @@ export interface PaginatedResponse<T> {
   size: number;
 }
 
+let notificationUnreadCountEndpointAvailable = true;
+let notificationListEndpointAvailable = true;
+let notificationAuthFailure = false;
+
+const isHttpErrorStatus = (error: unknown, statusCode: number): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  'status' in error &&
+  Number((error as { status: number | string }).status) === statusCode;
+
+export const getApiErrorStatus = (error: unknown): number | null => {
+  if (typeof error !== 'object' || error === null || !('status' in error)) {
+    return null;
+  }
+
+  const status = Number((error as { status: number | string }).status);
+  return Number.isNaN(status) ? null : status;
+};
+
+export const isIgnorableNotificationError = (error: unknown): boolean => {
+  const status = getApiErrorStatus(error);
+  return status === null || status === 401 || status === 404;
+};
+
 export const api = {
-  async request<T = unknown>(endpoint: string, options?: RequestInit): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  async request<T = unknown>(endpoint: string, options?: RequestInit, baseUrl = API_BASE_URL): Promise<T> {
+    const response = await fetch(`${baseUrl}${endpoint}`, {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
@@ -208,11 +234,150 @@ export const api = {
 
   // Notification
   async getNotifications(): Promise<NotificationData[]> {
-    return this.request<NotificationData[]>('/notifications/my');
+    if (notificationAuthFailure) {
+      return [];
+    }
+
+    if (!notificationListEndpointAvailable) {
+      return [];
+    }
+
+    const requestNotifications = (useFallback: boolean): Promise<NotificationData[]> =>
+      this.request<NotificationData[]>('/notifications/my', undefined, useFallback ? FALLBACK_API_BASE_URL : API_BASE_URL);
+
+    try {
+      return await requestNotifications(false);
+    } catch (error) {
+      if (isHttpErrorStatus(error, 401)) {
+        notificationAuthFailure = true;
+        return [];
+      }
+
+      if (isHttpErrorStatus(error, 404) && API_BASE_URL === '/api') {
+        try {
+          return await requestNotifications(true);
+        } catch (fallbackError) {
+          if (isHttpErrorStatus(fallbackError, 401)) {
+            notificationAuthFailure = true;
+            return [];
+          }
+          if (isHttpErrorStatus(fallbackError, 404) || getApiErrorStatus(fallbackError) === null) {
+            notificationListEndpointAvailable = false;
+            return [];
+          }
+          throw fallbackError;
+        }
+      }
+
+      if (isHttpErrorStatus(error, 404) || getApiErrorStatus(error) === null) {
+        notificationListEndpointAvailable = false;
+        return [];
+      }
+
+      throw error;
+    }
   },
 
   async getUnreadCount(): Promise<number> {
-    return this.request<number>('/notifications/my/unread-count');
+    if (notificationAuthFailure) {
+      return 0;
+    }
+
+    if (!notificationUnreadCountEndpointAvailable && !notificationListEndpointAvailable) {
+      return 0;
+    }
+
+    const getUnreadCountFromPath = (path: string, useFallback = false): Promise<number> =>
+      this.request<number>(path, undefined, useFallback ? FALLBACK_API_BASE_URL : API_BASE_URL);
+
+    const getNotificationsFromPath = (path: string, useFallback = false): Promise<NotificationData[]> =>
+      this.request<NotificationData[]>(path, undefined, useFallback ? FALLBACK_API_BASE_URL : API_BASE_URL);
+
+    const reduceUnreadCount = (notifications: NotificationData[]) =>
+      notifications.reduce((count, notification) => (notification.isRead ? count : count + 1), 0);
+
+    if (notificationUnreadCountEndpointAvailable) {
+      try {
+        return await getUnreadCountFromPath('/notifications/my/unread-count');
+      } catch (error) {
+        if (isHttpErrorStatus(error, 401)) {
+          notificationAuthFailure = true;
+          notificationUnreadCountEndpointAvailable = false;
+          return 0;
+        }
+        if (getApiErrorStatus(error) === null) {
+          notificationUnreadCountEndpointAvailable = false;
+          return 0;
+        }
+
+        if (!isHttpErrorStatus(error, 404)) {
+          throw error;
+        }
+
+        notificationUnreadCountEndpointAvailable = false;
+        if (API_BASE_URL === '/api') {
+          try {
+            return await getUnreadCountFromPath('/notifications/my/unread-count', true);
+          } catch (fallbackError) {
+            if (isHttpErrorStatus(fallbackError, 401)) {
+              notificationAuthFailure = true;
+              return 0;
+            }
+            if (isHttpErrorStatus(fallbackError, 404) || getApiErrorStatus(fallbackError) === null) {
+              notificationUnreadCountEndpointAvailable = false;
+              return 0;
+            }
+            throw fallbackError;
+          }
+        }
+      }
+    }
+
+    if (!notificationListEndpointAvailable) {
+      return 0;
+    }
+
+    try {
+      const notifications = await this.request<NotificationData[]>('/notifications/my');
+
+      if (!Array.isArray(notifications)) {
+        return 0;
+      }
+
+      return reduceUnreadCount(notifications);
+    } catch (error) {
+      if (isHttpErrorStatus(error, 401)) {
+        notificationAuthFailure = true;
+        return 0;
+      }
+      if (isHttpErrorStatus(error, 404) && API_BASE_URL === '/api' && FALLBACK_API_BASE_URL !== '/api') {
+        try {
+          const fallbackNotifications = await getNotificationsFromPath('/notifications/my', true);
+          if (!Array.isArray(fallbackNotifications)) {
+            return 0;
+          }
+          return reduceUnreadCount(fallbackNotifications);
+        } catch (fallbackError) {
+          if (isHttpErrorStatus(fallbackError, 401)) {
+            notificationAuthFailure = true;
+            return 0;
+          }
+
+          if (isHttpErrorStatus(fallbackError, 404) || getApiErrorStatus(fallbackError) === null) {
+            notificationListEndpointAvailable = false;
+            return 0;
+          }
+          throw fallbackError;
+        }
+      }
+      if (isHttpErrorStatus(error, 404) || getApiErrorStatus(error) === null) {
+        if (!notificationAuthFailure) {
+          notificationListEndpointAvailable = false;
+        }
+        return 0;
+      }
+      throw error;
+    }
   },
 
   async markAsRead(notificationId: number): Promise<void> {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Calendar as CalendarIcon, Trophy, ChevronLeft, ChevronRight,
-    CalendarDays, Loader2, Flame
+    CalendarDays, Loader2, Flame, AlertTriangle, RefreshCw
 } from 'lucide-react';
 
 // UI Components
@@ -99,6 +99,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     // Loading States
     const [isLoading, setIsLoading] = useState(true);
+    const [isGamesError, setIsGamesError] = useState(false);
     const [isRankingsLoading, setIsRankingsLoading] = useState(true);
 
     const [activeLeagueTab, setActiveLeagueTab] = useState('regular');
@@ -202,6 +203,7 @@ export default function Home({ onNavigate }: HomeProps) {
     const loadGamesData = async (date: Date) => {
         const apiDate = formatDateForAPI(date);
         setIsLoading(true);
+        setIsGamesError(false);
 
         try {
             const response = await fetch(`${API_BASE}/kbo/schedule?date=${apiDate}`, {
@@ -221,6 +223,7 @@ export default function Home({ onNavigate }: HomeProps) {
         } catch (error) {
             console.error('[Game] Error loading games:', error);
             setGames([]);
+            setIsGamesError(true);
         } finally {
             setIsLoading(false);
         }
@@ -336,6 +339,27 @@ export default function Home({ onNavigate }: HomeProps) {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {[1, 2, 3].map((i) => <GameCardSkeleton key={i} />)}
                         </div>
+                    ) : isGamesError ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-card rounded-2xl border border-red-100 dark:border-red-900/40 shadow-sm">
+                            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
+                                <AlertTriangle className="w-8 h-8 text-red-500 dark:text-red-400" />
+                            </div>
+                            <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">
+                                경기 일정을 불러오지 못했습니다
+                            </p>
+                            <p className="text-gray-400 dark:text-gray-400 text-sm mb-4">
+                                네트워크 연결을 확인하고 다시 시도해주세요
+                            </p>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => loadGamesData(selectedDate)}
+                                className="border-primary/30 text-primary hover:bg-primary/5"
+                            >
+                                <RefreshCw className="w-4 h-4 mr-1.5" />
+                                다시 시도
+                            </Button>
+                        </div>
                     ) : (
                         <div className="animate-in fade-in duration-500">
                             {['regular', 'postseason', 'koreanseries'].map(tab => {
@@ -346,7 +370,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                 return (
                                     <TabsContent key={tab} value={tab} className="mt-0">
                                         {currentGames.length === 0 ? (
-                                            <div className="text-center py-16 text-gray-500">
+                                            <div className="text-center py-16 text-gray-500 dark:text-gray-300">
                                                 경기도, 야구도 없는 날입니다.
                                             </div>
                                         ) : (

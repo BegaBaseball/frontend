@@ -507,17 +507,17 @@ export default function ProfileEditSection({
             {lastSavedAt && saveMessage ? ` · ${saveMessage}` : ''}
           </p>
           <div className="flex w-full gap-2 sm:flex-row flex-col">
-            <Button variant="outline" onClick={handleCancelRequest} disabled={isLoading} className="w-full">
+            <Button variant="outline" onClick={handleCancelRequest} disabled={isLoading} className="w-full sm:flex-1">
               취소
             </Button>
-              <Button
-                onClick={handleSave}
-                className={`w-full text-white bg-primary flex items-center justify-center gap-2 ${!canSubmit && 'opacity-70'}`}
-                disabled={isLoading || !canSubmit}
-              >
-                <Save className="w-5 h-5" />
-                {isLoading ? '저장 중...' : '저장하기'}
-              </Button>
+            <Button
+              onClick={handleSave}
+              className={`w-full sm:flex-1 text-white bg-primary flex items-center justify-center gap-2 ${!canSubmit && 'opacity-70'}`}
+              disabled={isLoading || !canSubmit}
+            >
+              <Save className="w-5 h-5" />
+              {isLoading ? '저장 중...' : '저장하기'}
+            </Button>
           </div>
         </div>
       </div>

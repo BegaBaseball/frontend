@@ -643,11 +643,13 @@ export default function CheerDetail() {
                                     onChange={(e) => setCommentText(e.target.value)}
                                     placeholder="댓글을 남겨주세요."
                                     disabled={sendingComment}
+                                    aria-label="댓글 입력"
                                     className="min-h-[88px] sm:min-h-[96px] bg-gray-50 dark:bg-background resize-none"
                                 />
                                 <Button
                                     onClick={handleCommentSubmit}
                                     disabled={!commentText.trim() || sendingComment}
+                                    aria-label="댓글 등록"
                                     className="h-11 sm:h-auto bg-primary text-white sm:w-auto"
                                 >
                                     등록
@@ -681,7 +683,7 @@ export default function CheerDetail() {
                                 </Button>
                             </div>
                         ) : commentsLoading ? (
-                            <div className="space-y-4">
+                            <div aria-busy="true" aria-label="댓글 불러오는 중" className="space-y-4">
                                 {[1, 2, 3].map((item) => (
                                     <div key={item} className="flex gap-4 animate-pulse">
                                         <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-secondary" />
@@ -698,28 +700,29 @@ export default function CheerDetail() {
                                 아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
                             </div>
                         ) : (
-                            <div className="space-y-4">
+                            <div role="list" aria-label="댓글 목록" className="space-y-4">
                                 {comments.map((comment) => (
-                                    <CommentItem
-                                        key={comment.id}
-                                        comment={comment}
-                                        canInteract={Boolean(user)}
-                                        canLike={Boolean(user)}
-                                        repliesEnabled={false}
-                                        repliesComingSoon={true}
-                                        activeReplyId={activeReplyId}
-                                        replyDraft={replyDraft}
-                                        isReplyPending={isReplyPending}
-                                        isCommentLikePending={false}
-                                        commentLikeAnimating={commentLikeAnimating}
-                                        onCommentLike={handleCommentLike}
-                                        onReplyToggle={handleReplyToggle}
-                                        onReplyChange={handleReplyChange}
-                                        onReplySubmit={handleReplySubmit}
-                                        onReplyCancel={handleReplyCancel}
-                                        onDelete={handleCommentDelete}
-                                        userEmail={user?.email}
-                                    />
+                                    <div key={comment.id} role="listitem">
+                                        <CommentItem
+                                            comment={comment}
+                                            canInteract={Boolean(user)}
+                                            canLike={Boolean(user)}
+                                            repliesEnabled={false}
+                                            repliesComingSoon={true}
+                                            activeReplyId={activeReplyId}
+                                            replyDraft={replyDraft}
+                                            isReplyPending={isReplyPending}
+                                            isCommentLikePending={false}
+                                            commentLikeAnimating={commentLikeAnimating}
+                                            onCommentLike={handleCommentLike}
+                                            onReplyToggle={handleReplyToggle}
+                                            onReplyChange={handleReplyChange}
+                                            onReplySubmit={handleReplySubmit}
+                                            onReplyCancel={handleReplyCancel}
+                                            onDelete={handleCommentDelete}
+                                            userEmail={user?.email}
+                                        />
+                                    </div>
                                 ))}
                             </div>
                         )}
