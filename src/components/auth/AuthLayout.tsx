@@ -1,7 +1,9 @@
-import begaCharacter from 'figma:asset/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
-import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
+import begaCharacter from '../../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
+import grassDecor from '../../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
+import { OptimizedImage } from '../common/OptimizedImage';
 import { Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { type CSSProperties } from 'react';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -10,61 +12,66 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children, showHomeButton = false }: AuthLayoutProps) {
   const navigate = useNavigate();
+  const darkPrimary: CSSProperties = {
+    '--primary': '164 41% 23%',
+    '--primary-foreground': '210 40% 98%',
+    '--ring': '164 41% 23%',
+  };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden" style={darkPrimary}>
       {/* Background decorative shapes */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div 
+        <div
           className="fixed rounded-full opacity-90"
-          style={{ 
+          style={{
             top: '-100px',
             right: '-80px',
             width: '600px',
             height: '400px',
-            background: 'linear-gradient(135deg, #2d5f4f 0%, #3d7f5f 100%)',
+            background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #2f6c5c 100%)',
             transform: 'rotate(-15deg)'
           }}
         />
-        <div 
+        <div
           className="fixed rounded-full opacity-80"
-          style={{ 
+          style={{
             top: '-128px',
             left: '-240px',
             width: '500px',
             height: '500px',
-            background: 'linear-gradient(45deg, #2d5f4f 0%, #4a9070 100%)',
+            background: 'linear-gradient(45deg, hsl(var(--primary)) 0%, #3d7e6d 100%)',
             transform: 'rotate(25deg)'
           }}
         />
-        <div 
+        <div
           className="fixed rounded-full opacity-85"
-          style={{ 
+          style={{
             bottom: '-160px',
             left: '-160px',
             width: '550px',
             height: '450px',
-            background: 'linear-gradient(90deg, #2d5f4f 0%, #3d7f5f 100%)',
+            background: 'linear-gradient(90deg, hsl(var(--primary)) 0%, #2f6c5c 100%)',
             transform: 'rotate(-20deg)'
           }}
         />
-        <div 
+        <div
           className="fixed rounded-full opacity-75"
-          style={{ 
+          style={{
             bottom: '-128px',
             right: '-192px',
             width: '500px',
             height: '500px',
-            background: 'linear-gradient(180deg, #3d7f5f 0%, #2d5f4f 100%)',
+            background: 'linear-gradient(180deg, #2f6c5c 0%, hsl(var(--primary)) 100%)',
             transform: 'rotate(15deg)'
           }}
         />
       </div>
 
       {/* Grass decorations */}
-      <img 
-        src={grassDecor} 
-        alt="" 
+      <img
+        src={grassDecor}
+        alt=""
         className="fixed bottom-0 left-0 w-full h-32 object-cover object-top z-10 pointer-events-none"
       />
 
@@ -73,18 +80,19 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
         <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden">
           <div className="grid md:grid-cols-2">
             {/* Left - Character */}
-            <div className="p-12 flex flex-col items-center justify-center relative overflow-hidden" style={{ backgroundColor: '#2d5f4f' }}>
-              <img 
-                src={grassDecor} 
-                alt="" 
+            <div className="p-12 flex flex-col items-center justify-center relative overflow-hidden bg-primary">
+              <OptimizedImage
+                src={grassDecor}
+                alt=""
                 className="absolute bottom-0 left-0 w-full h-24 object-cover object-top opacity-40"
               />
-              
+
               <div className="relative z-10 text-center">
-                <img 
-                  src={begaCharacter} 
-                  alt="BEGA Character" 
+                <OptimizedImage
+                  src={begaCharacter}
+                  alt="BEGA Character"
                   className="w-72 h-auto mb-8 drop-shadow-2xl"
+                  priority={true}
                 />
                 <h1 className="text-white mb-2 text-6xl tracking-wider" style={{ fontWeight: 900 }}>BEGA</h1>
                 <p className="text-green-100 text-xl">BASEBALL GUIDE</p>
@@ -95,14 +103,13 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
               {showHomeButton && (
                 <button
                   onClick={() => navigate('/home')}
-                  className="absolute flex items-center gap-2 bg-white rounded-full px-3 py-2 transition-all hover:scale-105 z-50"
-                  style={{ 
-                    border: '2px solid #2d5f4f',
+                  className="absolute flex items-center gap-2 bg-white rounded-full px-3 py-2 transition-all hover:scale-105 z-50 border-2 border-primary"
+                  style={{
                     top: '38px',
                     right: '48px',
                   }}
                 >
-                  <Home className="w-5 h-5" style={{ color: '#2d5f4f' }} />
+                  <Home className="w-5 h-5 text-primary" />
                 </button>
               )}
 

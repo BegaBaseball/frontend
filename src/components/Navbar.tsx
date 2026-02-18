@@ -1,23 +1,24 @@
-import baseballLogo from 'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import React, { useEffect, useState } from 'react'; 
+import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
-import { Bell, LogOut, ShieldAlert, Menu, X } from 'lucide-react'; 
+import { Bell, LogOut, ShieldAlert, Menu, X, Moon, Sun, MessageSquare, Map, Trophy, Users, Megaphone, LineChart } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import { useUIStore } from '../store/uiStore';
-import { useAuthStore } from '../store/authStore'; 
+import { useAuthStore } from '../store/authStore';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useNotificationStore } from '../store/notificationStore'; 
-import NotificationPanel from './NotificationPanel';  
-import { useNotificationWebSocket } from '../hooks/useNotificationWebSocket';
-import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useNotificationStore } from '../store/notificationStore';
+import NotificationPanel from './NotificationPanel';
+import { motion } from 'framer-motion';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-const LOGOUT_API_URL = `${API_BASE_URL}/auth/logout`; 
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const { theme, setTheme } = useTheme();
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
 
@@ -30,56 +31,34 @@ export default function Navbar() {
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
   const isDesktop = useMediaQuery('(min-width: 768px)');
-  
 
 
-    // 사용자 ID 가져오기
+
+  // React to user changes from store
   useEffect(() => {
-    if (!user) {
-      setUserId(null);
-      return;
-    }
-
-    const fetchUserId = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/users/email-to-id?email=${encodeURIComponent(user.email)}`, {
-          credentials: 'include',
-        });
-        const data = await response.json();
-        const id = data.data || data;
-        setUserId(typeof id === 'number' ? id : parseInt(id));
-      } catch (error) {
-        console.error('사용자 ID 조회 오류:', error);
-      }
-    };
-
-    fetchUserId();
+    setUserId(user ? user.id : null);
   }, [user]);
 
-  // 알림 WebSocket 연결
-  useNotificationWebSocket({
-    userId,
-    enabled: !!userId,
-  });
 
   // 초기 알림 개수만 가져오기 (WebSocket이 실시간으로 업데이트)
   useEffect(() => {
-    if (!userId) return;
+    if (!user?.id) return;
 
     const fetchInitialUnreadCount = async () => {
       try {
-        const countResponse = await fetch(`${API_BASE_URL}/notifications/user/${userId}/unread-count`, {
-          credentials: 'include',
-        });
-        const count = await countResponse.json();
+        // Use api utility for consistent behavior
+        const { api, isIgnorableNotificationError } = await import('../utils/api');
+        const count = await api.getUnreadCount();
         setUnreadCount(count);
       } catch (error) {
-        console.error('읽지 않은 알림 개수 조회 오류:', error);
+        if (!isIgnorableNotificationError(error)) {
+          console.error('읽지 않은 알림 개수 조회 오류:', error);
+        }
       }
     };
 
-    fetchInitialUnreadCount();
-  }, [userId, setUnreadCount]);
+    void fetchInitialUnreadCount();
+  }, [user?.id, setUnreadCount]);
   // 페이지 이동 시 모바일 메뉴 닫기
   useEffect(() => {
     setIsMenuOpen(false);
@@ -92,9 +71,9 @@ export default function Navbar() {
         const target = event.target as HTMLElement;
         const menuElement = document.querySelector('.mobile-menu-popup');
         const hamburgerButton = document.querySelector('.hamburger-menu-btn');
-        
-        if (menuElement && !menuElement.contains(target) && 
-            hamburgerButton && !hamburgerButton.contains(target)) {
+
+        if (menuElement && !menuElement.contains(target) &&
+          hamburgerButton && !hamburgerButton.contains(target)) {
           setIsMenuOpen(false);
         }
       }
@@ -109,97 +88,164 @@ export default function Navbar() {
     };
   }, [isMenuOpen]);
 
-  
-  const handleLogout = async () => {
-    try {
-      const response = await fetch(LOGOUT_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      logout();
-      navigate('/home');
-      if (!response.ok) console.error('Server logout failed');
-    } catch (error) {
-      logout();
-      navigate('/');
-    }
+
+  const handleLogout = () => {
+    logout();
+    navigate('/home');
   };
-  
+
   const navItems = [
-    { id: 'cheer', label: '게시판' },
-    { id: 'stadium', label: '구장가이드' },
-    { id: 'prediction', label: '승리예측' },
-    { id: 'mate', label: '같이가요' }
+    { id: 'cheer', label: '응원석', icon: Megaphone },
+    { id: 'stadium', label: '구장가이드', icon: Map },
+    { id: 'prediction', label: '전력분석실', icon: LineChart },
+    { id: 'mate', label: '같이가요', icon: Users }
   ];
 
   return (
-    <header className="border-b border-gray-200 sticky top-0 z-40 transition-colors duration-300"
-    style={{
-      backgroundColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff',
-      // borderColor: isMenuOpen && !isDesktop ? '#2d5f4f' : '#ffffff'
-    }}
-  >
+    <header
+      className={`border-b border-gray-200 dark:border-border sticky top-0 z-[60] transition-colors duration-300 ${isMenuOpen ? 'bg-background' : 'bg-background/80 backdrop-blur-md'
+        }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          
-          {/* 1. 로고 */}
+
+          {/* 1. 로고: 브랜드 컬러 일관성 유지 및 계층 구조 적용 */}
           <button
             onClick={() => navigate('/home')}
-            className="flex items-center gap-3 shrink-0"
+            className="flex items-center gap-3 shrink-0 group"
           >
-            <img src={baseballLogo} alt="Baseball" className="w-10 h-10" />
-            <div>
-              <h1 className="tracking-wider text-xl transition-colors" 
-              style={{ 
-                fontWeight: 900,
-                color: isMenuOpen && !isDesktop ? '#ffffff' : '#2d5f4f' 
-              }}>BEGA</h1>
-              <p className={`text-xs transition-colors ${isMenuOpen && !isDesktop ? 'text-white' : ''}`} style={{ color: isMenuOpen && !isDesktop ? '#ffffff' : '#2d5f4f' }}>BASEBALL GUIDE</p>
+            <img
+              src={baseballLogo}
+              alt="Baseball"
+              className="w-10 h-10 transition-transform duration-300 group-hover:rotate-12"
+            />
+            <div className="flex flex-col items-start">
+              <h1 className="font-black text-xl tracking-widest text-primary dark:text-primary-light leading-none">
+                BEGA
+              </h1>
+              <p className="text-[10px] font-bold text-muted-foreground dark:text-gray-300 tracking-tight">
+                BASEBALL GUIDE
+              </p>
             </div>
           </button>
 
-          {/* 2. 데스크톱 네비게이션 (중요: md:flex) */}
-          {/* 모바일(hidden) -> md 이상(flex): 상단 메뉴가 보임 */}
+          {/* 2. 데스크톱 네비게이션: 줄바꿈 방지 및 유동적 간격 */}
           {isDesktop && (
-            <nav className="flex flex-1 justify-center items-center gap-2 md:gap-3 lg:gap-6 xl:gap-8 flex-wrap">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => navigate(`/${item.id}`)}
-                  className={`${location.pathname === `/${item.id}` ? 'hover:opacity-70' : 'text-gray-700 hover:opacity-70'} whitespace-nowrap px-2 flex-shrink-0`}
-                  style={location.pathname === `/${item.id}` ? { color: '#2d5f4f', fontWeight: 700 } : {}}
-                >
-                  {item.label}
-                </button>
-              ))}
+            <nav className="flex flex-1 items-center justify-center">
+              <div className="flex items-center gap-4 lg:gap-8 xl:gap-12 px-4 whitespace-nowrap">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate(`/${item.id}`)}
+                    className={`
+                      relative px-1 py-1 text-sm lg:text-base font-bold transition-all duration-200
+                      ${location.pathname === `/${item.id}`
+                        ? 'text-primary dark:text-primary-light'
+                        : 'text-muted-foreground dark:text-gray-300 hover:text-primary dark:hover:text-primary-light'
+                      }
+                    `}
+                  >
+                    {item.label}
+                    {/* 선택된 메뉴 아래에 작은 점 표시 */}
+                    {location.pathname === `/${item.id}` && (
+                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary dark:bg-primary-light" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </nav>
           )}
 
           {/* 3. 우측 아이콘 및 메뉴 영역 */}
           <div className="flex items-center gap-3 shrink-0">
-            
-            {/* 알림 버튼 (항상 보임) */}
-            <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
-              <PopoverTrigger asChild>
-                <button className={`relative p-1 transition-colors ${isMenuOpen && !isDesktop ? 'text-white hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}>
-                  <Bell className="w-6 h-6" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-xs text-white font-bold">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-96 p-0 bg-white border-gray-200" align="end">
-                <div className="p-4 border-b bg-white">
-                  <h3 className="font-bold" style={{ color: '#2d5f4f' }}>
-                    알림
-                  </h3>
-                </div>
-                <NotificationPanel />
-              </PopoverContent>
-            </Popover>
+
+            {/* 테마 토글 버튼 - 모바일 메뉴 열렸을 때 숨김 */}
+            {!(isMenuOpen && !isDesktop) && (
+              <button
+                onClick={toggleTheme}
+                className="p-1 transition-colors text-gray-600 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+                aria-label="다크모드 전환"
+              >
+                {theme === 'dark' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+              </button>
+            )}
+
+            {/* 알림 버튼 - 모바일 메뉴 열렸을 때 숨김 */}
+            {!(isMenuOpen && !isDesktop) && (
+              <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    className="relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
+                    aria-label={`알림${unreadCount > 0 ? ` (읽지 않은 알림 ${unreadCount}개)` : ''}`}
+                  >
+                    <motion.div
+                      animate={unreadCount > 0 ? {
+                        rotate: [0, -15, 12, -10, 5, 0],
+                      } : { rotate: 0 }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: unreadCount > 0 ? Infinity : 0,
+                        repeatDelay: 3,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-primary dark:text-primary-light' : ''}`} />
+                    </motion.div>
+
+                    {/* 개선된 알림 배지 */}
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 flex h-4 w-4">
+                        {/* 1. 핑(Ping) 애니메이션: 새 알림이 있음을 생동감 있게 표현 */}
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+
+                        {/* 2. 실제 배지: 배경색과 분리되는 테두리(ring) 추가 */}
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 ring-2 ring-background items-center justify-center">
+                          <span className="text-[10px] font-bold text-white leading-none">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                          </span>
+                        </span>
+                      </span>
+                    )}
+                  </button>
+                </PopoverTrigger>
+
+                <PopoverContent
+                  className="w-auto p-0 border-none shadow-none bg-transparent"
+                  align="end"
+                  sideOffset={8}
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                    className="
+                      w-[calc(100vw-32px)] mr-4 
+                      sm:w-96 sm:mr-0
+                      overflow-hidden rounded-xl
+                      bg-white dark:bg-card 
+                      border border-gray-200 dark:border-border 
+                      shadow-xl
+                    "
+                  >
+                    <div className="p-4 border-b border-gray-200 dark:border-border bg-gray-50/50 dark:bg-secondary/70 flex justify-between items-center">
+                      <h3 className="font-bold text-sm text-primary dark:text-primary-light">
+                        알림
+                      </h3>
+                      {unreadCount > 0 && (
+                        <span className="text-xs text-muted-foreground dark:text-gray-300">
+                          {unreadCount}개의 읽지 않은 알림
+                        </span>
+                      )}
+                    </div>
+                    {/* 최대 높이 제한 및 스크롤 추가 */}
+                    <div className="max-h-[60vh] overflow-y-auto">
+                      <NotificationPanel />
+                    </div>
+                  </motion.div>
+                </PopoverContent>
+              </Popover>
+            )}
 
             {/* 4. 데스크톱 유저 버튼들 (중요: md:flex) */}
             {/* 모바일(hidden) -> md 이상(flex): 로그인/내정보 버튼 보임 */}
@@ -208,16 +254,16 @@ export default function Navbar() {
                 {isLoggedIn ? (
                   <>
                     <button
-                      onClick={() => navigate('/mypage')}
-                      className="user-profile-button flex items-center justify-center rounded-full transition-all duration-200 font-bold text-xs md:text-sm px-3 md:px-4 lg:px-6 h-9"
-                    >
-                      <span className="relative inline-block">
-                        <span className="user-name">
-                          {user?.name || '회원'} 님
-                        </span>
-                        <span className="mypage-text absolute inset-0 flex items-center justify-center">
-                          마이페이지
-                        </span>
+                      onClick={() => navigate(user?.handle ? `/mypage/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
+                      className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary dark:border-primary-light text-primary dark:text-primary-light font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-primary-foreground dark:hover:text-white"
+                    >                                                      {/* 1. 닉네임: 평소 중앙, 호버 시 위로 사라짐 */}
+                      <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:-translate-y-full group-hover:opacity-0 group-hover:text-white">
+                        {user?.name || '회원'} 님
+                      </span>
+
+                      {/* 2. 프로필: 평소 아래, 호버 시 중앙으로 올라옴 */}
+                      <span className="absolute inset-0 flex items-center justify-center translate-y-full opacity-0 transition-all duration-300 ease-in-out group-hover:translate-y-0 group-hover:opacity-100 group-hover:text-white">
+                        마이페이지
                       </span>
                     </button>
                     {isAdmin && (
@@ -233,9 +279,8 @@ export default function Navbar() {
                     )}
                     <Button
                       onClick={handleLogout}
-                      className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1"
+                      className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1 text-primary dark:text-primary-light border-primary dark:border-primary-light"
                       variant="outline"
-                      style={{ color: '#2d5f4f', borderColor: '#2d5f4f' }}
                     >
                       <LogOut className="w-4 h-4" />
                       로그아웃
@@ -244,8 +289,7 @@ export default function Navbar() {
                 ) : (
                   <Button
                     onClick={() => navigate('/login')}
-                    className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm"
-                    style={{ backgroundColor: '#2d5f4f' }}
+                    className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white bg-primary-dark hover:bg-primary"
                   >
                     로그인
                   </Button>
@@ -255,11 +299,16 @@ export default function Navbar() {
 
             {/* 5. 햄버거 버튼 (중요: 768px 이상에서 숨김) */}
             {!isDesktop && (
-              <button 
-                className={`p-1 focus:outline-none transition-all duration-200 ease-in-out hover:scale-110 active:scale-95 ${isMenuOpen ? 'text-white' : 'text-gray-600 hover:text-gray-900'}`}
+              <button
+                className={`p-2 focus:outline-none transition-all duration-200 ease-in-out hover:scale-110 active:scale-95 ${isMenuOpen
+                  ? 'text-gray-900 dark:text-white'
+                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
+                  }`}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+                aria-expanded={isMenuOpen}
               >
-                {isMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
+                {isMenuOpen ? <X className="w-7 h-7 stroke-[2.5]" /> : <Menu className="w-7 h-7" />}
               </button>
             )}
           </div>
@@ -268,80 +317,105 @@ export default function Navbar() {
 
       {/* 6. 모바일 풀스크린 메뉴 */}
       {isMenuOpen && !isDesktop && (
-        <div className="mobile-menu-container fixed inset-0 bg-white z-50 overflow-y-auto">
-          {/* 메뉴 컨텐츠 */}
-          <div className="px-6 py-6 space-y-2">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => navigate(`/${item.id}`)}
-                className={`block w-full text-left py-4 px-4 text-lg font-semibold rounded-md `}
-                style={
-                  location.pathname === `/${item.id}` 
-                    ? { color: '#2d5f4f', fontWeight: 700 } 
-                    : {}
-                }
-                onMouseEnter={(e) => {
-                  if (location.pathname !== `/${item.id}`) {
-                    e.currentTarget.style.color = '#568e67';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (location.pathname !== `/${item.id}`) {
-                    e.currentTarget.style.color = '#374151'; // text-gray-700
-                  }
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
-
-            <div className="border-t border-gray-200 my-6 pt-6 space-y-3">
-              {isLoggedIn ? (
-                <>
+        <div
+          className="mobile-menu-container fixed top-16 left-0 right-0 bottom-0 z-50 overflow-y-auto"
+          style={{ backgroundColor: theme === 'dark' ? '#000000' : 'white' }}
+        >
+          {/* 네비게이션 섹션 */}
+          <div className="px-6 py-6">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
+              메뉴
+            </p>
+            <div className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === `/${item.id}`;
+                return (
                   <button
-                    onClick={() => navigate('/mypage')}
-                    className="user-profile-button2 items-center justify-center py-3 w-full rounded-full transition-all duration-200 group font-bold text-base"
+                    key={item.id}
+                    onClick={() => navigate(`/${item.id}`)}
+                    className={`flex items-center gap-4 w-full text-left py-4 px-4 text-lg font-semibold rounded-xl transition-all duration-200 ${isActive
+                      ? 'bg-primary/15 text-primary dark:text-primary-light'
+                      : theme === 'dark'
+                        ? 'text-gray-100 hover:bg-secondary'
+                        : 'text-gray-700 hover:bg-gray-100'
+                      }`}
                   >
-                    <span className="py-2 px-4 relative">
-                      <span className="user-name">
-                        {user?.name || '회원'} 님
-                      </span>
-                      <span className="mypage-text">
-                        마이페이지
-                      </span>
+                    <Icon className={`w-5 h-5 ${isActive ? '' : 'text-gray-400'}`} />
+                    <span>{item.label}</span>
+                    {isActive && (
+                      <span className="ml-auto w-2 h-2 rounded-full bg-current" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 사용자 영역 */}
+          <div className="px-6 pb-6">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
+              계정
+            </p>
+            {isLoggedIn ? (
+              <div className="space-y-2">
+                {/* 프로필 카드 */}
+                <button
+                  onClick={() => navigate(user?.handle ? `/mypage/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
+                  className={`flex items-center gap-4 w-full py-4 px-4 rounded-xl transition-all duration-200 ${theme === 'dark'
+                    ? 'bg-card hover:bg-secondary'
+                    : 'bg-gray-50 hover:bg-gray-100'
+                    }`}
+                  aria-label="프로필로 이동"
+                >
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
+                    {user?.name?.charAt(0) || '?'}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-bold text-base ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      {user?.name || '회원'} 님
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-300">
+                      내 프로필 보기 →
+                    </p>
+                  </div>
+                </button>
+
+                {/* 관리자 버튼 - ADMIN 태그 스타일 */}
+                {isAdmin && (
+                  <button
+                    onClick={() => navigate('/admin')}
+                    className="flex items-center gap-3 w-full py-4 px-4 rounded-xl transition-all duration-200 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                    aria-label="관리자 페이지로 이동"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                      <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <span className="font-semibold text-amber-700 dark:text-amber-400">관리자</span>
+                    <span className="ml-auto px-2 py-0.5 text-xs font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                      ADMIN
                     </span>
                   </button>
+                )}
 
-                  {isAdmin && (
-                    <Button 
-                      onClick={() => navigate('/admin')} 
-                      variant="outline" 
-                      className="hover:bg-red-50 w-full justify-start py-6 text-base font-semibold" 
-                      style={{ color: '#d32f2f', borderColor: '#d32f2f' }}
-                    >
-                      <ShieldAlert className="w-5 h-5 mr-2" /> 관리자 페이지
-                    </Button>
-                  )}
-                  <Button 
-                    onClick={handleLogout} 
-                    className="hover:scale-110 w-full justify-center py-6 text-base font-semibold" 
-                    variant="ghost" 
-                    style={{ color: '#d32f2f', backgroundColor: '#ffffff' }}
-                  >
-                    <LogOut className="w-5 h-5 mr-2" /> 로그아웃
-                  </Button>
-                </>
-              ) : (
-                <Button 
-                  onClick={() => navigate('/login')} 
-                  className="menu-click-mobile w-full py-6 text-base font-semibold"
-                  style={{ backgroundColor: '#2d5f4f' }}
+                {/* 로그아웃 버튼 */}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center justify-center gap-2 w-full py-4 px-4 rounded-xl text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-semibold"
+                  aria-label="로그아웃"
                 >
-                  로그인
-                </Button>
-              )}
-            </div>
+                  <LogOut className="w-5 h-5" />
+                  <span>로그아웃</span>
+                </button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => navigate('/login')}
+                className="w-full py-6 text-base font-semibold text-white rounded-xl bg-primary-dark hover:bg-primary"
+              >
+                로그인
+              </Button>
+            )}
           </div>
         </div>
       )}

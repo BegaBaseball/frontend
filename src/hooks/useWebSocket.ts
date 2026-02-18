@@ -1,65 +1,63 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import SockJS from 'sockjs-client';
+import { toast } from 'sonner';
 import { Client, IMessage } from '@stomp/stompjs';
 
 interface ChatMessage {
-  id: string;
-  partyId: string;
-  senderId: string;
+  id: string | number;
+  partyId: string | number;
+  senderId: string | number;
   senderName: string;
   message: string;
   createdAt: string;
 }
 
 interface UseWebSocketProps {
-  partyId: string;
+  partyId: string | number;
   onMessageReceived: (message: ChatMessage) => void;
   enabled?: boolean;
 }
 
-const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080'; 
-
 export function useWebSocket({ partyId, onMessageReceived, enabled = true }: UseWebSocketProps) {
   const clientRef = useRef<Client | null>(null);
-  const [isConnected, setIsConnected] = useState(false); 
+  const [isConnected, setIsConnected] = useState(false);
 
   // WebSocket 연결
   useEffect(() => {
     if (!enabled || !partyId) {
-      setIsConnected(false); 
+      setIsConnected(false);
       return;
     }
 
+    // Determine WebSocket URL
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Development proxy handles /ws -> backend
+    // Production Nginx handles /ws -> backend
+    const brokerUrl = `${protocol}//${window.location.host}/ws`;
+
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws`),
-      debug: (str) => {
-        console.log('STOMP Debug:', str);
-      },
+      brokerURL: brokerUrl,
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
     });
 
     client.onConnect = () => {
-      console.log('WebSocket Connected');
       setIsConnected(true);
 
       // 해당 파티 채팅방 구독
       client.subscribe(`/topic/party/${partyId}`, (message: IMessage) => {
         const receivedMessage = JSON.parse(message.body) as ChatMessage;
-        console.log('Message received:', receivedMessage);
         onMessageReceived(receivedMessage);
       });
     };
 
     client.onStompError = (frame) => {
       console.error('STOMP error:', frame);
-      setIsConnected(false); 
+      setIsConnected(false);
     };
 
     client.onWebSocketClose = () => {
-      console.log('WebSocket Closed');
-      setIsConnected(false); 
+      setIsConnected(false);
     };
 
     client.activate();
@@ -69,15 +67,15 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
       if (client.active) {
         client.deactivate();
       }
-      setIsConnected(false); 
+      setIsConnected(false);
     };
   }, [partyId, enabled, onMessageReceived]);
 
   // 메시지 전송
   const sendMessage = useCallback(
     (message: {
-      partyId: string;
-      senderId: string;
+      partyId: string | number;
+      senderId: string | number;
       senderName: string;
       message: string;
     }) => {
@@ -91,16 +89,16 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
           destination: `/app/chat/${partyId}`,
           body: JSON.stringify(message),
         });
-        console.log('Message sent:', message);
       } catch (error) {
         console.error('Failed to send message:', error);
+        toast.error('메시지 전송에 실패했습니다.');
       }
     },
-    [partyId, isConnected] 
+    [partyId, isConnected]
   );
 
   return {
     sendMessage,
-    isConnected, 
+    isConnected,
   };
 }

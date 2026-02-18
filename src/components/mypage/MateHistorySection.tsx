@@ -4,6 +4,7 @@ import { Card } from '../ui/card';
 import { useMateHistory } from '../../hooks/useMateHistory';
 import { MateHistoryTab } from '../../types/mate';
 import MateHistoryCard from './MateHistoryCard';
+import LoadingSpinner from '../LoadingSpinner';
 
 interface MateHistoryContentProps {
   tab: MateHistoryTab;
@@ -14,13 +15,7 @@ function MateHistoryContent({ tab }: MateHistoryContentProps) {
 
   if (isLoading) {
     return (
-      <div className="text-center py-8">
-        <div
-          className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4"
-          style={{ borderColor: '#2d5f4f' }}
-        ></div>
-        <p className="text-gray-600">메이트 내역을 불러오는 중...</p>
-      </div>
+      <LoadingSpinner size="md" text="메이트 내역을 불러오는 중..." fullScreen={false} />
     );
   }
 
@@ -53,7 +48,7 @@ export default function MateHistorySection() {
   return (
     <div className="space-y-6">
       <Card className="p-8">
-        <h2 className="mb-6" style={{ color: '#2d5f4f', fontWeight: 900 }}>
+        <h2 className="mb-6 text-primary" style={{ fontWeight: 900 }}>
           참여한 메이트
         </h2>
 
@@ -64,11 +59,12 @@ export default function MateHistorySection() {
               key={tab.key}
               onClick={() => setMateHistoryTab(tab.key)}
               className={`px-4 py-2 -mb-px ${
-                mateHistoryTab === tab.key ? 'border-b-2 font-bold' : 'text-gray-500'
+                mateHistoryTab === tab.key
+                  ? 'border-b-2 font-bold border-primary text-primary'
+                  : 'text-gray-500'
               }`}
               style={{
-                borderColor: mateHistoryTab === tab.key ? '#2d5f4f' : 'transparent',
-                color: mateHistoryTab === tab.key ? '#2d5f4f' : undefined,
+                borderColor: mateHistoryTab === tab.key ? undefined : 'transparent',
               }}
             >
               {tab.label}

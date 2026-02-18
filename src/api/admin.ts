@@ -1,7 +1,8 @@
 // api/admin.ts
 import { AdminUser, AdminStats, AdminPost, AdminMate, AdminApiResponse } from '../types/admin';
+import { getApiBaseUrl } from './apiBase';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * 관리자 통계 조회

@@ -1,3 +1,5 @@
+import { getApiBaseUrl } from './apiBase';
+
 // 이미지 정보 타입
 export interface PostImageInfo {
   id: number;
@@ -19,7 +21,7 @@ export interface EdgeFunctionImageResponse {
   };
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = getApiBaseUrl();
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1`;
 
@@ -148,4 +150,3 @@ export async function renewSignedUrl(imageId: number): Promise<{ signedUrl: stri
     expiresAt: json.expiresAt
   };
 }
-

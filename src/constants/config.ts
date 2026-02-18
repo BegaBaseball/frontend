@@ -1,9 +1,58 @@
 // constants/config.ts
 
+const LOOPBACK_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  '0:0:0:0:0:0:0:1',
+]);
+
+const normalizeHost = (host: string): string => host.toLowerCase().trim();
+
+const normalizeBaseUrl = (value: string): string => value.trim().replace(/\/$/, '');
+
+const isLoopbackHost = (host: string): boolean => LOOPBACK_HOSTS.has(normalizeHost(host));
+
+const parseProxyPort = (value: string): string => {
+  try {
+    const target = new URL(value);
+    if (target.port) {
+      return `:${target.port}`;
+    }
+  } catch {
+    // ignore
+  }
+
+  return '';
+};
+
+const resolveDefaultServerBaseUrl = (): string => {
+  const manualServerBase = normalizeBaseUrl(import.meta.env.VITE_NO_API_BASE_URL || '');
+
+  if (manualServerBase) {
+    return manualServerBase;
+  }
+
+  const proxyTarget = (import.meta.env.VITE_PROXY_TARGET || 'http://localhost:8080').trim();
+  const pageHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  const pageProtocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
+
+  try {
+    const target = new URL(proxyTarget);
+    const backendHost = isLoopbackHost(pageHost)
+      ? pageHost
+      : (target.hostname || 'localhost');
+    return `${pageProtocol}//${backendHost}${parseProxyPort(proxyTarget)}`;
+  } catch {
+    const fallbackHost = isLoopbackHost(pageHost) ? pageHost : 'localhost';
+    return `${pageProtocol}//${fallbackHost}:8080`;
+  }
+};
+
 /**
- * API 기본 URL
+ * 직접 접근 base URL (OAuth 리다이렉트, 이미지 등 — 프록시 미경유)
  */
-export const API_BASE_URL = import.meta.env.VITE_NO_API_BASE_URL || 'http://localhost:8080';
+export const SERVER_BASE_URL = resolveDefaultServerBaseUrl().replace(/\/$/, '');
 
 /**
  * 현재 시즌 연도
@@ -16,23 +65,13 @@ export const CURRENT_SEASON = 2025;
 export const DEFAULT_DATE = new Date(2025, 9, 26);
 
 /**
- * 브랜드 색상
- */
-export const BRAND_COLORS = {
-  primary: '#2d5f4f',      // 메인 녹색
-  secondary: '#3d7f5f',    // 보조 녹색
-  light: '#f0f9f4',        // 연한 녹색
-  gray: '#9ca3af',         // 회색
-} as const;
-
-/**
  * 페이지 제목
  */
 export const PAGE_TITLES = {
   home: '홈',
-  cheer: '응원게시판',
+  cheer: '응원석',
   stadium: '구장가이드',
-  prediction: '승부예측',
+  prediction: '전력분석실',
   diary: '직관다이어리',
   login: '로그인',
   signup: '회원가입',

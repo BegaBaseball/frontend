@@ -2,6 +2,19 @@ export interface Message {
   text: string;
   sender: 'user' | 'bot';
   timestamp: Date;
+  isError?: boolean;
+  // Metadata for enhanced UI
+  verified?: boolean;
+  citations?: Array<{
+    title: string;
+    url?: string;
+    content?: string;
+  }>;
+  toolCalls?: Array<{
+    toolName: string;
+    parameters: Record<string, unknown>;
+  }>;
+  intent?: string;
 }
 
 export interface ChatRequest {
@@ -23,4 +36,19 @@ export interface ChatResponse {
 export interface VoiceResponse {
   text?: string;
   error?: string;
+}
+
+// Metadata from SSE 'meta' event
+export interface ChatMeta {
+  verified: boolean;
+  dataSources: Array<{
+    title: string;
+    url?: string;
+    content?: string;
+  }>;
+  toolCalls: Array<{
+    toolName: string;
+    parameters: Record<string, unknown>;
+  }>;
+  style: string;
 }

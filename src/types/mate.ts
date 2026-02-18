@@ -1,7 +1,7 @@
 // src/types/mate.ts
 export interface Party {
-  id: string;
-  hostId: string;
+  id: number;
+  hostId: number;
   hostName: string;
   hostProfileImageUrl?: string;
   hostFavoriteTeam?: string;
@@ -25,17 +25,17 @@ export interface Party {
   createdAt: string;
 }
 
-export type PartyStatus = 
-  | 'PENDING' 
-  | 'MATCHED' 
-  | 'FAILED' 
-  | 'SELLING' 
-  | 'SOLD' 
-  | 'CHECKED_IN' 
+export type PartyStatus =
+  | 'PENDING'
+  | 'MATCHED'
+  | 'FAILED'
+  | 'SELLING'
+  | 'SOLD'
+  | 'CHECKED_IN'
   | 'COMPLETED';
 
 export interface Application {
-  id: string;
+  id: number;
   partyId: number;
   applicantId: number;
   applicantName: string;
@@ -46,11 +46,14 @@ export interface Application {
   paymentType: 'DEPOSIT' | 'FULL';
   isApproved: boolean;
   isRejected: boolean;
+  ticketVerified?: boolean;
+  ticketImageUrl?: string;
   createdAt: string;
+  responseDeadline?: string;
 }
 
 export interface CheckIn {
-  id: string;
+  id: number;
   partyId: number;
   userId: number;
   userName: string;
@@ -58,10 +61,20 @@ export interface CheckIn {
   checkedInAt: string;
 }
 
+export interface PartyReview {
+  id: number;
+  partyId: number;
+  reviewerId: number;
+  revieweeId: number;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
 export interface ChatMessage {
-  id: string;
-  partyId: string;
-  senderId: string;
+  id: number | string;
+  partyId: number | string;
+  senderId: number | string;
   senderName: string;
   message: string;
   createdAt: string;
@@ -69,15 +82,7 @@ export interface ChatMessage {
 
 export type BadgeType = 'new' | 'verified' | 'trusted';
 
-export type MateStatus = 
-  | 'PENDING' 
-  | 'MATCHED' 
-  | 'CHECKED_IN' 
-  | 'COMPLETED' 
-  | 'FAILED' 
-  | 'SELLING' 
-  | 'SOLD';
-
+// MateParty: 히스토리/목록용 간소화 타입 (Party의 서브셋)
 export interface MateParty {
   id: number;
   hostId: number;
@@ -88,7 +93,7 @@ export interface MateParty {
   section: string;
   currentParticipants: number;
   maxParticipants: number;
-  status: MateStatus;
+  status: PartyStatus;
   description?: string;
   homeTeam: string;
   awayTeam: string;
@@ -102,3 +107,59 @@ export interface MateApplication {
 }
 
 export type MateHistoryTab = 'all' | 'completed' | 'ongoing';
+
+// --- Request Types (matching backend DTOs) ---
+
+export interface CreatePartyRequest {
+  hostId: number;
+  hostName: string;
+  hostBadge?: string;
+  hostRating?: number;
+  teamId: string;
+  gameDate: string;
+  gameTime: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+  section: string;
+  maxParticipants: number;
+  description: string;
+  ticketImageUrl?: string | null;
+  ticketPrice?: number;
+  reservationNumber?: string;
+}
+
+export interface UpdatePartyRequest {
+  status?: PartyStatus;
+  price?: number;
+  description?: string;
+  section?: string;
+  maxParticipants?: number;
+  ticketPrice?: number;
+}
+
+export interface CreateApplicationRequest {
+  partyId: number;
+  applicantId: number;
+  applicantName: string;
+  applicantBadge: string;
+  depositAmount: number;
+  paymentType: 'DEPOSIT' | 'FULL';
+  verificationToken?: string | null;
+  ticketVerified?: boolean;
+  ticketImageUrl?: string | null;
+}
+
+export interface CreateCheckInRequest {
+  partyId: number;
+  userId: number;
+  location: string;
+}
+
+export interface CreateReviewRequest {
+  partyId: number;
+  reviewerId: number;
+  revieweeId: number;
+  rating: number;
+  comment?: string;
+}

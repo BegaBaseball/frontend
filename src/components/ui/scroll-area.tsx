@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area@1.2.3";
+import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 
-import { cn } from "./utils";
+import { cn } from "../../lib/utils";
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
@@ -47,7 +47,7 @@ const ScrollBar = React.forwardRef<
   >
     <ScrollAreaPrimitive.ScrollAreaThumb
       data-slot="scroll-area-thumb"
-      className="bg-[#2d5f4f] relative flex-1 rounded-full"
+      className="bg-primary relative flex-1 rounded-full"
     />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ));

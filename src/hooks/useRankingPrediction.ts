@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { usePredictionStore, Team } from '../store/predictionStore';
-import { 
-  fetchCurrentSeason, 
-  fetchSavedPrediction, 
-  saveRankingPrediction 
+import {
+  fetchCurrentSeason,
+  fetchSavedPrediction,
+  saveRankingPrediction
 } from '../api/ranking';
-import { 
-  restoreTeamsFromIds, 
+import {
+  restoreTeamsFromIds,
   isRankingComplete,
   extractTeamIds,
   generateRankingText,
@@ -17,12 +17,13 @@ import {
   initializeKakaoSDK
 } from '../utils/ranking';
 import { KAKAO_APP_KEY } from '../constants/ranking';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 export const useRankingPrediction = () => {
   const navigate = useNavigate();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
-  const userEmail = useAuthStore((state) => state.user?.email);
+  const userId = useAuthStore((state) => state.user?.id);
 
   // Local state
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -37,7 +38,7 @@ export const useRankingPrediction = () => {
   const availableTeams = usePredictionStore((state) => state.availableTeams);
   const isPredictionSaved = usePredictionStore((state) => state.isPredictionSaved);
   const allTeams = usePredictionStore((state) => state.allTeams);
-  
+
   const addTeamToRanking = usePredictionStore((state) => state.addTeamToRanking);
   const removeTeamFromRanking = usePredictionStore((state) => state.removeTeamFromRanking);
   const moveTeam = usePredictionStore((state) => state.moveTeam);
@@ -67,44 +68,47 @@ export const useRankingPrediction = () => {
 
   const initializePage = async () => {
     setIsLoading(true);
-    
+
     try {
       // 1. 현재 시즌 조회
       const seasonData = await fetchCurrentSeason();
       setCurrentSeason(seasonData.seasonYear);
       setIsPredictionPeriod(true);
 
-      // 2. 저장된 예측 조회
-      try {
-        const savedPrediction = await fetchSavedPrediction(seasonData.seasonYear);
+      // 2. 저장된 예측 조회 (없으면 null 반환)
+      const savedPrediction = await fetchSavedPrediction(seasonData.seasonYear);
+
+      if (savedPrediction) {
         setAlreadySaved(true);
-        
+
         // 저장된 예측 복원
         const restoredRankings = restoreTeamsFromIds(savedPrediction.teamIdsInOrder, allTeams);
         if (setRankings) {
           setRankings(restoredRankings);
         }
-        
+
         toast.info(`${seasonData.seasonYear} 시즌 순위 예측을 불러왔습니다.`);
-      } catch (error: any) {
+      } else {
         // 저장된 예측이 없으면 초기화
-        if (error.message !== 'UNAUTHORIZED') {
-          resetRankings();
-        }
+        resetRankings();
       }
 
-    } catch (error: any) {
-      if (error.message === 'UNAUTHORIZED') {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, '데이터를 불러오는데 실패했습니다.');
+      if (errorMessage === 'UNAUTHORIZED') {
         toast.error('로그인이 필요한 서비스입니다.');
         navigate('/login');
       } else {
         setIsPredictionPeriod(false);
-        toast.error(error.message || '데이터를 불러오는데 실패했습니다.');
+        toast.error(errorMessage);
       }
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Computed
+  const isComplete = isRankingComplete(rankings);
 
   // 팀 추가
   const handleTeamClick = (team: Team) => {
@@ -149,7 +153,7 @@ export const useRankingPrediction = () => {
 
     try {
       const teamIds = extractTeamIds(rankings);
-      
+
       await saveRankingPrediction({
         seasonYear: currentSeason,
         teamIdsInOrder: teamIds
@@ -159,17 +163,17 @@ export const useRankingPrediction = () => {
       setShowSaveDialog(false);
       setAlreadySaved(true);
 
-    } catch (error: any) {
-      if (error.message.includes('이미')) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, '저장에 실패했습니다.');
+      if (errorMessage.includes('이미')) {
         setAlreadySaved(true);
       }
-      toast.error(error.message || '저장에 실패했습니다.');
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   // 카카오톡 공유
   const handleShare = () => {
     if (!isKakaoSDKReady()) {
@@ -182,7 +186,7 @@ export const useRankingPrediction = () => {
       return;
     }
 
-    if (!userEmail) {
+    if (!userId) {
       toast.error('사용자 정보를 불러올 수 없습니다.');
       return;
     }
@@ -191,7 +195,7 @@ export const useRankingPrediction = () => {
       const rankingText = generateRankingText(rankings);
 
       const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-      const shareUrl = `${baseUrl}/predictions/ranking/share/${encodeURIComponent(userEmail)}/${currentSeason}`;
+      const shareUrl = `${baseUrl}/predictions/ranking/share/${userId}/${currentSeason}`;
 
 
       window.Kakao.Share.sendDefault({
@@ -199,7 +203,7 @@ export const useRankingPrediction = () => {
         content: {
           title: `${currentSeason} KBO 시즌 순위 예측`,
           description: rankingText,
-          imageUrl: `${supabaseUrl}/storage/v1/object/public/public-image/bega.png`,
+          imageUrl: `${baseUrl}/favicon.png`,
           link: {
             mobileWebUrl: shareUrl,
             webUrl: shareUrl,
@@ -223,8 +227,6 @@ export const useRankingPrediction = () => {
     }
   };
 
-  const isComplete = isRankingComplete(rankings);
-
   return {
     // State
     showSaveDialog,
@@ -236,21 +238,21 @@ export const useRankingPrediction = () => {
     isLoading,
     isAuthLoading,
     isLoggedIn,
-    userEmail,
-    
+    userId,
+
     // Store state
     rankings,
     availableTeams,
     isPredictionSaved,
     allTeams,
-    
+
     // Store actions
     moveTeam,
     resetRankings,
-    
+
     // Computed
     isComplete,
-    
+
     // Handlers
     handleTeamClick,
     handleRemoveTeam,

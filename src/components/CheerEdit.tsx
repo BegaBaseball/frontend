@@ -2,10 +2,9 @@
 import { ArrowLeft, Image as ImageIcon, MessageSquare, X, Upload } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getTeamNameById } from '../store/cheerStore';
+import { getTeamNameById } from '../api/cheerApi';
 import { useAuthStore } from '../store/authStore';
 import { useCheerEdit } from '../hooks/useCheerEdit';
 
@@ -20,14 +19,10 @@ export default function CheerEdit() {
     isLoading,
     isError,
     hasAccess,
-    title,
-    setTitle,
     content,
     setContent,
     existingImages,
-    imageUrls,
     newFilePreviews,
-    loadingImages,
     deletingImageId,
     isDragging,
     isSubmitting,
@@ -58,7 +53,7 @@ export default function CheerEdit() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
       {/* Header */}
       <div className="border-b bg-gray-50">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -69,7 +64,7 @@ export default function CheerEdit() {
             >
               <ArrowLeft className="h-6 w-6" />
             </button>
-            <h2 style={{ color: '#2d5f4f' }}>응원글 수정</h2>
+            <h2 className="text-primary">응원글 수정</h2>
           </div>
           <div className="flex items-center gap-3">
             <Button
@@ -81,9 +76,8 @@ export default function CheerEdit() {
             </Button>
             <Button
               onClick={handleSubmit}
-              className="text-white"
-              style={{ backgroundColor: '#2d5f4f' }}
-              disabled={isSubmitting || !title.trim() || !content.trim()}
+              className="text-white bg-primary"
+              disabled={isSubmitting || !content.trim()}
             >
               {isSubmitting ? '수정 중...' : '수정 완료'}
             </Button>
@@ -112,15 +106,15 @@ export default function CheerEdit() {
                 <h2 className="mt-6 mb-4 text-gray-900">수정 권한이 없습니다</h2>
                 <p className="mb-6 text-gray-600 leading-relaxed">
                   이 게시글은{' '}
-                  <span className="font-bold" style={{ color: post.teamColor ?? '#2d5f4f' }}>
-                    {post.teamName ?? post.team}
+                  <span className="font-bold" style={{ color: post.teamColor ?? 'var(--primary)' }}>
+                    {post.team}
                   </span>{' '}
                   팀 게시글입니다.
                   <br />
                   {favoriteTeam ? (
                     <>
                       회원님의 응원팀(
-                      <span className="font-bold" style={{ color: '#2d5f4f' }}>
+                      <span className="font-bold text-primary">
                         {getTeamNameById(favoriteTeam)}
                       </span>
                       )만 수정이 가능합니다.
@@ -131,8 +125,7 @@ export default function CheerEdit() {
                 </p>
                 <Button
                   onClick={handleCancel}
-                  className="px-8 text-white"
-                  style={{ backgroundColor: '#2d5f4f' }}
+                  className="px-8 text-white bg-primary"
                 >
                   돌아가기
                 </Button>
@@ -140,22 +133,9 @@ export default function CheerEdit() {
             ) : (
               /* Edit Form */
               <div className="space-y-6">
-                {/* Title */}
-                <div className="space-y-2">
-                  <label className="block text-sm" style={{ color: '#2d5f4f' }}>
-                    제목 *
-                  </label>
-                  <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="제목을 입력하세요"
-                    className="w-full"
-                  />
-                </div>
-
                 {/* Content */}
                 <div className="space-y-2">
-                  <label className="block text-sm" style={{ color: '#2d5f4f' }}>
+                  <label className="block text-sm text-primary">
                     내용 *
                   </label>
                   <Textarea
@@ -169,7 +149,7 @@ export default function CheerEdit() {
                 {/* Images */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="block text-sm" style={{ color: '#2d5f4f' }}>
+                    <label className="block text-sm text-primary">
                       첨부 이미지
                     </label>
                     <span className="text-xs text-gray-500">
@@ -182,12 +162,20 @@ export default function CheerEdit() {
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 transition-colors ${
-                      isDragging ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-gray-400'
-                    }`}
+                    tabIndex={isSubmitting ? -1 : 0}
+                    role="button"
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && !isSubmitting) {
+                        e.preventDefault();
+                        const input = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
+                        input?.click();
+                      }
+                    }}
+                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-gray-400'
+                      }`}
                   >
                     <Upload className="h-6 w-6" />
-                    <span>클릭 또는 드래그하여 이미지 추가</span>
+                    <span>클릭, Enter 또는 드래그하여 이미지 추가</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -195,22 +183,16 @@ export default function CheerEdit() {
                       className="hidden"
                       onChange={handleFileSelect}
                       disabled={isSubmitting}
+                      aria-label="이미지 파일 선택"
                     />
                   </label>
 
-                  {/* Loading */}
-                  {loadingImages && (
-                    <div className="text-center py-4 text-gray-500">
-                      이미지를 불러오는 중...
-                    </div>
-                  )}
-                  
                   {/* Image Grid */}
-                  {!loadingImages && (existingImages.length > 0 || newFilePreviews.length > 0) && (
+                  {(existingImages.length > 0 || newFilePreviews.length > 0) && (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       {/* Existing Images */}
                       {existingImages.map((image, idx) => {
-                        const imageUrl = imageUrls.get(image.id);
+                        const imageUrl = image.url;
                         return (
                           <div
                             key={`existing-${image.id}`}
@@ -227,9 +209,8 @@ export default function CheerEdit() {
                               />
                             )}
                             <div
-                              className={`absolute inset-0 z-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 ${
-                                imageUrl ? 'hidden' : ''
-                              }`}
+                              className={`absolute inset-0 z-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 ${imageUrl ? 'hidden' : ''
+                                }`}
                             >
                               <ImageIcon className="h-8 w-8" />
                               <span className="mt-1 text-xs">로딩 중...</span>
@@ -239,7 +220,7 @@ export default function CheerEdit() {
                               onClick={() => handleDeleteExistingImage(image.id)}
                               className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white shadow-sm transition-all hover:bg-black/75 disabled:opacity-60"
                               disabled={isSubmitting || deletingImageId === image.id}
-                              title="이미지 삭제"
+                              aria-label={`이미지 ${idx + 1} 삭제`}
                             >
                               {deletingImageId === image.id ? (
                                 <span className="text-[10px] font-semibold">삭제</span>
@@ -270,6 +251,7 @@ export default function CheerEdit() {
                             onClick={() => handleRemoveNewFile(index)}
                             className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white shadow-sm transition-all hover:bg-black/75"
                             disabled={isSubmitting}
+                            aria-label={`새 이미지 ${index + 1} 삭제`}
                           >
                             <X className="h-4 w-4" strokeWidth={3} />
                           </button>

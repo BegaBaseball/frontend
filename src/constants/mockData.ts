@@ -11,20 +11,22 @@ export const PAST_GAMES_DATA: DateGames[] = [
       {
         gameId: 'game_20241027_1',
         homeTeam: 'LG',
-        awayTeam: 'OB',
+        awayTeam: 'DB',
         stadium: '잠실구장',
         homeScore: 5,
         awayScore: 3,
-        winner: 'home'
+        winner: 'home',
+        gameDate: '2024-10-27'
       },
       {
         gameId: 'game_20241027_2',
         homeTeam: 'KT',
-        awayTeam: 'SK',
+        awayTeam: 'SSG',
         stadium: '수원구장',
         homeScore: 2,
         awayScore: 4,
-        winner: 'away'
+        winner: 'away',
+        gameDate: '2024-10-27'
       }
     ]
   },
@@ -34,7 +36,7 @@ export const PAST_GAMES_DATA: DateGames[] = [
       {
         gameId: 'game_20241028_1',
         homeTeam: 'NC',
-        awayTeam: 'HT',
+        awayTeam: 'KIA',
         stadium: '창원구장',
         homeScore: 6,
         awayScore: 6,
@@ -57,7 +59,7 @@ export const PAST_GAMES_DATA: DateGames[] = [
       {
         gameId: 'game_20241029_1',
         homeTeam: 'LT',
-        awayTeam: 'WO',
+        awayTeam: 'KH',
         stadium: '사직구장',
         homeScore: 1,
         awayScore: 5,
@@ -79,8 +81,8 @@ export const PAST_GAMES_DATA: DateGames[] = [
     games: [
       {
         gameId: 'game_20241030_1',
-        homeTeam: 'OB',
-        awayTeam: 'SK',
+        homeTeam: 'DB',
+        awayTeam: 'SSG',
         stadium: '잠실구장',
         homeScore: 3,
         awayScore: 3,
@@ -88,7 +90,7 @@ export const PAST_GAMES_DATA: DateGames[] = [
       },
       {
         gameId: 'game_20241030_2',
-        homeTeam: 'HT',
+        homeTeam: 'KIA',
         awayTeam: 'NC',
         stadium: '광주구장',
         homeScore: 9,
@@ -111,7 +113,7 @@ export const PAST_GAMES_DATA: DateGames[] = [
       },
       {
         gameId: 'game_20241031_2',
-        homeTeam: 'WO',
+        homeTeam: 'KH',
         awayTeam: 'LT',
         stadium: '고척구장',
         homeScore: 5,
@@ -134,8 +136,8 @@ export const PAST_GAMES_DATA: DateGames[] = [
       },
       {
         gameId: 'game_20241101_2',
-        homeTeam: 'SK',
-        awayTeam: 'OB',
+        homeTeam: 'SSG',
+        awayTeam: 'DB',
         stadium: '인천구장',
         homeScore: 8,
         awayScore: 1,
@@ -158,7 +160,7 @@ export const PAST_GAMES_DATA: DateGames[] = [
       {
         gameId: 'game_20241102_2',
         homeTeam: 'SS',
-        awayTeam: 'HT',
+        awayTeam: 'KIA',
         stadium: '대구구장',
         homeScore: 6,
         awayScore: 3,
@@ -177,19 +179,19 @@ export const generateFutureGames = (date: string): DateGames => ({
     {
       gameId: `game_${date.replace(/-/g, '')}_1`,
       homeTeam: 'LG',
-      awayTeam: 'OB',
+      awayTeam: 'DB',
       stadium: '잠실구장'
     },
     {
       gameId: `game_${date.replace(/-/g, '')}_2`,
       homeTeam: 'KT',
-      awayTeam: 'SK',
+      awayTeam: 'SSG',
       stadium: '수원구장'
     },
     {
       gameId: `game_${date.replace(/-/g, '')}_3`,
       homeTeam: 'NC',
-      awayTeam: 'HT',
+      awayTeam: 'KIA',
       stadium: '창원구장'
     },
     {
@@ -201,8 +203,9 @@ export const generateFutureGames = (date: string): DateGames => ({
     {
       gameId: `game_${date.replace(/-/g, '')}_5`,
       homeTeam: 'LT',
-      awayTeam: 'WO',
-      stadium: '사직구장'
+      awayTeam: 'KH',
+      stadium: '사직구장',
+      gameDate: date
     }
   ]
 });

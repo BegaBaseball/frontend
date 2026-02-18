@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getTeamColorByAnyKey } from '../constants/teams';
 
 export interface Game {
   id: number;
@@ -40,16 +41,16 @@ export interface Team {
 }
 
 const initialTeams: Team[] = [
-  { id: 'samsung', name: '삼성 라이온즈', shortName: '삼성', color: '#074CA1' },
-  { id: 'lg', name: 'LG 트윈스', shortName: 'LG', color: '#C30452' },
-  { id: 'doosan', name: '두산 베어스', shortName: '두산', color: '#131230' },
-  { id: 'kt', name: 'KT 위즈', shortName: 'KT', color: '#000000' },
-  { id: 'ssg', name: 'SSG 랜더스', shortName: 'SSG', color: '#CE0E2D' },
-  { id: 'kiwoom', name: '키움 히어로즈', shortName: '키움', color: '#570514' },
-  { id: 'hanwha', name: '한화 이글스', shortName: '한화', color: '#FF6600' },
-  { id: 'nc', name: 'NC 다이노스', shortName: 'NC', color: '#315288' },
-  { id: 'lotte', name: '롯데 자이언츠', shortName: '롯데', color: '#041E42' },
-  { id: 'kia', name: '기아 타이거즈', shortName: '기아', color: '#EA0029' }
+  { id: 'samsung', name: '삼성 라이온즈', shortName: '삼성', color: getTeamColorByAnyKey('samsung') },
+  { id: 'lg', name: 'LG 트윈스', shortName: 'LG', color: getTeamColorByAnyKey('lg') },
+  { id: 'doosan', name: '두산 베어스', shortName: '두산', color: getTeamColorByAnyKey('doosan') },
+  { id: 'kt', name: 'KT 위즈', shortName: 'KT', color: getTeamColorByAnyKey('kt') },
+  { id: 'ssg', name: 'SSG 랜더스', shortName: 'SSG', color: getTeamColorByAnyKey('ssg') },
+  { id: 'kiwoom', name: '키움 히어로즈', shortName: '키움', color: getTeamColorByAnyKey('kiwoom') },
+  { id: 'hanwha', name: '한화 이글스', shortName: '한화', color: getTeamColorByAnyKey('hanwha') },
+  { id: 'nc', name: 'NC 다이노스', shortName: 'NC', color: getTeamColorByAnyKey('nc') },
+  { id: 'lotte', name: '롯데 자이언츠', shortName: '롯데', color: getTeamColorByAnyKey('lotte') },
+  { id: 'kia', name: '기아 타이거즈', shortName: '기아', color: getTeamColorByAnyKey('kia') }
 ];
 
 interface PredictionState {
@@ -163,18 +164,18 @@ export const usePredictionStore = create<PredictionState>()(
       // 순위 예측 함수들
       addTeamToRanking: (team) => {
         const { rankings, availableTeams } = get();
-        // 뒤에서부터 빈 자리 찾기 (10위부터 채우기)
-        let lastEmptyIndex = -1;
-        for (let i = rankings.length - 1; i >= 0; i--) {
+        // 앞에서부터 빈 자리 찾기 (1위부터 채우기)
+        let firstEmptyIndex = -1;
+        for (let i = 0; i < rankings.length; i++) {
           if (rankings[i] === null) {
-            lastEmptyIndex = i;
+            firstEmptyIndex = i;
             break;
           }
         }
-        if (lastEmptyIndex === -1) return;
+        if (firstEmptyIndex === -1) return;
         
         const newRankings = [...rankings];
-        newRankings[lastEmptyIndex] = team;
+        newRankings[firstEmptyIndex] = team;
         
         const newAvailableTeams = availableTeams.filter(t => t.id !== team.id);
         
