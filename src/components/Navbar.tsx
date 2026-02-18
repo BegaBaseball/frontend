@@ -164,7 +164,7 @@ export default function Navbar() {
               <button
                 onClick={toggleTheme}
                 className="p-1 transition-colors text-gray-600 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                aria-label="Toggle theme"
+                aria-label="다크모드 전환"
               >
                 {theme === 'dark' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
               </button>
@@ -176,6 +176,7 @@ export default function Navbar() {
                 <PopoverTrigger asChild>
                   <button
                     className="relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
+                    aria-label={`알림${unreadCount > 0 ? ` (읽지 않은 알림 ${unreadCount}개)` : ''}`}
                   >
                     <motion.div
                       animate={unreadCount > 0 ? {

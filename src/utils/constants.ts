@@ -103,3 +103,18 @@ export const PARTY_STATUS_CONFIG: Record<string, { label: string; color: string 
 };
 
 export const DEPOSIT_AMOUNT = 10000; // 보증금
+
+// Mate 관련
+export const MATE_PAGE_SIZE = 9;
+export const MATE_SEARCH_DEBOUNCE_MS = 300;
+export const MATE_D_DAY_THRESHOLD_DAYS = 3;
+
+// 파일 업로드 관련
+export const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+export const MAX_IMAGES_PER_POST = 10;
+
+// UI 관련
+export const CONTENT_TRUNCATE_LENGTH = 250;
+export const CHAT_MESSAGE_MAX_LENGTH = 500;
+export const DESCRIPTION_MIN_LENGTH = 10;
+export const DESCRIPTION_MAX_LENGTH = 200;

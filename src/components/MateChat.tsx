@@ -7,7 +7,7 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
-import LoadingSpinner from './LoadingSpinner';
+import { Skeleton } from './ui/skeleton';
 import { Badge } from './ui/badge';
 import {
   ChevronLeft,
@@ -150,7 +150,56 @@ export default function MateChat() {
   // 조건부 return들
   if (isLoadingUser || isPartyLoading) {
     return (
-      <LoadingSpinner text="사용자 정보를 불러오는 중..." />
+      <div className="min-h-screen bg-gray-50 dark:bg-background flex flex-col">
+        <div className="max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col flex-1">
+          <div className="mb-4">
+            <Skeleton className="h-9 w-16 mb-2" />
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <div className="flex gap-3">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-3 w-12" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+          <Card className="flex-1 p-4 mb-4 flex flex-col overflow-hidden" style={{ minHeight: '400px' }}>
+            <div className="space-y-4 flex-1">
+              {/* 수신 메시지 스켈레톤 */}
+              {[1, 2, 3].map((i) => (
+                <div key={`recv-${i}`} className="flex justify-start">
+                  <div className="flex flex-col items-start max-w-[60%] space-y-1">
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-10 w-40 rounded-2xl" />
+                    <Skeleton className="h-3 w-10" />
+                  </div>
+                </div>
+              ))}
+              {/* 송신 메시지 스켈레톤 */}
+              {[1, 2].map((i) => (
+                <div key={`send-${i}`} className="flex justify-end">
+                  <div className="flex flex-col items-end max-w-[60%] space-y-1">
+                    <Skeleton className="h-10 w-48 rounded-2xl" />
+                    <Skeleton className="h-3 w-10" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex gap-2">
+              <Skeleton className="flex-1 h-10 rounded-md" />
+              <Skeleton className="h-10 w-16 rounded-md" />
+            </div>
+          </Card>
+        </div>
+      </div>
     );
   }
 
@@ -197,7 +246,12 @@ export default function MateChat() {
   // 승인 체크 중
   if (isCheckingApproval) {
     return (
-      <LoadingSpinner text="승인 정보 확인 중..." />
+      <div className="min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3" />
+          <p className="text-sm text-gray-500 dark:text-gray-300">승인 정보 확인 중...</p>
+        </div>
+      </div>
     );
   }
 
@@ -331,8 +385,10 @@ export default function MateChat() {
                     {selectedParty.currentParticipants}명
                   </div>
                   <div className="flex items-center gap-1">
-                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`} />
-                    <span>{isConnected ? '연결됨' : '연결 중...'}</span>
+                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`} />
+                    <span className={isConnected ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
+                      {isConnected ? '연결됨' : '연결 중...'}
+                    </span>
                   </div>
                 </div>
               </div>

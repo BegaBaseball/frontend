@@ -20,6 +20,7 @@ import {
     UserPlus,
     MessageCircle,
 } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
 import { getTeamKoreanName } from '../../utils/teamNames';
 import { getTeamTheme } from '../../utils/teamColors';
 import CheerCard from '../CheerCard';
@@ -126,9 +127,58 @@ export default function UserProfile() {
 
     if (isProfileLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="mt-4 text-gray-500">프로필을 불러오는 중...</p>
+            <div className="max-w-2xl mx-auto pb-8">
+                <div className="flex items-center px-4 py-4">
+                    <Skeleton className="h-5 w-16" />
+                </div>
+                {/* 프로필 카드 스켈레톤 */}
+                <div className="bg-white dark:bg-card shadow-sm border border-gray-100 dark:border-border overflow-hidden">
+                    {/* 배너 */}
+                    <Skeleton className="h-[150px] w-full" />
+                    {/* 아바타 */}
+                    <div className="px-6 -mt-[50px] relative z-10">
+                        <Skeleton className="w-[100px] h-[100px] rounded-full border-4 border-white dark:border-border" />
+                    </div>
+                    {/* 이름 & 핸들 */}
+                    <div className="px-6 pt-4 pb-6 space-y-3">
+                        <Skeleton className="h-8 w-40" />
+                        <Skeleton className="h-4 w-28" />
+                        <div className="flex gap-2">
+                            <Skeleton className="h-6 w-20 rounded-full" />
+                            <Skeleton className="h-6 w-24 rounded-full" />
+                        </div>
+                    </div>
+                    {/* 통계 행 */}
+                    <div className="flex items-center justify-around py-4 border-y border-gray-100 dark:border-border">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="text-center space-y-1">
+                                <Skeleton className="h-6 w-12 mx-auto" />
+                                <Skeleton className="h-4 w-14 mx-auto" />
+                            </div>
+                        ))}
+                    </div>
+                    {/* 바이오 */}
+                    <div className="px-6 py-6">
+                        <Skeleton className="h-20 w-full rounded-xl" />
+                    </div>
+                </div>
+                {/* 게시글 섹션 스켈레톤 */}
+                <div className="mt-6 px-4 space-y-4">
+                    <Skeleton className="h-7 w-36" />
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="bg-white dark:bg-card border border-gray-100 dark:border-border rounded-xl p-4 space-y-3">
+                            <div className="flex items-center gap-3">
+                                <Skeleton className="h-10 w-10 rounded-full" />
+                                <div className="space-y-1 flex-1">
+                                    <Skeleton className="h-4 w-24" />
+                                    <Skeleton className="h-3 w-16" />
+                                </div>
+                            </div>
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-4/5" />
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }

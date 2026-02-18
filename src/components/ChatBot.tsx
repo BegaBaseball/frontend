@@ -1,6 +1,6 @@
 import chatBotIcon from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Badge } from './ui/badge';
-import { X, Send, MessageSquare, Paperclip } from 'lucide-react';
+import { X, Send, Check, Copy } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChatBot } from '../hooks/useChatBot';
@@ -35,6 +35,7 @@ export default function ChatBot() {
   } = useChatBot();
 
   const [isClosing, setIsClosing] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const isRateLimited = rateLimitActive && rateLimitCountdown > 0;
 
   const rateLimitCopy = (() => {
@@ -69,6 +70,16 @@ export default function ChatBot() {
       setIsOpen(false);
       setIsClosing(false);
     }, 300); // 300ms matches animation duration
+  };
+
+  const handleCopyMessage = async (text: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 1500);
+    } catch {
+      // clipboard API not available (e.g. non-HTTPS)
+    }
   };
 
   // 모바일에서 챗봇 열릴 때 body 스크롤 방지
@@ -107,7 +118,7 @@ export default function ChatBot() {
             bg-white dark:bg-black border border-gray-200 dark:border-white/10
             ${isMobile
               ? 'inset-0 rounded-none'
-              : 'bottom-5 right-5 w-[400px] max-w-[calc(100vw-40px)] h-[600px] rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]'
+              : 'bottom-5 right-5 w-[min(400px,calc(100vw-2rem))] h-[600px] rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]'
             }
           `}
         >
@@ -142,6 +153,9 @@ export default function ChatBot() {
           {/* Messages */}
           <div
             ref={messagesContainerRef}
+            aria-live="polite"
+            aria-label="대화 내용"
+            role="log"
             className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scrollbar-hide"
           >
             {!isLoggedIn ? (
@@ -165,31 +179,66 @@ export default function ChatBot() {
                   // 봇 메시지이고 텍스트가 아직 없으면(로딩 중) 렌더링하지 않음 (로딩바만 표시)
                   if (message.sender === 'bot' && !message.text) return null;
 
+                  const isStreamError = message.sender === 'bot' && message.isError === true;
+
                   return (
                     <div
                       key={index}
                       className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div
-                        className={`
-                          py-2.5 px-4 rounded-2xl max-w-[85%]
-                          ${message.sender === 'user'
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 dark:bg-secondary/80 text-gray-900 dark:text-white border border-gray-300 dark:border-white/10'
-                          }
-                        `}
-                      >
-                        {message.sender === 'bot' ? (
-                          <ReactMarkdown remarkPlugins={[remarkGfm]} className="text-sm prose dark:prose-invert max-w-none">
-                            {message.text}
-                          </ReactMarkdown>
-                        ) : (
+                      {message.sender === 'bot' ? (
+                        <div className="group relative max-w-[85%]">
+                          <div
+                            className={`
+                              py-2.5 px-4 rounded-2xl
+                              ${isStreamError
+                                ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700/40'
+                                : 'bg-gray-100 dark:bg-secondary/80 text-gray-900 dark:text-white border border-gray-300 dark:border-white/10'
+                              }
+                            `}
+                          >
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} className="text-sm prose dark:prose-invert max-w-none">
+                              {isStreamError
+                                ? '응답 중 오류가 발생했습니다. 다시 시도해주세요.'
+                                : message.text}
+                            </ReactMarkdown>
+                            <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-300">
+                              {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                          {/* Copy button - shown on hover, only for non-error bot messages */}
+                          {!isStreamError && (
+                            <button
+                              onClick={() => handleCopyMessage(message.text, index)}
+                              className="
+                                absolute -top-2 -right-2
+                                opacity-0 group-hover:opacity-100
+                                transition-opacity duration-150
+                                bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600
+                                rounded-full p-1 shadow-sm
+                                text-gray-400 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white
+                                focus:outline-none focus:ring-2 focus:ring-primary/50
+                              "
+                              aria-label="메시지 복사"
+                              title="복사"
+                            >
+                              {copiedIndex === index
+                                ? <Check className="w-3 h-3 text-green-500" />
+                                : <Copy className="w-3 h-3" />
+                              }
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          className="py-2.5 px-4 rounded-2xl max-w-[85%] bg-primary text-white"
+                        >
                           <p className="m-0 text-sm">{message.text}</p>
-                        )}
-                        <p className={`mt-1 text-[11px] ${message.sender === 'user' ? 'text-white/70' : 'text-gray-500 dark:text-gray-300'}`}>
-                          {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
+                          <p className="mt-1 text-[11px] text-white/70">
+                            {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -219,18 +268,6 @@ export default function ChatBot() {
               transition-colors duration-200
               ${isProcessing ? 'border-primary/50 bg-gray-100 dark:bg-background/80' : 'focus-within:border-primary focus-within:bg-gray-50 dark:focus-within:bg-black'}
             `}>
-              <button
-                type="button"
-                disabled={!isLoggedIn || isProcessing}
-                className={`
-                  text-gray-500 dark:text-gray-300 bg-transparent border-none p-2
-                  ${!isLoggedIn || isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:text-gray-700 dark:hover:text-gray-200'}
-                  transition-colors
-                `}
-                aria-label="파일 첨부"
-              >
-                <Paperclip className="w-4 h-4" />
-              </button>
               <label htmlFor="chatbot-message-input" className="sr-only">
                 메시지 입력
               </label>
@@ -261,7 +298,12 @@ export default function ChatBot() {
               </button>
             </div>
             {rateLimitActive && rateLimitCopy && (
-              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
+              <div
+                aria-live="assertive"
+                aria-atomic="true"
+                role="status"
+                className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100"
+              >
                 <p className="m-0">
                   {rateLimitCopy.main}
                 </p>

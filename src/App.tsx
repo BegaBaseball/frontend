@@ -10,6 +10,7 @@ import { ErrorModalProvider } from './components/contexts/ErrorModalContext';
 import { ConfirmDialogProvider } from './components/contexts/ConfirmDialogContext';
 import GlobalErrorDialog from './components/GlobalErrorDialog';
 import LoadingSpinner from './components/LoadingSpinner';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // 페이지 컴포넌트를 lazy loading
 const Home = lazy(() => import('./components/Home'));
@@ -55,16 +56,18 @@ function ProtectedRoute() {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200 flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
+      <LoadingSpinner
+        variant="auth"
+        message="인증 상태를 확인하고 있습니다."
+        subMessage="잠시만 기다려주세요."
+        minDurationMs={250}
+        className="transition-colors duration-200"
+      />
     );
   }
 
   if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen !bg-white dark:!bg-gray-900 transition-colors duration-200" />
-    );
+    return <div className="min-h-screen bg-background transition-colors duration-200" />;
   }
 
   return <Outlet />;
@@ -119,11 +122,21 @@ export default function App() {
   }, []);
 
   return (
+    <ErrorBoundary>
     <ErrorModalProvider>
       <ConfirmDialogProvider>
       <BrowserRouter>
         <ScrollToTop />
-        <Suspense fallback={<LoadingSpinner />}>
+        <Suspense
+          fallback={
+            <LoadingSpinner
+              variant="app"
+              message="화면을 준비하고 있습니다..."
+              subMessage="잠시만 기다려주세요."
+              minDurationMs={250}
+            />
+          }
+        >
           <Routes>
             {/* 공개 라우트 - 로그인 필요 없음 */}
             <Route path="/login" element={<Login />} />
@@ -187,5 +200,6 @@ export default function App() {
       </BrowserRouter>
       </ConfirmDialogProvider>
     </ErrorModalProvider>
+    </ErrorBoundary>
   );
 }

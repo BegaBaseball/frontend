@@ -21,6 +21,8 @@ import { getTeamColorByAnyKey } from '../constants/teams';
 import { api } from '../utils/api';
 import { mapBackendPartyToFrontend, formatGameDate, getDayOfWeek } from '../utils/mate';
 import { Party, PartyStatus } from '../types/mate';
+import { useDebounce } from '../hooks/useDebounce';
+import { MATE_SEARCH_DEBOUNCE_MS } from '../utils/constants';
 
 // 날짜를 YYYY-MM-DD 문자열로 변환 (필터 비교용)
 const toDateString = (date: Date) => {
@@ -43,6 +45,15 @@ const isLegacyHostAvatarUrl = (url?: string) => {
 export default function Mate() {
   const navigate = useNavigate();
   const { setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
+
+  // Local input state so the input responds instantly; debounced value is synced to the store
+  const [inputValue, setInputValue] = useState(searchQuery || '');
+  const debouncedInput = useDebounce(inputValue, MATE_SEARCH_DEBOUNCE_MS);
+
+  // Sync debounced input to the Zustand store (triggers API fetch)
+  useEffect(() => {
+    setSearchQuery(debouncedInput);
+  }, [debouncedInput, setSearchQuery]);
 
   // Helper to detect stadium from query
   const getStadiumFromQuery = (query: string) => {
@@ -176,11 +187,7 @@ export default function Mate() {
       }
     };
 
-    const timeoutId = setTimeout(() => {
-      fetchParties();
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
+    void fetchParties();
   }, [currentPage, searchQuery, selectedDate, selectedStatus, retryCount]);
 
   const handlePartyClick = (party: Party) => {
@@ -219,22 +226,42 @@ export default function Mate() {
     return null;
   };
 
-  const emptyMessagesByTab: Record<string, string> = {
-    all: '조건에 맞는 파티가 없습니다',
-    recruiting: '모집 중인 파티가 없습니다',
-    matched: '매칭된 파티가 없습니다',
-    selling: '판매 중인 파티가 없습니다',
+  const hasActiveFilters = !!(searchQuery || selectedDate);
+
+  const emptyMessagesByTab: Record<string, { withFilter: string; withoutFilter: string }> = {
+    all: { withFilter: '검색 조건에 맞는 파티가 없습니다', withoutFilter: '아직 개설된 파티가 없습니다' },
+    recruiting: { withFilter: '검색 조건에 맞는 모집 중 파티가 없습니다', withoutFilter: '현재 모집 중인 파티가 없습니다' },
+    matched: { withFilter: '검색 조건에 맞는 매칭 완료 파티가 없습니다', withoutFilter: '매칭 완료된 파티가 없습니다' },
+    selling: { withFilter: '검색 조건에 맞는 티켓 판매 파티가 없습니다', withoutFilter: '티켓 판매 중인 파티가 없습니다' },
   };
 
-  const renderEmptyState = (tabKey: keyof typeof emptyMessagesByTab) => (
-    <div className="text-center py-24 bg-white dark:bg-card rounded-2xl border border-dashed border-gray-200 dark:border-border">
-      <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-      <p className="text-gray-500 font-medium">{emptyMessagesByTab[tabKey]}</p>
-      <Button variant="link" className="text-primary" onClick={() => { setSelectedDate(null); setSearchQuery(''); }}>
-        조건 초기화
-      </Button>
-    </div>
-  );
+  const renderEmptyState = (tabKey: keyof typeof emptyMessagesByTab) => {
+    const messages = emptyMessagesByTab[tabKey];
+    const isSearchEmpty = hasActiveFilters;
+    return (
+      <div className="text-center py-24 bg-white dark:bg-card rounded-2xl border border-dashed border-gray-200 dark:border-border">
+        <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+        <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">
+          {isSearchEmpty ? messages.withFilter : messages.withoutFilter}
+        </p>
+        {isSearchEmpty ? (
+          <>
+            <p className="text-gray-400 text-sm mb-3">검색어나 날짜 필터를 변경해보세요</p>
+            <Button variant="outline" size="sm" className="text-primary border-primary/30" onClick={() => { setSelectedDate(null); setInputValue(''); setSearchQuery(''); }}>
+              필터 초기화
+            </Button>
+          </>
+        ) : (
+          <>
+            <p className="text-gray-400 text-sm mb-3">첫 번째 파티를 만들어보세요!</p>
+            <Button size="sm" className="bg-primary text-white" onClick={() => navigate('/mate/create')}>
+              <Plus className="w-4 h-4 mr-1" /> 파티 만들기
+            </Button>
+          </>
+        )}
+      </div>
+    );
+  };
 
   const renderPartyGrid = (items: Party[]) => (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -491,10 +518,14 @@ export default function Mate() {
             {dateItems.map((date, idx) => {
               const isSelected = selectedDate && toDateString(selectedDate) === toDateString(date);
               const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+              const dateLabel = `${toDateString(date)} ${getDayOfWeek(toDateString(date))}요일${isSelected ? ' (선택됨)' : ''}`;
               return (
-                <div
+                <button
                   key={idx}
+                  type="button"
                   onClick={() => setSelectedDate(isSelected ? null : date)}
+                  aria-label={dateLabel}
+                  aria-pressed={Boolean(isSelected)}
                   className={`
                                 flex flex-col items-center justify-center min-w-[60px] h-[70px] rounded-xl border cursor-pointer transition-all
                                 ${isSelected
@@ -504,7 +535,7 @@ export default function Mate() {
                 >
                   <span className={`text-xs ${!isSelected && isWeekend ? 'text-red-500' : ''}`}>{getDayOfWeek(toDateString(date))}</span>
                   <span className="text-lg font-bold">{date.getDate()}</span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -517,8 +548,9 @@ export default function Mate() {
             <Input
               type="text"
               placeholder="팀명, 구장, 좌석으로 검색해 보세요 (예: 삼성 블루존)"
-              value={searchQuery || ''}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              aria-label="파티 검색"
               className="pl-10 h-12 bg-white dark:bg-card border-gray-200 dark:border-border rounded-xl focus:ring-primary focus:border-primary"
             />
           </div>

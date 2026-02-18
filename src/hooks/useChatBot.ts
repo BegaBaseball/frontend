@@ -141,8 +141,18 @@ export const useChatBot = () => {
           // 서버에서 받은 청크를 버퍼에 추가
           streamingBuffer.current += delta;
         },
-        (error: string) => {
-          streamingBuffer.current += `\n[오류: ${error}]`;
+        (_error: string) => {
+          // 스트림 오류 발생 시 마지막 봇 메시지에 isError 플래그 설정
+          setMessages((prev) => {
+            if (prev.length === 0) return prev;
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg.sender === 'bot') {
+              return prev.map((msg, index) =>
+                index === prev.length - 1 ? { ...msg, isError: true } : msg
+              );
+            }
+            return prev;
+          });
         },
         (meta) => {
           // 메타데이터를 현재 봇 메시지에 저장
@@ -188,12 +198,39 @@ export const useChatBot = () => {
         setRateLimitUntil(Date.now() + waitSeconds * 1000);
       } else if (errorMessage === 'STATUS_503') {
         toast.error('서비스 점검 중이거나 일시적인 오류입니다.');
-        streamingBuffer.current += `\n\n(시스템) 🔧 서비스 점검 중이거나 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.`;
+        setMessages((prev) => {
+          if (prev.length === 0) return prev;
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg.sender === 'bot') {
+            return prev.map((msg, index) =>
+              index === prev.length - 1 ? { ...msg, isError: true } : msg
+            );
+          }
+          return prev;
+        });
       } else if (errorMessage === 'STREAM_TIMEOUT') {
         toast.error('응답 시간이 초과되었습니다.');
-        streamingBuffer.current += `\n\n(시스템) ⏱️ 응답 시간이 초과되었습니다. 네트워크 상태를 확인하거나 잠시 후 다시 시도해주세요.`;
+        setMessages((prev) => {
+          if (prev.length === 0) return prev;
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg.sender === 'bot') {
+            return prev.map((msg, index) =>
+              index === prev.length - 1 ? { ...msg, isError: true } : msg
+            );
+          }
+          return prev;
+        });
       } else {
-        streamingBuffer.current += `\n죄송합니다, 오류가 발생했습니다: ${errorMessage}`;
+        setMessages((prev) => {
+          if (prev.length === 0) return prev;
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg.sender === 'bot') {
+            return prev.map((msg, index) =>
+              index === prev.length - 1 ? { ...msg, isError: true } : msg
+            );
+          }
+          return prev;
+        });
       }
 
       if (!(error instanceof RateLimitError || errorMessage === 'STATUS_429')) {

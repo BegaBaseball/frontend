@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useConfirmDialog } from '../components/contexts/ConfirmDialogContext';
 import { useCheerMutations, useCheerPost } from './useCheerQueries';
 import * as cheerApi from '../api/cheerApi';
@@ -124,6 +125,7 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
             // deletingImageIds is handled immediately in this version
         }, {
             onSuccess: () => {
+                toast.success('게시글이 수정되었습니다.');
                 navigate(`/cheer/${postId}`);
             }
         });
