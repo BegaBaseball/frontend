@@ -1,6 +1,7 @@
 // types/auth.ts
 export interface SignUpFormData {
   name: string;
+  handle: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -9,6 +10,7 @@ export interface SignUpFormData {
 
 export interface FieldErrors {
   name: string;
+  handle: string;
   email: string;
   password: string;
   confirmPassword: string;

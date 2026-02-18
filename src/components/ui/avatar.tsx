@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import * as AvatarPrimitive from "@radix-ui/react-avatar@1.1.3";
+import * as AvatarPrimitive from "@radix-ui/react-avatar";
 
-import { cn } from "./utils";
+import { cn } from "../../lib/utils";
 
 function Avatar({
   className,
@@ -23,12 +23,19 @@ function Avatar({
 
 function AvatarImage({
   className,
+  style,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+  const mergedStyle = {
+    imageRendering: "auto" as const,
+    ...(style || {}),
+  };
+
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
-      className={cn("aspect-square size-full", className)}
+      className={cn("aspect-square size-full block object-cover", className)}
+      style={mergedStyle}
       {...props}
     />
   );

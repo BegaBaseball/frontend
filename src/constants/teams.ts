@@ -2,21 +2,59 @@
 export interface TeamInfo {
   name: string;
   fullName: string;
+  color?: string;
 }
 
-export const TEAM_DATA: Record<string, TeamInfo> = {
-  '없음': { name: '없음', fullName: '없음' },
-  'LG': { name: 'LG', fullName: 'LG 트윈스' },
-  'OB': { name: '두산', fullName: '두산 베어스' },
-  'SK': { name: 'SSG', fullName: 'SSG 랜더스' },
-  'KT': { name: 'KT', fullName: 'KT 위즈' },
-  'WO': { name: '키움', fullName: '키움 히어로즈' },
-  'NC': { name: 'NC', fullName: 'NC 다이노스' },
-  'SS': { name: '삼성', fullName: '삼성 라이온즈' },
-  'LT': { name: '롯데', fullName: '롯데 자이언츠' },
-  'HT': { name: '기아', fullName: '기아 타이거즈' },
-  'HH': { name: '한화', fullName: '한화 이글스' },
+const LEGACY_CODE_TO_CANONICAL: Record<string, string> = {
+  DO: 'DB',
+  OB: 'DB',
+  HT: 'KIA',
+  KI: 'KH',
+  NX: 'KH',
+  WO: 'KH',
+  KW: 'KH',
+  SK: 'SSG',
 };
+
+const resolveTeamCode = (teamCode: string): string => {
+  if (!teamCode) return teamCode;
+  const upper = teamCode.toUpperCase();
+  return LEGACY_CODE_TO_CANONICAL[upper] || upper;
+};
+
+const TEAM_DATA_BASE: Record<string, TeamInfo> = {
+  '없음': { name: '없음', fullName: '없음', color: '#888888' },
+  'LG': { name: 'LG', fullName: 'LG 트윈스', color: '#C30452' },
+  'DB': { name: '두산', fullName: '두산 베어스', color: '#131230' },
+  'SSG': { name: 'SSG', fullName: 'SSG 랜더스', color: '#CE0E2D' },
+  'KT': { name: 'KT', fullName: 'KT 위즈', color: '#000000' },
+  'KH': { name: '키움', fullName: '키움 히어로즈', color: '#820024' },
+  'NC': { name: 'NC', fullName: 'NC 다이노스', color: '#315288' },
+  'SS': { name: '삼성', fullName: '삼성 라이온즈', color: '#074CA1' },
+  'LT': { name: '롯데', fullName: '롯데 자이언츠', color: '#041E42' },
+  'KIA': { name: 'KIA', fullName: 'KIA 타이거즈', color: '#EA0029' },
+  'HH': { name: '한화', fullName: '한화 이글스', color: '#F37321' },
+  'ALLSTAR1': { name: '공지', fullName: '공지사항', color: '#000000' },
+};
+
+export const TEAM_DATA: Record<string, TeamInfo> = new Proxy(TEAM_DATA_BASE, {
+  get(target, prop: string | symbol) {
+    if (typeof prop !== 'string') {
+      return Reflect.get(target, prop);
+    }
+    const resolvedCode = resolveTeamCode(prop);
+    if (resolvedCode in target) {
+      return target[resolvedCode];
+    }
+    return Reflect.get(target, prop);
+  },
+  has(target, prop: string | symbol) {
+    if (typeof prop !== 'string') {
+      return Reflect.has(target, prop);
+    }
+    return resolveTeamCode(prop) in target;
+  },
+});
 
 export const TEAM_LIST = [
   '없음',
@@ -28,12 +66,15 @@ export const TEAM_LIST = [
   'NC 다이노스',
   '삼성 라이온즈',
   '롯데 자이언츠',
-  '기아 타이거즈',
+  'KIA 타이거즈',
   '한화 이글스'
 ];
 
+export const FRANCHISE_TEAM_IDS = ['LG', 'DB', 'SSG', 'KT', 'KH', 'NC', 'SS', 'LT', 'KIA', 'HH'] as const;
+
 export const getFullTeamName = (teamId: string): string => {
-  return TEAM_DATA[teamId]?.fullName || teamId;
+  const normalized = resolveTeamCode(teamId);
+  return TEAM_DATA[normalized]?.fullName || teamId;
 };
 
 /**
@@ -41,15 +82,39 @@ export const getFullTeamName = (teamId: string): string => {
  */
 export const TEAM_NAME_TO_ID: { [key: string]: string } = {
   'LG': 'LG',
-  '두산': 'OB',
-  'SSG': 'SK',
+  '두산': 'DB',
+  'DB': 'DB',
+  'DO': 'DB',
+  'OB': 'DB',
+  'SSG': 'SSG',
+  'SK': 'SSG',
   'KT': 'KT',
-  '키움': 'WO',
+  '키움': 'KH',
+  'KH': 'KH',
+  'KI': 'KH',
+  'WO': 'KH',
+  '넥센': 'KH',
+  '히어로즈': 'KH',
   'NC': 'NC',
   '삼성': 'SS',
   '롯데': 'LT',
-  '기아': 'HT',
+  '기아': 'KIA',
+  'KIA': 'KIA',
+  'HT': 'KIA',
   '한화': 'HH',
+  // Full Name Mappings
+  'LG 트윈스': 'LG',
+  '두산 베어스': 'DB',
+  'SSG 랜더스': 'SSG',
+  'KT 위즈': 'KT',
+  '키움 히어로즈': 'KH',
+  '넥센 히어로즈': 'KH',
+  'NC 다이노스': 'NC',
+  '삼성 라이온즈': 'SS',
+  '롯데 자이언츠': 'LT',
+  '기아 타이거즈': 'KIA',
+  'KIA 타이거즈': 'KIA',
+  '한화 이글스': 'HH',
 };
 
 /**
@@ -65,6 +130,7 @@ export const TEAM_DESCRIPTIONS: { [key: string]: string } = {
   '삼성': '삼성 라이온즈는 대구를 연고로 하는 KBO 최다 우승팀! 전통과 자부심이 살아있는 명문구단입니다.',
   '롯데': '롯데 자이언츠는 부산을 대표하는 팀으로, 열정적인 팬들의 응원이 가득한 사직구장의 주인공입니다.',
   '기아': 'KIA 타이거즈는 광주를 홈으로 하는 우승 경험이 풍부한 전통의 강호입니다. 강력한 타선이 특징이에요.',
+  'KIA': 'KIA 타이거즈는 광주를 홈으로 하는 우승 경험이 풍부한 전통의 강호입니다. 강력한 타선이 특징이에요.',
   '한화': '한화 이글스는 대전을 연고로 하며, 끈기 있는 경기력과 팬들의 뜨거운 사랑으로 힘내는 팀입니다.',
 };
 
@@ -73,4 +139,83 @@ export const TEAM_DESCRIPTIONS: { [key: string]: string } = {
  */
 export const getTeamDescription = (team: string): string => {
   return TEAM_DESCRIPTIONS[team] || '멋진 선택이에요! 함께 응원하며 즐거운 야구 생활을 시작해보세요.';
+};
+
+/**
+ * 무작위 팀 이름 가져오기
+ */
+export const getRandomTeamName = (): string => {
+  // Filter out '없음' which is usually the first item
+  const teams = TEAM_LIST.filter(t => t !== '없음');
+  const randomIndex = Math.floor(Math.random() * teams.length);
+  return teams[randomIndex];
+};
+
+/**
+ * lowercase id → team code (e.g., 'hanwha' → 'HH')
+ */
+export const TEAM_ID_TO_CODE: Record<string, string> = {
+  'lg': 'LG', 'doosan': 'DB', 'db': 'DB', 'ssg': 'SSG', 'sk': 'SSG', 'kt': 'KT',
+  'kiwoom': 'KH', 'kh': 'KH', 'ki': 'KH', 'nx': 'KH', 'wo': 'KH', 'nc': 'NC', 'samsung': 'SS', 'lotte': 'LT',
+  'kia': 'KIA', 'ht': 'KIA', 'hanwha': 'HH',
+};
+
+/**
+ * PascalCase name → team code (e.g., 'Hanwha' → 'HH')
+ */
+const TEAM_NAME_TO_CODE: Record<string, string> = {
+  'LG': 'LG', 'Doosan': 'DB', 'DB': 'DB', 'OB': 'DB', 'DO': 'DB',
+  'SSG': 'SSG', 'SK': 'SSG', 'KT': 'KT',
+  'Kiwoom': 'KH', 'KH': 'KH', 'WO': 'KH', 'KI': 'KH', 'Nexen': 'KH', 'NX': 'KH',
+  'NC': 'NC', 'Samsung': 'SS', 'Lotte': 'LT',
+  'KIA': 'KIA', 'HT': 'KIA', 'Hanwha': 'HH',
+};
+
+/**
+ * 어떤 키 형식이든 팀 색상 반환
+ */
+export const getTeamColorByAnyKey = (key: string): string => {
+  const normalizedKey = key?.trim() || '';
+  const canonicalFromCode = resolveTeamCode(normalizedKey);
+  if (TEAM_DATA[canonicalFromCode]?.color) return TEAM_DATA[canonicalFromCode].color!;
+
+  const codeFromName = TEAM_NAME_TO_ID[normalizedKey];
+  if (codeFromName && TEAM_DATA[codeFromName]?.color) return TEAM_DATA[codeFromName].color!;
+
+  const codeFromId = TEAM_ID_TO_CODE[normalizedKey.toLowerCase()];
+  if (codeFromId && TEAM_DATA[codeFromId]?.color) return TEAM_DATA[codeFromId].color!;
+
+  const codeFromPascalName = TEAM_NAME_TO_CODE[key];
+  if (codeFromPascalName && TEAM_DATA[codeFromPascalName]?.color) return TEAM_DATA[codeFromPascalName].color!;
+
+  if (normalizedKey.includes('/')) {
+    const pairTeam = normalizedKey
+      .split('/')
+      .map((teamKey) => teamKey.trim())
+      .find((teamKey) => {
+        const code = resolveTeamCode(teamKey);
+        if (TEAM_DATA[code]?.color) return true;
+
+        const mappedCode = TEAM_NAME_TO_ID[teamKey];
+        if (mappedCode && TEAM_DATA[mappedCode]?.color) return true;
+
+        const mappedCodeFromId = TEAM_ID_TO_CODE[teamKey.toLowerCase()];
+        if (mappedCodeFromId && TEAM_DATA[mappedCodeFromId]?.color) return true;
+
+        return false;
+      });
+
+    if (pairTeam) {
+      const code = resolveTeamCode(pairTeam);
+      if (TEAM_DATA[code]?.color) return TEAM_DATA[code].color!;
+
+      const mappedCode = TEAM_NAME_TO_ID[pairTeam];
+      if (mappedCode && TEAM_DATA[mappedCode]?.color) return TEAM_DATA[mappedCode].color!;
+
+      const mappedCodeFromId = TEAM_ID_TO_CODE[pairTeam.toLowerCase()];
+      if (mappedCodeFromId && TEAM_DATA[mappedCodeFromId]?.color) return TEAM_DATA[mappedCodeFromId].color!;
+    }
+  }
+
+  return '#888888';
 };

@@ -1,38 +1,39 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
-import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
+import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Separator } from './ui/separator';
 import { CheckCircle, MapPin, Calendar, Users, ChevronLeft, Loader2 } from 'lucide-react';
-import { useMateStore } from '../store/mateStore';
+import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import ChatBot from './ChatBot';
+import LoadingSpinner from './LoadingSpinner';
 import { api } from '../utils/api';
 import { CheckIn } from '../types/mate';
 
 export default function MateCheckIn() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { selectedParty } = useMateStore();
+  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
 
   const [isChecking, setIsChecking] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState<CheckIn[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserName, setCurrentUserName] = useState('');
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const userData = await api.getCurrentUser();
-        setCurrentUserName(userData.data.name);
-        
-        const userId = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userId.data || userId);
+        const userIdResponse = await api.getUserIdByEmail(userData.data.email);
+        setCurrentUserId(userIdResponse.data);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
+      } finally {
+        setIsLoadingUser(false);
       }
     };
 
@@ -58,12 +59,37 @@ export default function MateCheckIn() {
     return () => clearInterval(interval);
   }, [selectedParty]);
 
-  if (!selectedParty || !currentUserId) {
-    return null;
+  if (isPartyLoading || isLoadingUser) {
+    return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." />;
   }
 
-  const isHost = String(selectedParty.hostId) === String(currentUserId);
-  const myCheckIn = checkInStatus.find(c => String(c.userId) === String(currentUserId));
+  if (partyError || !selectedParty || !currentUserId) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
+        <img
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+          <Alert>
+            <AlertDescription>{partyError || '파티 정보를 찾을 수 없습니다.'}</AlertDescription>
+          </Alert>
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/mate')}
+            className="mt-4"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            목록으로
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const isHost = selectedParty.hostId === currentUserId;
+  const myCheckIn = checkInStatus.find(c => c.userId === currentUserId);
   const isCheckedIn = !!myCheckIn;
 
   // 전체 참여자 수 계산 (호스트 + 승인된 참여자)
@@ -79,9 +105,8 @@ export default function MateCheckIn() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       const checkInData = {
-        partyId: parseInt(selectedParty.id),
+        partyId: selectedParty.id,
         userId: currentUserId,
-        userName: currentUserName,
         location: selectedParty.stadium,
       };
 
@@ -91,22 +116,22 @@ export default function MateCheckIn() {
       const data = await api.getCheckInsByParty(selectedParty.id);
       setCheckInStatus(data);
 
-      alert('체크인이 완료되었습니다!');
+      toast.success('체크인이 완료되었습니다!');
     } catch (error) {
       console.error('체크인 중 오류:', error);
-      alert('체크인 중 오류가 발생했습니다.');
+      toast.error('체크인 중 오류가 발생했습니다.');
     } finally {
       setIsChecking(false);
     }
   };
 
   const handleComplete = () => {
-    alert('경기 관람이 완료되었습니다!');
+    toast.success('경기 관람이 완료되었습니다!');
     navigate('/mate');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
       <img
         src={grassDecor}
         alt=""
@@ -123,7 +148,7 @@ export default function MateCheckIn() {
           뒤로
         </Button>
 
-        <h1 style={{ color: '#2d5f4f' }} className="mb-2">
+        <h1 className="mb-2 text-primary">
           체크인
         </h1>
         <p className="text-gray-600 mb-8">
@@ -135,7 +160,7 @@ export default function MateCheckIn() {
           <div className="flex items-center gap-4 mb-4">
             <TeamLogo teamId={selectedParty.teamId} size="lg" />
             <div className="flex-1">
-              <h3 className="mb-1" style={{ color: '#2d5f4f' }}>
+              <h3 className="mb-1 text-primary">
                 {selectedParty.stadium}
               </h3>
               <p className="text-sm text-gray-600">
@@ -188,9 +213,9 @@ export default function MateCheckIn() {
                   className="w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: '#e8f5f0' }}
                 >
-                  <MapPin className="w-12 h-12" style={{ color: '#2d5f4f' }} />
+                  <MapPin className="w-12 h-12 text-primary" />
                 </div>
-                <h3 className="mb-2" style={{ color: '#2d5f4f' }}>
+                <h3 className="mb-2 text-primary">
                   체크인 준비 완료
                 </h3>
                 <p className="text-gray-600">
@@ -201,9 +226,8 @@ export default function MateCheckIn() {
               <Button
                 onClick={handleCheckIn}
                 disabled={isChecking}
-                className="w-full text-white"
+                className="w-full text-white bg-primary"
                 size="lg"
-                style={{ backgroundColor: '#2d5f4f' }}
               >
                 {isChecking ? (
                   <>
@@ -241,7 +265,7 @@ export default function MateCheckIn() {
                 <Alert className="mb-6 border-green-200 bg-green-50">
                   <CheckCircle className="w-4 h-4 text-green-600" />
                   <AlertDescription className="text-sm text-green-800">
-                    모든 참여자가 체크인을 완료했습니다!<br/>
+                    모든 참여자가 체크인을 완료했습니다!<br />
                     보증금이 정산되었습니다.
                   </AlertDescription>
                 </Alert>
@@ -250,30 +274,28 @@ export default function MateCheckIn() {
 
             {/* Participant Status */}
             <Card className="p-6 mb-6">
-              <h3 className="mb-4" style={{ color: '#2d5f4f' }}>
+              <h3 className="mb-4 text-primary">
                 참여자 체크인 현황
               </h3>
               <div className="space-y-3">
                 {/* 호스트 */}
-                <div className={`flex items-center justify-between p-3 rounded-lg ${
-                  checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId))
+                <div className={`flex items-center justify-between p-3 rounded-lg ${checkInStatus.some(c => c.userId === selectedParty.hostId)
                     ? 'bg-green-50'
                     : 'bg-gray-50'
-                }`}>
+                  }`}>
                   <div className="flex items-center gap-3">
-                    {checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId)) ? (
+                    {checkInStatus.some(c => c.userId === selectedParty.hostId) ? (
                       <CheckCircle className="w-5 h-5 text-green-600" />
                     ) : (
                       <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
                     )}
                     <span>{selectedParty.hostName} (호스트)</span>
                   </div>
-                  <span className={`text-sm ${
-                    checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId))
+                  <span className={`text-sm ${checkInStatus.some(c => c.userId === selectedParty.hostId)
                       ? 'text-green-600'
                       : 'text-gray-500'
-                  }`}>
-                    {checkInStatus.some(c => String(c.userId) === String(selectedParty.hostId))
+                    }`}>
+                    {checkInStatus.some(c => c.userId === selectedParty.hostId)
                       ? '체크인 완료'
                       : '대기 중'}
                   </span>
@@ -281,9 +303,8 @@ export default function MateCheckIn() {
 
                 {/* 본인 */}
                 {!isHost && (
-                  <div className={`flex items-center justify-between p-3 rounded-lg ${
-                    isCheckedIn ? 'bg-green-50' : 'bg-gray-50'
-                  }`}>
+                  <div className={`flex items-center justify-between p-3 rounded-lg ${isCheckedIn ? 'bg-green-50' : 'bg-gray-50'
+                    }`}>
                     <div className="flex items-center gap-3">
                       {isCheckedIn ? (
                         <CheckCircle className="w-5 h-5 text-green-600" />
@@ -292,9 +313,8 @@ export default function MateCheckIn() {
                       )}
                       <span>나 (본인)</span>
                     </div>
-                    <span className={`text-sm ${
-                      isCheckedIn ? 'text-green-600' : 'text-gray-500'
-                    }`}>
+                    <span className={`text-sm ${isCheckedIn ? 'text-green-600' : 'text-gray-500'
+                      }`}>
                       {isCheckedIn ? '체크인 완료' : '대기 중'}
                     </span>
                   </div>
@@ -302,9 +322,9 @@ export default function MateCheckIn() {
 
                 {/* 다른 참여자들 */}
                 {checkInStatus
-                  .filter(c => 
-                    String(c.userId) !== String(currentUserId) && 
-                    String(c.userId) !== String(selectedParty.hostId)
+                  .filter(c =>
+                    c.userId !== currentUserId &&
+                    c.userId !== selectedParty.hostId
                   )
                   .map((checkIn, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
@@ -332,7 +352,6 @@ export default function MateCheckIn() {
         )}
       </div>
 
-      <ChatBot />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchDiaries, fetchDiaryStatistics } from '../api/diary';
 import { calculateEmojiStats } from '../utils/diary';
-import { DiaryStatistics } from '../types/diary';
+import { DiaryStatistics, DiaryEntry } from '../types/diary';
 import { toast } from 'sonner';
 
 const getInitialStatistics = (): DiaryStatistics => ({
@@ -22,27 +22,37 @@ const getInitialStatistics = (): DiaryStatistics => ({
   firstDiaryDate: null,
   cheerPostCount: 0,
   mateParticipationCount: 0,
+  currentWinStreak: 0,
+  longestWinStreak: 0,
+  currentLossStreak: 0,
+  opponentWinRates: {},
+  bestOpponent: '',
+  worstOpponent: '',
+  dayOfWeekStats: {},
+  luckyDay: '',
+  earnedBadges: [],
 });
 
 export const useDiaryStatistics = () => {
 
-  const { data: diaryEntries = [] } = useQuery({
+  const { data: diaryEntries = [] } = useQuery<DiaryEntry[]>({
     queryKey: ['diaries'],
-    queryFn: fetchDiaries,
+    queryFn: () => fetchDiaries(),
     staleTime: 1 * 60 * 1000,
   });
   // const { diaryEntries, cheerPostCount, mateParticipationCount } = useDiaryStore();
 
   // ========== Fetch Statistics ==========
+  // ========== Fetch Statistics ==========
   const {
     data: statistics = getInitialStatistics(),
     isLoading,
     error,
-  } = useQuery({
+  } = useQuery<DiaryStatistics>({
     queryKey: ['statistics'],
-    queryFn: fetchDiaryStatistics,
-    staleTime: 5 * 60 * 1000, // 5분
-    gcTime: 30 * 60 * 1000, // 30분
+    queryFn: () => fetchDiaryStatistics(), // Error handled by useEffect below
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   // ========== Error Handling ==========
@@ -66,5 +76,6 @@ export const useDiaryStatistics = () => {
     emojiStats,
     totalEmojiCount,
     isLoading,
+    diaryEntries,
   };
 };

@@ -1,10 +1,36 @@
 // src/utils/mate.ts
 import { Party, PartyStatus } from '../types/mate';
-import { MateParty, MateHistoryTab, MateStatus } from '../types/mate';
+import { MateParty, MateHistoryTab } from '../types/mate';
 
-export const mapBackendPartyToFrontend = (backendParty: any): Party => ({
-  id: backendParty.id.toString(),
-  hostId: backendParty.hostId.toString(),
+interface BackendPartyDTO {
+  id: number;
+  hostId: number;
+  hostName: string;
+  hostProfileImageUrl?: string;
+  hostFavoriteTeam?: string;
+  hostBadge: string;
+  hostRating: number;
+  teamId: string;
+  gameDate: string;
+  gameTime: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+  section: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  description: string;
+  ticketVerified: boolean;
+  ticketImageUrl?: string;
+  status: PartyStatus;
+  price?: number;
+  ticketPrice?: number;
+  createdAt: string;
+}
+
+export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party => ({
+  id: backendParty.id,
+  hostId: backendParty.hostId,
   hostName: backendParty.hostName,
   hostProfileImageUrl: backendParty.hostProfileImageUrl,
   hostFavoriteTeam: backendParty.hostFavoriteTeam,
@@ -29,7 +55,7 @@ export const mapBackendPartyToFrontend = (backendParty: any): Party => ({
 });
 
 export const filterActiveParties = (parties: Party[]): Party[] => {
-  return parties.filter(party => 
+  return parties.filter(party =>
     party.status !== 'CHECKED_IN' && party.status !== 'COMPLETED'
   );
 };
@@ -80,21 +106,21 @@ export const filterPartiesByTab = (
       (p) => p.status === 'COMPLETED' || p.status === 'CHECKED_IN'
     );
   }
-  
+
   if (tab === 'ongoing') {
     return parties.filter(
       (p) => p.status === 'PENDING' || p.status === 'MATCHED'
     );
   }
-  
+
   return parties; // 'all'
 };
 
 /**
  * 상태별 라벨 가져오기
  */
-export const getStatusLabel = (status: MateStatus): string => {
-  const labels: Record<MateStatus, string> = {
+export const getStatusLabel = (status: PartyStatus): string => {
+  const labels: Record<PartyStatus, string> = {
     PENDING: '모집 중',
     MATCHED: '매칭 완료',
     CHECKED_IN: '체크인 완료',
@@ -103,15 +129,43 @@ export const getStatusLabel = (status: MateStatus): string => {
     SELLING: '티켓 판매',
     SOLD: '판매 완료',
   };
-  
+
   return labels[status] || status;
+};
+
+/**
+ * 요일 계산
+ */
+export const getDayOfWeek = (dateString: string): string => {
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  // Parse YYYY-MM-DD manually to avoid UTC offset issues
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return days[date.getDay()];
+};
+
+/**
+ * 경기 날짜를 통일된 포맷으로 변환: "YYYY.MM.DD (요일)"
+ */
+export const formatGameDate = (dateString: string): string => {
+  const formatted = dateString.replace(/-/g, '.');
+  const dayOfWeek = getDayOfWeek(dateString);
+  return `${formatted} (${dayOfWeek})`;
+};
+
+/**
+ * description에서 해시태그 추출
+ */
+export const extractHashtags = (description: string): string[] => {
+  const matches = description.match(/#[^\s#]+/g);
+  return matches ? [...new Set(matches)] : [];
 };
 
 /**
  * 상태별 스타일 가져오기
  */
-export const getStatusStyle = (status: MateStatus) => {
-  const styles: Record<MateStatus, { bg: string; text: string }> = {
+export const getStatusStyle = (status: PartyStatus) => {
+  const styles: Record<PartyStatus, { bg: string; text: string }> = {
     PENDING: { bg: 'bg-blue-100', text: 'text-blue-700' },
     MATCHED: { bg: 'bg-blue-100', text: 'text-blue-700' },
     CHECKED_IN: { bg: 'bg-blue-100', text: 'text-blue-700' },
@@ -120,6 +174,13 @@ export const getStatusStyle = (status: MateStatus) => {
     SELLING: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
     SOLD: { bg: 'bg-gray-100', text: 'text-gray-700' },
   };
-  
+
   return styles[status] || styles.PENDING;
+};
+
+/**
+ * description에서 해시태그 제거 (순수 텍스트만 추출)
+ */
+export const stripHashtags = (description: string): string => {
+  return description ? description.replace(/#[^\s#]+/g, '').trim() : '';
 };

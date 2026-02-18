@@ -29,7 +29,7 @@ export type CategoryType = 'food' | 'delivery' | 'store' | 'parking';
 export interface CategoryConfig {
   key: CategoryType;
   label: string;
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  icon: import('lucide-react').LucideIcon;
   color: string;
   bgColor: string;
   borderColor: string;

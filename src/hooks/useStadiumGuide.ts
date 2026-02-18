@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Stadium, Place, CategoryType } from '../types/stadium';
 import { api } from '../utils/api';
-import { loadKakaoMapScript, searchNearbyPlaces, waitForKakaoMaps, updateMapMarkers } from '../utils/kakaoMap';
+import { loadKakaoMapScript, searchNearbyPlaces, updateMapMarkers } from '../utils/kakaoMap';
 import { useKakaoMap } from './useKakaoMap';
 
 export const useStadiumGuide = () => {
@@ -12,6 +13,7 @@ export const useStadiumGuide = () => {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
 
   const {
     mapContainer,
@@ -24,7 +26,12 @@ export const useStadiumGuide = () => {
 
   // ========== 카카오맵 스크립트 로드 ==========
   useEffect(() => {
-    loadKakaoMapScript();
+    loadKakaoMapScript(
+      () => setIsMapReady(true),
+      (message) => {
+        setError(message ?? '지도를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
+      }
+    );
   }, []);
 
   // ========== 구장 목록 가져오기 ==========
@@ -51,17 +58,24 @@ export const useStadiumGuide = () => {
 
   // ========== 지도 초기화 ==========
   useEffect(() => {
-    if (!selectedStadium || !mapContainer.current) return;
+    if (!selectedStadium || !mapContainer.current || !isMapReady) return;
 
-    return waitForKakaoMaps(initializeMap, setError);
-  }, [selectedStadium]);
+    try {
+      initializeMap();
+    } catch (error) {
+      console.error('지도 초기화 실패:', error);
+      setError('지도를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
+    }
+  }, [selectedStadium, isMapReady]);
 
   // ========== 장소 검색 ==========
   useEffect(() => {
     if (!selectedStadium) return;
 
     setSelectedPlace(null);
-    clearMarkers();
+    if (isMapReady) {
+      clearMarkers();
+    }
 
     const fetchPlaces = async (stadiumId: string, category: string) => {
       try {
@@ -71,60 +85,57 @@ export const useStadiumGuide = () => {
       } catch (error) {
         console.error('장소 목록 로드 실패:', error);
         setPlaces([]);
+        toast.error('장소 목록을 불러오지 못했습니다.');
       } finally {
         setLoading(false);
       }
     };
 
     if (selectedCategory === 'store') {
-      const cleanup = waitForKakaoMaps(() => {
-        if (map) {
-          searchNearbyPlaces(
-            '편의점',
-            'store',
-            selectedStadium,
-            map,
-            setPlaces,
-            (error) => console.error(error)
-          );
-        }
-      });
-      return cleanup;
+      if (!isMapReady || !map) {
+        setPlaces([]);
+        return;
+      }
+      searchNearbyPlaces(
+        '편의점',
+        'store',
+        selectedStadium,
+        map,
+        setPlaces,
+        (error) => { console.error(error); toast.error('주변 편의점을 검색하지 못했습니다.'); }
+      );
     } else if (selectedCategory === 'parking') {
-      const cleanup = waitForKakaoMaps(() => {
-        if (map) {
-          searchNearbyPlaces(
-            '주차장',
-            'parking',
-            selectedStadium,
-            map,
-            setPlaces,
-            (error) => console.error(error)
-          );
-        }
-      });
-      return cleanup;
+      if (!isMapReady || !map) {
+        setPlaces([]);
+        return;
+      }
+      searchNearbyPlaces(
+        '주차장',
+        'parking',
+        selectedStadium,
+        map,
+        setPlaces,
+        (error) => { console.error(error); toast.error('주변 주차장을 검색하지 못했습니다.'); }
+      );
     } else {
       fetchPlaces(selectedStadium.stadiumId, selectedCategory);
     }
-  }, [selectedStadium, selectedCategory, map]);
+  }, [selectedStadium, selectedCategory, map, isMapReady]);
 
   // ========== 마커 업데이트 ==========
   useEffect(() => {
-    if (!mapContainer.current || !map) return;
+    if (!mapContainer.current || !map || !isMapReady) return;
 
-    return waitForKakaoMaps(() => {
-      updateMapMarkers(
-        map,
-        places,
-        selectedPlace,
-        markersRef,
-        infowindowsRef,
-        handleMarkerClick,
-        clearMarkers
-      );
-    });
-  }, [places, selectedPlace, map]);
+    updateMapMarkers(
+      map,
+      places,
+      selectedPlace,
+      markersRef,
+      infowindowsRef,
+      handleMarkerClick,
+      clearMarkers
+    );
+  }, [places, selectedPlace, map, isMapReady]);
 
   // ========== Handlers ==========
   const handleMarkerClick = (place: Place) => {
@@ -156,6 +167,7 @@ export const useStadiumGuide = () => {
     selectedPlace,
     loading,
     error,
+    isMapReady,
 
     // Map
     mapContainer,

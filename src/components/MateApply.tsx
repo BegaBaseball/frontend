@@ -1,28 +1,41 @@
 import { useState, useEffect } from 'react';
-import grassDecor from 'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png';
+import { toast } from 'sonner';
+import { OptimizedImage } from './common/OptimizedImage';
+import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
-import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import ChatBot from './ChatBot';  
 import { useNavigate, useParams } from 'react-router-dom';
-import { api } from '../utils/api';
+import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
+import { api, ApiError } from '../utils/api';
+import { formatGameDate } from '../utils/mate';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
+import VerificationRequiredDialog from './VerificationRequiredDialog';
+import { analyzeTicket, TicketInfo } from '../api/ticket';
+import { getApiErrorMessage } from '../utils/errorUtils';
+import { AxiosError } from 'axios';
+import LoadingSpinner from './LoadingSpinner';
 
 export default function MateApply() {
-  const { selectedParty } = useMateStore();
+  const { validateMessage } = useMateStore();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  
+  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
+
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserName, setCurrentUserName] = useState('');
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [ticketVerified, setTicketVerified] = useState(false);
+  const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
@@ -30,19 +43,38 @@ export default function MateApply() {
       try {
         const userData = await api.getCurrentUser();
         setCurrentUserName(userData.data.name);
-        
-        const userId = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userId.data || userId);
+
+        const userIdResponse = await api.getUserIdByEmail(userData.data.email);
+        setCurrentUserId(userIdResponse.data);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
+        toast.error('사용자 정보를 불러오지 못했습니다.');
       }
     };
 
     fetchUser();
   }, []);
 
-  if (!selectedParty) {
-    return null;
+  if (isPartyLoading) {
+    return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." fullScreen />;
+  }
+
+  if (partyError || !selectedParty) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-background dark:bg-background transition-colors duration-200">
+        <OptimizedImage
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        />
+        <div className="text-center z-10">
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">{partyError || '파티 정보를 불러오는 중입니다...'}</p>
+          <Button onClick={() => navigate('/mate')} variant="outline" className="dark:bg-card dark:text-gray-200 dark:border-border dark:hover:bg-gray-700">
+            목록으로 돌아가기
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const isSelling = selectedParty.status === 'SELLING';
@@ -50,51 +82,104 @@ export default function MateApply() {
   const totalAmount = ticketAmount + DEPOSIT_AMOUNT;
   const sellingPrice = selectedParty.price || 0;
 
-  const handleSubmit = async () => {
-    if (!currentUserId) {
-      alert('로그인이 필요합니다.');
+  // 티켓 인증 핸들러
+  const handleTicketUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('파일 크기는 10MB 이하여야 합니다.');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드 가능합니다.');
       return;
     }
 
-    if (!isSelling && message.length < 10) {
-      alert('메시지를 10자 이상 입력해주세요.');
+    setIsScanning(true);
+    try {
+      const result = await analyzeTicket(file);
+      setTicketInfo(result);
+
+      // Only mark as verified if server issued a verification token
+      // (requires meaningful OCR data: date or stadium extracted)
+      if (result.verificationToken) {
+        setTicketVerified(true);
+
+        // 경기 정보 매치 경고
+        if (result.date && result.date !== selectedParty.gameDate) {
+          toast.warning('티켓의 날짜가 파티의 경기 날짜와 다릅니다. 확인해주세요.');
+        }
+
+        toast.success('티켓 인증이 완료되었습니다! 🎫');
+      } else {
+        toast.warning('티켓에서 충분한 정보를 추출하지 못했습니다. 더 선명한 사진으로 다시 시도해주세요.');
+      }
+    } catch (error) {
+      console.error('Ticket OCR error:', error);
+      toast.error('티켓 분석에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!currentUserId) {
+      toast.error('로그인이 필요합니다.');
       return;
+    }
+
+    if (!isSelling) {
+      const validationError = validateMessage(message);
+      if (validationError) {
+        toast.warning(validationError);
+        return;
+      }
     }
 
     setIsSubmitting(true);
 
     try {
       const applicationData = {
-        partyId: parseInt(selectedParty.id),
+        partyId: selectedParty.id,
         applicantId: currentUserId,
         applicantName: currentUserName,
-        applicantBadge: 'NEW',
+        applicantBadge: ticketVerified ? 'VERIFIED' : 'NEW',
         applicantRating: 5.0,
         message: message || '함께 즐거운 관람 부탁드립니다!',
         depositAmount: isSelling ? sellingPrice : totalAmount,
-        paymentType: isSelling ? 'FULL' : 'DEPOSIT',
+        paymentType: (isSelling ? 'FULL' : 'DEPOSIT') as 'FULL' | 'DEPOSIT',
+        verificationToken: ticketInfo?.verificationToken ?? null,
+        ticketVerified: ticketVerified,
+        ticketImageUrl: null as string | null,
       };
 
       await api.createApplication(applicationData);
 
       if (isSelling) {
-        alert('티켓 구매가 완료되었습니다!');
+        toast.success('티켓 구매가 완료되었습니다!');
       } else {
-        alert('신청이 완료되었습니다! 호스트의 승인을 기다려주세요.');
+        toast.success('신청이 완료되었습니다!', { description: '호스트의 승인을 기다려주세요.' });
       }
-      
+
       navigate(`/mate/${id}`);
-    } catch (error) {
-      console.error('신청 중 오류:', error);
-      alert('신청 중 오류가 발생했습니다.');
+    } catch (error: unknown) {
+      if ((error instanceof AxiosError && error.response?.status === 403) ||
+        (error instanceof ApiError && error.status === 403)) {
+        console.warn('Verification required (403)');
+        setShowVerificationDialog(true);
+      } else {
+        console.error('신청 중 오류:', error);
+        toast.error(getApiErrorMessage(error, '신청 중 오류가 발생했습니다.'));
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <img
+    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
+      <OptimizedImage
         src={grassDecor}
         alt=""
         className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
@@ -110,7 +195,7 @@ export default function MateApply() {
           뒤로
         </Button>
 
-        <h1 style={{ color: '#2d5f4f' }} className="mb-2">
+        <h1 className="mb-2 text-primary">
           {isSelling ? '티켓 구매' : '파티 참여 신청'}
         </h1>
         <p className="text-gray-600 mb-8">
@@ -124,11 +209,11 @@ export default function MateApply() {
           <div className="flex items-center gap-4 mb-4">
             <TeamLogo teamId={selectedParty.teamId} size="md" />
             <div className="flex-1">
-              <h3 className="mb-1" style={{ color: '#2d5f4f' }}>
+              <h3 className="mb-1 text-primary">
                 {selectedParty.stadium}
               </h3>
               <p className="text-sm text-gray-600">
-                {selectedParty.gameDate} {selectedParty.gameTime}
+                {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime.substring(0, 5)}
               </p>
             </div>
           </div>
@@ -149,8 +234,8 @@ export default function MateApply() {
         {!isSelling && (
           <Card className="p-6 mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <MessageSquare className="w-5 h-5" style={{ color: '#2d5f4f' }} />
-              <h3 style={{ color: '#2d5f4f' }}>소개 메시지</h3>
+              <MessageSquare className="w-5 h-5 text-primary" />
+              <h3 className="text-primary">소개 메시지</h3>
             </div>
             <Label htmlFor="message" className="mb-2 block">
               호스트에게 전달할 메시지
@@ -169,11 +254,87 @@ export default function MateApply() {
           </Card>
         )}
 
+        {/* Ticket Verification Section (선택) */}
+        {!isSelling && (
+          <Card className="p-6 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Ticket className="w-5 h-5 text-primary" />
+              <h3 className="text-primary">티켓 인증 (선택)</h3>
+              {ticketVerified && (
+                <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  인증 완료
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              티켓 사진을 올리면 호스트에게 인증 배지가 표시되어 승인율이 높아집니다.
+            </p>
+
+            {ticketVerified ? (
+              <div className="space-y-3">
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-4 h-4 text-green-600" />
+                    <span className="font-medium text-green-700 dark:text-green-400">티켓 인증 완료</span>
+                  </div>
+                  {ticketInfo && (
+                    <div className="text-sm text-green-600 space-y-1">
+                      {ticketInfo.date && <p>📅 {ticketInfo.date}</p>}
+                      {ticketInfo.stadium && <p>🏟️ {ticketInfo.stadium}</p>}
+                      {(ticketInfo.section || ticketInfo.row || ticketInfo.seat) && (
+                        <p>💺 {[ticketInfo.section, ticketInfo.row, ticketInfo.seat].filter(Boolean).join(' ')}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  className="text-sm text-gray-500"
+                  onClick={() => { setTicketVerified(false); setTicketInfo(null); }}
+                >
+                  다시 인증하기
+                </Button>
+              </div>
+            ) : (
+              <div
+                className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${isScanning
+                  ? 'border-primary bg-slate-50 dark:bg-card/60'
+                  : 'border-slate-300 dark:border-border hover:border-primary hover:bg-slate-50 dark:hover:bg-secondary'
+                  }`}
+              >
+                <input
+                  type="file"
+                  id="ticketVerifyFile"
+                  accept="image/*"
+                  onChange={handleTicketUpload}
+                  className="hidden"
+                  disabled={isScanning}
+                />
+                <label htmlFor="ticketVerifyFile" className={`cursor-pointer block ${isScanning ? 'pointer-events-none' : ''}`}>
+                  {isScanning ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                      <p className="text-primary font-medium">AI가 티켓을 분석 중...</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Ticket className="w-10 h-10 text-primary" />
+                      <p className="text-primary font-medium">티켓 사진 업로드</p>
+                      <p className="text-xs text-gray-400">JPG, PNG (최대 10MB)</p>
+                    </div>
+                  )}
+                </label>
+              </div>
+            )}
+          </Card>
+        )}
+
         {/* Payment Section */}
         <Card className="p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="w-5 h-5" style={{ color: '#2d5f4f' }} />
-            <h3 style={{ color: '#2d5f4f' }}>결제 금액</h3>
+            <CreditCard className="w-5 h-5 text-primary" />
+            <h3 className="text-primary">결제 금액</h3>
           </div>
 
           {!isSelling && (
@@ -194,7 +355,7 @@ export default function MateApply() {
                 <Separator />
                 <div className="flex justify-between items-center">
                   <span className="text-gray-900" style={{ fontWeight: 'bold' }}>총 결제 금액</span>
-                  <span className="text-lg" style={{ color: '#2d5f4f', fontWeight: 'bold' }}>
+                  <span className="text-lg text-primary font-bold">
                     {totalAmount.toLocaleString()}원
                   </span>
                 </div>
@@ -252,15 +413,14 @@ export default function MateApply() {
         <Button
           onClick={handleSubmit}
           disabled={(!isSelling && message.length < 10) || isSubmitting}
-          className="w-full text-white"
+          className="w-full text-white bg-primary"
           size="lg"
-          style={{ backgroundColor: '#2d5f4f' }}
         >
           {isSubmitting
             ? '신청 중...'
             : isSelling
-            ? `${sellingPrice.toLocaleString()}원 결제하기`
-            : `${totalAmount.toLocaleString()}원 결제하기`}
+              ? `${sellingPrice.toLocaleString()}원 결제하기`
+              : `${totalAmount.toLocaleString()}원 결제하기`}
         </Button>
 
         {!isSelling && message.length < 10 && (
@@ -270,8 +430,10 @@ export default function MateApply() {
         )}
       </div>
 
-      {/* ChatBot  */}
-      <ChatBot />
+      <VerificationRequiredDialog
+        isOpen={showVerificationDialog}
+        onClose={() => setShowVerificationDialog(false)}
+      />
     </div>
   );
 }

@@ -40,9 +40,18 @@ export const LoginRequiredDialog = ({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
+      {/* 오버레이 배경색을 흰색(다크모드는 검은색)으로 강제 변경하여 회색 음영 제거 */}
+      <style>{`
+        [data-radix-portal] > [data-state] > div[data-aria-hidden="true"] {
+          background-color: white !important;
+        }
+        .dark [data-radix-portal] > [data-state] > div[data-aria-hidden="true"] {
+          background-color: #111827 !important;
+        }
+      `}</style>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle style={{ color: '#2d5f4f' }}>
+          <AlertDialogTitle className="text-primary">
             로그인 필요
           </AlertDialogTitle>
           <AlertDialogDescription className="text-base">
@@ -54,8 +63,7 @@ export const LoginRequiredDialog = ({
           <AlertDialogCancel onClick={handleCancel}>취소</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleGoToLogin}
-            className="text-white"
-            style={{ backgroundColor: '#2d5f4f' }}
+            className="text-white bg-primary-dark hover:bg-primary"
           >
             로그인하러 가기
           </AlertDialogAction>
