@@ -159,7 +159,12 @@ Cypress.Commands.add('mockAPI', () => {
     cy.intercept('**/api/notifications/user/*/unread-count', {
         statusCode: 200,
         body: 5
-    }).as('getUnreadCount');
+    }).as('getUnreadCountByUser');
+
+    cy.intercept('**/api/notifications/my', {
+        statusCode: 200,
+        body: []
+    }).as('getMyNotifications');
 
     cy.intercept('**/api/notifications/my/unread-count', {
         statusCode: 200,
