@@ -7,6 +7,7 @@ import type {
 import type { UserProfileApiResponse } from '../types/profile';
 import type { NotificationData } from '../types/notification';
 import type { Stadium, Place } from '../types/stadium';
+import { getApiBaseUrl } from '../api/apiBase';
 
 export interface KboScheduleItem {
   gameId: string;
@@ -16,7 +17,7 @@ export interface KboScheduleItem {
   awayTeam: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = getApiBaseUrl();
 
 export class ApiError extends Error {
   status: number;

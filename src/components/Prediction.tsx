@@ -41,6 +41,8 @@ export default function Prediction() {
     goToPreviousDate,
     goToNextDate,
     isLoggedIn, // Added isLoggedIn
+    matchesLoadState,
+    matchesLoadErrorMessage,
   } = usePrediction();
 
   const user = useAuthStore((state) => state.user); // Added user
@@ -128,48 +130,68 @@ export default function Prediction() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Title skeleton */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="bg-slate-200 dark:bg-secondary p-2 rounded-lg w-10 h-10 animate-pulse" />
-            <div className="h-8 w-32 bg-slate-200 dark:bg-secondary rounded animate-pulse" />
+            <div className="bg-slate-200 dark:bg-card p-2 rounded-lg w-10 h-10 animate-pulse" />
+            <div className="h-8 w-32 bg-slate-200 dark:bg-card rounded animate-pulse" />
           </div>
 
           {/* Tab skeleton */}
-          <div className="flex p-1 bg-slate-200 dark:bg-secondary rounded-xl md:rounded-2xl mb-6 md:mb-8 w-fit animate-pulse">
-            <div className="w-20 h-10 bg-slate-300 dark:bg-secondary rounded-lg" />
-            <div className="w-20 h-10 bg-slate-300 dark:bg-secondary rounded-lg ml-1" />
+          <div className="flex p-1 bg-slate-200 dark:bg-card rounded-xl md:rounded-2xl mb-6 md:mb-8 w-fit animate-pulse">
+            <div className="w-20 h-10 bg-slate-300 dark:bg-card rounded-lg" />
+            <div className="w-20 h-10 bg-slate-300 dark:bg-card rounded-lg ml-1" />
           </div>
 
           {/* Match card skeleton */}
           <Card className="p-4 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md animate-pulse">
             <div className="flex items-center justify-between">
-              <div className="w-10 h-10 bg-slate-200 dark:bg-secondary rounded-full" />
+              <div className="w-10 h-10 bg-slate-200 dark:bg-card rounded-full" />
               <div className="flex-1 text-center space-y-2 px-4">
-                <div className="h-5 w-32 bg-slate-200 dark:bg-secondary rounded mx-auto" />
-                <div className="h-4 w-48 bg-slate-200 dark:bg-secondary rounded mx-auto" />
+                <div className="h-5 w-32 bg-slate-200 dark:bg-card rounded mx-auto" />
+                <div className="h-4 w-48 bg-slate-200 dark:bg-card rounded mx-auto" />
               </div>
-              <div className="w-10 h-10 bg-slate-200 dark:bg-secondary rounded-full" />
+              <div className="w-10 h-10 bg-slate-200 dark:bg-card rounded-full" />
             </div>
           </Card>
 
           <Card className="overflow-hidden border border-slate-200/70 shadow-sm bg-white/90 dark:border-border dark:bg-card dark:shadow-md animate-pulse">
-            <div className="h-12 bg-slate-200 dark:bg-secondary" />
+            <div className="h-12 bg-slate-200 dark:bg-card" />
             <div className="p-6 space-y-6">
               <div className="flex justify-between">
                 <div className="flex flex-col items-center w-1/3 space-y-2">
-                  <div className="w-16 h-16 bg-slate-200 dark:bg-secondary rounded-full" />
-                  <div className="h-4 w-20 bg-slate-200 dark:bg-secondary rounded" />
-                  <div className="h-3 w-16 bg-slate-200 dark:bg-secondary rounded" />
+                  <div className="w-16 h-16 bg-slate-200 dark:bg-card rounded-full" />
+                  <div className="h-4 w-20 bg-slate-200 dark:bg-card rounded" />
+                  <div className="h-3 w-16 bg-slate-200 dark:bg-card rounded" />
                 </div>
                 <div className="flex flex-col items-center w-1/3 space-y-2">
-                  <div className="h-8 w-12 bg-slate-200 dark:bg-secondary rounded" />
-                  <div className="h-4 w-24 bg-slate-200 dark:bg-secondary rounded" />
+                  <div className="h-8 w-12 bg-slate-200 dark:bg-card rounded" />
+                  <div className="h-4 w-24 bg-slate-200 dark:bg-card rounded" />
                 </div>
                 <div className="flex flex-col items-center w-1/3 space-y-2">
-                  <div className="w-16 h-16 bg-slate-200 dark:bg-secondary rounded-full" />
-                  <div className="h-4 w-20 bg-slate-200 dark:bg-secondary rounded" />
-                  <div className="h-3 w-16 bg-slate-200 dark:bg-secondary rounded" />
+                  <div className="w-16 h-16 bg-slate-200 dark:bg-card rounded-full" />
+                  <div className="h-4 w-20 bg-slate-200 dark:bg-card rounded" />
+                  <div className="h-3 w-16 bg-slate-200 dark:bg-card rounded" />
                 </div>
               </div>
             </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (matchesLoadState === 'error') {
+    return (
+      <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card className="relative p-16 text-center bg-white/90 border border-rose-200/70 shadow-sm dark:bg-card dark:border-rose-900/40 dark:shadow-md flex flex-col items-center justify-center min-h-[240px] rounded-2xl">
+            <div className="bg-rose-100 dark:bg-card p-4 rounded-full mb-4">
+              <TrendingUp className="w-8 h-8 text-rose-500 dark:text-rose-300" />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
+              {matchesLoadErrorMessage || '예측 경기 데이터를 불러오지 못했습니다.'}
+            </h3>
+            <p className="text-slate-500 dark:text-gray-300">
+              잠시 후 다시 시도하거나 새로고침해 주세요.
+            </p>
           </Card>
         </div>
       </div>
@@ -251,7 +273,7 @@ export default function Prediction() {
                     aria-label={`${getShortTeamName(game.awayTeam)} vs ${getShortTeamName(game.homeTeam)} 선택`}
                     className={`flex-shrink-0 px-3 py-2 min-h-[40px] rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${selectedGame === index
                       ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 shadow-sm dark:bg-emerald-900/30 dark:border-emerald-700/50 dark:text-emerald-100'
-                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 dark:bg-card dark:border-border dark:text-gray-300 dark:hover:bg-secondary'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 dark:bg-card dark:border-border dark:text-gray-300 dark:hover:bg-primary/10'
                       }`}
                   >
                     {getShortTeamName(game.awayTeam)} vs {getShortTeamName(game.homeTeam)}
@@ -314,20 +336,20 @@ export default function Prediction() {
                       <button
                         onClick={goToPreviousDate}
                         disabled={currentDateIndex === 0}
-                        className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
+                        className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
                       >
                         <ChevronLeft size={36} />
                       </button>
                       <button
                         onClick={goToNextDate}
                         disabled={currentDateIndex === allDatesData.length - 1}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
+                        className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
                       >
                         <ChevronRight size={36} />
                       </button>
                     </div>
 
-                    <div className="bg-slate-100 dark:bg-secondary p-4 rounded-full mb-4">
+                    <div className="bg-slate-100 dark:bg-card p-4 rounded-full mb-4">
                       <TrendingUp className="w-8 h-8 text-slate-400 dark:text-gray-300" />
                     </div>
                     <div className="mb-4">
@@ -349,7 +371,7 @@ export default function Prediction() {
                 <button
                   onClick={goToPreviousDate}
                   disabled={currentDateIndex === 0}
-                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-secondary disabled:opacity-30"
+                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
                 >
                   <ChevronLeft size={24} className="text-emerald-600 dark:text-emerald-300" />
                 </button>
@@ -359,7 +381,7 @@ export default function Prediction() {
                 <button
                   onClick={goToNextDate}
                   disabled={currentDateIndex === allDatesData.length - 1}
-                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-secondary disabled:opacity-30"
+                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
                 >
                   <ChevronRight size={24} className="text-emerald-600 dark:text-emerald-300" />
                 </button>

@@ -1,26 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMyParties } from '../api/mate';
 import { filterPartiesByTab } from '../utils/mate';
 import { MateHistoryTab, MateParty } from '../types/mate';
 import { toast } from 'sonner';
+import { useAuthStore } from '../store/authStore';
+import type { AxiosError } from 'axios';
 
 export const useMateHistory = (tab: MateHistoryTab) => {
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
+  const userId = useAuthStore((state) => state.user?.id) ?? 0;
+  const canLoadMyParties = isLoggedIn && !isAuthLoading && userId > 0;
+
   // ========== Fetch My Parties ==========
   const {
     data: myParties = [],
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['myParties'],
+    queryKey: ['myParties', userId],
     queryFn: fetchMyParties,
     staleTime: 5 * 60 * 1000, // 5분
     gcTime: 30 * 60 * 1000, // 30분
+    enabled: canLoadMyParties,
   });
 
   // ========== Error Handling ==========
   useEffect(() => {
     if (error) {
+      if ((error as AxiosError).response?.status === 403) {
+        return;
+      }
+
       toast.error('메이트 내역을 불러오는데 실패했습니다.');
     }
   }, [error]);

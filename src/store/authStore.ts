@@ -37,11 +37,14 @@ interface AuthState {
   setPassword: (password: string) => void;
   setShowPassword: (show: boolean) => void;
   login: (email: string, name: string, profileImageUrl?: string | null, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => void;
-  logout: () => void;
+  logout: (skipServerLogout?: boolean) => void;
   setFavoriteTeam: (team: string, color: string) => void;
   setShowLoginRequiredDialog: (show: boolean) => void;
   requireLogin: (callback?: () => void) => boolean;
 }
+
+let pendingAuthProfileRequest: Promise<void> | null = null;
+let pendingLogoutRequest: Promise<void> | null = null;
 
 const normalizeProfileImageUrl = (value?: string | null) => {
   if (!value || typeof value !== 'string') {
@@ -49,6 +52,15 @@ const normalizeProfileImageUrl = (value?: string | null) => {
   }
 
   const trimmedValue = value.trim();
+  if (
+    trimmedValue.startsWith('/assets/') ||
+    trimmedValue.startsWith('/src/assets/') ||
+    trimmedValue.startsWith('blob:') ||
+    trimmedValue.startsWith('data:')
+  ) {
+    return null;
+  }
+
   return trimmedValue.length > 0 ? trimmedValue : null;
 };
 
@@ -58,59 +70,72 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoggedIn: false,
       isAdmin: false,
-      isAuthLoading: false,
+      isAuthLoading: true,
       email: '',
       password: '',
       showPassword: false,
       showLoginRequiredDialog: false,
 
       fetchProfileAndAuthenticate: async () => {
-        set({ isAuthLoading: true });
+        if (pendingAuthProfileRequest) {
+          return pendingAuthProfileRequest;
+        }
 
-        try {
-          // Using axios api instance to handle 401 interceptor
-          const response = await api.get('/auth/mypage');
+        const request = (async () => {
+          set({ isAuthLoading: true });
 
-          if (response.status === 200) {
-            const result = response.data;
-            const profile = result.data;
-            const isAdminUser = profile.role === 'ROLE_ADMIN' || profile.role === 'ROLE_SUPER_ADMIN';
+          try {
+            // Using axios api instance to handle 401 interceptor
+            const response = await api.get('/auth/mypage');
 
-            set({
-              user: {
-                id: profile.id,
-                email: profile.email,
-                name: profile.name,
-                handle: profile.handle,
-                favoriteTeam: profile.favoriteTeam,
-                favoriteTeamColor: profile.favoriteTeamColor,
+            if (response.status === 200) {
+              const result = response.data;
+              const profile = result.data;
+              const isAdminUser = profile.role === 'ROLE_ADMIN' || profile.role === 'ROLE_SUPER_ADMIN';
+
+              set({
+                user: {
+                  id: Number(profile.id),
+                  email: profile.email,
+                  name: profile.name,
+                  handle: profile.handle,
+                  favoriteTeam: profile.favoriteTeam,
+                  favoriteTeamColor: profile.favoriteTeamColor,
+                  isAdmin: isAdminUser,
+                  profileImageUrl: normalizeProfileImageUrl(profile.profileImageUrl),
+                  role: profile.role,
+                  bio: profile.bio,
+                  cheerPoints: profile.cheerPoints ?? profile['cheer_points'] ?? 0, // Map cheerPoints (defensive check)
+                  provider: profile.provider,
+                  providerId: profile.providerId,
+                  hasPassword: profile.hasPassword,
+                },
+                isLoggedIn: true,
                 isAdmin: isAdminUser,
-                profileImageUrl: normalizeProfileImageUrl(profile.profileImageUrl),
-                role: profile.role,
-                bio: profile.bio,
-                cheerPoints: profile.cheerPoints ?? profile['cheer_points'] ?? 0, // Map cheerPoints (defensive check)
-                provider: profile.provider,
-                providerId: profile.providerId,
-                hasPassword: profile.hasPassword,
-              },
-              isLoggedIn: true,
-              isAdmin: isAdminUser,
-              isAuthLoading: false,
-            });
+                isAuthLoading: false,
+              });
 
-          } else {
-            // Should be handled by catch mainly, but if 200 logic fails
-            set({ isAuthLoading: false });
+            } else {
+              // Should be handled by catch mainly, but if 200 logic fails
+              set({ isAuthLoading: false });
+            }
+          } catch (error) {
+            // 401 errors are handled by interceptor (redirect to login)
+            // For other errors during initial auth check, we just reset state silently to avoid modal on startup
+            set({
+              user: null,
+              isLoggedIn: false,
+              isAdmin: false,
+              isAuthLoading: false
+            });
           }
-        } catch (error) {
-          // 401 errors are handled by interceptor (redirect to login)
-          // For other errors during initial auth check, we just reset state silently to avoid modal on startup
-          set({
-            user: null,
-            isLoggedIn: false,
-            isAdmin: false,
-            isAuthLoading: false
-          });
+        })();
+
+        pendingAuthProfileRequest = request;
+        try {
+          await request;
+        } finally {
+          pendingAuthProfileRequest = null;
         }
       },
 
@@ -151,10 +176,11 @@ export const useAuthStore = create<AuthState>()(
 
       login: (email, name, profileImageUrl, role, favoriteTeam, id, cheerPoints, handle, provider, hasPassword) => {
         const isAdminUser = role === 'ROLE_ADMIN' || role === 'ROLE_SUPER_ADMIN';
+        const normalizedId = Number(id) || 0;
 
         set({
           user: {
-            id: id || 0,
+            id: normalizedId,
             email: email,
             name: name,
             // ... (keep existing)
@@ -175,8 +201,30 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      logout: () => {
-        api.post('/auth/logout'); // Global handler will catch errors if any
+      logout: (skipServerLogout = false) => {
+        if (!get().isLoggedIn || skipServerLogout) {
+          set({
+            user: null,
+            isLoggedIn: false,
+            isAdmin: false,
+            isAuthLoading: false,
+            email: '',
+            password: '',
+          });
+          return;
+        }
+
+        if (!pendingLogoutRequest) {
+          pendingLogoutRequest = api
+            .post('/auth/logout', undefined, { skipGlobalErrorHandler: true })
+            .catch(() => {
+              // Ignore logout request failures (e.g., already expired token / invalid session).
+              // Local auth state is already cleared above.
+            })
+            .finally(() => {
+              pendingLogoutRequest = null;
+            });
+        }
 
         set({
           user: null,
@@ -219,7 +267,7 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state: AuthState | undefined, error: unknown) => {
         return () => {
           if (state?.isLoggedIn) {
-            state.fetchProfileAndAuthenticate();
+            state.isAuthLoading = true;
           } else if (state) {
             state.isAuthLoading = false;
           }

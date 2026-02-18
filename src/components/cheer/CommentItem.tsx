@@ -75,6 +75,7 @@ function CommentItemComponent({
             <ProfileAvatar
               src={comment.authorProfileImageUrl}
               alt={comment.author}
+              fallbackName={comment.author}
               size={isReply ? 'sm' : 'md'}
             />
           </div>

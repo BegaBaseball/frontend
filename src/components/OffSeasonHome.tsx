@@ -9,7 +9,7 @@ import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/button';
 import { getTeamKoreanName } from '../utils/teamNames';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { SERVER_BASE_URL } from '../constants/config';
+import { getApiBaseUrl } from '../api/apiBase';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
@@ -46,6 +46,7 @@ const formatRemarks = (text: string) => {
 };
 
 export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
+  const API_BASE = getApiBaseUrl();
   const navigate = useNavigate();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { theme } = useTheme();
@@ -73,13 +74,17 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
     const fetchData = async () => {
       try {
         // Fetch movements
-        const movementsRes = await fetch(`${SERVER_BASE_URL}/api/kbo/offseason/movements`);
+        const movementsRes = await fetch(`${API_BASE}/kbo/offseason/movements`, {
+          credentials: 'include',
+        });
         if (movementsRes.ok) {
           setMovements(await movementsRes.json());
         }
 
         // Fetch metadata (awards, postseason)
-        const metadataRes = await fetch(`${SERVER_BASE_URL}/api/kbo/offseason/metadata?year=2025`);
+        const metadataRes = await fetch(`${API_BASE}/kbo/offseason/metadata?year=2025`, {
+          credentials: 'include',
+        });
         if (metadataRes.ok) {
           const metadata = await metadataRes.json();
           setAwards(metadata.awards || []);
@@ -87,7 +92,9 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
         }
 
         // Fetch rankings
-        const rankingsRes = await fetch(`${SERVER_BASE_URL}/api/kbo/rankings/2025`);
+        const rankingsRes = await fetch(`${API_BASE}/kbo/rankings/2025`, {
+          credentials: 'include',
+        });
         if (rankingsRes.ok) {
           setRankings(await rankingsRes.json());
         }

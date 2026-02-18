@@ -5,8 +5,8 @@ import TeamLogo from './TeamLogo';
 import { useNavigate } from 'react-router-dom';
 import { Input } from "./ui/input";
 import { useIsMobile } from '../hooks/use-mobile';
+import { getApiBaseUrl } from '../api/apiBase';
 import { Card } from './ui/card';
-import { SERVER_BASE_URL } from '../constants/config';
 import {
     Table,
     TableBody,
@@ -46,6 +46,7 @@ const formatRemarks = (text: string) => {
 };
 
 export default function OffSeasonList() {
+    const API_BASE = getApiBaseUrl();
     const navigate = useNavigate();
     const isMobile = useIsMobile();
     const [movements, setMovements] = useState<OffseasonMovement[]>([]);
@@ -59,7 +60,9 @@ export default function OffSeasonList() {
 
         const fetchMovements = async () => {
             try {
-                const res = await fetch(`${SERVER_BASE_URL}/api/kbo/offseason/movements`);
+                const res = await fetch(`${API_BASE}/kbo/offseason/movements`, {
+                    credentials: 'include',
+                });
                 if (res.ok) {
                     const data = await res.json();
                     setMovements(data);

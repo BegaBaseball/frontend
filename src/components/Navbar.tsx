@@ -13,8 +13,6 @@ import { motion } from 'framer-motion';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
-const LOGOUT_API_URL = `${import.meta.env.VITE_API_BASE_URL || '/api'}/auth/logout`;
-
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -89,20 +87,9 @@ export default function Navbar() {
   }, [isMenuOpen]);
 
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch(LOGOUT_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      logout();
-      navigate('/home');
-      if (!response.ok) console.error('Server logout failed');
-    } catch (error) {
-      logout();
-      navigate('/');
-    }
+  const handleLogout = () => {
+    logout();
+    navigate('/home');
   };
 
   const navItems = [
@@ -265,14 +252,14 @@ export default function Navbar() {
                   <>
                     <button
                       onClick={() => navigate(user?.handle ? `/mypage/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
-                      className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary dark:border-primary-light text-primary dark:text-primary-light font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-primary-foreground"
+                      className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary dark:border-primary-light text-primary dark:text-primary-light font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-primary-foreground dark:hover:text-white"
                     >                                                      {/* 1. 닉네임: 평소 중앙, 호버 시 위로 사라짐 */}
-                      <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:-translate-y-full group-hover:opacity-0">
+                      <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:-translate-y-full group-hover:opacity-0 group-hover:text-white">
                         {user?.name || '회원'} 님
                       </span>
 
                       {/* 2. 프로필: 평소 아래, 호버 시 중앙으로 올라옴 */}
-                      <span className="absolute inset-0 flex items-center justify-center translate-y-full opacity-0 transition-all duration-300 ease-in-out group-hover:translate-y-0 group-hover:opacity-100">
+                      <span className="absolute inset-0 flex items-center justify-center translate-y-full opacity-0 transition-all duration-300 ease-in-out group-hover:translate-y-0 group-hover:opacity-100 group-hover:text-white">
                         마이페이지
                       </span>
                     </button>

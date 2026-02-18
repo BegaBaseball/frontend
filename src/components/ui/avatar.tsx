@@ -23,12 +23,19 @@ function Avatar({
 
 function AvatarImage({
   className,
+  style,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+  const mergedStyle = {
+    imageRendering: "auto" as const,
+    ...(style || {}),
+  };
+
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
-      className={cn("aspect-square size-full", className)}
+      className={cn("aspect-square size-full block object-cover", className)}
+      style={mergedStyle}
       {...props}
     />
   );

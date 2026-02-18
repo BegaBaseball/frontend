@@ -3,6 +3,7 @@ import { forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import LevelBadge from './LevelBadge';
 import { RankBadge, StreakCounter, fonts, crispText, textOutline } from './RetroTheme';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 
 const rankUpGlow = keyframes`
   0%, 100% { color: #00ff00; }
@@ -111,13 +112,13 @@ const Avatar = styled.div`
   font-size: 16px;
   overflow: hidden;
   box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
 `;
+
+const resolveProfileImage = (imageUrl?: string) => {
+  if (!imageUrl) return null;
+  if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
+  return imageUrl;
+};
 
 const UserInfo = styled.div`
   min-width: 0;
@@ -210,8 +211,15 @@ const LeaderboardRow = forwardRef<HTMLDivElement, LeaderboardRowProps>(({
       {/* User Info */}
       <UserCell>
         <Avatar>
-          {entry.profileImageUrl ? (
-            <img src={entry.profileImageUrl} alt={entry.userName} />
+          {resolveProfileImage(entry.profileImageUrl) ? (
+            <ProfileAvatar
+              src={resolveProfileImage(entry.profileImageUrl) || undefined}
+              alt={entry.userName}
+              fallbackName={entry.userName}
+              width={32}
+              height={32}
+              className="rounded-full"
+            />
           ) : (
             '😐'
           )}

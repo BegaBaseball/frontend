@@ -86,8 +86,21 @@
             "dev": "npx vite",
             "build": "npx vite build",
             "preview": "npx vite preview",
-    "cy:open": "cypress open",
-    "cy:run": "cypress run",
-    "test:e2e": "start-server-and-test \"npm run dev -- --host 127.0.0.1 --port 5176\" http://127.0.0.1:5176 cy:run"
-  }
+            "cy:doctor": "node scripts/cypress-doctor.mjs",
+            "cy:open": "node scripts/cypress-run.mjs --open",
+            "cy:run": "node scripts/cypress-run.mjs",
+            "cy:run:docker": "CYPRESS_USE_DOCKER=1 node scripts/cypress-run.mjs",
+            "cy:run:global": "node scripts/cypress-run.mjs --global-cache",
+            "cy:run:rescue": "node scripts/cypress-run.mjs --self-heal --auto-docker",
+            "cy:run:global:docker": "CYPRESS_USE_DOCKER=1 node scripts/cypress-run.mjs --global-cache --docker",
+            "cy:run:heal": "node scripts/cypress-run.mjs --self-heal",
+            "cy:run:global:heal": "node scripts/cypress-run.mjs --global-cache --self-heal",
+            "cy:run:global:docker:heal": "CYPRESS_USE_DOCKER=1 node scripts/cypress-run.mjs --global-cache --self-heal --docker",
+            "cy:install": "CYPRESS_CACHE_FOLDER=$PWD/.cypress-cache npx cypress install",
+            "cy:doctor:repair": "node scripts/cypress-doctor.mjs --repair",
+            "test:e2e:docker": "node scripts/test-e2e.mjs --docker",
+    "test:e2e:attach": "node scripts/test-e2e.mjs --no-server --auto-docker",
+            "test:e2e:rescue": "node scripts/test-e2e.mjs --auto-docker",
+            "test:e2e": "node scripts/test-e2e.mjs"
+      }
 }
