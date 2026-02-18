@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { MapPin } from 'lucide-react';
+import { Skeleton } from './ui/skeleton';
+import { MapPin, RefreshCw, AlertTriangle } from 'lucide-react';
 import ChatBot from './ChatBot';
 import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constants';
 import { openKakaoMapRoute } from '../utils/kakaoMap';
@@ -41,8 +42,20 @@ export default function StadiumGuide() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
-            {error}
+          <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span className="text-sm">{error}</span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-600 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 flex-shrink-0"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="w-3.5 h-3.5 mr-1" />
+              재시도
+            </Button>
           </div>
         )}
 
@@ -252,20 +265,31 @@ export default function StadiumGuide() {
 
               {loading ? (
                 <div
-                  className="rounded-2xl border-2 flex items-center justify-center dark:bg-card dark:border-border"
+                  className="rounded-2xl border-2 overflow-hidden dark:bg-card dark:border-border p-4 space-y-3"
                   style={{
                     height: '550px',
                     borderColor: isDark ? '#374151' : THEME_COLORS.border,
                     backgroundColor: isDark ? '#1f2937' : '#f9fafb',
                   }}
                 >
-                  <div className="text-center">
-                    <div
-                      className="inline-block animate-spin rounded-full h-8 w-8 border-b-2"
-                      style={{ borderColor: THEME_COLORS.primary }}
-                    ></div>
-                    <p className="mt-2 text-gray-600 dark:text-gray-300">로딩 중...</p>
-                  </div>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="p-4 bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="w-5 h-5 rounded" />
+                            <Skeleton className="h-5 w-32" />
+                          </div>
+                          <Skeleton className="h-4 w-48" />
+                          <Skeleton className="h-4 w-36" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-5 w-8" />
+                          <Skeleton className="h-9 w-16 rounded-lg" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div
