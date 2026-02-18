@@ -47,11 +47,13 @@ export default function Navbar() {
     const fetchInitialUnreadCount = async () => {
       try {
         // Use api utility for consistent behavior
-        const { api } = await import('../utils/api');
+        const { api, isIgnorableNotificationError } = await import('../utils/api');
         const count = await api.getUnreadCount();
         setUnreadCount(count);
       } catch (error) {
-        console.error('읽지 않은 알림 개수 조회 오류:', error);
+        if (!isIgnorableNotificationError(error)) {
+          console.error('읽지 않은 알림 개수 조회 오류:', error);
+        }
       }
     };
 

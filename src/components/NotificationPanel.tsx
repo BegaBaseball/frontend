@@ -5,7 +5,7 @@ import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore } from '../store/notificationStore';
 import { useAuthStore } from '../store/authStore';
-import { api } from '../utils/api';
+import { api, isIgnorableNotificationError } from '../utils/api';
 import { NotificationData as Notification, NotificationType } from '../types/notification';
 
 type TabType = 'ALL' | 'MATE' | 'CHEER';
@@ -21,15 +21,15 @@ export default function NotificationPanel() {
 
     const fetchNotifications = async () => {
       try {
-        const [notifs, count] = await Promise.all([
-          api.getNotifications(),
-          api.getUnreadCount(),
-        ]);
+        const notifs = await api.getNotifications();
+        const unreadCount = notifs.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0);
 
         setNotifications(notifs);
-        setUnreadCount(count);
+        setUnreadCount(unreadCount);
       } catch (error) {
-        console.error('알림 불러오기 오류:', error);
+        if (!isIgnorableNotificationError(error)) {
+          console.error('알림 불러오기 오류:', error);
+        }
       }
     };
 
