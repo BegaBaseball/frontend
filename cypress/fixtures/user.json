@@ -1,0 +1,26 @@
+{
+    "testUser": {
+        "id": 1,
+        "email": "test@example.com",
+        "password": "password123",
+        "name": "TestUser",
+        "handle": "@testuser",
+        "role": "ROLE_USER",
+        "favoriteTeam": "HH",
+        "profileImageUrl": null,
+        "hasPassword": true,
+        "bio": "I love baseball!"
+    },
+    "adminUser": {
+        "id": 2,
+        "email": "admin@example.com",
+        "password": "adminpassword",
+        "name": "AdminUser",
+        "handle": "@admin",
+        "role": "ROLE_ADMIN",
+        "favoriteTeam": "LG",
+        "profileImageUrl": null,
+        "hasPassword": true,
+        "bio": "Admin here."
+    }
+}

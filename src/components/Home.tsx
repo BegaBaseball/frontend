@@ -15,10 +15,10 @@ import { Skeleton } from './ui/skeleton';
 import TeamLogo from './TeamLogo';
 import GameCard from './GameCard';
 import WelcomeGuide from './WelcomeGuide';
+import { getApiBaseUrl } from '../api/apiBase';
 
 // Constants
 import { CURRENT_SEASON_YEAR } from '../constants/home';
-import { SERVER_BASE_URL } from '../constants/config';
 
 // --- Types ---
 interface Game {
@@ -78,6 +78,7 @@ const GameCardSkeleton = () => (
 );
 
 export default function Home({ onNavigate }: HomeProps) {
+    const API_BASE = getApiBaseUrl();
     const navigate = useNavigate();
 
     // State
@@ -148,7 +149,9 @@ export default function Home({ onNavigate }: HomeProps) {
     const loadNavigationData = async (date: Date) => {
         const apiDate = formatDateForAPI(date);
         try {
-            const response = await fetch(`${SERVER_BASE_URL}/api/kbo/schedule/navigation?date=${apiDate}`);
+            const response = await fetch(`${API_BASE}/kbo/schedule/navigation?date=${apiDate}`, {
+                credentials: 'include',
+            });
             if (response.ok) {
                 const data = await response.json();
                 setNavInfo({
@@ -171,7 +174,9 @@ export default function Home({ onNavigate }: HomeProps) {
     // --- Data Fetching ---
     const loadLeagueStartDates = async () => {
         try {
-            const response = await fetch(`${SERVER_BASE_URL}/api/kbo/league-start-dates`);
+            const response = await fetch(`${API_BASE}/kbo/league-start-dates`, {
+                credentials: 'include',
+            });
             let data: LeagueStartDates;
             if (!response.ok) {
                 // Fallback
@@ -199,7 +204,9 @@ export default function Home({ onNavigate }: HomeProps) {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${SERVER_BASE_URL}/api/kbo/schedule?date=${apiDate}`);
+            const response = await fetch(`${API_BASE}/kbo/schedule?date=${apiDate}`, {
+                credentials: 'include',
+            });
             if (!response.ok) throw new Error('API Error');
 
             const gamesData: Game[] = await response.json();
@@ -222,7 +229,9 @@ export default function Home({ onNavigate }: HomeProps) {
     const loadRankingsData = async () => {
         setIsRankingsLoading(true);
         try {
-            const response = await fetch(`${SERVER_BASE_URL}/api/kbo/rankings/${CURRENT_SEASON_YEAR}`);
+            const response = await fetch(`${API_BASE}/kbo/rankings/${CURRENT_SEASON_YEAR}`, {
+                credentials: 'include',
+            });
             if (!response.ok) throw new Error('API Error');
             const rankingsData: Ranking[] = await response.json();
             setRankings(rankingsData);

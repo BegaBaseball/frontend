@@ -8,7 +8,6 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient, InfiniteData }
 import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Radio, Smile, UserRound, Users, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getTeamDescription, TEAM_DATA } from '../constants/teams';
-import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost } from '../api/cheerApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
@@ -18,6 +17,7 @@ import CheerCard from './CheerCard';
 import CheerHot from './CheerHot';
 import CheerWriteModal from './CheerWriteModal';
 import EndOfFeed from './EndOfFeed';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import {
     normalizeHexColor,
     toRgba,
@@ -67,6 +67,11 @@ export default function Cheer() {
     const teamContrastText = getContrastText(teamColor);
     const teamSoftBg = toRgba(teamColor, 0.12);
     const teamSoftBorder = toRgba(teamColor, 0.25);
+    const resolveProfileImage = (imageUrl?: string) => {
+        if (!imageUrl) return null;
+        if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
+        return imageUrl;
+    };
     const favoriteTeamId = user?.favoriteTeam && user.favoriteTeam !== '없음' ? user.favoriteTeam : null;
     const favoriteTeamLabel = favoriteTeamId ? TEAM_DATA[favoriteTeamId]?.name ?? favoriteTeamId : null;
     const favoriteTeamFull = favoriteTeamId ? TEAM_DATA[favoriteTeamId]?.fullName ?? favoriteTeamId : null;
@@ -651,16 +656,16 @@ export default function Cheer() {
                                     </div>
                                 )}
                                 <div className="flex gap-3">
-                                    <div className="h-11 w-11 rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden">
+                                    <div className="h-11 w-11 shrink-0 rounded-full border border-slate-200 dark:border-border bg-slate-100 dark:bg-card flex items-center justify-center overflow-hidden">
                                         {user?.profileImageUrl ? (
-                                            <img
-                                                src={user.profileImageUrl.includes('/assets/') ? DEFAULT_PROFILE_IMAGE : user.profileImageUrl}
-                                                alt={user?.name || '프로필'}
-                                                className="h-full w-full object-cover"
-                                                onError={(event) => {
-                                                    event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
-                                                }}
-                                            />
+                                    <ProfileAvatar
+                                        src={resolveProfileImage(user.profileImageUrl) || undefined}
+                                        alt={user.name || '프로필'}
+                                        fallbackName={user.name || '프로필'}
+                                        width={40}
+                                        height={40}
+                                        className="rounded-full"
+                                    />
                                         ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
                                             <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
                                         ) : (

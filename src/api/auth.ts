@@ -2,6 +2,7 @@
 import api from './axios';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
+import { getApiBaseUrl } from './apiBase';
 
 // ========== 타입 정의 ==========
 export interface LoginRequest {
@@ -75,6 +76,18 @@ export const loginUser = async (credentials: LoginRequest): Promise<LoginRespons
     if (error instanceof AxiosError && error.response?.status === 401) {
       throw new Error('이메일 또는 비밀번호가 일치하지 않습니다.');
     }
+    if (error instanceof AxiosError && error.response?.status === 403) {
+      const responseData = error.response?.data as
+        | { message?: string; error?: string }
+        | string
+        | null
+        | undefined;
+      const serverMessage =
+        (typeof responseData === 'string' ? responseData : responseData?.message || responseData?.error);
+      if (serverMessage) {
+        throw new Error(serverMessage);
+      }
+    }
     throw new Error(getApiErrorMessage(error, '로그인에 실패했습니다.'));
   }
 };
@@ -101,12 +114,13 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
 /**
  * 소셜 로그인 URL 생성
  */
-import { SERVER_BASE_URL } from '../constants/config';
+const OAUTH_LOGIN_BASE_URL = getApiBaseUrl();
+
 export const getSocialLoginUrl = (
   provider: 'kakao' | 'google' | 'naver',
   params?: { mode?: 'link'; linkToken?: string }
 ): string => {
-  const url = `${SERVER_BASE_URL}/oauth2/authorization/${provider}`;
+  const url = `${OAUTH_LOGIN_BASE_URL}/oauth2/authorization/${provider}`;
   if (params) {
     const query = new URLSearchParams();
     if (params.mode) query.append('mode', params.mode);

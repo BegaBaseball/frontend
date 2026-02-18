@@ -62,13 +62,13 @@ export default function RankingPrediction() {
   if (!isLoggedIn) {
     return (
       <Card className="p-8 md:p-12 text-center bg-white dark:bg-card border border-gray-200 dark:border-border shadow-sm">
-        <div className="bg-gray-100 dark:bg-secondary p-4 rounded-full w-fit mx-auto mb-4">
+        <div className="bg-gray-100 dark:bg-card p-4 rounded-full w-fit mx-auto mb-4">
           <LogIn className="w-8 h-8 text-gray-400 dark:text-gray-300" />
         </div>
-        <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
+        <h3 className="text-xl font-bold text-gray-700 dark:text-gray-100 mb-2">
           로그인이 필요합니다
         </h3>
-        <p className="text-gray-500 dark:text-gray-300 mb-6">
+        <p className="text-gray-500 dark:text-gray-200 mb-6">
           순위 예측에 참여하려면 로그인해주세요.
         </p>
         <Button
@@ -175,9 +175,9 @@ export default function RankingPrediction() {
           className={`border rounded-xl p-3 transition-all duration-200 ${team
             ? `shadow-sm ${!alreadySaved && 'cursor-move hover:scale-[1.01] hover:shadow-md'} ${isPostSeasonZone
               ? 'bg-white dark:bg-card border-primary/30 dark:border-primary/50'
-              : 'bg-gray-50/80 dark:bg-secondary/40 border-gray-200 dark:border-border'
+              : 'bg-gray-50/80 dark:bg-card border-gray-200 dark:border-border'
             }`
-            : 'border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-secondary/40'
+            : 'border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-card'
             } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'} focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
         >
           <div className="flex items-center gap-3">
@@ -190,10 +190,10 @@ export default function RankingPrediction() {
             {team ? (
               <div className="flex items-center gap-3 flex-1">
                 {!alreadySaved && <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />}
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-secondary/40 border border-gray-100 dark:border-border flex-shrink-0">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-card border border-gray-100 dark:border-border flex-shrink-0">
                   <TeamLogo team={team.shortName} size={32} />
                 </div>
-                <span style={{ fontWeight: 700 }} className={`flex-1 ${isPostSeasonZone ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-300'}`}>
+                <span style={{ fontWeight: 700 }} className={`flex-1 ${isPostSeasonZone ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-200'}`}>
                   {team.name}
                 </span>
                 {!alreadySaved && (
@@ -209,7 +209,7 @@ export default function RankingPrediction() {
                 )}
               </div>
             ) : (
-              <div className="flex-1 text-center text-gray-400 dark:text-gray-300 text-sm">
+              <div className="flex-1 text-center text-gray-400 dark:text-gray-200 text-sm">
                 팀을 선택하세요
               </div>
             )}
@@ -225,13 +225,18 @@ export default function RankingPrediction() {
         <AlertDialogContent className="dark:bg-card dark:border-border">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-primary">순위 확정</AlertDialogTitle>
-            <AlertDialogDescription className="dark:text-gray-300">
+            <AlertDialogDescription className="text-gray-600 dark:text-gray-300">
               한번 저장하면 순위 변경이 불가능합니다.<br />
               이대로 순위를 확정하시겠습니까?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSaving} className="dark:bg-secondary dark:text-white dark:hover:bg-secondary">취소</AlertDialogCancel>
+            <AlertDialogCancel
+              disabled={isSaving}
+              className="text-gray-700 dark:text-gray-100 border border-border/60 dark:border-border/80 bg-background dark:bg-card hover:bg-gray-100 dark:hover:bg-primary/10"
+            >
+              취소
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmSave}
               disabled={isSaving}
@@ -292,11 +297,11 @@ export default function RankingPrediction() {
                     key={team.id}
                     onClick={() => handleTeamClick(team)}
                     disabled={alreadySaved}
-                    className={`w-full p-2 transition-colors text-left border-b border-gray-100 dark:border-border/70 last:border-b-0 ${!alreadySaved && 'hover:bg-gray-50 dark:hover:bg-secondary'
-                      } ${alreadySaved && 'opacity-50 cursor-not-allowed'}`}
-                  >
+                  className={`w-full p-2 transition-colors text-left border-b border-gray-100 dark:border-border/70 last:border-b-0 ${!alreadySaved && 'hover:bg-gray-50 dark:hover:bg-primary/10'
+                    } ${alreadySaved && 'opacity-50 cursor-not-allowed'}`}
+                >
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-secondary/40 border border-gray-100 dark:border-border flex-shrink-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-card border border-gray-100 dark:border-border flex-shrink-0">
                         <TeamLogo team={team.shortName} size={32} />
                       </div>
                       <span className="font-semibold text-gray-900 dark:text-gray-100">{team.name}</span>
@@ -305,7 +310,7 @@ export default function RankingPrediction() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 px-4 text-gray-400">
+              <div className="text-center py-8 px-4 text-gray-400 dark:text-gray-300">
                 <div className="mb-4 mx-auto w-[60px]">
                   <OptimizedImage src={firstPlaceImage} alt="First Place" className="w-full h-auto object-contain" />
                 </div>
