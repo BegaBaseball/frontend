@@ -23,7 +23,7 @@ const FALLBACK_API_BASE_URL = `${SERVER_BASE_URL.replace(/\/$/, '')}/api`;
 
 export class ApiError extends Error {
   status: number;
-  data: { message?: string; error?: string; timestamp?: string } | null;
+  data: { message?: string; error?: string; timestamp?: string; code?: string } | null;
 
   constructor(message: string, status: number, data: ApiError['data'] = null) {
     super(message);

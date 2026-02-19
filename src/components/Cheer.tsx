@@ -304,6 +304,13 @@ export default function Cheer() {
             if (activeFeedTab !== 'all') {
                 queryClient.setQueryData(['cheer-posts', 'all'], context.previousAll);
             }
+            const parsedError = parseError(_error);
+            if (parsedError.responseCode === 'INVALID_AUTHOR') {
+                useAuthStore.getState().setShowLoginRequiredDialog(true);
+                toast.error(parsedError.message || '인증된 사용자 정보를 확인할 수 없어 다시 로그인해 주세요.');
+            } else {
+                toast.error(parsedError.message || '게시글 등록에 실패했습니다.');
+            }
 
         },
         onSuccess: (result, _payload, context) => {

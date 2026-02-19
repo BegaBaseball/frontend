@@ -21,21 +21,23 @@ interface CommentModalProps {
     isOpen: boolean;
     onClose: () => void;
     post: CheerPost;
+    targetPostId?: number;
 }
 
-export default function CommentModal({ isOpen, onClose, post }: CommentModalProps) {
+export default function CommentModal({ isOpen, onClose, post, targetPostId }: CommentModalProps) {
     const { user } = useAuthStore();
     const { theme } = useTheme();
     const queryClient = useQueryClient();
     const [content, setContent] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
+    const resolvedPostId = targetPostId ?? post.id;
 
     const commentMutation = useMutation({
-        mutationFn: () => createComment(post.id, content),
+        mutationFn: () => createComment(resolvedPostId, content),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
-            queryClient.invalidateQueries({ queryKey: ['cheer-comments', post.id] });
+            queryClient.invalidateQueries({ queryKey: ['cheer-comments', resolvedPostId] });
             setContent('');
             onClose();
         },

@@ -60,10 +60,16 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const statsSource = (post.repostType === 'SIMPLE' && post.originalPost)
         ? post.originalPost
         : post;
+    const resolveActionPostId = () => {
+        if (post.repostOfId) return post.repostOfId;
+        if (post.originalPost?.id) return post.originalPost.id;
+        return post.id;
+    };
     const commentCount = statsSource.commentCount ?? post.comments;
     const likeCount = statsSource.likeCount ?? post.likes;
     const repostCount = statsSource.repostCount ?? post.repostCount;
     const bookmarkCount = post.bookmarkCount ?? 0;
+    const actionPostId = resolveActionPostId();
     const repostActive = post.repostedByMe || (post.repostType && post.isOwner);
     const bookmarkActive = Boolean(post.isBookmarked ?? post.bookmarked);
 
@@ -86,7 +92,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         event.stopPropagation();
         setLikeAnimating(true);
         // toggleLike(post.id);
-        toggleLikeMutation.mutate(post.id); // Updated
+        toggleLikeMutation.mutate(actionPostId);
         if (likeTimerRef.current) window.clearTimeout(likeTimerRef.current);
         likeTimerRef.current = window.setTimeout(() => {
             setLikeAnimating(false);
@@ -95,7 +101,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
     const handleBookmarkClick = (event: React.MouseEvent) => {
         event.stopPropagation();
-        toggleBookmarkMutation.mutate(post.id);
+        toggleBookmarkMutation.mutate(actionPostId);
     };
 
     const handleEdit = (event: React.MouseEvent) => {
@@ -124,8 +130,9 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     // const handleRepostClick = ... (replaced by PopoverTrigger)
 
     const handleSimpleRepost = () => {
+        const targetPostId = resolveActionPostId();
         setRepostAnimating(true);
-        repostMutation.mutate(post.id);
+        repostMutation.mutate(targetPostId);
         setIsPopoverOpen(false); // Close popover
         if (repostTimerRef.current) window.clearTimeout(repostTimerRef.current);
         repostTimerRef.current = window.setTimeout(() => {
@@ -555,11 +562,12 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
                 {/* Portal Bubbling 방지를 위한 래퍼 */}
                 <div onClick={(e) => e.stopPropagation()}>
-                    <CommentModal
-                        isOpen={isCommentModalOpen}
-                        onClose={() => setIsCommentModalOpen(false)}
-                        post={post}
-                    />
+                        <CommentModal
+                            isOpen={isCommentModalOpen}
+                            onClose={() => setIsCommentModalOpen(false)}
+                            post={post}
+                            targetPostId={actionPostId}
+                        />
 
                     <QuoteRepostEditor
                         isOpen={isQuoteEditorOpen}
