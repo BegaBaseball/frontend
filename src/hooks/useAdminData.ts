@@ -9,8 +9,10 @@ import {
   deleteAdminPost,
   fetchAdminMates,
   deleteAdminMate,
+  fetchAdminReports,
+  handleAdminReport,
 } from '../api/admin';
-import { AdminUser, AdminStats, AdminPost, AdminMate } from '../types/admin';
+import { AdminUser, AdminStats, AdminPost, AdminMate, AdminReport } from '../types/admin';
 
 export const useAdminData = () => {
   const queryClient = useQueryClient();
@@ -21,6 +23,7 @@ export const useAdminData = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [mates, setMates] = useState<AdminMate[]>([]);
+  const [reports, setReports] = useState<AdminReport[]>([]);
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     totalPosts: 0,
@@ -142,6 +145,32 @@ export const useAdminData = () => {
     }
   };
 
+  const loadReports = async () => {
+    try {
+      const data = await fetchAdminReports({ page: 0, size: 100 });
+      setReports(data.content || []);
+    } catch (err) {
+      console.error('신고 조회 오류:', err);
+      setError('신고 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
+  const handleReportAction = async (
+    reportId: number,
+    action: 'TAKE_DOWN' | 'REQUIRE_MODIFICATION' | 'WARNING' | 'DISMISS' | 'RESTORE',
+    adminMemo?: string
+  ) => {
+    try {
+      await handleAdminReport(reportId, { action, adminMemo });
+      setSuccessMessage('신고 케이스가 처리되었습니다.');
+      await loadReports();
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('신고 처리 오류:', err);
+      setError('신고 처리에 실패했습니다.');
+    }
+  };
+
   // 검색어 디바운싱
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -159,6 +188,7 @@ export const useAdminData = () => {
     loadUsers();
     loadPosts();
     loadMates();
+    loadReports();
   }, []);
 
   return {
@@ -170,6 +200,7 @@ export const useAdminData = () => {
     users,
     posts,
     mates,
+    reports,
     stats,
     loading,
     error,
@@ -179,5 +210,6 @@ export const useAdminData = () => {
     handleDeleteUser,
     handleDeletePost,
     handleDeleteMate,
+    handleReportAction,
   };
 };

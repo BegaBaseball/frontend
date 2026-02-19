@@ -12,15 +12,28 @@ import {
     DialogDescription,
 } from './ui/dialog';
 import { Button } from './ui/button';
-import { TEAM_DATA } from '../constants/teams';
 import TeamLogo from './TeamLogo';
 import { useAuthStore } from '../store/authStore';
 import { ProfileAvatar } from './ui/ProfileAvatar';
+import { ShareMode } from '../api/cheerApi';
+
+export interface CheerWritePayload {
+    content: string;
+    files: File[];
+    shareMode: ShareMode;
+    sourceUrl?: string;
+    sourceTitle?: string;
+    sourceAuthor?: string;
+    sourceLicense?: string;
+    sourceLicenseUrl?: string;
+    sourceChangedNote?: string;
+    sourceSnapshotType?: string;
+}
 
 interface CheerWriteModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (content: string, files: File[]) => Promise<void>;
+    onSubmit: (payload: CheerWritePayload) => Promise<void>;
     teamColor: string;
     teamAccent: string;
     teamContrastText: string;
@@ -44,9 +57,26 @@ export default function CheerWriteModal({
     const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [shareMode, setShareMode] = useState<ShareMode>('INTERNAL_REPOST');
+    const [sourceUrl, setSourceUrl] = useState('');
+    const [sourceTitle, setSourceTitle] = useState('');
+    const [sourceAuthor, setSourceAuthor] = useState('');
+    const [sourceLicense, setSourceLicense] = useState('');
+    const [sourceLicenseUrl, setSourceLicenseUrl] = useState('');
+    const [sourceChangedNote, setSourceChangedNote] = useState('');
+    const [sourceSnapshotType, setSourceSnapshotType] = useState('');
     const { theme } = useTheme();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
+    const previewsRef = useRef(previews);
+    useEffect(() => { previewsRef.current = previews; }, [previews]);
+
+    // 모달 닫힐 때 Object URL 누수 방지
+    useEffect(() => {
+        if (!isOpen) {
+            previewsRef.current.forEach(p => URL.revokeObjectURL(p.url));
+        }
+    }, [isOpen]);
     const resolveProfileImage = (imageUrl?: string) => {
         if (!imageUrl) return null;
         if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
@@ -117,13 +147,37 @@ export default function CheerWriteModal({
 
     const handleSubmit = async () => {
         if (!content.trim()) return;
+        const externalModes: ShareMode[] = ['EXTERNAL_LINK', 'EXTERNAL_COPY', 'EXTERNAL_EMBED', 'EXTERNAL_SUMMARY'];
+        if (externalModes.includes(shareMode) && !sourceUrl.trim()) {
+            toast.error('외부 공유 모드에서는 출처 URL이 필요합니다.');
+            return;
+        }
         setIsSubmitting(true);
         try {
-            await onSubmit(content, files);
+            await onSubmit({
+                content,
+                files,
+                shareMode,
+                sourceUrl: sourceUrl || undefined,
+                sourceTitle: sourceTitle || undefined,
+                sourceAuthor: sourceAuthor || undefined,
+                sourceLicense: sourceLicense || undefined,
+                sourceLicenseUrl: sourceLicenseUrl || undefined,
+                sourceChangedNote: sourceChangedNote || undefined,
+                sourceSnapshotType: sourceSnapshotType || undefined,
+            });
             setContent('');
             setFiles([]);
             previews.forEach(p => URL.revokeObjectURL(p.url));
             setPreviews([]);
+            setShareMode('INTERNAL_REPOST');
+            setSourceUrl('');
+            setSourceTitle('');
+            setSourceAuthor('');
+            setSourceLicense('');
+            setSourceLicenseUrl('');
+            setSourceChangedNote('');
+            setSourceSnapshotType('');
             onClose();
         } catch (error) {
             console.error(error);
@@ -165,6 +219,62 @@ export default function CheerWriteModal({
                             )}
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col gap-2 sm:gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <select
+                                    value={shareMode}
+                                    onChange={(e) => setShareMode(e.target.value as ShareMode)}
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                >
+                                    <option value="INTERNAL_REPOST">내부 공유</option>
+                                    <option value="INTERNAL_QUOTE">내부 인용</option>
+                                    <option value="EXTERNAL_LINK">외부 링크</option>
+                                    <option value="EXTERNAL_EMBED">외부 임베드</option>
+                                    <option value="EXTERNAL_SUMMARY">외부 요약</option>
+                                    <option value="EXTERNAL_COPY">외부 재게시</option>
+                                </select>
+                                <input
+                                    value={sourceUrl}
+                                    onChange={(e) => setSourceUrl(e.target.value)}
+                                    placeholder="출처 URL (외부 모드 필수)"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                />
+                                <input
+                                    value={sourceTitle}
+                                    onChange={(e) => setSourceTitle(e.target.value)}
+                                    placeholder="원문 제목 (선택)"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                />
+                                <input
+                                    value={sourceAuthor}
+                                    onChange={(e) => setSourceAuthor(e.target.value)}
+                                    placeholder="작성자/권리자 (선택)"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                />
+                                <input
+                                    value={sourceLicense}
+                                    onChange={(e) => setSourceLicense(e.target.value)}
+                                    placeholder="라이선스 (선택)"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                />
+                                <input
+                                    value={sourceLicenseUrl}
+                                    onChange={(e) => setSourceLicenseUrl(e.target.value)}
+                                    placeholder="라이선스 URL (선택)"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                />
+                                <input
+                                    value={sourceChangedNote}
+                                    onChange={(e) => setSourceChangedNote(e.target.value)}
+                                    placeholder="변경사항 (선택)"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                />
+                                <input
+                                    value={sourceSnapshotType}
+                                    onChange={(e) => setSourceSnapshotType(e.target.value)}
+                                    placeholder="스냅샷 유형 (선택)"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                />
+                            </div>
                             <TextareaAutosize
                                 autoFocus
                                 placeholder="지금 우리 팀에게 응원을 남겨주세요!"
