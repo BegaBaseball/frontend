@@ -40,6 +40,10 @@ export function ErrorModalProvider({ children }: ErrorModalProviderProps) {
         const handleGlobalError = (event: Event) => {
             const customEvent = event as CustomEvent;
             const errorData = customEvent.detail;
+            const responseCode = (errorData as { responseCode?: string } | undefined)?.responseCode;
+            if (responseCode === 'INVALID_AUTHOR') {
+                return;
+            }
             openErrorModal({
                 message: errorData.message,
                 statusCode: errorData.statusCode,

@@ -34,12 +34,22 @@ api.interceptors.response.use(
     },
     async (error) => {
         const originalRequest = error.config;
+        const responseCode = error.response?.data?.code;
 
         if (hasSessionExpired) {
             return Promise.reject(error);
         }
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+            if (responseCode === 'INVALID_AUTHOR') {
+                console.error('Session invalid due to missing/invalid author user.');
+                const parsedError = parseError(error);
+                if (!error.config?.skipGlobalErrorHandler) {
+                    window.dispatchEvent(new CustomEvent('global-api-error', { detail: parsedError }));
+                }
+                return Promise.reject(error);
+            }
+
             if (skipReissueRequestPaths.some((path) => originalRequest.url?.includes(path))) {
                 hasSessionExpired = false;
                 return Promise.reject(error);
@@ -70,6 +80,22 @@ api.interceptors.response.use(
                 }
 
                 return Promise.reject(reissueError);
+            }
+        } else if (error.response?.status === 401) {
+            if (responseCode === 'INVALID_AUTHOR') {
+                console.error('Session invalid due to missing/invalid author user.');
+                const parsedError = parseError(error);
+                if (!error.config?.skipGlobalErrorHandler) {
+                    window.dispatchEvent(new CustomEvent('global-api-error', { detail: parsedError }));
+                }
+                return Promise.reject(error);
+            }
+
+            // 재발급 후에도 401이 남는 경우: 토큰은 만료되었거나 계정이 유효하지 않아 세션이 복구 불가
+            if (!hasSessionExpired) {
+                hasSessionExpired = true;
+                console.error('Session invalid. Please login again.');
+                window.dispatchEvent(new CustomEvent('auth-session-expired'));
             }
         }
 

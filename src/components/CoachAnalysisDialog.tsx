@@ -11,7 +11,7 @@ import {
 import { Label } from './ui/label';
 import {
     Loader2, Zap, TrendingUp, TrendingDown, Users, Shield, Bot, Sparkles,
-    BarChart3, AlertTriangle, CheckCircle, ArrowUpRight, ArrowDownRight, Minus, Trophy
+    BarChart2, BarChart3, AlertTriangle, CheckCircle, ArrowUpRight, ArrowDownRight, Minus, Trophy
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -247,6 +247,7 @@ export default function CoachAnalysisDialog({
         { id: 'bullpen', label: '불펜 상태', icon: Shield, desc: '필승조 가동 가능 여부' },
         { id: 'matchup', label: '상대 전적', icon: Users, desc: '이번 시즌 상대 승률' },
         { id: 'starter', label: '선발 투수', icon: Zap, desc: '선발 맞대결 분석' },
+        { id: 'batting', label: '타격 생산성', icon: BarChart2, desc: 'OPS·wRC+ 등 타격 지표 분석' },
     ];
     const focusLabelMap: Record<string, string> = {
         recent_form: '최근 전력',

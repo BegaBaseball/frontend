@@ -1,6 +1,6 @@
 import chatBotIcon from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Badge } from './ui/badge';
-import { X, Send, Check, Copy } from 'lucide-react';
+import { X, Send, Check, Copy, BrainCircuit, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChatBot } from '../hooks/useChatBot';
@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
+import { useNavigate } from 'react-router-dom';
 
 
 export default function ChatBot() {
@@ -15,6 +16,7 @@ export default function ChatBot() {
   // const isLoggedIn = true;
   const isMobile = useIsMobile();
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const {
     isOpen,
     setIsOpen,
@@ -257,6 +259,24 @@ export default function ChatBot() {
               </>
             )}
           </div>
+
+          {/* AI Coach Shortcut */}
+          {isLoggedIn && (
+            <div className="px-4 py-2 border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20">
+              <button
+                type="button"
+                onClick={() => {
+                  handleClose();
+                  navigate('/prediction');
+                }}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors w-full"
+              >
+                <BrainCircuit size={13} className="shrink-0" />
+                <span>팀 심층 분석 (AI 코치)</span>
+                <ChevronRight size={13} className="ml-auto shrink-0" />
+              </button>
+            </div>
+          )}
 
           {/* Input */}
           <form
