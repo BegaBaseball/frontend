@@ -91,7 +91,7 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
                             {/* Profile Image */}
                             <div className="relative">
                                 <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
-                                    <AvatarImage src={profile.profileImageUrl} className="object-cover" />
+                                    <AvatarImage src={profile.profileImageUrl ?? undefined} className="object-cover" />
                                     <AvatarFallback className="bg-gray-100 text-gray-400">
                                         <User className="w-12 h-12" />
                                     </AvatarFallback>

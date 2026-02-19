@@ -186,7 +186,7 @@ export default function ProfileEditSection({
 
     if (activeSection === 'profile' && hasChanges) {
       setPendingSection(section);
-      setShowDiscardDialog(true);
+      handleCancelRequest();
       return;
     }
 

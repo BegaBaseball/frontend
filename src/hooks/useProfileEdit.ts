@@ -159,10 +159,11 @@ export const useProfileEdit = ({
       }
 
       const resolvedProfileImageUrl = response.data.profileImageUrl ?? variables.profileImageUrl;
+      const resolvedName = response.data.name ?? name.trim();
       const normalizedFavoriteTeam = normalizeFavoriteTeam(editingFavoriteTeam);
 
       const cachedProfilePatch: Partial<UserProfile> = {
-        name: response.data.name ?? name.trim(),
+        name: resolvedName,
         email,
         favoriteTeam: response.data.favoriteTeam ?? (normalizedFavoriteTeam === '없음' ? null : normalizedFavoriteTeam),
         bio: response.data.bio ?? (bio.trim() || null),
@@ -172,19 +173,13 @@ export const useProfileEdit = ({
         cachedProfilePatch.profileImageUrl = resolvedProfileImageUrl;
       }
 
-      const updatedUserProfilePatch: {
-        email: string;
-        name: string;
-        favoriteTeam?: string | null;
-        profileImageUrl?: string | null;
-        bio?: string | null;
-      } = {
+      const updatedUserProfilePatch: Parameters<typeof setUserProfile>[0] = {
         email,
-        name: cachedProfilePatch.name,
+        name: resolvedName,
       };
 
       if (cachedProfilePatch.favoriteTeam !== undefined) {
-        updatedUserProfilePatch.favoriteTeam = cachedProfilePatch.favoriteTeam;
+        updatedUserProfilePatch.favoriteTeam = cachedProfilePatch.favoriteTeam ?? undefined;
       }
       if (cachedProfilePatch.profileImageUrl !== undefined) {
         updatedUserProfilePatch.profileImageUrl = cachedProfilePatch.profileImageUrl;

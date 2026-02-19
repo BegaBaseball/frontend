@@ -234,7 +234,7 @@ export default function UserProfile() {
                 {/* Avatar - overlapping banner */}
                 <div className="px-6 -mt-[50px] relative z-10">
                     <Avatar className="w-[100px] h-[100px] border-4 border-white dark:border-border shadow-xl">
-                        <AvatarImage src={profile.profileImageUrl} className="object-cover" />
+                        <AvatarImage src={profile.profileImageUrl ?? undefined} className="object-cover" />
                         <AvatarFallback className="bg-gray-100 dark:bg-secondary text-gray-400">
                             <User className="w-12 h-12" />
                         </AvatarFallback>

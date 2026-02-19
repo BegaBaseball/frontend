@@ -1,6 +1,7 @@
 // hooks/usePrediction.ts
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useLeaderboardStore } from '../store/leaderboardStore';
 import { useOptionalConfirmDialog } from '../components/contexts/ConfirmDialogContext';
@@ -20,7 +21,6 @@ import {
   getTodayString,
   getTomorrowString,
   formatDate,
-  generateDateRange
 } from '../utils/prediction';
 import { getFullTeamName } from '../constants/teams';
 
@@ -38,6 +38,7 @@ const predictionUserVoteRequests = new Map<string, Promise<UserVoteRecord>>();
 const predictionUserVoteCache = new Map<string, UserVoteBatchState>();
 
 export const usePrediction = () => {
+  const [searchParams] = useSearchParams();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   const optionalConfirmDialog = useOptionalConfirmDialog();
@@ -77,6 +78,10 @@ export const usePrediction = () => {
   const [gameDetails, setGameDetails] = useState<{ [key: string]: GameDetail | null }>({});
   const [gameDetailLoading, setGameDetailLoading] = useState<{ [key: string]: boolean }>({});
   const isFetchingAllGamesRef = useRef(false);
+  const hasAppliedDeepLinkRef = useRef(false);
+  const skipDateResetRef = useRef(false);
+  const deepLinkGameId = (searchParams.get('gameId') || '').trim();
+  const deepLinkDate = (searchParams.get('date') || '').trim();
 
   // 로그인 체크
   useEffect(() => {
@@ -92,8 +97,46 @@ export const usePrediction = () => {
 
   // 날짜가 변경될 때마다 첫 번째 경기로 리셋
   useEffect(() => {
+    if (skipDateResetRef.current) {
+      skipDateResetRef.current = false;
+      return;
+    }
     setSelectedGame(0);
   }, [currentDateIndex]);
+
+  // 홈에서 전달된 딥링크(gameId/date)를 최초 1회 반영
+  useEffect(() => {
+    if (hasAppliedDeepLinkRef.current) return;
+    if (allDatesData.length === 0) return;
+
+    hasAppliedDeepLinkRef.current = true;
+
+    if (!deepLinkGameId && !deepLinkDate) return;
+
+    setActiveTab('match');
+
+    if (deepLinkGameId) {
+      for (let dateIndex = 0; dateIndex < allDatesData.length; dateIndex += 1) {
+        const gameIndex = allDatesData[dateIndex].games.findIndex((game) => game.gameId === deepLinkGameId);
+        if (gameIndex !== -1) {
+          if (dateIndex !== currentDateIndex) {
+            skipDateResetRef.current = true;
+            setCurrentDateIndex(dateIndex);
+          }
+          setSelectedGame(gameIndex);
+          return;
+        }
+      }
+    }
+
+    if (deepLinkDate) {
+      const dateIndex = allDatesData.findIndex((entry) => entry.date === deepLinkDate);
+      if (dateIndex !== -1) {
+        setCurrentDateIndex(dateIndex);
+        setSelectedGame(0);
+      }
+    }
+  }, [allDatesData, currentDateIndex, deepLinkGameId, deepLinkDate]);
 
   // 경기가 변경될 때마다 투표 현황 가져오기
   useEffect(() => {
@@ -194,17 +237,16 @@ export const usePrediction = () => {
       setAllDatesData(allDates);
 
       // 3. 네비게이션 초기 위치 선정 (Smart Default)
-      // 오늘 또는 오늘 이후 중 '경기가 있고 아직 종료되지 않은' 가장 가까운 날짜 찾기
-      let activeIndex = allDates.findIndex(d =>
-        d.date >= today && d.games.some(game => game.homeScore === null)
+      // 1) 오늘 이상 날짜 중 경기 1건 이상인 가장 가까운 날짜
+      let activeIndex = allDates.findIndex((d) =>
+        d.date >= today && d.games.length > 0
       );
 
-      // 만약 오늘 이후에 '종료되지 않은' 경기가 없다면 (이미 오늘 다 끝났거나 시즌 말)
+      // 2) 위 조건이 없으면 오늘 날짜를 우선 선택
       if (activeIndex === -1) {
-        // 오늘 날짜가 목록에 있으면 오늘이라도 보여줌
         activeIndex = allDates.findIndex(d => d.date === today);
 
-        // 오늘조차 없으면 가장 마지막(최신) 데이터
+        // 3) 오늘도 없으면 가장 마지막(최신) 날짜
         if (activeIndex === -1) {
           activeIndex = allDates.length - 1;
         }
@@ -234,8 +276,8 @@ export const usePrediction = () => {
           const batchPromise: Promise<{ [key: string]: VoteTeam | null }> = inFlight
             ? inFlight
             : fetchAllUserVotesBulkAPI(gameIds).finally(() => {
-                predictionUserVoteRequests.delete(cacheKey);
-              });
+              predictionUserVoteRequests.delete(cacheKey);
+            });
 
           predictionUserVoteRequests.set(cacheKey, batchPromise);
           const userVotes = await batchPromise;

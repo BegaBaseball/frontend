@@ -57,6 +57,37 @@ export interface ApplicationFormData {
   message: string;
 }
 
+const normalizeSelectedParty = (party: Party | MateParty | null): Party | null => {
+  if (!party) {
+    return null;
+  }
+
+  if ('hostName' in party) {
+    return party;
+  }
+
+  return {
+    id: party.id,
+    hostId: party.hostId,
+    hostName: '',
+    hostBadge: 'new',
+    hostRating: 0,
+    teamId: party.teamId,
+    gameDate: party.gameDate,
+    gameTime: party.gameTime,
+    stadium: party.stadium,
+    homeTeam: party.homeTeam,
+    awayTeam: party.awayTeam,
+    section: party.section,
+    maxParticipants: party.maxParticipants,
+    currentParticipants: party.currentParticipants,
+    description: party.description || '',
+    ticketVerified: false,
+    status: party.status,
+    createdAt: '',
+  };
+};
+
 interface MateState {
   parties: Party[];
   selectedParty: Party | null;
@@ -165,7 +196,7 @@ export const useMateStore = create<MateState>()(
 
       setSearchQuery: (query) => set({ searchQuery: query }),
       setParties: (parties) => set({ parties }),
-      setSelectedParty: (party) => set({ selectedParty: party }),
+      setSelectedParty: (party) => set({ selectedParty: normalizeSelectedParty(party) }),
 
       addParty: (party) => set((state) => ({
         parties: [party, ...state.parties],

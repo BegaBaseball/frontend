@@ -2,8 +2,188 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery, InfiniteData }
 import * as cheerApi from '../api/cheerApi';
 import { PostImageDto, FetchPostsParams, SearchPostsParams, PageResponse, CheerPost } from '../api/cheerApi';
 import { CHEER_KEYS } from './cheerQueryKeys';
+import { parseError } from '../utils/errorUtils';
+import { toast } from 'sonner';
+import { getRepostErrorMessageFromCode } from '../utils/repostPolicy';
 
 type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
+type QuerySnapshot<T> = Array<[readonly unknown[], T | undefined]>;
+
+type RepostMutationContext = {
+    previousPost?: CheerPost;
+    previousPostLists?: Array<[readonly unknown[], CheerInfiniteData | undefined]>;
+    previousPostDetails?: QuerySnapshot<CheerPost>;
+};
+
+type CancelRepostContext = {
+    previousPost?: CheerPost;
+    previousPostLists?: Array<[readonly unknown[], CheerInfiniteData | undefined]>;
+    previousOriginalPost?: CheerPost;
+    originalPostId?: number;
+    previousPostDetails?: QuerySnapshot<CheerPost>;
+};
+
+type QuoteRepostContext = {
+    previousPost?: CheerPost;
+    previousPostLists?: Array<[readonly unknown[], CheerInfiniteData | undefined]>;
+    previousPostDetails?: QuerySnapshot<CheerPost>;
+};
+
+type InfiniteQueriesSnapshot = Array<[readonly unknown[], CheerInfiniteData | undefined]>;
+
+const REPOST_LIST_QUERY_PREFIXES = [
+    ['cheer', 'posts'],
+    ['cheer', 'search'],
+    ['cheer-posts'],
+    ['userPosts'],
+] as const;
+
+const getRepostListQueries = (
+    queryClient: ReturnType<typeof useQueryClient>
+): InfiniteQueriesSnapshot => {
+    const snapshots = REPOST_LIST_QUERY_PREFIXES.flatMap((queryKey) =>
+        queryClient.getQueriesData<CheerInfiniteData>({ queryKey })
+    );
+    const uniq = new Map<string, [readonly unknown[], CheerInfiniteData | undefined]>();
+    snapshots.forEach(([queryKey, data]) => {
+        uniq.set(JSON.stringify(queryKey), [queryKey, data]);
+    });
+    return Array.from(uniq.values());
+};
+
+const cancelRepostListQueries = (queryClient: ReturnType<typeof useQueryClient>): Promise<void[]> =>
+    Promise.all(REPOST_LIST_QUERY_PREFIXES.map((queryKey) => queryClient.cancelQueries({ queryKey })));
+
+const updateRepostListQueries = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    updater: (old: CheerInfiniteData | undefined) => CheerInfiniteData | undefined
+) => {
+    REPOST_LIST_QUERY_PREFIXES.forEach((queryKey) => {
+        queryClient.setQueriesData<CheerInfiniteData>({ queryKey }, updater);
+    });
+};
+
+const invalidateRepostListQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+    REPOST_LIST_QUERY_PREFIXES.forEach((queryKey) => {
+        queryClient.invalidateQueries({ queryKey });
+    });
+};
+
+const restoreInfiniteQueries = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    snapshots?: InfiniteQueriesSnapshot
+) => {
+    snapshots?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData<CheerInfiniteData>(queryKey, data);
+    });
+};
+
+const restoreQuerySnapshots = <T>(
+    queryClient: ReturnType<typeof useQueryClient>,
+    snapshots?: QuerySnapshot<T>
+) => {
+    snapshots?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData<T>(queryKey, data);
+    });
+};
+
+const isRepostTargetMatch = (post: CheerPost, targetPostId: number): boolean => {
+    if (post.id === targetPostId) {
+        return true;
+    }
+    if (post.repostOfId === targetPostId) {
+        return true;
+    }
+    if (post.originalPost?.id === targetPostId) {
+        return true;
+    }
+    return false;
+};
+
+const syncRepostActionState = (
+    post: CheerPost,
+    targetPostId: number,
+    reposted: boolean,
+    repostCount: number
+) => {
+    if (post.id === targetPostId) {
+        return {
+            ...post,
+            repostedByMe: reposted,
+            repostCount,
+        };
+    }
+
+    if (post.originalPost?.id === targetPostId) {
+        return {
+            ...post,
+            originalPost: {
+                ...post.originalPost,
+                repostCount,
+            },
+        };
+    }
+
+    return post;
+};
+
+const syncRepostActionStateInInfinitePages = (
+    data: CheerInfiniteData | undefined,
+    targetPostId: number,
+    reposted: boolean,
+    repostCount: number
+) => {
+    if (!data?.pages) return data;
+
+    return {
+        ...data,
+        pages: data.pages.map((page) => ({
+            ...page,
+            content: page.content.map((post) => {
+                if (!isRepostTargetMatch(post, targetPostId)) {
+                    return post;
+                }
+                return syncRepostActionState(post, targetPostId, reposted, repostCount);
+            }),
+        })),
+    };
+};
+
+const findOriginalPostIdFromInfiniteQueries = (
+    queries: InfiniteQueriesSnapshot,
+    repostId: number
+): number | undefined => {
+    for (const [, data] of queries) {
+        if (!data?.pages) continue;
+        for (const page of data.pages) {
+            for (const post of page.content) {
+                if (post.id === repostId && post.repostOfId) {
+                    return post.repostOfId;
+                }
+            }
+        }
+    }
+    return undefined;
+};
+
+const syncRepostActionStateInPostDetails = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    targetPostId: number,
+    reposted: boolean,
+    repostCount: number
+) => {
+    const detailQueries = queryClient.getQueriesData<cheerApi.CheerPost>({ queryKey: ['cheer-post'] });
+    detailQueries.forEach(([queryKey, post]) => {
+        if (!post) return;
+        if (!isRepostTargetMatch(post, targetPostId)) return;
+        queryClient.setQueryData<cheerApi.CheerPost>(queryKey, syncRepostActionState(post, targetPostId, reposted, repostCount));
+    });
+};
+
+const notifyRepostError = (error: unknown) => {
+    const parsed = parseError(error);
+    toast.error(getRepostErrorMessageFromCode(parsed.responseCode, parsed.message));
+};
 
 export const useCheerPost = (id: number) => {
     return useQuery({
@@ -55,22 +235,29 @@ export const useCheerMutations = () => {
         mutationFn: cheerApi.toggleLike,
         onMutate: async (postId) => {
             await queryClient.cancelQueries({ queryKey: ['cheer-post', postId] });
-            await queryClient.cancelQueries({ queryKey: ['cheer-posts'] });
-            await queryClient.cancelQueries({ queryKey: ['userPosts'] });
+            await cancelRepostListQueries(queryClient);
 
             const previousPost = queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]);
+            const currentLiked = (post: CheerPost | cheerApi.CheerPost) => post.liked || post.likedByUser || false;
+            const nextCount = (post: CheerPost | cheerApi.CheerPost, liked: boolean) => {
+                const current = post.likeCount ?? post.likes ?? 0;
+                return Math.max(0, liked ? current + 1 : current - 1);
+            };
 
             // Optimistically update single post
             if (previousPost) {
+                const optimisticLiked = !currentLiked(previousPost);
                 queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], {
                     ...previousPost,
-                    likeCount: previousPost.liked ? previousPost.likeCount - 1 : previousPost.likeCount + 1,
-                    liked: !previousPost.liked,
+                    likes: nextCount(previousPost, optimisticLiked),
+                    likeCount: nextCount(previousPost, optimisticLiked),
+                    liked: optimisticLiked,
+                    likedByUser: optimisticLiked,
                 });
             }
 
             // Optimistically update lists
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
+            updateRepostListQueries(queryClient, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
@@ -78,57 +265,17 @@ export const useCheerMutations = () => {
                         ...page,
                         content: page.content.map((post) => {
                             if (post.id === postId) {
+                                const optimisticLiked = !currentLiked(post);
+                                const optimisticLikeCount = nextCount(post, optimisticLiked);
                                 return {
                                     ...post,
-                                    likeCount: post.liked ? post.likeCount - 1 : post.likeCount + 1,
-                                    liked: !post.liked,
+                                    likes: optimisticLikeCount,
+                                    likeCount: optimisticLikeCount,
+                                    liked: optimisticLiked,
+                                    likedByUser: optimisticLiked,
                                 };
                             }
                             return post;
-                        }),
-                    })),
-                };
-            });
-
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.map((p) => {
-                            if (p.id === postId) {
-                                return {
-                                    ...p,
-                                    likeCount: p.liked ? p.likeCount - 1 : p.likeCount + 1,
-                                    liked: !p.liked,
-                                    likedByUser: !p.likedByUser,
-                                };
-                            }
-                            return p;
-                        }),
-                    })),
-                };
-            });
-
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.map((p) => {
-                            if (p.id === postId) {
-                                const isCurrentlyReposted = p.repostedByMe;
-                                return {
-                                    ...p,
-                                    repostedByMe: !isCurrentlyReposted,
-                                    repostCount: isCurrentlyReposted
-                                        ? Math.max(0, (p.repostCount || 0) - 1)
-                                        : (p.repostCount || 0) + 1,
-                                };
-                            }
-                            return p;
                         }),
                     })),
                 };
@@ -140,7 +287,7 @@ export const useCheerMutations = () => {
             if (context?.previousPost) {
                 queryClient.setQueryData(['cheer-post', postId], context.previousPost);
             }
-            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+            invalidateRepostListQueries(queryClient);
         },
         onSuccess: (data, postId) => {
             queryClient.setQueryData(['cheer-post', postId], (old: cheerApi.CheerPost | undefined) => {
@@ -148,11 +295,13 @@ export const useCheerMutations = () => {
                 return {
                     ...old,
                     likes: data.likes,
+                    likeCount: data.likes,
                     likedByUser: data.liked,
+                    liked: data.liked,
                 };
             });
 
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
+            updateRepostListQueries(queryClient, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
@@ -163,7 +312,9 @@ export const useCheerMutations = () => {
                                 return {
                                     ...post,
                                     likes: data.likes,
+                                    likeCount: data.likes,
                                     likedByUser: data.liked,
+                                    liked: data.liked,
                                 };
                             }
                             return post;
@@ -177,14 +328,12 @@ export const useCheerMutations = () => {
     const toggleBookmarkMutation = useMutation({
         mutationFn: cheerApi.toggleBookmark,
         onMutate: async (postId) => {
-            await queryClient.cancelQueries({ queryKey: ['cheer-posts'] });
-            await queryClient.cancelQueries({ queryKey: ['userPosts'] });
+            await cancelRepostListQueries(queryClient);
             await queryClient.cancelQueries({ queryKey: ['cheer-bookmarks'] });
             await queryClient.cancelQueries({ queryKey: ['cheer-post', postId] });
 
             const previousPost = queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]);
-            const previousCheerPosts = queryClient.getQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] });
-            const previousUserPosts = queryClient.getQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] });
+            const previousPostLists = getRepostListQueries(queryClient);
             const previousBookmarks = queryClient.getQueryData<PageResponse<CheerPost>>(['cheer-bookmarks']);
 
             const applyOptimisticToggleOnInfinite = (old: CheerInfiniteData | undefined) => {
@@ -249,20 +398,14 @@ export const useCheerMutations = () => {
                 });
             }
 
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) =>
-                applyOptimisticToggleOnInfinite(old)
-            );
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) =>
-                applyOptimisticToggleOnInfinite(old)
-            );
+            updateRepostListQueries(queryClient, (old) => applyOptimisticToggleOnInfinite(old));
             queryClient.setQueryData<PageResponse<CheerPost>>(['cheer-bookmarks'], (old) =>
                 applyOptimisticToggleOnPage(old)
             );
 
             return {
                 previousPost,
-                previousCheerPosts,
-                previousUserPosts,
+                previousPostLists,
                 previousBookmarks,
             };
         },
@@ -270,12 +413,7 @@ export const useCheerMutations = () => {
             if (context?.previousPost) {
                 queryClient.setQueryData(['cheer-post', postId], context.previousPost);
             }
-            context?.previousCheerPosts?.forEach(([queryKey, data]) => {
-                queryClient.setQueryData(queryKey, data);
-            });
-            context?.previousUserPosts?.forEach(([queryKey, data]) => {
-                queryClient.setQueryData(queryKey, data);
-            });
+            restoreInfiniteQueries(queryClient, context?.previousPostLists);
             if (context?.previousBookmarks) {
                 queryClient.setQueryData(['cheer-bookmarks'], context.previousBookmarks);
             }
@@ -294,26 +432,7 @@ export const useCheerMutations = () => {
                 };
             });
 
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.map((post) => {
-                            if (post.id !== postId) return post;
-                            return {
-                                ...post,
-                                isBookmarked: bookmarked,
-                                bookmarked,
-                                bookmarkCount: bookmarkCount ?? post.bookmarkCount,
-                            };
-                        }),
-                    })),
-                };
-            });
-
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
+            updateRepostListQueries(queryClient, (old) => {
                 if (!old?.pages) return old;
                 return {
                     ...old,
@@ -350,8 +469,7 @@ export const useCheerMutations = () => {
         },
         onSettled: (_data, _error, postId) => {
             queryClient.invalidateQueries({ queryKey: ['cheer-post', postId] });
-            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
-            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+            invalidateRepostListQueries(queryClient);
             queryClient.invalidateQueries({ queryKey: ['cheer-bookmarks'] });
         },
     });
@@ -370,7 +488,7 @@ export const useCheerMutations = () => {
             return newPost;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+            invalidateRepostListQueries(queryClient);
         },
     });
 
@@ -395,342 +513,154 @@ export const useCheerMutations = () => {
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['cheer-post', variables.id] });
-            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+            invalidateRepostListQueries(queryClient);
         },
     });
 
     const deletePostMutation = useMutation({
         mutationFn: cheerApi.deletePost,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+            invalidateRepostListQueries(queryClient);
         },
     });
 
     const deleteCommentMutation = useMutation({
         mutationFn: cheerApi.deleteComment,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
+            invalidateRepostListQueries(queryClient);
         }
     });
 
-    const repostMutation = useMutation({
+    const repostMutation = useMutation<cheerApi.RepostToggleResponse, unknown, number, RepostMutationContext>({
         mutationFn: cheerApi.toggleRepost,
         onMutate: async (postId) => {
             await queryClient.cancelQueries({ queryKey: ['cheer-post', postId] });
-            await queryClient.cancelQueries({ queryKey: ['cheer-posts'] });
+            await cancelRepostListQueries(queryClient);
 
-            const previousPost = queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]);
-
-            if (previousPost) {
-                const isCurrentlyReposted = previousPost.repostedByMe;
-                queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], {
-                    ...previousPost,
-                    repostedByMe: !isCurrentlyReposted,
-                    repostCount: isCurrentlyReposted
-                        ? Math.max(0, previousPost.repostCount - 1)
-                        : previousPost.repostCount + 1,
-                });
-            }
-
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.map((p) => {
-                            if (p.id === postId) {
-                                const isCurrentlyReposted = p.repostedByMe;
-                                return {
-                                    ...p,
-                                    repostedByMe: !isCurrentlyReposted,
-                                    repostCount: isCurrentlyReposted
-                                        ? Math.max(0, (p.repostCount || 0) - 1)
-                                        : (p.repostCount || 0) + 1,
-                                };
-                            }
-                            return p;
-                        }),
-                    })),
-                };
-            });
-
-            return { previousPost };
+            return {
+                previousPost: queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]),
+                previousPostLists: getRepostListQueries(queryClient),
+                previousPostDetails: queryClient.getQueriesData<CheerPost>({ queryKey: ['cheer-post'] }),
+            };
         },
-        onError: (_err, postId, context) => {
+        onError: (err, postId, context) => {
             if (context?.previousPost) {
                 queryClient.setQueryData(['cheer-post', postId], context.previousPost);
             }
-            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
-            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+            restoreQuerySnapshots(queryClient, context?.previousPostDetails);
+            restoreInfiniteQueries(queryClient, context?.previousPostLists);
+            notifyRepostError(err);
         },
         onSuccess: (response, postId) => {
-            queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], (old) => {
-                if (!old) return old;
-                return {
-                    ...old,
-                    repostedByMe: response.reposted,
-                    repostCount: response.count,
-                };
-            });
-
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.map((p) => {
-                            if (p.id === postId) {
-                                return {
-                                    ...p,
-                                    repostedByMe: response.reposted,
-                                    repostCount: response.count,
-                                };
-                            }
-                            return p;
-                        }),
-                    })),
-                };
-            });
-
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.map((p) => {
-                            if (p.id === postId) {
-                                return {
-                                    ...p,
-                                    repostedByMe: response.reposted,
-                                    repostCount: response.count,
-                                };
-                            }
-                            return p;
-                        }),
-                    })),
-                };
-            });
-
-            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+            syncRepostActionStateInPostDetails(queryClient, postId, response.reposted, response.count);
+            updateRepostListQueries(queryClient, (old) =>
+                syncRepostActionStateInInfinitePages(old, postId, response.reposted, response.count)
+            );
         },
     });
 
     // 리포스트 취소 (작성한 리포스트 삭제)
-    const cancelRepostMutation = useMutation({
+    const cancelRepostMutation = useMutation<cheerApi.RepostToggleResponse, unknown, number, CancelRepostContext>({
         mutationFn: cheerApi.cancelRepost,
         onMutate: async (repostId) => {
-            await queryClient.cancelQueries({ queryKey: ['cheer-posts'] });
-            await queryClient.cancelQueries({ queryKey: ['userPosts'] });
+            await cancelRepostListQueries(queryClient);
+            await queryClient.cancelQueries({ queryKey: ['cheer-post', repostId] });
 
-            let originalPostId: number | null = null;
-            let repostCountBefore = 0;
+            const previousPost = queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', repostId]);
+            const previousPostLists = getRepostListQueries(queryClient);
+            const originalPostId = findOriginalPostIdFromInfiniteQueries(
+                previousPostLists,
+                repostId
+            );
+            const resolvedOriginalPostId = previousPost?.repostOfId ?? originalPostId;
 
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
+            return {
+                previousPost,
+                previousPostLists,
+                previousOriginalPost: resolvedOriginalPostId
+                    ? queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', resolvedOriginalPostId])
+                    : undefined,
+                originalPostId: resolvedOriginalPostId,
+                previousPostDetails: queryClient.getQueriesData<CheerPost>({ queryKey: ['cheer-post'] }),
+            };
+        },
+        onError: (err, _repostId, context) => {
+            if (context?.previousPost) {
+                queryClient.setQueryData(['cheer-post', context.previousPost.id], context.previousPost);
+            }
+            if (context?.previousOriginalPost && context?.originalPostId) {
+                queryClient.setQueryData(['cheer-post', context.originalPostId], context.previousOriginalPost);
+            }
+            restoreQuerySnapshots(queryClient, context?.previousPostDetails);
+            restoreInfiniteQueries(queryClient, context?.previousPostLists);
+            notifyRepostError(err);
+        },
+        onSuccess: (response, repostId, context) => {
+            const originalPostId = context?.originalPostId
+                ?? context?.previousPost?.repostOfId
+                ?? findOriginalPostIdFromInfiniteQueries(
+                    getRepostListQueries(queryClient),
+                    repostId
+                );
+
+            const removeRepostFromPages = (old: CheerInfiniteData | undefined, repostPostId: number) => {
                 if (!old?.pages) return old;
-
-                old.pages.forEach((page) => {
-                    page.content.forEach((p) => {
-                        if (p.id === repostId && p.repostOfId) {
-                            originalPostId = p.repostOfId;
-                        }
-                    });
-                });
-
-                if (originalPostId) {
-                    old.pages.forEach((page) => {
-                        const originalPost = page.content.find((op) => op.id === originalPostId);
-                        if (originalPost && repostCountBefore === 0) {
-                            repostCountBefore = originalPost.repostCount || 0;
-                        }
-                    });
-                }
-
                 return {
                     ...old,
                     pages: old.pages.map((page) => ({
                         ...page,
-                        content: page.content.filter((p) => p.id !== repostId),
+                        content: page.content.filter((post) => post.id !== repostPostId),
                     })),
                 };
-            });
+            };
 
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content
-                            .filter((p) => p.id !== repostId)
-                            .map((p) => {
-                                if (originalPostId && p.id === originalPostId) {
-                                    return {
-                                        ...p,
-                                        repostedByMe: false,
-                                        repostCount: Math.max(0, (p.repostCount || 0) - 1),
-                                    };
-                                }
-                                return p;
-                            }),
-                    })),
-                };
-            });
+            updateRepostListQueries(queryClient, (old) => removeRepostFromPages(old, repostId));
 
             if (originalPostId) {
-                queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', originalPostId], (old) => {
-                    if (!old) return old;
-                    return {
-                        ...old,
-                        repostedByMe: false,
-                        repostCount: Math.max(0, repostCountBefore - 1),
-                    };
-                });
-
-                queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
-                    if (!old?.pages) return old;
-                    return {
-                        ...old,
-                        pages: old.pages.map((page) => ({
-                            ...page,
-                            content: page.content.map((p) => {
-                                if (p.id === originalPostId) {
-                                    return {
-                                        ...p,
-                                        repostedByMe: false,
-                                        repostCount: Math.max(0, (p.repostCount || 0) - 1),
-                                    };
-                                }
-                                return p;
-                            }),
-                        })),
-                    };
-                });
+                syncRepostActionStateInPostDetails(queryClient, originalPostId, false, response.count);
+                updateRepostListQueries(queryClient, (old) =>
+                    syncRepostActionStateInInfinitePages(old, originalPostId, false, response.count)
+                );
             }
 
-            return { originalPostId, repostCountBefore };
-        },
-        onError: (_err, _repostId, context) => {
-            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
-            if (context?.originalPostId) {
-                queryClient.invalidateQueries({ queryKey: ['cheer-post', context.originalPostId] });
-            }
-            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
-        },
-        onSuccess: (response, repostId) => {
-            let originalPostId: number | null = null;
-
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
-                if (!old?.pages) return old;
-
-                old.pages.forEach((page) => {
-                    page.content.forEach((p) => {
-                        if (p.id === repostId && p.repostOfId) {
-                            originalPostId = p.repostOfId;
-                        }
-                    });
-                });
-
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.filter((p) => p.id !== repostId),
-                    })),
-                };
-            });
-
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['userPosts'] }, (old) => {
-                if (!old?.pages) return old;
-
-                old.pages.forEach((page) => {
-                    page.content.forEach((p) => {
-                        if (p.id === repostId && p.repostOfId) {
-                            originalPostId = p.repostOfId;
-                        }
-                    });
-                });
-
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.filter((p) => p.id !== repostId),
-                    })),
-                };
-            });
-
-            if (originalPostId) {
-                queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', originalPostId], (old) => {
-                    if (!old) return old;
-                    return {
-                        ...old,
-                        repostedByMe: false,
-                        repostCount: response.count,
-                    };
-                });
-
-                queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
-                    if (!old?.pages) return old;
-                    return {
-                        ...old,
-                        pages: old.pages.map((page) => ({
-                            ...page,
-                            content: page.content.map((p) => {
-                                if (p.id === originalPostId) {
-                                    return {
-                                        ...p,
-                                        repostedByMe: false,
-                                        repostCount: response.count,
-                                    };
-                                }
-                                return p;
-                            }),
-                        })),
-                    };
-                });
-            }
-
-            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+            queryClient.removeQueries({ queryKey: ['cheer-post', repostId], exact: true });
         },
     });
 
     // 인용 리포스트 생성
-    const quoteRepostMutation = useMutation({
+    const quoteRepostMutation = useMutation<cheerApi.CheerPost, unknown, { postId: number; content: string }, QuoteRepostContext>({
         mutationFn: ({ postId, content }: { postId: number; content: string }) =>
             cheerApi.createQuoteRepost(postId, content),
+        onMutate: async ({ postId }) => {
+            await queryClient.cancelQueries({ queryKey: ['cheer-post', postId] });
+            await cancelRepostListQueries(queryClient);
+
+            return {
+                previousPost: queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]),
+                previousPostLists: getRepostListQueries(queryClient),
+                previousPostDetails: queryClient.getQueriesData<CheerPost>({ queryKey: ['cheer-post'] }),
+            };
+        },
+        onError: (err, variables, context) => {
+            if (context?.previousPost) {
+                queryClient.setQueryData(['cheer-post', variables.postId], context.previousPost);
+            }
+            restoreQuerySnapshots(queryClient, context?.previousPostDetails);
+            restoreInfiniteQueries(queryClient, context?.previousPostLists);
+            notifyRepostError(err);
+        },
         onSuccess: (newPost, { postId }) => {
-            queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], (old) => {
-                if (!old) return old;
-                return {
-                    ...old,
-                    repostCount: old.repostCount + 1,
-                };
-            });
+            const updatedRepostCount = newPost.originalPost?.repostCount;
+            if (typeof updatedRepostCount === 'number') {
+                syncRepostActionStateInPostDetails(queryClient, postId, false, updatedRepostCount);
+                updateRepostListQueries(queryClient, (old) =>
+                    syncRepostActionStateInInfinitePages(old, postId, false, updatedRepostCount)
+                );
+                return;
+            }
 
-            queryClient.setQueriesData<CheerInfiniteData>({ queryKey: ['cheer-posts'] }, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.map((p) => {
-                            if (p.id === postId) {
-                                return {
-                                    ...p,
-                                    repostCount: (p.repostCount || 0) + 1,
-                                };
-                            }
-                            return p;
-                        }),
-                    })),
-                };
-            });
-
-            queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
-            queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+            queryClient.invalidateQueries({ queryKey: ['cheer-post', postId] });
+            invalidateRepostListQueries(queryClient);
         },
     });
 

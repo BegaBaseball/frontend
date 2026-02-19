@@ -12,7 +12,7 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children, showHomeButton = false }: AuthLayoutProps) {
   const navigate = useNavigate();
-  const darkPrimary: CSSProperties = {
+  const darkPrimary: CSSProperties & Record<'--primary' | '--primary-foreground' | '--ring', string> = {
     '--primary': '164 41% 23%',
     '--primary-foreground': '210 40% 98%',
     '--ring': '164 41% 23%',

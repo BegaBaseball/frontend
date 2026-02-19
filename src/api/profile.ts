@@ -119,6 +119,17 @@ export interface NicknameCheckResponse {
   normalized?: string;
 }
 
+const isNicknameCheckResponse = (value: unknown): value is NicknameCheckResponse => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return (
+    'available' in value &&
+    typeof (value as { available: unknown }).available === 'boolean'
+  );
+};
+
 export async function changePassword(data: ChangePasswordRequest): Promise<void> {
   try {
     const response = await api.put('/auth/password', data);
@@ -247,7 +258,7 @@ export async function deleteOtherDeviceSessions(): Promise<string> {
  */
 export async function checkNicknameAvailability(name: string): Promise<NicknameCheckResponse> {
   try {
-    const response = await api.get<{ success: boolean; message?: string; data?: NicknameCheckResponse }>(`/auth/check-name`, {
+    const response = await api.get<{ success: boolean; message?: string; data?: unknown }>(`/auth/check-name`, {
       params: { name },
     });
 
@@ -258,8 +269,8 @@ export async function checkNicknameAvailability(name: string): Promise<NicknameC
       };
     }
 
-    const payload = response.data.data || {};
-    if (typeof payload.available === 'boolean') {
+    const payload = response.data.data;
+    if (isNicknameCheckResponse(payload)) {
       return payload;
     }
 

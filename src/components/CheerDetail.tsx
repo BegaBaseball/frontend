@@ -10,12 +10,12 @@ import {
     Heart,
     MessageSquare,
     Repeat2,
-    Share2,
     MoreVertical,
     Trash2,
     Edit2,
     Bookmark,
-    Flag
+    Flag,
+    Undo2
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -40,6 +40,9 @@ import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
 import UserProfileModal from './profile/UserProfileModal';
 import ReportModal from './ReportModal';
 import QuoteRepostEditor from './QuoteRepostEditor';
+import {
+    getRepostPolicyDecision,
+} from '../utils/repostPolicy';
 
 export default function CheerDetail() {
     const { postId } = useParams();
@@ -84,13 +87,6 @@ export default function CheerDetail() {
             loadComments(resolvedPostId);
         }
     }, [resolvedPostId]);
-
-    // Redirect Simple Reposts to Original Post
-    useEffect(() => {
-        if (selectedPost?.repostType === 'SIMPLE' && selectedPost.originalPost) {
-            navigate(`/cheer/${selectedPost.originalPost.id}`, { replace: true });
-        }
-    }, [selectedPost, navigate]);
 
     useEffect(() => {
         if (selectedPost) {
@@ -217,7 +213,7 @@ export default function CheerDetail() {
             likes: 0,
             likeCount: 0,
             likedByMe: false,
-            authorProfileImageUrl: user.profileImageUrl,
+            authorProfileImageUrl: user.profileImageUrl ?? undefined,
             isPending: true,
         };
 
@@ -397,7 +393,14 @@ export default function CheerDetail() {
     }
 
     const repostCount = selectedPost.repostCount ?? 0;
-    const repostActive = selectedPost.repostedByMe || (selectedPost.repostType && selectedPost.isOwner);
+    const isRepost = Boolean(selectedPost.repostType);
+    const repostPolicy = getRepostPolicyDecision(selectedPost.isOwner, isRepost);
+    const canSimpleRepost = repostPolicy.canSimpleRepost;
+    const canQuoteRepost = repostPolicy.canQuoteRepost;
+    const repostUnavailableMessage = repostPolicy.repostSimpleUnavailableMessage;
+    const quoteUnavailableMessage = repostPolicy.repostQuoteUnavailableMessage;
+    const canCancelRepost = isRepost && selectedPost.isOwner;
+    const repostButtonActive = canCancelRepost ? true : selectedPost.repostedByMe;
 
     return (
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-background pb-24 sm:pb-20">
@@ -559,12 +562,12 @@ export default function CheerDetail() {
                                     <button
                                         className={cn(
                                             "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
-                                            repostActive
+                                            repostButtonActive
                                                 ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600"
                                                 : "bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
                                         )}
-                                        aria-label={repostActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
-                                        aria-pressed={repostActive}
+                                        aria-label={repostButtonActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
+                                        aria-pressed={repostButtonActive}
                                     >
                                         <Repeat2 className="w-5 h-5" />
                                         <span className="font-semibold">{repostCount}</span>
@@ -576,23 +579,19 @@ export default function CheerDetail() {
                                     onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                 >
                                     <div className="flex flex-col py-1">
-                                        {(selectedPost.repostType && selectedPost.isOwner) ? (
+                                        {canCancelRepost ? (
                                             <button
                                                 onClick={handleCancelRepost}
                                                 className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                             >
-                                                <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                                <Undo2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                                                 <div>
                                                     <span className="block text-sm font-medium text-red-600 dark:text-red-400">
                                                         리포스트 삭제
                                                     </span>
                                                 </div>
                                             </button>
-                                        ) : (selectedPost.repostType && !selectedPost.isOwner) ? (
-                                            <div className="px-4 py-3 text-sm text-gray-400 text-center">
-                                                리포스트할 수 없습니다
-                                            </div>
-                                        ) : (
+                                        ) : canSimpleRepost || canQuoteRepost ? (
                                             <>
                                                 <button
                                                     onClick={handleSimpleRepost}
@@ -600,10 +599,7 @@ export default function CheerDetail() {
                                                 >
                                                     <div className="flex items-center justify-center w-5 h-5">
                                                         {selectedPost.repostedByMe ? (
-                                                            <div className="relative">
-                                                                <Repeat2 className="w-4 h-4 text-emerald-500" />
-                                                                <div className="absolute top-0 right-0 w-2 h-0.5 bg-red-500 rotate-45 transform origin-center" />
-                                                            </div>
+                                                            <Undo2 className="w-4 h-4 text-emerald-500" />
                                                         ) : (
                                                             <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
                                                         )}
@@ -614,20 +610,26 @@ export default function CheerDetail() {
                                                         </span>
                                                     </div>
                                                 </button>
-                                                <button
-                                                    onClick={handleQuoteRepost}
-                                                    className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                                                >
-                                                    <div className="flex items-center justify-center w-5 h-5">
-                                                        <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
-                                                    </div>
-                                                    <div>
-                                                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                                                            인용하기
-                                                        </span>
-                                                    </div>
-                                                </button>
+                                                {canQuoteRepost ? (
+                                                    <button
+                                                        onClick={handleQuoteRepost}
+                                                        className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                                    >
+                                                        <div className="flex items-center justify-center w-5 h-5">
+                                                            <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                                                        </div>
+                                                        <div>
+                                                            <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                                                                인용하기
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                ) : null}
                                             </>
+                                        ) : (
+                                            <div className="px-4 py-3 text-sm text-gray-400 text-center">
+                                                {isRepost ? quoteUnavailableMessage : repostUnavailableMessage}
+                                            </div>
                                         )}
                                     </div>
                                 </PopoverContent>
