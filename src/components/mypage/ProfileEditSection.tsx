@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Camera,
   Save,
@@ -42,7 +42,7 @@ import {
 import TeamLogo from '../TeamLogo';
 import TeamRecommendationTest from '../TeamRecommendationTest';
 import { useProfileEdit } from '../../hooks/useProfileEdit';
-import { TEAM_DATA } from '../../constants/teams';
+import { FRANCHISE_TEAM_IDS, TEAM_DATA } from '../../constants/teams';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { ProfileSection, NicknameCheckState } from '../../types/profile';
 import AccountSettingsSection from './AccountSettingsSection';
@@ -112,6 +112,7 @@ export default function ProfileEditSection({
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [showMobileMenu, setShowMobileMenu] = useState(true);
   const [showTeamSheet, setShowTeamSheet] = useState(false);
+  const [isTeamSelectOpen, setIsTeamSelectOpen] = useState(false);
   const [pendingPasswordAction, setPendingPasswordAction] = useState(false);
   const [pendingSection, setPendingSection] = useState<ProfileSection | null>(null);
   const {
@@ -163,6 +164,8 @@ export default function ProfileEditSection({
   const isNameBlocked = nicknameCheckState === 'taken' || nicknameCheckState === 'error';
   const hasFieldErrors = Boolean(fieldErrors.name || fieldErrors.bio || isNameBlocked);
   const canSubmit = hasChanges && !isLoading && !isNameChecking && !isNameBlocked && !hasFieldErrors;
+  const selectableTeamIds = useMemo<string[]>(() => ['없음', ...FRANCHISE_TEAM_IDS], []);
+  const hideBottomActions = showTeamSheet || isTeamSelectOpen;
 
   useEffect(() => {
     if (isDesktop) {
@@ -392,7 +395,15 @@ export default function ProfileEditSection({
             {isDesktop ? (
               <div className="space-y-2">
                 <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                  <Select value={editingFavoriteTeam} onValueChange={setEditingFavoriteTeam}>
+                  <Select
+                    value={editingFavoriteTeam}
+                    open={isTeamSelectOpen}
+                    onOpenChange={setIsTeamSelectOpen}
+                    onValueChange={(value) => {
+                      setEditingFavoriteTeam(value);
+                      setIsTeamSelectOpen(false);
+                    }}
+                  >
                     <SelectTrigger className="w-full border-gray-200 dark:border-border bg-white dark:bg-card text-gray-900 dark:text-gray-100 focus-visible:ring-primary/40">
                       <div className="flex items-center gap-2">
                         {editingFavoriteTeam !== '없음' && (
@@ -403,8 +414,8 @@ export default function ProfileEditSection({
                         <span>{getTeamLabel(editingFavoriteTeam)}</span>
                       </div>
                     </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(TEAM_DATA).map((teamId) => (
+                    <SelectContent className="z-[120] max-h-72">
+                      {selectableTeamIds.map((teamId) => (
                         <SelectItem key={teamId} value={teamId}>
                           <div className="flex items-center gap-2">
                             {teamId !== '없음' && (
@@ -497,7 +508,7 @@ export default function ProfileEditSection({
         </Card>
       )}
 
-      <div className="sticky bottom-0 z-10 p-2 -mx-1 md:mx-0 bg-gray-50 dark:bg-card rounded-xl border border-gray-200 dark:border-border">
+      <div className={`${hideBottomActions ? 'hidden' : 'sticky'} bottom-0 z-10 p-2 bg-gray-50 dark:bg-card rounded-xl border border-gray-200 dark:border-border`}>
         <div className="p-3 rounded-lg space-y-2">
           <p className={`text-sm font-semibold ${hasChanges ? 'text-primary dark:text-primary-light' : 'text-gray-600 dark:text-gray-300'}`}>
             {hasChanges ? '저장되지 않은 변경사항이 있습니다.' : '변경사항 없음'}
@@ -638,13 +649,13 @@ export default function ProfileEditSection({
 
       {showTeamSheet && (
         <Sheet open={showTeamSheet} onOpenChange={setShowTeamSheet}>
-          <SheetContent side="bottom" className="h-[70vh]">
+          <SheetContent side="bottom" className="h-[70vh] flex flex-col overflow-hidden z-[130]">
             <SheetHeader>
               <SheetTitle>응원구단 선택</SheetTitle>
               <SheetDescription>원하는 응원구단을 선택하면 즉시 반영됩니다.</SheetDescription>
             </SheetHeader>
-            <div className="space-y-2 mt-4 overflow-y-auto pb-2">
-              {Object.keys(TEAM_DATA).map((teamId) => (
+            <div className="flex-1 min-h-0 space-y-2 mt-4 overflow-y-auto pb-2">
+              {selectableTeamIds.map((teamId) => (
                 <Button
                   key={teamId}
                   variant="outline"
@@ -662,13 +673,13 @@ export default function ProfileEditSection({
                       </div>
                     )}
                     {teamId === '없음' && <div className="w-6 h-6 rounded-full bg-gray-400" />}
-                    <span>{TEAM_DATA[teamId].name}</span>
+                    <span className="truncate">{TEAM_DATA[teamId].name}</span>
                   </span>
                   <CheckCircle2 className={`w-4 h-4 ${editingFavoriteTeam === teamId ? 'text-primary' : 'text-transparent'}`} />
                 </Button>
               ))}
             </div>
-            <SheetFooter>
+            <SheetFooter className="shrink-0">
               <Button variant="outline" className="w-full" onClick={() => setShowTeamSheet(false)}>
                 닫기
               </Button>

@@ -108,6 +108,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const handleInvalidAuthor = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const detail = customEvent.detail as { responseCode?: string } | undefined;
+      if (detail?.responseCode === 'INVALID_AUTHOR') {
+        useAuthStore.getState().setShowLoginRequiredDialog(true);
+      }
+    };
+
+    window.addEventListener('global-api-error', handleInvalidAuthor);
+    return () => window.removeEventListener('global-api-error', handleInvalidAuthor);
+  }, []);
+
+  useEffect(() => {
     if (isLoggedIn && 'Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }

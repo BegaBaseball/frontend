@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -71,11 +71,19 @@ export default function CheerDetail() {
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [viewingUserId, setViewingUserId] = useState<number | null>(null);
 
-    useEffect(() => {
-        if (parsedPostId) {
-            loadComments(parsedPostId);
+    const resolvedPostId = useMemo(() => {
+        if (!selectedPost) return parsedPostId;
+        if (selectedPost.repostType === 'SIMPLE' && selectedPost.originalPost?.id) {
+            return selectedPost.originalPost.id;
         }
-    }, [parsedPostId]);
+        return selectedPost.id;
+    }, [selectedPost, parsedPostId]);
+
+    useEffect(() => {
+        if (resolvedPostId) {
+            loadComments(resolvedPostId);
+        }
+    }, [resolvedPostId]);
 
     // Redirect Simple Reposts to Original Post
     useEffect(() => {
@@ -129,20 +137,28 @@ export default function CheerDetail() {
         }
     };
 
-    const toggleLike = (id: number) => {
+    const toggleLike = () => {
         if (!user) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
-        toggleLikeMutation.mutate(id);
+        if (!resolvedPostId) {
+            toast.error('게시글 정보를 불러오지 못했습니다.');
+            return;
+        }
+        toggleLikeMutation.mutate(resolvedPostId);
     };
 
-    const toggleBookmark = (id: number) => {
+    const toggleBookmark = () => {
         if (!user) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
-        toggleBookmarkMutation.mutate(id);
+        if (!resolvedPostId) {
+            toast.error('게시글 정보를 불러오지 못했습니다.');
+            return;
+        }
+        toggleBookmarkMutation.mutate(resolvedPostId);
     };
 
     const handleDisplayEdit = () => {
@@ -158,7 +174,10 @@ export default function CheerDetail() {
             return;
         }
         setIsRepostPopoverOpen(false);
-        repostMutation.mutate(selectedPost.id);
+        const targetPostId = selectedPost.repostType === 'SIMPLE' && selectedPost.originalPost?.id
+            ? selectedPost.originalPost.id
+            : selectedPost.id;
+        repostMutation.mutate(targetPostId);
     };
 
     const handleQuoteRepost = () => {
@@ -189,6 +208,7 @@ export default function CheerDetail() {
 
         const trimmed = commentText.trim();
         const optimisticId = Date.now() * -1;
+        const targetPostId = resolvedPostId ?? selectedPost.id;
         const optimisticComment = {
             id: optimisticId,
             author: user.name || user.email || '나',
@@ -207,7 +227,7 @@ export default function CheerDetail() {
         setSendingComment(true);
 
         try {
-            const created = await cheatApi.createComment(selectedPost.id, trimmed);
+            const created = await cheatApi.createComment(targetPostId, trimmed);
             if (created?.id) {
                 setComments((prev) =>
                     prev.map((comment) =>
@@ -215,7 +235,7 @@ export default function CheerDetail() {
                     )
                 );
             } else {
-                await loadComments(selectedPost.id);
+                await loadComments(targetPostId);
             }
             // Recalculate comments by reloading or rely on local state
         } catch (e) {
@@ -509,7 +529,7 @@ export default function CheerDetail() {
                         {/* Action Buttons */}
                         <div className="mt-6 flex flex-wrap items-center gap-2 sm:gap-4 py-4 border-t border-b border-gray-100 dark:border-border text-sm">
                             <button
-                                onClick={() => toggleLike(selectedPost.id)}
+                                onClick={toggleLike}
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
                                     selectedPost.likedByUser
@@ -614,7 +634,7 @@ export default function CheerDetail() {
                             </Popover>
 
                             <button
-                                onClick={() => toggleBookmark(selectedPost.id)}
+                                onClick={toggleBookmark}
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-full transition-colors sm:ml-auto",
                                     selectedPost.isBookmarked
@@ -676,8 +696,8 @@ export default function CheerDetail() {
                                 <Button
                                     variant="outline"
                                     className="mt-3"
-                                    onClick={() => parsedPostId && loadComments(parsedPostId)}
-                                    disabled={!parsedPostId}
+                                    onClick={() => resolvedPostId && loadComments(resolvedPostId)}
+                                    disabled={!resolvedPostId}
                                 >
                                     다시 시도
                                 </Button>
