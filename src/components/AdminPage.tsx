@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
-import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp } from 'lucide-react';
+import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,15 +140,43 @@ export default function AdminPage() {
     posts,
     mates,
     reports,
+    reportsLoading,
+    reportFilters,
+    selectedReportId,
+    selectedReportDetail,
+    reportDetailLoading,
     stats,
     loading,
     error,
     successMessage,
+    updateReportFilters,
+    resetReportFilters,
+    openReportDetail,
+    closeReportDetail,
     handleDeleteUser,
     handleDeletePost,
     handleDeleteMate,
     handleReportAction,
   } = useAdminData();
+  const [adminMemo, setAdminMemo] = useState('');
+
+  useEffect(() => {
+    setAdminMemo(selectedReportDetail?.adminMemo || '');
+  }, [selectedReportDetail?.id]);
+
+  const reportStatusLabel: Record<string, string> = {
+    PENDING: '대기',
+    IN_REVIEW: '검토중',
+    RESOLVED: '완료',
+    CLOSED: '종결',
+  };
+
+  const reportStatusClass: Record<string, string> = {
+    PENDING: 'bg-amber-500/20 text-amber-300 border-0',
+    IN_REVIEW: 'bg-sky-500/20 text-sky-300 border-0',
+    RESOLVED: 'bg-emerald-500/20 text-emerald-300 border-0',
+    CLOSED: 'bg-slate-700 text-slate-300 border-0',
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 admin-page">
@@ -607,6 +635,53 @@ export default function AdminPage() {
             </TabsContent>
 
             <TabsContent value="reports" className="p-6">
+              <div className="mb-4 grid grid-cols-1 md:grid-cols-5 gap-2">
+                <select
+                  value={reportFilters.status}
+                  onChange={(e) => updateReportFilters({ status: e.target.value })}
+                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
+                >
+                  <option value="all">상태 전체</option>
+                  <option value="PENDING">PENDING</option>
+                  <option value="IN_REVIEW">IN_REVIEW</option>
+                  <option value="RESOLVED">RESOLVED</option>
+                  <option value="CLOSED">CLOSED</option>
+                </select>
+                <select
+                  value={reportFilters.reason}
+                  onChange={(e) => updateReportFilters({ reason: e.target.value })}
+                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
+                >
+                  <option value="all">사유 전체</option>
+                  <option value="SPAM">SPAM</option>
+                  <option value="INAPPROPRIATE_CONTENT">INAPPROPRIATE_CONTENT</option>
+                  <option value="ABUSIVE_LANGUAGE">ABUSIVE_LANGUAGE</option>
+                  <option value="ADVERTISEMENT">ADVERTISEMENT</option>
+                  <option value="COPYRIGHT_INFRINGEMENT">COPYRIGHT_INFRINGEMENT</option>
+                  <option value="FAKE_INFORMATION">FAKE_INFORMATION</option>
+                  <option value="OTHER">OTHER</option>
+                </select>
+                <Input
+                  type="date"
+                  value={reportFilters.fromDate}
+                  onChange={(e) => updateReportFilters({ fromDate: e.target.value })}
+                  className="bg-slate-800/50 border-slate-700 text-slate-200"
+                />
+                <Input
+                  type="date"
+                  value={reportFilters.toDate}
+                  onChange={(e) => updateReportFilters({ toDate: e.target.value })}
+                  className="bg-slate-800/50 border-slate-700 text-slate-200"
+                />
+                <Button
+                  variant="outline"
+                  className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+                  onClick={resetReportFilters}
+                >
+                  필터 초기화
+                </Button>
+              </div>
+
               <div className="rounded-xl border border-slate-800 overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -617,11 +692,17 @@ export default function AdminPage() {
                       <TableHead className="text-slate-400 font-semibold">게시물</TableHead>
                       <TableHead className="text-slate-400 font-semibold">신고자</TableHead>
                       <TableHead className="text-slate-400 font-semibold">접수일</TableHead>
-                      <TableHead className="text-slate-400 font-semibold text-right">조치</TableHead>
+                      <TableHead className="text-slate-400 font-semibold text-right">상세/조치</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {reports.length === 0 ? (
+                    {reportsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-16 text-slate-500">
+                          신고 목록 로딩 중...
+                        </TableCell>
+                      </TableRow>
+                    ) : reports.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-16 text-slate-500">
                           신고 케이스가 없습니다.
@@ -629,12 +710,16 @@ export default function AdminPage() {
                       </TableRow>
                     ) : (
                       reports.map((report) => (
-                        <TableRow key={report.id} className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200">
+                        <TableRow
+                          key={report.id}
+                          className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 cursor-pointer"
+                          onClick={() => openReportDetail(report.id)}
+                        >
                           <TableCell className="text-slate-300 font-mono text-sm">{report.id}</TableCell>
                           <TableCell className="text-slate-300">{report.reason || '-'}</TableCell>
                           <TableCell>
-                            <Badge className="bg-slate-700 text-slate-200 border-0">
-                              {report.status || 'PENDING'}
+                            <Badge className={reportStatusClass[report.status || ''] || 'bg-slate-700 text-slate-300 border-0'}>
+                              {report.status ? (reportStatusLabel[report.status] || report.status) : '대기'}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-slate-300 max-w-[260px] truncate">{report.postPreview || '-'}</TableCell>
@@ -645,8 +730,22 @@ export default function AdminPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                className="text-slate-300 hover:text-white hover:bg-slate-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openReportDetail(report.id);
+                                }}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 className="text-red-300 hover:text-red-200 hover:bg-red-500/10"
-                                onClick={() => handleReportAction(report.id, 'TAKE_DOWN', '정책 위반 게시물 비공개')}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleReportAction(report.id, 'TAKE_DOWN', '정책 위반 게시물 비공개');
+                                }}
                               >
                                 비공개
                               </Button>
@@ -654,7 +753,10 @@ export default function AdminPage() {
                                 size="sm"
                                 variant="ghost"
                                 className="text-slate-300 hover:text-white hover:bg-slate-700"
-                                onClick={() => handleReportAction(report.id, 'DISMISS', '검토 결과 위반 아님')}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleReportAction(report.id, 'DISMISS', '검토 결과 위반 아님');
+                                }}
                               >
                                 기각
                               </Button>
@@ -669,6 +771,96 @@ export default function AdminPage() {
             </TabsContent>
           </Tabs>
         </div>
+
+        {selectedReportId && (
+          <div className="fixed inset-0 z-50">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/50"
+              onClick={closeReportDetail}
+              aria-label="상세 패널 닫기"
+            />
+            <aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
+              <div className="sticky top-0 z-10 px-5 py-4 border-b border-slate-700 bg-slate-900/95 backdrop-blur flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-400">신고 케이스 상세</p>
+                  <h2 className="text-lg font-bold text-white">Case #{selectedReportId}</h2>
+                </div>
+                <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white" onClick={closeReportDetail}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <div className="p-5 space-y-5">
+                {reportDetailLoading || !selectedReportDetail ? (
+                  <div className="text-slate-400">상세 정보를 불러오는 중...</div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-lg border border-slate-800 p-3">
+                        <p className="text-slate-500">상태</p>
+                        <p className="text-slate-200 mt-1">{selectedReportDetail.status || '-'}</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-800 p-3">
+                        <p className="text-slate-500">사유</p>
+                        <p className="text-slate-200 mt-1">{selectedReportDetail.reason || '-'}</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-800 p-3">
+                        <p className="text-slate-500">신고자</p>
+                        <p className="text-slate-200 mt-1">{selectedReportDetail.reporterHandle || '-'}</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-800 p-3">
+                        <p className="text-slate-500">처리시각</p>
+                        <p className="text-slate-200 mt-1">{selectedReportDetail.handledAt ? getTimeAgo(selectedReportDetail.handledAt) : '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-800 p-3 text-sm">
+                      <p className="text-slate-500 mb-1">게시물 미리보기</p>
+                      <p className="text-slate-200 whitespace-pre-wrap">{selectedReportDetail.postPreview || '-'}</p>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-800 p-3 text-sm space-y-2">
+                      <p><span className="text-slate-500">요청 조치:</span> <span className="text-slate-200">{selectedReportDetail.requestedAction || '-'}</span></p>
+                      <p><span className="text-slate-500">Appeal 상태:</span> <span className="text-slate-200">{selectedReportDetail.appealStatus || '-'}</span></p>
+                      <p><span className="text-slate-500">Appeal 사유:</span> <span className="text-slate-200">{selectedReportDetail.appealReason || '-'}</span></p>
+                      <p><span className="text-slate-500">Appeal 횟수:</span> <span className="text-slate-200">{selectedReportDetail.appealCount ?? 0}</span></p>
+                      <p><span className="text-slate-500">증빙 URL:</span> <span className="text-slate-200 break-all">{selectedReportDetail.evidenceUrl || '-'}</span></p>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-800 p-3">
+                      <p className="text-sm text-slate-500 mb-2">관리자 메모</p>
+                      <textarea
+                        value={adminMemo}
+                        onChange={(e) => setAdminMemo(e.target.value)}
+                        className="w-full min-h-24 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-100"
+                        placeholder="조치 근거를 입력하세요."
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button onClick={() => handleReportAction(selectedReportDetail.id, 'TAKE_DOWN', adminMemo)} className="bg-red-600 hover:bg-red-700 text-white">
+                        TAKE_DOWN
+                      </Button>
+                      <Button onClick={() => handleReportAction(selectedReportDetail.id, 'DISMISS', adminMemo)} className="bg-slate-700 hover:bg-slate-600 text-white">
+                        DISMISS
+                      </Button>
+                      <Button onClick={() => handleReportAction(selectedReportDetail.id, 'RESTORE', adminMemo)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                        RESTORE
+                      </Button>
+                      <Button onClick={() => handleReportAction(selectedReportDetail.id, 'REQUIRE_MODIFICATION', adminMemo)} className="bg-amber-600 hover:bg-amber-700 text-white">
+                        REQUIRE_MODIFICATION
+                      </Button>
+                      <Button onClick={() => handleReportAction(selectedReportDetail.id, 'WARNING', adminMemo)} className="col-span-2 bg-sky-600 hover:bg-sky-700 text-white">
+                        WARNING
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </aside>
+          </div>
+        )}
 
         {/* Footer */}
         <footer className="mt-10 text-center text-slate-600 text-sm">

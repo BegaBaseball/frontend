@@ -73,6 +73,13 @@ export interface AdminReportPage {
   last: boolean;
 }
 
+export interface AdminReportFilters {
+  status: string;
+  reason: string;
+  fromDate: string;
+  toDate: string;
+}
+
 export interface AdminApiResponse<T> {
   success: boolean;
   data: T;

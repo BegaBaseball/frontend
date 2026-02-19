@@ -151,12 +151,16 @@ export const deleteAdminMate = async (mateId: number): Promise<void> => {
 export const fetchAdminReports = async (params?: {
   status?: string;
   reason?: string;
+  fromDate?: string;
+  toDate?: string;
   page?: number;
   size?: number;
 }): Promise<AdminReportPage> => {
   const search = new URLSearchParams();
   if (params?.status) search.set('status', params.status);
   if (params?.reason) search.set('reason', params.reason);
+  if (params?.fromDate) search.set('fromDate', params.fromDate);
+  if (params?.toDate) search.set('toDate', params.toDate);
   search.set('page', String(params?.page ?? 0));
   search.set('size', String(params?.size ?? 20));
 
