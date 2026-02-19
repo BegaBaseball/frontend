@@ -3,8 +3,10 @@ export interface Message {
   sender: 'user' | 'bot';
   timestamp: Date;
   isError?: boolean;
+  isSystem?: boolean;
   // Metadata for enhanced UI
   verified?: boolean;
+  cached?: boolean;
   citations?: Array<{
     title: string;
     url?: string;
@@ -41,6 +43,8 @@ export interface VoiceResponse {
 // Metadata from SSE 'meta' event
 export interface ChatMeta {
   verified: boolean;
+  cached?: boolean;
+  intent?: string;
   dataSources: Array<{
     title: string;
     url?: string;

@@ -76,6 +76,7 @@ export const useChatBot = () => {
         text: '',
         sender: 'bot',
         timestamp: new Date(),
+        isSystem: true,
       }]);
       // 인사말을 버퍼에 밀어넣음
       streamingBuffer.current += GREETING_TEXT;
@@ -128,7 +129,9 @@ export const useChatBot = () => {
   const processMessage = async (messageToProcess: Message) => {
     setIsTyping(true);
 
-    const conversationForHistory = [...messages];
+    // 현재 전송 중인 질문(마지막 유저 메시지)은 history가 아닌 question 파라미터로 전달됨.
+    // slice(0, -1)로 제외하여 첫 번째 질문 시 history=null → 캐시 저장 가능 조건 충족.
+    const conversationForHistory = messages.slice(0, -1);
     const historyPayload = buildHistoryPayload(conversationForHistory);
 
     try {
@@ -165,6 +168,8 @@ export const useChatBot = () => {
                   ? {
                     ...msg,
                     verified: meta.verified,
+                    cached: meta.cached,
+                    intent: meta.intent,
                     citations: meta.dataSources,
                     toolCalls: meta.toolCalls,
                   }
