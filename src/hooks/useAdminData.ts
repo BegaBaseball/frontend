@@ -1,6 +1,6 @@
 // hooks/useAdminData.ts
-import { useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query'; // Added
+import { useCallback, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   fetchAdminStats,
   fetchAdminUsers,
@@ -9,10 +9,27 @@ import {
   deleteAdminPost,
   fetchAdminMates,
   deleteAdminMate,
+  fetchAdminReportDetail,
   fetchAdminReports,
   handleAdminReport,
 } from '../api/admin';
-import { AdminUser, AdminStats, AdminPost, AdminMate, AdminReport } from '../types/admin';
+import {
+  AdminUser,
+  AdminStats,
+  AdminPost,
+  AdminMate,
+  AdminReport,
+  AdminReportFilters,
+} from '../types/admin';
+
+type AdminReportAction = 'TAKE_DOWN' | 'REQUIRE_MODIFICATION' | 'WARNING' | 'DISMISS' | 'RESTORE';
+
+const DEFAULT_REPORT_FILTERS: AdminReportFilters = {
+  status: 'all',
+  reason: 'all',
+  fromDate: '',
+  toDate: '',
+};
 
 export const useAdminData = () => {
   const queryClient = useQueryClient();
@@ -30,9 +47,23 @@ export const useAdminData = () => {
     totalMates: 0,
   });
 
+  const [reportFilters, setReportFilters] = useState<AdminReportFilters>(DEFAULT_REPORT_FILTERS);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
+  const [selectedReportDetail, setSelectedReportDetail] = useState<AdminReport | null>(null);
+  const [reportDetailLoading, setReportDetailLoading] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const updateReportFilters = (next: Partial<AdminReportFilters>) => {
+    setReportFilters((prev) => ({ ...prev, ...next }));
+  };
+
+  const resetReportFilters = () => {
+    setReportFilters(DEFAULT_REPORT_FILTERS);
+  };
 
   // 통계 조회
   const loadStats = async () => {
@@ -66,12 +97,8 @@ export const useAdminData = () => {
     try {
       await deleteAdminUser(userId);
       setSuccessMessage('유저가 삭제되었습니다.');
-
-      // 목록 새로고침
       loadUsers(searchTerm || undefined);
       loadStats();
-
-      // 3초 후 성공 메시지 제거
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error('유저 삭제 오류:', err);
@@ -95,18 +122,9 @@ export const useAdminData = () => {
     try {
       await deleteAdminPost(postId);
       setSuccessMessage('게시글이 삭제되었습니다.');
-
-      // Store에서도 삭제 -> Invalidate Queries
-      // removePostFromState(postId);
       queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
-
-      // 목록에서도 삭제
-      setPosts(prev => prev.filter(p => p.id !== postId));
-
-      // 통계 갱신
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
       loadStats();
-
-      // 3초 후 성공 메시지 제거
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error('게시글 삭제 오류:', err);
@@ -130,14 +148,8 @@ export const useAdminData = () => {
     try {
       await deleteAdminMate(mateId);
       setSuccessMessage('메이트 모임이 삭제되었습니다.');
-
-      // 목록에서도 삭제
-      setMates(prev => prev.filter(m => m.id !== mateId));
-
-      // 통계 갱신
+      setMates((prev) => prev.filter((m) => m.id !== mateId));
       loadStats();
-
-      // 3초 후 성공 메시지 제거
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error('메이트 삭제 오류:', err);
@@ -145,25 +157,72 @@ export const useAdminData = () => {
     }
   };
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
+    setReportsLoading(true);
+    setError(null);
     try {
-      const data = await fetchAdminReports({ page: 0, size: 100 });
+      const data = await fetchAdminReports({
+        status: reportFilters.status !== 'all' ? reportFilters.status : undefined,
+        reason: reportFilters.reason !== 'all' ? reportFilters.reason : undefined,
+        fromDate: reportFilters.fromDate || undefined,
+        toDate: reportFilters.toDate || undefined,
+        page: 0,
+        size: 100,
+      });
       setReports(data.content || []);
     } catch (err) {
       console.error('신고 조회 오류:', err);
       setError('신고 목록을 불러오는데 실패했습니다.');
+    } finally {
+      setReportsLoading(false);
+    }
+  }, [reportFilters]);
+
+  const openReportDetail = async (reportId: number) => {
+    setSelectedReportId(reportId);
+    setReportDetailLoading(true);
+    try {
+      const detail = await fetchAdminReportDetail(reportId);
+      setSelectedReportDetail(detail);
+    } catch (err) {
+      console.error('신고 상세 조회 오류:', err);
+      setError('신고 상세를 불러오는데 실패했습니다.');
+    } finally {
+      setReportDetailLoading(false);
     }
   };
 
+  const closeReportDetail = () => {
+    setSelectedReportId(null);
+    setSelectedReportDetail(null);
+  };
+
+  const refreshSelectedReportDetail = useCallback(async () => {
+    if (!selectedReportId) return;
+    setReportDetailLoading(true);
+    try {
+      const detail = await fetchAdminReportDetail(selectedReportId);
+      setSelectedReportDetail(detail);
+    } catch (err) {
+      console.error('신고 상세 재조회 오류:', err);
+      setError('신고 상세를 갱신하지 못했습니다.');
+    } finally {
+      setReportDetailLoading(false);
+    }
+  }, [selectedReportId]);
+
   const handleReportAction = async (
     reportId: number,
-    action: 'TAKE_DOWN' | 'REQUIRE_MODIFICATION' | 'WARNING' | 'DISMISS' | 'RESTORE',
+    action: AdminReportAction,
     adminMemo?: string
   ) => {
     try {
       await handleAdminReport(reportId, { action, adminMemo });
       setSuccessMessage('신고 케이스가 처리되었습니다.');
       await loadReports();
+      if (selectedReportId === reportId) {
+        await refreshSelectedReportDetail();
+      }
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error('신고 처리 오류:', err);
@@ -188,8 +247,14 @@ export const useAdminData = () => {
     loadUsers();
     loadPosts();
     loadMates();
-    loadReports();
   }, []);
+
+  // 신고 탭 필터 반영 조회
+  useEffect(() => {
+    if (activeTab === 'reports') {
+      loadReports();
+    }
+  }, [activeTab, loadReports]);
 
   return {
     // 상태
@@ -201,12 +266,21 @@ export const useAdminData = () => {
     posts,
     mates,
     reports,
+    reportsLoading,
+    reportFilters,
+    selectedReportId,
+    selectedReportDetail,
+    reportDetailLoading,
     stats,
     loading,
     error,
     successMessage,
 
     // 액션
+    updateReportFilters,
+    resetReportFilters,
+    openReportDetail,
+    closeReportDetail,
     handleDeleteUser,
     handleDeletePost,
     handleDeleteMate,
