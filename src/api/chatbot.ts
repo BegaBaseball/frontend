@@ -47,6 +47,8 @@ export async function sendChatMessageStream(
   onError: (error: string) => void,
   onMeta?: (meta: {
     verified: boolean;
+    cached?: boolean;
+    intent?: string;
     dataSources: Array<{ title: string; url?: string; content?: string }>;
     toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
   }) => void
@@ -175,6 +177,8 @@ export async function sendChatMessageStream(
             } else if (currentEvent === 'meta' && onMeta) {
               onMeta({
                 verified: parsed.verified ?? false,
+                cached: parsed.cached ?? false,
+                intent: parsed.intent,
                 dataSources: (parsed.data_sources || []).map((s: { title?: string; url?: string; content?: string }) => ({
                   title: s.title || 'Unknown',
                   url: s.url,

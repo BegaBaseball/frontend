@@ -1,6 +1,6 @@
 import chatBotIcon from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Badge } from './ui/badge';
-import { X, Send, Check, Copy, BrainCircuit, ChevronRight } from 'lucide-react';
+import { X, Send, Check, Copy, BrainCircuit, ChevronRight, ChevronDown, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChatBot } from '../hooks/useChatBot';
@@ -10,6 +10,46 @@ import { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { useNavigate } from 'react-router-dom';
 
+
+// 도구 이름 한국어 매핑 (null이면 UI에서 숨김)
+const TOOL_NAME_KO: Record<string, string | null> = {
+  get_player_stats: '선수 통계',
+  get_career_stats: '커리어 통계',
+  get_leaderboard: '순위 조회',
+  validate_player: null,
+  get_team_summary: '팀 정보',
+  get_team_advanced_metrics: '팀 고급 지표',
+  get_game_box_score: '경기 결과',
+  get_games_by_date: '경기 일정',
+  get_game_lineup: '라인업',
+  get_head_to_head: '팀 상대 전적',
+  get_recent_games_by_team: '최근 경기',
+  get_team_rank: '팀 순위',
+  get_korean_series_winner: '한국시리즈 우승',
+  predict_matchup: '대결 예측',
+  calculate_win_probability: '승리 확률',
+  get_player_wpa_leaders: '승리 기여 선수',
+  get_clutch_moments: '클러치 순간',
+  check_bullpen_availability: '불펜 가용 현황',
+  search_regulations: '규정 검색',
+  search_documents: '문서 검색',
+  get_current_datetime: null,
+};
+
+const formatToolParams = (params: Record<string, unknown>): string => {
+  const parts: string[] = [];
+  if (params.player_name)                    parts.push(String(params.player_name));
+  if (params.team_name)                      parts.push(String(params.team_name));
+  if (params.team1 && params.team2)          parts.push(`${params.team1} vs ${params.team2}`);
+  else if (params.team1)                     parts.push(String(params.team1));
+  if (params.stat_name)                      parts.push(String(params.stat_name));
+  if (params.year)                           parts.push(`${params.year}년`);
+  if (params.position === 'batting')         parts.push('타자');
+  else if (params.position === 'pitching')   parts.push('투수');
+  if (params.date)                           parts.push(String(params.date));
+  if (params.limit && Number(params.limit) !== 10) parts.push(`상위 ${params.limit}명`);
+  return parts.join(' · ');
+};
 
 export default function ChatBot() {
   const { isLoggedIn } = useAuthStore();
@@ -204,9 +244,17 @@ export default function ChatBot() {
                                 ? '응답 중 오류가 발생했습니다. 다시 시도해주세요.'
                                 : message.text}
                             </ReactMarkdown>
-                            <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-300">
-                              {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
+                            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                              {message.cached && (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5 dark:bg-amber-400/10 dark:border-amber-400/30 dark:text-amber-400">
+                                  <Zap className="w-2.5 h-2.5" />
+                                  빠른 응답
+                                </span>
+                              )}
+                              <p className="text-[11px] text-gray-500 dark:text-gray-300 m-0">
+                                {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
                           </div>
                           {/* Copy button - shown on hover, only for non-error bot messages */}
                           {!isStreamError && (
