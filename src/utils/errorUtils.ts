@@ -5,6 +5,7 @@ export type ErrorType = 'AUTH' | 'PERMISSION' | 'NOT_FOUND' | 'SERVER' | 'NETWOR
 
 export interface ParsedError {
     type: ErrorType;
+    responseCode?: string;
     message: string;
     statusCode: number | null;
 }
@@ -22,11 +23,13 @@ export const parseError = (error: unknown): ParsedError => {
         const code = error.status;
         const data = error.data || {};
         const serverMessage = data.message || data.error || error.message;
+        const responseCode = data.code;
 
         if (code === 401) {
             return {
                 type: 'AUTH',
-                message: '로그인이 필요한 서비스입니다.',
+                responseCode,
+                message: serverMessage || '로그인이 필요한 서비스입니다.',
                 statusCode: 401,
             };
         }
@@ -34,6 +37,7 @@ export const parseError = (error: unknown): ParsedError => {
         if (code === 403) {
             return {
                 type: 'PERMISSION',
+                responseCode,
                 message: '접근 권한이 없습니다.',
                 statusCode: 403,
             };
@@ -42,6 +46,7 @@ export const parseError = (error: unknown): ParsedError => {
         if (code === 404) {
             return {
                 type: 'NOT_FOUND',
+                responseCode,
                 message: serverMessage || '요청한 정보를 찾을 수 없습니다.',
                 statusCode: 404,
             };
@@ -50,6 +55,7 @@ export const parseError = (error: unknown): ParsedError => {
         if (code >= 500) {
             return {
                 type: 'SERVER',
+                responseCode,
                 message: serverMessage || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
                 statusCode: code,
             };
@@ -57,6 +63,7 @@ export const parseError = (error: unknown): ParsedError => {
 
         return {
             type: 'UNKNOWN',
+            responseCode,
             message: serverMessage || '알 수 없는 오류가 발생했습니다.',
             statusCode: code,
         };
@@ -65,13 +72,16 @@ export const parseError = (error: unknown): ParsedError => {
     // Handle AxiosError (legacy or if mixed usage)
     if (error instanceof AxiosError) {
         const code = error.response?.status;
-        const serverMessage = (error.response?.data as Record<string, unknown>)?.message as string ||
-            (error.response?.data as Record<string, unknown>)?.error as string ||
+        const data = error.response?.data as Record<string, unknown> | undefined;
+        const serverMessage = data?.message as string ||
+            data?.error as string ||
             error.message;
+        const responseCode = data?.code as string | undefined;
 
         if (isNetworkError(error)) {
             return {
                 type: 'NETWORK',
+                responseCode,
                 message: '네트워크 연결 상태를 확인해주세요.',
                 statusCode: null,
             };
@@ -80,7 +90,8 @@ export const parseError = (error: unknown): ParsedError => {
         if (code === 401) {
             return {
                 type: 'AUTH',
-                message: '로그인이 필요한 서비스입니다.',
+                responseCode,
+                message: (typeof serverMessage === 'string' ? serverMessage : null) || '로그인이 필요한 서비스입니다.',
                 statusCode: 401,
             };
         }
@@ -88,6 +99,7 @@ export const parseError = (error: unknown): ParsedError => {
         if (code === 403) {
             return {
                 type: 'PERMISSION',
+                responseCode,
                 message: '접근 권한이 없습니다.',
                 statusCode: 403,
             };
@@ -96,6 +108,7 @@ export const parseError = (error: unknown): ParsedError => {
         if (code === 404) {
             return {
                 type: 'NOT_FOUND',
+                responseCode,
                 message: serverMessage || '요청한 정보를 찾을 수 없습니다.',
                 statusCode: 404,
             };
@@ -104,6 +117,7 @@ export const parseError = (error: unknown): ParsedError => {
         if (code && code >= 500) {
             return {
                 type: 'SERVER',
+                responseCode,
                 message: serverMessage || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
                 statusCode: code,
             };
@@ -111,6 +125,7 @@ export const parseError = (error: unknown): ParsedError => {
 
         return {
             type: 'UNKNOWN',
+            responseCode,
             message: serverMessage || '알 수 없는 오류가 발생했습니다.',
             statusCode: code || null,
         };
@@ -119,6 +134,7 @@ export const parseError = (error: unknown): ParsedError => {
     if (error instanceof Error) {
         return {
             type: 'UNKNOWN',
+            responseCode: undefined,
             message: error.message,
             statusCode: null,
         };
@@ -126,6 +142,7 @@ export const parseError = (error: unknown): ParsedError => {
 
     return {
         type: 'UNKNOWN',
+        responseCode: undefined,
         message: '알 수 없는 오류가 발생했습니다.',
         statusCode: null,
     };

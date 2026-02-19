@@ -35,12 +35,18 @@ export default function ImageLightbox({
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClose();
+      }}
     >
       <button
         type="button"
         className="absolute right-6 top-6 rounded-full p-2 text-white transition-colors hover:bg-white/10"
-        onClick={onClose}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClose();
+        }}
         aria-label="Close image viewer"
       >
         <X className="h-8 w-8" />
