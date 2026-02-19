@@ -38,7 +38,7 @@ const ICON_SIZE_MAP: Record<NonNullable<ProfileImageProps['size']>, number> = {
 };
 
 /**
- * 레거시 Supabase URL 또는 로컬 에셋 경로를 감지하여 null을 반환합니다.
+ * 레거시 storage URL 또는 로컬 에셋 경로를 감지하여 null을 반환합니다.
  * authStore.ts의 normalizeProfileImageUrl 로직과 동일한 규칙을 따릅니다.
  */
 function resolveImageSrc(value?: string | null): string | null {
@@ -53,7 +53,7 @@ function resolveImageSrc(value?: string | null): string | null {
     trimmed.startsWith('/src/assets/') ||
     trimmed.startsWith('blob:') ||
     trimmed.startsWith('data:') ||
-    trimmed.toLowerCase().includes('supabase.co')
+    trimmed.toLowerCase().includes('/storage/v1/object/')
   ) {
     return null;
   }
@@ -65,7 +65,7 @@ function resolveImageSrc(value?: string | null): string | null {
  * ProfileImage
  *
  * 프로필 이미지를 표시하는 공통 컴포넌트입니다.
- * - 레거시 URL(Supabase, 로컬 에셋 등) 자동 필터링
+ * - 레거시 URL(기존 storage 경로, 로컬 에셋 등) 자동 필터링
  * - 이미지 로드 실패 시 username 이니셜로 폴백
  * - username이 없을 경우 UserIcon으로 폴백
  * - 기본 lazy loading 적용

@@ -19,7 +19,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6.svg?style=flat&logo=TypeScript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-646CFF.svg?style=flat&logo=Vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4.svg?style=flat&logo=Tailwind-CSS&logoColor=white)](https://tailwindcss.com/)
-[![Supabase](https://img.shields.io/badge/Supabase-3FCF8E.svg?style=flat&logo=Supabase&logoColor=white)](https://supabase.com/)
+[![OCI](https://img.shields.io/badge/OCI-Object%20Storage-1F2A44.svg?style=flat&logo=oracle&logoColor=white)](https://www.oracle.com/cloud/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED.svg?style=flat&logo=Docker&logoColor=white)](https://www.docker.com/)
 
 <br>
@@ -142,7 +142,7 @@ KBO 리그에 대한 모든 궁금증을 해결하세요.
 
 | 분류 | 기술 |
 |:---|:---|
-| **Database & Storage** | Supabase (PostgreSQL) |
+| **Database & Storage** | OCI Autonomous Database + OCI Object Storage |
 | **Container** | Docker |
 | **CI/CD** | GitHub Actions |
 | **Hosting** | AWS EC2 |
@@ -158,15 +158,15 @@ KBO 리그에 대한 모든 궁금증을 해결하세요.
                           │
           ┌───────────────┼───────────────┐
           ▼               ▼               ▼
-┌─────────────────┐ ┌───────────┐ ┌───────────────┐
-│  Spring Boot    │ │  FastAPI  │ │   Supabase    │
-│  Backend API    │ │ AI Server │ │  Storage/DB   │
-└────────┬────────┘ └─────┬─────┘ └───────────────┘
+┌─────────────────┐ ┌───────────┐ ┌──────────────────────┐
+│  Spring Boot    │ │  FastAPI  │ │   OCI Object Storage │
+│  Backend API    │ │ AI Server │ │      (Images)        │
+└────────┬────────┘ └─────┬─────┘ └──────────────────────┘
          │                │
          ▼                ▼
-┌─────────────────────────────────────────┐
-│           PostgreSQL (Supabase)          │
-└─────────────────────────────────────────┘
+┌───────────────────────────────────────────┐
+│        OCI Autonomous Database (Oracle)   │
+└───────────────────────────────────────────┘
 ```
 
 ---
@@ -239,20 +239,18 @@ docker-compose up -d
 # API 서버
 VITE_API_BASE_URL=http://localhost:8080/api
 
-# Supabase
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-
 # AI 챗봇 서버
 VITE_AI_SERVER_URL=http://localhost:8000
+
+# 카카오 지도
+VITE_KAKAO_MAP_KEY=your_kakao_map_key
 ```
 
 | 변수명 | 설명 | 필수 |
 |:---|:---|:---:|
 | `VITE_API_BASE_URL` | Spring Boot 백엔드 API 주소 | ✅ |
-| `VITE_SUPABASE_URL` | Supabase 프로젝트 URL | ✅ |
-| `VITE_SUPABASE_ANON_KEY` | Supabase Anonymous Key | ✅ |
 | `VITE_AI_SERVER_URL` | FastAPI AI 서버 주소 | ✅ |
+| `VITE_KAKAO_MAP_KEY` | 카카오 지도 JavaScript 키 | ✅ |
 
 ---
 
