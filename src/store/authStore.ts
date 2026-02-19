@@ -217,6 +217,9 @@ export const useAuthStore = create<AuthState>()(
         if (!pendingLogoutRequest) {
           pendingLogoutRequest = api
             .post('/auth/logout', undefined, { skipGlobalErrorHandler: true })
+            .then(() => {
+              // Normalize axios response to void for store-internal promise type.
+            })
             .catch(() => {
               // Ignore logout request failures (e.g., already expired token / invalid session).
               // Local auth state is already cleared above.

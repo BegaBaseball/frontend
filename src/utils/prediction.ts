@@ -38,17 +38,26 @@ export const formatDate = (dateString: string): string => {
 };
 
 /**
- * 오늘 날짜 문자열 (YYYY-MM-DD)
+ * 오늘 날짜 문자열 (YYYY-MM-DD) - 로컬 시간 기준 (KST)
  */
 export const getTodayString = (): string => {
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 };
 
 /**
- * 내일 날짜 문자열 (YYYY-MM-DD)
+ * 내일 날짜 문자열 (YYYY-MM-DD) - 로컬 시간 기준 (KST)
  */
 export const getTomorrowString = (): string => {
-  return new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const y = tomorrow.getFullYear();
+  const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const d = String(tomorrow.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 };
 
 /**
@@ -106,7 +115,10 @@ export const getGameStatus = (
     };
   }
 
-  const todayKey = currentDate.toISOString().split('T')[0];
+  const year = currentDate.getFullYear();
+  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+  const day = String(currentDate.getDate()).padStart(2, '0');
+  const todayKey = `${year}-${month}-${day}`;
   const normalizedStatus = options?.gameStatus?.toUpperCase() || '';
   const isClosedStatus = ['FINAL', 'COMPLETED', 'CANCELLED', 'POSTPONED', 'DRAW'].includes(normalizedStatus);
   const isLiveStatus = ['LIVE', 'IN_PROGRESS', 'PLAYING'].includes(normalizedStatus);
@@ -157,16 +169,20 @@ export const getGameStatus = (
 
   const statusLabel = isLiveEffective
     ? '경기 진행중'
-    : isClosedEffective
-      ? '경기 종료'
-      : isScheduledEffective
-        ? '경기 예정'
-        : hasStarted
-          ? '경기 진행중'
-          : '경기 예정';
+    : normalizedStatus === 'POSTPONED'
+      ? '경기 연기'
+      : normalizedStatus === 'CANCELLED'
+        ? '경기 취소'
+        : isClosedEffective
+          ? '경기 종료'
+          : isScheduledEffective
+            ? '경기 예정'
+            : hasStarted
+              ? '경기 진행중'
+              : '경기 예정';
 
   const isVoteOpen = !isClosedEffective && !isLiveEffective && !hasStarted;
-  const canShowDetails = isLiveEffective || isClosedEffective;
+  const canShowDetails = isLiveEffective || (isClosedEffective && !['POSTPONED', 'CANCELLED'].includes(normalizedStatus));
 
   return {
     isPastGame,

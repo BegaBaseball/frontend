@@ -101,7 +101,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                                         onClick={() => handleUserClick(user.handle)}
                                     >
                                         <Avatar className="h-10 w-10 border border-gray-200 dark:border-border">
-                                            <AvatarImage src={user.profileImageUrl} />
+                                            <AvatarImage src={user.profileImageUrl ?? undefined} />
                                             <AvatarFallback className="bg-gray-100 text-gray-400">
                                                 <User className="h-5 w-5" />
                                             </AvatarFallback>

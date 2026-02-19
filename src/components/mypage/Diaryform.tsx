@@ -25,7 +25,7 @@ interface DiaryReadModeProps {
 interface DiaryEditModeProps {
   diaryForm: DiaryFormData;
   updateForm: (updates: Partial<DiaryFormData>) => void;
-  handlePhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handlePhotoUpload: (files: FileList | null) => Promise<void> | void;
   removePhoto: (index: number) => void;
   availableGames: Game[];
   selectedDiary: DiaryEntry | undefined;
@@ -500,7 +500,7 @@ function DiaryEditMode({
         );
 
         if (matchingGame) {
-          updateForm({ gameId: matchingGame.id });
+          updateForm({ gameId: String(matchingGame.id) });
         }
       }
 
@@ -515,7 +515,7 @@ function DiaryEditMode({
       }
 
       // 스캔한 티켓 이미지도 사진으로 추가
-      handlePhotoUpload(files);
+      await handlePhotoUpload(files);
 
       toast.success('티켓 분석 완료!', { description: `경기장: ${ticketInfo.stadium || '미확인'} / 날짜: ${ticketInfo.date || '미확인'} / 좌석: ${ticketInfo.section || ''} ${ticketInfo.row || ''} ${ticketInfo.seat || ''}` });
 

@@ -397,7 +397,7 @@ export default function Prediction() {
             >
               <Card className="p-6 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-gray-100 mb-2">
-                  2026 시즌 순위 예측
+                  {new Date().getFullYear()} 시즌 순위 예측
                 </h3>
                 <p className="text-slate-600 dark:text-gray-300">
                   나만의 드림팀 순위를 완성하고 친구들과 공유해보세요!

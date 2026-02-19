@@ -10,6 +10,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotificationStore } from '../store/notificationStore';
 import NotificationPanel from './NotificationPanel';
 import { motion } from 'framer-motion';
+import { notificationApi, isIgnorableNotificationError } from '../utils/notificationApi';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -46,9 +47,7 @@ export default function Navbar() {
 
     const fetchInitialUnreadCount = async () => {
       try {
-        // Use api utility for consistent behavior
-        const { api, isIgnorableNotificationError } = await import('../utils/api');
-        const count = await api.getUnreadCount();
+        const count = await notificationApi.getUnreadCount();
         setUnreadCount(count);
       } catch (error) {
         if (!isIgnorableNotificationError(error)) {

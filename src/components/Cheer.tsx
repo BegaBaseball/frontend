@@ -5,10 +5,11 @@ import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
-import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Radio, Smile, UserRound, Users, Megaphone, LineChart } from 'lucide-react';
+import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Smile, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { getTeamDescription, TEAM_DATA } from '../constants/teams';
+import { TEAM_DATA } from '../constants/teams';
 import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost } from '../api/cheerApi';
+import { fetchTeamFranchiseMetadata } from '../api/teamFranchiseApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
 import { motion } from 'framer-motion';
@@ -27,13 +28,22 @@ import {
 } from '../utils/teamColors';
 
 type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
+type FeedTabKey = 'all' | 'popular' | 'following';
+type CheerPostType = CheerPost['postType'];
+type FeedTabConfig = {
+    key: FeedTabKey;
+    label: string;
+    postType?: 'NORMAL' | 'NOTICE';
+    requireAuth?: boolean;
+    sort?: string;
+};
 
 export default function Cheer() {
     const navigate = useNavigate();
     const { user, isAuthLoading, fetchProfileAndAuthenticate } = useAuthStore();
     const queryClient = useQueryClient();
     const today = useMemo(() => new Date(), []);
-    const feedTabs = useMemo(
+    const feedTabs = useMemo<FeedTabConfig[]>(
         () => [
             { key: 'all', label: '전체', postType: undefined },
             { key: 'popular', label: '인기', postType: undefined },
@@ -111,9 +121,34 @@ export default function Cheer() {
     const rawTeamName = teamId !== 'all' ? getTeamNameById(teamId) : 'KBO 리그';
     const teamLabel = TEAM_DATA[teamId]?.name || rawTeamName.split(' ')[0];
     const teamName = TEAM_DATA[teamId]?.fullName || rawTeamName;
-    const teamDescription = teamId !== 'all'
-        ? getTeamDescription(teamLabel)
-        : '모든 팀의 흐름을 한 번에 확인하세요.';
+    const {
+        data: teamMetadata,
+        isLoading: isTeamMetadataLoading,
+        isError: isTeamMetadataError,
+        refetch: refetchTeamMetadata,
+    } = useQuery({
+        queryKey: ['cheer-team-metadata', teamId],
+        queryFn: () => fetchTeamFranchiseMetadata(teamId),
+        enabled: teamId !== 'all',
+        staleTime: 5 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
+    });
+    const teamDescription = useMemo(() => {
+        if (!teamMetadata) return '멋진 선택이에요! 함께 응원하며 즐거운 야구 생활을 시작해보세요.';
+        if (teamMetadata.summary) return teamMetadata.summary;
+        if (teamMetadata.description) return teamMetadata.description;
+
+        const metadataFields = [
+            teamMetadata.homeStadium ? `홈구장: ${teamMetadata.homeStadium}` : '',
+            teamMetadata.foundedYear ? `창단: ${teamMetadata.foundedYear}` : '',
+            teamMetadata.owner ? `구단주: ${teamMetadata.owner}` : '',
+            teamMetadata.homepage ? `홈페이지: ${teamMetadata.homepage}` : '',
+        ].filter(Boolean);
+
+        return metadataFields.length > 0
+            ? metadataFields.join(' · ')
+            : '멋진 선택이에요! 함께 응원하며 즐거운 야구 생활을 시작해보세요.';
+    }, [teamMetadata]);
     const activeTabConfig = feedTabs.find((item) => item.key === activeFeedTab);
     const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
     const [composerContent, setComposerContent] = useState('');
@@ -201,7 +236,7 @@ export default function Cheer() {
     };
 
     const createMutation = useMutation({
-        mutationFn: async (payload: { content: string; files: File[]; postType?: string }) => {
+        mutationFn: async (payload: { content: string; files: File[]; postType?: CheerPostType }) => {
             if (!user?.favoriteTeam) {
                 throw new Error('favoriteTeam-required');
             }
@@ -241,7 +276,7 @@ export default function Cheer() {
         },
         onMutate: async (payload) => {
             const optimisticId = Date.now() * -1;
-            const optimisticPost = {
+            const optimisticPost: CheerPost = {
                 id: optimisticId,
                 teamId: user?.favoriteTeam || 'ALL',
                 team: user?.favoriteTeam || 'ALL',
@@ -250,13 +285,14 @@ export default function Cheer() {
                 author: user?.name || user?.email || '나',
                 authorId: user?.id || 0,
                 authorHandle: user?.handle || '',
-                authorProfileImageUrl: user?.profileImageUrl,
+                authorProfileImageUrl: user?.profileImageUrl ?? undefined,
                 authorTeamId: user?.favoriteTeam || undefined,
                 timeAgo: '방금 전',
                 comments: 0,
                 likes: 0,
                 likeCount: 0,
                 commentCount: 0,
+                bookmarkCount: 0,
                 repostCount: 0,
                 views: 0,
                 isHot: false,
@@ -806,10 +842,10 @@ export default function Cheer() {
                                             <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
                                             <div className="text-center">
                                                 <p className="text-[16px] font-semibold text-red-500 dark:text-red-400">
-                                                    게시글을 불러오는데 실패했습니다
+                                                    데이터를 불러오지 못했습니다
                                                 </p>
                                                 <p className="mt-1 text-sm text-slate-500 dark:text-gray-300">
-                                                    네트워크 연결을 확인해주세요
+                                                    네트워크 상태를 확인하고 다시 시도해 주세요
                                                 </p>
                                             </div>
                                         </div>
@@ -849,7 +885,7 @@ export default function Cheer() {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="px-4 py-4 space-y-3">
+                                    <div className="px-4 py-4 space-y-4">
                                         {currentPosts.map((post) => (
                                             <CheerCard key={post.id} post={post} />
                                         ))}
@@ -858,7 +894,10 @@ export default function Cheer() {
                                 <div ref={sentinelRef} className="flex min-h-[120px] items-center justify-center">
                                     {queryError && currentPosts.length > 0 ? (
                                         <div className="flex flex-col items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-                                            <span>추가 게시글을 불러오지 못했습니다.</span>
+                                            <span>데이터를 불러오지 못했습니다.</span>
+                                            <p className="text-xs text-slate-400 dark:text-slate-300">
+                                                네트워크 상태를 확인하고 다시 시도해 주세요
+                                            </p>
                                             <button
                                                 type="button"
                                                 onClick={() => fetchNextPage()}
@@ -891,7 +930,31 @@ export default function Cheer() {
                                         <p className="text-xs text-[#64748B] dark:text-gray-300">{teamName}</p>
                                     </div>
                                 </div>
-                                <p className="mt-3 text-sm text-[#64748B] dark:text-gray-300 leading-relaxed">{teamDescription}</p>
+                                {teamId === 'all' ? (
+                                    <p className="mt-3 text-sm text-[#64748B] dark:text-gray-300 leading-relaxed">모든 팀의 흐름을 한 번에 확인하세요.</p>
+                                ) : isTeamMetadataLoading ? (
+                                    <div className="mt-3 space-y-2">
+                                        <div className="h-4 w-full rounded bg-slate-100 dark:bg-secondary" />
+                                        <div className="h-4 w-4/5 rounded bg-slate-100 dark:bg-secondary" />
+                                        <div className="h-4 w-3/5 rounded bg-slate-100 dark:bg-secondary" />
+                                    </div>
+                                ) : isTeamMetadataError ? (
+                                    <div className="mt-3 rounded-xl bg-red-50 dark:bg-secondary/70 px-3 py-3 text-sm text-[#64748B] dark:text-gray-300">
+                                        <p>팀 요약 정보를 불러오지 못했습니다.</p>
+                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
+                                            네트워크 상태를 확인하고 다시 시도해 주세요
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => refetchTeamMetadata()}
+                                            className="mt-3 w-full rounded-full border border-red-200 dark:border-border px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-secondary"
+                                        >
+                                            다시 시도
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <p className="mt-3 text-sm text-[#64748B] dark:text-gray-300 leading-relaxed">{teamDescription}</p>
+                                )}
                             </div>
 
                             <div className="rounded-2xl border border-border/70 dark:border-border p-4 bg-white dark:bg-card">

@@ -148,6 +148,10 @@ export const useRankingPrediction = () => {
   // 저장 확인
   const confirmSave = async () => {
     if (isSaving || alreadySaved || !currentSeason) return;
+    if (!isRankingComplete(rankings)) {
+      toast.error('10개 팀을 모두 배치한 후 저장할 수 있습니다.');
+      return;
+    }
 
     setIsSaving(true);
 
@@ -181,6 +185,12 @@ export const useRankingPrediction = () => {
       return;
     }
 
+    const kakaoShare = window.Kakao?.Share;
+    if (!kakaoShare) {
+      toast.error('카카오톡 공유 기능을 사용할 수 없습니다.');
+      return;
+    }
+
     if (!isComplete) {
       toast.warning('10개 팀을 모두 배치한 후 공유할 수 있습니다.');
       return;
@@ -198,7 +208,7 @@ export const useRankingPrediction = () => {
       const shareUrl = `${baseUrl}/predictions/ranking/share/${userId}/${currentSeason}`;
 
 
-      window.Kakao.Share.sendDefault({
+      kakaoShare.sendDefault({
         objectType: 'feed',
         content: {
           title: `${currentSeason} KBO 시즌 순위 예측`,

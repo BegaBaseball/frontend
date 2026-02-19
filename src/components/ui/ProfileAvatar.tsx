@@ -65,7 +65,7 @@ export function ProfileAvatar({
   const resolvedWidth = width ?? height;
   const resolvedHeight = height ?? width;
   const hasFixedSize = resolvedWidth != null && resolvedHeight != null;
-  const resolvedSize = hasFixedSize ? resolvedWidth : null;
+  const resolvedSize = hasFixedSize ? resolvedWidth : undefined;
   const sizeStyle = hasFixedSize
     ? {
       width: `${resolvedSize}px`,
@@ -80,7 +80,7 @@ export function ProfileAvatar({
   };
   const containerClass = hasFixedSize ? '' : sizeClasses[size];
   const iconSizeClass = hasFixedSize
-    ? (resolvedSize >= 48 ? iconSizes.lg : resolvedSize >= 40 ? iconSizes.md : iconSizes.sm)
+    ? (resolvedSize! >= 48 ? iconSizes.lg : resolvedSize! >= 40 ? iconSizes.md : iconSizes.sm)
     : iconSizes[size];
 
   if (src && !imageError) {
@@ -90,8 +90,8 @@ export function ProfileAvatar({
         srcSet={srcSet}
         sizes={sizes}
         alt={alt}
-        width={resolvedSize ?? undefined}
-        height={resolvedSize ?? undefined}
+        width={resolvedSize}
+        height={resolvedSize}
         style={imageStyle}
         data-testid="profile-avatar-image"
         className={`${containerClass} rounded-full object-cover border border-gray-200 dark:border-border bg-gray-100 dark:bg-card ${className}`.trim()}

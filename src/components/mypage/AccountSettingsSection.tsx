@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { Laptop, Smartphone, ShieldAlert, Unlink, Link, Eye, EyeOff, AlertTriangle, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -45,7 +45,7 @@ type ProviderKey = 'google' | 'kakao' | 'naver';
 interface ProviderMeta {
   key: ProviderKey;
   label: string;
-  icon: JSX.Element;
+  icon: ReactElement;
   connectedClass: string;
   disconnectedClass: string;
 }

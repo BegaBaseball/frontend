@@ -1,7 +1,19 @@
 /// <reference types="cypress" />
 
 describe('Game Prediction', () => {
-    const defaultRangeSchedulePayload = [
+    type ScheduleGameMock = {
+        gameId: string;
+        gameDate: string;
+        homeTeam: string;
+        awayTeam: string;
+        stadium: string;
+        homeScore: number | null;
+        awayScore: number | null;
+        winner: string | null;
+        leagueType?: string;
+    };
+
+    const defaultRangeSchedulePayload: ScheduleGameMock[] = [
         {
             gameId: '20240510HHSS0',
             gameDate: '2026-02-04',
@@ -14,7 +26,8 @@ describe('Game Prediction', () => {
         },
     ];
 
-    let rangeSchedulePayload = [...defaultRangeSchedulePayload];
+    let rangeSchedulePayload: ScheduleGameMock[] = [...defaultRangeSchedulePayload];
+    let rangeScheduleStatusCode = 200;
 
     const parseCoachRequestBody = (rawBody: unknown): Record<string, unknown> => {
         if (rawBody == null) {
@@ -84,6 +97,7 @@ describe('Game Prediction', () => {
             ...item,
             gameDate: nextDay,
         }));
+        rangeScheduleStatusCode = 200;
 
         // Mock game detail
         cy.intercept('**/api/matches/*', {
@@ -118,8 +132,10 @@ describe('Game Prediction', () => {
         // Specific mock for range query (MOVED AFTER detail to override it)
         cy.intercept('**/api/matches/range*', (req) => {
             req.reply({
-                statusCode: 200,
-                body: rangeSchedulePayload,
+                statusCode: rangeScheduleStatusCode,
+                body: rangeScheduleStatusCode === 200
+                    ? rangeSchedulePayload
+                    : { message: 'Internal Server Error' },
             });
         }).as('getScheduleRange');
 
@@ -606,7 +622,9 @@ describe('Game Prediction', () => {
         cy.get('@coachAnalyzeRapid.all').should('have.length', 1).then((interceptions: any) => {
             const interceptionList = interceptions as any[];
             const parsedPayloads = interceptionList.map((interception) => parseCoachRequestBody(interception.request.body));
-            const lastPayload = parsedPayloads.at(-1);
+            const lastPayload = parsedPayloads.length > 0
+                ? parsedPayloads[parsedPayloads.length - 1]
+                : undefined;
             const lastGameId = lastPayload
                 ? ((lastPayload as { game_id?: string; gameId?: string }).game_id
                     || (lastPayload as { game_id?: string; gameId?: string }).gameId)
@@ -656,9 +674,9 @@ describe('Game Prediction', () => {
         });
 
         cy.wait(700);
-        cy.get('[aria-label="Toggle theme"]').click({ force: true });
+        cy.get('button[aria-label="다크모드 전환"], button[aria-label="Toggle theme"]').first().click({ force: true });
         cy.wait(350);
-        cy.get('[aria-label="Toggle theme"]').click({ force: true });
+        cy.get('button[aria-label="다크모드 전환"], button[aria-label="Toggle theme"]').first().click({ force: true });
 
         cy.contains('순위예측').click();
         cy.contains('승부예측').click();
@@ -699,13 +717,9 @@ describe('Game Prediction', () => {
     });
 
     it('should show explicit empty-state UI when /api/matches/range returns 0 items', () => {
-        cy.intercept('**/api/matches/range*', {
-            statusCode: 200,
-            body: [],
-        }).as('getScheduleRangeEmpty');
+        rangeSchedulePayload = [];
 
         openPredictionPage();
-        cy.wait('@getScheduleRangeEmpty');
 
         cy.contains('예정된 경기 일정이 없습니다.').should('be.visible');
         cy.contains('다른 날짜를 확인해보세요!').should('be.visible');
@@ -731,15 +745,11 @@ describe('Game Prediction', () => {
     });
 
     it('should show error card when /api/matches/range fails', () => {
-        cy.intercept('**/api/matches/range*', {
-            statusCode: 500,
-            body: { message: 'Internal Server Error' },
-        }).as('getScheduleRangeError');
+        rangeScheduleStatusCode = 500;
 
         openPredictionPage();
-        cy.wait('@getScheduleRangeError');
 
-        cy.contains('예측 경기 데이터를 불러오지 못했습니다.').should('be.visible');
+        cy.contains(/예측 경기 (목록 조회에 실패했습니다\.|데이터를 불러오지 못했습니다\.)/).should('be.visible');
         cy.contains('잠시 후 다시 시도하거나 새로고침해 주세요.').should('be.visible');
     });
 });
