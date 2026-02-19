@@ -43,6 +43,36 @@ export interface AdminMate {
   section: string;
 }
 
+export interface AdminReport {
+  id: number;
+  postId: number | null;
+  postPreview: string | null;
+  reporterId: number | null;
+  reporterHandle: string | null;
+  reason: string | null;
+  description: string | null;
+  status: string | null;
+  adminAction: string | null;
+  adminMemo: string | null;
+  handledBy: number | null;
+  handledAt: string | null;
+  evidenceUrl: string | null;
+  requestedAction: string | null;
+  appealStatus: string | null;
+  appealReason: string | null;
+  appealCount: number | null;
+  createdAt: string;
+}
+
+export interface AdminReportPage {
+  content: AdminReport[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  last: boolean;
+}
+
 export interface AdminApiResponse<T> {
   success: boolean;
   data: T;

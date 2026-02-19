@@ -8,7 +8,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient, InfiniteData }
 import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Smile, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TEAM_DATA } from '../constants/teams';
-import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost } from '../api/cheerApi';
+import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost, ShareMode } from '../api/cheerApi';
 import { fetchTeamFranchiseMetadata } from '../api/teamFranchiseApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
@@ -16,7 +16,7 @@ import { motion } from 'framer-motion';
 import TeamLogo from './TeamLogo';
 import CheerCard from './CheerCard';
 import CheerHot from './CheerHot';
-import CheerWriteModal from './CheerWriteModal';
+import CheerWriteModal, { CheerWritePayload } from './CheerWriteModal';
 import EndOfFeed from './EndOfFeed';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import {
@@ -236,7 +236,19 @@ export default function Cheer() {
     };
 
     const createMutation = useMutation({
-        mutationFn: async (payload: { content: string; files: File[]; postType?: CheerPostType }) => {
+        mutationFn: async (payload: {
+            content: string;
+            files: File[];
+            postType?: CheerPostType;
+            shareMode?: ShareMode;
+            sourceUrl?: string;
+            sourceTitle?: string;
+            sourceAuthor?: string;
+            sourceLicense?: string;
+            sourceLicenseUrl?: string;
+            sourceChangedNote?: string;
+            sourceSnapshotType?: string;
+        }) => {
             if (!user?.favoriteTeam) {
                 throw new Error('favoriteTeam-required');
             }
@@ -244,6 +256,14 @@ export default function Cheer() {
                 teamId: user.favoriteTeam,
                 content: payload.content,
                 postType: payload.postType ?? 'CHEER',
+                shareMode: payload.shareMode,
+                sourceUrl: payload.sourceUrl,
+                sourceTitle: payload.sourceTitle,
+                sourceAuthor: payload.sourceAuthor,
+                sourceLicense: payload.sourceLicense,
+                sourceLicenseUrl: payload.sourceLicenseUrl,
+                sourceChangedNote: payload.sourceChangedNote,
+                sourceSnapshotType: payload.sourceSnapshotType,
             });
             let uploadedUrls: string[] = [];
             let uploadFailed = false;
@@ -309,6 +329,18 @@ export default function Cheer() {
                 isOwner: true,
                 repostedByMe: false,
                 originalDeleted: false,
+                shareMode: payload.shareMode,
+                sourceInfo: payload.sourceUrl
+                    ? {
+                        url: payload.sourceUrl,
+                        title: payload.sourceTitle,
+                        author: payload.sourceAuthor,
+                        license: payload.sourceLicense,
+                        licenseUrl: payload.sourceLicenseUrl,
+                        changedNote: payload.sourceChangedNote,
+                        snapshotType: payload.sourceSnapshotType,
+                    }
+                    : undefined,
             };
 
             const updateCache = (key: (string | undefined)[]) => {
@@ -1088,11 +1120,19 @@ export default function Cheer() {
             <CheerWriteModal
                 isOpen={isWriteModalOpen}
                 onClose={() => setIsWriteModalOpen(false)}
-                onSubmit={async (content: string, files: File[]) => {
+                onSubmit={async (payload: CheerWritePayload) => {
                     await createMutation.mutateAsync({
-                        content,
-                        files,
+                        content: payload.content,
+                        files: payload.files,
                         postType: activeTabConfig?.postType,
+                        shareMode: payload.shareMode,
+                        sourceUrl: payload.sourceUrl,
+                        sourceTitle: payload.sourceTitle,
+                        sourceAuthor: payload.sourceAuthor,
+                        sourceLicense: payload.sourceLicense,
+                        sourceLicenseUrl: payload.sourceLicenseUrl,
+                        sourceChangedNote: payload.sourceChangedNote,
+                        sourceSnapshotType: payload.sourceSnapshotType,
                     });
                 }}
                 teamColor={teamColor}

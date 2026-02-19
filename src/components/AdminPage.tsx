@@ -139,6 +139,7 @@ export default function AdminPage() {
     users,
     posts,
     mates,
+    reports,
     stats,
     loading,
     error,
@@ -146,6 +147,7 @@ export default function AdminPage() {
     handleDeleteUser,
     handleDeletePost,
     handleDeleteMate,
+    handleReportAction,
   } = useAdminData();
 
   return (
@@ -228,7 +230,7 @@ export default function AdminPage() {
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="border-b border-slate-800 px-6 pt-6">
-              <TabsList className="grid w-full max-w-md grid-cols-3 bg-slate-800/50 p-1 rounded-xl">
+              <TabsList className="grid w-full max-w-xl grid-cols-4 bg-slate-800/50 p-1 rounded-xl">
                 <TabsTrigger
                   value="users"
                   className="rounded-lg data-[state=active]:bg-amber-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/25 transition-all duration-300"
@@ -249,6 +251,13 @@ export default function AdminPage() {
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   메이트
+                </TabsTrigger>
+                <TabsTrigger
+                  value="reports"
+                  className="rounded-lg data-[state=active]:bg-red-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 transition-all duration-300"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  신고
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -588,6 +597,68 @@ export default function AdminPage() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="reports" className="p-6">
+              <div className="rounded-xl border border-slate-800 overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/50">
+                      <TableHead className="text-slate-400 font-semibold">ID</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">사유</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">상태</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">게시물</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">신고자</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">접수일</TableHead>
+                      <TableHead className="text-slate-400 font-semibold text-right">조치</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {reports.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-16 text-slate-500">
+                          신고 케이스가 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      reports.map((report) => (
+                        <TableRow key={report.id} className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200">
+                          <TableCell className="text-slate-300 font-mono text-sm">{report.id}</TableCell>
+                          <TableCell className="text-slate-300">{report.reason || '-'}</TableCell>
+                          <TableCell>
+                            <Badge className="bg-slate-700 text-slate-200 border-0">
+                              {report.status || 'PENDING'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-300 max-w-[260px] truncate">{report.postPreview || '-'}</TableCell>
+                          <TableCell className="text-slate-300">{report.reporterHandle || '-'}</TableCell>
+                          <TableCell className="text-slate-400 text-sm">{getTimeAgo(report.createdAt)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-300 hover:text-red-200 hover:bg-red-500/10"
+                                onClick={() => handleReportAction(report.id, 'TAKE_DOWN', '정책 위반 게시물 비공개')}
+                              >
+                                비공개
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-slate-300 hover:text-white hover:bg-slate-700"
+                                onClick={() => handleReportAction(report.id, 'DISMISS', '검토 결과 위반 아님')}
+                              >
+                                기각
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))

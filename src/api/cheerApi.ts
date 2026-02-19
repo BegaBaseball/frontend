@@ -55,6 +55,8 @@ export interface CheerPost {
     repostType?: RepostType;       // 'SIMPLE' | 'QUOTE' | undefined(원본)
     originalPost?: EmbeddedPost;   // 원본 게시글 임베드 정보
     originalDeleted?: boolean;     // 원본 삭제 여부
+    shareMode?: ShareMode;
+    sourceInfo?: SourceInfo;
 }
 
 // ... (PageResponse, PostSummaryRes, etc. - skipping unrelated parts if possible, but replace_file_content needs contiguous block)
@@ -115,6 +117,7 @@ export interface EmbeddedPost {
     teamId: string;
     teamColor: string;
     content: string;  // 100자 미리보기
+    authorId?: number;
     author: string;
     authorHandle: string;
     authorProfileImageUrl?: string;
@@ -124,6 +127,24 @@ export interface EmbeddedPost {
     likeCount?: number;
     commentCount?: number;
     repostCount?: number;
+}
+
+export type ShareMode =
+    | 'INTERNAL_REPOST'
+    | 'INTERNAL_QUOTE'
+    | 'EXTERNAL_LINK'
+    | 'EXTERNAL_COPY'
+    | 'EXTERNAL_EMBED'
+    | 'EXTERNAL_SUMMARY';
+
+export interface SourceInfo {
+    title?: string;
+    author?: string;
+    url?: string;
+    license?: string;
+    licenseUrl?: string;
+    changedNote?: string;
+    snapshotType?: string;
 }
 
 // 리포스트 타입
@@ -239,6 +260,8 @@ interface PostDTO {
   originalPost?: PostDTO;
   originalDeleted?: boolean;
   deleted?: boolean;
+  shareMode?: ShareMode;
+  sourceInfo?: SourceInfo;
 }
 
 interface CommentDTO {
@@ -271,10 +294,10 @@ function transformPost(post: PostDTO): CheerPost {
         timeAgo: formatTimeAgo(post.createdAt),
         comments: post.comments || 0, // Now number
         likes: post.likes || 0,
-        likeCount: post.likeCount || post.likes || 0,
-        commentCount: post.commentCount || post.comments || 0,
+        likeCount: post.likeCount ?? post.likes ?? 0,
+        commentCount: post.commentCount ?? post.comments ?? 0,
         bookmarkCount: post.bookmarkCount ?? 0,
-        repostCount: post.repostCount || 0,
+        repostCount: post.repostCount ?? 0,
         views: post.views,
         liked: post.liked ?? post.likedByMe ?? false,
         likedByUser: post.liked ?? post.likedByMe ?? false,
@@ -293,7 +316,9 @@ function transformPost(post: PostDTO): CheerPost {
         repostOfId: post.repostOfId,
         repostType: post.repostType,
         originalPost: post.originalPost ? transformEmbeddedPost(post.originalPost) : undefined,
-        originalDeleted: post.originalDeleted ?? false
+        originalDeleted: post.originalDeleted ?? false,
+        shareMode: post.shareMode,
+        sourceInfo: post.sourceInfo,
     };
 }
 
@@ -304,6 +329,7 @@ function transformEmbeddedPost(post: PostDTO): EmbeddedPost {
         teamId: post.teamId,
         teamColor: post.teamColor || getTeamColorByAnyKey(post.teamId),
         content: post.content || '',
+        authorId: post.authorId,
         author: post.author,
         authorHandle: post.authorHandle,
         authorProfileImageUrl: post.authorProfileImageUrl,
@@ -338,6 +364,14 @@ export async function createPost(data: {
     teamId: string;
     content: string;
     postType?: string;
+    shareMode?: ShareMode;
+    sourceUrl?: string;
+    sourceTitle?: string;
+    sourceAuthor?: string;
+    sourceLicense?: string;
+    sourceLicenseUrl?: string;
+    sourceChangedNote?: string;
+    sourceSnapshotType?: string;
 }) {
     const response = await api.post('/cheer/posts', {
         ...data,
@@ -349,6 +383,14 @@ export async function createPost(data: {
 // 게시글 수정
 export async function updatePost(id: number, data: {
     content: string;
+    shareMode?: ShareMode;
+    sourceUrl?: string;
+    sourceTitle?: string;
+    sourceAuthor?: string;
+    sourceLicense?: string;
+    sourceLicenseUrl?: string;
+    sourceChangedNote?: string;
+    sourceSnapshotType?: string;
 }) {
     const response = await api.put(`/cheer/posts/${id}`, data);
     return transformPost(response.data);
@@ -438,6 +480,8 @@ export enum ReportReason {
     INAPPROPRIATE_CONTENT = 'INAPPROPRIATE_CONTENT',
     ABUSIVE_LANGUAGE = 'ABUSIVE_LANGUAGE',
     ADVERTISEMENT = 'ADVERTISEMENT',
+    COPYRIGHT_INFRINGEMENT = 'COPYRIGHT_INFRINGEMENT',
+    FAKE_INFORMATION = 'FAKE_INFORMATION',
     OTHER = 'OTHER',
 }
 
@@ -446,11 +490,34 @@ export const ReportReasonLabels: Record<ReportReason, string> = {
     [ReportReason.INAPPROPRIATE_CONTENT]: '부적절한 콘텐츠',
     [ReportReason.ABUSIVE_LANGUAGE]: '욕설/비하 발언',
     [ReportReason.ADVERTISEMENT]: '상업적 광고',
+    [ReportReason.COPYRIGHT_INFRINGEMENT]: '저작권/권리 침해',
+    [ReportReason.FAKE_INFORMATION]: '허위 정보/사기성 게시',
     [ReportReason.OTHER]: '기타',
 };
 
-export async function reportPost(postId: number, reason: ReportReason, description?: string): Promise<void> {
-    await api.post(`/cheer/posts/${postId}/report`, { reason, description });
+export interface ReportPostPayload {
+    reason: ReportReason;
+    description?: string;
+    sourceUrl?: string;
+    hasRightEvidence?: boolean;
+    license?: string;
+    ownerContact?: string;
+    requestedReason?: string;
+    requestedAction?: string;
+    evidenceUrl?: string;
+}
+
+export interface ReportCaseResponse {
+    caseId: number;
+    reportStatus: string;
+    handledAt?: string | null;
+    nextAction?: string | null;
+    adminMessage?: string | null;
+}
+
+export async function reportPost(postId: number, payload: ReportPostPayload): Promise<ReportCaseResponse> {
+    const response = await api.post(`/cheer/posts/${postId}/report`, payload);
+    return response.data;
 }
 
 // 이미지 업로드

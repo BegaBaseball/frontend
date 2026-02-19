@@ -394,11 +394,19 @@ export default function CheerDetail() {
 
     const repostCount = selectedPost.repostCount ?? 0;
     const isRepost = Boolean(selectedPost.repostType);
-    const repostPolicy = getRepostPolicyDecision(selectedPost.isOwner, isRepost);
+    const repostTargetAuthorId = isRepost ? selectedPost.originalPost?.authorId : selectedPost.authorId;
+    const repostTargetAuthorHandle = isRepost ? selectedPost.originalPost?.authorHandle : selectedPost.authorHandle;
+    const repostPolicy = getRepostPolicyDecision({
+        isPostOwner: selectedPost.isOwner,
+        isRepostTarget: isRepost,
+        targetAuthorId: repostTargetAuthorId,
+        targetAuthorHandle: repostTargetAuthorHandle,
+        currentUserId: user?.id,
+        currentUserHandle: user?.handle,
+    });
     const canSimpleRepost = repostPolicy.canSimpleRepost;
     const canQuoteRepost = repostPolicy.canQuoteRepost;
     const repostUnavailableMessage = repostPolicy.repostSimpleUnavailableMessage;
-    const quoteUnavailableMessage = repostPolicy.repostQuoteUnavailableMessage;
     const canCancelRepost = isRepost && selectedPost.isOwner;
     const repostButtonActive = canCancelRepost ? true : selectedPost.repostedByMe;
 
@@ -514,6 +522,15 @@ export default function CheerDetail() {
                             {selectedPost.content}
                         </div>
 
+                        {selectedPost.shareMode?.startsWith('EXTERNAL_') && selectedPost.sourceInfo?.url && (
+                            <div className="mt-3 rounded-lg border border-sky-100 dark:border-sky-900/40 bg-sky-50/60 dark:bg-sky-900/20 px-3 py-2 text-xs text-sky-700 dark:text-sky-300">
+                                <div>공유 유형: {selectedPost.shareMode}</div>
+                                <div className="truncate">출처: {selectedPost.sourceInfo.url}</div>
+                                {selectedPost.sourceInfo.author && <div>작성자: {selectedPost.sourceInfo.author}</div>}
+                                {selectedPost.sourceInfo.license && <div>라이선스: {selectedPost.sourceInfo.license}</div>}
+                            </div>
+                        )}
+
                         {/* Images */}
                         {selectedPost.images && selectedPost.images.length > 0 && (
                             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -628,7 +645,7 @@ export default function CheerDetail() {
                                             </>
                                         ) : (
                                             <div className="px-4 py-3 text-sm text-gray-400 text-center">
-                                                {isRepost ? quoteUnavailableMessage : repostUnavailableMessage}
+                                                {repostUnavailableMessage}
                                             </div>
                                         )}
                                     </div>

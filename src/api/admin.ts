@@ -1,5 +1,5 @@
 // api/admin.ts
-import { AdminUser, AdminStats, AdminPost, AdminMate, AdminApiResponse } from '../types/admin';
+import { AdminUser, AdminStats, AdminPost, AdminMate, AdminApiResponse, AdminReport, AdminReportPage } from '../types/admin';
 import { getApiBaseUrl } from './apiBase';
 
 const API_BASE_URL = getApiBaseUrl();
@@ -146,4 +146,95 @@ export const deleteAdminMate = async (mateId: number): Promise<void> => {
   if (!apiResponse.success) {
     throw new Error(apiResponse.message || '메이트 삭제 실패');
   }
+};
+
+export const fetchAdminReports = async (params?: {
+  status?: string;
+  reason?: string;
+  page?: number;
+  size?: number;
+}): Promise<AdminReportPage> => {
+  const search = new URLSearchParams();
+  if (params?.status) search.set('status', params.status);
+  if (params?.reason) search.set('reason', params.reason);
+  search.set('page', String(params?.page ?? 0));
+  search.set('size', String(params?.size ?? 20));
+
+  const response = await fetch(`${API_BASE_URL}/admin/reports?${search.toString()}`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error('신고 목록 조회 실패');
+  }
+
+  const apiResponse: AdminApiResponse<AdminReportPage> = await response.json();
+  if (!apiResponse.success) {
+    throw new Error(apiResponse.message || '신고 목록 조회 실패');
+  }
+  return apiResponse.data;
+};
+
+export const fetchAdminReportDetail = async (reportId: number): Promise<AdminReport> => {
+  const response = await fetch(`${API_BASE_URL}/admin/reports/${reportId}`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error('신고 상세 조회 실패');
+  }
+
+  const apiResponse: AdminApiResponse<AdminReport> = await response.json();
+  if (!apiResponse.success) {
+    throw new Error(apiResponse.message || '신고 상세 조회 실패');
+  }
+
+  return apiResponse.data;
+};
+
+export const handleAdminReport = async (
+  reportId: number,
+  payload: { action: 'TAKE_DOWN' | 'REQUIRE_MODIFICATION' | 'WARNING' | 'DISMISS' | 'RESTORE'; adminMemo?: string }
+): Promise<AdminReport> => {
+  const response = await fetch(`${API_BASE_URL}/admin/reports/${reportId}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error('신고 처리 실패');
+  }
+
+  const apiResponse: AdminApiResponse<AdminReport> = await response.json();
+  if (!apiResponse.success) {
+    throw new Error(apiResponse.message || '신고 처리 실패');
+  }
+
+  return apiResponse.data;
+};
+
+export const appealAdminReport = async (reportId: number, appealReason: string): Promise<AdminReport> => {
+  const response = await fetch(`${API_BASE_URL}/admin/reports/${reportId}/appeal`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ appealReason }),
+  });
+
+  if (!response.ok) {
+    throw new Error('이의제기 등록 실패');
+  }
+
+  const apiResponse: AdminApiResponse<AdminReport> = await response.json();
+  if (!apiResponse.success) {
+    throw new Error(apiResponse.message || '이의제기 등록 실패');
+  }
+
+  return apiResponse.data;
 };
