@@ -457,7 +457,7 @@ const getPhotoPreviewUrl = (photo: string | File): string => {
     // File 객체면 임시 미리보기 URL 생성
     return URL.createObjectURL(photo);
   }
-  // 문자열이면 Supabase Storage URL
+  // 문자열이면 기존 storage URL
   return getFullImageUrl(photo);
 };
 

@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { Plus, Users, MapPin, Shield, Star, Search, ChevronLeft, ChevronRight, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
+import { useAuthStore } from '../store/authStore';
 import LoadingSpinner from './LoadingSpinner';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { Input } from './ui/input';
@@ -20,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import { api } from '../utils/api';
 import { mapBackendPartyToFrontend, formatGameDate, getDayOfWeek } from '../utils/mate';
-import { Party, PartyStatus } from '../types/mate';
+import { Party, PartyStatus, BadgeType } from '../types/mate';
 import { useDebounce } from '../hooks/useDebounce';
 import { MATE_SEARCH_DEBOUNCE_MS } from '../utils/constants';
 
@@ -39,12 +40,15 @@ const isLegacyHostAvatarUrl = (url?: string) => {
   return url.startsWith('/assets/')
     || url.startsWith('/src/assets/')
     || url.startsWith('blob:')
-    || normalized.includes('supabase.co');
+    || normalized.includes('/storage/v1/object/');
 };
 
 export default function Mate() {
   const navigate = useNavigate();
   const { setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
+  const user = useAuthStore((state) => state.user);
+  const favoriteTeamId = user?.favoriteTeam && user.favoriteTeam !== '없음' ? user.favoriteTeam : null;
+  const [myTeamOnly, setMyTeamOnly] = useState(false);
 
   // Local input state so the input responds instantly; debounced value is synced to the store
   const [inputValue, setInputValue] = useState(searchQuery || '');
@@ -53,6 +57,7 @@ export default function Mate() {
   // Sync debounced input to the Zustand store (triggers API fetch)
   useEffect(() => {
     setSearchQuery(debouncedInput);
+    setCurrentPage(0); // Explicitly reset page
   }, [debouncedInput, setSearchQuery]);
 
   // Helper to detect stadium from query
@@ -85,6 +90,7 @@ export default function Mate() {
       // Append to existing query or set as new
       setSearchQuery(searchQuery ? `${searchQuery} ${keyword}` : keyword);
     }
+    setCurrentPage(0);
   };
 
   // Mock Weather Generator based on date
@@ -149,9 +155,8 @@ export default function Mate() {
   };
   const selectedStatus = tabToStatusMap[activeTab];
 
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [searchQuery, selectedDate, activeTab]);
+  // Removed reactive useEffect to prevent double-fetch race conditions
+  // setCurrentPage(0) is now handled explicitly in event handlers
 
   // 컴포넌트 마운트 및 상태 변경 시 파티 목록 불러오기
   useEffect(() => {
@@ -161,8 +166,9 @@ export default function Mate() {
       setFetchError(false);
       try {
         const dateStr = selectedDate ? toDateString(selectedDate) : undefined;
+        const teamIdFilter = myTeamOnly && favoriteTeamId ? favoriteTeamId : undefined;
         const data = await api.getParties(
-          undefined,
+          teamIdFilter,
           undefined,
           currentPage,
           pageSize,
@@ -188,7 +194,7 @@ export default function Mate() {
     };
 
     void fetchParties();
-  }, [currentPage, searchQuery, selectedDate, selectedStatus, retryCount]);
+  }, [currentPage, searchQuery, selectedDate, selectedStatus, retryCount, myTeamOnly, favoriteTeamId]);
 
   const handlePartyClick = (party: Party) => {
     setSelectedParty(party);
@@ -220,9 +226,9 @@ export default function Mate() {
     );
   };
 
-  const getBadgeIcon = (badge: string) => {
-    if (badge === 'verified') return <Shield className="w-3 h-3 text-blue-500" />;
-    if (badge === 'trusted') return <Star className="w-3 h-3 text-yellow-500" />;
+  const getBadgeIcon = (badge: BadgeType) => {
+    if (badge === 'VERIFIED') return <Shield className="w-3 h-3 text-blue-500" />;
+    if (badge === 'TRUSTED') return <Star className="w-3 h-3 text-yellow-500" />;
     return null;
   };
 
@@ -247,7 +253,7 @@ export default function Mate() {
         {isSearchEmpty ? (
           <>
             <p className="text-gray-400 text-sm mb-3">검색어나 날짜 필터를 변경해보세요</p>
-            <Button variant="outline" size="sm" className="text-primary border-primary/30" onClick={() => { setSelectedDate(null); setInputValue(''); setSearchQuery(''); }}>
+            <Button variant="outline" size="sm" className="text-primary border-primary/30" onClick={() => { setSelectedDate(null); setInputValue(''); setSearchQuery(''); setCurrentPage(0); }}>
               필터 초기화
             </Button>
           </>
@@ -510,7 +516,7 @@ export default function Mate() {
           <div className="flex gap-2 min-w-max">
             <Button
               variant={selectedDate === null ? 'default' : 'outline'}
-              onClick={() => setSelectedDate(null)}
+              onClick={() => { setSelectedDate(null); setCurrentPage(0); }}
               className={selectedDate === null ? 'bg-primary text-white border-transparent' : 'border-gray-300 text-gray-500'}
             >
               전체
@@ -523,7 +529,7 @@ export default function Mate() {
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setSelectedDate(isSelected ? null : date)}
+                  onClick={() => { setSelectedDate(isSelected ? null : date); setCurrentPage(0); }}
                   aria-label={dateLabel}
                   aria-pressed={Boolean(isSelected)}
                   className={`
@@ -554,6 +560,21 @@ export default function Mate() {
               className="pl-10 h-12 bg-white dark:bg-card border-gray-200 dark:border-border rounded-xl focus:ring-primary focus:border-primary"
             />
           </div>
+
+          {/* 내 팀 경기만 필터 (로그인 + 응원팀 설정 시 표시) */}
+          {favoriteTeamId && (
+            <Button
+              variant={myTeamOnly ? 'default' : 'outline'}
+              className={myTeamOnly ? 'bg-primary text-white border-transparent whitespace-nowrap' : 'border-gray-300 text-gray-600 dark:text-gray-300 whitespace-nowrap'}
+              onClick={() => { setMyTeamOnly(!myTeamOnly); setCurrentPage(0); }}
+            >
+              {myTeamOnly ? (
+                <><TeamLogo teamId={favoriteTeamId} size="sm" /><span className="ml-1.5">내 팀 경기 중</span></>
+              ) : (
+                <><TeamLogo teamId={favoriteTeamId} size="sm" /><span className="ml-1.5">내 팀 경기만</span></>
+              )}
+            </Button>
+          )}
 
           {/* Dynamic Filter Chips */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full md:max-w-2xl">
@@ -596,7 +617,7 @@ export default function Mate() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setCurrentPage(0); }} className="mb-6">
           <TabsList className="bg-gray-100 dark:bg-card p-1 rounded-xl mb-6 inline-flex relative">
             {['all', 'recruiting', 'matched', 'selling'].map((tab) => (
               <TabsTrigger
