@@ -31,6 +31,7 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
     const partyId = Number(id);
     const routePartyId = Number.isFinite(partyId) && Number.isInteger(partyId) ? partyId : null;
     const currentRequestId = ++requestId.current;
+    const hasMatchingSelectedParty = selectedParty?.id === routePartyId;
 
     if (!id) {
       setFetchedParty(null);
@@ -46,15 +47,10 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
       return;
     }
 
-    if (selectedParty?.id === routePartyId) {
+    if (!hasMatchingSelectedParty) {
       setFetchedParty(null);
-      setLoadingState(false);
-      setErrorState(null);
-      return;
     }
-
-    setFetchedParty(null);
-    setLoadingState(true);
+    setLoadingState(!hasMatchingSelectedParty);
     setErrorState(null);
 
     const fetchParty = async () => {
@@ -71,7 +67,9 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
         if (currentRequestId !== requestId.current) {
           return;
         }
-        setErrorState('파티 정보를 불러오지 못했습니다.');
+        if (!hasMatchingSelectedParty) {
+          setErrorState('파티 정보를 불러오지 못했습니다.');
+        }
       } finally {
         if (currentRequestId !== requestId.current) {
           return;

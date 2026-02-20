@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -12,51 +12,91 @@ import { Alert, AlertDescription } from './ui/alert';
 import LoadingSpinner from './LoadingSpinner';
 import { api } from '../utils/api';
 import { CheckIn } from '../types/mate';
+import { useAuthStore } from '../store/authStore';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 export default function MateCheckIn() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
+  const authUserId = useAuthStore((state) => state.user?.id ?? null);
 
   const [isChecking, setIsChecking] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState<CheckIn[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [userLoadError, setUserLoadError] = useState<string | null>(null);
+  const [userRetryCount, setUserRetryCount] = useState(0);
+  const qrSessionId = searchParams.get('sessionId')?.trim() || undefined;
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
+    let isMounted = true;
+
     const fetchUser = async () => {
+      setIsLoadingUser(true);
+      setUserLoadError(null);
+
+      if (authUserId && authUserId > 0) {
+        if (isMounted) {
+          setCurrentUserId(authUserId);
+          setIsLoadingUser(false);
+        }
+        return;
+      }
+
       try {
         const userData = await api.getCurrentUser();
-        const userIdResponse = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userIdResponse.data);
+        const profileId = Number(userData?.data?.id);
+        if (Number.isFinite(profileId) && profileId > 0) {
+          if (isMounted) {
+            setCurrentUserId(profileId);
+          }
+          return;
+        }
+        throw new Error('사용자 ID를 확인할 수 없습니다.');
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
+        if (isMounted) {
+          setCurrentUserId(null);
+          setUserLoadError(getApiErrorMessage(error, '사용자 정보를 확인하지 못했습니다. 다시 시도해주세요.'));
+        }
       } finally {
-        setIsLoadingUser(false);
+        if (isMounted) {
+          setIsLoadingUser(false);
+        }
       }
     };
 
-    fetchUser();
-  }, []);
+    void fetchUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authUserId, userRetryCount]);
 
   // 체크인 현황 불러오기
   useEffect(() => {
     if (!selectedParty) return;
+    let isMounted = true;
 
     const fetchCheckInStatus = async () => {
       try {
         const data = await api.getCheckInsByParty(selectedParty.id);
-        setCheckInStatus(data);
+        if (isMounted) setCheckInStatus(data);
       } catch (error) {
-        console.error('체크인 현황 불러오기 실패:', error);
+        if (isMounted) console.error('체크인 현황 불러오기 실패:', error);
       }
     };
 
     fetchCheckInStatus();
     // 5초마다 체크인 현황 갱신
     const interval = setInterval(fetchCheckInStatus, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [selectedParty]);
 
   if (isPartyLoading || isLoadingUser) {
@@ -64,6 +104,7 @@ export default function MateCheckIn() {
   }
 
   if (partyError || !selectedParty || !currentUserId) {
+    const resolvedError = partyError || userLoadError || '파티 정보를 찾을 수 없습니다.';
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
         <img
@@ -73,8 +114,17 @@ export default function MateCheckIn() {
         />
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
           <Alert>
-            <AlertDescription>{partyError || '파티 정보를 찾을 수 없습니다.'}</AlertDescription>
+            <AlertDescription>{resolvedError}</AlertDescription>
           </Alert>
+          {userLoadError && (
+            <Button
+              variant="outline"
+              onClick={() => setUserRetryCount((count) => count + 1)}
+              className="mt-4 mr-2"
+            >
+              다시 시도
+            </Button>
+          )}
           <Button
             variant="ghost"
             onClick={() => navigate('/mate')}
@@ -108,6 +158,7 @@ export default function MateCheckIn() {
         partyId: selectedParty.id,
         userId: currentUserId,
         location: selectedParty.stadium,
+        ...(qrSessionId ? { qrSessionId } : {}),
       };
 
       await api.createCheckIn(checkInData);
@@ -119,7 +170,7 @@ export default function MateCheckIn() {
       toast.success('체크인이 완료되었습니다!');
     } catch (error) {
       console.error('체크인 중 오류:', error);
-      toast.error('체크인 중 오류가 발생했습니다.');
+      toast.error(getApiErrorMessage(error, '체크인 중 오류가 발생했습니다.'));
     } finally {
       setIsChecking(false);
     }
@@ -154,6 +205,13 @@ export default function MateCheckIn() {
         <p className="text-gray-600 mb-8">
           경기장에 도착하셨나요? 체크인하여 참여를 인증하세요
         </p>
+        {qrSessionId && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50">
+            <AlertDescription className="text-blue-800 text-sm">
+              QR 코드로 체크인 링크가 연결되었습니다.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Party Info */}
         <Card className="p-6 mb-6">

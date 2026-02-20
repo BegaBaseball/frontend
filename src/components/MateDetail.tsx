@@ -61,7 +61,6 @@ export default function MateDetail() {
   const { confirm } = useConfirmDialog();
   const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
-  const updateParty = useMateStore((state) => state.updateParty);
   const user = useAuthStore((state) => state.user);
 
   // Use user from auth store directly
@@ -70,9 +69,14 @@ export default function MateDetail() {
   const [myApplication, setMyApplication] = useState<Application | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isConvertingToSale, setIsConvertingToSale] = useState(false);
   const [showSaleDialog, setShowSaleDialog] = useState(false);
   const [salePrice, setSalePrice] = useState('');
   const [salePriceError, setSalePriceError] = useState('');
+  const [qrCheckInUrl, setQrCheckInUrl] = useState('');
+  const [qrSessionExpiresAt, setQrSessionExpiresAt] = useState<string | null>(null);
+  const [isQrLoading, setIsQrLoading] = useState(false);
+  const [qrSessionError, setQrSessionError] = useState<string | null>(null);
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false); // For Seat View toggle
   const [hostAvgRating, setHostAvgRating] = useState<number | null>(null);
   const [showHostProfile, setShowHostProfile] = useState(false);
@@ -108,12 +112,21 @@ export default function MateDetail() {
 
     const fetchMyApplication = async () => {
       try {
-        const applicationsData = await api.getMyApplications();
-        const myApp = applicationsData.find((app: Application) =>
-          String(app.partyId) === String(selectedParty.id)
-        );
-        setMyApplication(myApp ?? null);
-      } catch (error) {
+        const myApp = await api.getMyApplicationByParty(selectedParty.id);
+        setMyApplication(myApp);
+      } catch (error: unknown) {
+        if (getApiErrorStatus(error) === 404) {
+          try {
+            const applicationsData = await api.getMyApplications();
+            const fallback = applicationsData.find((app: Application) =>
+              String(app.partyId) === String(selectedParty.id)
+            );
+            setMyApplication(fallback ?? null);
+            return;
+          } catch (fallbackError) {
+            console.error('내 신청 정보 fallback 조회 실패:', fallbackError);
+          }
+        }
         console.error('내 신청 정보 가져오기 실패:', error);
       }
     };
@@ -273,6 +286,10 @@ export default function MateDetail() {
   const isApproved = myApplication?.isApproved || false;
   const approvedApplications = applications.filter(app => app.isApproved);
   const pendingApplications = applications.filter(app => !app.isApproved && !app.isRejected);
+  const canAccessCheckIn = (isHost || isApproved) &&
+    selectedParty.status !== 'CHECKED_IN' &&
+    selectedParty.status !== 'COMPLETED' &&
+    selectedParty.status !== 'FAILED';
 
   const getStatusBadge = (status: string) => {
     const config = {
@@ -313,7 +330,7 @@ export default function MateDetail() {
     setShowSaleDialog(true);
   };
 
-  const handleConfirmSale = () => {
+  const handleConfirmSale = async () => {
     const parsed = parseInt(salePrice, 10);
     if (!salePrice || isNaN(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
       setSalePriceError('양의 정수를 입력해주세요.');
@@ -323,15 +340,53 @@ export default function MateDetail() {
       setSalePriceError('최소 100원 이상 입력해주세요.');
       return;
     }
-    updateParty(selectedParty.id, { status: 'SELLING', price: parsed });
-    setShowSaleDialog(false);
+    setIsConvertingToSale(true);
+    try {
+      const updatedParty = await api.updateParty(selectedParty.id, { status: 'SELLING', price: parsed });
+      const mappedParty = mapBackendPartyToFrontend(updatedParty);
+      setSelectedParty(mappedParty);
+      toast.success('판매 전환이 완료되었습니다.');
+      setShowSaleDialog(false);
+    } catch (error: unknown) {
+      console.error('판매 전환 중 오류:', error);
+      toast.error(getApiErrorMessage(error, '판매 전환 중 오류가 발생했습니다.'));
+    } finally {
+      setIsConvertingToSale(false);
+    }
   };
-  const handleShare = () => {
-    if (navigator.share) navigator.share({ title: '직관메이트 파티', text: '함께 직관 가실 분?', url: window.location.href });
-    else toast.success('공유 링크 복사 완료');
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: '직관메이트 파티', text: '함께 직관 가실 분?', url: shareUrl });
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('공유 링크를 복사했습니다.');
+        return;
+      }
+
+      toast.error('이 브라우저에서는 공유 링크 복사를 지원하지 않습니다.');
+    } catch (error) {
+      console.error('공유 처리 중 오류:', error);
+      toast.error('복사에 실패했습니다. 주소창의 링크를 직접 복사해주세요.');
+    }
   };
   const handleApply = () => navigate(`/mate/${id}/apply`);
-  const handleCheckIn = () => navigate(`/mate/${id}/checkin`);
+  const handleCheckIn = () => {
+    const fallbackPath = `/mate/${id}/checkin`;
+    try {
+      const parsedUrl = new URL(qrCheckInUrl || fallbackPath, window.location.origin);
+      navigate(`${parsedUrl.pathname}${parsedUrl.search}`);
+      return;
+    } catch (error) {
+      console.error('체크인 URL 파싱 실패:', error);
+    }
+
+    navigate(fallbackPath);
+  };
   const handleManageParty = () => navigate(`/mate/${id}/manage`);
   const handleOpenChat = () => navigate(`/mate/${id}/chat`);
 
@@ -365,11 +420,58 @@ export default function MateDetail() {
 
   const currentZone = selectedParty ? resolveSeatZone(selectedParty.stadium, selectedParty.section) : null;
 
-  const qrCodeValue = useMemo(() => JSON.stringify({
-    type: 'MATE_CHECKIN',
-    partyId: selectedParty?.id,
-    createdAt: selectedParty?.createdAt,
-  }), [selectedParty?.id, selectedParty?.createdAt]);
+  const fallbackCheckInUrl = useMemo(() => {
+    if (!id && !selectedParty?.id) {
+      return typeof window === 'undefined' ? '/mate' : window.location.href;
+    }
+    const path = `/mate/${id ?? selectedParty?.id}/checkin`;
+    if (typeof window === 'undefined') {
+      return path;
+    }
+    return new URL(path, window.location.origin).toString();
+  }, [id, selectedParty?.id]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    setQrCheckInUrl(fallbackCheckInUrl);
+    setQrSessionExpiresAt(null);
+    setQrSessionError(null);
+
+    if (!selectedParty || !canAccessCheckIn) {
+      setIsQrLoading(false);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const fetchQrSession = async () => {
+      setIsQrLoading(true);
+      try {
+        const qrSession = await api.createCheckInQrSession({ partyId: selectedParty.id });
+        if (!isMounted) return;
+        setQrCheckInUrl(qrSession.checkinUrl || fallbackCheckInUrl);
+        setQrSessionExpiresAt(qrSession.expiresAt || null);
+      } catch (error: unknown) {
+        if (!isMounted) return;
+        console.error('QR 세션 발급 실패:', error);
+        setQrCheckInUrl(fallbackCheckInUrl);
+        setQrSessionError(getApiErrorMessage(error, 'QR 세션을 발급하지 못했습니다.'));
+      } finally {
+        if (isMounted) {
+          setIsQrLoading(false);
+        }
+      }
+    };
+
+    void fetchQrSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedPartyId, canAccessCheckIn, fallbackCheckInUrl]);
+
+  const qrCodeValue = useMemo(() => qrCheckInUrl || fallbackCheckInUrl, [qrCheckInUrl, fallbackCheckInUrl]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
@@ -380,9 +482,15 @@ export default function MateDetail() {
       />
 
       <div className="max-w-3xl mx-auto px-4 py-6 relative z-10">
-        <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent" onClick={() => navigate('/mate')}>
-          <ChevronLeft className="w-5 h-5 mr-1" /> 목록으로
-        </Button>
+        <div className="mb-4 flex items-center justify-between">
+          <Button variant="ghost" className="pl-0 hover:bg-transparent" onClick={() => navigate('/mate')}>
+            <ChevronLeft className="w-5 h-5 mr-1" /> 목록으로
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleShare}>
+            <Share2 className="w-4 h-4 mr-1.5" />
+            공유
+          </Button>
+        </div>
 
         {/* 1. 매치 포스터 (Ticket Metaphor Evolution) */}
         <div className="rounded-3xl shadow-2xl overflow-hidden mb-8 transform transition-all hover:scale-[1.01]">
@@ -520,11 +628,11 @@ export default function MateDetail() {
 
               {/* QR Code - 모바일: 중앙 정렬 / 데스크톱: 우측 구분선 포함 */}
               <div className="flex flex-col items-center md:border-l md:border-gray-200 md:dark:border-border md:pl-8">
-                <div className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm max-w-full">
+                <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
                   <QRCode
                     value={qrCodeValue}
-                    size={80}
-                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    size={132}
+                    style={{ width: 132, height: 132 }}
                     viewBox={`0 0 256 256`}
                     fgColor="#1a1a1a"
                     bgColor="#ffffff"
@@ -532,6 +640,17 @@ export default function MateDetail() {
                   />
                 </div>
                 <p className="text-[10px] text-center text-gray-400 mt-1">ENTRY CODE</p>
+                {isQrLoading && (
+                  <p className="text-[10px] text-gray-400 mt-1">QR 준비 중...</p>
+                )}
+                {qrSessionExpiresAt && (
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    유효: {new Date(qrSessionExpiresAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+                {qrSessionError && (
+                  <p className="text-[10px] text-red-500 mt-1 text-center">{qrSessionError}</p>
+                )}
               </div>
             </div>
           </div>
@@ -773,13 +892,24 @@ export default function MateDetail() {
                       채팅방 입장
                     </Button>
                   )}
+                  {canAccessCheckIn && (
+                    <Button
+                      onClick={handleCheckIn}
+                      variant="outline"
+                      className="w-full h-12 border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10"
+                    >
+                      <QrCode className="w-5 h-5 mr-2" />
+                      체크인 페이지
+                    </Button>
+                  )}
                   {canConvertToSale && (
                     <Button
                       onClick={handleOpenSaleDialog}
+                      disabled={isConvertingToSale}
                       variant="outline"
                       className="w-full h-12 border-orange-400 text-orange-600 hover:bg-orange-50"
                     >
-                      판매 전환
+                      {isConvertingToSale ? '전환 중...' : '판매 전환'}
                     </Button>
                   )}
                 </>
@@ -795,6 +925,16 @@ export default function MateDetail() {
                         <MessageSquare className="w-5 h-5 mr-2" />
                         채팅방 입장
                       </Button>
+                      {canAccessCheckIn && (
+                        <Button
+                          onClick={handleCheckIn}
+                          variant="outline"
+                          className="w-full h-12 border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10"
+                        >
+                          <QrCode className="w-5 h-5 mr-2" />
+                          체크인 페이지
+                        </Button>
+                      )}
 
                       {canCancel() && (
                         <Button
@@ -905,15 +1045,17 @@ export default function MateDetail() {
           <DialogFooter>
             <Button
               variant="outline"
+              disabled={isConvertingToSale}
               onClick={() => setShowSaleDialog(false)}
             >
               취소
             </Button>
             <Button
+              disabled={isConvertingToSale}
               className="bg-primary text-white"
               onClick={handleConfirmSale}
             >
-              확인
+              {isConvertingToSale ? '전환 중...' : '확인'}
             </Button>
           </DialogFooter>
         </DialogContent>

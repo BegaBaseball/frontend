@@ -3,8 +3,8 @@ import { OptimizedImage } from './common/OptimizedImage';
 import { useNavigate } from 'react-router-dom';
 import { KBO_STADIUMS, SEAT_CATEGORIES, SeatCategory } from '../utils/stadiumData';
 import { SEAT_ICONS } from '../utils/seatIcons';
-import { Sun, Cloud, CloudRain, CloudLightning } from 'lucide-react'; // Mock Weather Icons
-import { motion, AnimatePresence } from 'framer-motion';
+import { Sun, Cloud, CloudRain } from 'lucide-react'; // Mock Weather Icons
+import { motion } from 'framer-motion';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -54,6 +54,10 @@ export default function Mate() {
   const [inputValue, setInputValue] = useState(searchQuery || '');
   const debouncedInput = useDebounce(inputValue, MATE_SEARCH_DEBOUNCE_MS);
 
+  useEffect(() => {
+    setInputValue(searchQuery || '');
+  }, [searchQuery]);
+
   // Sync debounced input to the Zustand store (triggers API fetch)
   useEffect(() => {
     setSearchQuery(debouncedInput);
@@ -79,17 +83,16 @@ export default function Mate() {
     );
   };
 
-  const currentStadium = getStadiumFromQuery(searchQuery || '');
+  const currentStadium = getStadiumFromQuery(inputValue || '');
 
   // Helper for filter toggle (Enhanced)
   const toggleSearchQuery = (keyword: string) => {
-    // If query already contains this keyword, remove it
-    if (searchQuery?.includes(keyword)) {
-      setSearchQuery(searchQuery.replace(keyword, '').trim());
-    } else {
-      // Append to existing query or set as new
-      setSearchQuery(searchQuery ? `${searchQuery} ${keyword}` : keyword);
-    }
+    setInputValue((prevInput) => {
+      const normalizedInput = prevInput.trim();
+      return normalizedInput.includes(keyword)
+        ? normalizedInput.replace(keyword, '').replace(/\s+/g, ' ').trim()
+        : `${normalizedInput} ${keyword}`.replace(/\s+/g, ' ').trim();
+    });
     setCurrentPage(0);
   };
 
@@ -160,6 +163,8 @@ export default function Mate() {
 
   // 컴포넌트 마운트 및 상태 변경 시 파티 목록 불러오기
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchParties = async () => {
       const requestId = ++requestIdRef.current;
       setIsLoading(true);
@@ -167,14 +172,16 @@ export default function Mate() {
       try {
         const dateStr = selectedDate ? toDateString(selectedDate) : undefined;
         const teamIdFilter = myTeamOnly && favoriteTeamId ? favoriteTeamId : undefined;
+        const effectiveQuery = debouncedInput.trim();
         const data = await api.getParties(
           teamIdFilter,
           undefined,
           currentPage,
           pageSize,
           selectedStatus,
-          searchQuery,
+          effectiveQuery || undefined,
           dateStr,
+          controller.signal,
         );
 
         if (requestId !== requestIdRef.current) return;
@@ -184,6 +191,9 @@ export default function Mate() {
         setTotalPages(data.totalPages);
       } catch (error) {
         if (requestId !== requestIdRef.current) return;
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
         console.error('파티 목록 불러오기 오류:', error);
         setFetchError(true);
       } finally {
@@ -194,7 +204,11 @@ export default function Mate() {
     };
 
     void fetchParties();
-  }, [currentPage, searchQuery, selectedDate, selectedStatus, retryCount, myTeamOnly, favoriteTeamId]);
+
+    return () => {
+      controller.abort();
+    };
+  }, [currentPage, debouncedInput, selectedDate, selectedStatus, retryCount, myTeamOnly, favoriteTeamId]);
 
   const handlePartyClick = (party: Party) => {
     setSelectedParty(party);
@@ -232,7 +246,7 @@ export default function Mate() {
     return null;
   };
 
-  const hasActiveFilters = !!(searchQuery || selectedDate);
+  const hasActiveFilters = !!(inputValue.trim() || selectedDate);
 
   const emptyMessagesByTab: Record<string, { withFilter: string; withoutFilter: string }> = {
     all: { withFilter: '검색 조건에 맞는 파티가 없습니다', withoutFilter: '아직 개설된 파티가 없습니다' },
@@ -253,7 +267,7 @@ export default function Mate() {
         {isSearchEmpty ? (
           <>
             <p className="text-gray-400 text-sm mb-3">검색어나 날짜 필터를 변경해보세요</p>
-            <Button variant="outline" size="sm" className="text-primary border-primary/30" onClick={() => { setSelectedDate(null); setInputValue(''); setSearchQuery(''); setCurrentPage(0); }}>
+            <Button variant="outline" size="sm" className="text-primary border-primary/30" onClick={() => { setSelectedDate(null); setInputValue(''); setCurrentPage(0); }}>
               필터 초기화
             </Button>
           </>
@@ -587,7 +601,7 @@ export default function Mate() {
                   <Button
                     key={zone.id}
                     variant="outline"
-                    className={`rounded-full whitespace-nowrap transition-colors ${searchQuery?.includes(zone.name)
+                    className={`rounded-full whitespace-nowrap transition-colors ${inputValue?.includes(zone.name)
                       ? "bg-primary text-white border-transparent"
                       : "border-gray-300 text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary"
                       }`}
@@ -604,7 +618,7 @@ export default function Mate() {
                   <Button
                     key={key}
                     variant="outline"
-                    className={`rounded-full whitespace-nowrap transition-colors ${searchQuery?.includes(info.label)
+                    className={`rounded-full whitespace-nowrap transition-colors ${inputValue?.includes(info.label)
                       ? "bg-primary text-white border-transparent"
                       : "border-gray-300 text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary"
                       }`}
