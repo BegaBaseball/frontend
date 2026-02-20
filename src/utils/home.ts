@@ -1,6 +1,6 @@
 // utils/home.ts
-import { DAYS_OF_WEEK } from '../constants/home';
-import { Game } from '../types/home';
+import { DAYS_OF_WEEK, DEFAULT_LEAGUE_START_DATES } from '../constants/home';
+import { Game, LeagueStartDates } from '../types/home';
 
 /**
  * Date를 API 요청 형식으로 변환 (YYYY-MM-DD)
@@ -21,6 +21,15 @@ export const formatDate = (date: Date): string => {
     const day = date.getDate();
     const dayOfWeek = DAYS_OF_WEEK[date.getDay()];
     return `${year}.${month}.${day}(${dayOfWeek})`;
+};
+
+/**
+ * 리그 시작 날짜 fallback 반환
+ */
+export const getFallbackLeagueStartDates = (): LeagueStartDates => {
+    return {
+        ...DEFAULT_LEAGUE_START_DATES,
+    };
 };
 
 /**
