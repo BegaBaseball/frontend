@@ -16,6 +16,7 @@ import TeamLogo from './TeamLogo';
 import GameCard from './GameCard';
 import WelcomeGuide from './WelcomeGuide';
 import { getApiBaseUrl } from '../api/apiBase';
+import { getFallbackLeagueStartDates } from '../utils/home';
 
 // Constants
 import { CURRENT_SEASON_YEAR } from '../constants/home';
@@ -181,22 +182,14 @@ export default function Home({ onNavigate }: HomeProps) {
             let data: LeagueStartDates;
             if (!response.ok) {
                 // Fallback
-                data = {
-                    regularSeasonStart: '2025-03-22',
-                    postseasonStart: '2025-10-06',
-                    koreanSeriesStart: '2025-10-26'
-                };
+                data = getFallbackLeagueStartDates();
             } else {
                 data = await response.json();
             }
             setLeagueStartDates(data);
         } catch (error) {
             console.error('[System] Error loading league dates:', error);
-            setLeagueStartDates({
-                regularSeasonStart: '2025-03-22',
-                postseasonStart: '2025-10-06',
-                koreanSeriesStart: '2025-10-26'
-            });
+            setLeagueStartDates(getFallbackLeagueStartDates());
         }
     };
 

@@ -1,8 +1,7 @@
 // api/home.ts
 import { useQuery } from '@tanstack/react-query';
 import { Game, Ranking, LeagueStartDates } from '../types/home';
-import { DEFAULT_LEAGUE_START_DATES } from '../constants/home';
-import { formatDateForAPI } from '../utils/home';
+import { formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
 import { getApiBaseUrl } from './apiBase';
 
 const API_PREFIX = getApiBaseUrl();
@@ -61,14 +60,14 @@ export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
         });
 
         if (!response.ok) {
-            return DEFAULT_LEAGUE_START_DATES;
+            return getFallbackLeagueStartDates();
         }
 
         const data: LeagueStartDates = await response.json();
         return data;
 
     } catch (error) {
-        return DEFAULT_LEAGUE_START_DATES;
+        return getFallbackLeagueStartDates();
     }
 };
 
