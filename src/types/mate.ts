@@ -5,7 +5,7 @@ export interface Party {
   hostName: string;
   hostProfileImageUrl?: string;
   hostFavoriteTeam?: string;
-  hostBadge: string;
+  hostBadge: BadgeType;
   hostRating: number;
   teamId: string;
   gameDate: string;
@@ -39,7 +39,7 @@ export interface Application {
   partyId: number;
   applicantId: number;
   applicantName: string;
-  applicantBadge: string;
+  applicantBadge: BadgeType;
   applicantRating: number;
   message: string;
   depositAmount: number;
@@ -80,7 +80,7 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-export type BadgeType = 'new' | 'verified' | 'trusted';
+export type BadgeType = 'NEW' | 'VERIFIED' | 'TRUSTED';
 
 // MateParty: 히스토리/목록용 간소화 타입 (Party의 서브셋)
 export interface MateParty {
@@ -113,7 +113,7 @@ export type MateHistoryTab = 'all' | 'completed' | 'ongoing';
 export interface CreatePartyRequest {
   hostId: number;
   hostName: string;
-  hostBadge?: string;
+  hostBadge?: BadgeType;
   hostRating?: number;
   teamId: string;
   gameDate: string;
@@ -142,7 +142,9 @@ export interface CreateApplicationRequest {
   partyId: number;
   applicantId: number;
   applicantName: string;
-  applicantBadge: string;
+  applicantBadge: BadgeType;
+  applicantRating?: number;
+  message?: string;
   depositAmount: number;
   paymentType: 'DEPOSIT' | 'FULL';
   verificationToken?: string | null;
@@ -154,6 +156,18 @@ export interface CreateCheckInRequest {
   partyId: number;
   userId: number;
   location: string;
+  qrSessionId?: string;
+}
+
+export interface CreateCheckInQrSessionRequest {
+  partyId: number;
+}
+
+export interface CreateCheckInQrSessionResponse {
+  sessionId: string;
+  partyId: number;
+  expiresAt: string;
+  checkinUrl: string;
 }
 
 export interface CreateReviewRequest {

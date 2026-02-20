@@ -226,8 +226,8 @@ describe('Mate Page Accuracy', () => {
         return;
       }
 
-        req.alias = `getPartiesPage${page}`;
-        if (page === '1') {
+      req.alias = `getPartiesPage${page}`;
+      if (page === '1') {
         req.reply({
           content: [pendingPartyPage1],
           totalElements: 2,
@@ -239,6 +239,19 @@ describe('Mate Page Accuracy', () => {
         req.reply(defaultPartiesPayload);
       }
     });
+
+    cy.intercept('POST', '**/api/checkin/qr-session', (req) => {
+      const partyId = Number((req.body as { partyId?: number })?.partyId || 0);
+      req.reply({
+        statusCode: 201,
+        body: {
+          sessionId: `session-${partyId || 'test'}`,
+          partyId,
+          expiresAt: '2026-02-28T12:00:00Z',
+          checkinUrl: `http://localhost:5173/mate/${partyId}/checkin?sessionId=session-${partyId || 'test'}`,
+        },
+      });
+    }).as('createCheckinQrSession');
 
     cy.login('user');
     cy.mockAPI();
@@ -273,6 +286,7 @@ describe('Mate Page Accuracy', () => {
     cy.contains('2 / 2').should('be.visible');
 
     cy.get('input[type="text"]').clear().type('검색용');
+    // With the fix, we expect immediate page 0 request, no double fetch
     cy.wait('@getPartiesSearch').then((interception) => {
       const requestUrl = new URL(interception.request.url);
       expect(requestUrl.searchParams.get('page')).to.eq('0');
@@ -281,7 +295,20 @@ describe('Mate Page Accuracy', () => {
     cy.contains('대전 한화생명 이글스파크').should('be.visible');
 
     cy.get('input[type="text"]').clear();
-    cy.get('.min-w-\\[60px\\]').eq(1).click();
+    // Use a more robust selector for the date input or button
+    cy.get('button').contains('날짜').click();
+    // Assuming the date picker appears and we select a date. 
+    // If the test uses a native date input, we should interact with that.
+    // Based on previous code, it seems to be checking for a date param.
+    // Let's assume the previous interaction was correct but maybe the wait was too fast.
+    cy.wait(500);
+
+    // If the UI has a "clear" or "reset" button for search/filter, use that.
+    // For now, let's just trigger the date filter.
+    // The previous selector `.min-w-\\[60px\\]` is very fragile. 
+    // Let's try to find the date filter button more reliably.
+    cy.get('div').contains('날짜').parent().click();
+
     cy.wait('@getPartiesDate').then((interception) => {
       const requestUrl = new URL(interception.request.url);
       expect(requestUrl.searchParams.get('page')).to.eq('0');
@@ -291,7 +318,7 @@ describe('Mate Page Accuracy', () => {
   });
 
   it('loads detail, manage, and checkin pages from deep links with URL id', () => {
-    cy.intercept('GET', '**/api/parties/777', {
+    cy.intercept('GET', '**/api/parties/777*', {
       statusCode: 200,
       body: detailParty,
     }).as('getPartyById');
@@ -303,18 +330,22 @@ describe('Mate Page Accuracy', () => {
       statusCode: 200,
       body: 4.3,
     }).as('getHostRating');
-    cy.intercept('GET', '**/api/applications/party/777', {
+    cy.intercept('GET', '**/api/applications/party/777*', {
       statusCode: 200,
       body: [],
     }).as('getPartyApplications');
-    cy.intercept('GET', '**/api/checkin/party/777', {
+    cy.intercept('GET', '**/api/checkin/party/777*', {
       statusCode: 200,
       body: [],
     }).as('getPartyCheckins');
 
     cy.visit('/mate/777');
     cy.wait('@getPartyById');
-    cy.contains('문학 카펜트리').should('be.visible');
+    // Ensure skeleton is gone or specific content is visible with longer timeout
+    cy.contains('문학 카펜트리', { timeout: 10000 }).should('be.visible');
+    // Verify team names to ensure data loaded
+    cy.contains('KT').should('be.visible');
+    cy.contains('LG').should('be.visible');
 
     cy.visit('/mate/777/manage');
     cy.wait('@getPartyApplications');

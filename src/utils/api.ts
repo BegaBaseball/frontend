@@ -2,7 +2,7 @@
 import type {
   Party, Application, CheckIn, PartyReview, ChatMessage, PartyStatus,
   CreatePartyRequest, UpdatePartyRequest, CreateApplicationRequest,
-  CreateCheckInRequest, CreateReviewRequest,
+  CreateCheckInRequest, CreateCheckInQrSessionRequest, CreateCheckInQrSessionResponse, CreateReviewRequest,
 } from '../types/mate';
 import type { UserProfileApiResponse } from '../types/profile';
 import type { NotificationData } from '../types/notification';
@@ -131,7 +131,16 @@ export const api = {
   },
 
   // Party
-  async getParties(teamId?: string, stadium?: string, page = 0, size = 9, status?: PartyStatus, searchQuery?: string, gameDate?: string): Promise<PaginatedResponse<Party>> {
+  async getParties(
+    teamId?: string,
+    stadium?: string,
+    page = 0,
+    size = 9,
+    status?: PartyStatus,
+    searchQuery?: string,
+    gameDate?: string,
+    signal?: AbortSignal,
+  ): Promise<PaginatedResponse<Party>> {
     const params = new URLSearchParams();
     if (teamId) params.append('teamId', teamId);
     if (stadium) params.append('stadium', stadium);
@@ -141,7 +150,7 @@ export const api = {
     params.append('page', page.toString());
     params.append('size', size.toString());
 
-    return this.request<PaginatedResponse<Party>>(`/parties?${params}`);
+    return this.request<PaginatedResponse<Party>>(`/parties?${params}`, { signal });
   },
 
   async createParty(data: CreatePartyRequest): Promise<Party> {
@@ -184,6 +193,10 @@ export const api = {
     return this.request<Application[]>('/applications/my');
   },
 
+  async getMyApplicationByParty(partyId: string | number): Promise<Application | null> {
+    return this.request<Application | null>(`/applications/party/${partyId}/mine`);
+  },
+
   async approveApplication(applicationId: string | number): Promise<Application> {
     return this.request<Application>(`/applications/${applicationId}/approve`, {
       method: 'POST',
@@ -209,6 +222,13 @@ export const api = {
 
   async createCheckIn(data: CreateCheckInRequest): Promise<CheckIn> {
     return this.request<CheckIn>('/checkin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async createCheckInQrSession(data: CreateCheckInQrSessionRequest): Promise<CreateCheckInQrSessionResponse> {
+    return this.request<CreateCheckInQrSessionResponse>('/checkin/qr-session', {
       method: 'POST',
       body: JSON.stringify(data),
     });
