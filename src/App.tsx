@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { useAuthStore } from './store/authStore';
 import { KAKAO_API_KEY } from './utils/constants';
 import Layout from './components/Layout';
-import ChatBot from './components/ChatBot';
 import ScrollToTop from './components/ScrollToTop';
 import { LoginRequiredDialog } from './components/LoginRequiredDialog';
 import { ErrorModalProvider } from './components/contexts/ErrorModalContext';
@@ -44,6 +44,7 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./components/OAuthCallback'));
 const TestError = lazy(() => import('./components/TestError')); // Test Purpose Only
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const ChatBot = lazy(() => import('./components/ChatBot'));
 
 function ProtectedRoute() {
   const { isLoggedIn, isAuthLoading, setShowLoginRequiredDialog } = useAuthStore();
@@ -91,6 +92,7 @@ function AdminRoute() {
 export default function App() {
   const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const [isChatBotRequested, setIsChatBotRequested] = useState(false);
 
   useEffect(() => {
     fetchProfileAndAuthenticate();
@@ -136,83 +138,96 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-    <ErrorModalProvider>
-      <ConfirmDialogProvider>
-      <BrowserRouter>
-        <ScrollToTop />
-        <Suspense
-          fallback={
-            <LoadingSpinner
-              variant="app"
-              message="화면을 준비하고 있습니다..."
-              subMessage="잠시만 기다려주세요."
-              minDurationMs={250}
+      <ErrorModalProvider>
+        <ConfirmDialogProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Suspense
+              fallback={
+                <LoadingSpinner
+                  variant="app"
+                  message="화면을 준비하고 있습니다..."
+                  subMessage="잠시만 기다려주세요."
+                  minDurationMs={250}
+                />
+              }
+            >
+              <Routes>
+                {/* 공개 라우트 - 로그인 필요 없음 */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/password/reset" element={<PasswordReset />} />
+                <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
+                <Route path="/oauth/callback" element={<OAuthCallback />} />
+
+                {/* Landing & ServiceInfo - Layout 없이 독립 페이지 */}
+                <Route path="/" element={<Landing />} />
+                {/* Layout 포함 라우트 */}
+                <Route element={<Layout />}>
+                  {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()} />} />
+                  <Route path="/offseason/list" element={<OffSeasonList />} />
+                  <Route path="/cheer" element={<Cheer />} />
+                  <Route path="/cheer/:postId" element={<CheerDetail />} />
+                  <Route path="/profile/:handle" element={<UserProfile />} />
+                  <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
+                  <Route path="/notice" element={<NoticePage />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/leaderboard" element={<LeaderboardPage />} />
+                  {/* 로그인 필요한 라우트 */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/mate/:id" element={<MateDetail />} />
+                    <Route path="/mate" element={<Mate />} />
+                    <Route path="/prediction" element={<Prediction />} />
+                    <Route path="/stadium" element={<StadiumGuide />} />
+                    <Route path="/cheer/bookmarks" element={<CheerBookmarks />} />
+                    <Route path="/cheer/edit/:postId" element={<CheerEdit />} />
+                    <Route path="/mate/create" element={<MateCreate />} />
+                    <Route path="/mate/:id/apply" element={<MateApply />} />
+                    <Route path="/mate/:id/checkin" element={<MateCheckIn />} />
+                    <Route path="/mate/:id/chat" element={<MateChat />} />
+                    <Route path="/mate/:id/manage" element={<MateManage />} />
+                    <Route path="/mypage" element={<MyPage />} />
+                    <Route path="/mypage/:handle" element={<MyPage />} />
+                  </Route>
+
+                  {/* 관리자 전용 라우트 */}
+                  <Route element={<AdminRoute />}>
+                    <Route path="/admin" element={<AdminPage />} />
+                  </Route>
+                </Route>
+
+                {/* Test Route */}
+                <Route path="/test/error" element={<TestError />} />
+
+                {/* 404 처리 */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+            {isChatBotRequested ? (
+              <Suspense fallback={null}>
+                <ChatBot autoOpen />
+              </Suspense>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsChatBotRequested(true)}
+                className="fixed bottom-5 right-5 z-[9999] h-14 w-14 rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/60"
+                aria-label="챗봇 열기"
+              >
+                <MessageCircle className="mx-auto h-6 w-6" />
+              </button>
+            )}
+            <GlobalErrorDialog />
+            <LoginRequiredDialog
+              open={useAuthStore((state) => state.showLoginRequiredDialog)}
+              onOpenChange={useAuthStore((state) => state.setShowLoginRequiredDialog)}
             />
-          }
-        >
-          <Routes>
-            {/* 공개 라우트 - 로그인 필요 없음 */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/password/reset" element={<PasswordReset />} />
-            <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
-            <Route path="/oauth/callback" element={<OAuthCallback />} />
-
-            {/* Landing & ServiceInfo - Layout 없이 독립 페이지 */}
-            <Route path="/" element={<Landing />} />
-            {/* Layout 포함 라우트 */}
-            <Route element={<Layout />}>
-              {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
-              <Route path="/home" element={<Home />} />
-              <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()} />} />
-              <Route path="/offseason/list" element={<OffSeasonList />} />
-              <Route path="/cheer" element={<Cheer />} />
-              <Route path="/cheer/:postId" element={<CheerDetail />} />
-              <Route path="/profile/:handle" element={<UserProfile />} />
-              <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
-              <Route path="/notice" element={<NoticePage />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/leaderboard" element={<LeaderboardPage />} />
-              {/* 로그인 필요한 라우트 */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/mate/:id" element={<MateDetail />} />
-                <Route path="/mate" element={<Mate />} />
-                <Route path="/prediction" element={<Prediction />} />
-                <Route path="/stadium" element={<StadiumGuide />} />
-                <Route path="/cheer/bookmarks" element={<CheerBookmarks />} />
-                <Route path="/cheer/edit/:postId" element={<CheerEdit />} />
-                <Route path="/mate/create" element={<MateCreate />} />
-                <Route path="/mate/:id/apply" element={<MateApply />} />
-                <Route path="/mate/:id/checkin" element={<MateCheckIn />} />
-                <Route path="/mate/:id/chat" element={<MateChat />} />
-                <Route path="/mate/:id/manage" element={<MateManage />} />
-                <Route path="/mypage" element={<MyPage />} />
-                <Route path="/mypage/:handle" element={<MyPage />} />
-              </Route>
-
-              {/* 관리자 전용 라우트 */}
-              <Route element={<AdminRoute />}>
-                <Route path="/admin" element={<AdminPage />} />
-              </Route>
-            </Route>
-
-            {/* Test Route */}
-            <Route path="/test/error" element={<TestError />} />
-
-            {/* 404 처리 */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-        <ChatBot />
-        <GlobalErrorDialog />
-        <LoginRequiredDialog
-          open={useAuthStore((state) => state.showLoginRequiredDialog)}
-          onOpenChange={useAuthStore((state) => state.setShowLoginRequiredDialog)}
-        />
-      </BrowserRouter>
-      </ConfirmDialogProvider>
-    </ErrorModalProvider>
+          </BrowserRouter>
+        </ConfirmDialogProvider>
+      </ErrorModalProvider>
     </ErrorBoundary>
   );
 }

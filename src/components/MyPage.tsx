@@ -6,19 +6,20 @@ import TeamLogo from './TeamLogo';
 import ProfileEditSection from './mypage/ProfileEditSection';
 import PasswordChangeSection from './mypage/PasswordChangeSection';
 import DiaryViewSection from './mypage/Diaryform';
-import DiaryStatistics from './mypage/Diarystatistics';
 import MateHistorySection from './mypage/MateHistorySection';
 import { useMyPage } from '../hooks/useMyPage';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useQuery } from '@tanstack/react-query';
 import { getFollowCounts } from '../api/followApi';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import UserListModal from './profile/UserListModal';
 import { TicketUploadModal } from './ticket/TicketUploadModal';
 import { useDiaryStore } from '../store/diaryStore';
 import { TicketInfo } from '../api/ticket';
 import { ProfileAvatar } from './ui/ProfileAvatar';
+
+const DiaryStatistics = lazy(() => import('./mypage/Diarystatistics'));
 
 export default function MyPage() {
     const {
@@ -234,7 +235,6 @@ export default function MyPage() {
 
               <TicketUploadModal
                 onConfirm={handleTicketConfirm}
-                onTicketAnalyzed={(data) => console.log('Analyzed Ticket:', data)}
                 trigger={
                   <Button
                     className={`flex items-center justify-center gap-2 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
@@ -294,7 +294,11 @@ export default function MyPage() {
 
         {viewMode === 'diary' && <DiaryViewSection />}
 
-        {viewMode === 'stats' && <DiaryStatistics />}
+        {viewMode === 'stats' && (
+          <Suspense fallback={<LoadingSpinner size="lg" text="통계를 불러오는 중..." fullScreen={false} />}>
+            <DiaryStatistics />
+          </Suspense>
+        )}
 
         {viewMode === 'mateHistory' && <MateHistorySection />}
 
