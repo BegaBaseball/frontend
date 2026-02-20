@@ -46,7 +46,7 @@ import { useMateStore } from '../store/mateStore';
 import { useAuthStore } from '../store/authStore';
 import UserProfileModal from './profile/UserProfileModal';
 import TeamLogo, { teamIdToName } from './TeamLogo';
-import { api } from '../utils/api';
+import { api, getApiErrorStatus } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
@@ -94,7 +94,12 @@ export default function MateDetail() {
     if (!selectedParty || selectedParty.status !== 'COMPLETED') return;
     api.getPartyReviews(selectedParty.id)
       .then((data) => setReviews(Array.isArray(data) ? data : []))
-      .catch(() => { });
+      .catch((err: unknown) => {
+        const status = getApiErrorStatus(err);
+        if (status !== 403) {
+          toast.error('리뷰 정보를 불러오는데 실패했습니다.');
+        }
+      });
   }, [selectedPartyId, selectedPartyStatus]);
 
   // 내 신청 정보 가져오기
@@ -342,7 +347,7 @@ export default function MateDetail() {
   // description에서 해시태그 추출 (생성 Step 4에서 추가된 스타일 태그)
   const hostTags = extractHashtags(selectedParty.description);
   // 리뷰 기반 평균 평점 우선, 없으면 hostRating 사용 (1-5 스케일)
-  const mannerScore = hostAvgRating && hostAvgRating > 0 ? hostAvgRating : (selectedParty.hostRating ?? 5.0);
+  const mannerScore = hostAvgRating !== null && hostAvgRating !== undefined ? hostAvgRating : (selectedParty.hostRating ?? 5.0);
 
 
   // Helper: Find matching zone in stadium data
