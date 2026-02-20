@@ -9,6 +9,7 @@ import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
 import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
+import { useAuthStore } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -21,12 +22,19 @@ import { analyzeTicket, TicketInfo } from '../api/ticket';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
 import LoadingSpinner from './LoadingSpinner';
+import type { CreateApplicationRequest } from '../types/mate';
 
 export default function MateApply() {
   const { validateMessage } = useMateStore();
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
+  const {
+    party: selectedParty,
+    isLoading: isPartyLoading,
+    isRevalidating: isPartyRevalidating,
+    error: partyError,
+  } = useMatePartyFromRoute(id);
 
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,23 +47,27 @@ export default function MateApply() {
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
+    if (user?.id) {
+      setCurrentUserId(user.id);
+      setCurrentUserName(user.name ?? '');
+      return;
+    }
+
     const fetchUser = async () => {
       try {
         const userData = await api.getCurrentUser();
+        setCurrentUserId(userData.data.id);
         setCurrentUserName(userData.data.name);
-
-        const userIdResponse = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userIdResponse.data);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
         toast.error('사용자 정보를 불러오지 못했습니다.');
       }
     };
 
-    fetchUser();
-  }, []);
+    void fetchUser();
+  }, [user?.id, user?.name]);
 
-  if (isPartyLoading) {
+  if (isPartyLoading && !selectedParty) {
     return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." fullScreen />;
   }
 
@@ -140,7 +152,7 @@ export default function MateApply() {
     setIsSubmitting(true);
 
     try {
-      const applicationData = {
+      const applicationData: CreateApplicationRequest = {
         partyId: selectedParty.id,
         applicantId: currentUserId,
         applicantName: currentUserName,
@@ -203,6 +215,13 @@ export default function MateApply() {
             ? '결제 정보를 입력하고 티켓을 구매하세요'
             : '호스트에게 전달할 메시지를 작성해주세요'}
         </p>
+        {isPartyRevalidating && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+            <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+              최신 파티 정보를 다시 확인하고 있습니다.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Party Summary */}
         <Card className="p-6 mb-6">

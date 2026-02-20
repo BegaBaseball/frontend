@@ -48,7 +48,6 @@ export interface UseMateCreateMachineReturn {
   submitErrorStatus: number | null;
   createdPartyId: number | null;
   uploadTicket: (file: File) => void;
-  skipTicket: () => void;
   goNext: () => void;
   goPrev: () => void;
   loadMatches: () => void;
@@ -212,6 +211,7 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const pendingSubmitHostRef = useRef<SubmitHost | null>(null);
+  const errorTypeRef = useRef<MateCreateErrorType>(null);
 
   const setStep = (step: 1 | 2 | 3 | 4) => {
     setCreateStepState(step);
@@ -225,18 +225,20 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
   };
 
   const clearMatchError = () => {
-    setErrorType((prev) => (prev === 'matches' ? null : prev));
-    setErrorMessage((prev) =>
-      errorType === 'matches' ? '' : prev
-    );
+    if (errorTypeRef.current !== 'matches') {
+      return;
+    }
+    setErrorType(null);
+    setErrorMessage('');
   };
 
   const clearSubmitError = () => {
     setSubmitErrorStatus(null);
-    setErrorType((prev) => (prev === 'submit' ? null : prev));
-    setErrorMessage((prev) =>
-      errorType === 'submit' ? '' : prev
-    );
+    if (errorTypeRef.current !== 'submit') {
+      return;
+    }
+    setErrorType(null);
+    setErrorMessage('');
   };
 
   const uploadTicket = async (file: File) => {
@@ -262,17 +264,10 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
       setStep(2);
     } catch {
       setErrorType('scan');
-      setErrorMessage('이미지 분석에 실패했습니다. 직접 입력해주세요.');
+      setErrorMessage('이미지 분석에 실패했습니다. 다른 파일로 다시 시도해주세요. (티켓 업로드는 필수)');
     } finally {
       setIsScanning(false);
     }
-  };
-
-  const skipTicket = () => {
-    updateFormData({ ticketFile: null });
-    setFormError('ticketFile', '');
-    clearError();
-    setStep(2);
   };
 
   const goNext = () => {
@@ -447,6 +442,8 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
     return 'step4_idle';
   }, [createStep, errorType, isConfirming, isLoadingMatches, isScanning, isSubmitting]);
 
+  errorTypeRef.current = errorType;
+
   const state = useMemo<MateCreateState>(
     () => ({
       context: {
@@ -493,7 +490,6 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
     uploadTicket: (file: File) => {
       void uploadTicket(file);
     },
-    skipTicket,
     goNext,
     goPrev,
     loadMatches: () => {

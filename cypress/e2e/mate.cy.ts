@@ -322,10 +322,10 @@ describe('Mate Page Accuracy', () => {
       statusCode: 200,
       body: detailParty,
     }).as('getPartyById');
-    cy.intercept('GET', '**/api/applications/my', {
+    cy.intercept('GET', '**/api/applications/party/777/mine', {
       statusCode: 200,
-      body: [],
-    }).as('getMyApplications');
+      body: null,
+    }).as('getMyApplicationByParty');
     cy.intercept('GET', '**/api/reviews/user/123/average', {
       statusCode: 200,
       body: 4.3,

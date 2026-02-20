@@ -7,6 +7,7 @@ import { mapBackendPartyToFrontend } from '../utils/mate';
 export interface MatePartyRouteState {
   party: Party | null;
   isLoading: boolean;
+  isRevalidating: boolean;
   error: string | null;
 }
 
@@ -16,6 +17,7 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
 
   const [fetchedParty, setFetchedParty] = useState<Party | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRevalidating, setIsRevalidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
 
@@ -27,6 +29,10 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
     setError((current) => (current === nextError ? current : nextError));
   };
 
+  const setRevalidatingState = (nextRevalidating: boolean) => {
+    setIsRevalidating((current) => (current === nextRevalidating ? current : nextRevalidating));
+  };
+
   useEffect(() => {
     const partyId = Number(id);
     const routePartyId = Number.isFinite(partyId) && Number.isInteger(partyId) ? partyId : null;
@@ -36,6 +42,7 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
     if (!id) {
       setFetchedParty(null);
       setLoadingState(false);
+      setRevalidatingState(false);
       setErrorState(null);
       return;
     }
@@ -43,6 +50,7 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
     if (routePartyId === null) {
       setFetchedParty(null);
       setLoadingState(false);
+      setRevalidatingState(false);
       setErrorState('유효하지 않은 파티 ID입니다.');
       return;
     }
@@ -51,6 +59,7 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
       setFetchedParty(null);
     }
     setLoadingState(!hasMatchingSelectedParty);
+    setRevalidatingState(hasMatchingSelectedParty);
     setErrorState(null);
 
     const fetchParty = async () => {
@@ -75,11 +84,12 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
           return;
         }
         setLoadingState(false);
+        setRevalidatingState(false);
       }
     };
 
     fetchParty();
-  }, [id, selectedParty?.id, setSelectedParty]);
+  }, [id, setSelectedParty]);
 
   const routePartyId = id ? Number(id) : null;
   const routePartyIdIsValid = routePartyId !== null && Number.isFinite(routePartyId) && Number.isInteger(routePartyId);
@@ -87,5 +97,5 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
     ? selectedParty
     : fetchedParty;
 
-  return { party, isLoading, error };
+  return { party, isLoading, isRevalidating, error };
 }

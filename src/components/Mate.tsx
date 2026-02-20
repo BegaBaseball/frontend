@@ -191,7 +191,9 @@ export default function Mate() {
         setTotalPages(data.totalPages);
       } catch (error) {
         if (requestId !== requestIdRef.current) return;
-        if (error instanceof DOMException && error.name === 'AbortError') {
+        const isAbortError = (error instanceof DOMException && error.name === 'AbortError')
+          || (error instanceof Error && error.name === 'AbortError');
+        if (isAbortError) {
           return;
         }
         console.error('파티 목록 불러오기 오류:', error);

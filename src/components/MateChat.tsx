@@ -24,13 +24,20 @@ import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { api } from '../utils/api';
+import { api, getApiErrorStatus } from '../utils/api';
+import { useAuthStore } from '../store/authStore';
 
 export default function MateChat() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
+  const {
+    party: selectedParty,
+    isLoading: isPartyLoading,
+    isRevalidating: isPartyRevalidating,
+    error: partyError,
+  } = useMatePartyFromRoute(id);
   const validateChatMessage = useMateStore((state) => state.validateChatMessage);
+  const authUser = useAuthStore((state) => state.user);
 
   // 모든 useState를 최상단에 선언
   const [messageText, setMessageText] = useState('');
@@ -41,7 +48,7 @@ export default function MateChat() {
     name: string
   } | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [myApplication, setMyApplication] = useState<any>(null);
+  const [myApplication, setMyApplication] = useState<Application | null>(null);
   const [isCheckingApproval, setIsCheckingApproval] = useState(true);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -57,16 +64,23 @@ export default function MateChat() {
 
   // 사용자 정보 가져오기
   useEffect(() => {
+    if (authUser?.id) {
+      setCurrentUser({
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.name ?? '',
+      });
+      setIsLoadingUser(false);
+      return;
+    }
+
     const fetchUserInfo = async () => {
       try {
         const result = await api.getCurrentUser();
 
         if (result.success && result.data) {
-          const userIdResponse = await api.getUserIdByEmail(result.data.email);
-          const userId = userIdResponse.data;
-
           setCurrentUser({
-            id: userId,
+            id: result.data.id,
             email: result.data.email,
             name: result.data.name,
           });
@@ -79,8 +93,8 @@ export default function MateChat() {
       }
     };
 
-    fetchUserInfo();
-  }, []);
+    void fetchUserInfo();
+  }, [authUser?.id, authUser?.email, authUser?.name]);
 
   // WebSocket 연결
   const { sendMessage: sendWebSocketMessage, isConnected } = useWebSocket({
@@ -130,13 +144,19 @@ export default function MateChat() {
 
     const checkMyApproval = async () => {
       try {
-        const applications = await api.getMyApplications();
-        const myApp = applications.find((app: Application) =>
-          app.partyId === selectedParty.id
-        );
-
+        const myApp = await api.getMyApplicationByParty(selectedParty.id);
         setMyApplication(myApp);
-      } catch (error) {
+      } catch (error: unknown) {
+        if (getApiErrorStatus(error) === 404) {
+          try {
+            const applications = await api.getMyApplications();
+            const fallback = applications.find((app: Application) => app.partyId === selectedParty.id);
+            setMyApplication(fallback ?? null);
+            return;
+          } catch (fallbackError) {
+            console.error('신청 정보 fallback 확인 실패:', fallbackError);
+          }
+        }
         console.error('신청 정보 확인 실패:', error);
         toast.error('신청 정보를 확인하지 못했습니다.');
       } finally {
@@ -148,7 +168,7 @@ export default function MateChat() {
   }, [selectedParty, currentUser, isHost]);
 
   // 조건부 return들
-  if (isLoadingUser || isPartyLoading) {
+  if (isLoadingUser || (isPartyLoading && !selectedParty)) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-background flex flex-col">
         <div className="max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col flex-1">
@@ -358,6 +378,13 @@ export default function MateChat() {
             <ChevronLeft className="w-4 h-4 mr-2" />
             뒤로
           </Button>
+          {isPartyRevalidating && (
+            <Alert className="mb-3 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+              <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+                최신 파티 정보를 다시 확인하고 있습니다.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Card className="p-4">
             <div className="flex items-center gap-3">
