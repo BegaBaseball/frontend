@@ -59,7 +59,12 @@ export default function MateDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { confirm } = useConfirmDialog();
-  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
+  const {
+    party: selectedParty,
+    isLoading: isPartyLoading,
+    isRevalidating: isPartyRevalidating,
+    error: partyError,
+  } = useMatePartyFromRoute(id);
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
   const user = useAuthStore((state) => state.user);
 
@@ -204,7 +209,7 @@ export default function MateDetail() {
 
 
 
-  if (isPartyLoading) {
+  if (isPartyLoading && !selectedParty) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
         <div className="max-w-3xl mx-auto px-4 py-6">
@@ -491,6 +496,13 @@ export default function MateDetail() {
             공유
           </Button>
         </div>
+        {isPartyRevalidating && (
+          <Alert className="mb-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+            <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+              최신 파티 정보를 다시 확인하고 있습니다.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* 1. 매치 포스터 (Ticket Metaphor Evolution) */}
         <div className="rounded-3xl shadow-2xl overflow-hidden mb-8 transform transition-all hover:scale-[1.01]">

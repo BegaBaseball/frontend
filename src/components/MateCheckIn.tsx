@@ -19,7 +19,12 @@ export default function MateCheckIn() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
+  const {
+    party: selectedParty,
+    isLoading: isPartyLoading,
+    isRevalidating: isPartyRevalidating,
+    error: partyError,
+  } = useMatePartyFromRoute(id);
   const authUserId = useAuthStore((state) => state.user?.id ?? null);
 
   const [isChecking, setIsChecking] = useState(false);
@@ -99,7 +104,7 @@ export default function MateCheckIn() {
     };
   }, [selectedParty]);
 
-  if (isPartyLoading || isLoadingUser) {
+  if ((isPartyLoading && !selectedParty) || isLoadingUser) {
     return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." />;
   }
 
@@ -205,6 +210,13 @@ export default function MateCheckIn() {
         <p className="text-gray-600 mb-8">
           경기장에 도착하셨나요? 체크인하여 참여를 인증하세요
         </p>
+        {isPartyRevalidating && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+            <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+              최신 파티 정보를 다시 확인하고 있습니다.
+            </AlertDescription>
+          </Alert>
+        )}
         {qrSessionId && (
           <Alert className="mb-6 border-blue-200 bg-blue-50">
             <AlertDescription className="text-blue-800 text-sm">

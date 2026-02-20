@@ -23,11 +23,37 @@ describe('Mate Create Flow', () => {
     }).as('socialVerified');
   });
 
-  it('falls back to manual input when ticket OCR fails', () => {
-    cy.intercept('POST', '**/api/tickets/analyze', {
-      statusCode: 500,
-      body: { message: 'ocr_failed' },
-    }).as('analyzeTicketFail');
+  it('requires ticket upload and supports OCR retry flow', () => {
+    let analyzeAttempt = 0;
+    cy.intercept('POST', '**/api/tickets/analyze', (req) => {
+      analyzeAttempt += 1;
+      if (analyzeAttempt === 1) {
+        req.reply({
+          statusCode: 500,
+          body: { message: 'ocr_failed' },
+        });
+        return;
+      }
+
+      req.reply({
+        statusCode: 200,
+        body: {
+          date: '2026-05-20',
+          time: '18:30:00',
+          stadium: '잠실야구장',
+          homeTeam: 'LG',
+          awayTeam: 'KT',
+          section: '1루석',
+          row: '12',
+          seat: '15',
+          peopleCount: 2,
+          price: 22000,
+          reservationNumber: 'R-123456',
+          gameId: 1001,
+          verificationToken: 'verification-token',
+        },
+      });
+    }).as('analyzeTicket');
 
     cy.intercept('GET', '**/api/kbo/schedule*', (req) => {
       req.reply([
@@ -43,12 +69,15 @@ describe('Mate Create Flow', () => {
 
     cy.visit('/mate/create');
     cy.contains('직관메이트 파티 만들기').should('be.visible');
+    cy.contains('button', '다음').should('be.disabled');
+    cy.contains('직접 입력하기').should('not.exist');
 
     uploadTicketImage();
-    cy.wait('@analyzeTicketFail');
-    cy.contains('이미지 분석에 실패했습니다. 직접 입력해주세요.').should('be.visible');
+    cy.wait('@analyzeTicket');
+    cy.contains('이미지 분석에 실패했습니다. 다른 파일로 다시 시도해주세요. (티켓 업로드는 필수)').should('be.visible');
 
-    cy.contains('button', '직접 입력하기').click();
+    cy.contains('button', '다시 시도').click();
+    cy.wait('@analyzeTicket');
     cy.contains('경기 선택').should('be.visible');
 
     cy.get('#gameDate').clear().type('2026-05-20');
@@ -132,10 +161,10 @@ describe('Mate Create Flow', () => {
       });
     }).as('createParty');
 
-    cy.intercept('GET', '**/api/applications/my', {
+    cy.intercept('GET', '**/api/applications/party/*/mine', {
       statusCode: 200,
-      body: [],
-    }).as('getMyApplications');
+      body: null,
+    }).as('getMyApplicationByParty');
 
     cy.intercept('GET', '**/api/reviews/user/*/average', {
       statusCode: 200,

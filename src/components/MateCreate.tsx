@@ -25,6 +25,7 @@ import { useMateCreateMachine, type MatchInfo } from '../hooks/useMateCreateMach
 import { SEAT_CATEGORIES, SeatCategory, KBO_STADIUMS } from '../utils/stadiumData';
 import { SEAT_ICONS } from '../utils/seatIcons';
 import { getEstimatedPrice } from '../utils/priceHelper';
+import { validateMateDescription } from '../utils/mateValidation';
 
 export default function MateCreate() {
   const navigate = useNavigate();
@@ -44,7 +45,6 @@ export default function MateCreate() {
     errorType,
     createdPartyId,
     uploadTicket,
-    skipTicket,
     goNext,
     goPrev,
     loadMatches,
@@ -59,8 +59,10 @@ export default function MateCreate() {
     formErrors,
     updateFormData,
     setFormError,
-    validateDescription,
   } = useMateStore();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const setShowLoginRequiredDialog = useAuthStore((state) => state.setShowLoginRequiredDialog);
 
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserName, setCurrentUserName] = useState('');
@@ -69,8 +71,8 @@ export default function MateCreate() {
   const loadedMatchDateRef = useRef('');
 
   useEffect(() => {
-    fetchCurrentUser();
-  }, []);
+    void fetchCurrentUser();
+  }, [user?.id, user?.name]);
 
   // Price Automation
   useEffect(() => {
@@ -85,11 +87,20 @@ export default function MateCreate() {
 
   const fetchCurrentUser = async () => {
     try {
-      const userData = await api.getCurrentUser();
-      setCurrentUserName(userData.data.name);
+      let id = user?.id ?? null;
+      let name = user?.name ?? '';
 
-      const userIdResponse = await api.getUserIdByEmail(userData.data.email);
-      const id = userIdResponse.data;
+      if (!id) {
+        const userData = await api.getCurrentUser();
+        id = userData.data.id;
+        name = userData.data.name;
+      }
+
+      if (!id) {
+        throw new Error('사용자 ID를 확인할 수 없습니다.');
+      }
+
+      setCurrentUserName(name);
       setCurrentUserId(id);
 
       // 소셜 연동 여부 확인 - 미연동 시 알림
@@ -105,15 +116,15 @@ export default function MateCreate() {
       console.error('사용자 정보 가져오기 실패:', error);
       if ((error instanceof AxiosError && error.response?.status === 401) ||
         (error instanceof ApiError && error.status === 401)) {
-        useAuthStore.getState().logout(true);
-        useAuthStore.getState().setShowLoginRequiredDialog(true);
+        logout(true);
+        setShowLoginRequiredDialog(true);
       }
     }
   };
 
   const handleDescriptionChange = (text: string) => {
     updateFormData({ description: text });
-    const error = validateDescription(text);
+    const error = validateMateDescription(text);
     setFormError('description', error);
   };
 
@@ -132,10 +143,6 @@ export default function MateCreate() {
     } else {
       goPrev();
     }
-  };
-
-  const handleSkipTicket = () => {
-    skipTicket();
   };
 
   const handleSubmit = () => {
@@ -259,6 +266,43 @@ export default function MateCreate() {
   const availableCategoryKeys = getAvailableCategoryKeys();
 
   const progressValue = (createStep / 4) * 100;
+  const isSubmitDisabled = isSubmitting || !formData.description || formData.description.length < 10 || !formData.ticketFile;
+
+  const blockedStepMessage = (() => {
+    if (createStep === 1 && !formData.ticketFile) {
+      return '티켓 이미지를 업로드해야 다음 단계로 진행할 수 있습니다.';
+    }
+    if (createStep === 2 && !canGoNext) {
+      if (!formData.gameDate) {
+        return '경기 날짜를 선택해주세요.';
+      }
+      return '경기 목록에서 관람할 경기를 선택해주세요.';
+    }
+    if (createStep === 3 && !canGoNext) {
+      if (!(formData.seatDetail || formData.section)) {
+        return '좌석 상세 정보를 입력해주세요.';
+      }
+      if (formData.maxParticipants <= 0) {
+        return '모집 인원을 선택해주세요.';
+      }
+      if (formData.ticketPrice <= 0) {
+        return '티켓 가격을 입력해주세요.';
+      }
+      return '필수 항목을 모두 입력해주세요.';
+    }
+    if (createStep === 4 && isSubmitDisabled) {
+      if (!formData.ticketFile) {
+        return '티켓 이미지를 업로드해야 파티를 만들 수 있습니다.';
+      }
+      if (!formData.description || formData.description.length < 10) {
+        return '소개글을 10자 이상 입력해주세요.';
+      }
+      if (formErrors.description) {
+        return formErrors.description;
+      }
+    }
+    return '';
+  })();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
@@ -379,21 +423,14 @@ export default function MateCreate() {
                     <li>티켓 사진을 올리면 AI가 경기 정보를 자동으로 입력합니다</li>
                     <li>예매번호와 좌석 정보가 명확히 보여야 합니다</li>
                     <li>개인정보는 가려서 업로드해주세요</li>
+                    <li className="font-semibold text-primary">티켓 업로드는 파티 생성 필수 조건입니다</li>
                   </ul>
                 </AlertDescription>
               </Alert>
 
-              {/* Skip Button */}
+              {/* Dev Helper */}
               <div className="flex flex-col items-center gap-3 mt-4 border-t pt-4 border-dashed border-gray-200">
-                <Button
-                  variant="ghost"
-                  className="text-gray-500 hover:text-primary font-medium text-sm"
-                  onClick={handleSkipTicket}
-                >
-                  티켓이 아직 없으신가요? <span className="underline ml-1">직접 입력하기</span>
-                </Button>
-
-                {/* Dev Only: Test Data Button */}
+                <p className="text-xs text-gray-500">OCR이 실패하면 같은 파일 또는 다른 파일로 다시 시도해주세요.</p>
                 {import.meta.env.DEV && (
                   <button
                     onClick={() => {
@@ -770,7 +807,7 @@ export default function MateCreate() {
                   value={formData.description}
                   onChange={(e) => handleDescriptionChange(e.target.value)}
                   onBlur={() => {
-                    const error = validateDescription(formData.description);
+                    const error = validateMateDescription(formData.description);
                     setFormError('description', error);
                   }}
                   placeholder="함께 야구를 즐길 메이트에게 하고 싶은 말을 작성해주세요..."
@@ -854,13 +891,18 @@ export default function MateCreate() {
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !formData.description || formData.description.length < 10 || !formData.ticketFile}
+                disabled={isSubmitDisabled}
                 className="flex-1 text-white bg-primary"
               >
                 파티 만들기
               </Button>
             )}
           </div>
+          {blockedStepMessage && (
+            <p className={`mt-3 text-sm text-center ${createStep === 4 ? 'text-red-500' : 'text-amber-600'}`}>
+              {blockedStepMessage}
+            </p>
+          )}
         </Card>
       </div >
 
