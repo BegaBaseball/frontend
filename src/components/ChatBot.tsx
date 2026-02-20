@@ -51,7 +51,11 @@ const formatToolParams = (params: Record<string, unknown>): string => {
   return parts.join(' · ');
 };
 
-export default function ChatBot() {
+interface ChatBotProps {
+  autoOpen?: boolean;
+}
+
+export default function ChatBot({ autoOpen = false }: ChatBotProps) {
   const { isLoggedIn } = useAuthStore();
   // const isLoggedIn = true;
   const isMobile = useIsMobile();
@@ -78,7 +82,22 @@ export default function ChatBot() {
 
   const [isClosing, setIsClosing] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [expandedToolCalls, setExpandedToolCalls] = useState<Set<number>>(new Set());
   const isRateLimited = rateLimitActive && rateLimitCountdown > 0;
+
+  useEffect(() => {
+    if (autoOpen) {
+      setIsOpen(true);
+    }
+  }, [autoOpen, setIsOpen]);
+
+  const toggleToolCalls = (index: number) => {
+    setExpandedToolCalls(prev => {
+      const next = new Set(prev);
+      next.has(index) ? next.delete(index) : next.add(index);
+      return next;
+    });
+  };
 
   const rateLimitCopy = (() => {
     if (!rateLimitActive) return null;
@@ -225,7 +244,7 @@ export default function ChatBot() {
 
                   return (
                     <div
-                      key={index}
+                      key={message.id ?? index}
                       className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       {message.sender === 'bot' ? (
@@ -256,6 +275,43 @@ export default function ChatBot() {
                               </p>
                             </div>
                           </div>
+                          {/* Tool Disclosure - AI가 사용한 도구 목록 */}
+                          {!isStreamError && (() => {
+                            const visibleTools = (message.toolCalls ?? []).filter(
+                              tc => TOOL_NAME_KO[tc.toolName] !== null && TOOL_NAME_KO[tc.toolName] !== undefined
+                            );
+                            if (visibleTools.length === 0) return null;
+                            const isExpanded = expandedToolCalls.has(index);
+                            return (
+                              <div className="mt-1.5 ml-1">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleToolCalls(index)}
+                                  className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                >
+                                  <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`} />
+                                  AI 검색 도구 {visibleTools.length}개
+                                </button>
+                                {isExpanded && (
+                                  <ul className="mt-1 space-y-0.5 list-none p-0 m-0">
+                                    {visibleTools.map((tc, i) => {
+                                      const label = TOOL_NAME_KO[tc.toolName];
+                                      const params = formatToolParams(tc.parameters);
+                                      return (
+                                        <li key={i} className="flex items-start gap-1 text-[10px] text-gray-500 dark:text-gray-400">
+                                          <span className="mt-0.5 shrink-0">╰</span>
+                                          <span>
+                                            <span className="font-medium text-gray-600 dark:text-gray-300">{label}</span>
+                                            {params && <span className="text-gray-400 dark:text-gray-500 ml-1">{params}</span>}
+                                          </span>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                )}
+                              </div>
+                            );
+                          })()}
                           {/* Copy button - shown on hover, only for non-error bot messages */}
                           {!isStreamError && (
                             <button

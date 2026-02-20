@@ -83,7 +83,40 @@ export default defineConfig(({ mode }) => {
     build: {
       target: 'esnext',
       outDir: 'dist',
-      chunkSizeWarningLimit: 1000, // Suppress chunk size warnings (default: 500kB)
+      chunkSizeWarningLimit: 1200,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) {
+              return;
+            }
+            if (id.includes('/recharts/')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('/lucide-react/')) {
+              return 'vendor-icons';
+            }
+            if (
+              id.includes('/react-markdown/')
+              || id.includes('/remark-gfm/')
+              || id.includes('/remark-')
+              || id.includes('/rehype-')
+              || id.includes('/mdast-util-')
+              || id.includes('/micromark')
+              || id.includes('/unified/')
+            ) {
+              return 'vendor-markdown';
+            }
+            if (id.includes('/@tanstack/')) {
+              return 'vendor-query';
+            }
+            if (id.includes('/@radix-ui/') || id.includes('/cmdk/') || id.includes('/vaul/')) {
+              return 'vendor-ui';
+            }
+            return 'vendor';
+          },
+        },
+      },
     },
 
     server: {
@@ -113,4 +146,3 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
-
