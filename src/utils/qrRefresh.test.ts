@@ -49,3 +49,14 @@ test('만료 시각이 누락되면 최소 10초 재시도를 반환한다', () 
   assert.equal(resolveQrRefreshDelayMs(null, nowMs), QR_REFRESH_MIN_RETRY_MS);
   assert.equal(resolveQrRefreshDelayMs('', nowMs), QR_REFRESH_MIN_RETRY_MS);
 });
+
+test('옵션 파라미터(lead/min)를 전달하면 해당 정책으로 계산한다', () => {
+  const nowMs = Date.parse('2026-03-01T12:00:00Z');
+  const expiresAt = '2026-03-01T12:01:00Z';
+  const customLeadMs = 30_000;
+  const customMinRetryMs = 5_000;
+
+  const delayMs = resolveQrRefreshDelayMs(expiresAt, nowMs, customLeadMs, customMinRetryMs);
+
+  assert.equal(delayMs, customLeadMs);
+});
