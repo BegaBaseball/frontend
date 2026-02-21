@@ -44,6 +44,10 @@ export interface Application {
   message: string;
   depositAmount: number;
   paymentType: 'DEPOSIT' | 'FULL';
+  feeAmount?: number;
+  netSettlementAmount?: number;
+  paymentStatus?: 'PAID' | 'REFUND_REQUESTED' | 'CANCELED' | 'REFUND_FAILED';
+  settlementStatus?: 'PENDING' | 'REQUESTED' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
   isApproved: boolean;
   isRejected: boolean;
   ticketVerified?: boolean;
@@ -154,7 +158,6 @@ export interface CreateApplicationRequest {
 
 export interface CreateCheckInRequest {
   partyId: number;
-  userId: number;
   location: string;
   qrSessionId?: string;
 }
@@ -176,4 +179,27 @@ export interface CreateReviewRequest {
   revieweeId: number;
   rating: number;
   comment?: string;
+}
+
+export type PaymentFlowType = 'DEPOSIT' | 'SELLING_FULL';
+
+export type CancelReasonType =
+  | 'BUYER_CHANGED_MIND'
+  | 'SELLER_CHANGED_MIND'
+  | 'SYSTEM'
+  | 'EVENT_CANCELED'
+  | 'OTHER';
+
+export interface CancelApplicationRequest {
+  cancelReasonType: CancelReasonType;
+  cancelMemo?: string;
+}
+
+export interface CancelApplicationResponse {
+  applicationId: number;
+  refundAmount: number;
+  feeCharged: number;
+  refundPolicyApplied: string;
+  paymentStatus?: Application['paymentStatus'];
+  settlementStatus?: Application['settlementStatus'];
 }
