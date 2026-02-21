@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import QRCode from 'react-qr-code';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -54,6 +54,7 @@ import { formatGameDate, extractHashtags, mapBackendPartyToFrontend, stripHashta
 import ReviewDialog from './ReviewDialog';
 import type { PartyReview, Application } from '../types/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { resolveQrRefreshDelayMs } from '../utils/qrRefresh';
 
 export default function MateDetail() {
   const navigate = useNavigate();
@@ -82,6 +83,7 @@ export default function MateDetail() {
   const [qrSessionExpiresAt, setQrSessionExpiresAt] = useState<string | null>(null);
   const [isQrLoading, setIsQrLoading] = useState(false);
   const [qrSessionError, setQrSessionError] = useState<string | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false); // For Seat View toggle
   const [hostAvgRating, setHostAvgRating] = useState<number | null>(null);
   const [showHostProfile, setShowHostProfile] = useState(false);
@@ -182,20 +184,26 @@ export default function MateDetail() {
     const isApproved = myApplication.isApproved;
     // ... logic ...
     const confirmMessage = isApproved
-      ? '참여를 취소하시겠습니까?\n\n⚠️ 승인 후 취소 시:\n- 보증금 10,000원은 환불되지 않습니다\n- 티켓 가격만 환불됩니다\n- 취소는 경기 하루 전까지만 가능합니다'
-      : '신청을 취소하시겠습니까?\n\n전액 환불됩니다.';
+      ? '참여를 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.\n취소는 경기 하루 전까지만 가능합니다.'
+      : '신청을 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.';
 
     const confirmed = await confirm({ title: isApproved ? '참여 취소' : '신청 취소', description: confirmMessage, confirmLabel: '취소하기', variant: 'destructive' });
     if (!confirmed) return;
 
+    const reasonInput = window.prompt(
+      '취소 사유를 선택하세요:\n1) 단순변심(수수료 차감)\n2) 기타 사유(전액환불)',
+      '1',
+    );
+    const cancelReasonType = reasonInput === '2' ? 'OTHER' : 'BUYER_CHANGED_MIND';
+
     setIsCancelling(true);
     try {
-      await api.cancelApplication(myApplication.id);
-      if (isApproved) {
-        toast.success('참여가 취소되었습니다.', { description: '티켓 가격만 환불되며, 보증금은 환불되지 않습니다.' });
-      } else {
-        toast.success('신청이 취소되었습니다.', { description: '결제 금액이 전액 환불됩니다.' });
-      }
+      const result = await api.cancelApplicationWithReason(myApplication.id, {
+        cancelReasonType,
+      });
+      toast.success('신청이 취소되었습니다.', {
+        description: `환불금 ${result.refundAmount.toLocaleString()}원, 수수료 ${result.feeCharged.toLocaleString()}원`,
+      });
       setMyApplication(null);
       const updatedParty = await api.getPartyById(selectedParty.id);
       setSelectedParty(mapBackendPartyToFrontend(updatedParty));
@@ -436,43 +444,70 @@ export default function MateDetail() {
     return new URL(path, window.location.origin).toString();
   }, [id, selectedParty?.id]);
 
+  const fetchQrSession = useCallback(async (isMountedRef: { current: boolean }) => {
+    if (selectedPartyId === undefined) return;
+    setIsQrLoading(true);
+    try {
+      const qrSession = await api.createCheckInQrSession({ partyId: selectedPartyId });
+      if (!isMountedRef.current) return;
+
+      setQrCheckInUrl(qrSession.checkinUrl || fallbackCheckInUrl);
+      const expiresAt = qrSession.expiresAt ?? null;
+      const parsedExpiresAtMs = expiresAt ? Date.parse(expiresAt) : Number.NaN;
+      const isValidExpiresAt = expiresAt ? !Number.isNaN(parsedExpiresAtMs) : false;
+      if (expiresAt && !isValidExpiresAt) {
+        console.warn('[MateDetail] Invalid QR session expiresAt:', expiresAt);
+      }
+      setQrSessionExpiresAt(isValidExpiresAt ? expiresAt : null);
+
+      const delay = resolveQrRefreshDelayMs(expiresAt, Date.now());
+      if (refreshTimerRef.current !== null) {
+        clearTimeout(refreshTimerRef.current);
+      }
+      refreshTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          void fetchQrSession(isMountedRef);
+        }
+      }, delay);
+    } catch (error: unknown) {
+      if (!isMountedRef.current) return;
+      console.error('QR 세션 발급 실패:', error);
+      setQrCheckInUrl(fallbackCheckInUrl);
+      setQrSessionError(getApiErrorMessage(error, 'QR 세션을 발급하지 못했습니다.'));
+    } finally {
+      if (isMountedRef.current) {
+        setIsQrLoading(false);
+      }
+    }
+  }, [selectedPartyId, fallbackCheckInUrl]);
+
   useEffect(() => {
-    let isMounted = true;
+    const isMountedRef = { current: true };
 
     setQrCheckInUrl(fallbackCheckInUrl);
     setQrSessionExpiresAt(null);
     setQrSessionError(null);
 
+    if (refreshTimerRef.current !== null) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
     if (!selectedParty || !canAccessCheckIn) {
       setIsQrLoading(false);
       return () => {
-        isMounted = false;
+        isMountedRef.current = false;
       };
     }
 
-    const fetchQrSession = async () => {
-      setIsQrLoading(true);
-      try {
-        const qrSession = await api.createCheckInQrSession({ partyId: selectedParty.id });
-        if (!isMounted) return;
-        setQrCheckInUrl(qrSession.checkinUrl || fallbackCheckInUrl);
-        setQrSessionExpiresAt(qrSession.expiresAt || null);
-      } catch (error: unknown) {
-        if (!isMounted) return;
-        console.error('QR 세션 발급 실패:', error);
-        setQrCheckInUrl(fallbackCheckInUrl);
-        setQrSessionError(getApiErrorMessage(error, 'QR 세션을 발급하지 못했습니다.'));
-      } finally {
-        if (isMounted) {
-          setIsQrLoading(false);
-        }
-      }
-    };
-
-    void fetchQrSession();
+    void fetchQrSession(isMountedRef);
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      if (refreshTimerRef.current !== null) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
     };
   }, [selectedPartyId, canAccessCheckIn, fallbackCheckInUrl]);
 
@@ -721,7 +756,7 @@ export default function MateDetail() {
                         <div className="group relative">
                           <HelpCircle className="w-3.5 h-3.5 text-gray-400 cursor-help" />
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50">
-                            경기 당일 체크인 시 100% 환급됩니다 (노쇼 방지)
+                            취소 사유에 따라 전액 또는 부분 환불 정책이 적용됩니다
                           </div>
                         </div>
                       </div>
@@ -741,7 +776,7 @@ export default function MateDetail() {
               </div>
               {selectedParty.status !== 'SELLING' && (
                 <p className="text-xs text-gray-400 mt-3 text-right">
-                  * 결제 수수료 별도
+                  * 단순변심 취소 시 수수료가 차감될 수 있습니다
                 </p>
               )}
             </Card>
