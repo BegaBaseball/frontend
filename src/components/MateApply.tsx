@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -17,12 +18,12 @@ import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import { api, ApiError } from '../utils/api';
 import { formatGameDate } from '../utils/mate';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
+import { isCompatibleFlowAndPaymentType, savePendingPayment } from '../utils/payment';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
 import { analyzeTicket, TicketInfo } from '../api/ticket';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
 import LoadingSpinner from './LoadingSpinner';
-import type { CreateApplicationRequest } from '../types/mate';
 
 export default function MateApply() {
   const { validateMessage } = useMateStore();
@@ -39,7 +40,6 @@ export default function MateApply() {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserName, setCurrentUserName] = useState('');
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [ticketVerified, setTicketVerified] = useState(false);
   const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
@@ -49,7 +49,6 @@ export default function MateApply() {
   useEffect(() => {
     if (user?.id) {
       setCurrentUserId(user.id);
-      setCurrentUserName(user.name ?? '');
       return;
     }
 
@@ -57,7 +56,6 @@ export default function MateApply() {
       try {
         const userData = await api.getCurrentUser();
         setCurrentUserId(userData.data.id);
-        setCurrentUserName(userData.data.name);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
         toast.error('사용자 정보를 불러오지 못했습니다.');
@@ -65,7 +63,7 @@ export default function MateApply() {
     };
 
     void fetchUser();
-  }, [user?.id, user?.name]);
+  }, [user?.id]);
 
   if (isPartyLoading && !selectedParty) {
     return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." fullScreen />;
@@ -151,40 +149,54 @@ export default function MateApply() {
 
     setIsSubmitting(true);
 
+    // DEPOSIT/SELLING 모두 Toss Payments 결제 위젯 실행
     try {
-      const applicationData: CreateApplicationRequest = {
+      const preparedPayment = await api.prepareTossPayment({
         partyId: selectedParty.id,
-        applicantId: currentUserId,
-        applicantName: currentUserName,
-        applicantBadge: ticketVerified ? 'VERIFIED' : 'NEW',
-        applicantRating: 5.0,
-        message: message || '함께 즐거운 관람 부탁드립니다!',
-        depositAmount: isSelling ? sellingPrice : totalAmount,
-        paymentType: (isSelling ? 'FULL' : 'DEPOSIT') as 'FULL' | 'DEPOSIT',
-        verificationToken: ticketInfo?.verificationToken ?? null,
-        ticketVerified: ticketVerified,
-        ticketImageUrl: null as string | null,
-      };
-
-      await api.createApplication(applicationData);
-
-      if (isSelling) {
-        toast.success('티켓 구매가 완료되었습니다!');
-      } else {
-        toast.success('신청이 완료되었습니다!', { description: '호스트의 승인을 기다려주세요.' });
+        flowType: isSelling ? 'SELLING_FULL' : 'DEPOSIT',
+        cancelPolicyVersion: 'v1',
+      });
+      if (!isCompatibleFlowAndPaymentType(preparedPayment.flowType, preparedPayment.paymentType)) {
+        throw new Error('결제 흐름과 결제 타입이 일치하지 않습니다.');
       }
 
-      navigate(`/mate/${id}`);
+      savePendingPayment({
+        intentId: preparedPayment.intentId,
+        partyId: selectedParty.id,
+        flowType: preparedPayment.flowType,
+        policyVersion: preparedPayment.cancelPolicyVersion,
+        priceSnapshot: preparedPayment.amount,
+        message: message || (isSelling ? '티켓 구매 신청합니다.' : '함께 즐거운 관람 부탁드립니다!'),
+        verificationToken: isSelling ? null : ticketInfo?.verificationToken ?? null,
+        ticketVerified: isSelling ? false : ticketVerified,
+        ticketImageUrl: null,
+        paymentType: preparedPayment.paymentType,
+        amount: preparedPayment.amount,
+        orderId: preparedPayment.orderId,
+        orderName: preparedPayment.orderName,
+      });
+
+      const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY as string;
+      const tossPayments = await loadTossPayments(clientKey);
+      const payment = tossPayments.payment({ customerKey: String(currentUserId) });
+
+      await payment.requestPayment({
+        method: 'CARD',
+        amount: { currency: preparedPayment.currency, value: preparedPayment.amount },
+        orderId: preparedPayment.orderId,
+        orderName: preparedPayment.orderName,
+        successUrl: `${window.location.origin}/payment/success`,
+        failUrl: `${window.location.origin}/payment/fail`,
+      });
+      // Toss가 브라우저를 리다이렉트 — 이후 코드는 실행되지 않음
     } catch (error: unknown) {
       if ((error instanceof AxiosError && error.response?.status === 403) ||
         (error instanceof ApiError && error.status === 403)) {
-        console.warn('Verification required (403)');
         setShowVerificationDialog(true);
       } else {
-        console.error('신청 중 오류:', error);
-        toast.error(getApiErrorMessage(error, '신청 중 오류가 발생했습니다.'));
+        console.error('결제 초기화 오류:', error);
+        toast.error(getApiErrorMessage(error, '결제 중 오류가 발생했습니다.'));
       }
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -384,9 +396,9 @@ export default function MateApply() {
                 <Shield className="w-4 h-4" />
                 <AlertDescription className="text-sm">
                   <ul className="list-disc list-inside space-y-1">
-                    <li>티켓 가격: 경기 3일 전 자정에 호스트에게 정산 (수수료 10%)</li>
-                    <li>보증금: 모든 참여자 체크인 완료 후 호스트에게 정산</li>
-                    <li>노쇼 시 보증금 패널티 적용</li>
+                    <li>승인 즉시 정산 요청이 생성됩니다</li>
+                    <li>단순변심 취소에만 10% 수수료가 적용됩니다</li>
+                    <li>단순변심 취소 시 수수료가 차감 환불됩니다</li>
                     <li>승인되지 않으면 전액 환불됩니다</li>
                   </ul>
                 </AlertDescription>
@@ -423,7 +435,7 @@ export default function MateApply() {
           <Alert className="mb-6 border-orange-200 bg-orange-50">
             <AlertTriangle className="w-4 h-4 text-orange-600" />
             <AlertDescription className="text-orange-800">
-              티켓 구매 후 환불이 불가능합니다. 경기 날짜와 좌석을 확인해주세요.
+              단순변심 취소 시 수수료 차감 환불 정책이 적용됩니다.
             </AlertDescription>
           </Alert>
         )}
