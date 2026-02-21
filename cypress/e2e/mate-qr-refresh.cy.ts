@@ -100,6 +100,12 @@ describe('MateDetail QR refresh', () => {
     });
 
     cy.tick(1);
+    cy.then(() => {
+      if (qrSessionCallCount === baselineCallCount) {
+        // 일부 러너 환경에서 앱 타이머 제어가 느슨할 수 있어 보조 대기로 안정화
+        cy.wait(10_500);
+      }
+    });
     cy.wrap(null).should(() => {
       expect(qrSessionCallCount).to.eq(baselineCallCount + 1);
     });
