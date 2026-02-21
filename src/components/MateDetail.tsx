@@ -52,7 +52,7 @@ import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import { formatGameDate, extractHashtags, mapBackendPartyToFrontend, stripHashtags } from '../utils/mate';
 import ReviewDialog from './ReviewDialog';
-import type { PartyReview, Application } from '../types/mate';
+import type { CancelReasonType, PartyReview, Application } from '../types/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { resolveQrRefreshDelayMs } from '../utils/qrRefresh';
 
@@ -79,6 +79,9 @@ export default function MateDetail() {
   const [showSaleDialog, setShowSaleDialog] = useState(false);
   const [salePrice, setSalePrice] = useState('');
   const [salePriceError, setSalePriceError] = useState('');
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [selectedCancelReason, setSelectedCancelReason] = useState<CancelReasonType>('BUYER_CHANGED_MIND');
+  const [cancelMemo, setCancelMemo] = useState('');
   const [qrCheckInUrl, setQrCheckInUrl] = useState('');
   const [qrSessionExpiresAt, setQrSessionExpiresAt] = useState<string | null>(null);
   const [isQrLoading, setIsQrLoading] = useState(false);
@@ -179,6 +182,23 @@ export default function MateDetail() {
     return !isGameTomorrow();
   };
 
+  const getCancelPolicyMessage = (
+    refundPolicyApplied: string | undefined | null,
+    refundAmount: number,
+    feeCharged: number,
+  ) => {
+    if (refundPolicyApplied === 'PARTIAL_REFUND_WITH_FEE') {
+      return `단순변심 정책으로 수수료 ${feeCharged.toLocaleString()}원 차감 후 `
+        + `환불금 ${refundAmount.toLocaleString()}원이 적용됩니다.`;
+    }
+
+    if (refundPolicyApplied === 'FULL_REFUND') {
+      return `전액환불로 환불금 ${refundAmount.toLocaleString()}원이 적용됩니다.`;
+    }
+
+    return `환불금 ${refundAmount.toLocaleString()}원이 적용됩니다.`;
+  };
+
   const handleCancelApplication = async () => {
     if (!selectedParty || !myApplication || !currentUserId) return;
     const isApproved = myApplication.isApproved;
@@ -190,19 +210,27 @@ export default function MateDetail() {
     const confirmed = await confirm({ title: isApproved ? '참여 취소' : '신청 취소', description: confirmMessage, confirmLabel: '취소하기', variant: 'destructive' });
     if (!confirmed) return;
 
-    const reasonInput = window.prompt(
-      '취소 사유를 선택하세요:\n1) 단순변심(수수료 차감)\n2) 기타 사유(전액환불)',
-      '1',
-    );
-    const cancelReasonType = reasonInput === '2' ? 'OTHER' : 'BUYER_CHANGED_MIND';
+    setSelectedCancelReason(isApproved ? 'BUYER_CHANGED_MIND' : 'OTHER');
+    setCancelMemo('');
+    setShowCancelDialog(true);
+  };
+
+  const executeCancelApplication = async () => {
+    if (!selectedParty || !myApplication || !currentUserId) return;
 
     setIsCancelling(true);
+    setShowCancelDialog(false);
     try {
       const result = await api.cancelApplicationWithReason(myApplication.id, {
-        cancelReasonType,
+        cancelReasonType: selectedCancelReason,
+        cancelMemo: cancelMemo.trim() || undefined,
       });
       toast.success('신청이 취소되었습니다.', {
-        description: `환불금 ${result.refundAmount.toLocaleString()}원, 수수료 ${result.feeCharged.toLocaleString()}원`,
+        description: getCancelPolicyMessage(
+          result.refundPolicyApplied,
+          result.refundAmount,
+          result.feeCharged,
+        ),
       });
       setMyApplication(null);
       const updatedParty = await api.getPartyById(selectedParty.id);
@@ -214,6 +242,112 @@ export default function MateDetail() {
       setIsCancelling(false);
     }
   };
+
+  const cancelReasonOptions = [
+    {
+      value: 'BUYER_CHANGED_MIND' as const,
+      label: '단순변심(구매자)',
+      description: '결제 수수료를 제외한 금액 환불',
+    },
+    {
+      value: 'SELLER_CHANGED_MIND' as const,
+      label: '단순변심(판매자)',
+      description: '결제 수수료를 제외한 금액 환불',
+    },
+    {
+      value: 'OTHER' as const,
+      label: '기타 사유',
+      description: '전액환불',
+    },
+  ];
+
+  const isHost = selectedParty?.hostId === currentUserId;
+  const isApproved = myApplication?.isApproved || false;
+  const canAccessCheckIn = Boolean(selectedParty) &&
+    (isHost || isApproved) &&
+    selectedParty?.status !== 'CHECKED_IN' &&
+    selectedParty?.status !== 'COMPLETED' &&
+    selectedParty?.status !== 'FAILED';
+
+  const fallbackCheckInUrl = useMemo(() => {
+    if (!id && !selectedParty?.id) {
+      return typeof window === 'undefined' ? '/mate' : window.location.href;
+    }
+    const path = `/mate/${id ?? selectedParty?.id}/checkin`;
+    if (typeof window === 'undefined') {
+      return path;
+    }
+    return new URL(path, window.location.origin).toString();
+  }, [id, selectedParty?.id]);
+
+  const fetchQrSession = useCallback(async (isMountedRef: { current: boolean }) => {
+    if (selectedPartyId === undefined) return;
+    setIsQrLoading(true);
+    try {
+      const qrSession = await api.createCheckInQrSession({ partyId: selectedPartyId });
+      if (!isMountedRef.current) return;
+
+      setQrCheckInUrl(qrSession.checkinUrl || fallbackCheckInUrl);
+      const expiresAt = qrSession.expiresAt ?? null;
+      const parsedExpiresAtMs = expiresAt ? Date.parse(expiresAt) : Number.NaN;
+      const isValidExpiresAt = expiresAt ? !Number.isNaN(parsedExpiresAtMs) : false;
+      if (expiresAt && !isValidExpiresAt) {
+        console.warn('[MateDetail] Invalid QR session expiresAt:', expiresAt);
+      }
+      setQrSessionExpiresAt(isValidExpiresAt ? expiresAt : null);
+
+      const delay = resolveQrRefreshDelayMs(expiresAt, Date.now());
+      if (refreshTimerRef.current !== null) {
+        clearTimeout(refreshTimerRef.current);
+      }
+      refreshTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          void fetchQrSession(isMountedRef);
+        }
+      }, delay);
+    } catch (error: unknown) {
+      if (!isMountedRef.current) return;
+      console.error('QR 세션 발급 실패:', error);
+      setQrCheckInUrl(fallbackCheckInUrl);
+      setQrSessionError(getApiErrorMessage(error, 'QR 세션을 발급하지 못했습니다.'));
+    } finally {
+      if (isMountedRef.current) {
+        setIsQrLoading(false);
+      }
+    }
+  }, [selectedPartyId, fallbackCheckInUrl]);
+
+  useEffect(() => {
+    const isMountedRef = { current: true };
+
+    setQrCheckInUrl(fallbackCheckInUrl);
+    setQrSessionExpiresAt(null);
+    setQrSessionError(null);
+
+    if (refreshTimerRef.current !== null) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    if (selectedPartyId === undefined || !canAccessCheckIn) {
+      setIsQrLoading(false);
+      return () => {
+        isMountedRef.current = false;
+      };
+    }
+
+    void fetchQrSession(isMountedRef);
+
+    return () => {
+      isMountedRef.current = false;
+      if (refreshTimerRef.current !== null) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, [selectedPartyId, canAccessCheckIn, fallbackCheckInUrl, fetchQrSession]);
+
+  const qrCodeValue = useMemo(() => qrCheckInUrl || fallbackCheckInUrl, [qrCheckInUrl, fallbackCheckInUrl]);
 
 
 
@@ -295,14 +429,8 @@ export default function MateDetail() {
     );
   }
 
-  const isHost = selectedParty.hostId === currentUserId;
-  const isApproved = myApplication?.isApproved || false;
   const approvedApplications = applications.filter(app => app.isApproved);
   const pendingApplications = applications.filter(app => !app.isApproved && !app.isRejected);
-  const canAccessCheckIn = (isHost || isApproved) &&
-    selectedParty.status !== 'CHECKED_IN' &&
-    selectedParty.status !== 'COMPLETED' &&
-    selectedParty.status !== 'FAILED';
 
   const getStatusBadge = (status: string) => {
     const config = {
@@ -432,86 +560,6 @@ export default function MateDetail() {
   };
 
   const currentZone = selectedParty ? resolveSeatZone(selectedParty.stadium, selectedParty.section) : null;
-
-  const fallbackCheckInUrl = useMemo(() => {
-    if (!id && !selectedParty?.id) {
-      return typeof window === 'undefined' ? '/mate' : window.location.href;
-    }
-    const path = `/mate/${id ?? selectedParty?.id}/checkin`;
-    if (typeof window === 'undefined') {
-      return path;
-    }
-    return new URL(path, window.location.origin).toString();
-  }, [id, selectedParty?.id]);
-
-  const fetchQrSession = useCallback(async (isMountedRef: { current: boolean }) => {
-    if (selectedPartyId === undefined) return;
-    setIsQrLoading(true);
-    try {
-      const qrSession = await api.createCheckInQrSession({ partyId: selectedPartyId });
-      if (!isMountedRef.current) return;
-
-      setQrCheckInUrl(qrSession.checkinUrl || fallbackCheckInUrl);
-      const expiresAt = qrSession.expiresAt ?? null;
-      const parsedExpiresAtMs = expiresAt ? Date.parse(expiresAt) : Number.NaN;
-      const isValidExpiresAt = expiresAt ? !Number.isNaN(parsedExpiresAtMs) : false;
-      if (expiresAt && !isValidExpiresAt) {
-        console.warn('[MateDetail] Invalid QR session expiresAt:', expiresAt);
-      }
-      setQrSessionExpiresAt(isValidExpiresAt ? expiresAt : null);
-
-      const delay = resolveQrRefreshDelayMs(expiresAt, Date.now());
-      if (refreshTimerRef.current !== null) {
-        clearTimeout(refreshTimerRef.current);
-      }
-      refreshTimerRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
-          void fetchQrSession(isMountedRef);
-        }
-      }, delay);
-    } catch (error: unknown) {
-      if (!isMountedRef.current) return;
-      console.error('QR 세션 발급 실패:', error);
-      setQrCheckInUrl(fallbackCheckInUrl);
-      setQrSessionError(getApiErrorMessage(error, 'QR 세션을 발급하지 못했습니다.'));
-    } finally {
-      if (isMountedRef.current) {
-        setIsQrLoading(false);
-      }
-    }
-  }, [selectedPartyId, fallbackCheckInUrl]);
-
-  useEffect(() => {
-    const isMountedRef = { current: true };
-
-    setQrCheckInUrl(fallbackCheckInUrl);
-    setQrSessionExpiresAt(null);
-    setQrSessionError(null);
-
-    if (refreshTimerRef.current !== null) {
-      clearTimeout(refreshTimerRef.current);
-      refreshTimerRef.current = null;
-    }
-
-    if (!selectedParty || !canAccessCheckIn) {
-      setIsQrLoading(false);
-      return () => {
-        isMountedRef.current = false;
-      };
-    }
-
-    void fetchQrSession(isMountedRef);
-
-    return () => {
-      isMountedRef.current = false;
-      if (refreshTimerRef.current !== null) {
-        clearTimeout(refreshTimerRef.current);
-        refreshTimerRef.current = null;
-      }
-    };
-  }, [selectedPartyId, canAccessCheckIn, fallbackCheckInUrl]);
-
-  const qrCodeValue = useMemo(() => qrCheckInUrl || fallbackCheckInUrl, [qrCheckInUrl, fallbackCheckInUrl]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
@@ -806,7 +854,7 @@ export default function MateDetail() {
               <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-gray-100 to-transparent dark:from-gray-700/50"></div>
 
               <div className="relative z-10 mb-2">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-border shadow-lg mx-auto bg-white">
+                <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-white/95 dark:ring-border shadow-lg mx-auto bg-white">
                   {selectedParty.hostProfileImageUrl ? (
                     <OptimizedImage
                       src={selectedParty.hostProfileImageUrl}
@@ -1062,6 +1110,62 @@ export default function MateDetail() {
           }}
         />
       )}
+
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>취소 사유 선택</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">취소 사유를 선택하면 환불 규칙이 자동 적용됩니다.</p>
+            <div className="space-y-2">
+              {cancelReasonOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setSelectedCancelReason(option.value)}
+                  className={`w-full border rounded-lg px-3 py-2 text-left transition ${
+                    selectedCancelReason === option.value
+                      ? 'bg-primary/10 border-primary text-primary'
+                      : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-gray-200'
+                  }`}
+                  disabled={isCancelling}
+                >
+                  <p className="font-medium">{option.label}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{option.description}</p>
+                </button>
+              ))}
+            </div>
+            <div className="mt-3">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                추가 메모 (선택)
+              </label>
+              <Input
+                value={cancelMemo}
+                onChange={(e) => setCancelMemo(e.target.value)}
+                placeholder="선택 사유를 더 자세히 입력하세요."
+                disabled={isCancelling}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={isCancelling}
+              onClick={() => setShowCancelDialog(false)}
+            >
+              뒤로가기
+            </Button>
+            <Button
+              disabled={isCancelling}
+              className="bg-primary text-white"
+              onClick={executeCancelApplication}
+            >
+              {isCancelling ? '취소 처리 중...' : '취소하기'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 판매 전환 Dialog */}
       <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
