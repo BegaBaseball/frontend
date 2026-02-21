@@ -2,6 +2,7 @@ import { Edit, BarChart3, Ticket, UserPlus, Users, Coins } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Skeleton } from './ui/skeleton';
+import LoadingSpinner from './LoadingSpinner';
 import TeamLogo from './TeamLogo';
 import ProfileEditSection from './mypage/ProfileEditSection';
 import PasswordChangeSection from './mypage/PasswordChangeSection';
