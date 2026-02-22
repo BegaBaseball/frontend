@@ -34,19 +34,23 @@ export default function ImageLightbox({
 
   return (
     <div
+      data-skip-cheer-card-nav
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
       onClick={(event) => {
         event.stopPropagation();
         onClose();
       }}
+      onPointerDown={(event) => event.stopPropagation()}
     >
       <button
         type="button"
+        data-skip-cheer-card-nav
         className="absolute right-6 top-6 rounded-full p-2 text-white transition-colors hover:bg-white/10"
         onClick={(event) => {
           event.stopPropagation();
           onClose();
         }}
+        onPointerDown={(event) => event.stopPropagation()}
         aria-label="Close image viewer"
       >
         <X className="h-8 w-8" />
@@ -54,19 +58,26 @@ export default function ImageLightbox({
 
       {images.length > 1 && (
         <button
-          type="button"
-          className="absolute left-6 rounded-full p-3 text-white transition-colors hover:bg-white/10"
-          onClick={(event) => {
-            event.stopPropagation();
-            onPrev();
-          }}
-          aria-label="Previous image"
-        >
-          <ChevronLeft className="h-10 w-10" />
-        </button>
+        type="button"
+        data-skip-cheer-card-nav
+        className="absolute left-6 rounded-full p-3 text-white transition-colors hover:bg-white/10"
+        onClick={(event) => {
+          event.stopPropagation();
+          onPrev();
+        }}
+        onPointerDown={(event) => event.stopPropagation()}
+        aria-label="Previous image"
+      >
+        <ChevronLeft className="h-10 w-10" />
+      </button>
       )}
 
-      <div className="max-h-[90vh] max-w-[90vw]" onClick={(event) => event.stopPropagation()}>
+      <div
+        data-skip-cheer-card-nav
+        className="max-h-[90vh] max-w-[90vw]"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         <img
           src={images[currentIndex]}
           alt={`Image ${currentIndex + 1}`}
@@ -80,16 +91,18 @@ export default function ImageLightbox({
 
       {images.length > 1 && (
         <button
-          type="button"
-          className="absolute right-6 rounded-full p-3 text-white transition-colors hover:bg-white/10"
-          onClick={(event) => {
-            event.stopPropagation();
-            onNext();
-          }}
-          aria-label="Next image"
-        >
-          <ChevronRight className="h-10 w-10" />
-        </button>
+        type="button"
+        data-skip-cheer-card-nav
+        className="absolute right-6 rounded-full p-3 text-white transition-colors hover:bg-white/10"
+        onClick={(event) => {
+          event.stopPropagation();
+          onNext();
+        }}
+        onPointerDown={(event) => event.stopPropagation()}
+        aria-label="Next image"
+      >
+        <ChevronRight className="h-10 w-10" />
+      </button>
       )}
     </div>
   );

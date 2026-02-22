@@ -20,6 +20,11 @@ interface UseWebSocketProps {
 export function useWebSocket({ partyId, onMessageReceived, enabled = true }: UseWebSocketProps) {
   const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  // 최신 콜백을 ref로 유지하여 deps에서 제거 → 불필요한 재연결 방지
+  const onMessageReceivedRef = useRef(onMessageReceived);
+  useEffect(() => {
+    onMessageReceivedRef.current = onMessageReceived;
+  });
 
   // WebSocket 연결
   useEffect(() => {
@@ -47,7 +52,7 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
       // 해당 파티 채팅방 구독
       client.subscribe(`/topic/party/${partyId}`, (message: IMessage) => {
         const receivedMessage = JSON.parse(message.body) as ChatMessage;
-        onMessageReceived(receivedMessage);
+        onMessageReceivedRef.current(receivedMessage);
       });
     };
 
@@ -69,7 +74,7 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
       }
       setIsConnected(false);
     };
-  }, [partyId, enabled, onMessageReceived]);
+  }, [partyId, enabled]);
 
   // 메시지 전송
   const sendMessage = useCallback(

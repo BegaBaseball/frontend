@@ -1,8 +1,8 @@
 import { type UIEvent } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { getBlockedUsers } from '../../api/blockApi';
-import { Loader2, Ban, User, Info } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Loader2, Ban, Info } from 'lucide-react';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 import BlockButton from '../profile/BlockButton';
 
 export default function BlockedUsersSection() {
@@ -65,12 +65,15 @@ export default function BlockedUsersSection() {
                                 <div
                                     className="flex items-center gap-3 flex-1 min-w-0 mr-4"
                                 >
-                                    <Avatar className="h-10 w-10 border border-gray-200 dark:border-border">
-                                        <AvatarImage src={user.profileImageUrl ?? undefined} />
-                                        <AvatarFallback className="bg-gray-100 text-gray-400">
-                                            <User className="h-5 w-5" />
-                                        </AvatarFallback>
-                                    </Avatar>
+                                    <ProfileAvatar
+                                        src={user.profileImageUrl ?? undefined}
+                                        alt={user.name}
+                                        fallbackName={user.name}
+                                        width={40}
+                                        height={40}
+                                        showRing
+                                        ringClassName="p-0.5 bg-gray-200/70 dark:bg-white/10"
+                                    />
                                     <div className="flex flex-col truncate">
                                         <span className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
                                             {user.name}

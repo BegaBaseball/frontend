@@ -182,7 +182,7 @@ export default function RankingPrediction() {
         >
           <div className="flex items-center gap-3">
             <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${rankBadgeClassName} font-black text-lg ${isPostSeasonZone ? 'ring-2 ring-primary/20 dark:ring-primary/40' : ''}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${rankBadgeClassName} font-black text-lg ${isPostSeasonZone ? 'border-2 border-primary/20 dark:border-primary/40' : ''}`}
             >
               {index + 1}
             </div>

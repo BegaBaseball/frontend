@@ -3,6 +3,7 @@ import type {
   Party, Application, CheckIn, PartyReview, ChatMessage, PartyStatus,
   CreatePartyRequest, UpdatePartyRequest, CreateApplicationRequest,
   CreateCheckInRequest, CreateCheckInQrSessionRequest, CreateCheckInQrSessionResponse, CreateReviewRequest,
+  CancelApplicationRequest, CancelApplicationResponse, PaymentFlowType,
 } from '../types/mate';
 import type { UserProfileApiResponse } from '../types/profile';
 import type { NotificationData } from '../types/notification';
@@ -212,6 +213,16 @@ export const api = {
   async cancelApplication(applicationId: string | number): Promise<void> {
     await this.request(`/applications/${applicationId}`, {
       method: 'DELETE',
+    });
+  },
+
+  async cancelApplicationWithReason(
+    applicationId: string | number,
+    data: CancelApplicationRequest,
+  ): Promise<CancelApplicationResponse> {
+    return this.request<CancelApplicationResponse>(`/applications/${applicationId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 
@@ -426,5 +437,54 @@ export const api = {
 
   async getUserAverageRating(userId: number): Promise<number> {
     return this.request<number>(`/reviews/user/${userId}/average`);
+  },
+
+  // Payments
+  async prepareTossPayment(data: {
+    partyId: number;
+    flowType?: PaymentFlowType;
+    cancelPolicyVersion?: string;
+  }): Promise<{
+    intentId: number;
+    orderId: string;
+    amount: number;
+    currency: 'KRW';
+    orderName: string;
+    flowType: PaymentFlowType;
+    cancelPolicyVersion?: string;
+    paymentType: 'DEPOSIT' | 'FULL';
+  }> {
+    return this.request<{
+      intentId: number;
+      orderId: string;
+      amount: number;
+      currency: 'KRW';
+      orderName: string;
+      flowType: PaymentFlowType;
+      cancelPolicyVersion?: string;
+      paymentType: 'DEPOSIT' | 'FULL';
+    }>('/payments/toss/prepare', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async confirmTossPayment(data: {
+    paymentKey: string;
+    orderId: string;
+    intentId?: number;
+    flowType?: PaymentFlowType;
+    cancelPolicyVersion?: string;
+    partyId: number;
+    message?: string;
+    verificationToken?: string | null;
+    ticketVerified?: boolean;
+    ticketImageUrl?: string | null;
+    paymentType?: 'DEPOSIT' | 'FULL';
+  }): Promise<Application> {
+    return this.request<Application>('/payments/toss/confirm', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 };

@@ -374,6 +374,21 @@ export default function MateManage() {
         <Badge variant="outline" className="ml-2">
           {app.paymentType === 'DEPOSIT' ? '보증금' : '전액결제'}
         </Badge>
+        {app.paymentStatus && (
+          <Badge variant="outline">
+            결제: {app.paymentStatus}
+          </Badge>
+        )}
+        {app.settlementStatus && (
+          <Badge variant="outline">
+            정산: {app.settlementStatus}
+          </Badge>
+        )}
+        {typeof app.netSettlementAmount === 'number' && (
+          <span className="ml-auto text-xs text-gray-500">
+            순정산 {app.netSettlementAmount.toLocaleString()}원
+          </span>
+        )}
       </div>
 
       {showActions && (

@@ -159,7 +159,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       navigate('/');
     },
     onError: (error: Error) => {
-      setError(error.message);
+      toast.error(error.message || '계정 삭제에 실패했습니다. 다시 시도해주세요.');
     },
   });
 

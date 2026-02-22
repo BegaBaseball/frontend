@@ -122,10 +122,10 @@ export const useMyPage = () => {
 
   // ========== 로그인 체크 ==========
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isAuthLoading && !isLoggedIn) {
       navigateToLogin();
     }
-  }, [isLoggedIn, navigateToLogin]);
+  }, [isLoggedIn, isAuthLoading, navigateToLogin]);
 
   // ========== Computed Values ==========
   const profileImage = profile?.profileImageUrl ?? null;

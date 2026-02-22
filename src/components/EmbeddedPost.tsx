@@ -56,7 +56,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                         <img
                             src={post.authorProfileImageUrl}
                             alt={post.author}
-                            className="h-full w-full object-cover image-render-quality"
+                            className="h-full w-full object-cover block image-render-quality"
                         />
                     ) : (
                         <div className="h-full w-full flex items-center justify-center text-xs font-medium text-slate-500 dark:text-gray-300">

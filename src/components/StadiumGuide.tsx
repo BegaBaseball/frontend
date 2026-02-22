@@ -3,7 +3,6 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Skeleton } from './ui/skeleton';
 import { MapPin, RefreshCw, AlertTriangle } from 'lucide-react';
-import ChatBot from './ChatBot';
 import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constants';
 import { openKakaoMapRoute } from '../utils/kakaoMap';
 import { getCategoryIconConfig } from '../utils/stadium';
@@ -403,8 +402,6 @@ export default function StadiumGuide() {
         </div>
       </div>
 
-      {/* ChatBot */}
-      <ChatBot />
     </div>
   );
 }

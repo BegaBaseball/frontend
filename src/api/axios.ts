@@ -35,6 +35,16 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
         const responseCode = error.response?.data?.code;
+        const errorMessage = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
+        const isCancelError = axios.isCancel(error)
+            || error?.code === 'ERR_CANCELED'
+            || error?.name === 'AbortError'
+            || error?.name === 'CanceledError'
+            || errorMessage.includes('canceled');
+
+        if (isCancelError) {
+            return Promise.reject(error);
+        }
 
         if (hasSessionExpired) {
             return Promise.reject(error);

@@ -295,19 +295,7 @@ describe('Mate Page Accuracy', () => {
     cy.contains('대전 한화생명 이글스파크').should('be.visible');
 
     cy.get('input[type="text"]').clear();
-    // Use a more robust selector for the date input or button
-    cy.get('button').contains('날짜').click();
-    // Assuming the date picker appears and we select a date. 
-    // If the test uses a native date input, we should interact with that.
-    // Based on previous code, it seems to be checking for a date param.
-    // Let's assume the previous interaction was correct but maybe the wait was too fast.
-    cy.wait(500);
-
-    // If the UI has a "clear" or "reset" button for search/filter, use that.
-    // For now, let's just trigger the date filter.
-    // The previous selector `.min-w-\\[60px\\]` is very fragile. 
-    // Let's try to find the date filter button more reliably.
-    cy.get('div').contains('날짜').parent().click();
+    cy.get('button[aria-label*="요일"]').first().click();
 
     cy.wait('@getPartiesDate').then((interception) => {
       const requestUrl = new URL(interception.request.url);

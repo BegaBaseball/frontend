@@ -458,4 +458,59 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.tick(2000);
     cy.contains(reducedMotionMessage).should('be.visible');
   });
+
+
+  it('renders coach briefing card without markdown markers', () => {
+    const markdownMessage = '**마크다운 테스트**에서 `요약` 결과가 노출됩니다.';
+
+    cy.intercept('POST', '**/coach/analyze*', {
+      statusCode: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: buildSseResponse({
+        delta: JSON.stringify({
+          headline: '마크다운 테스트',
+          coach_note: markdownMessage,
+        }),
+        meta: {
+          validation_status: 'success',
+          structured_response: {
+            headline: '마크다운 테스트',
+            sentiment: 'positive',
+            key_metrics: [],
+            analysis: {
+              strengths: [],
+              weaknesses: [],
+              risks: [],
+            },
+            detailed_markdown: '## 핵심 정리\n- **타격** 수치가 개선됨\n- `OPS`가 0.920',
+            coach_note: markdownMessage,
+          },
+          resolved_focus: ['recent_form'],
+          focus_signature: 'recent_form',
+          question_signature: 'auto',
+          cache_key_version: 'v3',
+          request_mode: 'auto_brief',
+          cached: false,
+          cache_state: 'HIT',
+          in_progress: false,
+        },
+      }),
+    }).as('coachAnalyzeMarkdownCard');
+
+    openPredictionPage({ reducedMotion: true });
+
+    cy.tick(2000);
+    cy.wait('@coachAnalyzeMarkdownCard');
+
+    cy.get('[data-testid="coach-briefing-message"]', { timeout: 12000 })
+      .invoke('text')
+      .then((text) => {
+        expect(text).to.not.contain('**');
+        expect(text).to.not.contain('`');
+        expect(text).to.not.contain('###');
+        expect(text).to.not.contain('#');
+        expect(text).to.not.contain('```');
+        expect(text).to.not.contain('- ');
+      });
+  });
 });

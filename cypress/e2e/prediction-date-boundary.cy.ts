@@ -92,9 +92,9 @@ describe('Prediction Date Boundary', () => {
         openPredictionPage();
 
         cy.wait('@getUserVotes');
-        cy.contains('요청 버튼을 눌러주세요').should('be.visible');
-        cy.contains('경기 시작 전입니다').should('not.exist');
-        cy.contains('핵심 경기만 자동 분석을 제공합니다. 필요한 경기에서는 직접 AI 분석을 요청하세요.').should('be.visible');
+        cy.contains('경기 시작 전입니다').should('be.visible');
+        cy.contains('요청 버튼을 눌러주세요').should('not.exist');
+        cy.contains('예정 경기에서는 자동 분석이 적용되지 않습니다. 필요하면 직접 AI 분석을 요청하세요.').should('be.visible');
         cy.get('@coachAnalyze.all').should('have.length', 0);
     });
 });

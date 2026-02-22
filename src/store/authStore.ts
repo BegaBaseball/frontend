@@ -64,6 +64,17 @@ const normalizeProfileImageUrl = (value?: string | null) => {
   return trimmedValue.length > 0 ? trimmedValue : null;
 };
 
+const blurFocusedElement = () => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  const activeElement = document.activeElement;
+  if (activeElement instanceof HTMLElement) {
+    activeElement.blur();
+  }
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -247,12 +258,17 @@ export const useAuthStore = create<AuthState>()(
           user: state.user ? { ...state.user, favoriteTeam: team, favoriteTeamColor: color } : null,
         })),
 
-      setShowLoginRequiredDialog: (show) => set({ showLoginRequiredDialog: show }),
+      setShowLoginRequiredDialog: (show) => {
+        if (show) {
+          blurFocusedElement();
+        }
+        set({ showLoginRequiredDialog: show });
+      },
 
       requireLogin: (callback) => {
         const { isLoggedIn } = get();
         if (!isLoggedIn) {
-          set({ showLoginRequiredDialog: true });
+          get().setShowLoginRequiredDialog(true);
           return false;
         }
         callback?.();

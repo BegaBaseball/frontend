@@ -37,15 +37,33 @@ Cypress.Commands.add('login', (userType = 'user') => {
             version: 0
         };
 
-        cy.session(userType, () => {
-            // Use setCookie and set localStorage
+        // NOTE:
+        // Set auth state inside AUT window (onBeforeLoad) so cy.session can
+        // reliably snapshot/restore it across tests.
+        cy.session(`auth-${userType}-v2`, () => {
+            cy.visit('/', {
+                onBeforeLoad(win) {
+                    win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+                    win.localStorage.setItem('accessToken', fakeToken);
+                    win.localStorage.setItem('bega_has_visited', 'true');
+                    win.localStorage.setItem('bega_dont_show_guide', 'true');
+                },
+            });
+            cy.window().then((win) => {
+                // Re-assert auth state right before session snapshot is captured.
+                win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+                win.localStorage.setItem('accessToken', fakeToken);
+                win.localStorage.setItem('bega_has_visited', 'true');
+                win.localStorage.setItem('bega_dont_show_guide', 'true');
+            });
             cy.setCookie('Authorization', fakeToken);
-            window.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            window.localStorage.setItem('accessToken', fakeToken);
-
-            // Disable WelcomeGuide for tests
-            window.localStorage.setItem('bega_has_visited', 'true');
-            window.localStorage.setItem('bega_dont_show_guide', 'true');
+        }, {
+            validate: () => {
+                cy.window().then((win) => {
+                    expect(win.localStorage.getItem('auth-storage')).to.be.a('string');
+                });
+                cy.getCookie('Authorization').should('exist');
+            },
         });
 
         // Mock reissue to prevent loops
@@ -64,7 +82,7 @@ Cypress.Commands.add('mockAPI', () => {
     }).as('reissue');
 
     // Current User
-    cy.intercept('**/api/auth/mypage', {
+    cy.intercept('GET', '**/api/auth/mypage*', {
         statusCode: 200,
         body: {
             success: true,
@@ -116,6 +134,28 @@ Cypress.Commands.add('mockAPI', () => {
         ]
     }).as('getStadiums');
 
+    // Team franchise metadata (used by Cheer page)
+    cy.intercept('GET', '**/api/franchises/code/*', {
+        statusCode: 200,
+        body: {
+            id: 1,
+            name: 'Hanwha Eagles',
+            originalCode: 'HH',
+            currentCode: 'HH',
+            webUrl: 'https://www.hanwhaeagles.co.kr',
+        },
+    }).as('getFranchiseByCode');
+
+    cy.intercept('GET', '**/api/franchises/*/metadata', {
+        statusCode: 200,
+        body: {
+            summary: '한화 이글스 공식 팀 소개',
+            homeStadium: '대전 한화생명 이글스파크',
+            foundedYear: 1986,
+            owner: '한화그룹',
+        },
+    }).as('getFranchiseMetadata');
+
     // Home Page Stats/Schedules
     cy.intercept('**/api/kbo/schedule*', {
         statusCode: 200,
@@ -144,6 +184,30 @@ Cypress.Commands.add('mockAPI', () => {
             }
         }
     }).as('getPredictionStats');
+
+    cy.intercept('**/api/predictions/my-votes*', {
+        statusCode: 200,
+        body: { votes: {} }
+    }).as('getMyVotes');
+
+    cy.intercept('**/api/matches*', (req) => {
+        if (req.url.includes('/api/matches/bounds')) {
+            req.reply({
+                statusCode: 200,
+                body: {
+                    hasData: true,
+                    earliestGameDate: '2026-01-01',
+                    latestGameDate: '2026-12-31',
+                },
+            });
+            return;
+        }
+
+        req.reply({
+            statusCode: 200,
+            body: [],
+        });
+    }).as('getMatches');
 
     cy.intercept('**/api/kbo/rankings/*', {
         statusCode: 200,
@@ -203,6 +267,62 @@ Cypress.Commands.add('mockAPI', () => {
         statusCode: 200,
         body: []
     }).as('getMyParties');
+
+    // Sessions (Account Settings)
+    cy.intercept('**/api/auth/sessions', {
+        statusCode: 200,
+        body: {
+            success: true,
+            data: [
+                {
+                    id: 'session-1',
+                    deviceLabel: 'Cypress Test Browser',
+                    deviceType: 'desktop',
+                    browser: 'Electron',
+                    os: 'Mac OS',
+                    ip: '127.0.0.1',
+                    lastActiveAt: new Date().toISOString(),
+                    isCurrent: true
+                }
+            ]
+        }
+    }).as('getSessions');
+
+    // Nickname check
+    cy.intercept('**/api/auth/check-name*', {
+        statusCode: 200,
+        body: {
+            success: true,
+            data: {
+                available: true,
+                message: '사용 가능한 닉네임입니다.',
+                normalized: 'testuser'
+            }
+        }
+    }).as('checkName');
+
+    // Blocked users
+    cy.intercept('**/api/users/me/blocked*', {
+        statusCode: 200,
+        body: {
+            success: true,
+            data: {
+                content: [],
+                last: true,
+                totalElements: 0,
+                totalPages: 0,
+                number: 0,
+                size: 20
+            }
+        }
+    }).as('getBlockedUsers');
+
+    // Default AI coach fallback — per-test intercepts override this (LIFO)
+    cy.intercept('POST', '**/coach/analyze*', {
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: 'event: done\ndata: [DONE]\n\n',
+    }).as('coachAnalyzeDefault');
 
 });
 

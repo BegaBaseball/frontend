@@ -29,6 +29,7 @@ import {
     PopoverTrigger
 } from './ui/popover';
 import { cn } from '../lib/utils';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import * as cheatApi from '../api/cheerApi';
 import { Comment } from '../api/cheerApi';
 import { CommentItem } from './cheer/CommentItem';
@@ -81,6 +82,14 @@ export default function CheerDetail() {
         }
         return selectedPost.id;
     }, [selectedPost, parsedPostId]);
+
+    const { data: interactionPost } = useCheerPost(resolvedPostId);
+    const interactionTargetPost = interactionPost ?? selectedPost;
+    const interactionLikeCount = interactionTargetPost?.likes ?? interactionTargetPost?.likeCount ?? 0;
+    const interactionLikedByMe = Boolean(interactionTargetPost?.liked || interactionTargetPost?.likedByUser);
+    const interactionRepostCount = interactionTargetPost?.repostCount ?? 0;
+    const interactionRepostedByMe = Boolean(interactionTargetPost?.repostedByMe);
+    const interactionBookmarked = Boolean(interactionTargetPost?.isBookmarked);
 
     useEffect(() => {
         if (resolvedPostId) {
@@ -392,7 +401,7 @@ export default function CheerDetail() {
         );
     }
 
-    const repostCount = selectedPost.repostCount ?? 0;
+    const repostCount = interactionRepostCount;
     const isRepost = Boolean(selectedPost.repostType);
     const repostTargetAuthorId = isRepost ? selectedPost.originalPost?.authorId : selectedPost.authorId;
     const repostTargetAuthorHandle = isRepost ? selectedPost.originalPost?.authorHandle : selectedPost.authorHandle;
@@ -408,7 +417,7 @@ export default function CheerDetail() {
     const canQuoteRepost = repostPolicy.canQuoteRepost;
     const repostUnavailableMessage = repostPolicy.repostSimpleUnavailableMessage;
     const canCancelRepost = isRepost && selectedPost.isOwner;
-    const repostButtonActive = canCancelRepost ? true : selectedPost.repostedByMe;
+    const repostButtonActive = canCancelRepost ? true : interactionRepostedByMe;
 
     return (
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-background pb-24 sm:pb-20">
@@ -435,28 +444,24 @@ export default function CheerDetail() {
                                         }
                                     }}
                                 >
-                                    <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-gray-200 overflow-hidden">
-                                        {selectedPost.authorProfileImageUrl ? (
-                                            <img
-                                                src={selectedPost.authorProfileImageUrl.includes('/assets/')
+                                    <ProfileAvatar
+                                        src={
+                                            selectedPost.authorProfileImageUrl
+                                                ? (selectedPost.authorProfileImageUrl.includes('/assets/')
                                                     ? DEFAULT_PROFILE_IMAGE
-                                                    : selectedPost.authorProfileImageUrl}
-                                                alt={selectedPost.author}
-                                                className="h-full w-full object-cover"
-                                                onError={(event) => {
-                                                    event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
-                                                }}
-                                            />
-                                        ) : (
-                                            <img
-                                                src={baseballLogo}
-                                                alt="BEGA"
-                                                className="h-6 w-6"
-                                            />
-                                        )}
-                                    </div>
+                                                    : selectedPost.authorProfileImageUrl)
+                                                : baseballLogo
+                                        }
+                                        alt={selectedPost.author}
+                                        fallbackName={selectedPost.author}
+                                        width={40}
+                                        height={40}
+                                        showRing
+                                        ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                        className="!h-full !w-full object-cover block image-render-quality"
+                                    />
                                     {selectedPost.authorTeamId && (
-                                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white ring-2 ring-white dark:ring-slate-700 overflow-hidden flex items-center justify-center">
+                                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white p-0.5 dark:bg-slate-700 flex items-center justify-center">
                                             <TeamLogo
                                                 team={TEAM_DATA[selectedPost.authorTeamId]?.name || selectedPost.authorTeamId}
                                                 size={18}
@@ -540,6 +545,17 @@ export default function CheerDetail() {
                                             src={img}
                                             alt={`uploaded-${idx}`}
                                             className="h-full w-full object-cover aspect-[4/3]"
+                                            onError={(e) => {
+                                                e.currentTarget.style.display = 'none';
+                                                const parent = e.currentTarget.parentElement;
+                                                if (parent) {
+                                                    parent.classList.add('flex', 'items-center', 'justify-center', 'aspect-[4/3]');
+                                                    const placeholder = document.createElement('span');
+                                                    placeholder.className = 'text-xs text-slate-400 dark:text-slate-500';
+                                                    placeholder.textContent = '이미지를 불러올 수 없습니다';
+                                                    parent.appendChild(placeholder);
+                                                }
+                                            }}
                                         />
                                     </div>
                                 ))}
@@ -552,13 +568,13 @@ export default function CheerDetail() {
                                 onClick={toggleLike}
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
-                                    selectedPost.likedByUser
+                                    interactionLikedByMe
                                         ? "bg-red-50 dark:bg-red-900/20 text-red-500"
                                         : "bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
                                 )}
                             >
-                                <Heart className={cn("w-5 h-5", selectedPost.likedByUser && "fill-current")} />
-                                <span className="font-semibold">{selectedPost.likes}</span>
+                                <Heart className={cn("w-5 h-5", interactionLikedByMe && "fill-current")} />
+                                <span className="font-semibold">{interactionLikeCount}</span>
                             </button>
 
                             <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary transition-colors">
@@ -615,15 +631,15 @@ export default function CheerDetail() {
                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                 >
                                                     <div className="flex items-center justify-center w-5 h-5">
-                                                        {selectedPost.repostedByMe ? (
+                                                        {interactionRepostedByMe ? (
                                                             <Undo2 className="w-4 h-4 text-emerald-500" />
                                                         ) : (
                                                             <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <span className={`block text-sm font-medium ${selectedPost.repostedByMe ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}>
-                                                            {selectedPost.repostedByMe ? '리포스트 취소' : '리포스트'}
+                                                        <span className={`block text-sm font-medium ${interactionRepostedByMe ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                                                            {interactionRepostedByMe ? '리포스트 취소' : '리포스트'}
                                                         </span>
                                                     </div>
                                                 </button>
@@ -656,12 +672,12 @@ export default function CheerDetail() {
                                 onClick={toggleBookmark}
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-full transition-colors sm:ml-auto",
-                                    selectedPost.isBookmarked
+                                    interactionBookmarked
                                         ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600"
                                         : "bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
                                 )}
                             >
-                                <Bookmark className={cn("w-5 h-5", selectedPost.isBookmarked && "fill-current")} />
+                                <Bookmark className={cn("w-5 h-5", interactionBookmarked && "fill-current")} />
                             </button>
                         </div>
                     </div>

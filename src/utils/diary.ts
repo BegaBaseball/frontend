@@ -11,9 +11,17 @@ export const getFullImageUrl = (imagePath: string): string => {
 };
 
 /**
- * 파일 크기 검증
+ * 파일 크기 및 MIME 타입 검증
  */
 export const validateFileSize = (files: File[]): { valid: boolean; error?: string } => {
+  const nonImageFiles = files.filter((file) => !file.type.startsWith('image/'));
+  if (nonImageFiles.length > 0) {
+    return {
+      valid: false,
+      error: '이미지 파일만 업로드할 수 있습니다.',
+    };
+  }
+
   const oversizedFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
   if (oversizedFiles.length > 0) {
     return {

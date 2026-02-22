@@ -9,6 +9,16 @@ const buildAiUrl = (path: string) => {
   if (API_BASE.endsWith('/ai')) return `${API_BASE}${path}`;
   return `${API_BASE}/ai${path}`;
 };
+
+const getInternalApiHeaders = (): HeadersInit => {
+  const token =
+    import.meta.env.VITE_AI_INTERNAL_TOKEN ||
+    import.meta.env.VITE_AI_API_TOKEN ||
+    import.meta.env.VITE_AI_TOKEN ||
+    '';
+
+  return token ? { 'X-Internal-Api-Key': token } : {};
+};
 /**
  * FastAPI SSE 스트리밍 처리
  */
@@ -70,7 +80,10 @@ export async function sendChatMessageStream(
       attempt++;
       response = await fetch(buildAiUrl('/chat/stream'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getInternalApiHeaders(),
+        },
         body: JSON.stringify(data),
         credentials: 'include'
       });
@@ -126,12 +139,7 @@ export async function sendChatMessageStream(
   let buffer = '';
   let currentEvent = 'message';
 
-  // Read Timeout Management
-  const controller = new AbortController(); // Not used for fetch (already done), but logical concept. 
-  // Actually, we can't easily abort the standard `response.body` reader from outside without canceling the fetch signal, 
-  // but fetch is already done. We can reader.cancel().
-
-  // We'll race reader.read() against a timeout.
+  // Read Timeout Management: reader.read()와 타임아웃을 race하여 응답 지연 감지.
 
   let streamCompleted = false;
 
@@ -229,6 +237,7 @@ export async function convertVoiceToText(audioBlob: Blob): Promise<string> {
   try {
     const response = await fetch(buildAiUrl('/chat/voice'), {
       method: 'POST',
+      headers: getInternalApiHeaders(),
       body: formData,
       signal: controller.signal,
     });

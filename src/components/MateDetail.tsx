@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { KBO_STADIUMS, StadiumZone } from '../utils/stadiumData';
 import { OptimizedImage } from './common/OptimizedImage';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -591,7 +592,7 @@ export default function MateDetail() {
         <div className="rounded-3xl shadow-2xl overflow-hidden mb-8 transform transition-all hover:scale-[1.01]">
           {/* Header / Banner Area with Team Color Gradient */}
           <div
-            className="relative p-8 text-white"
+            className="relative p-4 sm:p-6 text-white"
             style={{
               background: `linear-gradient(135deg, ${homeTeamColor} 0%, ${homeTeamColor}dd 60%, #1a1a1a 100%)`
             }}
@@ -661,7 +662,7 @@ export default function MateDetail() {
                         {currentZone.name}
                       </Badge>
                       {/* Tooltip for Price & Desc */}
-                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 p-3 bg-gray-900/95 text-white text-xs rounded-lg shadow-xl z-50 animate-in fade-in slide-in-from-bottom-1 ring-1 ring-white/10">
+                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 p-3 bg-gray-900/95 text-white text-xs rounded-lg shadow-xl z-50 border border-white/10 animate-in fade-in slide-in-from-bottom-1">
                         <p className="font-bold text-sm mb-1">{currentZone.description}</p>
                         {currentZone.price && (
                           <div className="text-gray-300 space-y-0.5">
@@ -853,20 +854,16 @@ export default function MateDetail() {
             >
               <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-gray-100 to-transparent dark:from-gray-700/50"></div>
 
-              <div className="relative z-10 mb-2">
-                <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-white/95 dark:ring-border shadow-lg mx-auto bg-white">
-                  {selectedParty.hostProfileImageUrl ? (
-                    <OptimizedImage
-                      src={selectedParty.hostProfileImageUrl}
-                      alt={selectedParty.hostName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 dark:bg-secondary flex items-center justify-center">
-                      <User className="w-10 h-10 text-gray-400" />
-                    </div>
-                  )}
-                </div>
+              <div className="relative z-10 mb-2 flex justify-center">
+                <ProfileAvatar
+                  src={selectedParty.hostProfileImageUrl ?? undefined}
+                  alt={selectedParty.hostName}
+                  fallbackName={selectedParty.hostName}
+                  width={96}
+                  height={96}
+                  showRing
+                  ringClassName="p-1 bg-white/95 dark:bg-border shadow-lg"
+                />
                 {/* Manner Temperature Bar (Carrot Market Style) */}
                 <div className="mt-3 mb-1">
                   <div className="flex items-center justify-center gap-1 mb-1">

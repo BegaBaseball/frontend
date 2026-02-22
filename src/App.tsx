@@ -1,6 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { MessageCircle } from 'lucide-react';
 import { useAuthStore } from './store/authStore';
 import { KAKAO_API_KEY } from './utils/constants';
 import Layout from './components/Layout';
@@ -11,6 +10,7 @@ import { ConfirmDialogProvider } from './components/contexts/ConfirmDialogContex
 import GlobalErrorDialog from './components/GlobalErrorDialog';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import chatBotIcon from './assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 
 // 페이지 컴포넌트를 lazy loading
 const Home = lazy(() => import('./components/Home'));
@@ -45,6 +45,66 @@ const OAuthCallback = lazy(() => import('./components/OAuthCallback'));
 const TestError = lazy(() => import('./components/TestError')); // Test Purpose Only
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const ChatBot = lazy(() => import('./components/ChatBot'));
+const PaymentSuccess = lazy(() => import('./components/PaymentSuccess'));
+const PaymentFail = lazy(() => import('./components/PaymentFail'));
+
+const PREDICTION_GAME_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+const isValidPredictionDate = (value: string): boolean => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+};
+
+const PredictionQueryGuard = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname !== '/prediction' && location.pathname !== '/prediction/') {
+      return;
+    }
+
+    const search = location.search ?? '';
+    const next = new URLSearchParams(search);
+    let changed = false;
+    const rawGameId = (next.get('gameId') || '').trim();
+    if (rawGameId && !PREDICTION_GAME_ID_PATTERN.test(rawGameId)) {
+      next.delete('gameId');
+      changed = true;
+    } else if (rawGameId && rawGameId !== next.get('gameId')) {
+      next.set('gameId', rawGameId);
+      changed = true;
+    }
+
+    const rawDate = (next.get('date') || '').trim();
+    if (rawDate && !isValidPredictionDate(rawDate)) {
+      next.delete('date');
+      changed = true;
+    } else if (rawDate && rawDate !== next.get('date')) {
+      next.set('date', rawDate);
+      changed = true;
+    }
+
+    if (!changed) {
+      return;
+    }
+
+    const nextSearch = next.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true },
+    );
+  }, [location.pathname, location.search, navigate]);
+
+  return null;
+};
 
 function ProtectedRoute() {
   const { isLoggedIn, isAuthLoading, setShowLoginRequiredDialog } = useAuthStore();
@@ -138,10 +198,11 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <ErrorModalProvider>
+        <ErrorModalProvider>
         <ConfirmDialogProvider>
           <BrowserRouter>
             <ScrollToTop />
+            <PredictionQueryGuard />
             <Suspense
               fallback={
                 <LoadingSpinner
@@ -169,6 +230,7 @@ export default function App() {
                   <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()} />} />
                   <Route path="/offseason/list" element={<OffSeasonList />} />
                   <Route path="/cheer" element={<Cheer />} />
+                  <Route path="/cheer/write" element={<Cheer openComposerOnMount />} />
                   <Route path="/cheer/:postId" element={<CheerDetail />} />
                   <Route path="/profile/:handle" element={<UserProfile />} />
                   <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
@@ -191,6 +253,8 @@ export default function App() {
                     <Route path="/mate/:id/manage" element={<MateManage />} />
                     <Route path="/mypage" element={<MyPage />} />
                     <Route path="/mypage/:handle" element={<MyPage />} />
+                    <Route path="/payment/success" element={<PaymentSuccess />} />
+                    <Route path="/payment/fail" element={<PaymentFail />} />
                   </Route>
 
                   {/* 관리자 전용 라우트 */}
@@ -208,16 +272,37 @@ export default function App() {
             </Suspense>
             {isChatBotRequested ? (
               <Suspense fallback={null}>
-                <ChatBot autoOpen />
+                <ChatBot
+                  autoOpen
+                  onClosed={() => setIsChatBotRequested(false)}
+                />
               </Suspense>
             ) : (
               <button
                 type="button"
                 onClick={() => setIsChatBotRequested(true)}
-                className="fixed bottom-5 right-5 z-[9999] h-14 w-14 rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/60"
+                className="fixed z-[9999] h-11 w-11
+                           sm:h-14 sm:w-14 sm:min-h-[56px] sm:min-w-[56px]
+                           md:h-16 md:w-16
+                           rounded-full bg-primary text-white shadow-lg
+                           border-none
+                           inline-flex items-center justify-center overflow-hidden transition-all duration-200
+                           focus:outline-none focus-visible:outline-none focus:ring-0
+                           active:bg-primary active:text-white
+                           touch-action-manipulation
+                           bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))]
+                           md:bottom-[calc(1.25rem+env(safe-area-inset-bottom))] md:right-[calc(1.25rem+env(safe-area-inset-right))]"
                 aria-label="챗봇 열기"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                <MessageCircle className="mx-auto h-6 w-6" />
+                <img
+                  src={chatBotIcon}
+                  alt=""
+                  className="pointer-events-none block h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11 object-cover object-center"
+                  aria-hidden="true"
+                  loading="eager"
+                  decoding="async"
+                />
               </button>
             )}
             <GlobalErrorDialog />

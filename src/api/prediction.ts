@@ -1,15 +1,104 @@
 import api from './axios';
-import { Game, GameDetail, UserPredictionStat } from '../types/prediction';
+import { parseError } from '../utils/errorUtils';
+import { Game, GameDetail, MatchBounds, UserPredictionStat } from '../types/prediction';
 
 export interface MyVotesRequest {
-    gameIds: string[];
+  gameIds: string[];
 }
 
 export interface MyVotesResponse {
-    votes: {
-        [key: string]: 'home' | 'away' | null;
-    };
+  votes: {
+    [key: string]: 'home' | 'away' | null;
+  };
 }
+
+export interface VoteStatus {
+  homeVotes: number;
+  awayVotes: number;
+  totalVotes?: number;
+}
+
+export interface VoteStatusSuccess {
+  ok: true;
+  data: VoteStatus;
+}
+
+export interface VoteStatusFailure {
+  ok: false;
+  error: {
+    message: string;
+    status?: number | null;
+    code?: string;
+  };
+}
+
+export type VoteStatusResult = VoteStatusSuccess | VoteStatusFailure;
+
+export interface ApiErrorDetail {
+  message: string;
+  status?: number | null;
+  code?: string;
+}
+
+export interface ApiSuccess<T> {
+  ok: true;
+  data: T;
+}
+
+export interface ApiFailure {
+  ok: false;
+  error: ApiErrorDetail;
+}
+
+export type ApiResult<T> = ApiSuccess<T> | ApiFailure;
+
+export interface MatchRangeRequest {
+  startDate: string;
+  endDate: string;
+  page?: number;
+  size?: number;
+  includePast?: boolean;
+  withMeta?: boolean;
+}
+
+export interface MatchRangePageMeta {
+  content: Game[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export type MatchRangeResult = ApiResult<Game[] | MatchRangePageMeta>;
+export type GameDetailResult = ApiResult<GameDetail>;
+
+export interface FetchOptions {
+  signal?: AbortSignal;
+}
+
+export const fetchMatchBounds = async (): Promise<ApiResult<MatchBounds>> => {
+  try {
+    const response = await api.get<MatchBounds>('/matches/bounds', {
+      skipGlobalErrorHandler: true,
+    });
+    return {
+      ok: true,
+      data: response.data,
+    };
+  } catch (error) {
+    const parsed = parseError(error);
+    return {
+      ok: false,
+      error: {
+        message: parsed.message || '경기 경계 조회에 실패했습니다.',
+        status: parsed.statusCode,
+        code: parsed.responseCode,
+      },
+    };
+  }
+};
 
 /**
  * 과거 경기 데이터 가져오기
@@ -22,9 +111,130 @@ export const fetchPastGames = async (): Promise<Game[]> => {
 /**
  * 특정 기간의 경기 데이터 가져오기
  */
-export const fetchMatchesByRange = async (startDate: string, endDate: string): Promise<Game[]> => {
-  const response = await api.get<Game[]>(`/matches/range?startDate=${startDate}&endDate=${endDate}`);
-  return response.data;
+export const fetchMatchesByRange = async ({
+  startDate,
+  endDate,
+  page = 0,
+  size = 150,
+  includePast = true,
+  withMeta = false,
+}: MatchRangeRequest): Promise<Game[]> => {
+  const params = new URLSearchParams({
+    startDate,
+    endDate,
+    page: Math.max(0, page).toString(),
+    size: Math.max(1, Math.min(500, size)).toString(),
+    includePast: includePast ? 'true' : 'false',
+    withMeta: withMeta ? 'true' : 'false',
+  });
+
+  const response = await api.get<Game[] | MatchRangePageMeta>(`/matches/range?${params}`, {
+    skipGlobalErrorHandler: true,
+  });
+  if (Array.isArray(response.data)) {
+    return response.data;
+  }
+
+  return response.data.content;
+};
+
+export const fetchMatchesByRangeWithMeta = async ({
+  startDate,
+  endDate,
+  page = 0,
+  size = 150,
+  includePast = true,
+}: MatchRangeRequest): Promise<ApiResult<MatchRangePageMeta>> => {
+  try {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+      page: Math.max(0, page).toString(),
+      size: Math.max(1, Math.min(500, size)).toString(),
+      includePast: includePast ? 'true' : 'false',
+      withMeta: 'true',
+    });
+
+    const response = await api.get<MatchRangePageMeta | Game[]>(`/matches/range?${params}`, {
+      skipGlobalErrorHandler: true,
+    });
+    const data = response.data;
+
+    if (Array.isArray(data)) {
+      return {
+        ok: true,
+        data: {
+          content: data,
+          page,
+          size: Math.max(1, Math.min(500, size)),
+          totalElements: data.length,
+          totalPages: data.length ? 1 : 0,
+          hasNext: false,
+          hasPrevious: false,
+        },
+      };
+    }
+
+    return {
+      ok: true,
+      data,
+    };
+  } catch (error) {
+    const parsed = parseError(error);
+    return {
+      ok: false,
+      error: {
+        message: parsed.message || '경기 목록 조회에 실패했습니다.',
+        status: parsed.statusCode,
+        code: parsed.responseCode,
+      },
+    };
+  }
+};
+
+export const fetchMatchesByRangeResult = async ({
+  startDate,
+  endDate,
+  page = 0,
+  size = 150,
+  includePast = true,
+  withMeta = false,
+}: MatchRangeRequest): Promise<MatchRangeResult> => {
+  try {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+      page: Math.max(0, page).toString(),
+      size: Math.max(1, Math.min(500, size)).toString(),
+      includePast: includePast ? 'true' : 'false',
+      withMeta: withMeta ? 'true' : 'false',
+    });
+
+    const response = await api.get<Game[] | MatchRangePageMeta>(`/matches/range?${params}`, {
+      skipGlobalErrorHandler: true,
+    });
+    if (Array.isArray(response.data)) {
+      return {
+        ok: true,
+        data: response.data,
+      };
+    }
+
+    return {
+      ok: true,
+      data: response.data,
+    };
+  } catch (error) {
+    const parsed = parseError(error);
+    return {
+      ok: false,
+      error: {
+        message: parsed.message || '경기 목록 조회에 실패했습니다.',
+        status: parsed.statusCode,
+        code: parsed.responseCode,
+      },
+    };
+  }
 };
 
 /**
@@ -38,67 +248,115 @@ export const fetchMatchesByDate = async (date: string): Promise<Game[]> => {
 /**
  * 특정 경기 상세 데이터 가져오기
  */
-export const fetchGameDetail = async (gameId: string): Promise<GameDetail> => {
-  const response = await api.get<GameDetail>(`/matches/${gameId}`);
+export const fetchGameDetail = async (gameId: string, options?: FetchOptions): Promise<GameDetail> => {
+  const config = {
+    ...(options?.signal ? { signal: options.signal } : {}),
+    skipGlobalErrorHandler: true,
+  };
+  const response = await api.get<GameDetail>(`/matches/${gameId}`, config);
   return response.data;
+};
+
+export const fetchGameDetailResult = async (
+  gameId: string,
+  options?: FetchOptions
+): Promise<GameDetailResult> => {
+  try {
+    const config = {
+      ...(options?.signal ? { signal: options.signal } : {}),
+      skipGlobalErrorHandler: true,
+    };
+    const response = await api.get<GameDetail>(`/matches/${gameId}`, config);
+    return {
+      ok: true,
+      data: response.data,
+    };
+  } catch (error) {
+    const parsed = parseError(error);
+    return {
+      ok: false,
+      error: {
+        message: parsed.message || '경기 상세 정보를 가져오지 못했습니다.',
+        status: parsed.statusCode,
+        code: parsed.responseCode,
+      },
+    };
+  }
 };
 
 /**
  * 특정 경기의 사용자 투표 조회
  */
 export const fetchUserVote = async (gameId: string): Promise<string | null> => {
+  // 단건 조회도 내부적으로 my-votes 배치 API로 통합해
+  // prediction 페이지의 캐시/중복 호출 정책과 동일하게 처리한다.
+  const normalizedGameId = gameId.trim();
+  if (!normalizedGameId) {
+    return null;
+  }
+
   try {
-    const response = await api.get<{ votedTeam: string }>(`/predictions/my-vote/${gameId}`);
-    return response.data.votedTeam || null;
-  } catch (error) {
-    // 404 might mean no vote? If backend returns 404 for no vote, we should handle it.
-    // Assuming backend returns 200 with null if no vote, or 404.
-    // If it's a real error, global handler shows modal. We return null to UI.
+    const votes = await fetchAllUserVotesBulk([normalizedGameId]);
+    return votes[normalizedGameId] || null;
+  } catch {
     return null;
   }
 };
 
-/**
- * 모든 경기의 사용자 투표 일괄 조회
- */
-export const fetchAllUserVotes = async (games: Game[]): Promise<{ [key: string]: 'home' | 'away' | null }> => {
-  const votes: { [key: string]: 'home' | 'away' | null } = {};
-
-  // Note: This sequential fetching is inefficient. Consider bulk API.
-  for (const game of games) {
-    const vote = await fetchUserVote(game.gameId);
-    votes[game.gameId] = vote as 'home' | 'away' | null;
+export const fetchAllUserVotesBulk = async (
+  gameIds: string[]
+): Promise<{ [key: string]: 'home' | 'away' | null }> => {
+  if (!gameIds.length) {
+    return {};
   }
 
-  return votes;
-};
-
-export const fetchAllUserVotesBulk = async (
-    gameIds: string[]
-): Promise<{ [key: string]: 'home' | 'away' | null }> => {
-    if (!gameIds.length) {
-        return {};
+  try {
+    const response = await api.post<MyVotesResponse>('/predictions/my-votes', {
+      gameIds: Array.from(new Set(gameIds)).filter((gameId) => gameId),
+    } as MyVotesRequest, {
+      skipGlobalErrorHandler: true,
+    });
+    return response.data?.votes || {};
+  } catch (error) {
+    const parsedError = parseError(error);
+    if (!error || typeof error !== 'object' || !('status' in error)) {
+      throw error;
     }
-
-    try {
-        const response = await api.post<MyVotesResponse>('/predictions/my-votes', {
-            gameIds: Array.from(new Set(gameIds)).filter((gameId) => gameId),
-        } as MyVotesRequest);
-        return response.data?.votes || {};
-    } catch {
-        return {};
-    }
+    throw new Error(parsedError.message || '배열 투표 조회에 실패했습니다.');
+  }
 };
 
 /**
  * 투표 현황 가져오기
  */
-export const fetchVoteStatus = async (gameId: string): Promise<{ homeVotes: number; awayVotes: number }> => {
+export const fetchVoteStatus = async (
+  gameId: string,
+  options?: FetchOptions
+): Promise<VoteStatusResult> => {
   try {
-    const response = await api.get<{ homeVotes: number; awayVotes: number }>(`/predictions/status/${gameId}`);
-    return { homeVotes: response.data.homeVotes, awayVotes: response.data.awayVotes };
+    const response = await api.get<VoteStatus>(`/predictions/status/${gameId}`, {
+      signal: options?.signal,
+      skipGlobalErrorHandler: true,
+    });
+
+    return {
+      ok: true,
+      data: {
+        homeVotes: response.data.homeVotes,
+        awayVotes: response.data.awayVotes,
+        totalVotes: response.data.totalVotes,
+      },
+    };
   } catch (error) {
-    return { homeVotes: 0, awayVotes: 0 };
+    const parsed = parseError(error);
+    return {
+      ok: false,
+      error: {
+        message: parsed.message || '투표 상태를 가져오지 못했습니다.',
+        status: parsed.statusCode,
+        code: parsed.responseCode,
+      },
+    };
   }
 };
 

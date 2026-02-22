@@ -17,7 +17,7 @@ import { useAuthStore } from '../store/authStore';
 import LoadingSpinner from './LoadingSpinner';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { Input } from './ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import { api } from '../utils/api';
 import { mapBackendPartyToFrontend, formatGameDate, getDayOfWeek } from '../utils/mate';
@@ -61,7 +61,6 @@ export default function Mate() {
   // Sync debounced input to the Zustand store (triggers API fetch)
   useEffect(() => {
     setSearchQuery(debouncedInput);
-    setCurrentPage(0); // Explicitly reset page
   }, [debouncedInput, setSearchQuery]);
 
   // Helper to detect stadium from query
@@ -140,6 +139,7 @@ export default function Mate() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const requestIdRef = useRef(0);
+  const filterSignatureRef = useRef<string | null>(null);
 
   // 새로운 필터 상태
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -164,6 +164,26 @@ export default function Mate() {
   // 컴포넌트 마운트 및 상태 변경 시 파티 목록 불러오기
   useEffect(() => {
     const controller = new AbortController();
+    const dateKey = selectedDate ? toDateString(selectedDate) : '';
+    const teamKey = myTeamOnly && favoriteTeamId ? favoriteTeamId : '';
+    const filterSignature = [
+      debouncedInput.trim(),
+      dateKey,
+      selectedStatus ?? '',
+      teamKey,
+    ].join('|');
+
+    if (filterSignatureRef.current !== null
+      && filterSignatureRef.current !== filterSignature
+      && currentPage !== 0) {
+      filterSignatureRef.current = filterSignature;
+      setCurrentPage(0);
+      return () => {
+        controller.abort();
+      };
+    }
+
+    filterSignatureRef.current = filterSignature;
 
     const fetchParties = async () => {
       const requestId = ++requestIdRef.current;
@@ -427,24 +447,16 @@ export default function Mate() {
 
           {/* 호스트 정보 & 참여 인원 Progress Bar */}
           <div className="flex items-center justify-between border-t border-gray-100 dark:border-border pt-3">
-            <div className="flex items-center gap-2">
-              <Avatar className="w-6 h-6 border border-gray-200">
-                <AvatarImage
-                  src={hostAvatarSrc}
-                  className="object-cover"
-                  onError={() => {
-                    setBrokenHostAvatarIds((prev) => {
-                      if (prev.has(party.id)) return prev;
-                      const next = new Set(prev);
-                      next.add(party.id);
-                      return next;
-                    });
-                  }}
-                />
-                <AvatarFallback className="text-[10px] bg-primary text-white">
-                  {party.hostName.slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
+          <div className="flex items-center gap-2">
+              <ProfileAvatar
+                src={hostAvatarSrc}
+                alt={party.hostName}
+                fallbackName={party.hostName}
+                width={24}
+                height={24}
+                showRing
+                ringClassName="p-0.5 bg-gray-200/70 dark:bg-white/10"
+              />
               <span className="text-xs text-gray-500">{party.hostName}</span>
               <div className="flex items-center text-xs text-yellow-500">
                 <Star className="w-3 h-3 fill-current mr-0.5" />
