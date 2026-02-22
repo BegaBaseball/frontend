@@ -135,7 +135,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-2xl md:rounded-3xl shadow-xl border-none bg-primary">
         <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('/grid-pattern.svg')] bg-center"></div>
-        <div className="px-6 py-10 md:px-8 md:py-12 relative z-10">
+        <div className="px-6 py-8 md:px-8 md:py-12 relative z-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <Badge className="bg-yellow-400 text-gray-900 mb-3 md:mb-4 hover:bg-yellow-500 border-none font-bold">2025-26 스토브리그</Badge>
@@ -165,7 +165,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
             <h3 className="text-xl md:text-3xl mb-6 md:mb-8 text-white font-black tracking-tight">
               2026 시즌 개막까지
             </h3>
-            <div className="inline-block px-8 py-4 md:px-12 md:py-8 rounded-[30px] md:rounded-[40px] mb-6 md:mb-8 shadow-2xl border border-white/20" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+            <div className="inline-block px-6 py-3 sm:px-8 sm:py-4 md:px-12 md:py-8 rounded-[30px] md:rounded-[40px] mb-6 md:mb-8 shadow-2xl border border-white/20" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
               <div className="text-5xl md:text-8xl text-white font-black tracking-tighter">
                 D-{daysUntilOpening}
               </div>
@@ -201,7 +201,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
             ))}
           </div>
         ) : bigEvents.length === 0 ? (
-          <Card className="p-10 md:p-16 text-center border-none bg-white dark:bg-background ring-1 ring-black/5 dark:ring-white/10">
+          <Card className="p-6 sm:p-8 md:p-10 text-center border-none bg-white dark:bg-background ring-1 ring-black/5 dark:ring-white/10">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-card flex items-center justify-center">
               <TrendingUp className="w-8 h-8 text-gray-400" />
             </div>
@@ -241,11 +241,11 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       </section>
 
       {/* Button to Open List Page */}
-      <section className="flex justify-center pb-10">
-        <Button
-          onClick={() => navigate('/offseason/list')}
-          className="bg-white dark:bg-card text-primary border border-primary/20 hover:bg-primary/5 rounded-full px-8 py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-        >
+        <section className="flex justify-center pb-10">
+          <Button
+            onClick={() => navigate('/offseason/list')}
+            className="bg-white dark:bg-card text-primary border border-primary/20 hover:bg-primary/5 rounded-full px-6 py-4 sm:px-8 sm:py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+          >
           전체 이적 현황 보러가기 ({movements.length}건)
           <ChevronDown className="w-5 h-5 ml-2 -rotate-90" />
         </Button>
@@ -376,7 +376,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
             </div>
           ) : (
             /* Desktop: Original Horizontal Bracket Layout */
-            <div className="min-w-[800px] flex items-center justify-center relative h-[400px] gap-12">
+                <div className="min-w-[680px] sm:min-w-[760px] md:min-w-[800px] flex items-center justify-center relative h-[340px] sm:h-[380px] md:h-[400px] gap-6 sm:gap-9 md:gap-12">
 
               {/* WC Stage (Left - Lowest) */}
               <div className="flex flex-col gap-4 relative z-10 translate-y-20">

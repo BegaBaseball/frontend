@@ -8,6 +8,7 @@ import TeamLogo from '../TeamLogo';
 import { Game, VoteTeam, GameDetail, GameSummary, GameInningScore } from '../../types/prediction';
 import { GAME_TIME } from '../../constants/prediction';
 import { getTeamColorByAnyKey, getFullTeamName } from '../../constants/teams';
+import type { GameStatusCode } from '../../utils/prediction';
 
 interface AdvancedMatchCardProps {
   game: Game;
@@ -17,7 +18,7 @@ interface AdvancedMatchCardProps {
   votePercentages: { homePercentage: number; awayPercentage: number; totalVotes: number };
   isVoteOpen: boolean;
   statusLabel: string;
-  isClosed: boolean;
+  statusCode: GameStatusCode;
   onVote: (team: VoteTeam) => void;
   onPrevDate: () => void;
   onNextDate: () => void;
@@ -144,7 +145,7 @@ export default function AdvancedMatchCard({
   votePercentages,
   isVoteOpen,
   statusLabel,
-  isClosed,
+  statusCode,
   onVote,
   onPrevDate,
   onNextDate,
@@ -275,22 +276,23 @@ export default function AdvancedMatchCard({
   const lastInning = hasExtraInnings
     ? Math.max(...extraInningScores.map((score) => score.inning))
     : 9;
-  const normalizedDetailStatus = (gameDetail?.gameStatus || '').toUpperCase();
-  const isPostponedStatus = normalizedDetailStatus === 'POSTPONED' || statusLabel.includes('연기');
-  const isCancelledStatus = normalizedDetailStatus === 'CANCELLED' || statusLabel.includes('취소');
+  const isPostponedStatus = statusCode === 'POSTPONED';
+  const isCancelledStatus = statusCode === 'CANCELLED';
   const isPostponedOrCancelled = isPostponedStatus || isCancelledStatus;
-  const isScheduledLayout = !isPostponedOrCancelled && (isVoteOpen || statusLabel === '경기 예정');
+  const isScheduledLayout = statusCode === 'SCHEDULED';
   const shouldHideResultSections = isScheduledLayout || isPostponedOrCancelled;
   const scheduledStateLabel = isPostponedStatus
     ? '경기 연기'
     : isCancelledStatus
       ? '경기 취소'
       : '경기 시작 예정';
+  const showStatusBadge = isScheduledLayout || isPostponedOrCancelled;
   const matchStatusLabel = isPostponedOrCancelled
     ? scheduledStateLabel
-    : isClosed && lastInning
+    : (statusCode === 'COMPLETED' || statusCode === 'DRAW') && lastInning
       ? `경기 종료 (${lastInning}회)`
       : statusLabel;
+  const cheeringCaption = isScheduledLayout ? '사전 응원/예측 참여수' : '실시간 팬 응원 참여수';
 
   const cheeringTotal = totalVotes;
   const awayVotes = cheeringTotal === 0
@@ -478,12 +480,14 @@ export default function AdvancedMatchCard({
             <div className="flex gap-2 md:gap-3">
               <Button
                 disabled
+                data-testid="vote-disabled-away-btn"
                 className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300"
               >
                 {awayTeamName}
               </Button>
               <Button
                 disabled
+                data-testid="vote-disabled-home-btn"
                 className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300"
               >
                 {homeTeamName}
@@ -521,23 +525,30 @@ export default function AdvancedMatchCard({
             </div>
 
             <div className="relative flex justify-center">
-              <MetaBadge className="absolute top-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold backdrop-blur">
-                {matchMetaLabel || '경기 정보'}
-              </MetaBadge>
-              {isPostponedOrCancelled && (
+              {showStatusBadge && (
                 <MetaBadge
-                  className={`absolute top-8 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold backdrop-blur ${
+                  data-testid="prediction-status-badge"
+                  className={`absolute top-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold backdrop-blur ${
                     isCancelledStatus
                       ? 'bg-rose-500/30 text-rose-100 border border-rose-200/40'
-                      : 'bg-amber-500/30 text-amber-50 border border-amber-100/40'
+                      : isPostponedStatus
+                        ? 'bg-amber-500/30 text-amber-50 border border-amber-100/40'
+                        : 'bg-emerald-500/30 text-emerald-50 border border-emerald-100/40'
                   }`}
                 >
-                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {isPostponedOrCancelled ? (
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                  ) : (
+                    <Clock3 className="h-3.5 w-3.5" />
+                  )}
                   {scheduledStateLabel}
                 </MetaBadge>
               )}
+              <MetaBadge className={`absolute rounded-full bg-black/30 px-3 py-1 text-sm font-semibold backdrop-blur ${showStatusBadge ? 'top-8' : 'top-0'}`}>
+                {matchMetaLabel || '경기 정보'}
+              </MetaBadge>
             </div>
-            <div className="relative mt-10 flex items-end justify-between gap-3">
+            <div className={`relative flex items-end justify-between gap-3 ${showStatusBadge ? 'mt-14' : 'mt-10'}`}>
               <div className="flex w-[30%] flex-col items-center text-center">
                 <TeamLogoBox className="flex h-14 w-14 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)]">
                   <TeamLogo team={game.awayTeam} size={44} className="h-11 w-11" />
@@ -770,8 +781,8 @@ export default function AdvancedMatchCard({
                       transition={{ type: 'spring', stiffness: 50, damping: 20 }}
                     />
                   </ProgressBarWrapper>
-                  <div className="mt-2 text-center text-[12px] text-gray-500 dark:text-gray-300">
-                    실시간 팬 응원 참여수: {cheeringTotal.toLocaleString()}명
+                  <div data-testid="cheering-gauge-caption" className="mt-2 text-center text-[12px] text-gray-500 dark:text-gray-300">
+                    {cheeringCaption}: {cheeringTotal.toLocaleString()}명
                   </div>
                 </GaugeContainer>
               </section>

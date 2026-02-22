@@ -156,12 +156,10 @@ export default function MateCheckIn() {
     setIsChecking(true);
 
     try {
-      // 위치 확인 시뮬레이션
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       const checkInData = {
         partyId: selectedParty.id,
-        userId: currentUserId,
         location: selectedParty.stadium,
         ...(qrSessionId ? { qrSessionId } : {}),
       };
@@ -271,7 +269,7 @@ export default function MateCheckIn() {
                 <p className="mb-2">체크인 안내</p>
                 <ul className="list-disc list-inside space-y-1 text-sm">
                   <li>경기장 근처에서만 체크인이 가능합니다</li>
-                  <li>모든 참여자가 체크인해야 보증금이 정산됩니다</li>
+                  <li>체크인 기록은 노쇼 판정 및 분쟁 처리에 사용됩니다</li>
                   <li>체크인하지 않으면 노쇼로 처리됩니다</li>
                 </ul>
               </AlertDescription>
@@ -302,7 +300,7 @@ export default function MateCheckIn() {
                 {isChecking ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    위치 확인 중...
+                    처리 중...
                   </>
                 ) : (
                   <>
@@ -336,7 +334,7 @@ export default function MateCheckIn() {
                   <CheckCircle className="w-4 h-4 text-green-600" />
                   <AlertDescription className="text-sm text-green-800">
                     모든 참여자가 체크인을 완료했습니다!<br />
-                    보증금이 정산되었습니다.
+                    체크인 기록이 최종 확정되었습니다.
                   </AlertDescription>
                 </Alert>
               )}

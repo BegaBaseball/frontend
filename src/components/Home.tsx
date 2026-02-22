@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Calendar as CalendarIcon, Trophy, ChevronLeft, ChevronRight,
-    CalendarDays, Loader2, Flame, AlertTriangle, RefreshCw
+    CalendarDays, Loader2, Flame, AlertTriangle, RefreshCw, Clock3, ChevronDown
 } from 'lucide-react';
 
 // UI Components
@@ -14,8 +14,14 @@ import { Calendar as CalendarComponent } from './ui/calendar';
 import { Skeleton } from './ui/skeleton';
 import TeamLogo from './TeamLogo';
 import GameCard from './GameCard';
+import ScheduledGameCard from './ScheduledGameCard';
 import WelcomeGuide from './WelcomeGuide';
 import { getApiBaseUrl } from '../api/apiBase';
+import {
+    partitionScheduledGames,
+    shouldAutoSwitchToScheduled,
+    type LeagueTab,
+} from '../utils/predictionHomeLogic';
 import { getFallbackLeagueStartDates } from '../utils/home';
 
 // Constants
@@ -29,13 +35,15 @@ interface Game {
     gameStatus: string;
     gameStatusKr: string;
     gameInfo: string;
-    leagueType: 'REGULAR' | 'POSTSEASON' | 'KOREAN_SERIES' | 'OFFSEASON';
+    leagueType: 'REGULAR' | 'POSTSEASON' | 'KOREAN_SERIES' | 'OFFSEASON' | 'PRE' | 'PRESEASON' | string;
     homeTeam: string;
     homeTeamFull: string;
     awayTeam: string;
     awayTeamFull: string;
     homeScore?: number;
     awayScore?: number;
+    sourceDate?: string;
+    leagueBadge?: string;
 }
 
 interface Ranking {
@@ -63,7 +71,7 @@ interface HomeProps {
 
 // --- Helpers ---
 const GameCardSkeleton = () => (
-    <Card className="overflow-hidden h-full border-none shadow-sm bg-white dark:bg-card">
+    <Card className="overflow-hidden h-full border border-gray-100 dark:border-white/10 shadow-sm bg-white dark:bg-secondary/60">
         <CardContent className="p-6">
             <div className="flex justify-between items-center mb-4">
                 <Skeleton className="h-4 w-1/3 rounded-full" />
@@ -103,7 +111,13 @@ export default function Home({ onNavigate }: HomeProps) {
     const [isGamesError, setIsGamesError] = useState(false);
     const [isRankingsLoading, setIsRankingsLoading] = useState(true);
 
-    const [activeLeagueTab, setActiveLeagueTab] = useState('regular');
+    const [activeLeagueTab, setActiveLeagueTab] = useState<LeagueTab>('regular');
+    const [scheduledGames, setScheduledGames] = useState<Game[]>([]);
+    const [isScheduledLoading, setIsScheduledLoading] = useState(false);
+    const [isScheduledError, setIsScheduledError] = useState(false);
+    const [isSecondarySectionExpanded, setIsSecondarySectionExpanded] = useState(false);
+    const hasUserChangedTabRef = useRef(false);
+    const scheduledRequestIdRef = useRef(0);
 
     // --- Helpers ---
     const formatDateForAPI = (date: Date): string => {
@@ -120,6 +134,51 @@ export default function Home({ onNavigate }: HomeProps) {
         const day = date.getDate();
         const dayOfWeek = days[date.getDay()];
         return `${year}.${month}.${day} (${dayOfWeek})`;
+    };
+
+    const getDateWindow = (baseDate: Date, length: number): Date[] => {
+        return Array.from({ length }, (_, offset) => {
+            const nextDate = new Date(baseDate);
+            nextDate.setDate(nextDate.getDate() + offset);
+            nextDate.setHours(12, 0, 0, 0);
+            return nextDate;
+        });
+    };
+
+    const resolveLeagueBadge = (leagueType?: string): string => {
+        const normalized = (leagueType || '').toUpperCase();
+
+        switch (normalized) {
+            case 'REGULAR':
+                return '정규시즌';
+            case 'POSTSEASON':
+                return '포스트시즌';
+            case 'KOREAN_SERIES':
+                return '한국시리즈';
+            case 'PRE':
+            case 'PRESEASON':
+                return '프리시즌';
+            case 'OFFSEASON':
+                return '기타 일정';
+            default:
+                return '예정 일정';
+        }
+    };
+
+    const formatSourceDateLabel = (sourceDate?: string): string => {
+        if (!sourceDate) return '날짜 미정';
+        const date = new Date(`${sourceDate}T12:00:00`);
+        if (Number.isNaN(date.getTime())) return sourceDate;
+        return formatDate(date);
+    };
+
+    const handleGameCardSelectPrediction = (game: Game) => {
+        const targetDate = game.sourceDate || formatDateForAPI(selectedDate);
+        const params = new URLSearchParams({
+            gameId: game.gameId,
+            date: targetDate,
+        });
+        navigate(`/prediction?${params.toString()}`);
     };
 
     const changeDate = (direction: 'prev' | 'next') => {
@@ -207,7 +266,7 @@ export default function Home({ onNavigate }: HomeProps) {
             const gamesData: Game[] = await response.json();
             setGames(gamesData);
 
-            if (gamesData.length > 0) {
+            if (gamesData.length > 0 && !hasUserChangedTabRef.current) {
                 const firstGameType = gamesData[0].leagueType;
                 if (firstGameType === 'REGULAR') setActiveLeagueTab('regular');
                 else if (firstGameType === 'POSTSEASON') setActiveLeagueTab('postseason');
@@ -219,6 +278,55 @@ export default function Home({ onNavigate }: HomeProps) {
             setIsGamesError(true);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const loadScheduledGamesData = async (baseDate: Date) => {
+        const requestId = ++scheduledRequestIdRef.current;
+        setIsScheduledLoading(true);
+        setIsScheduledError(false);
+
+        try {
+            const dates = getDateWindow(baseDate, 8);
+            const responses = await Promise.all(
+                dates.map(async (targetDate) => {
+                    const apiDate = formatDateForAPI(targetDate);
+                    const response = await fetch(`${API_BASE}/kbo/schedule?date=${apiDate}`, {
+                        credentials: 'include',
+                    });
+                    if (!response.ok) return [] as Game[];
+
+                    const dailyGames: Game[] = await response.json();
+                    return dailyGames.map((game) => ({
+                        ...game,
+                        sourceDate: apiDate,
+                        leagueBadge: resolveLeagueBadge(game.leagueType),
+                    }));
+                })
+            );
+
+            if (requestId !== scheduledRequestIdRef.current) return;
+
+            const merged = responses
+                .flat()
+                .sort((a, b) => {
+                    const dateCompare = (a.sourceDate || '').localeCompare(b.sourceDate || '');
+                    if (dateCompare !== 0) return dateCompare;
+                    const timeCompare = (a.time || '').localeCompare(b.time || '');
+                    if (timeCompare !== 0) return timeCompare;
+                    return a.gameId.localeCompare(b.gameId);
+                });
+
+            setScheduledGames(merged);
+        } catch (error) {
+            if (requestId !== scheduledRequestIdRef.current) return;
+            console.error('[Scheduled] Error loading scheduled games:', error);
+            setScheduledGames([]);
+            setIsScheduledError(true);
+        } finally {
+            if (requestId === scheduledRequestIdRef.current) {
+                setIsScheduledLoading(false);
+            }
         }
     };
 
@@ -240,13 +348,17 @@ export default function Home({ onNavigate }: HomeProps) {
     };
 
     const handleTabChange = (value: string) => {
-        setActiveLeagueTab(value);
+        const tabValue = value as LeagueTab;
+        hasUserChangedTabRef.current = true;
+        setActiveLeagueTab(tabValue);
+
+        if (tabValue === 'scheduled') return;
         if (!leagueStartDates) return;
 
         let targetDate = null;
-        if (value === 'regular') targetDate = new Date(leagueStartDates.regularSeasonStart);
-        else if (value === 'postseason') targetDate = new Date(leagueStartDates.postseasonStart);
-        else if (value === 'koreanseries') targetDate = new Date(leagueStartDates.koreanSeriesStart);
+        if (tabValue === 'regular') targetDate = new Date(leagueStartDates.regularSeasonStart);
+        else if (tabValue === 'postseason') targetDate = new Date(leagueStartDates.postseasonStart);
+        else if (tabValue === 'koreanseries') targetDate = new Date(leagueStartDates.koreanSeriesStart);
 
         if (targetDate) {
             targetDate.setHours(12, 0, 0, 0);
@@ -258,11 +370,55 @@ export default function Home({ onNavigate }: HomeProps) {
     useEffect(() => {
         loadGamesData(selectedDate);
         loadNavigationData(selectedDate);
+        loadScheduledGamesData(selectedDate);
+    }, [selectedDate]);
+    useEffect(() => {
+        setIsSecondarySectionExpanded(false);
     }, [selectedDate]);
 
     const regularSeasonGames = games.filter(g => g.leagueType === 'REGULAR');
     const postSeasonGames = games.filter(g => g.leagueType === 'POSTSEASON');
     const koreanSeriesGames = games.filter(g => g.leagueType === 'KOREAN_SERIES');
+    const {
+        primary: scheduledPrimaryGames,
+        secondary: scheduledSecondaryGames,
+        excluded: liveOrFinishedScheduledGames,
+    } = partitionScheduledGames(scheduledGames);
+    const groupGamesBySourceDate = (targetGames: Game[]) => {
+        const grouped = targetGames.reduce<Record<string, Game[]>>((acc, game) => {
+            const key = game.sourceDate || formatDateForAPI(selectedDate);
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(game);
+            return acc;
+        }, {});
+
+        return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+    };
+
+    useEffect(() => {
+        const shouldSwitch = shouldAutoSwitchToScheduled({
+            activeLeagueTab,
+            hasUserChangedTab: hasUserChangedTabRef.current,
+            isLoading,
+            isScheduledLoading,
+            regularCount: regularSeasonGames.length,
+            postseasonCount: postSeasonGames.length,
+            koreanSeriesCount: koreanSeriesGames.length,
+            scheduledPrimaryCount: scheduledPrimaryGames.length,
+        });
+
+        if (shouldSwitch) {
+            setActiveLeagueTab('scheduled');
+        }
+    }, [
+        activeLeagueTab,
+        isLoading,
+        isScheduledLoading,
+        regularSeasonGames.length,
+        postSeasonGames.length,
+        koreanSeriesGames.length,
+        scheduledPrimaryGames.length,
+    ]);
 
     if (!leagueStartDates) {
         return (
@@ -299,8 +455,8 @@ export default function Home({ onNavigate }: HomeProps) {
                 </div>
 
                 {/* Date Navigation (Green Accent Included) */}
-                <div className="flex items-center justify-center gap-6 bg-white dark:bg-background py-3 px-6 rounded-2xl shadow-sm border border-gray-100 dark:border-border w-full md:w-fit mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
-                    <Button variant="ghost" size="icon" onClick={() => changeDate('prev')} disabled={!navInfo.hasPrev} className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
+                <div className="flex items-center justify-center gap-6 bg-white dark:bg-card/70 py-3 px-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/15 w-full md:w-fit mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
+                    <Button data-testid="home-date-prev" variant="ghost" size="icon" onClick={() => changeDate('prev')} disabled={!navInfo.hasPrev} className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
                         <ChevronLeft className="w-6 h-6" />
                     </Button>
 
@@ -313,7 +469,7 @@ export default function Home({ onNavigate }: HomeProps) {
                         </Button>
                     </div>
 
-                    <Button variant="ghost" size="icon" onClick={() => changeDate('next')} disabled={!navInfo.hasNext} className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
+                    <Button data-testid="home-date-next" variant="ghost" size="icon" onClick={() => changeDate('next')} disabled={!navInfo.hasNext} className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
                         <ChevronRight className="w-6 h-6" />
                     </Button>
                 </div>
@@ -321,10 +477,11 @@ export default function Home({ onNavigate }: HomeProps) {
                 {/* Filters (Green Accent Included) */}
                 <Tabs value={activeLeagueTab} onValueChange={handleTabChange} className="w-full">
                     <div className="flex justify-center mb-6">
-                        <TabsList className="grid w-full max-w-md grid-cols-3 bg-gray-100 dark:bg-card p-1 rounded-xl">
+                        <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-gray-100 dark:bg-card p-1 rounded-xl">
                             <TabsTrigger value="regular" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">정규시즌</TabsTrigger>
                             <TabsTrigger value="postseason" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">포스트시즌</TabsTrigger>
                             <TabsTrigger value="koreanseries" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">한국시리즈</TabsTrigger>
+                            <TabsTrigger value="scheduled" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">예정경기</TabsTrigger>
                         </TabsList>
                     </div>
 
@@ -364,18 +521,140 @@ export default function Home({ onNavigate }: HomeProps) {
                                     <TabsContent key={tab} value={tab} className="mt-0">
                                         {currentGames.length === 0 ? (
                                             <div className="text-center py-16 text-gray-500 dark:text-gray-300">
-                                                경기도, 야구도 없는 날입니다.
+                                                경기가 없는 날입니다.
                                             </div>
                                         ) : (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                {currentGames.map((game, index) => (
-                                                    <GameCard key={`${game.gameId}-${index}`} game={game} />
-                                                ))}
+                                            <div className="rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                    {currentGames.map((game, index) => (
+                                                        <GameCard
+                                                            key={`${game.gameId}-${index}`}
+                                                            game={game}
+                                                            onSelectPrediction={() => handleGameCardSelectPrediction(game)}
+                                                        />
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
                                     </TabsContent>
                                 );
                             })}
+
+                            <TabsContent value="scheduled" className="mt-0">
+                                {isScheduledLoading ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {[1, 2, 3].map((i) => <GameCardSkeleton key={`scheduled-skeleton-${i}`} />)}
+                                    </div>
+                                ) : isScheduledError ? (
+                                    <div className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-card rounded-2xl border border-red-100 dark:border-red-900/40 shadow-sm">
+                                        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
+                                            <AlertTriangle className="w-8 h-8 text-red-500 dark:text-red-400" />
+                                        </div>
+                                        <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">
+                                            예정 경기 일정을 불러오지 못했습니다
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => loadScheduledGamesData(selectedDate)}
+                                            className="border-primary/30 text-primary hover:bg-primary/5 mt-3"
+                                        >
+                                            <RefreshCw className="w-4 h-4 mr-1.5" />
+                                            다시 시도
+                                        </Button>
+                                    </div>
+                                ) : (scheduledPrimaryGames.length === 0 && scheduledSecondaryGames.length === 0) ? (
+                                    <div className="text-center py-16 text-gray-500 dark:text-gray-300">
+                                        선택한 날짜부터 7일 내 예정 경기가 없습니다.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-8 rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm">
+                                        {scheduledPrimaryGames.length > 0 && (
+                                            <section className="space-y-4">
+                                                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100/90 px-3 py-2 dark:border-border dark:bg-secondary/80">
+                                                    <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-100">
+                                                        <Clock3 className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
+                                                        곧 열리는 경기
+                                                    </div>
+                                                    <span className="inline-flex min-w-10 justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                                        {scheduledPrimaryGames.length}건
+                                                    </span>
+                                                </div>
+                                                {groupGamesBySourceDate(scheduledPrimaryGames).map(([sourceDate, groupedGames]) => (
+                                                    <div key={`scheduled-primary-${sourceDate}`} className="space-y-3">
+                                                        <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
+                                                            {formatSourceDateLabel(sourceDate)}
+                                                        </h4>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                            {groupedGames.map((game, index) => (
+                                                                <ScheduledGameCard
+                                                                    key={`${game.gameId}-${sourceDate}-${index}`}
+                                                                    game={game}
+                                                                    onSelectPrediction={() => handleGameCardSelectPrediction(game)}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </section>
+                                        )}
+
+                                        {scheduledSecondaryGames.length > 0 && (
+                                            <section className="space-y-4">
+                                                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100/90 px-3 py-2 dark:border-border dark:bg-secondary/80">
+                                                    <div className="flex items-center gap-2 text-sm font-bold text-amber-700 dark:text-amber-300">
+                                                        <AlertTriangle className="w-4 h-4" />
+                                                        연기/취소
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="inline-flex min-w-10 justify-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-300">
+                                                            {scheduledSecondaryGames.length}건
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            data-testid="home-scheduled-secondary-toggle"
+                                                            className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-border dark:bg-secondary dark:text-gray-200 dark:hover:bg-secondary/70"
+                                                            aria-expanded={isSecondarySectionExpanded}
+                                                            onClick={() => setIsSecondarySectionExpanded(prev => !prev)}
+                                                        >
+                                                            {isSecondarySectionExpanded ? '접기' : '펼치기'}
+                                                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isSecondarySectionExpanded ? 'rotate-180' : ''}`} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {isSecondarySectionExpanded ? (
+                                                    groupGamesBySourceDate(scheduledSecondaryGames).map(([sourceDate, groupedGames]) => (
+                                                        <div key={`scheduled-secondary-${sourceDate}`} className="space-y-3">
+                                                            <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
+                                                                {formatSourceDateLabel(sourceDate)}
+                                                            </h4>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                                {groupedGames.map((game, index) => (
+                                                                    <ScheduledGameCard
+                                                                        key={`${game.gameId}-${sourceDate}-${index}`}
+                                                                        game={game}
+                                                                        onSelectPrediction={() => handleGameCardSelectPrediction(game)}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-xs text-gray-500 dark:text-gray-300 px-1">
+                                                        연기/취소 경기가 접혀 있습니다. 펼치기 버튼으로 확인하세요.
+                                                    </p>
+                                                )}
+                                            </section>
+                                        )}
+
+                                        {liveOrFinishedScheduledGames.length > 0 && (
+                                            <p className="text-xs text-gray-400 dark:text-gray-300 text-center">
+                                                기타 상태 경기 {liveOrFinishedScheduledGames.length}건은 예정경기 탭에서 제외되었습니다.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </TabsContent>
                         </div>
                     )}
                 </Tabs>

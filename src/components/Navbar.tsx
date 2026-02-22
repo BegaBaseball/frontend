@@ -1,5 +1,5 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Bell, LogOut, ShieldAlert, Menu, X, Moon, Sun, MessageSquare, Map, Trophy, Users, Megaphone, LineChart } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
@@ -32,6 +32,9 @@ export default function Navbar() {
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const prefetchPredictionPage = useCallback(() => {
+    void import('./Prediction');
+  }, []);
 
 
 
@@ -87,6 +90,26 @@ export default function Navbar() {
     };
   }, [isMenuOpen]);
 
+  useEffect(() => {
+    if (!isLoggedIn) {
+      return;
+    }
+
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(() => {
+        prefetchPredictionPage();
+      }, { timeout: 1500 });
+
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      prefetchPredictionPage();
+    }, 1200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isLoggedIn, prefetchPredictionPage]);
+
 
   const handleLogout = () => {
     logout();
@@ -136,6 +159,9 @@ export default function Navbar() {
                   <button
                     key={item.id}
                     onClick={() => navigate(`/${item.id}`)}
+                    onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                    onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                    onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     className={`
                       relative px-1 py-1 text-sm lg:text-base font-bold transition-all duration-200
                       ${location.pathname === `/${item.id}`
@@ -198,7 +224,7 @@ export default function Navbar() {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
 
                         {/* 2. 실제 배지: 배경색과 분리되는 테두리(ring) 추가 */}
-                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 ring-2 ring-background items-center justify-center">
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-background items-center justify-center">
                           <span className="text-[10px] font-bold text-white leading-none">
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
@@ -333,6 +359,9 @@ export default function Navbar() {
                   <button
                     key={item.id}
                     onClick={() => navigate(`/${item.id}`)}
+                    onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                    onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                    onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     className={`flex items-center gap-4 w-full text-left py-4 px-4 text-lg font-semibold rounded-xl transition-all duration-200 ${isActive
                       ? 'bg-primary/15 text-primary dark:text-primary-light'
                       : theme === 'dark'

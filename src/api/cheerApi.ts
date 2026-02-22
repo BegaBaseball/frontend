@@ -22,7 +22,7 @@ export interface CheerPost {
     id: number;
     teamId: string;
     team: string; // compatibility
-    postType: 'NORMAL' | 'NOTICE' | 'CHEER' | 'FREE';
+    postType: 'NORMAL' | 'NOTICE';
     author: string; // Changed from CheerAuthor to string (display name)
     authorId: number;
     authorHandle: string;
@@ -252,7 +252,7 @@ interface PostDTO {
   isOwner?: boolean;
   repostedByMe?: boolean;
   isHot?: boolean;
-  postType: 'NORMAL' | 'NOTICE' | 'CHEER' | 'FREE';
+  postType?: string;
   imageUrls?: string[];
   imageUploadFailed?: boolean;
   repostOfId?: number;
@@ -263,6 +263,14 @@ interface PostDTO {
   shareMode?: ShareMode;
   sourceInfo?: SourceInfo;
 }
+
+const normalizePostType = (postType?: string): CheerPost['postType'] => {
+    return postType === 'NOTICE' ? 'NOTICE' : 'NORMAL';
+};
+
+const normalizeCreatePostType = (postType?: string): 'NORMAL' | 'NOTICE' => {
+    return postType === 'NOTICE' ? 'NOTICE' : 'NORMAL';
+};
 
 interface CommentDTO {
   id: number;
@@ -308,7 +316,7 @@ function transformPost(post: PostDTO): CheerPost {
         isOwner: post.isOwner ?? false,
         repostedByMe: post.repostedByMe ?? false,
         isHot: post.isHot ?? false,
-        postType: post.postType,
+        postType: normalizePostType(post.postType),
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
         imageUploadFailed: post.imageUploadFailed,
@@ -375,7 +383,7 @@ export async function createPost(data: {
 }) {
     const response = await api.post('/cheer/posts', {
         ...data,
-        postType: data.postType || 'CHEER'
+        postType: normalizeCreatePostType(data.postType),
     });
     return transformPost(response.data);
 }
@@ -447,6 +455,16 @@ export async function deleteComment(commentId: number) {
 export async function toggleCommentLike(commentId: number): Promise<LikeToggleResponse> {
     const response = await api.post(`/cheer/comments/${commentId}/like`);
     return response.data;
+}
+
+// 북마크 목록 조회 (전용 API)
+export async function fetchBookmarks(page = 0, size = 20): Promise<{ content: CheerPost[]; hasNext: boolean }> {
+    const response = await api.get(`/cheer/bookmarks?page=${page}&size=${size}`);
+    const data = response.data;
+    return {
+        content: (data.content ?? []).map(transformPost),
+        hasNext: !data.last,
+    };
 }
 
 // 북마크 토글

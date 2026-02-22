@@ -25,6 +25,7 @@ export default function ImageGrid({ images }: ImageGridProps) {
   return (
     <>
       <div
+        data-skip-cheer-card-nav
         className={cn(
           'mt-2 grid gap-1 overflow-hidden rounded-2xl ring-1 ring-inset ring-black/10',
           images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'

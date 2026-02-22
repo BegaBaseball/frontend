@@ -4,12 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchPublicUserProfileByHandle } from '../../api/profile';
 import { fetchUserPostsByHandle } from '../../api/cheerApi';
 import { getFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
     Loader2,
-    User,
     Trophy,
     Quote,
     ArrowLeft,
@@ -137,7 +136,9 @@ export default function UserProfile() {
                     <Skeleton className="h-[150px] w-full" />
                     {/* 아바타 */}
                     <div className="px-6 -mt-[50px] relative z-10">
-                        <Skeleton className="w-[100px] h-[100px] rounded-full border-4 border-white dark:border-border" />
+                        <div className="w-20 h-20 sm:w-[100px] sm:h-[100px] rounded-full p-1 bg-white dark:bg-border shadow-sm">
+                            <Skeleton className="h-full w-full rounded-full" />
+                        </div>
                     </div>
                     {/* 이름 & 핸들 */}
                     <div className="px-6 pt-4 pb-6 space-y-3">
@@ -233,12 +234,16 @@ export default function UserProfile() {
 
                 {/* Avatar - overlapping banner */}
                 <div className="px-6 -mt-[50px] relative z-10">
-                    <Avatar className="w-[100px] h-[100px] border-4 border-white dark:border-border shadow-xl">
-                        <AvatarImage src={profile.profileImageUrl ?? undefined} className="object-cover" />
-                        <AvatarFallback className="bg-gray-100 dark:bg-secondary text-gray-400">
-                            <User className="w-12 h-12" />
-                        </AvatarFallback>
-                    </Avatar>
+                    <ProfileAvatar
+                        src={profile.profileImageUrl ?? undefined}
+                        alt={profile.name}
+                        fallbackName={profile.name}
+                        width={96}
+                        height={96}
+                        showRing
+                        ringClassName="p-1 bg-white/95 dark:bg-border shadow-sm"
+                        className="shadow-xl"
+                    />
                 </div>
 
                 {/* Profile Info */}

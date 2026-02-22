@@ -5,11 +5,13 @@ interface ProfileAvatarProps {
   alt: string;
   fallbackName?: string;
   size?: 'sm' | 'md' | 'lg';
-  width?: 32 | 40 | 48 | 64;
-  height?: 32 | 40 | 48 | 64;
+  width?: 24 | 32 | 40 | 48 | 64 | 96;
+  height?: 24 | 32 | 40 | 48 | 64 | 96;
   srcSet?: string;
   sizes?: string;
   className?: string;
+  showRing?: boolean;
+  ringClassName?: string;
 }
 
 export function ProfileAvatar({
@@ -22,6 +24,8 @@ export function ProfileAvatar({
   srcSet,
   sizes,
   className = '',
+  showRing = false,
+  ringClassName,
 }: ProfileAvatarProps) {
   const [imageError, setImageError] = useState(false);
 
@@ -76,15 +80,20 @@ export function ProfileAvatar({
     objectFit: 'cover' as const,
     display: 'block',
     imageRendering: 'auto' as const,
-    ...(sizeStyle || {}),
+    ...(showRing ? {} : (sizeStyle || {})),
   };
   const containerClass = hasFixedSize ? '' : sizeClasses[size];
   const iconSizeClass = hasFixedSize
     ? (resolvedSize! >= 48 ? iconSizes.lg : resolvedSize! >= 40 ? iconSizes.md : iconSizes.sm)
     : iconSizes[size];
+  const ringClass = ringClassName || 'p-px bg-black/5 dark:bg-white/10';
+  const innerSizeClass = hasFixedSize || showRing ? 'w-full h-full' : containerClass;
+  const imageClassName = `${innerSizeClass} rounded-full object-cover block bg-gray-100 dark:bg-card ${className}`.trim();
+  const fallbackClassName = `${innerSizeClass} rounded-full ${fallbackClassByName} text-white font-semibold flex items-center justify-center ${className}`.trim();
+  const ringWrapperClassName = `${ringClass} rounded-full inline-flex items-center justify-center overflow-hidden ${!hasFixedSize ? containerClass : ''}`.trim();
 
   if (src && !imageError) {
-    return (
+    const imageElement = (
       <img
         src={src}
         srcSet={srcSet}
@@ -93,22 +102,44 @@ export function ProfileAvatar({
         width={resolvedSize}
         height={resolvedSize}
         style={imageStyle}
+        decoding="async"
+        loading="lazy"
         data-testid="profile-avatar-image"
-        className={`${containerClass} rounded-full object-cover border border-gray-200 dark:border-border bg-gray-100 dark:bg-card ${className}`.trim()}
+        className={imageClassName}
         onError={() => setImageError(true)}
       />
-  );
+    );
+
+    if (!showRing) {
+      return imageElement;
+    }
+
+    return (
+      <span className={ringWrapperClassName} style={sizeStyle}>
+        {imageElement}
+      </span>
+    );
   }
 
-  return (
+  const fallbackElement = (
     <div
       data-testid="profile-avatar-fallback"
-      style={sizeStyle}
-      className={`${containerClass} rounded-full ${fallbackClassByName} border border-gray-200 dark:border-border text-white font-semibold flex items-center justify-center ${className}`.trim()}
+      style={hasFixedSize && !showRing ? sizeStyle : undefined}
+      className={fallbackClassName}
     >
       <span className={`${iconSizeClass} flex items-center justify-center`}>
         {initials}
       </span>
     </div>
+  );
+
+  if (!showRing) {
+    return fallbackElement;
+  }
+
+  return (
+    <span className={ringWrapperClassName} style={sizeStyle}>
+      {fallbackElement}
+    </span>
   );
 }

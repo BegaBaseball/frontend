@@ -113,6 +113,28 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/@radix-ui/') || id.includes('/cmdk/') || id.includes('/vaul/')) {
               return 'vendor-ui';
             }
+            if (
+              id.includes('/framer-motion/')
+              || id.includes('/motion/')
+            ) {
+              return 'vendor-motion';
+            }
+            if (
+              id.includes('/axios/')
+              || id.includes('/sockjs-client/')
+              || id.includes('/@stomp/')
+              || id.includes('/zustand/')
+              || id.includes('/js-cookie/')
+            ) {
+              return 'vendor-network';
+            }
+            if (
+              id.includes('/react-dnd/')
+              || id.includes('/react-dnd-html5-backend/')
+              || id.includes('/dnd-core/')
+            ) {
+              return 'vendor-dnd';
+            }
             return 'vendor';
           },
         },

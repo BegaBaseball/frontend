@@ -1,11 +1,12 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Card } from './ui/card';
-import { TrendingUp, ChevronLeft, ChevronRight, Coins, LineChart, Gamepad2 } from 'lucide-react';
+import { Button } from './ui/button';
+import { TrendingUp, ChevronLeft, ChevronRight, Coins, LineChart, Gamepad2, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import ChatBot from './ChatBot';
 import RankingPrediction from './RankingPrediction';
 import ComboAnimation from './retro/ComboAnimation';
 import AdvancedMatchCard from './prediction/AdvancedMatchCard';
+import PredictionErrorOverlay from './prediction/PredictionErrorOverlay';
 import CoachBriefing from './CoachBriefing';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePrediction } from '../hooks/usePrediction';
@@ -16,8 +17,8 @@ import {
   calculateVotePercentages,
   getGameStatus,
   getShortTeamName,
+  resolveCoachBriefingPolicy,
 } from '../utils/prediction';
-import { getFullTeamName } from '../constants/teams';
 
 const TOTAL_SEASON_GAMES = 144;
 
@@ -37,15 +38,35 @@ export default function Prediction() {
     isAuthLoading,
     allDatesData,
     currentDateIndex,
+    currentGameDetailError,
+    deepLinkNotice,
+    voteStatusError,
+    voteStatusLoading,
     handleVote,
     goToPreviousDate,
     goToNextDate,
-    isLoggedIn, // Added isLoggedIn
+    reloadMatches,
+    isLoggedIn,
     matchesLoadState,
     matchesLoadErrorMessage,
+    pastRangeLoadState,
+    pastRangeLoadErrorMessage,
+    futureRangeLoadState,
+    futureRangeLoadErrorMessage,
+    reloadCurrentVoteStatus,
+    reloadCurrentGameDetail,
+    isRunInProgress,
+    retryLoadMoreFutureMatches,
+    runProgressMessage,
+    dismissRunProgressBanner,
+    resumeRunProgressBanner,
+    predictionErrorOverlay,
+    handlePredictionErrorOverlayAction,
+    closePredictionErrorOverlay,
+    retryLoadMorePastMatches,
   } = usePrediction();
 
-  const user = useAuthStore((state) => state.user); // Added user
+  const user = useAuthStore((state) => state.user);
 
   const seasonYear = useMemo(() => {
     const parsed = new Date(currentDate);
@@ -121,9 +142,305 @@ export default function Prediction() {
     gameDate: currentGameDetail?.gameDate || currentGame?.gameDate || currentDate,
     startTime: currentGameDetail?.startTime || null,
   });
-  const { isPastGame, isFutureGame, isToday } = gameStatus;
+  const { isPastGame, isFutureGame, isToday, statusCode } = gameStatus;
+  const isScheduledGame = statusCode === 'SCHEDULED';
+  const isAutoBriefEligibleGameState =
+    statusCode === 'SCHEDULED' || statusCode === 'LIVE' || statusCode === 'COMPLETED';
+  const hasSelectedGame = Boolean(currentGame);
+  const coachBriefingPolicy = useMemo(
+    () => resolveCoachBriefingPolicy({
+      hasSelectedGame,
+      canCallAI: !!seasonContext?.canCallAI,
+      isScheduledGame,
+      isCoachStateEnabledForAuto: hasSelectedGame && isAutoBriefEligibleGameState,
+      isPostseasonGame: !!seasonContext?.isPostseasonGame,
+      isMeaningfulGame: !!seasonContext?.isMeaningfulGame,
+    }),
+    [
+      hasSelectedGame,
+      isAutoBriefEligibleGameState,
+      seasonContext?.canCallAI,
+      seasonContext?.isPostseasonGame,
+      seasonContext?.isMeaningfulGame,
+      isScheduledGame,
+    ],
+  );
+
+  const [isRunBannerDismissed, setIsRunBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!isRunInProgress) {
+      setIsRunBannerDismissed(false);
+    }
+  }, [isRunInProgress]);
+
+  const showRunProgressBanner = isRunInProgress && !isRunBannerDismissed;
+  const canMovePrevDate = currentDateIndex > 0 || pastRangeLoadState === 'ready';
+  const canMoveNextDate = currentDateIndex < allDatesData.length - 1 || futureRangeLoadState === 'ready';
+  type TopNoticeKind = 'RUN' | 'FUTURE' | 'ERROR' | 'END' | 'INFO';
+  type TopNotice = { kind: TopNoticeKind; content: ReactNode };
+  const noticeCardBaseClass = 'w-full max-w-[22rem] p-3 gap-2 pointer-events-auto';
+  const isPastRetryLoading = pastRangeLoadState === 'loading';
+  const isFutureRetryLoading = futureRangeLoadState === 'loading';
+  const isVoteRetryLoading = voteStatusLoading;
+  const isDetailRetryLoading = currentGameDetailLoading;
+
+  const renderRetryLabel = (isLoading: boolean, label: string) => (
+    <span className="inline-flex items-center gap-1.5">
+      {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+      {label}
+    </span>
+  );
+
+  const renderFutureRangeNotice = (): ReactNode | null => {
+    const isFutureRangeLoading = futureRangeLoadState === 'loading';
+    const isFutureRangeError = futureRangeLoadState === 'error';
+    if (!isFutureRangeLoading && !isFutureRangeError) {
+      return null;
+    }
+
+    if (isFutureRangeLoading) {
+      return (
+        <Card className={`${noticeCardBaseClass} border border-sky-200 text-sky-900 bg-sky-50 dark:bg-sky-900/30 dark:border-sky-700/40 dark:text-sky-100`}>
+          <div className="inline-flex items-center gap-2 text-sm font-medium">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            {futureRangeLoadErrorMessage || '다음 경기 탐색 중입니다.'}
+          </div>
+        </Card>
+      );
+    }
+
+    return (
+      <Card className={`${noticeCardBaseClass} border border-rose-200 text-rose-900 bg-rose-50 dark:bg-rose-900/30 dark:border-rose-700/40 dark:text-rose-100`}>
+        <p className="text-sm font-medium mb-2">
+          {futureRangeLoadErrorMessage || '미래 구간 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.'}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            size="sm"
+            disabled={isFutureRetryLoading}
+            className="h-8 bg-rose-900 hover:bg-rose-800 text-white dark:bg-rose-400 dark:hover:bg-rose-300 dark:text-rose-950"
+            onClick={retryLoadMoreFutureMatches}
+          >
+            {renderRetryLabel(isFutureRetryLoading, '예정 경기 다시 불러오기')}
+          </Button>
+          <Link
+            to="/"
+            className="h-8 px-3 inline-flex items-center justify-center rounded-md border border-rose-300/70 text-rose-900 hover:bg-rose-100 dark:border-rose-300/60 dark:text-rose-100 dark:hover:bg-rose-800/30"
+          >
+            홈으로 이동
+          </Link>
+        </div>
+      </Card>
+    );
+  };
+
+  const getTopNotice = (futureRangeNotice: ReactNode | null): TopNotice | null => {
+    if (showRunProgressBanner) {
+      return {
+        kind: 'RUN',
+        content: (
+          <Card className={`${noticeCardBaseClass} bg-emerald-50 border border-emerald-200 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-700/50 dark:text-emerald-100`}>
+            <div className="flex flex-wrap items-center gap-3">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <p className="text-sm font-medium">
+                {runProgressMessage}
+              </p>
+              <div className="ml-auto flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 border-emerald-300/70 hover:bg-emerald-100 dark:border-emerald-600/70 dark:hover:bg-emerald-900/40"
+                  onClick={() => {
+                    dismissRunProgressBanner();
+                    setIsRunBannerDismissed(true);
+                  }}
+                >
+                  백그라운드로 계산
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 bg-emerald-900 hover:bg-emerald-800 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950"
+                  onClick={() => {
+                    resumeRunProgressBanner();
+                    setIsRunBannerDismissed(false);
+                  }}
+                >
+                  지금 계속
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ),
+      };
+    }
+
+    if (futureRangeNotice) {
+      return {
+        kind: 'FUTURE',
+        content: futureRangeNotice,
+      };
+    }
+
+    if (currentDateIndex === 0 && pastRangeLoadState === 'loading') {
+      return {
+        kind: 'INFO',
+        content: (
+          <Card className={`${noticeCardBaseClass} border border-sky-200 text-sky-900 bg-sky-50 dark:bg-sky-900/30 dark:border-sky-700/40 dark:text-sky-100`}>
+            <div className="inline-flex items-center gap-2 text-sm font-medium">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              이전 경기 탐색 중입니다.
+            </div>
+          </Card>
+        ),
+      };
+    }
+
+    if (voteStatusError) {
+      return {
+        kind: 'ERROR',
+        content: (
+          <Card className={`${noticeCardBaseClass} border border-rose-200 text-rose-900 bg-rose-50 dark:bg-rose-900/30 dark:border-rose-700/40 dark:text-rose-100`}>
+            <p className="text-sm font-medium mb-2">투표 집계 조회 실패: {voteStatusError}</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                size="sm"
+                disabled={isVoteRetryLoading}
+                className="h-8 bg-rose-900 hover:bg-rose-800 text-white dark:bg-rose-400 dark:hover:bg-rose-300 dark:text-rose-950"
+                onClick={reloadCurrentVoteStatus}
+              >
+                {renderRetryLabel(isVoteRetryLoading, '투표 집계 다시 시도')}
+              </Button>
+              <Link
+                to="/"
+                className="h-8 px-3 inline-flex items-center justify-center rounded-md border border-rose-200 text-rose-900 hover:bg-rose-100 dark:border-rose-300/70 dark:text-rose-100 dark:hover:bg-rose-900/40"
+              >
+                홈으로 이동
+              </Link>
+            </div>
+          </Card>
+        ),
+      };
+    }
+
+    if (currentGameDetailError) {
+      return {
+        kind: 'ERROR',
+        content: (
+          <Card className={`${noticeCardBaseClass} border border-amber-200 text-amber-900 bg-amber-50 dark:bg-amber-900/30 dark:border-amber-700/40 dark:text-amber-100`}>
+            <p className="text-sm font-medium mb-2">경기 상세 조회 실패: {currentGameDetailError}</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isDetailRetryLoading}
+                className="h-8 border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-400/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
+                onClick={reloadCurrentGameDetail}
+              >
+                {renderRetryLabel(isDetailRetryLoading, '경기 상세 다시 시도')}
+              </Button>
+              <Link
+                to="/"
+                className="h-8 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
+              >
+                홈으로 이동
+              </Link>
+            </div>
+          </Card>
+        ),
+      };
+    }
+
+    if (currentDateIndex === 0 && pastRangeLoadState === 'error') {
+      return {
+        kind: 'ERROR',
+        content: (
+          <Card className={`${noticeCardBaseClass} border border-rose-200 text-rose-900 bg-rose-50 dark:bg-rose-900/30 dark:border-rose-700/40 dark:text-rose-100`}>
+            <p className="text-sm font-medium mb-2">
+              이전 경기 조회 실패: {pastRangeLoadErrorMessage || '잠시 후 다시 시도해 주세요.'}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                size="sm"
+                disabled={isPastRetryLoading}
+                className="h-8 bg-rose-900 hover:bg-rose-800 text-white dark:bg-rose-400 dark:hover:bg-rose-300 dark:text-rose-950"
+                onClick={retryLoadMorePastMatches}
+              >
+                {renderRetryLabel(isPastRetryLoading, '이전 경기 다시 불러오기')}
+              </Button>
+              <Link
+                to="/"
+                className="h-8 px-3 inline-flex items-center justify-center rounded-md border border-rose-300/70 text-rose-900 hover:bg-rose-100 dark:border-rose-300/60 dark:text-rose-100 dark:hover:bg-rose-800/30"
+              >
+                홈으로 이동
+              </Link>
+            </div>
+          </Card>
+        ),
+      };
+    }
+
+    if (currentDateIndex === 0 && pastRangeLoadState === 'end') {
+      return {
+        kind: 'END',
+        content: (
+          <Card className={`${noticeCardBaseClass} border border-slate-200 text-slate-700 bg-slate-50 dark:bg-card dark:border-border dark:text-gray-200`}>
+            <p className="text-sm font-medium">
+              {pastRangeLoadErrorMessage || '더 이상 이전 경기가 없습니다.'}
+            </p>
+          </Card>
+        ),
+      };
+    }
+
+    if (currentDateIndex === allDatesData.length - 1 && futureRangeLoadState === 'end') {
+      return {
+        kind: 'END',
+        content: (
+          <Card className={`${noticeCardBaseClass} border border-slate-200 text-slate-700 bg-slate-50 dark:bg-card dark:border-border dark:text-gray-200`}>
+            <p className="text-sm font-medium">
+              {futureRangeLoadErrorMessage || '더 이상 예정 경기가 없습니다.'}
+            </p>
+          </Card>
+        ),
+      };
+    }
+
+    if (deepLinkNotice) {
+      return {
+        kind: 'INFO',
+        content: (
+          <Card className={`${noticeCardBaseClass} bg-amber-50 border border-amber-200 text-amber-900 dark:bg-amber-900/30 dark:border-amber-700/40 dark:text-amber-100`}>
+            <div className="text-sm">
+              {deepLinkNotice}
+            </div>
+          </Card>
+        ),
+      };
+    }
+
+    return null;
+  };
+
+  const futureRangeNotice = renderFutureRangeNotice();
+  const sharedTopNotice = getTopNotice(futureRangeNotice);
 
   // 로딩 중 - 스켈레톤 UI
+  if (predictionErrorOverlay?.isOpen) {
+    return (
+      <PredictionErrorOverlay
+        isOpen
+        title={predictionErrorOverlay.title}
+        message={predictionErrorOverlay.message}
+        errorCode={predictionErrorOverlay.errorCode}
+        copyKey={predictionErrorOverlay.copyKey}
+        actionPriorityOrder={predictionErrorOverlay.recoveryState.actionPriorityOrder}
+        onAction={handlePredictionErrorOverlayAction}
+        onClose={closePredictionErrorOverlay}
+      />
+    );
+  }
+
   if (isAuthLoading || loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
@@ -139,6 +456,12 @@ export default function Prediction() {
             <div className="w-20 h-10 bg-slate-300 dark:bg-card rounded-lg" />
             <div className="w-20 h-10 bg-slate-300 dark:bg-card rounded-lg ml-1" />
           </div>
+
+          {sharedTopNotice && (
+            <div className="mb-4 flex justify-center sm:justify-end">
+              {sharedTopNotice.content}
+            </div>
+          )}
 
           {/* Match card skeleton */}
           <Card className="p-4 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md animate-pulse">
@@ -182,7 +505,7 @@ export default function Prediction() {
     return (
       <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="relative p-16 text-center bg-white/90 border border-rose-200/70 shadow-sm dark:bg-card dark:border-rose-900/40 dark:shadow-md flex flex-col items-center justify-center min-h-[240px] rounded-2xl">
+          <Card className="relative p-6 sm:p-8 md:p-10 text-center bg-white/90 border border-rose-200/70 shadow-sm dark:bg-card dark:border-rose-900/40 dark:shadow-md flex flex-col items-center justify-center min-h-[160px] sm:min-h-[200px] md:min-h-[240px] rounded-2xl">
             <div className="bg-rose-100 dark:bg-card p-4 rounded-full mb-4">
               <TrendingUp className="w-8 h-8 text-rose-500 dark:text-rose-300" />
             </div>
@@ -192,11 +515,81 @@ export default function Prediction() {
             <p className="text-slate-500 dark:text-gray-300">
               잠시 후 다시 시도하거나 새로고침해 주세요.
             </p>
+            <Button
+              size="sm"
+              className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500 dark:hover:bg-emerald-600"
+              onClick={reloadMatches}
+            >
+              목록 다시 불러오기
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2 bg-white text-rose-600 dark:text-rose-300 border-rose-300/70"
+              onClick={() => {
+                window.location.href = '/';
+              }}
+            >
+              홈으로 이동
+            </Button>
           </Card>
         </div>
       </div>
     );
   }
+
+  // legacy empty-state dead-end path (kept for backward compatibility)
+  if (false && (matchesLoadState as string) === 'empty') {
+    const hasFutureRangeFailure = futureRangeLoadState === 'error' && Boolean(futureRangeNotice);
+    return (
+      <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card className="relative p-6 sm:p-8 md:p-10 text-center bg-white/90 border border-slate-300/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[160px] sm:min-h-[200px] md:min-h-[240px] rounded-2xl">
+            <TrendingUp className="w-8 h-8 text-slate-500 dark:text-slate-300 mb-4" />
+            {hasFutureRangeFailure ? (
+              <div className="w-full flex flex-col items-center">
+                <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
+                  미래 구간 조회에 실패했습니다.
+                </h3>
+                <p className="text-slate-500 dark:text-gray-300 mb-4">
+                  아래 액션으로 재시도하거나 홈으로 이동해 주세요.
+                </p>
+                {futureRangeNotice}
+              </div>
+            ) : (
+              <>
+                <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
+                  현재 표시할 예측 경기가 없습니다.
+                </h3>
+                <p className="text-slate-500 dark:text-gray-300">
+                  잠시 후 다시 시도하거나 홈 화면으로 이동해 주세요.
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                  onClick={reloadMatches}
+                >
+                  목록 다시 불러오기
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 bg-white text-slate-600 dark:text-slate-200 border-slate-300/70 dark:border-border"
+                  onClick={() => {
+                    window.location.href = '/';
+                  }}
+                >
+                  홈으로 이동
+                </Button>
+              </>
+            )}
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const topNotice = activeTab === 'match' ? getTopNotice(futureRangeNotice) : null;
 
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
@@ -284,132 +677,149 @@ export default function Prediction() {
           )}
         </div>
 
-        <AnimatePresence mode="wait" initial={false}>
-          {activeTab === 'match' ? (
-            <motion.div
-              key="match"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-            >
-              {/* Date Navigation & Content Wrapper */}
-              <div className="w-full">
-                {currentDateGames.length > 0 ? (
-                  <>
-
-
-                    {/* Advanced Game Card */}
-                    {currentGame && (
-                      <AdvancedMatchCard
-                        key={currentGame.gameId}
-                        game={currentGame}
-                        gameDetail={currentGameDetail}
-                        gameDetailLoading={currentGameDetailLoading}
-                        userVote={userVote[currentGameId!] || null}
-                        votePercentages={votePercentages}
-                        isVoteOpen={gameStatus.isVoteOpen}
-                        statusLabel={gameStatus.statusLabel}
-                        isClosed={gameStatus.isClosed}
-                        onVote={(team) => handleVote(team, currentGame, gameStatus.isVoteOpen)}
-                        onPrevDate={goToPreviousDate}
-                        onNextDate={goToNextDate}
-                        hasPrevDate={currentDateIndex > 0}
-                        hasNextDate={currentDateIndex < allDatesData.length - 1}
-                        coachBriefing={(
-                          <CoachBriefing
-                game={currentGame}
-                gameDetail={currentGameDetail}
-                seasonContext={seasonContext}
-                isPastGame={isPastGame}
-                isFutureGame={isFutureGame}
-                autoEnabled={seasonContext?.isPostseasonGame || seasonContext?.isMeaningfulGame || false}
-              />
+        <div className="relative">
+          <AnimatePresence initial={false} mode="wait">
+            {topNotice && (
+              <motion.div
+                key={`top-notice-${topNotice.kind}`}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center sm:justify-end"
+              >
+                {topNotice.content}
+              </motion.div>
             )}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <Card className="relative p-16 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[400px] rounded-2xl">
-                    {/* Navigation Buttons for Empty State */}
-                    <div className="hidden md:block">
-                      <button
-                        onClick={goToPreviousDate}
-                        disabled={currentDateIndex === 0}
-                        className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
-                      >
-                        <ChevronLeft size={36} />
-                      </button>
-                      <button
-                        onClick={goToNextDate}
-                        disabled={currentDateIndex === allDatesData.length - 1}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
-                      >
-                        <ChevronRight size={36} />
-                      </button>
-                    </div>
+          </AnimatePresence>
 
-                    <div className="bg-slate-100 dark:bg-card p-4 rounded-full mb-4">
-                      <TrendingUp className="w-8 h-8 text-slate-400 dark:text-gray-300" />
-                    </div>
-                    <div className="mb-4">
-                      <p className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-1">
-                        {formatDate(currentDate)}
-                      </p>
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
-                      {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
-                    </h3>
-                    <p className="text-slate-500 dark:text-gray-300">다른 날짜를 확인해보세요!</p>
-                  </Card>
-                )}
-              </div>
+          <AnimatePresence mode="wait" initial={false}>
+            {activeTab === 'match' ? (
+              <motion.div
+                key="match"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                {/* Date Navigation & Content Wrapper */}
+                <div className="w-full">
+                  {currentDateGames.length > 0 ? (
+                    <>
+                      {/* Advanced Game Card */}
+                      {currentGame && (
+                        <AdvancedMatchCard
+                          key={currentGame.gameId}
+                          game={currentGame}
+                          gameDetail={currentGameDetail}
+                          gameDetailLoading={currentGameDetailLoading}
+                          userVote={userVote[currentGameId!] || null}
+                          votePercentages={votePercentages}
+                          isVoteOpen={gameStatus.isVoteOpen}
+                          statusLabel={gameStatus.statusLabel}
+                          statusCode={statusCode}
+                          onVote={(team) => handleVote(team, currentGame, gameStatus.isVoteOpen)}
+                          onPrevDate={goToPreviousDate}
+                          onNextDate={goToNextDate}
+                          hasPrevDate={canMovePrevDate}
+                          hasNextDate={canMoveNextDate}
+                          coachBriefing={(
+                          <CoachBriefing
+                            game={currentGame}
+                            gameDetail={currentGameDetail}
+                            seasonContext={seasonContext}
+                            isPastGame={isPastGame}
+                            isFutureGame={isFutureGame}
+                            requestMode={coachBriefingPolicy.requestMode}
+                            autoEnabled={coachBriefingPolicy.autoEnabled}
+                            forceManual={coachBriefingPolicy.forceManual}
+                          />
+
+                          )}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <Card className="relative p-5 sm:p-7 md:p-10 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[220px] sm:min-h-[280px] md:min-h-[350px] rounded-2xl">
+                      {/* Navigation Buttons for Empty State */}
+                      <div className="hidden md:block">
+                        <button
+                          onClick={goToPreviousDate}
+                          disabled={!canMovePrevDate}
+                          className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
+                        >
+                          <ChevronLeft size={36} />
+                        </button>
+                        <button
+                          onClick={goToNextDate}
+                          disabled={!canMoveNextDate}
+                          className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
+                        >
+                          <ChevronRight size={36} />
+                        </button>
+                      </div>
+
+                      <div className="bg-slate-100 dark:bg-card p-4 rounded-full mb-4">
+                        <TrendingUp className="w-8 h-8 text-slate-400 dark:text-gray-300" />
+                      </div>
+                      <div className="mb-4">
+                        <p className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-1">
+                          {formatDate(currentDate)}
+                        </p>
+                      </div>
+                      <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
+                        {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
+                      </h3>
+                      <p className="text-slate-500 dark:text-gray-300">다른 날짜를 확인해보세요!</p>
+                    </Card>
+                  )}
+                </div>
 
 
-              {/* Mobile Navigation (Bottom) */}
-              <div className="flex md:hidden items-center justify-between mt-4 px-4">
-                <button
-                  onClick={goToPreviousDate}
-                  disabled={currentDateIndex === 0}
-                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
-                >
-                  <ChevronLeft size={24} className="text-emerald-600 dark:text-emerald-300" />
-                </button>
-                <span className="font-medium text-slate-900 dark:text-gray-100">
-                  {formatDate(currentDate)}
-                </span>
-                <button
-                  onClick={goToNextDate}
-                  disabled={currentDateIndex === allDatesData.length - 1}
-                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
-                >
-                  <ChevronRight size={24} className="text-emerald-600 dark:text-emerald-300" />
-                </button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="ranking"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-            >
-              <Card className="p-6 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-gray-100 mb-2">
-                  {new Date().getFullYear()} 시즌 순위 예측
-                </h3>
-                <p className="text-slate-600 dark:text-gray-300">
-                  나만의 드림팀 순위를 완성하고 친구들과 공유해보세요!
-                </p>
-              </Card>
-              <RankingPrediction />
-            </motion.div>
-          )}
-        </AnimatePresence>
+                {/* Mobile Navigation (Bottom) */}
+                <div className="flex md:hidden items-center justify-between mt-4 px-4">
+                  <button
+                    onClick={goToPreviousDate}
+                    disabled={!canMovePrevDate}
+                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
+                  >
+                    <ChevronLeft size={24} className="text-emerald-600 dark:text-emerald-300" />
+                  </button>
+                  <span className="font-medium text-slate-900 dark:text-gray-100">
+                    {formatDate(currentDate)}
+                  </span>
+                  <button
+                    onClick={goToNextDate}
+                    disabled={!canMoveNextDate}
+                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
+                  >
+                    <ChevronRight size={24} className="text-emerald-600 dark:text-emerald-300" />
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="ranking"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                <Card className="p-6 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-gray-100 mb-2">
+                    {new Date().getFullYear()} 시즌 순위 예측
+                  </h3>
+                  <p className="text-slate-600 dark:text-gray-300">
+                    나만의 드림팀 순위를 완성하고 친구들과 공유해보세요!
+                  </p>
+                </Card>
+                <RankingPrediction />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      <ChatBot />
       <ComboAnimation />
     </div >
   );

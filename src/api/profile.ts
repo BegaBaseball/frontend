@@ -68,11 +68,7 @@ export async function uploadProfileImage(file: File): Promise<ProfileImageDto> {
   formData.append('file', file);
 
   try {
-    const response = await api.post('/profile/image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.postForm('/profile/image', formData);
 
     if (response.data.success) {
       return response.data.data;

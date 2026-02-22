@@ -120,13 +120,25 @@ export default function MateChat() {
     fetchMessages();
   }, [selectedParty, currentUser]);
 
-  // 스크롤 자동 이동
+  // 스크롤 헬퍼: Radix ScrollArea 내부 뷰포트 엘리먼트를 반환
+  const getScrollContainer = (): HTMLElement | null =>
+    (scrollAreaRef.current?.querySelector(
+      '[data-radix-scroll-area-viewport]'
+    ) as HTMLElement | null) ?? null;
+
+  // 현재 스크롤 위치가 최하단 100px 이내인지 확인
+  const isNearBottom = (): boolean => {
+    const el = getScrollContainer();
+    if (!el) return true;
+    return el.scrollHeight - (el.scrollTop + el.clientHeight) < 100;
+  };
+
+  // 스크롤 자동 이동: 최하단 근처일 때만 이동
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
+    if (!isNearBottom()) return;
+    const el = getScrollContainer();
+    if (el) {
+      el.scrollTop = el.scrollHeight;
     }
   }, [messages]);
 

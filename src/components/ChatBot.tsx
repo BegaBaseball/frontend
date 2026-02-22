@@ -53,9 +53,10 @@ const formatToolParams = (params: Record<string, unknown>): string => {
 
 interface ChatBotProps {
   autoOpen?: boolean;
+  onClosed?: () => void;
 }
 
-export default function ChatBot({ autoOpen = false }: ChatBotProps) {
+export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
   const { isLoggedIn } = useAuthStore();
   // const isLoggedIn = true;
   const isMobile = useIsMobile();
@@ -78,7 +79,7 @@ export default function ChatBot({ autoOpen = false }: ChatBotProps) {
     handleSendMessage,
     handleRetrySend,
     handleRestorePendingMessage,
-  } = useChatBot();
+  } = useChatBot(autoOpen);
 
   const [isClosing, setIsClosing] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -125,13 +126,34 @@ export default function ChatBot({ autoOpen = false }: ChatBotProps) {
     };
   })();
 
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
   const handleClose = () => {
+    if (isClosing) {
+      return;
+    }
+
     setIsClosing(true);
-    setTimeout(() => {
+    clearCloseTimer();
+    closeTimerRef.current = window.setTimeout(() => {
       setIsOpen(false);
       setIsClosing(false);
+      onClosed?.();
     }, 300); // 300ms matches animation duration
   };
+
+  useEffect(() => {
+    return () => {
+      clearCloseTimer();
+    };
+  }, []);
 
   const handleCopyMessage = async (text: string, index: number) => {
     try {
@@ -178,25 +200,30 @@ export default function ChatBot({ autoOpen = false }: ChatBotProps) {
             fixed flex flex-col overflow-hidden
             bg-white dark:bg-black border border-gray-200 dark:border-white/10
             ${isMobile
-              ? 'inset-0 rounded-none'
+              ? 'inset-0 rounded-none max-h-[100dvh] max-w-full'
               : 'bottom-5 right-5 w-[min(400px,calc(100vw-2rem))] h-[600px] rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]'
             }
           `}
         >
-          {/* Header */}
-          <div className="p-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-primary">
-            <div className="flex items-center gap-3">
-              <img
-                src={chatBotIcon}
-                alt="BEGA"
-                className="w-10 h-10 rounded-full bg-white p-1.5"
-              />
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-white font-bold text-base m-0">야구 가이드 BEGA</h3>
+            {/* Header */}
+            <div className="p-3 md:p-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-primary">
+              <div className="flex items-center gap-3">
+                <span className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-primary grid place-items-center">
+                  <img
+                    src={chatBotIcon}
+                    alt="BEGA"
+                    className="pointer-events-none block h-8 w-8 sm:h-9 sm:w-9 md:h-9 md:w-9 object-cover object-center"
+                    loading="eager"
+                    aria-hidden="true"
+                    decoding="async"
+                  />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-white font-bold text-sm md:text-base m-0">야구 가이드 BEGA</h3>
                   <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30">Beta</Badge>
                 </div>
-                <p className="text-white/80 text-xs m-0">야구 정보 안내</p>
+                <p className="text-white/80 text-[11px] md:text-xs m-0">야구 정보 안내</p>
               </div>
             </div>
             <button
@@ -204,7 +231,7 @@ export default function ChatBot({ autoOpen = false }: ChatBotProps) {
               className="text-white/80 hover:text-white bg-transparent border-none cursor-pointer
                          p-2 rounded-full transition-colors
                          min-w-[44px] min-h-[44px] flex items-center justify-center
-                         focus:outline-none focus:ring-2 focus:ring-white/50"
+                         focus:outline-none focus-visible:outline-none focus:ring-0"
               aria-label="챗봇 닫기"
             >
               <X className="w-5 h-5" />
@@ -477,24 +504,31 @@ export default function ChatBot({ autoOpen = false }: ChatBotProps) {
       )}
 
       {/* Launcher Button - 챗봇이 닫혀있을 때만 표시 */}
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 w-16 h-16 rounded-full bg-primary border-none
+      {!isOpen && !autoOpen && (
+          <button
+            onClick={() => setIsOpen(true)}
+            className="fixed w-11 h-11 sm:w-14 sm:h-14 sm:min-h-[56px] sm:min-w-[56px] md:w-16 md:h-16 rounded-full bg-primary border-none
                      shadow-[0_10px_25px_rgba(0,0,0,0.3)] cursor-pointer
                      flex items-center justify-center text-white
-                     transition-transform duration-200 hover:scale-110 active:scale-95
-                     focus:outline-none focus:ring-4 focus:ring-primary/50"
-          aria-label="챗봇 열기"
-        >
-          <img
-            src={chatBotIcon}
-            alt=""
-            className="w-12 h-12 rounded-full"
-            aria-hidden="true"
-          />
-        </button>
-      )}
+                     transition-all duration-200 active:bg-primary active:text-white
+                     touch-action-manipulation
+                     overflow-hidden
+                     bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))]
+                     md:bottom-[calc(1.25rem+env(safe-area-inset-bottom))] md:right-[calc(1.25rem+env(safe-area-inset-right))]
+                     focus:outline-none focus-visible:outline-none focus:ring-0"
+            aria-label="챗봇 열기"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <img
+              src={chatBotIcon}
+              alt=""
+              className="pointer-events-none block h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11 object-cover object-center"
+              aria-hidden="true"
+              decoding="async"
+              loading="eager"
+            />
+          </button>
+        )}
     </div>
   );
 }

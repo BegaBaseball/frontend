@@ -199,25 +199,29 @@ export default function CheerWriteModal({
 
                 <div className="p-4 sm:p-6 lg:p-8">
                     <div className="flex gap-3 sm:gap-4">
-                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
-
-                            {user?.profileImageUrl ? (
-                                <ProfileAvatar
-                                    src={resolveProfileImage(user.profileImageUrl) || undefined}
-                                    alt={user?.name || '프로필'}
-                                    fallbackName={user?.name || '프로필'}
-                                    width={40}
-                                    height={40}
-                                    className="rounded-full"
-                                />
-                            ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
-                                <TeamLogo teamId={teamId} team={teamLabel} size={48} />
-                            ) : (
-                                <span className="text-sm sm:text-base font-semibold text-slate-600 dark:text-gray-300">
+                        {user?.profileImageUrl ? (
+                            <ProfileAvatar
+                                src={resolveProfileImage(user.profileImageUrl) || undefined}
+                                alt={user?.name || '프로필'}
+                                fallbackName={user?.name || '프로필'}
+                                width={40}
+                                height={40}
+                                showRing
+                                ringClassName="p-px bg-slate-100 dark:bg-secondary"
+                            />
+                        ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
+                            <span className="inline-flex h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary p-px items-center justify-center flex-shrink-0">
+                                <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
+                                    <TeamLogo teamId={teamId} team={teamLabel} size={40} />
+                                </div>
+                            </span>
+                        ) : (
+                            <span className="inline-flex h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary p-px items-center justify-center flex-shrink-0">
+                                <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center text-sm sm:text-base font-semibold text-slate-600 dark:text-gray-300">
                                     {user?.name?.slice(0, 1) || '?'}
                                 </span>
-                            )}
-                        </div>
+                            </span>
+                        )}
                         <div className="flex-1 min-w-0 flex flex-col gap-2 sm:gap-3">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <select
@@ -288,7 +292,7 @@ export default function CheerWriteModal({
                             {previews.length > 0 && (
                                 <div className="mt-4 grid grid-cols-3 gap-2">
                                     {previews.map((preview, index) => (
-                                        <div key={preview.url} className="relative aspect-square overflow-hidden rounded-xl ring-1 ring-black/10 dark:ring-white/10">
+                                        <div key={preview.url} className="relative aspect-square overflow-hidden rounded-xl border border-black/10 dark:border-white/10">
                                             <img src={preview.url} alt="preview" className="h-full w-full object-cover" />
                                             <button
                                                 onClick={() => handleRemoveFile(index)}

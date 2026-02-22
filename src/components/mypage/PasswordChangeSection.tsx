@@ -98,7 +98,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                                 id="currentPassword"
                                 type={showCurrentPassword ? 'text' : 'password'}
                                 value={currentPassword}
-                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                onChange={(e) => { setCurrentPassword(e.target.value); setError(''); }}
                                 placeholder="현재 비밀번호를 입력하세요"
                                 className="pr-10"
                                 disabled={mutation.isPending}
@@ -124,7 +124,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                             id="newPassword"
                             type={showNewPassword ? 'text' : 'password'}
                             value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
+                            onChange={(e) => { setNewPassword(e.target.value); setError(''); }}
                             placeholder="새 비밀번호를 입력하세요"
                             className="pr-10"
                             disabled={mutation.isPending}
@@ -150,7 +150,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                             id="confirmPassword"
                             type={showConfirmPassword ? 'text' : 'password'}
                             value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
                             placeholder="새 비밀번호를 다시 입력하세요"
                             className="pr-10"
                             disabled={mutation.isPending}

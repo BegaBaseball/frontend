@@ -75,8 +75,11 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const bookmarkCount = post.bookmarkCount ?? 0;
     const actionPostId = resolveActionPostId();
     const isRepost = Boolean(post.repostType);
-    const repostTargetAuthorId = isRepost ? post.originalPost?.authorId : post.authorId;
-    const repostTargetAuthorHandle = isRepost ? post.originalPost?.authorHandle : post.authorHandle;
+  const repostTargetAuthorId = isRepost ? post.originalPost?.authorId : post.authorId;
+  const repostTargetAuthorHandle = isRepost ? post.originalPost?.authorHandle : post.authorHandle;
+  const avatarSource = isRepost && post.originalPost ? post.originalPost : post;
+  const avatarProfileImage = resolveProfileImage(avatarSource.authorProfileImageUrl);
+  const avatarAuthor = avatarSource.author || '프로필';
     const repostPolicy = getRepostPolicyDecision({
         isPostOwner: post.isOwner,
         isRepostTarget: isRepost,
@@ -269,49 +272,31 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
                 <div className="relative h-10 w-10 flex-shrink-0">
                     <div
-                        className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-gray-200 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            const targetHandle = (post.repostType === 'SIMPLE' && post.originalPost)
-                                ? post.originalPost.authorHandle
-                                : post.authorHandle;
-                            if (targetHandle) {
-                                const normalizedHandle = targetHandle.startsWith('@') ? targetHandle : `@${targetHandle}`;
-                                navigate(`/profile/${normalizedHandle}`);
-                            }
-                        }}
-                    >
-                        {(post.repostType === 'SIMPLE' && post.originalPost) ? (
-                            resolveProfileImage(post.originalPost.authorProfileImageUrl) ? (
-                                <ProfileAvatar
-                                    src={resolveProfileImage(post.originalPost.authorProfileImageUrl) || undefined}
-                                    alt={post.originalPost.author || '프로필'}
-                                    fallbackName={post.originalPost.author || '프로필'}
-                                    width={40}
-                                    height={40}
-                                    className="rounded-full"
-                                />
-                            ) : (
-                                post.originalPost.author?.slice(0, 1) || '?'
-                            )
-                        ) : (
-                            resolveProfileImage(post.authorProfileImageUrl) ? (
-                                <ProfileAvatar
-                                    src={resolveProfileImage(post.authorProfileImageUrl) || undefined}
-                                    alt={post.author || '프로필'}
-                                    fallbackName={post.author || '프로필'}
-                                    width={40}
-                                    height={40}
-                                    className="rounded-full"
-                                />
-                            ) : (
-                                post.author?.slice(0, 1) || '?'
-                            )
-                        )}
-                    </div>
+                className="h-full w-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const targetHandle = isRepost
+                    ? avatarSource.authorHandle
+                    : post.authorHandle;
+                  if (targetHandle) {
+                    const normalizedHandle = targetHandle.startsWith('@') ? targetHandle : `@${targetHandle}`;
+                    navigate(`/profile/${normalizedHandle}`);
+                  }
+                }}
+              >
+                <ProfileAvatar
+                  src={avatarProfileImage || undefined}
+                  alt={avatarAuthor}
+                  fallbackName={avatarAuthor}
+                  width={40}
+                  height={40}
+                  showRing
+                  ringClassName="p-px bg-black/5 dark:bg-white/10 cursor-pointer hover:opacity-80 transition-opacity"
+                />
+              </div>
                     {/* Team Logo: Use Original's team if Simple Repost */}
                     {((post.repostType === 'SIMPLE' && post.originalPost && post.originalPost.teamId) || post.authorTeamId) && (
-                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white dark:bg-secondary ring-2 ring-white dark:ring-border overflow-hidden flex items-center justify-center">
+                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white p-0.5 dark:bg-secondary flex items-center justify-center">
                             <TeamLogo
                                 team={((post.repostType === 'SIMPLE' && post.originalPost) ? (TEAM_DATA[post.originalPost.teamId as keyof typeof TEAM_DATA]?.name || post.originalPost.teamId) : (TEAM_DATA[post.authorTeamId as keyof typeof TEAM_DATA]?.name || post.authorTeamId))}
                                 size={20}
@@ -415,7 +400,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             <EmbeddedPost
                                 post={post.originalDeleted ? { ...post.originalPost, deleted: true } : post.originalPost}
                                 className={(post.authorHandle === post.originalPost.authorHandle || post.author === post.originalPost.author)
-                                    ? "ring-2 ring-gray-300 dark:ring-gray-600 rounded-xl"
+                                    ? "border-2 border-gray-300 dark:border-gray-600 rounded-xl"
                                     : ""
                                 }
                             />

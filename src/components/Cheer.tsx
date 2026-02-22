@@ -38,7 +38,11 @@ type FeedTabConfig = {
     sort?: string;
 };
 
-export default function Cheer() {
+interface CheerProps {
+    openComposerOnMount?: boolean;
+}
+
+export default function Cheer({ openComposerOnMount = false }: CheerProps) {
     const navigate = useNavigate();
     const { user, isAuthLoading, fetchProfileAndAuthenticate } = useAuthStore();
     const queryClient = useQueryClient();
@@ -53,6 +57,7 @@ export default function Cheer() {
     );
     const [activeFeedTab, setActiveFeedTab] = useState(feedTabs[0].key);
     const hasFetchedProfile = useRef(false);
+    const didOpenComposerFromRoute = useRef(false);
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -63,6 +68,20 @@ export default function Cheer() {
         hasFetchedProfile.current = true;
         fetchProfileAndAuthenticate();
     }, [fetchProfileAndAuthenticate, isAuthLoading, user?.favoriteTeam]);
+
+    useEffect(() => {
+        if (!openComposerOnMount) return;
+        if (didOpenComposerFromRoute.current) return;
+        if (isAuthLoading) return;
+
+        didOpenComposerFromRoute.current = true;
+        if (!user) {
+            toast.error('로그인이 필요한 서비스입니다.');
+            return;
+        }
+
+        setIsWriteModalOpen(true);
+    }, [openComposerOnMount, isAuthLoading, user]);
 
     const handleWriteClick = () => {
         if (!user) {
@@ -255,7 +274,7 @@ export default function Cheer() {
             const created = await createCheerPost({
                 teamId: user.favoriteTeam,
                 content: payload.content,
-                postType: payload.postType ?? 'CHEER',
+                postType: payload.postType ?? 'NORMAL',
                 shareMode: payload.shareMode,
                 sourceUrl: payload.sourceUrl,
                 sourceTitle: payload.sourceTitle,
@@ -323,7 +342,7 @@ export default function Cheer() {
                 images: composerPreviews.map((preview) => preview.url),
                 imageUrls: composerPreviews.map((preview) => preview.url),
                 imageUploadFailed: false,
-                postType: payload.postType ?? 'CHEER',
+                postType: payload.postType ?? 'NORMAL',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 isOwner: true,
@@ -467,9 +486,6 @@ export default function Cheer() {
                 });
             }
             return fetchPosts({
-                // Force 'all' to allow viewing/commenting on all posts regardless of user's favorite team.
-                // Previously: teamId: favoriteTeamId || 'all' (Restricted view)
-                teamId: 'all',
                 page: pageParam as number,
                 size: 20,
                 postType: activeTabConfig?.postType,
@@ -514,7 +530,6 @@ export default function Cheer() {
     const { data: polledData } = useQuery({
         queryKey: ['cheer-polling', activeFeedTab],
         queryFn: () => fetchPosts({
-            teamId: 'all',
             page: 0,
             size: 10,
             postType: activeTabConfig?.postType
@@ -684,7 +699,7 @@ export default function Cheer() {
                                                 {isActive && (
                                                     <motion.span
                                                         layoutId="cheer-feed-tab-indicator"
-                                                        className="absolute inset-0 rounded-full bg-white dark:bg-card shadow-sm ring-1 ring-black/5 dark:ring-border"
+                                                        className="absolute inset-0 rounded-full bg-white dark:bg-card shadow-sm border border-black/5 dark:border-border"
                                                         transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                                                     />
                                                 )}
@@ -731,21 +746,28 @@ export default function Cheer() {
                                     </div>
                                 )}
                                 <div className="flex gap-3">
-                                    <div className="h-11 w-11 shrink-0 rounded-full border border-slate-200 dark:border-border bg-slate-100 dark:bg-card flex items-center justify-center overflow-hidden">
+                                    <div className="h-11 w-11 shrink-0">
                                         {user?.profileImageUrl ? (
-                                    <ProfileAvatar
-                                        src={resolveProfileImage(user.profileImageUrl) || undefined}
-                                        alt={user.name || '프로필'}
-                                        fallbackName={user.name || '프로필'}
-                                        width={40}
-                                        height={40}
-                                        className="rounded-full"
-                                    />
+                                            <ProfileAvatar
+                                                src={resolveProfileImage(user.profileImageUrl) || undefined}
+                                                alt={user.name || '프로필'}
+                                                fallbackName={user.name || '프로필'}
+                                                width={40}
+                                                height={40}
+                                                showRing
+                                                ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                            />
                                         ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
-                                            <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
+                                            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/5 dark:bg-white/10 p-px">
+                                                <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
+                                                    <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
+                                                </div>
+                                            </span>
                                         ) : (
-                                            <span className="text-sm font-semibold text-slate-600 dark:text-gray-300">
-                                                {user?.name?.slice(0, 1) || '?'}
+                                            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/5 dark:bg-white/10 p-px">
+                                                <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-gray-300">
+                                                    {user?.name?.slice(0, 1) || '?'}
+                                                </span>
                                             </span>
                                         )}
                                     </div>
@@ -812,7 +834,7 @@ export default function Cheer() {
                                                 {composerPreviews.map((preview, index) => (
                                                     <div
                                                         key={preview.url}
-                                                        className="relative h-20 overflow-hidden rounded-lg ring-1 ring-black/10 dark:ring-white/10"
+                                                        className="relative h-20 overflow-hidden rounded-lg border border-black/10 dark:border-white/10"
                                                     >
                                                         <img
                                                             src={preview.url}
@@ -869,7 +891,7 @@ export default function Cheer() {
                                         ))}
                                     </div>
                                 ) : queryError ? (
-                                    <div className="py-16 px-6 flex flex-col items-center justify-center gap-4">
+                <div className="py-10 px-4 sm:px-6 flex flex-col items-center justify-center gap-4">
                                         <div className="flex flex-col items-center gap-3">
                                             <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
                                             <div className="text-center">

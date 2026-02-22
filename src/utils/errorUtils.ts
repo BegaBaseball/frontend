@@ -38,7 +38,7 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'PERMISSION',
                 responseCode,
-                message: '접근 권한이 없습니다.',
+                message: serverMessage || '접근 권한이 없습니다.',
                 statusCode: 403,
             };
         }
@@ -100,7 +100,7 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'PERMISSION',
                 responseCode,
-                message: '접근 권한이 없습니다.',
+                message: typeof serverMessage === 'string' && serverMessage ? serverMessage : '접근 권한이 없습니다.',
                 statusCode: 403,
             };
         }

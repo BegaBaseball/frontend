@@ -14,8 +14,6 @@ export interface LoginResponse {
   success: boolean;
   message: string;
   data: {
-    accessToken: string;
-    refreshToken?: string;
     id: number;
     name: string;
     role: string;
