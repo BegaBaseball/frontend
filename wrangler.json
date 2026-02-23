@@ -1,7 +1,5 @@
 {
   "name": "begabaseball-frontend",
-  "type": "javascript",
-  "main": "src/index.js",
   "site": {
     "bucket": "./dist"
   }
