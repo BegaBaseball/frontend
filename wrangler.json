@@ -1,6 +1,0 @@
-{
-  "name": "begabaseball-frontend",
-  "site": {
-    "bucket": "./dist"
-  }
-}
