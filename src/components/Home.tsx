@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Calendar as CalendarComponent } from './ui/calendar';
 import { Skeleton } from './ui/skeleton';
-import TeamLogo from './TeamLogo';
+import TeamLogo, { teamCodeToKoreanName } from './TeamLogo';
 import GameCard from './GameCard';
 import ScheduledGameCard from './ScheduledGameCard';
 import WelcomeGuide from './WelcomeGuide';
@@ -22,10 +22,7 @@ import {
     shouldAutoSwitchToScheduled,
     type LeagueTab,
 } from '../utils/predictionHomeLogic';
-import { getFallbackLeagueStartDates } from '../utils/home';
-
-// Constants
-import { CURRENT_SEASON_YEAR } from '../constants/home';
+import { cacheLeagueStartDates, getFallbackLeagueStartDates } from '../utils/home';
 
 // --- Types ---
 interface Game {
@@ -100,6 +97,9 @@ export default function Home({ onNavigate }: HomeProps) {
     const [games, setGames] = useState<Game[]>([]);
     const [rankings, setRankings] = useState<Ranking[]>([]);
     const [leagueStartDates, setLeagueStartDates] = useState<LeagueStartDates | null>(null);
+    const [rankingSeasonYear, setRankingSeasonYear] = useState(new Date().getFullYear());
+    const [rankingsError, setRankingsError] = useState(false);
+    const [rankingSourceMessage, setRankingSourceMessage] = useState('');
 
     // Navigation State (Optimistic defaults: true)
     const [navInfo, setNavInfo] = useState<{ prev: string | null; next: string | null; hasPrev: boolean; hasNext: boolean }>({
@@ -118,6 +118,7 @@ export default function Home({ onNavigate }: HomeProps) {
     const [isSecondarySectionExpanded, setIsSecondarySectionExpanded] = useState(false);
     const hasUserChangedTabRef = useRef(false);
     const scheduledRequestIdRef = useRef(0);
+    const navRequestIdRef = useRef(0);
 
     // --- Helpers ---
     const formatDateForAPI = (date: Date): string => {
@@ -143,6 +144,98 @@ export default function Home({ onNavigate }: HomeProps) {
             nextDate.setHours(12, 0, 0, 0);
             return nextDate;
         });
+    };
+
+    const toLocalMiddayDate = (value: string): Date => {
+        const parsed = new Date(`${value}T12:00:00`);
+        if (Number.isNaN(parsed.getTime())) {
+            const fallback = new Date(value);
+            fallback.setHours(12, 0, 0, 0);
+            return fallback;
+        }
+        return parsed;
+    };
+
+    const isOffSeasonByDate = (baseDate = new Date(), startDates = leagueStartDates): boolean => {
+        const targetDate = new Date(baseDate);
+        targetDate.setHours(12, 0, 0, 0);
+
+        if (Number.isNaN(targetDate.getTime())) {
+            return false;
+        }
+
+        if (!startDates) {
+            const month = targetDate.getMonth() + 1;
+            const day = targetDate.getDate();
+            return month >= 11 || month <= 2 || (month === 3 && day < 22);
+        }
+
+        const regularSeasonStart = new Date(startDates.regularSeasonStart);
+        regularSeasonStart.setHours(12, 0, 0, 0);
+
+        if (Number.isNaN(regularSeasonStart.getTime())) {
+            const month = targetDate.getMonth() + 1;
+            const day = targetDate.getDate();
+            return month >= 11 || month <= 2 || (month === 3 && day < 22);
+        }
+
+        const seasonStartDateThisYear = new Date(regularSeasonStart);
+        seasonStartDateThisYear.setFullYear(targetDate.getFullYear());
+        seasonStartDateThisYear.setHours(12, 0, 0, 0);
+
+        const month = targetDate.getMonth() + 1;
+        const isBeforeRegularStart = targetDate < seasonStartDateThisYear;
+
+        return month >= 11 || month <= 2 || isBeforeRegularStart;
+    };
+
+    const resolveRankingSeasonYear = (baseDate = new Date(), startDates = leagueStartDates): number => {
+        const targetDate = new Date(baseDate);
+        targetDate.setHours(12, 0, 0, 0);
+
+        if (Number.isNaN(targetDate.getTime())) {
+            return targetDate.getFullYear();
+        }
+
+        return isOffSeasonByDate(targetDate, startDates)
+            ? targetDate.getFullYear() - 1
+            : targetDate.getFullYear();
+    };
+
+    const getSeasonShortLabel = (year: number): string => String(year).slice(-2);
+
+    const getRankingDisplayName = (teamId: string, teamName: string): string => {
+        const normalizedTeamId = (teamId || '').trim().toUpperCase();
+        const normalizedTeamName = (teamName || '').trim();
+
+        const byCode = (teamCode: string): string | undefined => teamCodeToKoreanName[teamCode.toUpperCase()];
+
+        if (normalizedTeamName) {
+            const normalizedTeamNameUpper = normalizedTeamName.toUpperCase();
+            const mappedByName = byCode(normalizedTeamNameUpper);
+            if (mappedByName) {
+                return mappedByName;
+            }
+
+            if (/[가-힣]/.test(normalizedTeamName)) {
+                return normalizedTeamName;
+            }
+        }
+
+        if (normalizedTeamId) {
+            const mappedById = byCode(normalizedTeamId);
+            if (mappedById) {
+                return mappedById;
+            }
+        }
+
+        const normalizedTeamNameForCode = normalizedTeamName.toUpperCase();
+        const isAllCapsCode = /^[A-Z]{2,10}$/.test(normalizedTeamNameForCode);
+        if (isAllCapsCode) {
+            return normalizedTeamId || normalizedTeamName;
+        }
+
+        return normalizedTeamName || normalizedTeamId;
     };
 
     const resolveLeagueBadge = (leagueType?: string): string => {
@@ -188,19 +281,21 @@ export default function Home({ onNavigate }: HomeProps) {
         if (direction === 'prev') {
             if (navInfo.prev) {
                 // Smart nav
-                setSelectedDate(new Date(navInfo.prev));
+                setSelectedDate(toLocalMiddayDate(navInfo.prev));
             } else {
                 // Fallback: -1 day
                 newDate.setDate(newDate.getDate() - 1);
+                newDate.setHours(12, 0, 0, 0);
                 setSelectedDate(newDate);
             }
         } else if (direction === 'next') {
             if (navInfo.next) {
                 // Smart nav
-                setSelectedDate(new Date(navInfo.next));
+                setSelectedDate(toLocalMiddayDate(navInfo.next));
             } else {
                 // Fallback: +1 day
                 newDate.setDate(newDate.getDate() + 1);
+                newDate.setHours(12, 0, 0, 0);
                 setSelectedDate(newDate);
             }
         }
@@ -208,6 +303,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     // --- Data Fetching ---
     const loadNavigationData = async (date: Date) => {
+        const requestId = ++navRequestIdRef.current;
         const apiDate = formatDateForAPI(date);
         try {
             const response = await fetch(`${API_BASE}/kbo/schedule/navigation?date=${apiDate}`, {
@@ -215,40 +311,46 @@ export default function Home({ onNavigate }: HomeProps) {
             });
             if (response.ok) {
                 const data = await response.json();
+                if (requestId !== navRequestIdRef.current) return;
+                const prevGameDate = data.prevGameDate ?? null;
+                const nextGameDate = data.nextGameDate ?? null;
                 setNavInfo({
-                    prev: data.prevGameDate,
-                    next: data.nextGameDate,
-                    hasPrev: data.hasPrev,
-                    hasNext: data.hasNext
+                    prev: prevGameDate,
+                    next: nextGameDate,
+                    hasPrev: Boolean(prevGameDate),
+                    hasNext: Boolean(nextGameDate),
                 });
             } else {
                 // If API fails (e.g. 500 or 404), keep buttons enabled for fallback
+                if (requestId !== navRequestIdRef.current) return;
                 setNavInfo(prev => ({ ...prev, hasPrev: true, hasNext: true }));
             }
         } catch (error) {
             console.error('[Nav] Error:', error);
             // Fallback: keep enabled
+            if (requestId !== navRequestIdRef.current) return;
             setNavInfo(prev => ({ ...prev, hasPrev: true, hasNext: true }));
         }
     };
 
     // --- Data Fetching ---
     const loadLeagueStartDates = async () => {
+        const fallbackDates = getFallbackLeagueStartDates();
+
         try {
             const response = await fetch(`${API_BASE}/kbo/league-start-dates`, {
                 credentials: 'include',
             });
-            let data: LeagueStartDates;
             if (!response.ok) {
-                // Fallback
-                data = getFallbackLeagueStartDates();
+                setLeagueStartDates(fallbackDates);
             } else {
-                data = await response.json();
+                const data = await response.json() as LeagueStartDates;
+                cacheLeagueStartDates(data);
+                setLeagueStartDates(data);
             }
-            setLeagueStartDates(data);
         } catch (error) {
             console.error('[System] Error loading league dates:', error);
-            setLeagueStartDates(getFallbackLeagueStartDates());
+            setLeagueStartDates(fallbackDates);
         }
     };
 
@@ -330,18 +432,103 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
-    const loadRankingsData = async () => {
+    const loadRankingsData = async (seasonYear: number) => {
         setIsRankingsLoading(true);
-        try {
-            const response = await fetch(`${API_BASE}/kbo/rankings/${CURRENT_SEASON_YEAR}`, {
+        setRankingsError(false);
+        setRankingSourceMessage('');
+        setRankingSeasonYear(seasonYear);
+
+        const requestRankings = async (targetSeasonYear: number): Promise<Ranking[]> => {
+            const response = await fetch(`${API_BASE}/kbo/rankings/${targetSeasonYear}`, {
                 credentials: 'include',
             });
-            if (!response.ok) throw new Error('API Error');
-            const rankingsData: Ranking[] = await response.json();
-            setRankings(rankingsData);
+
+            if (!response.ok) {
+                throw new Error('API Error');
+            }
+
+            return await response.json();
+        };
+
+        try {
+            const now = selectedDate;
+            const shouldFallbackToPrevious = isOffSeasonByDate(now, leagueStartDates);
+
+            const rankingsData = await requestRankings(seasonYear);
+
+            if (rankingsData.length > 0) {
+                setRankingSeasonYear(seasonYear);
+                setRankingSourceMessage(`${seasonYear} 시즌 순위 데이터`);
+                setRankings(rankingsData);
+                return;
+            }
+
+            if (!shouldFallbackToPrevious) {
+                setRankings([]);
+                setRankingSourceMessage(`${seasonYear} 시즌 데이터가 아직 집계되지 않았습니다.`);
+                return;
+            }
+
+            const previousSeasonYear = seasonYear - 1;
+            setRankingSourceMessage(`전시즌(${getSeasonShortLabel(previousSeasonYear)}) 재조회 중`);
+
+            try {
+                const fallbackData = await requestRankings(previousSeasonYear);
+
+                if (fallbackData.length > 0) {
+                    setRankingSeasonYear(previousSeasonYear);
+                    setRankingSourceMessage(`${previousSeasonYear} 시즌 순위 데이터`);
+                    setRankings(fallbackData);
+                    return;
+                }
+
+                setRankingSourceMessage('현재 시즌과 전시즌(전년도) 데이터가 없습니다.');
+                setRankings([]);
+                return;
+                } catch (fallbackError) {
+                    console.error(`[Rank] Error loading previous season rankings:`, fallbackError);
+                    setRankings([]);
+                    setRankingsError(true);
+                    setRankingSourceMessage('순위 조회 중 문제가 발생했습니다.');
+                    return;
+                }
         } catch (error) {
             console.error('[Rank] Error loading rankings:', error);
             setRankings([]);
+            setRankingsError(true);
+
+            const now = selectedDate;
+            const shouldFallbackToPrevious = isOffSeasonByDate(now, leagueStartDates);
+
+            if (shouldFallbackToPrevious) {
+                const previousSeasonYear = seasonYear - 1;
+                setRankingSourceMessage(`전시즌(${getSeasonShortLabel(previousSeasonYear)}) 재조회 중`);
+
+                try {
+                    const fallbackData = await requestRankings(previousSeasonYear);
+
+                    if (fallbackData.length > 0) {
+                        setRankingSeasonYear(previousSeasonYear);
+                        setRankingSourceMessage(`${previousSeasonYear} 시즌 순위 데이터`);
+                        setRankings(fallbackData);
+                        setRankingsError(false);
+                        return;
+                    }
+
+                    setRankingSourceMessage('현재 시즌과 전시즌(전년도) 데이터가 없습니다.');
+                    setRankings([]);
+                    setRankingsError(false);
+                    return;
+                } catch (fallbackError) {
+                    console.error('[Rank] Error loading fallback rankings:', fallbackError);
+                    setRankings([]);
+                    setRankingsError(true);
+                    setRankingSourceMessage('순위 조회 중 문제가 발생했습니다.');
+                }
+            return;
+        }
+
+        setRankingSourceMessage('순위 조회 중 문제가 발생했습니다.');
         } finally {
             setIsRankingsLoading(false);
         }
@@ -361,12 +548,25 @@ export default function Home({ onNavigate }: HomeProps) {
         else if (tabValue === 'koreanseries') targetDate = new Date(leagueStartDates.koreanSeriesStart);
 
         if (targetDate) {
+            targetDate.setFullYear(new Date().getFullYear());
             targetDate.setHours(12, 0, 0, 0);
             setSelectedDate(targetDate);
         }
     };
 
-    useEffect(() => { loadLeagueStartDates(); loadRankingsData(); }, []);
+    useEffect(() => {
+        loadLeagueStartDates();
+    }, []);
+
+    useEffect(() => {
+        if (!leagueStartDates) {
+            return;
+        }
+
+        const seasonYear = resolveRankingSeasonYear(selectedDate, leagueStartDates);
+        setRankingSeasonYear((prev) => (prev === seasonYear ? prev : seasonYear));
+        loadRankingsData(seasonYear);
+    }, [leagueStartDates, selectedDate]);
     useEffect(() => {
         loadGamesData(selectedDate);
         loadNavigationData(selectedDate);
@@ -394,6 +594,30 @@ export default function Home({ onNavigate }: HomeProps) {
 
         return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
     };
+
+    const displayableRankings = rankings.reduce<Array<Ranking & { displayName: string }>>((acc, team) => {
+        const teamId = (team.teamId || '').trim().toUpperCase();
+        if (!teamId) {
+            return acc;
+        }
+
+        if (acc.some((value) => value.teamId === teamId)) {
+            return acc;
+        }
+
+        acc.push({
+            ...team,
+            teamId,
+            displayName: getRankingDisplayName(teamId, team.teamName),
+        });
+        return acc;
+    }, []);
+    const rankingDataVisibilityMessage = displayableRankings.length === 0 && rankings.length > 0
+        ? '순위 데이터에서 정규 팀이 아닌 항목이 감지되어 표시 가능한 팀 순위가 없습니다.'
+        : (rankingSourceMessage || '현재 시즌의 팀 순위 집계 데이터가 없습니다.');
+    const rankingStatusHintMessage = isOffSeasonByDate(selectedDate, leagueStartDates)
+        ? '현재는 비시즌이므로 이전 시즌 순위를 표시하고 있습니다.'
+        : '현재 시즌이 시작된 상태입니다. 시즌 순위는 경기 결과 집계 후 표시됩니다.';
 
     useEffect(() => {
         const shouldSwitch = shouldAutoSwitchToScheduled({
@@ -444,7 +668,7 @@ export default function Home({ onNavigate }: HomeProps) {
                             </h1>
                         </div>
                         <p className="text-gray-500 dark:text-gray-300 font-medium pl-4">
-                            {CURRENT_SEASON_YEAR} 시즌 경기 일정 및 순위
+                            {rankingSeasonYear} 시즌 경기 일정 및 순위
                         </p>
                     </div>
                     <div>
@@ -666,15 +890,42 @@ export default function Home({ onNavigate }: HomeProps) {
                         <h2 className="text-xl font-bold">팀 순위</h2>
                     </div>
 
-                    <Card className="overflow-hidden shadow-sm border border-gray-200 dark:border-border bg-white dark:bg-card">
-                        {isRankingsLoading ? (
-                            <div className="p-8 space-y-2">
-                                <Skeleton className="h-10 w-full" />
-                                <Skeleton className="h-10 w-full" />
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
+                        <Card className="overflow-hidden shadow-sm border border-gray-200 dark:border-border bg-white dark:bg-card">
+                            {isRankingsLoading ? (
+                                <div className="p-8 space-y-2">
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                </div>
+                            ) : rankingsError ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-card">
+                                    <p className="text-gray-700 dark:text-gray-200 font-semibold mb-3">
+                                        팀 순위를 불러오는 중 문제가 발생했습니다.
+                                    </p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            const seasonYear = resolveRankingSeasonYear(selectedDate, leagueStartDates);
+                                            loadRankingsData(seasonYear);
+                                        }}
+                                        className="border-primary/30 text-primary hover:bg-primary/5"
+                                    >
+                                        <RefreshCw className="w-4 h-4 mr-1.5" />
+                                        다시 시도
+                                    </Button>
+                                </div>
+                            ) : displayableRankings.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                                    <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">
+                                        {rankingDataVisibilityMessage}
+                                    </p>
+                                    <p className="text-gray-400 dark:text-gray-400 text-sm">
+                                        {rankingStatusHintMessage}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm text-left">
                                     <thead className="bg-gray-100 dark:bg-secondary text-gray-600 dark:text-gray-200 uppercase border-b border-gray-200 dark:border-border">
                                         <tr>
                                             <th className="px-6 py-3">순위</th>
@@ -687,15 +938,15 @@ export default function Home({ onNavigate }: HomeProps) {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {rankings.map(team => (
+                                        {displayableRankings.map(team => (
                                             <tr
                                                 key={team.teamId}
                                                 className="border-b border-gray-100 dark:border-border/70 last:border-b-0 odd:bg-white even:bg-gray-50/70 dark:odd:bg-card dark:even:bg-secondary/40 hover:bg-emerald-50/50 dark:hover:bg-secondary/70 transition-colors dark:text-gray-100"
                                             >
                                                 <td className="px-6 py-4 font-bold text-gray-900 dark:text-gray-100">{team.rank}</td>
                                                 <td className="px-6 py-4 flex items-center gap-3 font-medium text-gray-900 dark:text-gray-100">
-                                                    <TeamLogo team={team.shortName || team.teamName} teamId={team.teamId} size={24} />
-                                                    {team.teamName}
+                                                    <TeamLogo team={team.displayName} teamId={team.teamId} size={24} />
+                                                    {team.displayName}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">{team.games}</td>
                                                 <td className="px-6 py-4 text-right text-red-500 dark:text-red-400 font-medium">{team.wins}</td>

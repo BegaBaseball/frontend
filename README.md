@@ -239,9 +239,6 @@ docker-compose up -d
 # API 서버
 VITE_API_BASE_URL=http://localhost:8080/api
 
-# AI 챗봇 서버
-VITE_AI_SERVER_URL=http://localhost:8000
-
 # 카카오 지도
 VITE_KAKAO_MAP_KEY=your_kakao_map_key
 ```
@@ -249,7 +246,6 @@ VITE_KAKAO_MAP_KEY=your_kakao_map_key
 | 변수명 | 설명 | 필수 |
 |:---|:---|:---:|
 | `VITE_API_BASE_URL` | Spring Boot 백엔드 API 주소 | ✅ |
-| `VITE_AI_SERVER_URL` | FastAPI AI 서버 주소 | ✅ |
 | `VITE_KAKAO_MAP_KEY` | 카카오 지도 JavaScript 키 | ✅ |
 
 ---

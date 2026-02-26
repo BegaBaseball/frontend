@@ -168,7 +168,7 @@ export default function OffSeasonList() {
                             ))}
                         </div>
                     ) : filteredList.length === 0 ? (
-                        <div className="py-12 text-center text-gray-400">
+                        <div className="py-8 sm:py-10 text-center text-gray-400">
                             검색 결과가 없습니다.
                         </div>
                     ) : (

@@ -386,11 +386,11 @@ export default function UserProfile() {
                 </div>
 
                 {isPostsLoading ? (
-                    <div className="flex justify-center py-12">
+                    <div className="flex justify-center py-8 sm:py-10">
                         <Loader2 className="h-8 w-8 animate-spin" style={{ color: theme.primary }} />
                     </div>
                 ) : isPostsError ? (
-                    <div className="text-center py-12 bg-gray-50 dark:bg-card/50 rounded-2xl border border-gray-200 dark:border-border">
+                    <div className="text-center py-8 sm:py-10 bg-gray-50 dark:bg-card/50 rounded-2xl border border-gray-200 dark:border-border">
                         <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-500" />
                         <p className="text-gray-600 dark:text-gray-300 mb-4">
                             게시글을 불러오지 못했습니다.
@@ -415,7 +415,7 @@ export default function UserProfile() {
                         {!hasNextPage && uniquePosts.length > 0 && <EndOfFeed />}
                     </div>
                 ) : (
-                    <div className="text-center py-20 bg-gray-50 dark:bg-card/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-border">
+                    <div className="text-center py-12 sm:py-14 bg-gray-50 dark:bg-card/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-border">
                         <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-300" />
                         <p className="text-gray-400 dark:text-gray-300">
                             아직 작성한 게시글이 없습니다.

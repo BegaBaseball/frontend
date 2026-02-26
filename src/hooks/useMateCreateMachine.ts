@@ -184,6 +184,17 @@ const composeSection = (formData: PartyFormData): string =>
       .join(' ')
     : formData.section;
 
+const sanitizeUserFacingMessage = (message: string, fallback: string): string => {
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+  if (/^[a-z0-9_:-]+$/i.test(trimmed)) {
+    return fallback;
+  }
+  return trimmed;
+};
+
 type SubmitHost = {
   hostId: number;
   hostName: string;
@@ -262,9 +273,12 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
       const ticketInfo = await analyzeTicket(file);
       updateFormData(getTicketPatch(ticketInfo));
       setStep(2);
-    } catch {
+    } catch (error) {
       setErrorType('scan');
-      setErrorMessage('이미지 분석에 실패했습니다. 다른 파일로 다시 시도해주세요. (티켓 업로드는 필수)');
+      const fallbackMessage = '이미지 분석에 실패했습니다. 다른 파일로 다시 시도해주세요. (티켓 업로드는 필수)';
+      setErrorMessage(
+        sanitizeUserFacingMessage(getApiErrorMessage(error, fallbackMessage), fallbackMessage)
+      );
     } finally {
       setIsScanning(false);
     }

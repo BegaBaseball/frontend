@@ -1,24 +1,9 @@
 import { ChatRequest, VoiceResponse } from '../types/chatbot';
 import { getMockRateLimitSeconds } from '../mock/chatbotRateLimitMock';
+import { getApiBaseUrl } from './apiBase';
 
-const isCypress = typeof window !== 'undefined' && window.Cypress;
-const RAW_AI_API_URL = isCypress ? '' : import.meta.env.VITE_AI_API_URL;
-const API_BASE = RAW_AI_API_URL ? RAW_AI_API_URL.replace(/\/+$/, '') : '';
-const buildAiUrl = (path: string) => {
-  if (!API_BASE) return `/ai${path}`;
-  if (API_BASE.endsWith('/ai')) return `${API_BASE}${path}`;
-  return `${API_BASE}/ai${path}`;
-};
-
-const getInternalApiHeaders = (): HeadersInit => {
-  const token =
-    import.meta.env.VITE_AI_INTERNAL_TOKEN ||
-    import.meta.env.VITE_AI_API_TOKEN ||
-    import.meta.env.VITE_AI_TOKEN ||
-    '';
-
-  return token ? { 'X-Internal-Api-Key': token } : {};
-};
+const APP_API_URL = getApiBaseUrl();
+const buildAiProxyUrl = (path: string): string => `${APP_API_URL}/ai${path}`;
 /**
  * FastAPI SSE 스트리밍 처리
  */
@@ -78,11 +63,10 @@ export async function sendChatMessageStream(
   while (attempt < MAX_RETRIES) {
     try {
       attempt++;
-      response = await fetch(buildAiUrl('/chat/stream'), {
+      response = await fetch(buildAiProxyUrl('/chat/stream'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getInternalApiHeaders(),
         },
         body: JSON.stringify(data),
         credentials: 'include'
@@ -235,10 +219,10 @@ export async function convertVoiceToText(audioBlob: Blob): Promise<string> {
   const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
-    const response = await fetch(buildAiUrl('/chat/voice'), {
+    const response = await fetch(buildAiProxyUrl('/chat/voice'), {
       method: 'POST',
-      headers: getInternalApiHeaders(),
       body: formData,
+      credentials: 'include',
       signal: controller.signal,
     });
 

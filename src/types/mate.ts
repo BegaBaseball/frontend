@@ -47,7 +47,7 @@ export interface Application {
   feeAmount?: number;
   netSettlementAmount?: number;
   paymentStatus?: 'PAID' | 'REFUND_REQUESTED' | 'CANCELED' | 'REFUND_FAILED';
-  settlementStatus?: 'PENDING' | 'REQUESTED' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
+  settlementStatus?: 'PENDING' | 'REQUESTED' | 'COMPLETED' | 'FAILED' | 'SKIPPED' | 'REFUNDED_AFTER_SETTLEMENT';
   isApproved: boolean;
   isRejected: boolean;
   ticketVerified?: boolean;
@@ -144,9 +144,9 @@ export interface UpdatePartyRequest {
 
 export interface CreateApplicationRequest {
   partyId: number;
-  applicantId: number;
-  applicantName: string;
-  applicantBadge: BadgeType;
+  applicantId?: number;
+  applicantName?: string;
+  applicantBadge?: BadgeType;
   applicantRating?: number;
   message?: string;
   depositAmount: number;

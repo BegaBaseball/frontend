@@ -35,7 +35,7 @@ export default function BlockedUsersSection() {
     };
 
     return (
-        <div className="bg-white dark:bg-card rounded-2xl shadow-lg border-2 border-gray-100 dark:border-border p-8 mb-6">
+        <div className="bg-white dark:bg-card rounded-2xl shadow-lg border-2 border-gray-100 dark:border-border p-4 sm:p-6 md:p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
                 <Ban className="w-6 h-6 text-red-500" />
                 <h2 className="text-xl font-bold text-red-500">차단 관리</h2>
@@ -102,7 +102,7 @@ export default function BlockedUsersSection() {
                         )}
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                    <div className="flex flex-col items-center justify-center py-8 sm:py-10 text-center px-4">
                         <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-3">
                             <Ban className="h-6 w-6 text-red-500" />
                         </div>

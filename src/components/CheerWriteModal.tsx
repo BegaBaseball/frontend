@@ -210,17 +210,20 @@ export default function CheerWriteModal({
                                 ringClassName="p-px bg-slate-100 dark:bg-secondary"
                             />
                         ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
-                            <span className="inline-flex h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary p-px items-center justify-center flex-shrink-0">
+                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-secondary p-px flex-shrink-0 overflow-hidden">
                                 <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
                                     <TeamLogo teamId={teamId} team={teamLabel} size={40} />
                                 </div>
                             </span>
                         ) : (
-                            <span className="inline-flex h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary p-px items-center justify-center flex-shrink-0">
-                                <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center text-sm sm:text-base font-semibold text-slate-600 dark:text-gray-300">
-                                    {user?.name?.slice(0, 1) || '?'}
-                                </span>
-                            </span>
+                            <ProfileAvatar
+                                alt={user?.name || '프로필'}
+                                fallbackName={user?.name || '프로필'}
+                                width={40}
+                                height={40}
+                                showRing
+                                ringClassName="p-px bg-slate-100 dark:bg-secondary"
+                            />
                         )}
                         <div className="flex-1 min-w-0 flex flex-col gap-2 sm:gap-3">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

@@ -1,24 +1,8 @@
 
 import { getApiBaseUrl } from './apiBase';
 
-const API_URL = (() => {
-  if (typeof window !== 'undefined' && window.Cypress) {
-    return '/ai';
-  }
-
-  return import.meta.env.VITE_AI_API_URL || '/ai';
-})();
 const APP_API_URL = getApiBaseUrl();
-
-const getInternalApiHeaders = (): HeadersInit => {
-  const token =
-    import.meta.env.VITE_AI_INTERNAL_TOKEN ||
-    import.meta.env.VITE_AI_API_TOKEN ||
-    import.meta.env.VITE_AI_TOKEN ||
-    '';
-
-  return token ? { 'X-Internal-Api-Key': token } : {};
-};
+const COACH_ANALYZE_ENDPOINT = `${APP_API_URL}/ai/coach/analyze`;
 
 export interface AnalyzeLeagueContext {
     season?: number | string;
@@ -46,14 +30,14 @@ export interface AnalyzeRequest {
     league_context?: AnalyzeLeagueContext;
     focus?: string[];
     game_id?: string;
-    request_mode?: CoachRequestMode;
+    request_mode: CoachRequestMode;
     question_override?: string;
 }
 
 export type CoachRequestMode = 'auto_brief' | 'manual_detail';
 
 export interface AnalyzeRequestBase {
-    request_mode?: CoachRequestMode;
+    request_mode: CoachRequestMode;
 }
 
 // Structured dashboard stat
@@ -181,20 +165,24 @@ const buildCoachAnalyzePayload = (
     baseRequest: AnalyzeRequest,
     normalizedQuestionOverride: string | undefined,
 ): AnalyzeRequest => {
-    const withModeRequest: AnalyzeRequest = {
+    const requestPayload: AnalyzeRequest = {
         ...baseRequest,
         request_mode: requestMode,
-        ...(requestMode === 'manual_detail' && normalizedQuestionOverride
-            ? { question_override: normalizedQuestionOverride }
-            : {}),
     };
 
     if (requestMode === 'auto_brief') {
-        const { question_override: _ignoredQuestionOverride, ...cleanPayload } = withModeRequest;
-        return cleanPayload;
+        // 자동 브리핑 경로에서는 질문 오버라이드는 정책상 허용되지 않습니다.
+        delete requestPayload.question_override;
+        return requestPayload;
     }
 
-    return withModeRequest;
+    if (normalizedQuestionOverride) {
+        requestPayload.question_override = normalizedQuestionOverride;
+    } else {
+        delete requestPayload.question_override;
+    }
+
+    return requestPayload;
 };
 
 export async function analyzeTeam(
@@ -217,21 +205,21 @@ export async function analyzeTeam(
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            ...getInternalApiHeaders(),
         },
         credentials: 'include',
         body: JSON.stringify(requestPayload),
         signal: options?.signal,
     };
 
-    let response = await fetch(`${API_URL}/coach/analyze`, requestInit);
+    let response = await fetch(COACH_ANALYZE_ENDPOINT, requestInit);
+
     if (response.status === 401) {
         const refreshResponse = await fetch(`${APP_API_URL}/auth/reissue`, {
             method: 'POST',
             credentials: 'include',
         });
         if (refreshResponse.ok) {
-            response = await fetch(`${API_URL}/coach/analyze`, requestInit);
+            response = await fetch(COACH_ANALYZE_ENDPOINT, requestInit);
         }
     }
 

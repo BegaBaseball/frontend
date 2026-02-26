@@ -140,6 +140,7 @@ const readCoachBriefingFromStorageByPriority = (requestCacheKey: string | null) 
     return null;
   }
 
+  // UI state cache is preferred by hook-level state (cacheRef), then localStorage, then sessionStorage.
   const localCache = readLocalCoachBriefingCache();
   const localCached = localCache.get(requestCacheKey);
   if (localCached) {
@@ -522,7 +523,7 @@ export default function CoachBriefing({
 
                         if (retryCount >= MAX_COACH_RETRIES) {
                             clearRetryTimer();
-                            setAiBriefing(normalizeBriefing(fallbackRetryMessage));
+                            applyFallbackBriefing(fallbackRetryMessage);
                             return;
                         }
 
@@ -550,7 +551,7 @@ export default function CoachBriefing({
                     if (normalizedResponse) {
                         setAiBriefing(normalizedResponse);
                     } else {
-                        applyFallbackBriefing(COACH_BRIEFING_FALLBACK_MESSAGES.error);
+                        applyFallbackBriefing(fallbackErrorMessage);
                     }
                 })
                 .catch((error: unknown) => {
@@ -561,25 +562,24 @@ export default function CoachBriefing({
                     if (abortMessage.includes('AbortError') || abortMessage.includes('aborted')) {
                         return;
                     }
-                        if (active) {
-                            if (
-                                abortMessage.includes('unable_to_resolve_analysis_year') ||
-                                abortMessage.includes('invalid_season_year_for_analysis')
-                            ) {
-                                applyFallbackBriefing(fallbackYearMessage);
-                                setRetryCount(0);
-                                if (retryTimerRef.current) {
-                                    clearTimeout(retryTimerRef.current);
-                                    retryTimerRef.current = null;
-                                }
-                                return;
-                            }
-                            applyFallbackBriefing(fallbackErrorMessage);
+                    if (active) {
+                        if (
+                            abortMessage.includes('unable_to_resolve_analysis_year') ||
+                            abortMessage.includes('invalid_season_year_for_analysis')
+                        ) {
+                            applyFallbackBriefing(fallbackYearMessage);
                             setRetryCount(0);
                             if (retryTimerRef.current) {
                                 clearTimeout(retryTimerRef.current);
                                 retryTimerRef.current = null;
                             }
+                            return;
+                        }
+                        applyFallbackBriefing(fallbackErrorMessage);
+                        setRetryCount(0);
+                        if (retryTimerRef.current) {
+                            clearTimeout(retryTimerRef.current);
+                            retryTimerRef.current = null;
                         }
                     }
                 })

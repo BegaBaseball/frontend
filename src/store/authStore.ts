@@ -2,6 +2,22 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../api/axios';
 
+const LEGACY_AUTH_TOKEN_KEY = 'authToken';
+
+const clearLegacyAuthTokenStorage = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+  } catch {
+    // 스토리지 접근 실패는 보안 정합성 검증에서 제외하고 진행합니다.
+  }
+};
+
+clearLegacyAuthTokenStorage();
+
 interface User {
   id: number;
   email: string;
@@ -96,8 +112,8 @@ export const useAuthStore = create<AuthState>()(
           set({ isAuthLoading: true });
 
           try {
-            // Using axios api instance to handle 401 interceptor
-            const response = await api.get('/auth/mypage');
+            // Initial auth probe should not trigger global login-required modal on public pages.
+            const response = await api.get('/auth/mypage', { skipGlobalErrorHandler: true });
 
             if (response.status === 200) {
               const result = response.data;

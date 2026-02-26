@@ -50,7 +50,11 @@ describe('Mate Flow Policy', () => {
       req.reply({ statusCode: 201, body: {} });
     }).as('createApplication');
 
-    cy.visit('/mate/777/apply');
+    cy.visit('/mate/777/apply', {
+      onBeforeLoad(win) {
+        (win as unknown as { __MATE_PAYMENT_MODE__?: string }).__MATE_PAYMENT_MODE__ = 'TOSS_TEST';
+      },
+    });
     cy.wait('@getSellingParty');
     cy.contains('결제하기').click();
     cy.wait('@preparePayment');

@@ -1,7 +1,7 @@
 // api/home.ts
 import { useQuery } from '@tanstack/react-query';
 import { Game, Ranking, LeagueStartDates } from '../types/home';
-import { formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
+import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
 import { getApiBaseUrl } from './apiBase';
 
 const API_PREFIX = getApiBaseUrl();
@@ -64,6 +64,7 @@ export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
         }
 
         const data: LeagueStartDates = await response.json();
+        cacheLeagueStartDates(data);
         return data;
 
     } catch (error) {
