@@ -1,10 +1,7 @@
-import type { KeyboardEvent, SyntheticEvent } from 'react';
+import type { KeyboardEvent } from 'react';
 import { Card } from './ui/card';
-import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import TeamLogo from './TeamLogo';
-import { BrainCircuit } from 'lucide-react';
-import CoachAnalysisDialog from './CoachAnalysisDialog';
 
 interface GameCardProps {
   game: {
@@ -82,10 +79,6 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
       event.preventDefault();
       onSelectPrediction();
     }
-  };
-
-  const stopCardNavigation = (event: SyntheticEvent<HTMLElement>) => {
-    event.stopPropagation();
   };
 
   return (
@@ -181,34 +174,9 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
           </div>
         </div>
 
-        {/* Footer info (Pitchers or Ticket btn) */}
+        {/* Footer info */}
         <div className="min-h-[2.5rem] flex items-center justify-center gap-2">
-          {(!game.gameStatus || game.gameStatus === 'SCHEDULED') ? (
-            <>
-              <Button
-                variant="outline"
-                className="flex-1 bg-transparent border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white transition-colors text-xs font-bold py-2 h-9 rounded-xl"
-                onClick={stopCardNavigation}
-                onKeyDown={stopCardNavigation}
-              >
-                예매하기
-              </Button>
-              <CoachAnalysisDialog
-                initialTeam={game.homeTeam}
-                trigger={
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 px-3 h-9 rounded-xl border border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-700 dark:hover:text-white transition-colors text-xs font-bold shrink-0"
-                    onClick={stopCardNavigation}
-                    onKeyDown={stopCardNavigation}
-                  >
-                    <BrainCircuit className="w-3.5 h-3.5" />
-                    AI 코치
-                  </button>
-                }
-              />
-            </>
-          ) : game.gameInfo ? (
+          {game.gameInfo ? (
             <p className="text-xs text-center text-gray-500 dark:text-gray-300 line-clamp-1 px-4 py-1 bg-gray-50 dark:bg-secondary/50 rounded-full">
               {game.gameInfo}
             </p>

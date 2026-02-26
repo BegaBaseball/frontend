@@ -3,12 +3,16 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { loadPendingPayment, clearPendingPayment, isPendingPaymentSessionValid, isValidMateOrderId } from '../utils/payment';
 import type { Application } from '../types/mate';
+import { getPaymentStatusLabel, getSettlementStatusLabel } from '../utils/paymentStatus';
+import { isDirectTradeMode } from '../utils/paymentMode';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const directTradeMode = isDirectTradeMode();
   const [isProcessing, setIsProcessing] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [directTradePartyId, setDirectTradePartyId] = useState<number | null>(null);
   const [result, setResult] = useState<{
     partyId: number;
     policyVersion?: string;
@@ -16,6 +20,17 @@ export default function PaymentSuccess() {
   } | null>(null);
 
   useEffect(() => {
+    if (directTradeMode) {
+      const pending = loadPendingPayment();
+      if (pending) {
+        setDirectTradePartyId(pending.partyId);
+      }
+      clearPendingPayment();
+      setErrorMessage('직거래 모드에서는 결제 콜백을 사용하지 않습니다. 신청 화면에서 다시 진행해주세요.');
+      setIsProcessing(false);
+      return;
+    }
+
     const paymentKey = searchParams.get('paymentKey');
     const orderId = searchParams.get('orderId');
 
@@ -69,13 +84,38 @@ export default function PaymentSuccess() {
     };
 
     void confirmPayment();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [directTradeMode, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isProcessing) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-gray-600 text-lg">결제를 처리하고 있습니다...</p>
+      </div>
+    );
+  }
+
+  if (directTradeMode) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
+        <p className="text-lg font-medium text-gray-800">직거래 모드 안내</p>
+        <p className="text-gray-600 text-center">{errorMessage}</p>
+        <div className="flex gap-3 mt-2">
+          {directTradePartyId && (
+            <button
+              onClick={() => navigate(`/mate/${directTradePartyId}`)}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            >
+              신청한 파티로 이동
+            </button>
+          )}
+          <button
+            onClick={() => navigate('/mate')}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
+          >
+            메이트 목록으로
+          </button>
+        </div>
       </div>
     );
   }
@@ -110,11 +150,11 @@ export default function PaymentSuccess() {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">결제상태</span>
-              <span className="font-medium">{application.paymentStatus ?? 'PAID'}</span>
+              <span className="font-medium">{getPaymentStatusLabel(application.paymentStatus)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">정산상태</span>
-              <span className="font-medium">{application.settlementStatus ?? 'PENDING'}</span>
+              <span className="font-medium">{getSettlementStatusLabel(application.settlementStatus)}</span>
             </div>
           </div>
 

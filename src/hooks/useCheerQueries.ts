@@ -100,6 +100,141 @@ const isRepostTargetMatch = (post: CheerPost, targetPostId: number): boolean => 
     return false;
 };
 
+const isEmbeddedRepostTargetMatch = (post: CheerPost, targetPostId: number): boolean => {
+    if (post.originalPost?.id === targetPostId) {
+        return true;
+    }
+    if (post.repostOfId === targetPostId) {
+        return true;
+    }
+    return false;
+};
+
+const syncLikeActionState = (
+    post: CheerPost,
+    targetPostId: number,
+    liked: boolean,
+    likeCount: number
+) => {
+    if (post.id === targetPostId) {
+        return {
+            ...post,
+            likes: likeCount,
+            likeCount,
+            liked,
+            likedByUser: liked,
+        };
+    }
+
+    if (isEmbeddedRepostTargetMatch(post, targetPostId)) {
+        return {
+            ...post,
+            likes: likeCount,
+            likeCount,
+            liked,
+            likedByUser: liked,
+            originalPost: post.originalPost
+                ? {
+                    ...post.originalPost,
+                    likeCount,
+                }
+                : post.originalPost,
+        };
+    }
+
+    return post;
+};
+
+const syncLikeActionStateInInfinitePages = (
+    data: CheerInfiniteData | undefined,
+    targetPostId: number,
+    liked: boolean,
+    likeCount: number
+) => {
+    if (!data?.pages) return data;
+
+    return {
+        ...data,
+        pages: data.pages.map((page) => ({
+            ...page,
+            content: page.content.map((post) => {
+                if (!isRepostTargetMatch(post, targetPostId)) {
+                    return post;
+                }
+                return syncLikeActionState(post, targetPostId, liked, likeCount);
+            }),
+        })),
+    };
+};
+
+const syncLikeActionStateInPostDetails = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    targetPostId: number,
+    liked: boolean,
+    likeCount: number
+) => {
+    const detailQueries = queryClient.getQueriesData<cheerApi.CheerPost>({ queryKey: ['cheer-post'] });
+    detailQueries.forEach(([queryKey, post]) => {
+        if (!post) return;
+        if (!isRepostTargetMatch(post, targetPostId)) return;
+        queryClient.setQueryData<cheerApi.CheerPost>(queryKey, syncLikeActionState(post, targetPostId, liked, likeCount));
+    });
+};
+
+const syncBookmarkActionState = (
+    post: CheerPost,
+    targetPostId: number,
+    bookmarked: boolean,
+    bookmarkCount: number
+) => {
+    if (post.id === targetPostId || isEmbeddedRepostTargetMatch(post, targetPostId)) {
+        return {
+            ...post,
+            isBookmarked: bookmarked,
+            bookmarked,
+            bookmarkCount,
+        };
+    }
+
+    return post;
+};
+
+const syncBookmarkActionStateInInfinitePages = (
+    data: CheerInfiniteData | undefined,
+    targetPostId: number,
+    bookmarked: boolean,
+    bookmarkCount: number
+) => {
+    if (!data?.pages) return data;
+
+    return {
+        ...data,
+        pages: data.pages.map((page) => ({
+            ...page,
+            content: page.content.map((post) => {
+                if (!isRepostTargetMatch(post, targetPostId)) {
+                    return post;
+                }
+                return syncBookmarkActionState(post, targetPostId, bookmarked, bookmarkCount);
+            }),
+        })),
+    };
+};
+
+const syncBookmarkActionStateInPostDetails = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    targetPostId: number,
+    bookmarked: boolean,
+    bookmarkCount: number
+) => {
+    const detailQueries = queryClient.getQueriesData<cheerApi.CheerPost>({ queryKey: ['cheer-post'] });
+    detailQueries.forEach(([queryKey, post]) => {
+        if (!post) return;
+        if (!isRepostTargetMatch(post, targetPostId)) return;
+        queryClient.setQueryData<cheerApi.CheerPost>(queryKey, syncBookmarkActionState(post, targetPostId, bookmarked, bookmarkCount));
+    });
+};
+
 const syncRepostActionState = (
     post: CheerPost,
     targetPostId: number,
@@ -264,18 +399,13 @@ export const useCheerMutations = () => {
                     pages: old.pages.map((page) => ({
                         ...page,
                         content: page.content.map((post) => {
-                            if (post.id === postId) {
-                                const optimisticLiked = !currentLiked(post);
-                                const optimisticLikeCount = nextCount(post, optimisticLiked);
-                                return {
-                                    ...post,
-                                    likes: optimisticLikeCount,
-                                    likeCount: optimisticLikeCount,
-                                    liked: optimisticLiked,
-                                    likedByUser: optimisticLiked,
-                                };
-                            }
-                            return post;
+                            if (!isRepostTargetMatch(post, postId)) return post;
+                            const optimisticLiked = !currentLiked(post);
+                            const currentLikeCount = post.originalPost?.id === postId
+                                ? (post.originalPost.likeCount ?? post.likeCount ?? post.likes ?? 0)
+                                : (post.likeCount ?? post.likes ?? 0);
+                            const optimisticLikeCount = Math.max(0, currentLikeCount + (optimisticLiked ? 1 : -1));
+                            return syncLikeActionState(post, postId, optimisticLiked, optimisticLikeCount);
                         }),
                     })),
                 };
@@ -290,38 +420,10 @@ export const useCheerMutations = () => {
             invalidateRepostListQueries(queryClient);
         },
         onSuccess: (data, postId) => {
-            queryClient.setQueryData(['cheer-post', postId], (old: cheerApi.CheerPost | undefined) => {
-                if (!old) return old;
-                return {
-                    ...old,
-                    likes: data.likes,
-                    likeCount: data.likes,
-                    likedByUser: data.liked,
-                    liked: data.liked,
-                };
-            });
-
-            updateRepostListQueries(queryClient, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.map((post) => {
-                            if (post.id === postId) {
-                                return {
-                                    ...post,
-                                    likes: data.likes,
-                                    likeCount: data.likes,
-                                    likedByUser: data.liked,
-                                    liked: data.liked,
-                                };
-                            }
-                            return post;
-                        }),
-                    })),
-                };
-            });
+            syncLikeActionStateInPostDetails(queryClient, postId, data.liked, data.likes);
+            updateRepostListQueries(queryClient, (old) =>
+                syncLikeActionStateInInfinitePages(old, postId, data.liked, data.likes)
+            );
         },
     });
 
@@ -343,19 +445,14 @@ export const useCheerMutations = () => {
                     pages: old.pages.map((page) => ({
                         ...page,
                         content: page.content.map((post) => {
-                            if (post.id !== postId) return post;
+                            if (!isRepostTargetMatch(post, postId)) return post;
                             const currentBookmarked = post.isBookmarked ?? post.bookmarked ?? false;
                             const nextBookmarked = !currentBookmarked;
                             const nextBookmarkCount = Math.max(
                                 0,
                                 (post.bookmarkCount ?? 0) + (nextBookmarked ? 1 : -1)
                             );
-                            return {
-                                ...post,
-                                isBookmarked: nextBookmarked,
-                                bookmarked: nextBookmarked,
-                                bookmarkCount: nextBookmarkCount,
-                            };
+                            return syncBookmarkActionState(post, postId, nextBookmarked, nextBookmarkCount);
                         }),
                     })),
                 };
@@ -421,35 +518,12 @@ export const useCheerMutations = () => {
         onSuccess: (data, postId) => {
             const bookmarked = Boolean(data.bookmarked);
             const bookmarkCount = typeof data.count === 'number' ? data.count : undefined;
-
-            queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], (old) => {
-                if (!old) return old;
-                return {
-                    ...old,
-                    isBookmarked: bookmarked,
-                    bookmarked,
-                    bookmarkCount: bookmarkCount ?? old.bookmarkCount,
-                };
-            });
-
-            updateRepostListQueries(queryClient, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.map((post) => {
-                            if (post.id !== postId) return post;
-                            return {
-                                ...post,
-                                isBookmarked: bookmarked,
-                                bookmarked,
-                                bookmarkCount: bookmarkCount ?? post.bookmarkCount,
-                            };
-                        }),
-                    })),
-                };
-            });
+            if (typeof bookmarkCount === 'number') {
+                syncBookmarkActionStateInPostDetails(queryClient, postId, bookmarked, bookmarkCount);
+                updateRepostListQueries(queryClient, (old) =>
+                    syncBookmarkActionStateInInfinitePages(old, postId, bookmarked, bookmarkCount)
+                );
+            }
 
             queryClient.setQueryData<PageResponse<CheerPost>>(['cheer-bookmarks'], (old) => {
                 if (!old?.content) return old;

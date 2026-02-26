@@ -144,20 +144,14 @@ export default defineConfig(({ mode }) => {
     server: {
       host: '0.0.0.0',
       port: 5176,
+      allowedHosts: ['host.docker.internal'],
       open: false,
       proxy: {
         '/api': {
           target: proxyTarget,
-          // target: 'http://localhost:8001',
           changeOrigin: true,
           secure: false,
           // cookieDomainRewrite: 'localhost',
-        },
-        '/ai': {
-          target: env.AI_INTERNAL_API_URL ?? 'http://localhost:8001',
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/ai/, ''),
         },
         '/ws': {
           target: proxyTarget,

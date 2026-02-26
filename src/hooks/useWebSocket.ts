@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { Client, IMessage } from '@stomp/stompjs';
+import { SERVER_BASE_URL } from '../constants/config';
 
 interface ChatMessage {
   id: string | number;
@@ -33,11 +34,11 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
       return;
     }
 
-    // Determine WebSocket URL
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Development proxy handles /ws -> backend
-    // Production Nginx handles /ws -> backend
-    const brokerUrl = `${protocol}//${window.location.host}/ws`;
+    // Determine WebSocket URL using SERVER_BASE_URL so that Cloudflare Pages
+    // (no backend proxy) connects directly to the API server.
+    const wsProtocol = SERVER_BASE_URL.startsWith('https') ? 'wss:' : 'ws:';
+    const wsHost = SERVER_BASE_URL.replace(/^https?:\/\//, '');
+    const brokerUrl = `${wsProtocol}//${wsHost}/ws`;
 
     const client = new Client({
       brokerURL: brokerUrl,

@@ -35,6 +35,23 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
 
         cy.login('admin');
         cy.mockAPI();
+        cy.intercept('GET', '**/api/auth/mypage*', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    id: 2,
+                    email: 'admin@example.com',
+                    name: 'AdminUser',
+                    handle: 'admin',
+                    favoriteTeam: 'LG',
+                    role: 'ROLE_ADMIN',
+                    profileImageUrl: null,
+                    hasPassword: true,
+                    bio: 'Admin here.',
+                },
+            },
+        }).as('getAdminMe');
 
         cy.intercept('GET', '**/api/cheer/posts*', (req) => {
             if (req.url.includes('postType=NOTICE')) {
@@ -73,6 +90,7 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         }).as('getCheerPosts');
 
         cy.visit('/notice');
+        cy.wait('@getAdminMe');
         cy.wait('@getCheerPosts');
         cy.contains('button', '글쓰기').click();
 
@@ -319,7 +337,7 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             req.alias = 'toggleBookmark';
             req.reply({
                 statusCode: 200,
-                body: { bookmarked: true, bookmarkCount: 5 },
+                body: { bookmarked: true, count: 5 },
             });
         });
         cy.intercept('POST', `**/api/cheer/posts/${originalPostId}/repost`, (req) => {
@@ -330,9 +348,8 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
                     liked: true,
                     likes: 100,
                     bookmarked: true,
-                    bookmarkCount: 5,
+                    count: 8,
                     reposted: true,
-                    repostCount: 8,
                 },
             });
         });
@@ -341,9 +358,9 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
 
         cy.contains('리포스트 본문').should('be.visible');
         cy.get('article .mt-6.flex.flex-wrap').as('actionBar');
-        cy.get('@actionBar').find('button').eq(0).as('likeButton');
-        cy.get('@actionBar').find('button').eq(2).as('repostButton');
-        cy.get('@actionBar').find('button').eq(3).as('bookmarkButton');
+        cy.get('@actionBar').find('button:has(svg.lucide-heart)').should('have.length', 1).first().as('likeButton');
+        cy.get('@actionBar').find('button[aria-label*="리포스트"]').should('have.length', 1).first().as('repostButton');
+        cy.get('@actionBar').find('button:has(svg.lucide-bookmark)').should('have.length', 1).first().as('bookmarkButton');
 
         cy.get('@likeButton').should('contain', '99');
         cy.get('@likeButton').find('svg').should('have.class', 'fill-current');

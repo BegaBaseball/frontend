@@ -56,6 +56,8 @@ import ReviewDialog from './ReviewDialog';
 import type { CancelReasonType, PartyReview, Application } from '../types/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { resolveQrRefreshDelayMs } from '../utils/qrRefresh';
+import { getRefundPolicyMessage } from '../utils/paymentStatus';
+import { isDirectTradeMode } from '../utils/paymentMode';
 
 export default function MateDetail() {
   const navigate = useNavigate();
@@ -183,23 +185,6 @@ export default function MateDetail() {
     return !isGameTomorrow();
   };
 
-  const getCancelPolicyMessage = (
-    refundPolicyApplied: string | undefined | null,
-    refundAmount: number,
-    feeCharged: number,
-  ) => {
-    if (refundPolicyApplied === 'PARTIAL_REFUND_WITH_FEE') {
-      return `단순변심 정책으로 수수료 ${feeCharged.toLocaleString()}원 차감 후 `
-        + `환불금 ${refundAmount.toLocaleString()}원이 적용됩니다.`;
-    }
-
-    if (refundPolicyApplied === 'FULL_REFUND') {
-      return `전액환불로 환불금 ${refundAmount.toLocaleString()}원이 적용됩니다.`;
-    }
-
-    return `환불금 ${refundAmount.toLocaleString()}원이 적용됩니다.`;
-  };
-
   const handleCancelApplication = async () => {
     if (!selectedParty || !myApplication || !currentUserId) return;
     const isApproved = myApplication.isApproved;
@@ -227,7 +212,7 @@ export default function MateDetail() {
         cancelMemo: cancelMemo.trim() || undefined,
       });
       toast.success('신청이 취소되었습니다.', {
-        description: getCancelPolicyMessage(
+        description: getRefundPolicyMessage(
           result.refundPolicyApplied,
           result.refundAmount,
           result.feeCharged,
@@ -248,12 +233,12 @@ export default function MateDetail() {
     {
       value: 'BUYER_CHANGED_MIND' as const,
       label: '단순변심(구매자)',
-      description: '결제 수수료를 제외한 금액 환불',
+      description: '부분환불(수수료 차감)',
     },
     {
       value: 'SELLER_CHANGED_MIND' as const,
       label: '단순변심(판매자)',
-      description: '결제 수수료를 제외한 금액 환불',
+      description: '부분환불(수수료 차감)',
     },
     {
       value: 'OTHER' as const,
@@ -681,7 +666,7 @@ export default function MateDetail() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 text-xs text-gray-500 hover:text-primary"
+                    className="min-h-11 text-xs text-gray-500 hover:text-primary"
                     onClick={() => setShowSeatViewGuide(!showSeatViewGuide)}
                   >
                     <MapIcon className="w-3 h-3 mr-1" /> {showSeatViewGuide ? '닫기' : '위치/시야 보기'}
@@ -701,7 +686,7 @@ export default function MateDetail() {
                       직관 후 이 좌석의 뷰를 공유해주시면<br />
                       <span className="text-primary font-bold">50 포인트</span>를 즉시 적립해 다려요!
                     </p>
-                    <Button size="sm" className="bg-primary hover:bg-primary-hover text-white rounded-full h-8 text-xs">
+                    <Button size="sm" className="bg-primary hover:bg-primary-hover text-white rounded-full min-h-11 text-xs">
                       <Plus className="w-3 h-3 mr-1" />
                       첫 번째 사진 등록하기
                     </Button>
@@ -814,16 +799,18 @@ export default function MateDetail() {
                       </span>
                     </div>
                     <Separator className="bg-gray-200 dark:bg-border my-2" />
-                    <div className="flex justify-between items-center text-lg">
-                      <span className="font-bold text-primary dark:text-[#5abba6]">총 결제 금액</span>
-                      <span className="font-black text-primary dark:text-[#5abba6]">
-                        {((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT).toLocaleString()}원
-                      </span>
-                    </div>
+                    {!isDirectTradeMode() && (
+                      <div className="flex justify-between items-center text-lg mt-2">
+                        <span className="font-bold text-primary dark:text-[#5abba6]">총 결제 금액</span>
+                        <span className="font-black text-primary dark:text-[#5abba6]">
+                          {((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT).toLocaleString()}원
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-              {selectedParty.status !== 'SELLING' && (
+              {selectedParty.status !== 'SELLING' && !isDirectTradeMode() && (
                 <p className="text-xs text-gray-400 mt-3 text-right">
                   * 단순변심 취소 시 수수료가 차감될 수 있습니다
                 </p>
@@ -1121,11 +1108,10 @@ export default function MateDetail() {
                   key={option.value}
                   type="button"
                   onClick={() => setSelectedCancelReason(option.value)}
-                  className={`w-full border rounded-lg px-3 py-2 text-left transition ${
-                    selectedCancelReason === option.value
-                      ? 'bg-primary/10 border-primary text-primary'
-                      : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-gray-200'
-                  }`}
+                  className={`w-full border rounded-lg px-3 py-2 text-left transition ${selectedCancelReason === option.value
+                    ? 'bg-primary/10 border-primary text-primary'
+                    : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-gray-200'
+                    }`}
                   disabled={isCancelling}
                 >
                   <p className="font-medium">{option.label}</p>

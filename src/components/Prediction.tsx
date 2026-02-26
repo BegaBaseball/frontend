@@ -147,8 +147,10 @@ export default function Prediction() {
   const isAutoBriefEligibleGameState =
     statusCode === 'SCHEDULED' || statusCode === 'LIVE' || statusCode === 'COMPLETED';
   const hasSelectedGame = Boolean(currentGame);
-  const coachBriefingPolicy = useMemo(
-    () => resolveCoachBriefingPolicy({
+
+  // AI 브리핑 호출 정책 입력값(가시성/디버그용)
+  const coachBriefingPolicyInput = useMemo(
+    () => ({
       hasSelectedGame,
       canCallAI: !!seasonContext?.canCallAI,
       isScheduledGame,
@@ -165,6 +167,14 @@ export default function Prediction() {
       isScheduledGame,
     ],
   );
+
+  const coachBriefingPolicy = useMemo(
+    () => resolveCoachBriefingPolicy(coachBriefingPolicyInput),
+    [coachBriefingPolicyInput]
+  );
+
+  const shouldAutoRequestCoachBriefing =
+    coachBriefingPolicy.autoEnabled && coachBriefingPolicy.requestMode === 'auto_brief';
 
   const [isRunBannerDismissed, setIsRunBannerDismissed] = useState(false);
 
@@ -219,14 +229,14 @@ export default function Prediction() {
           <Button
             size="sm"
             disabled={isFutureRetryLoading}
-            className="h-8 bg-rose-900 hover:bg-rose-800 text-white dark:bg-rose-400 dark:hover:bg-rose-300 dark:text-rose-950"
+            className="min-h-11 bg-rose-900 hover:bg-rose-800 text-white dark:bg-rose-400 dark:hover:bg-rose-300 dark:text-rose-950"
             onClick={retryLoadMoreFutureMatches}
           >
             {renderRetryLabel(isFutureRetryLoading, '예정 경기 다시 불러오기')}
           </Button>
           <Link
             to="/"
-            className="h-8 px-3 inline-flex items-center justify-center rounded-md border border-rose-300/70 text-rose-900 hover:bg-rose-100 dark:border-rose-300/60 dark:text-rose-100 dark:hover:bg-rose-800/30"
+            className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-rose-300/70 text-rose-900 hover:bg-rose-100 dark:border-rose-300/60 dark:text-rose-100 dark:hover:bg-rose-800/30"
           >
             홈으로 이동
           </Link>
@@ -250,7 +260,7 @@ export default function Prediction() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 border-emerald-300/70 hover:bg-emerald-100 dark:border-emerald-600/70 dark:hover:bg-emerald-900/40"
+                  className="min-h-11 border-emerald-300/70 hover:bg-emerald-100 dark:border-emerald-600/70 dark:hover:bg-emerald-900/40"
                   onClick={() => {
                     dismissRunProgressBanner();
                     setIsRunBannerDismissed(true);
@@ -260,7 +270,7 @@ export default function Prediction() {
                 </Button>
                 <Button
                   size="sm"
-                  className="h-8 bg-emerald-900 hover:bg-emerald-800 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950"
+                  className="min-h-11 bg-emerald-900 hover:bg-emerald-800 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950"
                   onClick={() => {
                     resumeRunProgressBanner();
                     setIsRunBannerDismissed(false);
@@ -306,14 +316,14 @@ export default function Prediction() {
               <Button
                 size="sm"
                 disabled={isVoteRetryLoading}
-                className="h-8 bg-rose-900 hover:bg-rose-800 text-white dark:bg-rose-400 dark:hover:bg-rose-300 dark:text-rose-950"
+                className="min-h-11 bg-rose-900 hover:bg-rose-800 text-white dark:bg-rose-400 dark:hover:bg-rose-300 dark:text-rose-950"
                 onClick={reloadCurrentVoteStatus}
               >
                 {renderRetryLabel(isVoteRetryLoading, '투표 집계 다시 시도')}
               </Button>
               <Link
                 to="/"
-                className="h-8 px-3 inline-flex items-center justify-center rounded-md border border-rose-200 text-rose-900 hover:bg-rose-100 dark:border-rose-300/70 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-rose-200 text-rose-900 hover:bg-rose-100 dark:border-rose-300/70 dark:text-rose-100 dark:hover:bg-rose-900/40"
               >
                 홈으로 이동
               </Link>
@@ -334,14 +344,14 @@ export default function Prediction() {
                 size="sm"
                 variant="outline"
                 disabled={isDetailRetryLoading}
-                className="h-8 border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-400/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
+                className="min-h-11 border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-400/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
                 onClick={reloadCurrentGameDetail}
               >
                 {renderRetryLabel(isDetailRetryLoading, '경기 상세 다시 시도')}
               </Button>
               <Link
                 to="/"
-                className="h-8 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
+                className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
               >
                 홈으로 이동
               </Link>
@@ -363,14 +373,14 @@ export default function Prediction() {
               <Button
                 size="sm"
                 disabled={isPastRetryLoading}
-                className="h-8 bg-rose-900 hover:bg-rose-800 text-white dark:bg-rose-400 dark:hover:bg-rose-300 dark:text-rose-950"
+                className="min-h-11 bg-rose-900 hover:bg-rose-800 text-white dark:bg-rose-400 dark:hover:bg-rose-300 dark:text-rose-950"
                 onClick={retryLoadMorePastMatches}
               >
                 {renderRetryLabel(isPastRetryLoading, '이전 경기 다시 불러오기')}
               </Button>
               <Link
                 to="/"
-                className="h-8 px-3 inline-flex items-center justify-center rounded-md border border-rose-300/70 text-rose-900 hover:bg-rose-100 dark:border-rose-300/60 dark:text-rose-100 dark:hover:bg-rose-800/30"
+                className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-rose-300/70 text-rose-900 hover:bg-rose-100 dark:border-rose-300/60 dark:text-rose-100 dark:hover:bg-rose-800/30"
               >
                 홈으로 이동
               </Link>
@@ -505,7 +515,7 @@ export default function Prediction() {
     return (
       <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="relative p-6 sm:p-8 md:p-10 text-center bg-white/90 border border-rose-200/70 shadow-sm dark:bg-card dark:border-rose-900/40 dark:shadow-md flex flex-col items-center justify-center min-h-[160px] sm:min-h-[200px] md:min-h-[240px] rounded-2xl">
+          <Card className="relative p-4 sm:p-6 md:p-8 text-center bg-white/90 border border-rose-200/70 shadow-sm dark:bg-card dark:border-rose-900/40 dark:shadow-md flex flex-col items-center justify-center min-h-[120px] sm:min-h-[180px] md:min-h-[200px] rounded-2xl">
             <div className="bg-rose-100 dark:bg-card p-4 rounded-full mb-4">
               <TrendingUp className="w-8 h-8 text-rose-500 dark:text-rose-300" />
             </div>
@@ -544,7 +554,7 @@ export default function Prediction() {
     return (
       <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="relative p-6 sm:p-8 md:p-10 text-center bg-white/90 border border-slate-300/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[160px] sm:min-h-[200px] md:min-h-[240px] rounded-2xl">
+          <Card className="relative p-4 sm:p-6 md:p-8 text-center bg-white/90 border border-slate-300/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[120px] sm:min-h-[180px] md:min-h-[200px] rounded-2xl">
             <TrendingUp className="w-8 h-8 text-slate-500 dark:text-slate-300 mb-4" />
             {hasFutureRangeFailure ? (
               <div className="w-full flex flex-col items-center">
@@ -636,7 +646,7 @@ export default function Prediction() {
             />
             <button
               onClick={() => setActiveTab('match')}
-              className={`relative z-10 w-24 px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'match'
+              className={`relative z-10 w-24 px-4 min-h-11 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'match'
                 ? 'text-white'
                 : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
                 }`}
@@ -645,7 +655,7 @@ export default function Prediction() {
             </button>
             <button
               onClick={() => setActiveTab('ranking')}
-              className={`relative z-10 w-24 px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'ranking'
+              className={`relative z-10 w-24 px-4 min-h-11 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'ranking'
                 ? 'text-white'
                 : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
                 }`}
@@ -664,7 +674,7 @@ export default function Prediction() {
                     onClick={() => setSelectedGame(index)}
                     aria-pressed={selectedGame === index}
                     aria-label={`${getShortTeamName(game.awayTeam)} vs ${getShortTeamName(game.homeTeam)} 선택`}
-                    className={`flex-shrink-0 px-3 py-2 min-h-[40px] rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${selectedGame === index
+                    className={`flex-shrink-0 px-3 py-2 min-h-11 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${selectedGame === index
                       ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 shadow-sm dark:bg-emerald-900/30 dark:border-emerald-700/50 dark:text-emerald-100'
                       : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 dark:bg-card dark:border-border dark:text-gray-300 dark:hover:bg-primary/10'
                       }`}
@@ -731,7 +741,7 @@ export default function Prediction() {
                             isPastGame={isPastGame}
                             isFutureGame={isFutureGame}
                             requestMode={coachBriefingPolicy.requestMode}
-                            autoEnabled={coachBriefingPolicy.autoEnabled}
+                            autoEnabled={shouldAutoRequestCoachBriefing}
                             forceManual={coachBriefingPolicy.forceManual}
                           />
 
@@ -740,7 +750,7 @@ export default function Prediction() {
                       )}
                     </>
                   ) : (
-                    <Card className="relative p-5 sm:p-7 md:p-10 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[220px] sm:min-h-[280px] md:min-h-[350px] rounded-2xl">
+                    <Card className="relative p-5 sm:p-7 md:p-10 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[180px] sm:min-h-[230px] md:min-h-[280px] rounded-2xl">
                       {/* Navigation Buttons for Empty State */}
                       <div className="hidden md:block">
                         <button

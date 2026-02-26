@@ -9,12 +9,17 @@ import {
   savePendingPayment,
   type PendingPaymentData,
 } from './payment';
+import { getMatePaymentMode, isDirectTradeMode, isTossTestMode } from './paymentMode';
 
 type SessionStorageLike = {
   getItem: (key: string) => string | null;
   setItem: (key: string, value: string) => void;
   removeItem: (key: string) => void;
   clear: () => void;
+};
+
+type WindowLike = {
+  __MATE_PAYMENT_MODE__?: string;
 };
 
 const store = new Map<string, string>();
@@ -33,6 +38,13 @@ const sessionStorageMock: SessionStorageLike = {
 
 Object.defineProperty(globalThis, 'sessionStorage', {
   value: sessionStorageMock,
+  configurable: true,
+  writable: true,
+});
+
+const windowMock: WindowLike = {};
+Object.defineProperty(globalThis, 'window', {
+  value: windowMock,
   configurable: true,
   writable: true,
 });
@@ -60,6 +72,7 @@ const sellingPending: PendingPaymentData = {
 
 beforeEach(() => {
   sessionStorage.clear();
+  delete windowMock.__MATE_PAYMENT_MODE__;
 });
 
 test('결제 세션 저장/복원/정리', () => {
@@ -94,4 +107,22 @@ test('paymentType 분기 안전성: flowType과 paymentType 조합 검증', () =
   savePendingPayment(sellingPending);
   const sellingLoaded = loadPendingPayment();
   assert.equal(isPendingPaymentSessionValid(sellingLoaded, sellingPending.orderId), true);
+});
+
+test('결제 모드 분기: window override 기반으로 DIRECT_TRADE/TOSS_TEST를 판별한다', () => {
+  windowMock.__MATE_PAYMENT_MODE__ = 'TOSS_TEST';
+  assert.equal(getMatePaymentMode(), 'TOSS_TEST');
+  assert.equal(isTossTestMode(), true);
+  assert.equal(isDirectTradeMode(), false);
+
+  windowMock.__MATE_PAYMENT_MODE__ = 'DIRECT_TRADE';
+  assert.equal(getMatePaymentMode(), 'DIRECT_TRADE');
+  assert.equal(isTossTestMode(), false);
+  assert.equal(isDirectTradeMode(), true);
+});
+
+test('결제 모드 분기: 알 수 없는 값은 DIRECT_TRADE로 폴백한다', () => {
+  windowMock.__MATE_PAYMENT_MODE__ = 'UNKNOWN_MODE';
+  assert.equal(getMatePaymentMode(), 'DIRECT_TRADE');
+  assert.equal(isDirectTradeMode(), true);
 });

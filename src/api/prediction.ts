@@ -288,8 +288,7 @@ export const fetchGameDetailResult = async (
  * 특정 경기의 사용자 투표 조회
  */
 export const fetchUserVote = async (gameId: string): Promise<string | null> => {
-  // 단건 조회도 내부적으로 my-votes 배치 API로 통합해
-  // prediction 페이지의 캐시/중복 호출 정책과 동일하게 처리한다.
+  // prediction 페이지는 단건/배치 혼재를 피하려고 my-votes 배치 API만 사용한다.
   const normalizedGameId = gameId.trim();
   if (!normalizedGameId) {
     return null;

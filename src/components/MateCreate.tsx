@@ -29,6 +29,7 @@ import { validateMateDescription } from '../utils/mateValidation';
 
 export default function MateCreate() {
   const navigate = useNavigate();
+  const requireSocialVerification = import.meta.env.VITE_MATE_REQUIRE_SOCIAL_VERIFICATION !== 'false';
   const {
     createStep,
     canGoNext,
@@ -104,13 +105,15 @@ export default function MateCreate() {
       setCurrentUserId(id);
 
       // 소셜 연동 여부 확인 - 미연동 시 알림
-      try {
-        const socialResult = await api.checkSocialVerified(id);
-        if (socialResult.data === false) {
-          setShowVerificationDialog(true);
+      if (requireSocialVerification) {
+        try {
+          const socialResult = await api.checkSocialVerified(id);
+          if (socialResult.data === false) {
+            setShowVerificationDialog(true);
+          }
+        } catch {
+          // 확인 실패 시 무시 (나중에 제출 시 다시 체크됨)
         }
-      } catch {
-        // 확인 실패 시 무시 (나중에 제출 시 다시 체크됨)
       }
     } catch (error: unknown) {
       console.error('사용자 정보 가져오기 실패:', error);
@@ -195,6 +198,7 @@ export default function MateCreate() {
   };
 
   const fileErrorMessage = errorType === 'scan' ? errorMessage : formErrors.ticketFile;
+  const isScanFailed = errorType === 'scan' && Boolean(formData.ticketFile);
   const matchLoadErrorMessage = isMatchLoadError ? errorMessage : '';
 
   useEffect(() => {
@@ -351,7 +355,9 @@ export default function MateCreate() {
                 <div
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isScanning
                     ? 'border-primary bg-slate-50 dark:bg-card/60'
-                    : formData.ticketFile
+                    : isScanFailed
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                      : formData.ticketFile
                       ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                       : 'border-slate-300 dark:border-border bg-slate-50 dark:bg-card/60 hover:bg-slate-100 dark:hover:bg-slate-900'
                     }`}
@@ -383,6 +389,17 @@ export default function MateCreate() {
                         <p className="text-primary font-bold text-lg">AI가 티켓을 분석 중...</p>
                         <p className="text-muted-foreground">경기 정보를 자동으로 추출합니다</p>
                       </div>
+                    ) : isScanFailed ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <AlertCircle className="w-16 h-16 text-red-500" />
+                        <p className="text-red-700 dark:text-red-300 font-bold text-lg break-all">
+                          {formData.ticketFile?.name}
+                        </p>
+                        <p className="text-red-600 dark:text-red-400 font-semibold">
+                          파일 업로드 완료, AI 분석 실패
+                        </p>
+                        <p className="text-gray-500">클릭 또는 Enter로 다른 파일 선택</p>
+                      </div>
                     ) : formData.ticketFile ? (
                       <div className="flex flex-col items-center gap-3">
                         <CheckCircle className="w-16 h-16 text-green-500" />
@@ -401,7 +418,15 @@ export default function MateCreate() {
                   </label>
                 </div>
                 {fileErrorMessage && (
-                  <p className="text-sm text-red-500">{fileErrorMessage}</p>
+                  <div
+                    className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950/30"
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+                      {fileErrorMessage}
+                    </p>
+                  </div>
                 )}
                 {errorType === 'scan' && (
                   <Button

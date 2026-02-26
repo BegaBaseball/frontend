@@ -58,6 +58,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
     const [activeFeedTab, setActiveFeedTab] = useState(feedTabs[0].key);
     const hasFetchedProfile = useRef(false);
     const didOpenComposerFromRoute = useRef(false);
+    const didNotifyLoginRequiredFromWriteRoute = useRef(false);
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -74,12 +75,15 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
         if (didOpenComposerFromRoute.current) return;
         if (isAuthLoading) return;
 
-        didOpenComposerFromRoute.current = true;
         if (!user) {
-            toast.error('로그인이 필요한 서비스입니다.');
+            if (!didNotifyLoginRequiredFromWriteRoute.current) {
+                didNotifyLoginRequiredFromWriteRoute.current = true;
+                toast.error('로그인이 필요한 서비스입니다.');
+            }
             return;
         }
 
+        didOpenComposerFromRoute.current = true;
         setIsWriteModalOpen(true);
     }, [openComposerOnMount, isAuthLoading, user]);
 
@@ -626,7 +630,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
 
     return (
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-background">
-            <div className="px-6 py-8">
+            <div className="px-4 sm:px-6 py-6 sm:py-8">
                 <div className="mx-auto w-full max-w-[1008px] xl:max-w-[1136px] lg:-translate-x-4">
                     <div className="grid grid-cols-1 gap-0 lg:gap-x-4 lg:grid-cols-[72px_1fr_280px] xl:grid-cols-[200px_1fr_320px]">
                         <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
@@ -689,7 +693,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                                 whileTap={{ scale: 0.98 }}
                                                 transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                                                 className={cn(
-                                                    'relative px-4 py-2 text-[14px] font-semibold rounded-full transition-all duration-200',
+                                                    'relative px-4 py-2 min-h-11 flex items-center text-[14px] font-semibold rounded-full transition-all duration-200',
                                                     isActive
                                                         ? 'text-[#0F172A] dark:text-gray-100'
                                                         : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-gray-300 dark:hover:bg-secondary dark:hover:text-white'
@@ -711,14 +715,14 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                             </nav>
 
                             {newPostCount > 0 && (
-                                <button
-                                    onClick={handleNewPostsClick}
-                                    className="sticky top-12 z-20 w-full backdrop-blur-sm py-2 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
-                                    style={{
-                                        backgroundColor: teamSoftBg,
-                                        borderColor: teamSoftBorder,
-                                        color: teamAccent,
-                                    }}
+                            <button
+                                onClick={handleNewPostsClick}
+                                className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
+                                style={{
+                                    backgroundColor: teamSoftBg,
+                                    borderColor: teamSoftBorder,
+                                    color: teamAccent,
+                                }}
                                 >
                                     <ArrowUp className="w-4 h-4" />
                                     새 글 {newPostCount}개 보기
@@ -746,7 +750,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                     </div>
                                 )}
                                 <div className="flex gap-3">
-                                    <div className="h-11 w-11 shrink-0">
+                                    <div className="h-10 w-10 shrink-0">
                                         {user?.profileImageUrl ? (
                                             <ProfileAvatar
                                                 src={resolveProfileImage(user.profileImageUrl) || undefined}
@@ -758,17 +762,20 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                                 ringClassName="p-px bg-black/5 dark:bg-white/10"
                                             />
                                         ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
-                                            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/5 dark:bg-white/10 p-px">
+                                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/5 dark:bg-white/10 p-px overflow-hidden">
                                                 <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
                                                     <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
                                                 </div>
                                             </span>
                                         ) : (
-                                            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/5 dark:bg-white/10 p-px">
-                                                <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-gray-300">
-                                                    {user?.name?.slice(0, 1) || '?'}
-                                                </span>
-                                            </span>
+                                            <ProfileAvatar
+                                                alt={user?.name || '프로필'}
+                                                fallbackName={user?.name || '프로필'}
+                                                width={40}
+                                                height={40}
+                                                showRing
+                                                ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                            />
                                         )}
                                     </div>
                                     <div className="flex-1">
@@ -863,7 +870,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                             <div key={index} className="px-4 py-4 animate-pulse">
                                                 <div className="flex gap-3">
                                                     {/* Profile skeleton */}
-                                                    <div className="h-11 w-11 rounded-full bg-slate-200 dark:bg-secondary flex-shrink-0" />
+                                                    <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-secondary flex-shrink-0" />
 
                                                     <div className="flex-1 space-y-3">
                                                         {/* Author and time skeleton */}
@@ -891,7 +898,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                         ))}
                                     </div>
                                 ) : queryError ? (
-                <div className="py-10 px-4 sm:px-6 flex flex-col items-center justify-center gap-4">
+                                    <div className="py-8 sm:py-10 px-4 sm:px-6 flex flex-col items-center justify-center gap-4">
                                         <div className="flex flex-col items-center gap-3">
                                             <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
                                             <div className="text-center">
@@ -912,7 +919,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                         </button>
                                     </div>
                                 ) : activeFeedTab === 'following' && !user ? (
-                                    <div className="border-b border-border/70 dark:border-border px-6 py-12 text-center">
+                                    <div className="border-b border-border/70 dark:border-border px-4 sm:px-6 py-8 sm:py-10 text-center">
                                         <p className="text-[#64748B] dark:text-gray-300">로그인이 필요합니다</p>
                                         <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">팔로우한 유저의 글을 보려면 로그인해주세요.</p>
                                         <button
@@ -925,7 +932,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                         </button>
                                     </div>
                                 ) : currentPosts.length === 0 ? (
-                                    <div className="border-b border-border/70 dark:border-border px-6 py-12 text-center">
+                                    <div className="border-b border-border/70 dark:border-border px-4 sm:px-6 py-8 sm:py-10 text-center">
                                         {activeFeedTab === 'following' ? (
                                             <>
                                                 <p className="text-[#64748B] dark:text-gray-300">팔로우한 유저가 없습니다</p>

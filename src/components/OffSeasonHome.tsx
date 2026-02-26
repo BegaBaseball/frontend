@@ -121,10 +121,10 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
   };
 
   return (
-    <div className="space-y-8 md:space-y-12 min-h-screen bg-gray-50 dark:bg-background transition-colors px-4 py-6 md:p-8">
+    <div className="space-y-8 md:space-y-12 min-h-screen bg-gray-50 dark:bg-background transition-colors px-4 sm:px-6 py-6 md:py-8 md:px-6">
       <button
         onClick={() => navigate('/home')}
-        className="text-sm mb-2 flex items-center gap-2 group transition-all border-2 border-primary text-primary px-4 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+        className="text-sm mb-2 flex items-center gap-2 group transition-all border-2 border-primary text-primary px-4 py-1.5 min-h-11 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
       >
         <span className="w-6 h-6 rounded-full bg-primary/10/10 flex items-center justify-center transition-all group-hover:scale-110">
           <ChevronLeft className="w-4 h-4" />
@@ -135,7 +135,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-2xl md:rounded-3xl shadow-xl border-none bg-primary">
         <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('/grid-pattern.svg')] bg-center"></div>
-        <div className="px-6 py-8 md:px-8 md:py-12 relative z-10">
+        <div className="px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-12 relative z-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <Badge className="bg-yellow-400 text-gray-900 mb-3 md:mb-4 hover:bg-yellow-500 border-none font-bold">2025-26 스토브리그</Badge>
@@ -154,7 +154,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
 
       {/* Countdown Card */}
       <Card className="overflow-hidden shadow-2xl bg-white dark:bg-background border-none rounded-2xl md:rounded-3xl">
-        <div className="text-center py-12 md:py-16 px-6 relative overflow-hidden bg-gradient-to-br from-[#1a3c34] to-primary">
+        <div className="text-center py-8 sm:py-10 md:py-12 px-4 sm:px-6 relative overflow-hidden bg-gradient-to-br from-[#1a3c34] to-primary">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-white rounded-full blur-3xl"></div>
           </div>
@@ -465,7 +465,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                   {/* Incoming Connector from PO */}
                   <div className="absolute left-[-48px] bottom-[30px] w-[48px] h-[2px] bg-primary"></div>
 
-                  <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-primary to-[#1a3c34] rounded-xl shadow-lg shadow-emerald-900/20 border-none w-60 scale-110">
+                  <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-primary to-[#1a3c34] rounded-xl shadow-lg shadow-emerald-900/20 border-none w-60 sm:scale-110">
                     <span className="text-sm font-bold text-emerald-200 w-8">1위</span>
                     <TeamLogo team="LG" size={32} />
                     <span className="font-bold text-white text-lg">LG</span>

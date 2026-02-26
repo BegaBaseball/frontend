@@ -134,17 +134,22 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                                     ringClassName="p-px bg-black/5 dark:bg-white/10"
                                 />
                             ) : (
-                                <span className="inline-flex h-10 w-10 rounded-full bg-black/5 dark:bg-white/10 p-px items-center justify-center">
-                                    <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
-                                        {user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
+                                user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
+                                    <span className="inline-flex h-10 w-10 rounded-full bg-black/5 dark:bg-white/10 p-px items-center justify-center overflow-hidden">
+                                        <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
                                             <TeamLogo team={TEAM_DATA[user.favoriteTeam]?.name || user.favoriteTeam} size={40} />
-                                        ) : (
-                                            <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                                                {user?.name?.slice(0, 1) || '?'}
-                                            </span>
-                                        )}
+                                        </span>
                                     </span>
-                                </span>
+                                ) : (
+                                    <ProfileAvatar
+                                        alt={user?.name || '프로필'}
+                                        fallbackName={user?.name || '프로필'}
+                                        width={40}
+                                        height={40}
+                                        showRing
+                                        ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                    />
+                                )
                             )}
                         </div>
                         <div className="flex-1 min-w-0">

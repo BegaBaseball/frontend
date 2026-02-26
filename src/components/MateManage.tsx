@@ -32,6 +32,7 @@ import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import { Application, BadgeType } from '../types/mate';
 import { formatGameDate } from '../utils/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { getPaymentStatusLabel, getSettlementStatusLabel } from '../utils/paymentStatus';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Pencil } from 'lucide-react';
@@ -340,88 +341,96 @@ export default function MateManage() {
     return null;
   };
 
-  const renderApplication = (app: Application, showActions: boolean = false) => (
-    <Card key={app.id} className="p-5 mb-4">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span>{app.applicantName}</span>
-            {getBadgeIcon(app.applicantBadge)}
-            {app.ticketVerified && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
-                <Ticket className="w-3 h-3" />
-                티켓 인증
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1 text-sm text-gray-500">
-            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-            <span>{app.applicantRating}</span>
-          </div>
-        </div>
-        <div className="text-sm text-gray-500">
-          {new Date(app.createdAt).toLocaleString('ko-KR')}
-        </div>
-      </div>
-
-      <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-        <p className="text-sm text-gray-700">{app.message}</p>
-      </div>
-
-      <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-        <span>결제 금액:</span>
-        <span className="text-primary">{app.depositAmount.toLocaleString()}원</span>
-        <Badge variant="outline" className="ml-2">
-          {app.paymentType === 'DEPOSIT' ? '보증금' : '전액결제'}
-        </Badge>
-        {app.paymentStatus && (
-          <Badge variant="outline">
-            결제: {app.paymentStatus}
-          </Badge>
-        )}
-        {app.settlementStatus && (
-          <Badge variant="outline">
-            정산: {app.settlementStatus}
-          </Badge>
-        )}
-        {typeof app.netSettlementAmount === 'number' && (
-          <span className="ml-auto text-xs text-gray-500">
-            순정산 {app.netSettlementAmount.toLocaleString()}원
-          </span>
-        )}
-      </div>
-
-      {showActions && (
-        <>
-          {app.responseDeadline && (
-            <div className="flex items-center gap-1.5 text-xs mb-3 px-2 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-md">
-              <Clock className="w-3.5 h-3.5 text-orange-500" />
-              <span className="text-orange-600 dark:text-orange-400 font-medium">
-                응답 기한: {getDeadlineText(app.responseDeadline)}
-              </span>
+  const renderApplication = (app: Application, showActions: boolean = false) => {
+    const hasPaymentTracking = Boolean(app.paymentStatus || app.settlementStatus);
+    return (
+      <Card key={app.id} className="p-5 mb-4">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span>{app.applicantName}</span>
+              {getBadgeIcon(app.applicantBadge)}
+              {app.ticketVerified && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
+                  <Ticket className="w-3 h-3" />
+                  티켓 인증
+                </span>
+              )}
             </div>
-          )}
-          <div className="flex gap-2">
-            <Button
-              onClick={() => handleApprove(app.id)}
-              className="flex-1 text-white bg-primary"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              승인
-            </Button>
-            <Button
-              onClick={() => handleReject(app.id)}
-              variant="outline"
-              className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
-            >
-              <XCircle className="w-4 h-4 mr-2" />
-              거절
-            </Button>
+            <div className="flex items-center gap-1 text-sm text-gray-500">
+              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+              <span>{app.applicantRating}</span>
+            </div>
           </div>
-        </>
-      )}
-    </Card>
-  );
+          <div className="text-sm text-gray-500">
+            {new Date(app.createdAt).toLocaleString('ko-KR')}
+          </div>
+        </div>
+
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-700">{app.message}</p>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+          <span>결제 금액:</span>
+          <span className="text-primary">{app.depositAmount.toLocaleString()}원</span>
+          <Badge variant="outline" className="ml-2">
+            {app.paymentType === 'DEPOSIT' ? '보증금' : '전액결제'}
+          </Badge>
+          {!hasPaymentTracking && (
+            <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
+              결제 안됨 (직거래 배타적용)
+            </Badge>
+          )}
+          {app.paymentStatus && (
+            <Badge variant="outline">
+              결제: {getPaymentStatusLabel(app.paymentStatus)}
+            </Badge>
+          )}
+          {app.settlementStatus && (
+            <Badge variant="outline">
+              정산: {getSettlementStatusLabel(app.settlementStatus)}
+            </Badge>
+          )}
+          {hasPaymentTracking && typeof app.netSettlementAmount === 'number' && (
+            <span className="ml-auto text-xs text-gray-500">
+              순정산 {app.netSettlementAmount.toLocaleString()}원
+            </span>
+          )}
+        </div>
+
+        {showActions && (
+          <>
+            {app.responseDeadline && (
+              <div className="flex items-center gap-1.5 text-xs mb-3 px-2 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-md">
+                <Clock className="w-3.5 h-3.5 text-orange-500" />
+                <span className="text-orange-600 dark:text-orange-400 font-medium">
+                  응답 기한: {getDeadlineText(app.responseDeadline)}
+                </span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleApprove(app.id)}
+                className="flex-1 text-white bg-primary"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                승인
+              </Button>
+              <Button
+                onClick={() => handleReject(app.id)}
+                variant="outline"
+                className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                거절
+              </Button>
+            </div>
+          </>
+        )}
+      </Card>
+    );
+  };
 
   if (isLoading) {
     return (

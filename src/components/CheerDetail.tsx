@@ -89,7 +89,7 @@ export default function CheerDetail() {
     const interactionLikedByMe = Boolean(interactionTargetPost?.liked || interactionTargetPost?.likedByUser);
     const interactionRepostCount = interactionTargetPost?.repostCount ?? 0;
     const interactionRepostedByMe = Boolean(interactionTargetPost?.repostedByMe);
-    const interactionBookmarked = Boolean(interactionTargetPost?.isBookmarked);
+    const interactionBookmarked = Boolean(interactionTargetPost?.isBookmarked ?? interactionTargetPost?.bookmarked);
 
     useEffect(() => {
         if (resolvedPostId) {
@@ -437,7 +437,7 @@ export default function CheerDetail() {
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex items-center gap-3">
                                 <div
-                                    className="relative h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                    className="relative h-10 w-10 sm:h-11 sm:w-11 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                                     onClick={() => {
                                         if (selectedPost.authorHandle) {
                                             navigate(`/profile/${selectedPost.authorHandle}`);

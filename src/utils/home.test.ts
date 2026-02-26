@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getFallbackLeagueStartDates } from './home';
 
-test('getFallbackLeagueStartDates returns 2026 default dates', () => {
+test('getFallbackLeagueStartDates returns year-based fallback dates', () => {
+  const currentYear = new Date().getFullYear();
   const fallback = getFallbackLeagueStartDates();
 
   assert.deepEqual(fallback, {
-    regularSeasonStart: '2026-03-28',
-    postseasonStart: '2026-10-05',
-    koreanSeriesStart: '2026-10-25',
+    regularSeasonStart: `${currentYear}-03-22`,
+    postseasonStart: `${currentYear}-10-06`,
+    koreanSeriesStart: `${currentYear}-10-26`,
   });
 });
 

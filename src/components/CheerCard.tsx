@@ -94,6 +94,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const repostUnavailableMessage = repostPolicy.repostSimpleUnavailableMessage;
     const quoteUnavailableMessage = repostPolicy.repostQuoteUnavailableMessage;
     const repostButtonActive = canCancelRepost ? true : post.repostedByMe;
+    const likeActive = Boolean(post.likedByUser || post.liked);
     const bookmarkActive = Boolean(post.isBookmarked ?? post.bookmarked);
 
     const [likeAnimating, setLikeAnimating] = useState(false);
@@ -219,7 +220,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         <RollingNumber value={commentCount} />
                     </span>
                     <span className="flex items-center gap-1">
-                        <Heart className={`h-4 w-4 transition-all duration-200 ${post.likedByUser
+                        <Heart className={`h-4 w-4 transition-all duration-200 ${likeActive
                             ? 'fill-rose-500 text-rose-500'
                             : 'fill-transparent dark:text-gray-300'
                             }`} />
@@ -269,36 +270,39 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 }}
                 className="flex gap-3"
             >
-
                 <div className="relative h-10 w-10 flex-shrink-0">
                     <div
-                className="h-full w-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const targetHandle = isRepost
-                    ? avatarSource.authorHandle
-                    : post.authorHandle;
-                  if (targetHandle) {
-                    const normalizedHandle = targetHandle.startsWith('@') ? targetHandle : `@${targetHandle}`;
-                    navigate(`/profile/${normalizedHandle}`);
-                  }
-                }}
-              >
-                <ProfileAvatar
-                  src={avatarProfileImage || undefined}
-                  alt={avatarAuthor}
-                  fallbackName={avatarAuthor}
-                  width={40}
-                  height={40}
-                  showRing
-                  ringClassName="p-px bg-black/5 dark:bg-white/10 cursor-pointer hover:opacity-80 transition-opacity"
-                />
-              </div>
+                        className="h-full w-full"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            const targetHandle = isRepost
+                                ? avatarSource.authorHandle
+                                : post.authorHandle;
+                            if (targetHandle) {
+                                const normalizedHandle = targetHandle.startsWith('@') ? targetHandle : `@${targetHandle}`;
+                                navigate(`/profile/${normalizedHandle}`);
+                            }
+                        }}
+                    >
+                        <ProfileAvatar
+                            src={avatarProfileImage || undefined}
+                            alt={avatarAuthor}
+                            fallbackName={avatarAuthor}
+                            width={40}
+                            height={40}
+                            showRing
+                            ringClassName="p-px bg-black/5 dark:bg-white/10 cursor-pointer hover:opacity-80 transition-opacity"
+                        />
+                    </div>
                     {/* Team Logo: Use Original's team if Simple Repost */}
                     {((post.repostType === 'SIMPLE' && post.originalPost && post.originalPost.teamId) || post.authorTeamId) && (
                         <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white p-0.5 dark:bg-secondary flex items-center justify-center">
                             <TeamLogo
-                                team={((post.repostType === 'SIMPLE' && post.originalPost) ? (TEAM_DATA[post.originalPost.teamId as keyof typeof TEAM_DATA]?.name || post.originalPost.teamId) : (TEAM_DATA[post.authorTeamId as keyof typeof TEAM_DATA]?.name || post.authorTeamId))}
+                                team={(
+                                    (post.repostType === 'SIMPLE' && post.originalPost)
+                                        ? (TEAM_DATA[post.originalPost.teamId as keyof typeof TEAM_DATA]?.name || post.originalPost.teamId)
+                                        : (TEAM_DATA[post.authorTeamId as keyof typeof TEAM_DATA]?.name || post.authorTeamId)
+                                )}
                                 size={20}
                             />
                         </div>
@@ -550,21 +554,21 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
                         <button
                             type="button"
-                            className={`group/like flex items-center gap-1.5 rounded-full transition-colors ${post.likedByUser ? 'text-rose-500' : 'hover:text-rose-500'
+                            className={`group/like flex items-center gap-1.5 rounded-full transition-colors ${likeActive ? 'text-rose-500' : 'hover:text-rose-500'
                                 }`}
                             onClick={handleLikeClick}
-                            aria-label={post.likedByUser ? `좋아요 취소 (현재 ${likeCount}개)` : `좋아요 (현재 ${likeCount}개)`}
-                            aria-pressed={post.likedByUser}
+                            aria-label={likeActive ? `좋아요 취소 (현재 ${likeCount}개)` : `좋아요 (현재 ${likeCount}개)`}
+                            aria-pressed={likeActive}
                         >
                             <span
-                                className={`relative rounded-full p-2 transition-all duration-200 ${post.likedByUser ? 'bg-rose-50 dark:bg-rose-500/20' : 'group-hover/like:bg-rose-50 dark:group-hover/like:bg-rose-500/20'
+                                className={`relative rounded-full p-2 transition-all duration-200 ${likeActive ? 'bg-rose-50 dark:bg-rose-500/20' : 'group-hover/like:bg-rose-50 dark:group-hover/like:bg-rose-500/20'
                                     }`}
                             >
                                 {likeAnimating && (
                                     <span className="pointer-events-none absolute inset-0 rounded-full bg-rose-500/30 animate-like-ring" />
                                 )}
                                 <Heart
-                                    className={`h-[18px] w-[18px] transition-all duration-200 ${post.likedByUser
+                                    className={`h-[18px] w-[18px] transition-all duration-200 ${likeActive
                                         ? 'fill-rose-500 text-rose-500 scale-110'
                                         : 'fill-transparent'
                                         } ${likeAnimating ? 'animate-like-pop' : ''}`}

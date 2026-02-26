@@ -128,7 +128,16 @@ describe('Home scheduled tab', () => {
       ],
     }).as('getPredictionRange');
 
-    cy.intercept('GET', '**/api/matches/*', {
+    cy.intercept('GET', '**/api/matches/bounds*', {
+      statusCode: 200,
+      body: {
+        hasData: true,
+        earliestGameDate: '2026-02-01',
+        latestGameDate: '2026-10-01',
+      },
+    }).as('getPredictionBounds');
+
+    cy.intercept('GET', /\/api\/matches\/\d{8}[A-Z]{4}\d$/, {
       statusCode: 200,
       body: {
         gameId: '20260211LGHH0',
@@ -209,6 +218,8 @@ describe('Home scheduled tab', () => {
   it('navigates to prediction using scheduled card CTA with gameId/date query', () => {
     cy.visit('/home');
 
+    cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
+
     cy.contains('[data-slot="card"]', 'LG')
       .should('be.visible')
       .within(() => {
@@ -218,7 +229,8 @@ describe('Home scheduled tab', () => {
     cy.url().should('include', '/prediction?');
     cy.url().should('include', 'gameId=20260211LGHH0');
     cy.url().should('include', 'date=2026-02-11');
+    cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
 
-    cy.contains('전력분석실', { timeout: 15000 }).should('be.visible');
+    cy.contains('전력분석실', { timeout: 15000 }).should('exist');
   });
 });

@@ -37,6 +37,13 @@ const MAX_BACKOFF_SECONDS = 40;
 const JITTER_MIN_SECONDS = 1;
 const JITTER_MAX_SECONDS = 2;
 
+const createMessageId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
 export const useChatBot = (initialOpen = false) => {
   const { isLoggedIn } = useAuthStore();
   const prevLoggedInRef = useRef(isLoggedIn);
@@ -104,7 +111,7 @@ export const useChatBot = (initialOpen = false) => {
     if (isOpen && messages.length === 0) {
       // 빈 봇 메시지 껍데기만 먼저 추가
       setMessages([{
-        id: crypto.randomUUID(),
+        id: createMessageId(),
         text: '',
         sender: 'bot',
         timestamp: new Date(),
@@ -181,7 +188,7 @@ export const useChatBot = (initialOpen = false) => {
 
     try {
       // 봇 응답을 위한 빈 메시지 추가
-      setMessages((prev) => [...prev, { id: crypto.randomUUID(), text: '', sender: 'bot', timestamp: new Date() }]);
+      setMessages((prev) => [...prev, { id: createMessageId(), text: '', sender: 'bot', timestamp: new Date() }]);
 
       await sendChatMessageStream(
         { question: messageToProcess.text, history: historyPayload },
@@ -327,7 +334,7 @@ export const useChatBot = (initialOpen = false) => {
     sessionStorage.setItem('last_pending_msg', trimmedInput);
 
     const userMessage: Message = {
-      id: crypto.randomUUID(),
+      id: createMessageId(),
       text: trimmedInput,
       sender: 'user',
       timestamp: new Date(),
@@ -347,7 +354,7 @@ export const useChatBot = (initialOpen = false) => {
     sessionStorage.setItem('last_pending_msg', retryText);
 
     const userMessage: Message = {
-      id: crypto.randomUUID(),
+      id: createMessageId(),
       text: retryText,
       sender: 'user',
       timestamp: new Date(),

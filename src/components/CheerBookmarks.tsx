@@ -30,7 +30,7 @@ export default function CheerBookmarks() {
 
   return (
     <div className="min-h-screen bg-[#f7f9f9] dark:bg-background">
-      <div className="mx-auto w-full max-w-[1200px] px-6 py-8">
+      <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 py-6 sm:py-8">
         <div className="grid grid-cols-1 gap-0 lg:grid-cols-[72px_1fr_320px] xl:grid-cols-[200px_1fr_320px]">
           <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
             {navItems.map((item) => {
@@ -91,7 +91,7 @@ export default function CheerBookmarks() {
                 ))}
               </div>
             ) : isError ? (
-              <div className="px-4 sm:px-6 py-10 sm:py-12 text-center">
+              <div className="px-4 sm:px-6 py-8 sm:py-10 text-center">
                 <p className="text-sm text-slate-500 dark:text-gray-300">북마크를 불러오지 못했습니다.</p>
                 <button
                   type="button"
@@ -102,7 +102,7 @@ export default function CheerBookmarks() {
                 </button>
               </div>
             ) : bookmarkedPosts.length === 0 ? (
-                  <div className="px-4 sm:px-6 py-12 text-center">
+              <div className="px-4 sm:px-6 py-8 sm:py-10 text-center">
                 <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center mx-auto mb-4">
                   <Bookmark className="h-8 w-8 text-slate-400 dark:text-gray-300" />
                 </div>

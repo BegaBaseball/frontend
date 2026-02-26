@@ -67,7 +67,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-gray-500"
+                        className="h-11 w-11 min-h-11 p-0 text-gray-400 hover:text-gray-500"
                         onClick={onClose}
                     >
                         <X className="h-5 w-5" />
@@ -83,7 +83,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
                     ) : isError ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                        <div className="flex flex-col items-center justify-center py-8 sm:py-10 text-center px-4">
                             <AlertCircle className="h-8 w-8 text-red-500 mb-3" />
                             <p className="text-gray-900 dark:text-gray-100 font-medium mb-3">
                                 목록을 불러오지 못했습니다.
@@ -139,7 +139,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                             )}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                        <div className="flex flex-col items-center justify-center py-8 sm:py-10 text-center px-4">
                             <div className="w-12 h-12 bg-gray-100 dark:bg-card rounded-full flex items-center justify-center mb-3">
                                 <User className="h-6 w-6 text-gray-400" />
                             </div>

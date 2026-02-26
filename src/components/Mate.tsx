@@ -281,7 +281,7 @@ export default function Mate() {
     const messages = emptyMessagesByTab[tabKey];
     const isSearchEmpty = hasActiveFilters;
     return (
-      <div className="text-center py-24 bg-white dark:bg-card rounded-2xl border border-dashed border-gray-200 dark:border-border">
+      <div className="text-center py-12 sm:py-14 bg-white dark:bg-card rounded-2xl border border-dashed border-gray-200 dark:border-border">
         <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
         <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">
           {isSearchEmpty ? messages.withFilter : messages.withoutFilter}
@@ -369,6 +369,9 @@ export default function Mate() {
               <div className="flex items-center gap-2">
                 {getDDayBadge(party.gameDate)}
                 {getStatusBadge(party.status)}
+                <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800 text-[10px] px-1.5 py-0 h-5">
+                  직거래
+                </Badge>
               </div>
             </div>
           </div>
@@ -532,7 +535,12 @@ export default function Mate() {
                   <li>• <strong>매너 응원:</strong> 상대 팀 비방이나 과격한 언행은 삼가주세요.</li>
                 </ul>
               </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsGuideOpen(false)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 min-h-11 p-0"
+                onClick={() => setIsGuideOpen(false)}
+              >
                 <X className="w-4 h-4" />
               </Button>
             </div>
@@ -675,7 +683,7 @@ export default function Mate() {
           {isLoading ? (
             <LoadingSpinner size="md" fullScreen={false} />
           ) : fetchError ? (
-            <div className="text-center py-24 bg-white dark:bg-card rounded-2xl border border-dashed border-red-200 dark:border-red-900">
+            <div className="text-center py-12 sm:py-14 bg-white dark:bg-card rounded-2xl border border-dashed border-red-200 dark:border-red-900">
               <AlertCircle className="w-12 h-12 mx-auto mb-3 text-red-400" />
               <p className="text-gray-600 dark:text-gray-300 font-medium">파티 목록을 불러오지 못했습니다</p>
               <p className="text-gray-400 text-sm mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
