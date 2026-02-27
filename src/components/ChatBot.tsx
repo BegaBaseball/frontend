@@ -1,6 +1,6 @@
 import chatBotIcon from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Badge } from './ui/badge';
-import { X, Send, Check, Copy, BrainCircuit, ChevronRight } from 'lucide-react';
+import { X, Send, Check, Copy, BrainCircuit, ChevronRight, ChevronDown, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChatBot } from '../hooks/useChatBot';
@@ -11,7 +11,52 @@ import { useTheme } from 'next-themes';
 import { useNavigate } from 'react-router-dom';
 
 
-export default function ChatBot() {
+// 도구 이름 한국어 매핑 (null이면 UI에서 숨김)
+const TOOL_NAME_KO: Record<string, string | null> = {
+  get_player_stats: '선수 통계',
+  get_career_stats: '커리어 통계',
+  get_leaderboard: '순위 조회',
+  validate_player: null,
+  get_team_summary: '팀 정보',
+  get_team_advanced_metrics: '팀 고급 지표',
+  get_game_box_score: '경기 결과',
+  get_games_by_date: '경기 일정',
+  get_game_lineup: '라인업',
+  get_head_to_head: '팀 상대 전적',
+  get_recent_games_by_team: '최근 경기',
+  get_team_rank: '팀 순위',
+  get_korean_series_winner: '한국시리즈 우승',
+  predict_matchup: '대결 예측',
+  calculate_win_probability: '승리 확률',
+  get_player_wpa_leaders: '승리 기여 선수',
+  get_clutch_moments: '클러치 순간',
+  check_bullpen_availability: '불펜 가용 현황',
+  search_regulations: '규정 검색',
+  search_documents: '문서 검색',
+  get_current_datetime: null,
+};
+
+const formatToolParams = (params: Record<string, unknown>): string => {
+  const parts: string[] = [];
+  if (params.player_name)                    parts.push(String(params.player_name));
+  if (params.team_name)                      parts.push(String(params.team_name));
+  if (params.team1 && params.team2)          parts.push(`${params.team1} vs ${params.team2}`);
+  else if (params.team1)                     parts.push(String(params.team1));
+  if (params.stat_name)                      parts.push(String(params.stat_name));
+  if (params.year)                           parts.push(`${params.year}년`);
+  if (params.position === 'batting')         parts.push('타자');
+  else if (params.position === 'pitching')   parts.push('투수');
+  if (params.date)                           parts.push(String(params.date));
+  if (params.limit && Number(params.limit) !== 10) parts.push(`상위 ${params.limit}명`);
+  return parts.join(' · ');
+};
+
+interface ChatBotProps {
+  autoOpen?: boolean;
+  onClosed?: () => void;
+}
+
+export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
   const { isLoggedIn } = useAuthStore();
   // const isLoggedIn = true;
   const isMobile = useIsMobile();
@@ -34,11 +79,26 @@ export default function ChatBot() {
     handleSendMessage,
     handleRetrySend,
     handleRestorePendingMessage,
-  } = useChatBot();
+  } = useChatBot(autoOpen);
 
   const [isClosing, setIsClosing] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [expandedToolCalls, setExpandedToolCalls] = useState<Set<number>>(new Set());
   const isRateLimited = rateLimitActive && rateLimitCountdown > 0;
+
+  useEffect(() => {
+    if (autoOpen) {
+      setIsOpen(true);
+    }
+  }, [autoOpen, setIsOpen]);
+
+  const toggleToolCalls = (index: number) => {
+    setExpandedToolCalls(prev => {
+      const next = new Set(prev);
+      next.has(index) ? next.delete(index) : next.add(index);
+      return next;
+    });
+  };
 
   const rateLimitCopy = (() => {
     if (!rateLimitActive) return null;
@@ -66,13 +126,34 @@ export default function ChatBot() {
     };
   })();
 
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
   const handleClose = () => {
+    if (isClosing) {
+      return;
+    }
+
     setIsClosing(true);
-    setTimeout(() => {
+    clearCloseTimer();
+    closeTimerRef.current = window.setTimeout(() => {
       setIsOpen(false);
       setIsClosing(false);
+      onClosed?.();
     }, 300); // 300ms matches animation duration
   };
+
+  useEffect(() => {
+    return () => {
+      clearCloseTimer();
+    };
+  }, []);
 
   const handleCopyMessage = async (text: string, index: number) => {
     try {
@@ -119,25 +200,30 @@ export default function ChatBot() {
             fixed flex flex-col overflow-hidden
             bg-white dark:bg-black border border-gray-200 dark:border-white/10
             ${isMobile
-              ? 'inset-0 rounded-none'
+              ? 'inset-0 rounded-none max-h-[100dvh] max-w-full'
               : 'bottom-5 right-5 w-[min(400px,calc(100vw-2rem))] h-[600px] rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]'
             }
           `}
         >
-          {/* Header */}
-          <div className="p-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-primary">
-            <div className="flex items-center gap-3">
-              <img
-                src={chatBotIcon}
-                alt="BEGA"
-                className="w-10 h-10 rounded-full bg-white p-1.5"
-              />
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-white font-bold text-base m-0">야구 가이드 BEGA</h3>
+            {/* Header */}
+            <div className="p-3 md:p-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-primary">
+              <div className="flex items-center gap-3">
+                <span className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-primary grid place-items-center">
+                  <img
+                    src={chatBotIcon}
+                    alt="BEGA"
+                    className="pointer-events-none block h-8 w-8 sm:h-9 sm:w-9 md:h-9 md:w-9 object-cover object-center"
+                    loading="eager"
+                    aria-hidden="true"
+                    decoding="async"
+                  />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-white font-bold text-sm md:text-base m-0">야구 가이드 BEGA</h3>
                   <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30">Beta</Badge>
                 </div>
-                <p className="text-white/80 text-xs m-0">야구 정보 안내</p>
+                <p className="text-white/80 text-[11px] md:text-xs m-0">야구 정보 안내</p>
               </div>
             </div>
             <button
@@ -145,7 +231,7 @@ export default function ChatBot() {
               className="text-white/80 hover:text-white bg-transparent border-none cursor-pointer
                          p-2 rounded-full transition-colors
                          min-w-[44px] min-h-[44px] flex items-center justify-center
-                         focus:outline-none focus:ring-2 focus:ring-white/50"
+                         focus:outline-none focus-visible:outline-none focus:ring-0"
               aria-label="챗봇 닫기"
             >
               <X className="w-5 h-5" />
@@ -185,7 +271,7 @@ export default function ChatBot() {
 
                   return (
                     <div
-                      key={index}
+                      key={message.id ?? index}
                       className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       {message.sender === 'bot' ? (
@@ -204,10 +290,55 @@ export default function ChatBot() {
                                 ? '응답 중 오류가 발생했습니다. 다시 시도해주세요.'
                                 : message.text}
                             </ReactMarkdown>
-                            <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-300">
-                              {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
+                            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                              {message.cached && (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5 dark:bg-amber-400/10 dark:border-amber-400/30 dark:text-amber-400">
+                                  <Zap className="w-2.5 h-2.5" />
+                                  빠른 응답
+                                </span>
+                              )}
+                              <p className="text-[11px] text-gray-500 dark:text-gray-300 m-0">
+                                {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
                           </div>
+                          {/* Tool Disclosure - AI가 사용한 도구 목록 */}
+                          {!isStreamError && (() => {
+                            const visibleTools = (message.toolCalls ?? []).filter(
+                              tc => TOOL_NAME_KO[tc.toolName] !== null && TOOL_NAME_KO[tc.toolName] !== undefined
+                            );
+                            if (visibleTools.length === 0) return null;
+                            const isExpanded = expandedToolCalls.has(index);
+                            return (
+                              <div className="mt-1.5 ml-1">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleToolCalls(index)}
+                                  className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                >
+                                  <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`} />
+                                  AI 검색 도구 {visibleTools.length}개
+                                </button>
+                                {isExpanded && (
+                                  <ul className="mt-1 space-y-0.5 list-none p-0 m-0">
+                                    {visibleTools.map((tc, i) => {
+                                      const label = TOOL_NAME_KO[tc.toolName];
+                                      const params = formatToolParams(tc.parameters);
+                                      return (
+                                        <li key={i} className="flex items-start gap-1 text-[10px] text-gray-500 dark:text-gray-400">
+                                          <span className="mt-0.5 shrink-0">╰</span>
+                                          <span>
+                                            <span className="font-medium text-gray-600 dark:text-gray-300">{label}</span>
+                                            {params && <span className="text-gray-400 dark:text-gray-500 ml-1">{params}</span>}
+                                          </span>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                )}
+                              </div>
+                            );
+                          })()}
                           {/* Copy button - shown on hover, only for non-error bot messages */}
                           {!isStreamError && (
                             <button
@@ -373,24 +504,31 @@ export default function ChatBot() {
       )}
 
       {/* Launcher Button - 챗봇이 닫혀있을 때만 표시 */}
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 w-16 h-16 rounded-full bg-primary border-none
+      {!isOpen && !autoOpen && (
+          <button
+            onClick={() => setIsOpen(true)}
+            className="fixed w-11 h-11 sm:w-14 sm:h-14 sm:min-h-[56px] sm:min-w-[56px] md:w-16 md:h-16 rounded-full bg-primary border-none
                      shadow-[0_10px_25px_rgba(0,0,0,0.3)] cursor-pointer
                      flex items-center justify-center text-white
-                     transition-transform duration-200 hover:scale-110 active:scale-95
-                     focus:outline-none focus:ring-4 focus:ring-primary/50"
-          aria-label="챗봇 열기"
-        >
-          <img
-            src={chatBotIcon}
-            alt=""
-            className="w-12 h-12 rounded-full"
-            aria-hidden="true"
-          />
-        </button>
-      )}
+                     transition-all duration-200 active:bg-primary active:text-white
+                     touch-action-manipulation
+                     overflow-hidden
+                     bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))]
+                     md:bottom-[calc(1.25rem+env(safe-area-inset-bottom))] md:right-[calc(1.25rem+env(safe-area-inset-right))]
+                     focus:outline-none focus-visible:outline-none focus:ring-0"
+            aria-label="챗봇 열기"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <img
+              src={chatBotIcon}
+              alt=""
+              className="pointer-events-none block h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11 object-cover object-center"
+              aria-hidden="true"
+              decoding="async"
+              loading="eager"
+            />
+          </button>
+        )}
     </div>
   );
 }

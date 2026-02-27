@@ -2,7 +2,6 @@ export type NotificationType =
   | 'APPLICATION_RECEIVED'
   | 'APPLICATION_APPROVED'
   | 'APPLICATION_REJECTED'
-  | 'APPLICATION_CANCELLED'
   | 'PARTY_EXPIRED'
   | 'PARTY_AUTO_COMPLETED'
   | 'GAME_TOMORROW_REMINDER'
@@ -23,7 +22,7 @@ export interface NotificationData {
   type: NotificationType;
   title: string;
   message: string;
-  relatedId: number;
+  relatedId: number | null;
   isRead: boolean;
   createdAt: string;
 }

@@ -1,5 +1,5 @@
 // src/utils/mate.ts
-import { Party, PartyStatus } from '../types/mate';
+import { Party, PartyStatus, BadgeType } from '../types/mate';
 import { MateParty, MateHistoryTab } from '../types/mate';
 
 interface BackendPartyDTO {
@@ -28,13 +28,21 @@ interface BackendPartyDTO {
   createdAt: string;
 }
 
+const normalizeBadgeType = (badge: string): BadgeType => {
+  const normalized = badge.toUpperCase();
+  if (normalized === 'NEW' || normalized === 'VERIFIED' || normalized === 'TRUSTED') {
+    return normalized;
+  }
+  return 'NEW';
+};
+
 export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party => ({
   id: backendParty.id,
   hostId: backendParty.hostId,
   hostName: backendParty.hostName,
   hostProfileImageUrl: backendParty.hostProfileImageUrl,
   hostFavoriteTeam: backendParty.hostFavoriteTeam,
-  hostBadge: backendParty.hostBadge.toLowerCase(),
+  hostBadge: normalizeBadgeType(backendParty.hostBadge),
   hostRating: backendParty.hostRating,
   teamId: backendParty.teamId,
   gameDate: backendParty.gameDate,

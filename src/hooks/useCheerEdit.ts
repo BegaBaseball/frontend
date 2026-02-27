@@ -73,6 +73,9 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
         const confirmed = await confirm({ title: '이미지 삭제', description: '이미지를 삭제하시겠습니까? (저장 시 반영됩니다)', confirmLabel: '삭제', variant: 'destructive' });
         if (!confirmed) return;
 
+        // 롤백을 위해 현재 이미지 백업
+        const imageToRestore = existingImages.find(img => img.id === imgId);
+
         // Optimistically remove from UI
         setExistingImages(prev => prev.filter(img => img.id !== imgId));
         setDeletedImageIds(prev => [...prev, imgId]);
@@ -83,7 +86,15 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
             .then(() => {
                 setExistingImages(prev => prev.filter(img => img.id !== imgId));
             })
-            .catch(console.error) // Global handler shows UI, we just suppress uncaught promise
+            .catch((err) => {
+                console.error(err);
+                // 서버 삭제 실패 시 UI 상태 복구
+                if (imageToRestore) {
+                    setExistingImages(prev => [...prev, imageToRestore]);
+                }
+                setDeletedImageIds(prev => prev.filter(id => id !== imgId));
+                toast.error('이미지 삭제에 실패했습니다. 다시 시도해주세요.');
+            })
             .finally(() => {
                 setDeletingImageId(null);
             });

@@ -1,5 +1,5 @@
 import api from './axios';
-import { Game, SaveDiaryRequest, DiaryStatistics, DiaryEntry } from '../types/diary';
+import { Game, SaveDiaryRequest, DiaryStatistics, DiaryEntry, SeatViewReward } from '../types/diary';
 
 /**
  * 특정 날짜의 경기 목록 조회
@@ -17,11 +17,17 @@ export async function fetchDiaries(): Promise<DiaryEntry[]> {
   return response.data;
 }
 
+export interface SaveDiaryResponse {
+  id: number;
+  seatViewReward?: SeatViewReward;
+  [key: string]: unknown;
+}
+
 /**
  * 다이어리 저장
  */
-export async function saveDiary(data: SaveDiaryRequest) {
-  const response = await api.post('/diary/save', data);
+export async function saveDiary(data: SaveDiaryRequest): Promise<SaveDiaryResponse> {
+  const response = await api.post<SaveDiaryResponse>('/diary/save', data);
   return response.data;
 }
 
@@ -43,10 +49,15 @@ export async function deleteDiary(id: number): Promise<void> {
 /**
  * 다이어리 이미지 업로드
  */
+export interface UploadDiaryImagesResponse {
+  photos: string[];
+  seatViewReward?: SeatViewReward;
+}
+
 export async function uploadDiaryImages(
   diaryId: number,
   files: File[]
-): Promise<string[]> {
+): Promise<UploadDiaryImagesResponse> {
   const formData = new FormData();
   files.forEach((file) => {
     formData.append('images', file);
@@ -59,8 +70,10 @@ export async function uploadDiaryImages(
   });
 
   const result = response.data;
-  const photos = result.photos || result.data?.photos || [];
-  return photos;
+  return {
+    photos: result.photos || result.data?.photos || [],
+    seatViewReward: result.seatViewReward,
+  };
 }
 
 /**
@@ -68,5 +81,27 @@ export async function uploadDiaryImages(
  */
 export async function fetchDiaryStatistics(): Promise<DiaryStatistics> {
   const response = await api.get<DiaryStatistics>('/diary/statistics');
+  return response.data;
+}
+
+export interface SeatViewPhoto {
+  photoUrl: string;
+  stadium: string;
+  section: string | null;
+  block: string | null;
+  diaryDate: string;
+}
+
+/**
+ * 좌석 시야 사진 목록 조회 (공개 API)
+ */
+export async function fetchSeatViews(
+  stadium: string,
+  section?: string,
+  limit = 9
+): Promise<SeatViewPhoto[]> {
+  const params = new URLSearchParams({ stadium, limit: limit.toString() });
+  if (section) params.append('section', section);
+  const response = await api.get<SeatViewPhoto[]>(`/diary/seat-views?${params.toString()}`);
   return response.data;
 }

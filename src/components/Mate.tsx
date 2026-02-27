@@ -3,8 +3,8 @@ import { OptimizedImage } from './common/OptimizedImage';
 import { useNavigate } from 'react-router-dom';
 import { KBO_STADIUMS, SEAT_CATEGORIES, SeatCategory } from '../utils/stadiumData';
 import { SEAT_ICONS } from '../utils/seatIcons';
-import { Sun, Cloud, CloudRain, CloudLightning } from 'lucide-react'; // Mock Weather Icons
-import { motion, AnimatePresence } from 'framer-motion';
+import { Sun, Cloud, CloudRain } from 'lucide-react'; // Mock Weather Icons
+import { motion } from 'framer-motion';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -13,14 +13,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { Plus, Users, MapPin, Shield, Star, Search, ChevronLeft, ChevronRight, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
+import { useAuthStore } from '../store/authStore';
 import LoadingSpinner from './LoadingSpinner';
 import TeamLogo, { teamIdToName } from './TeamLogo';
 import { Input } from './ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import { api } from '../utils/api';
 import { mapBackendPartyToFrontend, formatGameDate, getDayOfWeek } from '../utils/mate';
-import { Party, PartyStatus } from '../types/mate';
+import { Party, PartyStatus, BadgeType } from '../types/mate';
 import { useDebounce } from '../hooks/useDebounce';
 import { MATE_SEARCH_DEBOUNCE_MS } from '../utils/constants';
 
@@ -39,16 +40,23 @@ const isLegacyHostAvatarUrl = (url?: string) => {
   return url.startsWith('/assets/')
     || url.startsWith('/src/assets/')
     || url.startsWith('blob:')
-    || normalized.includes('supabase.co');
+    || normalized.includes('/storage/v1/object/');
 };
 
 export default function Mate() {
   const navigate = useNavigate();
   const { setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
+  const user = useAuthStore((state) => state.user);
+  const favoriteTeamId = user?.favoriteTeam && user.favoriteTeam !== '없음' ? user.favoriteTeam : null;
+  const [myTeamOnly, setMyTeamOnly] = useState(false);
 
   // Local input state so the input responds instantly; debounced value is synced to the store
   const [inputValue, setInputValue] = useState(searchQuery || '');
   const debouncedInput = useDebounce(inputValue, MATE_SEARCH_DEBOUNCE_MS);
+
+  useEffect(() => {
+    setInputValue(searchQuery || '');
+  }, [searchQuery]);
 
   // Sync debounced input to the Zustand store (triggers API fetch)
   useEffect(() => {
@@ -74,17 +82,17 @@ export default function Mate() {
     );
   };
 
-  const currentStadium = getStadiumFromQuery(searchQuery || '');
+  const currentStadium = getStadiumFromQuery(inputValue || '');
 
   // Helper for filter toggle (Enhanced)
   const toggleSearchQuery = (keyword: string) => {
-    // If query already contains this keyword, remove it
-    if (searchQuery?.includes(keyword)) {
-      setSearchQuery(searchQuery.replace(keyword, '').trim());
-    } else {
-      // Append to existing query or set as new
-      setSearchQuery(searchQuery ? `${searchQuery} ${keyword}` : keyword);
-    }
+    setInputValue((prevInput) => {
+      const normalizedInput = prevInput.trim();
+      return normalizedInput.includes(keyword)
+        ? normalizedInput.replace(keyword, '').replace(/\s+/g, ' ').trim()
+        : `${normalizedInput} ${keyword}`.replace(/\s+/g, ' ').trim();
+    });
+    setCurrentPage(0);
   };
 
   // Mock Weather Generator based on date
@@ -131,6 +139,7 @@ export default function Mate() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const requestIdRef = useRef(0);
+  const filterSignatureRef = useRef<string | null>(null);
 
   // 새로운 필터 상태
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -149,26 +158,50 @@ export default function Mate() {
   };
   const selectedStatus = tabToStatusMap[activeTab];
 
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [searchQuery, selectedDate, activeTab]);
+  // Removed reactive useEffect to prevent double-fetch race conditions
+  // setCurrentPage(0) is now handled explicitly in event handlers
 
   // 컴포넌트 마운트 및 상태 변경 시 파티 목록 불러오기
   useEffect(() => {
+    const controller = new AbortController();
+    const dateKey = selectedDate ? toDateString(selectedDate) : '';
+    const teamKey = myTeamOnly && favoriteTeamId ? favoriteTeamId : '';
+    const filterSignature = [
+      debouncedInput.trim(),
+      dateKey,
+      selectedStatus ?? '',
+      teamKey,
+    ].join('|');
+
+    if (filterSignatureRef.current !== null
+      && filterSignatureRef.current !== filterSignature
+      && currentPage !== 0) {
+      filterSignatureRef.current = filterSignature;
+      setCurrentPage(0);
+      return () => {
+        controller.abort();
+      };
+    }
+
+    filterSignatureRef.current = filterSignature;
+
     const fetchParties = async () => {
       const requestId = ++requestIdRef.current;
       setIsLoading(true);
       setFetchError(false);
       try {
         const dateStr = selectedDate ? toDateString(selectedDate) : undefined;
+        const teamIdFilter = myTeamOnly && favoriteTeamId ? favoriteTeamId : undefined;
+        const effectiveQuery = debouncedInput.trim();
         const data = await api.getParties(
-          undefined,
+          teamIdFilter,
           undefined,
           currentPage,
           pageSize,
           selectedStatus,
-          searchQuery,
+          effectiveQuery || undefined,
           dateStr,
+          controller.signal,
         );
 
         if (requestId !== requestIdRef.current) return;
@@ -178,6 +211,11 @@ export default function Mate() {
         setTotalPages(data.totalPages);
       } catch (error) {
         if (requestId !== requestIdRef.current) return;
+        const isAbortError = (error instanceof DOMException && error.name === 'AbortError')
+          || (error instanceof Error && error.name === 'AbortError');
+        if (isAbortError) {
+          return;
+        }
         console.error('파티 목록 불러오기 오류:', error);
         setFetchError(true);
       } finally {
@@ -188,7 +226,11 @@ export default function Mate() {
     };
 
     void fetchParties();
-  }, [currentPage, searchQuery, selectedDate, selectedStatus, retryCount]);
+
+    return () => {
+      controller.abort();
+    };
+  }, [currentPage, debouncedInput, selectedDate, selectedStatus, retryCount, myTeamOnly, favoriteTeamId]);
 
   const handlePartyClick = (party: Party) => {
     setSelectedParty(party);
@@ -220,13 +262,13 @@ export default function Mate() {
     );
   };
 
-  const getBadgeIcon = (badge: string) => {
-    if (badge === 'verified') return <Shield className="w-3 h-3 text-blue-500" />;
-    if (badge === 'trusted') return <Star className="w-3 h-3 text-yellow-500" />;
+  const getBadgeIcon = (badge: BadgeType) => {
+    if (badge === 'VERIFIED') return <Shield className="w-3 h-3 text-blue-500" />;
+    if (badge === 'TRUSTED') return <Star className="w-3 h-3 text-yellow-500" />;
     return null;
   };
 
-  const hasActiveFilters = !!(searchQuery || selectedDate);
+  const hasActiveFilters = !!(inputValue.trim() || selectedDate);
 
   const emptyMessagesByTab: Record<string, { withFilter: string; withoutFilter: string }> = {
     all: { withFilter: '검색 조건에 맞는 파티가 없습니다', withoutFilter: '아직 개설된 파티가 없습니다' },
@@ -239,7 +281,7 @@ export default function Mate() {
     const messages = emptyMessagesByTab[tabKey];
     const isSearchEmpty = hasActiveFilters;
     return (
-      <div className="text-center py-24 bg-white dark:bg-card rounded-2xl border border-dashed border-gray-200 dark:border-border">
+      <div className="text-center py-12 sm:py-14 bg-white dark:bg-card rounded-2xl border border-dashed border-gray-200 dark:border-border">
         <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
         <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">
           {isSearchEmpty ? messages.withFilter : messages.withoutFilter}
@@ -247,7 +289,7 @@ export default function Mate() {
         {isSearchEmpty ? (
           <>
             <p className="text-gray-400 text-sm mb-3">검색어나 날짜 필터를 변경해보세요</p>
-            <Button variant="outline" size="sm" className="text-primary border-primary/30" onClick={() => { setSelectedDate(null); setInputValue(''); setSearchQuery(''); }}>
+            <Button variant="outline" size="sm" className="text-primary border-primary/30" onClick={() => { setSelectedDate(null); setInputValue(''); setCurrentPage(0); }}>
               필터 초기화
             </Button>
           </>
@@ -327,6 +369,9 @@ export default function Mate() {
               <div className="flex items-center gap-2">
                 {getDDayBadge(party.gameDate)}
                 {getStatusBadge(party.status)}
+                <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800 text-[10px] px-1.5 py-0 h-5">
+                  직거래
+                </Badge>
               </div>
             </div>
           </div>
@@ -405,24 +450,16 @@ export default function Mate() {
 
           {/* 호스트 정보 & 참여 인원 Progress Bar */}
           <div className="flex items-center justify-between border-t border-gray-100 dark:border-border pt-3">
-            <div className="flex items-center gap-2">
-              <Avatar className="w-6 h-6 border border-gray-200">
-                <AvatarImage
-                  src={hostAvatarSrc}
-                  className="object-cover"
-                  onError={() => {
-                    setBrokenHostAvatarIds((prev) => {
-                      if (prev.has(party.id)) return prev;
-                      const next = new Set(prev);
-                      next.add(party.id);
-                      return next;
-                    });
-                  }}
-                />
-                <AvatarFallback className="text-[10px] bg-primary text-white">
-                  {party.hostName.slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
+          <div className="flex items-center gap-2">
+              <ProfileAvatar
+                src={hostAvatarSrc}
+                alt={party.hostName}
+                fallbackName={party.hostName}
+                width={24}
+                height={24}
+                showRing
+                ringClassName="p-0.5 bg-gray-200/70 dark:bg-white/10"
+              />
               <span className="text-xs text-gray-500">{party.hostName}</span>
               <div className="flex items-center text-xs text-yellow-500">
                 <Star className="w-3 h-3 fill-current mr-0.5" />
@@ -498,7 +535,12 @@ export default function Mate() {
                   <li>• <strong>매너 응원:</strong> 상대 팀 비방이나 과격한 언행은 삼가주세요.</li>
                 </ul>
               </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsGuideOpen(false)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 min-h-11 p-0"
+                onClick={() => setIsGuideOpen(false)}
+              >
                 <X className="w-4 h-4" />
               </Button>
             </div>
@@ -510,7 +552,7 @@ export default function Mate() {
           <div className="flex gap-2 min-w-max">
             <Button
               variant={selectedDate === null ? 'default' : 'outline'}
-              onClick={() => setSelectedDate(null)}
+              onClick={() => { setSelectedDate(null); setCurrentPage(0); }}
               className={selectedDate === null ? 'bg-primary text-white border-transparent' : 'border-gray-300 text-gray-500'}
             >
               전체
@@ -523,7 +565,7 @@ export default function Mate() {
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setSelectedDate(isSelected ? null : date)}
+                  onClick={() => { setSelectedDate(isSelected ? null : date); setCurrentPage(0); }}
                   aria-label={dateLabel}
                   aria-pressed={Boolean(isSelected)}
                   className={`
@@ -555,6 +597,21 @@ export default function Mate() {
             />
           </div>
 
+          {/* 내 팀 경기만 필터 (로그인 + 응원팀 설정 시 표시) */}
+          {favoriteTeamId && (
+            <Button
+              variant={myTeamOnly ? 'default' : 'outline'}
+              className={myTeamOnly ? 'bg-primary text-white border-transparent whitespace-nowrap' : 'border-gray-300 text-gray-600 dark:text-gray-300 whitespace-nowrap'}
+              onClick={() => { setMyTeamOnly(!myTeamOnly); setCurrentPage(0); }}
+            >
+              {myTeamOnly ? (
+                <><TeamLogo teamId={favoriteTeamId} size="sm" /><span className="ml-1.5">내 팀 경기 중</span></>
+              ) : (
+                <><TeamLogo teamId={favoriteTeamId} size="sm" /><span className="ml-1.5">내 팀 경기만</span></>
+              )}
+            </Button>
+          )}
+
           {/* Dynamic Filter Chips */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full md:max-w-2xl">
             {currentStadium ? (
@@ -566,7 +623,7 @@ export default function Mate() {
                   <Button
                     key={zone.id}
                     variant="outline"
-                    className={`rounded-full whitespace-nowrap transition-colors ${searchQuery?.includes(zone.name)
+                    className={`rounded-full whitespace-nowrap transition-colors ${inputValue?.includes(zone.name)
                       ? "bg-primary text-white border-transparent"
                       : "border-gray-300 text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary"
                       }`}
@@ -583,7 +640,7 @@ export default function Mate() {
                   <Button
                     key={key}
                     variant="outline"
-                    className={`rounded-full whitespace-nowrap transition-colors ${searchQuery?.includes(info.label)
+                    className={`rounded-full whitespace-nowrap transition-colors ${inputValue?.includes(info.label)
                       ? "bg-primary text-white border-transparent"
                       : "border-gray-300 text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary"
                       }`}
@@ -596,7 +653,7 @@ export default function Mate() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setCurrentPage(0); }} className="mb-6">
           <TabsList className="bg-gray-100 dark:bg-card p-1 rounded-xl mb-6 inline-flex relative">
             {['all', 'recruiting', 'matched', 'selling'].map((tab) => (
               <TabsTrigger
@@ -626,7 +683,7 @@ export default function Mate() {
           {isLoading ? (
             <LoadingSpinner size="md" fullScreen={false} />
           ) : fetchError ? (
-            <div className="text-center py-24 bg-white dark:bg-card rounded-2xl border border-dashed border-red-200 dark:border-red-900">
+            <div className="text-center py-12 sm:py-14 bg-white dark:bg-card rounded-2xl border border-dashed border-red-200 dark:border-red-900">
               <AlertCircle className="w-12 h-12 mx-auto mb-3 text-red-400" />
               <p className="text-gray-600 dark:text-gray-300 font-medium">파티 목록을 불러오지 못했습니다</p>
               <p className="text-gray-400 text-sm mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>

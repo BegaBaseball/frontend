@@ -13,15 +13,17 @@ import {
     Loader2, Zap, TrendingUp, TrendingDown, Users, Shield, Bot, Sparkles,
     BarChart2, BarChart3, AlertTriangle, CheckCircle, ArrowUpRight, ArrowDownRight, Minus, Trophy
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
 import { analyzeTeam, CoachAnalyzeResponse, CoachMetric, DashboardStat } from '../api/coach';
 import { useAuthStore } from '../store/authStore';
 import { TEAM_LIST, TEAM_NAME_TO_ID, getRandomTeamName, TEAM_DATA } from '../constants/teams';
 import { useTheme } from '../hooks/useTheme';
 import TeamLogo from './TeamLogo';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+    COACH_BRIEFING_DISPLAY_MESSAGE,
+    COACH_BRIEFING_MANUAL_HINT,
+    normalizeCoachBriefing,
+} from '../utils/prediction';
 
 // --- Animation Variants ---
 const containerVariants = {
@@ -383,93 +385,182 @@ export default function CoachAnalysisDialog({
     };
 
     const getAnalysisData = () => {
-        if (result?.data) return result.data;
+        const normalizeText = (value: string, fallbackMessage = COACH_BRIEFING_DISPLAY_MESSAGE) =>
+            normalizeCoachBriefing(
+                { message: value || '' },
+                {
+                    fallbackTitle: 'AI 분석 리포트',
+                    fallbackMessage,
+                    fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
+                },
+            ).displayText;
 
-        // Priority 1: Use structuredData from meta event (pre-parsed by backend)
+        const normalizeDashboardContext = (headline: string, context: string) => normalizeCoachBriefing(
+            {
+                title: headline,
+                message: context || '',
+            },
+            {
+                fallbackTitle: 'AI 분석 리포트',
+                fallbackMessage: '데이터를 기반으로 분석된 팀 상태입니다.',
+                fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
+            },
+        );
+
+        const normalizeCoachAnalysisData = (data: CoachAnalyzeResponse['data']) => ({
+            dashboard: {
+                headline: normalizeCoachBriefing(
+                    {
+                        title: data?.dashboard?.headline,
+                        message: data?.dashboard?.context || '',
+                    },
+                    {
+                        fallbackTitle: 'AI 분석 리포트',
+                        fallbackMessage: '데이터를 기반으로 분석된 팀 상태입니다.',
+                        fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
+                    },
+                ).title,
+                context: normalizeText(
+                    data?.dashboard?.context || '',
+                    '데이터를 기반으로 분석된 팀 상태입니다.',
+                ),
+                sentiment: data?.dashboard?.sentiment || 'neutral',
+                stats: data?.dashboard?.stats || [],
+            },
+            metrics: data?.metrics || [],
+            detailed_analysis: normalizeText(
+                data?.detailed_analysis || '',
+                COACH_BRIEFING_DISPLAY_MESSAGE,
+            ),
+            coach_note: normalizeText(
+                data?.coach_note || '',
+                '기존 형식의 코치 노트가 없습니다.',
+            ),
+        });
+
+        if (result?.data) {
+            return normalizeCoachAnalysisData(result.data);
+        }
+
         if (result?.structuredData) {
             const structured = result.structuredData;
+            const normalizedContext = normalizeDashboardContext(
+                structured.headline || 'AI 분석 리포트',
+                normalizeText(structured.detailed_markdown || structured.coach_note || ''),
+            );
+
             return {
                 dashboard: {
-                    headline: structured.headline || 'AI 분석 리포트',
-                    context: structured.detailed_markdown || '데이터를 기반으로 분석된 팀 상태입니다.',
+                    headline: normalizedContext.title,
+                    context: normalizedContext.displayText,
                     sentiment: structured.sentiment || 'neutral',
-                    stats: structured.key_metrics?.map(m => ({
+                    stats: structured.key_metrics?.map((m) => ({
                         label: m.label,
                         value: m.value,
                         status: m.status,
                         trend: m.trend,
-                        is_critical: m.is_critical
-                    })) || []
+                        is_critical: m.is_critical,
+                    })) || [],
                 },
-                metrics: structured.key_metrics?.map(m => ({
+                metrics: structured.key_metrics?.map((m) => ({
                     category: '핵심지표',
                     name: m.label,
                     value: m.value,
                     description: '',
                     risk_level: m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2,
-                    trend: m.trend
+                    trend: m.trend,
                 })) || [],
-                detailed_analysis: structured.detailed_markdown || '',
-                coach_note: structured.coach_note || ''
+                detailed_analysis: normalizeText(structured.detailed_markdown || ''),
+                coach_note: normalizeText(
+                    structured.coach_note || '',
+                    '기존 형식의 코치 노트가 없습니다.',
+                ),
             };
         }
 
         if (!result?.raw_answer && !result?.answer) return null;
 
-        const raw = result?.data ? JSON.stringify(result.data) : (result?.raw_answer || result?.answer || "");
+        const raw = result?.raw_answer || result?.answer || '';
 
         try {
             const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```/) || raw.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-                if (parsed.dashboard) return parsed;
+                if (parsed && typeof parsed === 'object') {
+                    if (parsed.dashboard) {
+                        return normalizeCoachAnalysisData(parsed as CoachAnalyzeResponse['data']);
+                    }
 
-                // Handle CoachResponse schema (headline, sentiment, etc.)
-                if (parsed.headline) {
-                    return {
-                        dashboard: {
-                            headline: parsed.headline,
-                            context: parsed.detailed_markdown || '',
-                            sentiment: parsed.sentiment || 'neutral',
-                            stats: parsed.key_metrics?.map((m: { label: string; value: string; status: string; trend: 'up' | 'down' | 'neutral'; is_critical: boolean }) => ({
-                                label: m.label,
+                    if (parsed.headline) {
+                        const parsedPayload = parsed as {
+                            headline?: string;
+                            sentiment?: 'positive' | 'negative' | 'neutral';
+                            detailed_markdown?: string;
+                            coach_note?: string;
+                            key_metrics?: Array<{
+                                label: string;
+                                value: string;
+                                status: 'good' | 'warning' | 'danger';
+                                trend: 'up' | 'down' | 'neutral';
+                            }>;
+                        };
+                        const normalizedContext = normalizeDashboardContext(
+                            parsedPayload.headline || 'AI 분석 리포트',
+                            parsedPayload.detailed_markdown || '',
+                        );
+
+                        return {
+                            dashboard: {
+                                headline: normalizedContext.title,
+                                context: normalizedContext.displayText,
+                                sentiment: parsedPayload.sentiment || 'neutral',
+                                stats: parsedPayload.key_metrics?.map((m) => ({
+                                    label: m.label,
+                                    value: m.value,
+                                    status: m.status,
+                                    trend: m.trend,
+                                    is_critical: false,
+                                })) || [],
+                            },
+                            metrics: parsedPayload.key_metrics?.map((m) => ({
+                                category: '핵심지표',
+                                name: m.label,
                                 value: m.value,
-                                status: m.status,
+                                description: '',
+                                risk_level: m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2,
                                 trend: m.trend,
-                                is_critical: m.is_critical
-                            })) || []
-                        },
-                        metrics: parsed.key_metrics?.map((m: { label: string; value: string; status: string; trend: 'up' | 'down' | 'neutral' }) => ({
-                            category: '핵심지표',
-                            name: m.label,
-                            value: m.value,
-                            description: '',
-                            risk_level: m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2,
-                            trend: m.trend
-                        })) || [],
-                        detailed_analysis: parsed.detailed_markdown || '',
-                        coach_note: parsed.coach_note || ''
-                    };
+                            })) || [],
+                            detailed_analysis: normalizeText(parsedPayload.detailed_markdown || ''),
+                            coach_note: normalizeText(
+                                parsedPayload.coach_note || '',
+                                '기존 형식의 코치 노트가 없습니다.',
+                            ),
+                        };
+                    }
                 }
             }
-        } catch (e) {
-            console.warn("Fallback JSON parse failed", e);
+        } catch (error) {
+            console.warn('Fallback JSON parse failed', error);
         }
 
-        const rawHeadline = raw.match(/### (.*)/)?.[1] || "AI 분석 리포트";
-        const headline = rawHeadline.replace(/[\*_~\[\]]/g, '').trim();
-        const context = raw.match(/## 🔍 AI 시즌 요약\n([\s\S]*?)\n\n/)?.[1]?.trim() || "데이터를 기반으로 분석된 팀 상태입니다.";
+        const rawHeadline = raw.match(/### (.*)/)?.[1] || 'AI 분석 리포트';
+        const contextFallback = raw.match(/## 🔍 AI 시즌 요약\n([\s\S]*?)\n\n/)?.[1]?.trim() ||
+            '데이터를 기반으로 분석된 팀 상태입니다.';
+        const normalizedContext = normalizeDashboardContext(rawHeadline, contextFallback);
 
         return {
             dashboard: {
-                headline,
-                context,
+                headline: normalizedContext.title,
+                context: normalizedContext.displayText,
                 sentiment: (raw.includes('🚨') || raw.includes('▼')) ? 'negative' : 'positive' as const,
-                stats: []
+                stats: [],
             },
             metrics: [],
-            detailed_analysis: raw,
-            coach_note: "기존 형식의 데이터가 감지되었습니다. 상세 리포트를 참고해주세요."
+            detailed_analysis: normalizeText(raw),
+            coach_note: normalizeText(
+                '기존 형식의 데이터가 감지되었습니다. 상세 리포트를 참고해주세요.',
+                '기존 형식의 데이터가 감지되었습니다. 상세 리포트를 참고해주세요.',
+            ),
         };
     };
 
@@ -796,18 +887,9 @@ export default function CoachAnalysisDialog({
 
                                     {analysisData.detailed_analysis && (
                                         <div className="bg-white/80 dark:bg-secondary rounded-3xl p-8 border border-gray-100 dark:border-white/5 shadow-xl shadow-black/5">
-                                            <ReactMarkdown
-                                                remarkPlugins={[remarkGfm]}
-                                                rehypePlugins={[rehypeRaw]}
-                                                components={{
-                                                    p: ({ children }) => <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4 font-medium">{children}</p>,
-                                                    li: ({ children }) => <li className="text-sm text-gray-600 dark:text-gray-300 ml-5 list-disc mb-2 pl-2 font-medium">{children}</li>,
-                                                    strong: ({ children }) => <strong className="font-black text-gray-900 dark:text-white uppercase tracking-tight">{children}</strong>,
-                                                    h3: ({ children }) => <h3 className="text-base font-black text-gray-900 dark:text-white mb-4 mt-6 border-b border-gray-100 dark:border-white/5 pb-2">{children}</h3>
-                                                }}
-                                            >
+                                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4 font-medium whitespace-pre-line">
                                                 {analysisData.detailed_analysis}
-                                            </ReactMarkdown>
+                                            </p>
                                         </div>
                                     )}
 
@@ -819,9 +901,9 @@ export default function CoachAnalysisDialog({
                                             <div className="absolute -top-4 left-6 bg-emerald-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full flex items-center gap-2 shadow-lg tracking-widest uppercase">
                                                 <Bot className="w-3.5 h-3.5" /> 코치의 한마디
                                             </div>
-                                            <div className="text-emerald-900/90 dark:text-emerald-100/90 text-sm font-bold leading-relaxed italic">
-                                                <ReactMarkdown rehypePlugins={[rehypeRaw]}>{analysisData.coach_note}</ReactMarkdown>
-                                            </div>
+                                            <p className="text-emerald-900/90 dark:text-emerald-100/90 text-sm font-bold leading-relaxed italic whitespace-pre-line">
+                                                {analysisData.coach_note}
+                                            </p>
                                         </motion.div>
                                     )}
                                 </motion.div>

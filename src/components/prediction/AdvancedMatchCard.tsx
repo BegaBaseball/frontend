@@ -1,13 +1,14 @@
-import { ReactNode, useState, useEffect, Fragment, useRef } from 'react';
+import { ReactNode, useState, useEffect, useRef, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { LayoutGroup, motion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, ChevronLeft, ChevronRight, AlertTriangle, Clock3 } from 'lucide-react';
 import TeamLogo from '../TeamLogo';
-import { Game, VoteTeam, GameDetail } from '../../types/prediction';
+import { Game, VoteTeam, GameDetail, GameSummary, GameInningScore } from '../../types/prediction';
 import { GAME_TIME } from '../../constants/prediction';
 import { getTeamColorByAnyKey, getFullTeamName } from '../../constants/teams';
+import type { GameStatusCode } from '../../utils/prediction';
 
 interface AdvancedMatchCardProps {
   game: Game;
@@ -17,7 +18,7 @@ interface AdvancedMatchCardProps {
   votePercentages: { homePercentage: number; awayPercentage: number; totalVotes: number };
   isVoteOpen: boolean;
   statusLabel: string;
-  isClosed: boolean;
+  statusCode: GameStatusCode;
   onVote: (team: VoteTeam) => void;
   onPrevDate: () => void;
   onNextDate: () => void;
@@ -144,7 +145,7 @@ export default function AdvancedMatchCard({
   votePercentages,
   isVoteOpen,
   statusLabel,
-  isClosed,
+  statusCode,
   onVote,
   onPrevDate,
   onNextDate,
@@ -215,8 +216,8 @@ export default function AdvancedMatchCard({
 
   const stadiumLabel = gameDetail?.stadiumName || gameDetail?.stadium || game.stadium;
   const startTimeLabel = gameDetail?.startTime || null;
-  const homePitcherName = gameDetail?.homePitcher || game.homePitcher?.name || '미정';
-  const awayPitcherName = gameDetail?.awayPitcher || game.awayPitcher?.name || '미정';
+  const homePitcherName = gameDetail?.homePitcher || game.homePitcher?.name || '발표 전';
+  const awayPitcherName = gameDetail?.awayPitcher || game.awayPitcher?.name || '발표 전';
   const attendanceLabel = gameDetail?.attendance != null
     ? `${gameDetail.attendance.toLocaleString()}명`
     : null;
@@ -275,9 +276,23 @@ export default function AdvancedMatchCard({
   const lastInning = hasExtraInnings
     ? Math.max(...extraInningScores.map((score) => score.inning))
     : 9;
-  const matchStatusLabel = isClosed && lastInning
-    ? `경기 종료 (${lastInning}회)`
-    : statusLabel;
+  const isPostponedStatus = statusCode === 'POSTPONED';
+  const isCancelledStatus = statusCode === 'CANCELLED';
+  const isPostponedOrCancelled = isPostponedStatus || isCancelledStatus;
+  const isScheduledLayout = statusCode === 'SCHEDULED';
+  const shouldHideResultSections = isScheduledLayout || isPostponedOrCancelled;
+  const scheduledStateLabel = isPostponedStatus
+    ? '경기 연기'
+    : isCancelledStatus
+      ? '경기 취소'
+      : '경기 시작 예정';
+  const showStatusBadge = isScheduledLayout || isPostponedOrCancelled;
+  const matchStatusLabel = isPostponedOrCancelled
+    ? scheduledStateLabel
+    : (statusCode === 'COMPLETED' || statusCode === 'DRAW') && lastInning
+      ? `경기 종료 (${lastInning}회)`
+      : statusLabel;
+  const cheeringCaption = isScheduledLayout ? '사전 응원/예측 참여수' : '실시간 팬 응원 참여수';
 
   const cheeringTotal = totalVotes;
   const awayVotes = cheeringTotal === 0
@@ -326,7 +341,7 @@ export default function AdvancedMatchCard({
     }
   };
 
-  const summaryGroups = (gameDetail?.summary || []).reduce(
+  const summaryGroups = useMemo(() => (gameDetail?.summary || []).reduce(
     (acc: Record<string, GameSummary[]>, item) => {
       const key = item.type || '기타';
       if (!acc[key]) {
@@ -335,35 +350,43 @@ export default function AdvancedMatchCard({
       acc[key].push(item);
       return acc;
     },
-    {}
-  );
+    {} as Record<string, GameSummary[]>
+  ), [gameDetail?.summary]);
 
-  const summaryGroupDefs = [
+  const summaryGroupDefs = useMemo(() => [
     { key: 'batting', title: '타격', types: ['결승타', '홈런', '2루타', '3루타', '병살타'] },
     { key: 'running', title: '주루', types: ['도루', '도루자', '주루사', '견제사'] },
     { key: 'pitching', title: '투구/실책', types: ['폭투', '포일', '보크', '실책'] },
     { key: 'etc', title: '기타', types: ['심판', '기타'] },
-  ];
+  ], []);
 
-  const summaryTypeSet = new Set(summaryGroupDefs.flatMap((group) => group.types));
-  const extraSummaryTypes = Object.keys(summaryGroups)
-    .filter((type) => !summaryTypeSet.has(type));
+  const summaryTypeSet = useMemo(
+    () => new Set(summaryGroupDefs.flatMap((group) => group.types)),
+    [summaryGroupDefs]
+  );
+  const extraSummaryTypes = useMemo(
+    () => Object.keys(summaryGroups).filter((type) => !summaryTypeSet.has(type)),
+    [summaryGroups, summaryTypeSet]
+  );
 
-  const groupedSummary = summaryGroupDefs
-    .map((group) => {
-      const types = group.key === 'etc'
-        ? [...group.types, ...extraSummaryTypes]
-        : group.types;
+  const groupedSummary = useMemo(
+    () => summaryGroupDefs
+      .map((group) => {
+        const types = group.key === 'etc'
+          ? [...group.types, ...extraSummaryTypes]
+          : group.types;
 
-      const entries = types.flatMap((type) => {
-        const items = summaryGroups[type] || [];
-        const trimmed = type === '심판' ? items.slice(0, 1) : items;
-        return trimmed.map((item) => ({ ...item, type }));
-      });
+        const entries = types.flatMap((type) => {
+          const items = summaryGroups[type] || [];
+          const trimmed = type === '심판' ? items.slice(0, 1) : items;
+          return trimmed.map((item) => ({ ...item, type }));
+        });
 
-      return { title: group.title, entries };
-    })
-    .filter((group) => group.entries.length > 0);
+        return { title: group.title, entries };
+      })
+      .filter((group) => group.entries.length > 0),
+    [extraSummaryTypes, summaryGroupDefs, summaryGroups]
+  );
 
   const extractInning = (detail?: string | null) => {
     if (!detail) return Number.POSITIVE_INFINITY;
@@ -371,14 +394,17 @@ export default function AdvancedMatchCard({
     return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
   };
 
-  const timelineEntries = groupedSummary
-    .flatMap((group) => group.entries.map((item) => ({ ...item, groupTitle: group.title })))
-    .map((item, index) => ({
-      ...item,
-      _index: index,
-      _inning: extractInning(item.detail),
-    }))
-    .sort((a, b) => (a._inning - b._inning) || (a._index - b._index));
+  const timelineEntries = useMemo(
+    () => groupedSummary
+      .flatMap((group) => group.entries.map((item) => ({ ...item, groupTitle: group.title })))
+      .map((item, index) => ({
+        ...item,
+        _index: index,
+        _inning: extractInning(item.detail),
+      }))
+      .sort((a, b) => (a._inning - b._inning) || (a._index - b._index)),
+    [groupedSummary]
+  );
 
   const matchEnvironmentSection = !gameDetailLoading && (attendanceLabel || weatherLabel || gameTimeLabel) ? (
     <section>
@@ -406,9 +432,6 @@ export default function AdvancedMatchCard({
   return (
     <Card className="overflow-hidden border border-slate-200/70 shadow-lg bg-white/90 dark:border-border dark:bg-card dark:shadow-xl transition-colors duration-300 mb-6 rounded-2xl">
       <div className="p-4 md:p-6">
-        {/* 투표 버튼 영역 */}
-
-        {/* 투표 버튼 영역 */}
         {isVoteOpen && (
           <div className="flex gap-2 md:gap-3 mt-4 md:mt-6">
             <Button
@@ -452,6 +475,29 @@ export default function AdvancedMatchCard({
             </Button>
           </div>
         )}
+        {!isVoteOpen && isPostponedOrCancelled && (
+          <div className="mt-4 md:mt-6 space-y-2">
+            <div className="flex gap-2 md:gap-3">
+              <Button
+                disabled
+                data-testid="vote-disabled-away-btn"
+                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300"
+              >
+                {awayTeamName}
+              </Button>
+              <Button
+                disabled
+                data-testid="vote-disabled-home-btn"
+                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300"
+              >
+                {homeTeamName}
+              </Button>
+            </div>
+            <p className="text-xs text-center text-amber-700 dark:text-amber-300">
+              현재 상태에서는 투표할 수 없습니다.
+            </p>
+          </div>
+        )}
 
         <DetailWrapper className="mt-4 md:mt-6 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-border dark:bg-card dark:shadow-md">
           <div
@@ -479,11 +525,30 @@ export default function AdvancedMatchCard({
             </div>
 
             <div className="relative flex justify-center">
-              <MetaBadge className="absolute top-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold backdrop-blur">
+              {showStatusBadge && (
+                <MetaBadge
+                  data-testid="prediction-status-badge"
+                  className={`absolute top-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold backdrop-blur ${
+                    isCancelledStatus
+                      ? 'bg-rose-500/30 text-rose-100 border border-rose-200/40'
+                      : isPostponedStatus
+                        ? 'bg-amber-500/30 text-amber-50 border border-amber-100/40'
+                        : 'bg-emerald-500/30 text-emerald-50 border border-emerald-100/40'
+                  }`}
+                >
+                  {isPostponedOrCancelled ? (
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                  ) : (
+                    <Clock3 className="h-3.5 w-3.5" />
+                  )}
+                  {scheduledStateLabel}
+                </MetaBadge>
+              )}
+              <MetaBadge className={`absolute rounded-full bg-black/30 px-3 py-1 text-sm font-semibold backdrop-blur ${showStatusBadge ? 'top-8' : 'top-0'}`}>
                 {matchMetaLabel || '경기 정보'}
               </MetaBadge>
             </div>
-            <div className="relative mt-10 flex items-end justify-between gap-3">
+            <div className={`relative flex items-end justify-between gap-3 ${showStatusBadge ? 'mt-14' : 'mt-10'}`}>
               <div className="flex w-[30%] flex-col items-center text-center">
                 <TeamLogoBox className="flex h-14 w-14 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)]">
                   <TeamLogo team={game.awayTeam} size={44} className="h-11 w-11" />
@@ -496,12 +561,24 @@ export default function AdvancedMatchCard({
                 $visible={isVisible}
                 className="relative -mb-2 w-[40%] rounded-xl border border-white/50 bg-white/80 backdrop-blur-md px-3 py-3 text-center text-gray-900 shadow-2xl dark:border-white/20 dark:bg-black/30 dark:text-white"
               >
-                <div className="flex items-center justify-center gap-2 text-3xl font-extrabold">
-                  <span style={{ color: awayColor }}>{countedScores.away}</span>
-                  <span className="text-gray-300 dark:text-gray-300">:</span>
-                  <span style={{ color: homeColor }}>{countedScores.home}</span>
-                </div>
-                <div className="mt-1 text-[11px] font-semibold text-gray-500 dark:text-gray-300">{matchStatusLabel}</div>
+                {isScheduledLayout ? (
+                  <div className="flex flex-col items-center justify-center gap-1.5">
+                    <div className="text-2xl font-black tracking-wide text-gray-800 dark:text-gray-100">VS</div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                      <Clock3 className="h-3 w-3" />
+                      경기 시작 예정
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-center gap-2 text-3xl font-extrabold">
+                      <span style={{ color: awayColor }}>{countedScores.away}</span>
+                      <span className="text-gray-300 dark:text-gray-300">:</span>
+                      <span style={{ color: homeColor }}>{countedScores.home}</span>
+                    </div>
+                    <div className="mt-1 text-[11px] font-semibold text-gray-500 dark:text-gray-300">{matchStatusLabel}</div>
+                  </>
+                )}
               </ScoreBox>
               <div className="flex w-[30%] flex-col items-center text-center">
                 <TeamLogoBox className="flex h-14 w-14 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)]">
@@ -518,7 +595,29 @@ export default function AdvancedMatchCard({
               <div className="text-center text-xs text-gray-500 dark:text-gray-300">경기 정보를 불러오는 중입니다...</div>
             )}
 
-            {!gameDetailLoading && (
+            {!gameDetailLoading && shouldHideResultSections && (
+              <section>
+                <div className="rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-4 text-sm text-gray-600 dark:border-border dark:bg-secondary/40 dark:text-gray-200">
+                  {isPostponedOrCancelled ? (
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
+                      <p>
+                        {isCancelledStatus
+                          ? '해당 경기는 취소되어 투표 및 경기 상세 정보가 제공되지 않습니다.'
+                          : '해당 경기는 연기되어 투표 및 경기 상세 정보가 제공되지 않습니다.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                      <p>스코어보드와 경기 주요 기록은 경기 시작 후 제공됩니다.</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {!gameDetailLoading && !shouldHideResultSections && (
               <section>
                 <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
                   <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
@@ -636,7 +735,7 @@ export default function AdvancedMatchCard({
               </section>
             )}
 
-            {!gameDetailLoading && (
+            {!gameDetailLoading && !isPostponedOrCancelled && (
               <section>
                 <GaugeContainer>
                   <GaugeHeader>
@@ -682,8 +781,8 @@ export default function AdvancedMatchCard({
                       transition={{ type: 'spring', stiffness: 50, damping: 20 }}
                     />
                   </ProgressBarWrapper>
-                  <div className="mt-2 text-center text-[12px] text-gray-500 dark:text-gray-300">
-                    실시간 팬 응원 참여수: {cheeringTotal.toLocaleString()}명
+                  <div data-testid="cheering-gauge-caption" className="mt-2 text-center text-[12px] text-gray-500 dark:text-gray-300">
+                    {cheeringCaption}: {cheeringTotal.toLocaleString()}명
                   </div>
                 </GaugeContainer>
               </section>
@@ -713,9 +812,9 @@ export default function AdvancedMatchCard({
               </section>
             )}
 
-            {!gameDetailLoading && coachBriefing}
+            {!gameDetailLoading && !isPostponedOrCancelled && coachBriefing}
 
-            {!gameDetailLoading && timelineEntries.length > 0 && (
+            {!gameDetailLoading && !shouldHideResultSections && timelineEntries.length > 0 && (
               <section>
                 <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
                   <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
@@ -765,11 +864,11 @@ export default function AdvancedMatchCard({
               </section>
             )}
 
-            {!gameDetailLoading && Object.keys(inningRows).length === 0 && timelineEntries.length === 0 && (
+            {!gameDetailLoading && !shouldHideResultSections && Object.keys(inningRows).length === 0 && timelineEntries.length === 0 && (
               <div className="text-center text-xs text-gray-500 dark:text-gray-300">표시할 경기 상세 정보가 없습니다.</div>
             )}
 
-            {!gameDetailLoading && summaryGroups['심판']?.length > 0 && (
+            {!gameDetailLoading && !shouldHideResultSections && summaryGroups['심판']?.length > 0 && (
               <div className="border-t border-gray-100 dark:border-border pt-4 text-center text-[11px] text-gray-500 dark:text-gray-300">
                 심판: {summaryGroups['심판'][0]?.playerName || summaryGroups['심판'][0]?.detail || '정보 없음'}
               </div>

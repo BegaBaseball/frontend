@@ -1,9 +1,7 @@
+import type { KeyboardEvent } from 'react';
 import { Card } from './ui/card';
-import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import TeamLogo from './TeamLogo';
-import { BrainCircuit } from 'lucide-react';
-import CoachAnalysisDialog from './CoachAnalysisDialog';
 
 interface GameCardProps {
   game: {
@@ -21,9 +19,10 @@ interface GameCardProps {
     awayScore?: number;
   };
   featured?: boolean;
+  onSelectPrediction?: () => void;
 }
 
-export default function GameCard({ game, featured = false }: GameCardProps) {
+export default function GameCard({ game, featured = false, onSelectPrediction }: GameCardProps) {
   // 경기 상태에 따른 뱃지 스타일
   const getStatusBadgeStyle = (status?: string) => {
     if (!status) return null;
@@ -49,7 +48,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
         };
       case 'CANCELLED':
         return {
-          bg: 'bg-gray-100 dark:bg-card',
+          bg: 'bg-gray-100 dark:bg-secondary/70',
           color: 'text-gray-600 dark:text-gray-300',
           text: '경기 취소'
         };
@@ -72,14 +71,30 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
 
   const statusStyle = getStatusBadgeStyle(game.gameStatus || game.status);
   const isLive = game.gameStatus === 'PLAYING';
+  const isCardSelectable = typeof onSelectPrediction === 'function';
+
+  const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!isCardSelectable) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSelectPrediction();
+    }
+  };
 
   return (
     <Card
-      className={`group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl border-0
+      className={`group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl
+        ${isCardSelectable ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50' : ''}
+        border border-gray-200/80 dark:border-white/20
         ${featured
-          ? 'bg-white/90 dark:bg-card/90 shadow-xl ring-1 ring-black/5'
-          : 'bg-white/80 dark:bg-card/50 shadow-md hover:bg-white dark:hover:bg-gray-800'
-        } backdrop-blur-sm`}
+          ? 'bg-white/95 dark:bg-secondary/90 shadow-xl ring-1 ring-emerald-500/10 dark:ring-emerald-400/30'
+          : 'bg-white/90 dark:bg-secondary/75 shadow-md hover:bg-white dark:hover:bg-secondary/95'
+        } backdrop-blur-sm dark:shadow-[0_10px_28px_rgba(0,0,0,0.42)]`}
+      role={isCardSelectable ? 'button' : undefined}
+      tabIndex={isCardSelectable ? 0 : undefined}
+      onClick={isCardSelectable ? onSelectPrediction : undefined}
+      onKeyDown={isCardSelectable ? handleCardKeyDown : undefined}
+      aria-label={isCardSelectable ? `${game.awayTeamFull} 대 ${game.homeTeamFull} 승부예측으로 이동` : undefined}
     >
       {/* Spotlight Effect Gradient (on hover) */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-tr from-transparent via-emerald-500/5 to-transparent dark:via-emerald-400/10" />
@@ -117,7 +132,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
           {/* Away Team */}
           <div className="flex-1 flex flex-col items-center gap-3 group/team">
             <div className="relative">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 xl:w-20 xl:h-20 flex items-center justify-center p-3 bg-white dark:bg-secondary/30 rounded-2xl shadow-sm group-hover/team:shadow-md group-hover/team:scale-105 transition-all duration-300">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 xl:w-20 xl:h-20 flex items-center justify-center p-3 bg-white dark:bg-secondary/45 border border-gray-100 dark:border-white/15 rounded-2xl shadow-sm group-hover/team:shadow-md group-hover/team:scale-105 transition-all duration-300">
                 <TeamLogo team={game.awayTeam} size="full" className="w-full h-full object-contain drop-shadow-sm" />
               </div>
             </div>
@@ -140,7 +155,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
                 </span>
               </div>
             ) : (
-              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-gray-50 dark:bg-card font-black text-gray-300 dark:text-gray-300 text-sm sm:text-xl italic font-serif">
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-gray-50 dark:bg-secondary/70 border border-gray-100 dark:border-white/15 font-black text-gray-300 dark:text-gray-200 text-sm sm:text-xl italic font-serif">
                 VS
               </div>
             )}
@@ -149,7 +164,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
           {/* Home Team */}
           <div className="flex-1 flex flex-col items-center gap-3 group/team">
             <div className="relative">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 xl:w-20 xl:h-20 flex items-center justify-center p-3 bg-white dark:bg-secondary/30 rounded-2xl shadow-sm group-hover/team:shadow-md group-hover/team:scale-105 transition-all duration-300">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 xl:w-20 xl:h-20 flex items-center justify-center p-3 bg-white dark:bg-secondary/45 border border-gray-100 dark:border-white/15 rounded-2xl shadow-sm group-hover/team:shadow-md group-hover/team:scale-105 transition-all duration-300">
                 <TeamLogo team={game.homeTeam} size="full" className="w-full h-full object-contain drop-shadow-sm" />
               </div>
             </div>
@@ -159,31 +174,10 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
           </div>
         </div>
 
-        {/* Footer info (Pitchers or Ticket btn) */}
+        {/* Footer info */}
         <div className="min-h-[2.5rem] flex items-center justify-center gap-2">
-          {(!game.gameStatus || game.gameStatus === 'SCHEDULED') ? (
-            <>
-              <Button
-                variant="outline"
-                className="flex-1 bg-transparent border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white transition-colors text-xs font-bold py-2 h-9 rounded-xl"
-              >
-                예매하기
-              </Button>
-              <CoachAnalysisDialog
-                initialTeam={game.homeTeam}
-                trigger={
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 px-3 h-9 rounded-xl border border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-700 dark:hover:text-white transition-colors text-xs font-bold shrink-0"
-                  >
-                    <BrainCircuit className="w-3.5 h-3.5" />
-                    AI 코치
-                  </button>
-                }
-              />
-            </>
-          ) : game.gameInfo ? (
-            <p className="text-xs text-center text-gray-500 dark:text-gray-300 line-clamp-1 px-4 py-1 bg-gray-50 dark:bg-card/50 rounded-full">
+          {game.gameInfo ? (
+            <p className="text-xs text-center text-gray-500 dark:text-gray-300 line-clamp-1 px-4 py-1 bg-gray-50 dark:bg-secondary/50 rounded-full">
               {game.gameInfo}
             </p>
           ) : null}

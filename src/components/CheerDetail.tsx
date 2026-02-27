@@ -10,12 +10,12 @@ import {
     Heart,
     MessageSquare,
     Repeat2,
-    Share2,
     MoreVertical,
     Trash2,
     Edit2,
     Bookmark,
-    Flag
+    Flag,
+    Undo2
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -29,6 +29,7 @@ import {
     PopoverTrigger
 } from './ui/popover';
 import { cn } from '../lib/utils';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import * as cheatApi from '../api/cheerApi';
 import { Comment } from '../api/cheerApi';
 import { CommentItem } from './cheer/CommentItem';
@@ -40,6 +41,10 @@ import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
 import UserProfileModal from './profile/UserProfileModal';
 import ReportModal from './ReportModal';
 import QuoteRepostEditor from './QuoteRepostEditor';
+import { OptimizedImage } from './common/OptimizedImage';
+import {
+    getRepostPolicyDecision,
+} from '../utils/repostPolicy';
 
 export default function CheerDetail() {
     const { postId } = useParams();
@@ -79,18 +84,19 @@ export default function CheerDetail() {
         return selectedPost.id;
     }, [selectedPost, parsedPostId]);
 
+    const { data: interactionPost } = useCheerPost(resolvedPostId);
+    const interactionTargetPost = interactionPost ?? selectedPost;
+    const interactionLikeCount = interactionTargetPost?.likeCount ?? 0;
+    const interactionLikedByMe = Boolean(interactionTargetPost?.liked);
+    const interactionRepostCount = interactionTargetPost?.repostCount ?? 0;
+    const interactionRepostedByMe = Boolean(interactionTargetPost?.repostedByMe);
+    const interactionBookmarked = Boolean(interactionTargetPost?.bookmarked);
+
     useEffect(() => {
         if (resolvedPostId) {
             loadComments(resolvedPostId);
         }
     }, [resolvedPostId]);
-
-    // Redirect Simple Reposts to Original Post
-    useEffect(() => {
-        if (selectedPost?.repostType === 'SIMPLE' && selectedPost.originalPost) {
-            navigate(`/cheer/${selectedPost.originalPost.id}`, { replace: true });
-        }
-    }, [selectedPost, navigate]);
 
     useEffect(() => {
         if (selectedPost) {
@@ -217,7 +223,7 @@ export default function CheerDetail() {
             likes: 0,
             likeCount: 0,
             likedByMe: false,
-            authorProfileImageUrl: user.profileImageUrl,
+            authorProfileImageUrl: user.profileImageUrl ?? undefined,
             isPending: true,
         };
 
@@ -396,8 +402,23 @@ export default function CheerDetail() {
         );
     }
 
-    const repostCount = selectedPost.repostCount ?? 0;
-    const repostActive = selectedPost.repostedByMe || (selectedPost.repostType && selectedPost.isOwner);
+    const repostCount = interactionRepostCount;
+    const isRepost = Boolean(selectedPost.repostType);
+    const repostTargetAuthorId = isRepost ? selectedPost.originalPost?.authorId : selectedPost.authorId;
+    const repostTargetAuthorHandle = isRepost ? selectedPost.originalPost?.authorHandle : selectedPost.authorHandle;
+    const repostPolicy = getRepostPolicyDecision({
+        isPostOwner: selectedPost.isOwner,
+        isRepostTarget: isRepost,
+        targetAuthorId: repostTargetAuthorId,
+        targetAuthorHandle: repostTargetAuthorHandle,
+        currentUserId: user?.id,
+        currentUserHandle: user?.handle,
+    });
+    const canSimpleRepost = repostPolicy.canSimpleRepost;
+    const canQuoteRepost = repostPolicy.canQuoteRepost;
+    const repostUnavailableMessage = repostPolicy.repostSimpleUnavailableMessage;
+    const canCancelRepost = isRepost && selectedPost.isOwner;
+    const repostButtonActive = canCancelRepost ? true : interactionRepostedByMe;
 
     return (
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-background pb-24 sm:pb-20">
@@ -417,35 +438,31 @@ export default function CheerDetail() {
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex items-center gap-3">
                                 <div
-                                    className="relative h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                    className="relative h-10 w-10 sm:h-11 sm:w-11 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                                     onClick={() => {
                                         if (selectedPost.authorHandle) {
                                             navigate(`/profile/${selectedPost.authorHandle}`);
                                         }
                                     }}
                                 >
-                                    <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-gray-200 overflow-hidden">
-                                        {selectedPost.authorProfileImageUrl ? (
-                                            <img
-                                                src={selectedPost.authorProfileImageUrl.includes('/assets/')
+                                    <ProfileAvatar
+                                        src={
+                                            selectedPost.authorProfileImageUrl
+                                                ? (selectedPost.authorProfileImageUrl.includes('/assets/')
                                                     ? DEFAULT_PROFILE_IMAGE
-                                                    : selectedPost.authorProfileImageUrl}
-                                                alt={selectedPost.author}
-                                                className="h-full w-full object-cover"
-                                                onError={(event) => {
-                                                    event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
-                                                }}
-                                            />
-                                        ) : (
-                                            <img
-                                                src={baseballLogo}
-                                                alt="BEGA"
-                                                className="h-6 w-6"
-                                            />
-                                        )}
-                                    </div>
+                                                    : selectedPost.authorProfileImageUrl)
+                                                : baseballLogo
+                                        }
+                                        alt={selectedPost.author}
+                                        fallbackName={selectedPost.author}
+                                        width={40}
+                                        height={40}
+                                        showRing
+                                        ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                        className="!h-full !w-full object-cover block image-render-quality"
+                                    />
                                     {selectedPost.authorTeamId && (
-                                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white ring-2 ring-white dark:ring-slate-700 overflow-hidden flex items-center justify-center">
+                                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white p-0.5 dark:bg-slate-700 flex items-center justify-center">
                                             <TeamLogo
                                                 team={TEAM_DATA[selectedPost.authorTeamId]?.name || selectedPost.authorTeamId}
                                                 size={18}
@@ -511,15 +528,29 @@ export default function CheerDetail() {
                             {selectedPost.content}
                         </div>
 
+                        {selectedPost.shareMode?.startsWith('EXTERNAL_') && selectedPost.sourceInfo?.url && (
+                            <div className="mt-3 rounded-lg border border-sky-100 dark:border-sky-900/40 bg-sky-50/60 dark:bg-sky-900/20 px-3 py-2 text-xs text-sky-700 dark:text-sky-300">
+                                <div>공유 유형: {selectedPost.shareMode}</div>
+                                <div className="truncate">출처: {selectedPost.sourceInfo.url}</div>
+                                {selectedPost.sourceInfo.author && <div>작성자: {selectedPost.sourceInfo.author}</div>}
+                                {selectedPost.sourceInfo.license && <div>라이선스: {selectedPost.sourceInfo.license}</div>}
+                            </div>
+                        )}
+
                         {/* Images */}
-                        {selectedPost.images && selectedPost.images.length > 0 && (
+                        {selectedPost.imageUrls && selectedPost.imageUrls.length > 0 && (
                             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {selectedPost.images.map((img, idx) => (
+                                {selectedPost.imageUrls.map((img, idx) => (
                                     <div key={idx} className="overflow-hidden rounded-xl bg-slate-100 dark:bg-secondary">
-                                        <img
+                                        <OptimizedImage
                                             src={img}
                                             alt={`uploaded-${idx}`}
                                             className="h-full w-full object-cover aspect-[4/3]"
+                                            loading={idx === 0 ? 'eager' : 'lazy'}
+                                            priority={idx === 0}
+                                            width={640}
+                                            height={480}
+                                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                         />
                                     </div>
                                 ))}
@@ -532,13 +563,13 @@ export default function CheerDetail() {
                                 onClick={toggleLike}
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
-                                    selectedPost.likedByUser
+                                    interactionLikedByMe
                                         ? "bg-red-50 dark:bg-red-900/20 text-red-500"
                                         : "bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
                                 )}
                             >
-                                <Heart className={cn("w-5 h-5", selectedPost.likedByUser && "fill-current")} />
-                                <span className="font-semibold">{selectedPost.likes}</span>
+                                <Heart className={cn("w-5 h-5", interactionLikedByMe && "fill-current")} />
+                                <span className="font-semibold">{interactionLikeCount}</span>
                             </button>
 
                             <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary transition-colors">
@@ -559,12 +590,12 @@ export default function CheerDetail() {
                                     <button
                                         className={cn(
                                             "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
-                                            repostActive
+                                            repostButtonActive
                                                 ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600"
                                                 : "bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
                                         )}
-                                        aria-label={repostActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
-                                        aria-pressed={repostActive}
+                                        aria-label={repostButtonActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
+                                        aria-pressed={repostButtonActive}
                                     >
                                         <Repeat2 className="w-5 h-5" />
                                         <span className="font-semibold">{repostCount}</span>
@@ -576,58 +607,57 @@ export default function CheerDetail() {
                                     onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                 >
                                     <div className="flex flex-col py-1">
-                                        {(selectedPost.repostType && selectedPost.isOwner) ? (
+                                        {canCancelRepost ? (
                                             <button
                                                 onClick={handleCancelRepost}
                                                 className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                             >
-                                                <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                                <Undo2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                                                 <div>
                                                     <span className="block text-sm font-medium text-red-600 dark:text-red-400">
                                                         리포스트 삭제
                                                     </span>
                                                 </div>
                                             </button>
-                                        ) : (selectedPost.repostType && !selectedPost.isOwner) ? (
-                                            <div className="px-4 py-3 text-sm text-gray-400 text-center">
-                                                리포스트할 수 없습니다
-                                            </div>
-                                        ) : (
+                                        ) : canSimpleRepost || canQuoteRepost ? (
                                             <>
                                                 <button
                                                     onClick={handleSimpleRepost}
                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                 >
                                                     <div className="flex items-center justify-center w-5 h-5">
-                                                        {selectedPost.repostedByMe ? (
-                                                            <div className="relative">
-                                                                <Repeat2 className="w-4 h-4 text-emerald-500" />
-                                                                <div className="absolute top-0 right-0 w-2 h-0.5 bg-red-500 rotate-45 transform origin-center" />
-                                                            </div>
+                                                        {interactionRepostedByMe ? (
+                                                            <Undo2 className="w-4 h-4 text-emerald-500" />
                                                         ) : (
                                                             <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <span className={`block text-sm font-medium ${selectedPost.repostedByMe ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}>
-                                                            {selectedPost.repostedByMe ? '리포스트 취소' : '리포스트'}
+                                                        <span className={`block text-sm font-medium ${interactionRepostedByMe ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                                                            {interactionRepostedByMe ? '리포스트 취소' : '리포스트'}
                                                         </span>
                                                     </div>
                                                 </button>
-                                                <button
-                                                    onClick={handleQuoteRepost}
-                                                    className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                                                >
-                                                    <div className="flex items-center justify-center w-5 h-5">
-                                                        <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
-                                                    </div>
-                                                    <div>
-                                                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                                                            인용하기
-                                                        </span>
-                                                    </div>
-                                                </button>
+                                                {canQuoteRepost ? (
+                                                    <button
+                                                        onClick={handleQuoteRepost}
+                                                        className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                                    >
+                                                        <div className="flex items-center justify-center w-5 h-5">
+                                                            <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                                                        </div>
+                                                        <div>
+                                                            <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                                                                인용하기
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                ) : null}
                                             </>
+                                        ) : (
+                                            <div className="px-4 py-3 text-sm text-gray-400 text-center">
+                                                {repostUnavailableMessage}
+                                            </div>
                                         )}
                                     </div>
                                 </PopoverContent>
@@ -637,12 +667,12 @@ export default function CheerDetail() {
                                 onClick={toggleBookmark}
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-full transition-colors sm:ml-auto",
-                                    selectedPost.isBookmarked
+                                    interactionBookmarked
                                         ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600"
                                         : "bg-gray-50 dark:bg-secondary text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
                                 )}
                             >
-                                <Bookmark className={cn("w-5 h-5", selectedPost.isBookmarked && "fill-current")} />
+                                <Bookmark className={cn("w-5 h-5", interactionBookmarked && "fill-current")} />
                             </button>
                         </div>
                     </div>

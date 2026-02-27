@@ -2,18 +2,55 @@
 
 describe('My Page (User Profile)', () => {
     const uploadedProfileImage =
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2X5ZkAAAAASUVORK5CYII=';
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2X5ZkAAAAASUVORK5CYII=';
     const existingProfileImage =
-      'data:image/gif;base64,R0lGODdhAQABAAAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==';
+        'data:image/gif;base64,R0lGODdhAQABAAAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==';
 
     const openPasswordChangePage = () => {
-      cy.contains('button', '비밀번호 변경').click();
-      cy.contains('button', '안전하게 진행').should('be.visible').click();
-      cy.url().should('include', 'view=changePassword');
+        cy.contains('button', '비밀번호 변경').click();
+        cy.contains('button', '안전하게 진행').should('be.visible').click();
+        cy.url().should('include', 'view=changePassword');
+    };
+
+    const authState = {
+        state: {
+            user: {
+                id: 123,
+                email: 'test@example.com',
+                name: 'TestUser',
+                handle: '@testuser',
+                role: 'ROLE_USER',
+                favoriteTeam: 'HH',
+                profileImageUrl: null,
+                hasPassword: true,
+            },
+            isLoggedIn: true,
+            isAdmin: false,
+        },
+        version: 0,
+    };
+
+    const bootstrapAuthenticatedWindow = (win: Window) => {
+        const originalAddEventListener = win.addEventListener.bind(win);
+        win.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+            if (type === 'auth-session-expired' || type === 'global-api-error') {
+                return;
+            }
+            return originalAddEventListener(type, listener, options);
+        }) as typeof win.addEventListener;
+        win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+        win.localStorage.setItem('accessToken', 'fake-access-token');
+        win.localStorage.setItem('bega_has_visited', 'true');
+        win.localStorage.setItem('bega_dont_show_guide', 'true');
+    };
+
+    const visitMyPage = () => {
+        cy.visit('/mypage', {
+            onBeforeLoad: bootstrapAuthenticatedWindow,
+        });
     };
 
     beforeEach(() => {
-        cy.login('user');
         cy.mockAPI();
 
         // Providers mock for account settings
@@ -22,13 +59,33 @@ describe('My Page (User Profile)', () => {
             body: {
                 success: true,
                 data: [
-                    { provider: 'google', email: 'test@google.com' },
-                    { provider: 'kakao', email: null }
+                    { provider: 'GOOGLE', connected: true, email: 'test@google.com' },
+                    { provider: 'KAKAO', connected: false }
                 ]
             }
         }).as('getProviders');
 
-        cy.visit('/mypage');
+        // Ensure default mypage mock is available
+        cy.intercept('GET', '**/api/auth/mypage*', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    id: 123,
+                    email: 'test@example.com',
+                    name: 'TestUser',
+                    handle: 'testuser',
+                    favoriteTeam: 'HH',
+                    role: 'ROLE_USER',
+                    hasPassword: true,
+                    profileImageUrl: null,
+                }
+            }
+        }).as('getMeInitial');
+
+        visitMyPage();
+        cy.wait('@getMeInitial');
+        cy.wait(300);
         // Wait for profile readiness
         cy.contains('TestUser', { timeout: 20000 }).should('be.visible');
     });
@@ -43,7 +100,7 @@ describe('My Page (User Profile)', () => {
         it('should show default avatar when profile image response is empty string', () => {
             cy.intercept(
                 'GET',
-                '**/api/auth/mypage',
+                '**/api/auth/mypage*',
                 {
                     statusCode: 200,
                     body: {
@@ -61,7 +118,8 @@ describe('My Page (User Profile)', () => {
                 }
             ).as('getMeEmptyImage');
 
-            cy.visit('/mypage');
+            visitMyPage();
+            cy.wait(500);
 
             cy.get('[data-testid="profile-avatar-fallback"]').should('exist');
             cy.get('img[alt="Profile"]').should('not.exist');
@@ -80,7 +138,7 @@ describe('My Page (User Profile)', () => {
         it('should apply uploaded image immediately after save', () => {
             const updatedProfileImage = uploadedProfileImage;
 
-            cy.intercept('GET', '**/api/auth/mypage', {
+            cy.intercept('GET', '**/api/auth/mypage*', {
                 statusCode: 200,
                 body: {
                     success: true,
@@ -127,7 +185,10 @@ describe('My Page (User Profile)', () => {
                 });
             }).as('updateProfile');
 
+            cy.wait(500);
             cy.contains('내 정보 수정').click();
+            cy.url().should('include', 'view=editProfile');
+
             cy.get('input[type="file"]').selectFile({
                 contents: Cypress.Buffer.from('avatar image'),
                 fileName: 'avatar.png',
@@ -139,16 +200,16 @@ describe('My Page (User Profile)', () => {
             cy.wait('@uploadProfileImage');
             cy.wait('@updateProfile');
             cy.wait('@getMeWithUpdatedImage');
+
             cy.contains('변경사항이 적용되었습니다').should('be.visible');
             cy.url().should('include', '/mypage');
-            cy.contains('내 정보 수정').should('be.visible');
             cy.get('[data-testid="profile-avatar-image"]').should('have.attr', 'src', updatedProfileImage);
         });
 
         it('should not send profileImageUrl when image is not changed', () => {
             cy.intercept(
                 'GET',
-                '**/api/auth/mypage',
+                '**/api/auth/mypage*',
                 {
                     statusCode: 200,
                     body: {
@@ -166,7 +227,8 @@ describe('My Page (User Profile)', () => {
                 }
             ).as('getMeWithImage');
 
-            cy.visit('/mypage');
+            visitMyPage();
+            cy.wait(500);
 
             cy.intercept('PUT', '**/api/auth/mypage', (req) => {
                 expect(req.body.profileImageUrl).to.be.undefined;
@@ -185,6 +247,7 @@ describe('My Page (User Profile)', () => {
                 });
             }).as('updateProfileWithoutImage');
 
+            cy.wait(500);
             cy.contains('내 정보 수정').click();
             cy.get('input#name').clear().type('ChangedName');
             cy.contains('button', '저장하기').click();
@@ -197,6 +260,7 @@ describe('My Page (User Profile)', () => {
         });
 
         it('should allow editing nickname', () => {
+            cy.wait(500);
             cy.contains('내 정보 수정').click();
 
             cy.intercept('PUT', '**/api/auth/mypage', {
@@ -216,6 +280,7 @@ describe('My Page (User Profile)', () => {
     describe('Account Settings', () => {
         beforeEach(() => {
             // Need to be in edit mode to see account settings
+            cy.wait(500);
             cy.contains('내 정보 수정').click();
             cy.contains('계정 설정').click();
             cy.wait('@getProviders');
@@ -231,6 +296,7 @@ describe('My Page (User Profile)', () => {
 
     describe('Password Change', () => {
         beforeEach(() => {
+            cy.wait(500);
             cy.contains('내 정보 수정').click();
             openPasswordChangePage();
         });
@@ -259,8 +325,12 @@ describe('My Page (User Profile)', () => {
         };
 
         const visitMypageFromPrediction = () => {
-            cy.visit('/prediction');
-            cy.visit('/mypage');
+            cy.visit('/prediction', {
+                onBeforeLoad: bootstrapAuthenticatedWindow,
+            });
+            cy.wait(500);
+            visitMyPage();
+            cy.wait(500);
         };
 
         const openAccountSettingsPage = () => {

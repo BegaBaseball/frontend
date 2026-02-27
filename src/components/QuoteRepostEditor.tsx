@@ -12,7 +12,6 @@ import {
 } from './ui/dialog';
 import { toast } from 'sonner';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
-import { getApiErrorMessage } from '../utils/errorUtils';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 
 interface QuoteRepostEditorProps {
@@ -26,9 +25,9 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
     const { confirm } = useConfirmDialog();
     const { quoteRepostMutation } = useCheerMutations();
     const user = useAuthStore((state) => state.user);
-    const resolveProfileImage = (imageUrl?: string) => {
-        if (!imageUrl) return null;
-        if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
+    const resolveProfileImage = (imageUrl?: string | null) => {
+        if (!imageUrl) return undefined;
+        if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return undefined;
         return imageUrl;
     };
 
@@ -61,9 +60,6 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                     toast.success('인용 리포스트가 게시되었습니다.');
                     setContent('');
                     onClose();
-                },
-                onError: (error: unknown) => {
-                    toast.error(getApiErrorMessage(error, '인용 리포스트에 실패했습니다.'));
                 },
             }
         );
@@ -114,21 +110,16 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                 <div className="flex-1 overflow-y-auto p-4">
                     {/* 작성자 정보 */}
                     <div className="flex gap-3">
-                        <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary overflow-hidden flex-shrink-0">
-                            {user?.profileImageUrl ? (
-                                <ProfileAvatar
-                                    src={resolveProfileImage(user.profileImageUrl) || undefined}
-                                    alt={user.name || '프로필'}
-                                    fallbackName={user.name || '프로필'}
-                                    width={40}
-                                    height={40}
-                                    className="rounded-full"
-                                />
-                            ) : (
-                                <div className="h-full w-full flex items-center justify-center text-sm font-medium text-slate-500 dark:text-gray-300">
-                                    {user?.name?.slice(0, 1) || '?'}
-                                </div>
-                            )}
+                        <div className="h-10 w-10 flex-shrink-0">
+                            <ProfileAvatar
+                                src={resolveProfileImage(user?.profileImageUrl) || undefined}
+                                alt={user?.name || '프로필'}
+                                fallbackName={user?.name || '프로필'}
+                                width={40}
+                                height={40}
+                                showRing
+                                ringClassName="p-px bg-black/5 dark:bg-white/10"
+                            />
                         </div>
 
                         <div className="flex-1 min-w-0">

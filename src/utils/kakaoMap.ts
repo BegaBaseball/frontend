@@ -22,7 +22,7 @@ export const loadKakaoMapScript = (onLoad?: () => void, onError?: (message?: str
   };
 
   const handleReady = () => {
-    if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
+    if (window.kakao && window.kakao.maps) {
       let isResolved = false;
       const timeoutId = window.setTimeout(() => {
         if (!isResolved) {
@@ -39,7 +39,7 @@ export const loadKakaoMapScript = (onLoad?: () => void, onError?: (message?: str
     }
   };
 
-  if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
+  if (window.kakao && window.kakao.maps) {
     handleReady();
     return;
   }
@@ -170,7 +170,7 @@ export const searchNearbyPlaces = (
             description: place.category_name,
             lat: parseFloat(place.y),
             lng: parseFloat(place.x),
-            address: place.address_name || place.road_address_name,
+            address: place.address_name || place.road_address_name || '',
             phone: place.phone || '',
             rating: null,
             openTime: '',

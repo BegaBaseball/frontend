@@ -1,0 +1,123 @@
+{
+  "indexableRoutes": [
+    {
+      "path": "/",
+      "title": "BEGA | KBO 야구 플랫폼",
+      "description": "KBO 경기일정, 응원, 전력분석, 구장가이드를 한 곳에서 확인하세요.",
+      "heading": "KBO 야구 팬을 위한 BEGA",
+      "schemaType": "home",
+      "changefreq": "daily",
+      "priority": "1.0"
+    },
+    {
+      "path": "/home",
+      "title": "KBO 경기일정·순위 | BEGA",
+      "description": "오늘의 KBO 경기일정, 팀 순위, 시즌 흐름을 빠르게 확인하세요.",
+      "heading": "KBO 경기일정과 팀 순위",
+      "schemaType": "page",
+      "changefreq": "daily",
+      "priority": "0.9"
+    },
+    {
+      "path": "/offseason",
+      "title": "스토브리그 하이라이트 | BEGA",
+      "description": "이적 소식, 주요 이슈, 시즌 준비 정보를 한 화면에서 확인하세요.",
+      "heading": "스토브리그 하이라이트",
+      "schemaType": "page",
+      "changefreq": "weekly",
+      "priority": "0.8"
+    },
+    {
+      "path": "/offseason/list",
+      "title": "스토브리그 뉴스 목록 | BEGA",
+      "description": "스토브리그 관련 소식을 목록으로 확인하고 흐름을 한눈에 파악하세요.",
+      "heading": "스토브리그 뉴스 목록",
+      "schemaType": "page",
+      "changefreq": "weekly",
+      "priority": "0.8"
+    },
+    {
+      "path": "/cheer",
+      "title": "응원 커뮤니티 | BEGA",
+      "description": "야구 팬들과 응원글을 공유하고 경기를 함께 즐겨보세요.",
+      "heading": "응원 커뮤니티",
+      "schemaType": "page",
+      "changefreq": "daily",
+      "priority": "0.8"
+    },
+    {
+      "path": "/notice",
+      "title": "공지사항 | BEGA",
+      "description": "서비스 업데이트와 운영 공지를 빠르게 확인할 수 있습니다.",
+      "heading": "공지사항",
+      "schemaType": "page",
+      "changefreq": "weekly",
+      "priority": "0.6"
+    },
+    {
+      "path": "/terms",
+      "title": "이용약관 | BEGA",
+      "description": "BEGA 서비스 이용약관을 확인하세요.",
+      "heading": "이용약관",
+      "schemaType": "page",
+      "changefreq": "monthly",
+      "priority": "0.4"
+    },
+    {
+      "path": "/privacy",
+      "title": "개인정보처리방침 | BEGA",
+      "description": "BEGA 개인정보 처리 및 보호 기준을 확인하세요.",
+      "heading": "개인정보처리방침",
+      "schemaType": "page",
+      "changefreq": "monthly",
+      "priority": "0.4"
+    },
+    {
+      "path": "/leaderboard",
+      "title": "팬 리더보드 | BEGA",
+      "description": "활동 지표 기반 팬 리더보드를 확인해보세요.",
+      "heading": "팬 리더보드",
+      "schemaType": "page",
+      "changefreq": "daily",
+      "priority": "0.7"
+    }
+  ],
+  "noindexPrefixes": [
+    "/login",
+    "/signup",
+    "/password",
+    "/oauth",
+    "/admin",
+    "/mypage",
+    "/mate",
+    "/prediction",
+    "/payment",
+    "/test",
+    "/cheer/write",
+    "/cheer/bookmarks",
+    "/cheer/edit"
+  ],
+  "noindexRegex": [
+    "^/cheer/[^/]+$",
+    "^/profile/[^/]+$",
+    "^/predictions/ranking/share/[^/]+/[^/]+$"
+  ],
+  "robotsDisallow": [
+    "/login",
+    "/signup",
+    "/password/",
+    "/oauth/",
+    "/admin",
+    "/mypage",
+    "/mate",
+    "/prediction",
+    "/payment/",
+    "/test/",
+    "/cheer/write",
+    "/cheer/bookmarks",
+    "/cheer/edit/",
+    "/cheer/*",
+    "/profile/*",
+    "/predictions/ranking/share/*"
+  ]
+}

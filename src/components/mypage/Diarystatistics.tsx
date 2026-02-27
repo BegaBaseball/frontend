@@ -5,6 +5,7 @@ import StatCard from './StatCard';
 import EmojiStatsCard from './EmojiStatsCard';
 import WinRateChart from './WinRateChart';
 import MonthlyStatsChart from './MonthlyStatsChart';
+import DayOfWeekChart from './DayOfWeekChart';
 import StadiumVisitList from './StadiumVisitList';
 import BadgeShowcase from './BadgeShowcase';
 import OpponentWinRateChart from './OpponentWinRateChart';
@@ -95,6 +96,13 @@ export default function DiaryStatistics() {
           <MonthlyStatsChart data={monthlyData} />
         </div>
       </div>
+
+      {/* 3-2. 요일별 승률 */}
+      {Object.keys(statistics.dayOfWeekStats || {}).length > 0 && (
+        <div className="h-[350px]">
+          <DayOfWeekChart dayOfWeekStats={statistics.dayOfWeekStats} />
+        </div>
+      )}
 
       {/* 4. 구장 & 상세 기록 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -9,6 +10,7 @@ import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
 import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
+import { useAuthStore } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -16,22 +18,40 @@ import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import { api, ApiError } from '../utils/api';
 import { formatGameDate } from '../utils/mate';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
+import { isCompatibleFlowAndPaymentType, savePendingPayment } from '../utils/payment';
+import { isTossTestMode } from '../utils/paymentMode';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
 import { analyzeTicket, TicketInfo } from '../api/ticket';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
 import LoadingSpinner from './LoadingSpinner';
 
+const sanitizeUserFacingMessage = (message: string, fallback: string): string => {
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+  if (/^[a-z0-9_:-]+$/i.test(trimmed)) {
+    return fallback;
+  }
+  return trimmed;
+};
+
 export default function MateApply() {
   const { validateMessage } = useMateStore();
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
+  const {
+    party: selectedParty,
+    isLoading: isPartyLoading,
+    isRevalidating: isPartyRevalidating,
+    error: partyError,
+  } = useMatePartyFromRoute(id);
 
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserName, setCurrentUserName] = useState('');
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [ticketVerified, setTicketVerified] = useState(false);
   const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
@@ -39,23 +59,25 @@ export default function MateApply() {
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
+    if (user?.id) {
+      setCurrentUserId(user.id);
+      return;
+    }
+
     const fetchUser = async () => {
       try {
         const userData = await api.getCurrentUser();
-        setCurrentUserName(userData.data.name);
-
-        const userIdResponse = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userIdResponse.data);
+        setCurrentUserId(userData.data.id);
       } catch (error) {
         console.error('사용자 정보 가져오기 실패:', error);
         toast.error('사용자 정보를 불러오지 못했습니다.');
       }
     };
 
-    fetchUser();
-  }, []);
+    void fetchUser();
+  }, [user?.id]);
 
-  if (isPartyLoading) {
+  if (isPartyLoading && !selectedParty) {
     return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." fullScreen />;
   }
 
@@ -78,6 +100,7 @@ export default function MateApply() {
   }
 
   const isSelling = selectedParty.status === 'SELLING';
+  const tossTestMode = isTossTestMode();
   const ticketAmount = selectedParty.ticketPrice || 0;
   const totalAmount = ticketAmount + DEPOSIT_AMOUNT;
   const sellingPrice = selectedParty.price || 0;
@@ -117,7 +140,10 @@ export default function MateApply() {
       }
     } catch (error) {
       console.error('Ticket OCR error:', error);
-      toast.error('티켓 분석에 실패했습니다. 다시 시도해주세요.');
+      const fallbackMessage = '티켓 분석에 실패했습니다. 다시 시도해주세요.';
+      toast.error(
+        sanitizeUserFacingMessage(getApiErrorMessage(error, fallbackMessage), fallbackMessage)
+      );
     } finally {
       setIsScanning(false);
     }
@@ -139,40 +165,78 @@ export default function MateApply() {
 
     setIsSubmitting(true);
 
+    const applyMessage = message || (isSelling ? '티켓 구매 신청합니다.' : '함께 즐거운 관람 부탁드립니다!');
+    const directTradeAmount = isSelling ? sellingPrice : DEPOSIT_AMOUNT;
+
     try {
-      const applicationData = {
-        partyId: selectedParty.id,
-        applicantId: currentUserId,
-        applicantName: currentUserName,
-        applicantBadge: ticketVerified ? 'VERIFIED' : 'NEW',
-        applicantRating: 5.0,
-        message: message || '함께 즐거운 관람 부탁드립니다!',
-        depositAmount: isSelling ? sellingPrice : totalAmount,
-        paymentType: (isSelling ? 'FULL' : 'DEPOSIT') as 'FULL' | 'DEPOSIT',
-        verificationToken: ticketInfo?.verificationToken ?? null,
-        ticketVerified: ticketVerified,
-        ticketImageUrl: null as string | null,
-      };
+      if (!tossTestMode) {
+        if (isSelling && directTradeAmount <= 0) {
+          throw new Error('판매 가격 정보가 올바르지 않습니다.');
+        }
 
-      await api.createApplication(applicationData);
+        await api.createApplication({
+          partyId: selectedParty.id,
+          message: applyMessage,
+          depositAmount: directTradeAmount,
+          paymentType: isSelling ? 'FULL' : 'DEPOSIT',
+          verificationToken: isSelling ? null : ticketInfo?.verificationToken ?? null,
+          ticketVerified: isSelling ? false : ticketVerified,
+          ticketImageUrl: null,
+        });
 
-      if (isSelling) {
-        toast.success('티켓 구매가 완료되었습니다!');
-      } else {
-        toast.success('신청이 완료되었습니다!', { description: '호스트의 승인을 기다려주세요.' });
+        toast.success(isSelling
+          ? '구매 신청이 접수되었습니다. 호스트 승인 후 직거래로 진행됩니다.'
+          : '참여 신청이 접수되었습니다.');
+        navigate(`/mate/${selectedParty.id}`);
+        return;
       }
 
-      navigate(`/mate/${id}`);
+      const preparedPayment = await api.prepareTossPayment({
+        partyId: selectedParty.id,
+        flowType: isSelling ? 'SELLING_FULL' : 'DEPOSIT',
+        cancelPolicyVersion: 'v1',
+      });
+      if (!isCompatibleFlowAndPaymentType(preparedPayment.flowType, preparedPayment.paymentType)) {
+        throw new Error('결제 흐름과 결제 타입이 일치하지 않습니다.');
+      }
+
+      savePendingPayment({
+        intentId: preparedPayment.intentId,
+        partyId: selectedParty.id,
+        flowType: preparedPayment.flowType,
+        policyVersion: preparedPayment.cancelPolicyVersion,
+        priceSnapshot: preparedPayment.amount,
+        message: applyMessage,
+        verificationToken: isSelling ? null : ticketInfo?.verificationToken ?? null,
+        ticketVerified: isSelling ? false : ticketVerified,
+        ticketImageUrl: null,
+        paymentType: preparedPayment.paymentType,
+        amount: preparedPayment.amount,
+        orderId: preparedPayment.orderId,
+        orderName: preparedPayment.orderName,
+      });
+
+      const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY as string;
+      const tossPayments = await loadTossPayments(clientKey);
+      const payment = tossPayments.payment({ customerKey: String(currentUserId) });
+
+      await payment.requestPayment({
+        method: 'CARD',
+        amount: { currency: preparedPayment.currency, value: preparedPayment.amount },
+        orderId: preparedPayment.orderId,
+        orderName: preparedPayment.orderName,
+        successUrl: `${window.location.origin}/payment/success`,
+        failUrl: `${window.location.origin}/payment/fail`,
+      });
+      // Toss가 브라우저를 리다이렉트 — 이후 코드는 실행되지 않음
     } catch (error: unknown) {
       if ((error instanceof AxiosError && error.response?.status === 403) ||
         (error instanceof ApiError && error.status === 403)) {
-        console.warn('Verification required (403)');
         setShowVerificationDialog(true);
       } else {
-        console.error('신청 중 오류:', error);
-        toast.error(getApiErrorMessage(error, '신청 중 오류가 발생했습니다.'));
+        console.error('결제 초기화 오류:', error);
+        toast.error(getApiErrorMessage(error, '결제 중 오류가 발생했습니다.'));
       }
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -200,9 +264,20 @@ export default function MateApply() {
         </h1>
         <p className="text-gray-600 mb-8">
           {isSelling
-            ? '결제 정보를 입력하고 티켓을 구매하세요'
-            : '호스트에게 전달할 메시지를 작성해주세요'}
+            ? (tossTestMode
+              ? '결제 정보를 입력하고 티켓을 구매하세요'
+              : '신청 후 호스트 승인 시 직거래로 진행됩니다')
+            : (tossTestMode
+              ? '호스트에게 전달할 메시지를 작성해주세요'
+              : '신청 후 호스트와 직거래로 관람을 조율합니다')}
         </p>
+        {isPartyRevalidating && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+            <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+              최신 파티 정보를 다시 확인하고 있습니다.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Party Summary */}
         <Card className="p-6 mb-6">
@@ -334,7 +409,7 @@ export default function MateApply() {
         <Card className="p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <CreditCard className="w-5 h-5 text-primary" />
-            <h3 className="text-primary">결제 금액</h3>
+            <h3 className="text-primary">{tossTestMode ? '결제 금액' : '신청 기준 금액'}</h3>
           </div>
 
           {!isSelling && (
@@ -354,9 +429,11 @@ export default function MateApply() {
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-900" style={{ fontWeight: 'bold' }}>총 결제 금액</span>
+                  <span className="text-gray-900" style={{ fontWeight: 'bold' }}>
+                    {tossTestMode ? '총 결제 금액' : '신청 보증금 기준'}
+                  </span>
                   <span className="text-lg text-primary font-bold">
-                    {totalAmount.toLocaleString()}원
+                    {(tossTestMode ? totalAmount : DEPOSIT_AMOUNT).toLocaleString()}원
                   </span>
                 </div>
               </div>
@@ -364,12 +441,20 @@ export default function MateApply() {
               <Alert>
                 <Shield className="w-4 h-4" />
                 <AlertDescription className="text-sm">
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>티켓 가격: 경기 3일 전 자정에 호스트에게 정산 (수수료 10%)</li>
-                    <li>보증금: 모든 참여자 체크인 완료 후 호스트에게 정산</li>
-                    <li>노쇼 시 보증금 패널티 적용</li>
-                    <li>승인되지 않으면 전액 환불됩니다</li>
-                  </ul>
+                  {tossTestMode ? (
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>승인 즉시 정산 요청이 생성됩니다</li>
+                      <li>단순변심 취소에만 10% 수수료가 적용됩니다</li>
+                      <li>단순변심 취소 시 수수료가 차감 환불됩니다</li>
+                      <li>승인되지 않으면 전액 환불됩니다</li>
+                    </ul>
+                  ) : (
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>현재 베타에서는 앱 내 결제를 제공하지 않습니다</li>
+                      <li>신청 승인 후 채팅을 통해 직거래로 진행됩니다</li>
+                      <li>취소 시 결제/환불 처리는 발생하지 않습니다</li>
+                    </ul>
+                  )}
                 </AlertDescription>
               </Alert>
             </>
@@ -392,7 +477,7 @@ export default function MateApply() {
           <Shield className="w-4 h-4" />
           <AlertDescription>
             <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>결제는 BEGA 안전거래를 통해 진행됩니다</li>
+              <li>{tossTestMode ? '결제는 BEGA 안전거래를 통해 진행됩니다' : '현재는 중계 중심 베타로 직거래를 안내합니다'}</li>
               <li>호스트 승인 후 채팅으로 소통할 수 있습니다</li>
               <li>노쇼 시 패널티가 부여될 수 있습니다</li>
             </ul>
@@ -404,7 +489,9 @@ export default function MateApply() {
           <Alert className="mb-6 border-orange-200 bg-orange-50">
             <AlertTriangle className="w-4 h-4 text-orange-600" />
             <AlertDescription className="text-orange-800">
-              티켓 구매 후 환불이 불가능합니다. 경기 날짜와 좌석을 확인해주세요.
+              {tossTestMode
+                ? '단순변심 취소 시 수수료 차감 환불 정책이 적용됩니다.'
+                : '베타 직거래 모드에서는 결제/환불 없이 신청 취소만 처리됩니다.'}
             </AlertDescription>
           </Alert>
         )}
@@ -418,9 +505,11 @@ export default function MateApply() {
         >
           {isSubmitting
             ? '신청 중...'
-            : isSelling
-              ? `${sellingPrice.toLocaleString()}원 결제하기`
-              : `${totalAmount.toLocaleString()}원 결제하기`}
+            : tossTestMode
+              ? (isSelling
+                ? `${sellingPrice.toLocaleString()}원 결제하기`
+                : `${totalAmount.toLocaleString()}원 결제하기`)
+              : (isSelling ? '직거래 신청하기' : '참여 신청하기')}
         </Button>
 
         {!isSelling && message.length < 10 && (

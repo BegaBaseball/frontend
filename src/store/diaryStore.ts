@@ -21,8 +21,9 @@ export interface DiaryEntry {
   photoFiles: File[];
   winningName: string | null;
   section?: string;
-  row?: string;
-  seat?: string;
+  block?: string;
+  seatRow?: string;
+  seatNumber?: string;
 }
 
 export interface DiaryStatistics {

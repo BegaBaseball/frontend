@@ -127,11 +127,11 @@ export default function NoticePage() {
                       <span className="hidden sm:inline">•</span>
                       <div className="hidden items-center gap-1 sm:flex">
                         <MessageSquare className="h-4 w-4" />
-                        <span>{post.comments}</span>
+                        <span>{post.commentCount}</span>
                       </div>
                       <div className="hidden items-center gap-1 sm:flex">
                         <Heart className="h-4 w-4" />
-                        <span>{post.likes}</span>
+                        <span>{post.likeCount}</span>
                       </div>
                     </div>
                   </div>

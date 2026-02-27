@@ -4,7 +4,7 @@ import { Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { api } from '../utils/api';
+import { api, getApiErrorStatus } from '../utils/api';
 import { getApiErrorMessage } from '../utils/errorUtils';
 
 interface ReviewDialogProps {
@@ -46,12 +46,11 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewerId, rev
       onSuccess();
       handleClose();
     } catch (error: unknown) {
-      const msg = getApiErrorMessage(error, '리뷰 작성에 실패했습니다. 다시 시도해주세요.');
-
-      if (msg.includes('duplicate') || msg.includes('이미') || msg.includes('Duplicate') || msg.includes('409')) {
+      const status = getApiErrorStatus(error);
+      if (status === 409) {
         toast.warning('이미 이 참여자에 대한 리뷰를 작성했습니다.');
       } else {
-        toast.error(msg);
+        toast.error(getApiErrorMessage(error, '리뷰 작성에 실패했습니다. 다시 시도해주세요.'));
       }
     } finally {
       setIsSubmitting(false);
@@ -75,10 +74,11 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewerId, rev
                 <button
                   key={num}
                   type="button"
+                  disabled={isSubmitting}
                   onClick={() => setRating(num)}
                   onMouseEnter={() => setHoverRating(num)}
                   onMouseLeave={() => setHoverRating(0)}
-                  className="p-1 transition-transform hover:scale-110"
+                  className="p-1 transition-transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Star
                     className={`w-8 h-8 transition-colors ${num <= (hoverRating || rating)

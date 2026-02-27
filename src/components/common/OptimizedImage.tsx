@@ -30,9 +30,18 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     ...props
 }) => {
     const [hasError, setHasError] = useState(false);
+    const {
+        onError,
+        loading: loadingFromProps,
+        decoding: decodingFromProps,
+        ...restProps
+    } = props;
+    const loading = priority ? 'eager' : (loadingFromProps ?? 'lazy');
+    const decoding = priority ? 'sync' : (decodingFromProps ?? 'async');
 
-    const handleError = () => {
+    const handleError: React.ReactEventHandler<HTMLImageElement> = (event) => {
         setHasError(true);
+        onError?.(event);
     };
 
     if (hasError) {
@@ -56,12 +65,12 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
                 src={src}
                 alt={alt}
                 className={`image-render-quality ${className || ''}`}
-                loading={priority ? 'eager' : 'lazy'}
-                decoding={priority ? 'sync' : 'async'}
+                loading={loading}
+                decoding={decoding}
                 width={width}
                 height={height}
                 onError={handleError}
-                {...props}
+                {...restProps}
             />
         </picture>
     );

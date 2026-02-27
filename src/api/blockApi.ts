@@ -8,6 +8,11 @@ export interface BlockToggleResponse {
     blockedCount: number;
 }
 
+interface BlockedUsersEnvelope {
+    success?: boolean;
+    data?: PageResponse<UserFollowSummary>;
+}
+
 // === API 함수 ===
 
 /**
@@ -23,5 +28,9 @@ export async function toggleBlock(userId: number): Promise<BlockToggleResponse> 
  */
 export async function getBlockedUsers(page = 0, size = 20): Promise<PageResponse<UserFollowSummary>> {
     const response = await api.get(`/users/me/blocked?page=${page}&size=${size}`);
-    return response.data;
+    const payload = response.data as PageResponse<UserFollowSummary> | BlockedUsersEnvelope;
+    if (payload && typeof payload === 'object' && 'data' in payload && payload.data) {
+        return payload.data;
+    }
+    return payload as PageResponse<UserFollowSummary>;
 }

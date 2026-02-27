@@ -17,15 +17,15 @@ export interface DiaryEntry {
   emoji: string;
   emojiName: string;
   winningName: WinningType;
-  gameId: string;
+  gameId: number;
   memo: string;
   photos: string[];
   team: string;
   stadium: string;
   section?: string;
   block?: string;
-  row?: string;
-  seat?: string;
+  seatRow?: string;
+  seatNumber?: string;
 }
 
 export interface DiaryFormData {
@@ -33,14 +33,14 @@ export interface DiaryFormData {
   emoji: string;
   emojiName: string;
   winningName: WinningType;
-  gameId: string;
+  gameId: number;
   memo: string;
   photos: string[];
   photoFiles: File[];
   section?: string;
   block?: string;
-  row?: string;
-  seat?: string;
+  seatRow?: string;
+  seatNumber?: string;
 }
 
 export interface SaveDiaryRequest {
@@ -49,15 +49,15 @@ export interface SaveDiaryRequest {
   emoji: string;
   emojiName: string;
   winningName: WinningType;
-  gameId: string;
+  gameId: number;
   memo: string;
   photos: string[];
   team: string;
   stadium: string;
   section?: string;
   block?: string;
-  row?: string;
-  seat?: string;
+  seatRow?: string;
+  seatNumber?: string;
 }
 
 export interface DiaryStatistics {
@@ -77,6 +77,7 @@ export interface DiaryStatistics {
   firstDiaryDate: string | null;
   cheerPostCount: number;
   mateParticipationCount: number;
+  emojiCounts?: Record<string, number>;
 
   // New Analysis Fields
   currentWinStreak: number;
@@ -109,4 +110,17 @@ export interface EmojiStat {
   name: string;
   emoji: string;
   count: number;
+}
+
+export interface SeatViewAchievement {
+  code: string;
+  nameKo: string;
+  rarity: string;
+}
+
+export interface SeatViewReward {
+  pointsEarned: number;
+  firstContribution: boolean;
+  unlockedAchievements: SeatViewAchievement[];
+  totalContributions: number;
 }
