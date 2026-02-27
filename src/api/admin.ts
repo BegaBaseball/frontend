@@ -2,6 +2,36 @@
 import { AdminUser, AdminStats, AdminPost, AdminMate, AdminApiResponse, AdminReport, AdminReportPage } from '../types/admin';
 import { getApiBaseUrl } from './apiBase';
 
+// ─── Stadium / Place Types ───────────────────────────────────────────────────
+
+export interface Place {
+  id: number;
+  stadiumName: string;
+  category: string;
+  name: string;
+  description?: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  phone?: string;
+  rating?: number;
+  openTime?: string;
+  closeTime?: string;
+}
+
+export interface PlaceFormData {
+  name: string;
+  category: string;
+  description?: string;
+  address?: string;
+  phone?: string;
+  lat: number;
+  lng: number;
+  rating?: number;
+  openTime?: string;
+  closeTime?: string;
+}
+
 const API_BASE_URL = getApiBaseUrl();
 
 /**
@@ -241,4 +271,149 @@ export const appealAdminReport = async (reportId: number, appealReason: string):
   }
 
   return apiResponse.data;
+};
+
+// ─── Role Management (SUPER_ADMIN only) ──────────────────────────────────────
+
+export interface RoleChangeResponse {
+  userId: number;
+  email: string;
+  name: string;
+  previousRole: string;
+  newRole: string;
+  changedAt: string;
+}
+
+/**
+ * 사용자를 ADMIN으로 승격 (SUPER_ADMIN 전용)
+ * POST /api/admin/roles/users/{userId}/promote
+ */
+export const promoteToAdmin = async (userId: number, reason?: string): Promise<RoleChangeResponse> => {
+  const response = await fetch(`${API_BASE_URL}/admin/roles/users/${userId}/promote`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ reason: reason ?? null }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('SUPER_ADMIN 권한이 필요합니다.');
+    }
+    throw new Error('역할 승격 실패');
+  }
+
+  const apiResponse: AdminApiResponse<RoleChangeResponse> = await response.json();
+  if (!apiResponse.success) {
+    throw new Error(apiResponse.message || '역할 승격 실패');
+  }
+
+  return apiResponse.data;
+};
+
+/**
+ * ADMIN을 USER로 강등 (SUPER_ADMIN 전용)
+ * POST /api/admin/roles/users/{userId}/demote
+ */
+export const demoteToUser = async (userId: number, reason?: string): Promise<RoleChangeResponse> => {
+  const response = await fetch(`${API_BASE_URL}/admin/roles/users/${userId}/demote`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ reason: reason ?? null }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('SUPER_ADMIN 권한이 필요합니다.');
+    }
+    throw new Error('역할 강등 실패');
+  }
+
+  const apiResponse: AdminApiResponse<RoleChangeResponse> = await response.json();
+  if (!apiResponse.success) {
+    throw new Error(apiResponse.message || '역할 강등 실패');
+  }
+
+  return apiResponse.data;
+};
+
+// ─── Stadium Place Management (ADMIN+) ───────────────────────────────────────
+
+/**
+ * 구장에 새 장소 추가
+ * POST /api/admin/stadiums/{stadiumId}/places
+ */
+export const createPlace = async (stadiumId: string, data: PlaceFormData): Promise<Place> => {
+  const response = await fetch(`${API_BASE_URL}/admin/stadiums/${stadiumId}/places`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    if (response.status === 403) throw new Error('관리자 권한이 필요합니다.');
+    if (response.status === 404) throw new Error('구장을 찾을 수 없습니다.');
+    throw new Error('장소 추가 실패');
+  }
+
+  const apiResponse: AdminApiResponse<Place> = await response.json();
+  if (!apiResponse.success) {
+    throw new Error(apiResponse.message || '장소 추가 실패');
+  }
+
+  return apiResponse.data;
+};
+
+/**
+ * 장소 정보 수정
+ * PUT /api/admin/stadiums/places/{placeId}
+ */
+export const updatePlace = async (placeId: number, data: PlaceFormData): Promise<Place> => {
+  const response = await fetch(`${API_BASE_URL}/admin/stadiums/places/${placeId}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    if (response.status === 403) throw new Error('관리자 권한이 필요합니다.');
+    if (response.status === 404) throw new Error('장소를 찾을 수 없습니다.');
+    throw new Error('장소 수정 실패');
+  }
+
+  const apiResponse: AdminApiResponse<Place> = await response.json();
+  if (!apiResponse.success) {
+    throw new Error(apiResponse.message || '장소 수정 실패');
+  }
+
+  return apiResponse.data;
+};
+
+/**
+ * 장소 삭제
+ * DELETE /api/admin/stadiums/places/{placeId}
+ */
+export const deletePlace = async (placeId: number): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/admin/stadiums/places/${placeId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    if (response.status === 403) throw new Error('관리자 권한이 필요합니다.');
+    if (response.status === 404) throw new Error('장소를 찾을 수 없습니다.');
+    throw new Error('장소 삭제 실패');
+  }
+
+  const apiResponse = await response.json();
+  if (!apiResponse.success) {
+    throw new Error(apiResponse.message || '장소 삭제 실패');
+  }
 };

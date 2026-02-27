@@ -17,6 +17,9 @@ import {
   MapPin,
   Info,
   AlertCircle,
+  ImageIcon,
+  X,
+  Loader2,
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
 import { ChatMessage, Application } from '../types/mate';
@@ -25,6 +28,7 @@ import { Alert, AlertDescription } from './ui/alert';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import { api, getApiErrorStatus } from '../utils/api';
+import { uploadChatImage, updateChatReadTimestamp } from '../api/mate';
 import { useAuthStore } from '../store/authStore';
 
 export default function MateChat() {
@@ -50,6 +54,12 @@ export default function MateChat() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [myApplication, setMyApplication] = useState<Application | null>(null);
   const [isCheckingApproval, setIsCheckingApproval] = useState(true);
+
+  // 이미지 업로드 상태
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -141,6 +151,21 @@ export default function MateChat() {
       el.scrollTop = el.scrollHeight;
     }
   }, [messages]);
+
+  // 읽음 처리 동기화 (메시지 수신/초기 로드 시)
+  useEffect(() => {
+    if (!selectedParty?.id || !currentUser) return;
+    const markAsRead = async () => {
+      try {
+        await updateChatReadTimestamp(selectedParty.id);
+      } catch (error) {
+        console.error('읽음 처리 실패', error);
+      }
+    };
+    // 디바운스 역할로 타임아웃
+    const timer = setTimeout(markAsRead, 500);
+    return () => clearTimeout(timer);
+  }, [messages, selectedParty?.id, currentUser]);
 
   // isHost 계산 (조건부 return 전에)
   const isHost = currentUser && selectedParty
@@ -311,28 +336,78 @@ export default function MateChat() {
     );
   }
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!messageText.trim() || !isConnected) {
-      console.warn('메시지 전송 불가:', { messageText, isConnected });
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 이미지 제한 (예: 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('이미지 크기는 5MB 이하여야 합니다.');
       return;
     }
 
-    const validationError = validateChatMessage(messageText);
-    if (validationError) {
-      toast.warning(validationError);
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드 가능합니다.');
       return;
+    }
+
+    setSelectedImage(file);
+    const ObjectUrl = URL.createObjectURL(file);
+    setImagePreviewUrl(ObjectUrl);
+  };
+
+  const cancelImageSelection = () => {
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setSelectedImage(null);
+    setImagePreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if ((!messageText.trim() && !selectedImage) || !isConnected) {
+      console.warn('메시지 전송 불가:', { messageText, selectedImage, isConnected });
+      return;
+    }
+
+    if (messageText.trim()) {
+      const validationError = validateChatMessage(messageText);
+      if (validationError) {
+        toast.warning(validationError);
+        return;
+      }
+    }
+
+    let finalImageUrl: string | undefined = undefined;
+
+    if (selectedImage) {
+      setIsUploadingImage(true);
+      try {
+        const uploadResult = await uploadChatImage(selectedImage);
+        finalImageUrl = uploadResult.url;
+      } catch (error) {
+        toast.error('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+        setIsUploadingImage(false);
+        return; // 전송 중단
+      }
+      setIsUploadingImage(false);
     }
 
     const newMessage = {
       partyId: selectedParty.id,
       senderId: currentUser.id,
       senderName: currentUser.name,
-      message: messageText,
+      message: messageText.trim() || (finalImageUrl ? '(사진 전송)' : ''),
+      ...(finalImageUrl && { imageUrl: finalImageUrl }),
     };
 
     sendWebSocketMessage(newMessage);
     setMessageText('');
+    cancelImageSelection(); // 메시지 전송 후 초기화
   };
 
   const formatMessageTime = (dateString: string) => {
@@ -480,6 +555,16 @@ export default function MateChat() {
                                   : 'bg-gray-100 text-gray-800'
                                   }`}
                               >
+                                {msg.imageUrl && (
+                                  <div className="mb-2 -mx-2 -mt-1 overflow-hidden rounded-t-xl sm:rounded-xl">
+                                    <img
+                                      src={msg.imageUrl}
+                                      alt="Attachment"
+                                      className="w-full max-w-[240px] h-auto object-cover rounded-md border"
+                                      loading="lazy"
+                                    />
+                                  </div>
+                                )}
                                 <p className="whitespace-pre-wrap break-words">
                                   {msg.message}
                                 </p>
@@ -500,20 +585,60 @@ export default function MateChat() {
         </Card>
 
         <Card className="p-4">
-          <form onSubmit={handleSendMessage} className="flex gap-2">
+          {imagePreviewUrl && (
+            <div className="mb-3 relative w-24 h-24 border rounded-md overflow-hidden bg-gray-100">
+              <img src={imagePreviewUrl} alt="Preview" className="w-full h-full object-cover" />
+              {isUploadingImage ? (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={cancelImageSelection}
+                  className="absolute top-1 right-1 bg-black/60 rounded-full p-1 text-white hover:bg-black/80 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          )}
+          <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleImageSelect}
+              disabled={!isConnected || isUploadingImage}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              disabled={!isConnected || isUploadingImage}
+              onClick={() => fileInputRef.current?.click()}
+              className="shrink-0"
+            >
+              <ImageIcon className="w-4 h-4" />
+            </Button>
             <Input
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               placeholder={isConnected ? "메시지를 입력하세요..." : "서버 연결 중..."}
               className="flex-1"
-              disabled={!isConnected}
+              disabled={!isConnected || isUploadingImage}
             />
             <Button
               type="submit"
-              disabled={!messageText.trim() || !isConnected}
+              disabled={(!messageText.trim() && !selectedImage) || !isConnected || isUploadingImage}
               className="text-white px-6 bg-primary"
             >
-              <Send className="w-4 h-4" />
+              {isUploadingImage ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
             </Button>
           </form>
         </Card>

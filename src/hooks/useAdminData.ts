@@ -12,6 +12,8 @@ import {
   fetchAdminReportDetail,
   fetchAdminReports,
   handleAdminReport,
+  promoteToAdmin,
+  demoteToUser,
 } from '../api/admin';
 import {
   AdminUser,
@@ -140,6 +142,26 @@ export const useAdminData = () => {
     } catch (err) {
       console.error('메이트 조회 오류:', err);
       setError('메이트를 불러오는데 실패했습니다.');
+    }
+  };
+
+  // 역할 변경 (SUPER_ADMIN 전용)
+  const handleRoleChange = async (userId: number, targetRole: 'ROLE_ADMIN' | 'ROLE_USER', reason?: string) => {
+    try {
+      if (targetRole === 'ROLE_ADMIN') {
+        await promoteToAdmin(userId, reason);
+        setSuccessMessage('사용자를 관리자로 승격했습니다.');
+      } else {
+        await demoteToUser(userId, reason);
+        setSuccessMessage('사용자를 일반 사용자로 강등했습니다.');
+      }
+      // 목록 갱신하여 변경된 역할 반영
+      await loadUsers(searchTerm || undefined);
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('역할 변경 오류:', err);
+      setError(err instanceof Error ? err.message : '역할 변경에 실패했습니다.');
+      setTimeout(() => setError(null), 4000);
     }
   };
 
@@ -285,5 +307,6 @@ export const useAdminData = () => {
     handleDeletePost,
     handleDeleteMate,
     handleReportAction,
+    handleRoleChange,
   };
 };

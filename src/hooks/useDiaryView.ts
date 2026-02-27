@@ -69,9 +69,15 @@ export const useDiaryView = () => {
     if (photoFiles.length === 0) return [];
 
     try {
-      const photos = await uploadDiaryImages(diaryId, photoFiles);
-      toast.success(`${photos.length}장의 사진이 저장되었습니다.`);
-      return photos;
+      const result = await uploadDiaryImages(diaryId, photoFiles);
+      toast.success(`${result.photos.length}장의 사진이 저장되었습니다.`);
+
+      // 이미지 업로드 후 리워드 처리
+      if (result.seatViewReward) {
+        showSeatViewRewardToast(result.seatViewReward);
+      }
+
+      return result.photos;
     } catch (error) {
       // Global modal handles server errors. Toast provides quick feedback.
       toast.error('일부 사진 업로드에 실패했습니다.');
@@ -79,18 +85,39 @@ export const useDiaryView = () => {
     }
   };
 
+  // ========== 시야 사진 리워드 토스트 ==========
+  const showSeatViewRewardToast = (reward: import('../types/diary').SeatViewReward) => {
+    const message = reward.firstContribution
+      ? `첫 시야 사진 기여! +${reward.pointsEarned} 포인트 획득!`
+      : `시야 사진 기여! +${reward.pointsEarned} 포인트 획득!`;
+    toast.success(message, { duration: 4000 });
+
+    if (reward.unlockedAchievements?.length > 0) {
+      reward.unlockedAchievements.forEach((ach) => {
+        setTimeout(() => {
+          toast.success(`업적 달성: ${ach.nameKo}!`, { duration: 5000 });
+        }, 1000);
+      });
+    }
+  };
+
   // ========== Save Mutation ==========
   const saveMutation = useMutation({
     mutationFn: (data: Omit<DiaryEntry, 'id'>) => saveDiary(data),
     onSuccess: async (result) => {
-      const diaryId = result.id || result.data?.id;
+      const diaryId = result.id || (result as Record<string, unknown>)['data'] as number;
+
+      // 다이어리 저장 시 리워드 (사진이 요청에 포함된 경우)
+      if (result.seatViewReward) {
+        showSeatViewRewardToast(result.seatViewReward);
+      }
 
       // 이미지 업로드
       const uploadedPhotos = await handleImageUpload(diaryId, diaryForm.photoFiles);
 
       // 업로드된 사진이 있으면 다이어리 레코드 업데이트
       if (uploadedPhotos.length > 0) {
-        const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
+        const game = availableGames.find((g: Game) => g.id === diaryForm.gameId);
 
         await updateDiary({
           id: diaryId,
@@ -107,8 +134,8 @@ export const useDiaryView = () => {
             stadium: game?.stadium || '',
             section: diaryForm.section,
             block: diaryForm.block,
-            row: diaryForm.row,
-            seat: diaryForm.seat,
+            seatRow: diaryForm.seatRow,
+            seatNumber: diaryForm.seatNumber,
           },
         });
       }
@@ -142,7 +169,7 @@ export const useDiaryView = () => {
         // 업로드 성공 시 기존 사진과 합쳐서 다시 업데이트
         if (uploadedPhotos.length > 0) {
           const allPhotos = [...(diaryForm.photos || []), ...uploadedPhotos];
-          const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
+          const game = availableGames.find((g: Game) => g.id === diaryForm.gameId);
 
           await updateDiary({
             id: diaryId,
@@ -195,7 +222,7 @@ export const useDiaryView = () => {
     //   return;
     // }
 
-    const game = availableGames.find((g: Game) => g.id === Number(diaryForm.gameId));
+    const game = availableGames.find((g: Game) => g.id === diaryForm.gameId);
 
     const entry = {
       date: dateStr,
@@ -210,8 +237,8 @@ export const useDiaryView = () => {
       stadium: game?.stadium || '',
       section: diaryForm.section,
       block: diaryForm.block,
-      row: diaryForm.row,
-      seat: diaryForm.seat,
+      seatRow: diaryForm.seatRow,
+      seatNumber: diaryForm.seatNumber,
     };
 
     if (selectedDiary) {

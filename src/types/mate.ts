@@ -81,6 +81,7 @@ export interface ChatMessage {
   senderId: number | string;
   senderName: string;
   message: string;
+  imageUrl?: string;
   createdAt: string;
 }
 
@@ -160,6 +161,7 @@ export interface CreateCheckInRequest {
   partyId: number;
   location: string;
   qrSessionId?: string;
+  manualCode?: string;
 }
 
 export interface CreateCheckInQrSessionRequest {
@@ -171,6 +173,7 @@ export interface CreateCheckInQrSessionResponse {
   partyId: number;
   expiresAt: string;
   checkinUrl: string;
+  manualCode?: string;
 }
 
 export interface CreateReviewRequest {

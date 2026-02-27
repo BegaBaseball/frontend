@@ -90,7 +90,17 @@
       },
       "scripts": {
             "dev": "npx vite",
-            "build": "npx vite build",
+            "build:base": "npx vite build",
+            "seo:prerender": "node scripts/prerender-seo.mjs",
+            "seo:sitemap": "node scripts/generate-sitemap.mjs",
+            "seo:check": "node scripts/seo-audit.mjs",
+            "seo:helmet:check": "node scripts/helmet-runtime-check.mjs",
+            "seo:env:check": "node scripts/seo-env-check.mjs",
+            "seo:env:check:strict": "node scripts/seo-env-check.mjs --strict",
+            "seo:smoke:prod": "node scripts/seo-postdeploy-smoke.mjs --report reports/seo-postdeploy-smoke.json",
+            "seo:gate": "npm run build:base && npm run seo:prerender && npm run seo:sitemap && node scripts/seo-audit.mjs --report reports/seo-audit-report.json",
+            "cwv:baseline": "node scripts/cwv-baseline.mjs --json reports/cwv-baseline.json --markdown reports/cwv-baseline.md",
+            "build": "npm run build:base && npm run seo:prerender && npm run seo:sitemap",
             "preview": "npx vite preview",
             "cy:doctor": "node scripts/cypress-doctor.mjs",
             "cy:open": "node scripts/cypress-run.mjs --open",
@@ -114,6 +124,7 @@
             "test:e2e:smoke:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts",
             "test:e2e:smoke:prodlike:docker": "node scripts/test-e2e.mjs --no-server --docker --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts",
             "test:e2e": "node scripts/test-e2e.mjs",
+            "test:seo": "node --import tsx --test \"src/seo/**/*.test.ts\"",
             "test:unit": "node --import tsx --test \"src/**/*.test.ts\""
       }
 }

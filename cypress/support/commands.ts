@@ -134,6 +134,11 @@ Cypress.Commands.add('mockAPI', () => {
         ]
     }).as('getStadiums');
 
+    cy.intercept('GET', '**/api/stadiums/favorites', {
+        statusCode: 200,
+        body: { stadiumIds: [] },
+    }).as('getStadiumFavorites');
+
     // Team franchise metadata (used by Cheer page)
     cy.intercept('GET', '**/api/franchises/code/*', {
         statusCode: 200,
@@ -234,6 +239,14 @@ Cypress.Commands.add('mockAPI', () => {
         statusCode: 200,
         body: 5
     }).as('getUnreadCount');
+
+    cy.intercept('**/api/chat/my/unread-counts', {
+        statusCode: 200,
+        body: {
+            success: true,
+            data: 0,
+        },
+    }).as('getChatUnreadCounts');
 
     // Follow Counts - NOT wrapped in { success: true, data: ... }
     cy.intercept('**/api/users/*/follow-counts', {

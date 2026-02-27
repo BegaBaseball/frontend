@@ -41,6 +41,7 @@ import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
 import UserProfileModal from './profile/UserProfileModal';
 import ReportModal from './ReportModal';
 import QuoteRepostEditor from './QuoteRepostEditor';
+import { OptimizedImage } from './common/OptimizedImage';
 import {
     getRepostPolicyDecision,
 } from '../utils/repostPolicy';
@@ -85,11 +86,11 @@ export default function CheerDetail() {
 
     const { data: interactionPost } = useCheerPost(resolvedPostId);
     const interactionTargetPost = interactionPost ?? selectedPost;
-    const interactionLikeCount = interactionTargetPost?.likes ?? interactionTargetPost?.likeCount ?? 0;
-    const interactionLikedByMe = Boolean(interactionTargetPost?.liked || interactionTargetPost?.likedByUser);
+    const interactionLikeCount = interactionTargetPost?.likeCount ?? 0;
+    const interactionLikedByMe = Boolean(interactionTargetPost?.liked);
     const interactionRepostCount = interactionTargetPost?.repostCount ?? 0;
     const interactionRepostedByMe = Boolean(interactionTargetPost?.repostedByMe);
-    const interactionBookmarked = Boolean(interactionTargetPost?.isBookmarked ?? interactionTargetPost?.bookmarked);
+    const interactionBookmarked = Boolean(interactionTargetPost?.bookmarked);
 
     useEffect(() => {
         if (resolvedPostId) {
@@ -537,25 +538,19 @@ export default function CheerDetail() {
                         )}
 
                         {/* Images */}
-                        {selectedPost.images && selectedPost.images.length > 0 && (
+                        {selectedPost.imageUrls && selectedPost.imageUrls.length > 0 && (
                             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {selectedPost.images.map((img, idx) => (
+                                {selectedPost.imageUrls.map((img, idx) => (
                                     <div key={idx} className="overflow-hidden rounded-xl bg-slate-100 dark:bg-secondary">
-                                        <img
+                                        <OptimizedImage
                                             src={img}
                                             alt={`uploaded-${idx}`}
                                             className="h-full w-full object-cover aspect-[4/3]"
-                                            onError={(e) => {
-                                                e.currentTarget.style.display = 'none';
-                                                const parent = e.currentTarget.parentElement;
-                                                if (parent) {
-                                                    parent.classList.add('flex', 'items-center', 'justify-center', 'aspect-[4/3]');
-                                                    const placeholder = document.createElement('span');
-                                                    placeholder.className = 'text-xs text-slate-400 dark:text-slate-500';
-                                                    placeholder.textContent = '이미지를 불러올 수 없습니다';
-                                                    parent.appendChild(placeholder);
-                                                }
-                                            }}
+                                            loading={idx === 0 ? 'eager' : 'lazy'}
+                                            priority={idx === 0}
+                                            width={640}
+                                            height={480}
+                                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                         />
                                     </div>
                                 ))}

@@ -69,8 +69,8 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         if (post.originalPost?.id) return post.originalPost.id;
         return post.id;
     };
-    const commentCount = statsSource.commentCount ?? post.comments;
-    const likeCount = statsSource.likeCount ?? post.likes;
+    const commentCount = statsSource.commentCount;
+    const likeCount = statsSource.likeCount;
     const repostCount = statsSource.repostCount ?? post.repostCount;
     const bookmarkCount = post.bookmarkCount ?? 0;
     const actionPostId = resolveActionPostId();
@@ -94,8 +94,8 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const repostUnavailableMessage = repostPolicy.repostSimpleUnavailableMessage;
     const quoteUnavailableMessage = repostPolicy.repostQuoteUnavailableMessage;
     const repostButtonActive = canCancelRepost ? true : post.repostedByMe;
-    const likeActive = Boolean(post.likedByUser || post.liked);
-    const bookmarkActive = Boolean(post.isBookmarked ?? post.bookmarked);
+    const likeActive = Boolean(post.liked);
+    const bookmarkActive = Boolean(post.bookmarked);
 
     const [likeAnimating, setLikeAnimating] = useState(false);
     const [commentAnimating, setCommentAnimating] = useState(false);
@@ -412,9 +412,9 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     )}
 
                     {/* 이미지 표시 (Simple Repost면 원본 이미지) */}
-                    {((post.repostType === 'SIMPLE' && post.originalPost && post.originalPost.imageUrls?.length) || (post.images?.length && post.repostType !== 'SIMPLE')) ? (
+                    {((post.repostType === 'SIMPLE' && post.originalPost && post.originalPost.imageUrls?.length) || (post.imageUrls?.length && post.repostType !== 'SIMPLE')) ? (
                         <div className="relative mt-2">
-                            <ImageGrid images={(post.repostType === 'SIMPLE' && post.originalPost) ? post.originalPost.imageUrls : post.images!} />
+                            <ImageGrid images={(post.repostType === 'SIMPLE' && post.originalPost) ? post.originalPost.imageUrls : post.imageUrls!} />
                             {post.imageUploadFailed && (
                                 <span className="absolute right-3 top-3 rounded-full bg-red-600/90 px-2 py-1 text-xs font-semibold text-white">
                                     업로드 실패

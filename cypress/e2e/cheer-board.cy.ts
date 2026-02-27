@@ -1,6 +1,53 @@
 /// <reference types="cypress" />
 
 describe('Cheer Board', () => {
+    const authToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3RVc2VyIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+    const seedLoggedInUser = (win: Window) => {
+        win.localStorage.setItem(
+            'auth-storage',
+            JSON.stringify({
+                state: {
+                    user: {
+                        id: 123,
+                        email: 'test@example.com',
+                        name: 'TestUser',
+                        handle: 'testuser',
+                        favoriteTeam: 'HH',
+                        role: 'ROLE_USER',
+                        isAdmin: false,
+                        profileImageUrl: null,
+                        hasPassword: true,
+                        policyConsentRequired: false,
+                        policyConsentNoticeRequired: false,
+                        missingPolicyTypes: [],
+                    },
+                    isLoggedIn: true,
+                    isAdmin: false,
+                },
+                version: 0,
+            })
+        );
+        win.localStorage.setItem('accessToken', authToken);
+        win.localStorage.setItem('bega_has_visited', 'true');
+        win.localStorage.setItem('bega_dont_show_guide', 'true');
+    };
+    const mockUserProfile = {
+        success: true,
+        data: {
+            id: 123,
+            email: 'test@example.com',
+            name: 'TestUser',
+            handle: 'testuser',
+            favoriteTeam: 'HH',
+            role: 'ROLE_USER',
+            hasPassword: true,
+            profileImageUrl: null,
+            policyConsentRequired: false,
+            policyConsentNoticeRequired: false,
+            missingPolicyTypes: [],
+        },
+    };
     const makePost = (overrides: Record<string, unknown> = {}) => ({
         id: 1,
         content: 'This is a test post content.',
@@ -42,8 +89,11 @@ describe('Cheer Board', () => {
             .first();
 
     beforeEach(() => {
-        cy.login('user');
         cy.mockAPI();
+        cy.intercept('GET', '**/auth/mypage*', {
+            statusCode: 200,
+            body: mockUserProfile,
+        }).as('getMeAnyPath');
 
         // Standard posts mock
         cy.intercept('GET', '**/api/cheer/posts/hot*', {
@@ -134,7 +184,11 @@ describe('Cheer Board', () => {
             });
         }).as('getPosts');
 
-        cy.visit('/cheer');
+        cy.visit('/cheer', {
+            onBeforeLoad(win) {
+                seedLoggedInUser(win);
+            },
+        });
         // Wait for hydration and user greeting
         cy.contains('TestUser 님', { timeout: 20000 }).should('be.visible');
         cy.wait('@getPosts');
