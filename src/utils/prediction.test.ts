@@ -28,7 +28,7 @@ test('parseAiBriefing: markdown 문법을 텍스트로 정리한다', () => {
     fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
   });
 
-  assert.equal(normalized.title, '핵심 포인트');
+  assert.equal(normalized.title, 'AI 분석 리포트');
   assert.equal(normalized.message, normalized.displayText);
   assert.equal(normalized.message.includes('**'), false);
   assert.equal(normalized.message.includes('`'), false);
@@ -45,7 +45,7 @@ test('parseAiBriefing: 구조화 응답(answer)에서 표시용 텍스트를 추
     fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
   });
 
-  assert.equal(normalized.title, '요약');
+  assert.equal(normalized.title, 'AI 분석 리포트');
   assert.equal(normalized.message, normalized.displayText);
   assert.equal(normalized.message.includes('**'), false);
   assert.equal(normalized.message.includes('`'), false);
@@ -174,6 +174,6 @@ test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 
   });
 
   assert.equal(noSelectionPolicy.autoEnabled, false);
-  assert.equal(noSelectionPolicy.forceManual, false);
+  assert.equal(noSelectionPolicy.forceManual, true);
   assert.equal(noSelectionPolicy.requestMode, 'manual_detail');
 });

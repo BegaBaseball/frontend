@@ -1,13 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Skeleton } from './ui/skeleton';
-import { MapPin, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Input } from './ui/input';
+import { MapPin, RefreshCw, AlertTriangle, Search, ArrowUpDown, Heart } from 'lucide-react';
 import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constants';
 import { openKakaoMapRoute } from '../utils/kakaoMap';
 import { getCategoryIconConfig } from '../utils/stadium';
 import { useStadiumGuide } from '../hooks/useStadiumGuide';
 import { useTheme } from '../hooks/useTheme';
+import { useAuthStore } from '../store/authStore';
+import { getMyFavoriteStadiumIds, addStadiumFavorite, removeStadiumFavorite } from '../api/stadium';
+
+type SortOrder = 'default' | 'rating' | 'name';
 
 export default function StadiumGuide() {
   const { theme, resolvedTheme } = useTheme();
@@ -26,9 +33,46 @@ export default function StadiumGuide() {
     handlePlaceClick,
   } = useStadiumGuide();
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('default');
+
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const queryClient = useQueryClient();
+
+  const { data: favoriteIds = [] } = useQuery({
+    queryKey: ['stadium-favorites'],
+    queryFn: getMyFavoriteStadiumIds,
+    enabled: isLoggedIn,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const selectedStadiumId = selectedStadium?.stadiumId ?? null;
+  const isFav = selectedStadiumId ? favoriteIds.includes(selectedStadiumId) : false;
+
+  const favMutation = useMutation({
+    mutationFn: ({ id, currentlyFav }: { id: string; currentlyFav: boolean }) =>
+      currentlyFav ? removeStadiumFavorite(id) : addStadiumFavorite(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stadium-favorites'] }),
+    onError: () => toast.error('즐겨찾기를 변경하지 못했습니다. 다시 시도해 주세요.'),
+  });
+
   // 다크 모드인지 확인
   const effectiveTheme = resolvedTheme ?? theme;
   const isDark = effectiveTheme === 'dark';
+
+  const filteredPlaces = useMemo(() => {
+    let result = places;
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter((p) => p.name.toLowerCase().includes(q));
+    }
+    if (sortOrder === 'rating') {
+      result = [...result].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    } else if (sortOrder === 'name') {
+      result = [...result].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    }
+    return result;
+  }, [places, searchQuery, sortOrder]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
@@ -137,6 +181,19 @@ export default function StadiumGuide() {
                         <h4 className="dark:text-white" style={{ fontWeight: 700, color: isDark ? '#fff' : THEME_COLORS.primary }}>
                           {selectedStadium.stadiumName}
                         </h4>
+                        {isLoggedIn && selectedStadiumId && (
+                          <button
+                            onClick={() => selectedStadiumId && favMutation.mutate({ id: selectedStadiumId, currentlyFav: isFav })}
+                            disabled={favMutation.isPending}
+                            className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
+                            aria-label={isFav ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                          >
+                            <Heart
+                              className={isFav ? 'fill-red-400 text-red-400' : 'text-gray-400 dark:text-white/60'}
+                              size={18}
+                            />
+                          </button>
+                        )}
                       </div>
                       {selectedStadium.address && (
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
@@ -215,7 +272,7 @@ export default function StadiumGuide() {
                   return (
                     <button
                       key={config.key}
-                      onClick={() => setSelectedCategory(config.key)}
+                      onClick={() => { setSelectedCategory(config.key); setSearchQuery(''); }}
                       className="py-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 dark:bg-card"
                       style={{
                         backgroundColor: isSelected
@@ -241,9 +298,39 @@ export default function StadiumGuide() {
 
             {/* Results List */}
             <div>
-              <h3 className="mb-3 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
-                {CATEGORY_CONFIGS[selectedCategory].label} 목록
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
+                  {CATEGORY_CONFIGS[selectedCategory].label} 목록
+                </h3>
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  {filteredPlaces.length}개
+                </span>
+              </div>
+
+              {/* 검색 + 정렬 */}
+              <div className="flex gap-2 mb-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    placeholder="장소 이름 검색..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-9 text-sm dark:bg-card dark:border-border"
+                  />
+                </div>
+                <div className="relative">
+                  <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                    className="h-9 pl-8 pr-3 text-sm rounded-md border border-input bg-background dark:bg-card dark:border-border dark:text-gray-200 cursor-pointer"
+                  >
+                    <option value="default">기본순</option>
+                    <option value="rating">평점순</option>
+                    <option value="name">이름순</option>
+                  </select>
+                </div>
+              </div>
 
               <style>{`
                 .custom-scroll-area::-webkit-scrollbar {
@@ -307,8 +394,8 @@ export default function StadiumGuide() {
                     }}
                   >
                     <div className="space-y-3 pr-2">
-                      {places.length > 0 ? (
-                        places.map((place) => {
+                      {filteredPlaces.length > 0 ? (
+                        filteredPlaces.map((place) => {
                           const { Icon, color } = getCategoryIconConfig(place.category);
                           const isSelected = selectedPlace?.id === place.id;
 
@@ -382,14 +469,14 @@ export default function StadiumGuide() {
                         })
                       ) : (
                         <div className="text-center py-8 text-gray-500 dark:text-gray-300">
-                          {selectedStadium ? (
-                            selectedCategory === 'store' || selectedCategory === 'parking' ? (
-                              `주변 ${CATEGORY_CONFIGS[selectedCategory].label}을 검색 중입니다...`
-                            ) : (
-                              '해당 카테고리에 등록된 장소가 없습니다.'
-                            )
-                          ) : (
+                          {!selectedStadium ? (
                             '구장을 선택해주세요.'
+                          ) : searchQuery.trim() ? (
+                            `'${searchQuery}'에 해당하는 장소가 없습니다.`
+                          ) : places.length === 0 && (selectedCategory === 'store' || selectedCategory === 'parking') ? (
+                            `주변 ${CATEGORY_CONFIGS[selectedCategory].label}을 검색 중입니다...`
+                          ) : (
+                            '해당 카테고리에 등록된 장소가 없습니다.'
                           )}
                         </div>
                       )}

@@ -9,14 +9,14 @@ const getInitialFormData = (): DiaryFormData => ({
   emoji: DEFAULT_EMOJI,
   emojiName: DEFAULT_EMOJI_NAME,
   winningName: '',
-  gameId: '',
+  gameId: 0,
   memo: '',
   photos: [],
   photoFiles: [],
   section: '',
   block: '',
-  row: '',
-  seat: '',
+  seatRow: '',
+  seatNumber: '',
 });
 
 export const useDiaryForm = () => {
@@ -30,15 +30,15 @@ export const useDiaryForm = () => {
         emoji: entry.emoji,
         emojiName: entry.emojiName,
         winningName: entry.winningName || '',
-        gameId: entry.gameId ? String(entry.gameId) : '',
+        gameId: entry.gameId || 0,
         memo: entry.memo || '',
         photos: entry.photos || [],
         // file: ... (existing code)
         photoFiles: [],
         section: entry.section || '',
         block: entry.block || '',
-        row: entry.row || '',
-        seat: entry.seat || '',
+        seatRow: entry.seatRow || '',
+        seatNumber: entry.seatNumber || '',
       });
     } else {
       setDiaryForm(getInitialFormData());

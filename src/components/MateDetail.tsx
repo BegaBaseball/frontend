@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import SeatViewGallery from './SeatViewGallery';
 import QRCode from 'react-qr-code';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -675,21 +676,12 @@ export default function MateDetail() {
 
                 {/* UGC Seat View Guide Area */}
                 {showSeatViewGuide && (
-                  <div className="mt-4 mb-4 bg-gray-50 dark:bg-secondary/70 rounded-xl border border-dashed border-gray-300 dark:border-border p-4 text-center animate-in zoom-in-95 duration-200">
-                    <div className="w-10 h-10 bg-gray-200 dark:bg-border rounded-full flex items-center justify-center mx-auto mb-2">
-                      <span className="text-xl">📷</span>
-                    </div>
-                    <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1">
-                      아직 등록된 시야가 없어요
-                    </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-300 mb-3">
-                      직관 후 이 좌석의 뷰를 공유해주시면<br />
-                      <span className="text-primary font-bold">50 포인트</span>를 즉시 적립해 다려요!
-                    </p>
-                    <Button size="sm" className="bg-primary hover:bg-primary-hover text-white rounded-full min-h-11 text-xs">
-                      <Plus className="w-3 h-3 mr-1" />
-                      첫 번째 사진 등록하기
-                    </Button>
+                  <div className="mt-4 mb-4 animate-in zoom-in-95 duration-200">
+                    <SeatViewGallery
+                      compact
+                      stadium={selectedParty.stadium}
+                      section={selectedParty.section}
+                    />
                   </div>
                 )}
                 <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-2">
@@ -822,13 +814,10 @@ export default function MateDetail() {
               <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
               </h3>
-              <div className="aspect-video bg-gray-200 dark:bg-secondary rounded-xl flex items-center justify-center relative overflow-hidden group">
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <Button variant="secondary" className="bg-white/90 text-gray-800 hover:bg-white shadow-lg backdrop-blur-sm">
-                    {selectedParty.stadium} {selectedParty.section} 시야 보기
-                  </Button>
-                </div>
-              </div>
+              <SeatViewGallery
+                stadium={selectedParty.stadium}
+                section={selectedParty.section}
+              />
             </Card>
           </div>
 

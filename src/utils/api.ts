@@ -250,14 +250,14 @@ export const api = {
     return this.request<ChatMessage[]>(`/chat/party/${partyId}`);
   },
 
-  // Post (cheerboard 타입은 별도 도메인 — 향후 타입 추가)
+  // Post (cheerboard - cheerApi.ts 사용 권장)
   async getPosts(teamId?: string) {
     const query = teamId ? `?teamId=${teamId}` : '';
-    return this.request(`/posts${query}`);
+    return this.request(`/cheer/posts${query}`);
   },
 
   async createPost(data: unknown) {
-    return this.request('/posts', {
+    return this.request('/cheer/posts', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -486,5 +486,26 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+
+  /**
+   * POST /api/payments/toss/{intentId}/cancel
+   * 결제 Intent를 취소합니다.
+   *
+   * PREPARED 상태: Toss API 호출 없이 DB 취소 처리
+   * CONFIRMED 상태: Toss API 취소 후 DB 취소 처리
+   * CANCELED 상태: 멱등 처리 (200 반환)
+   */
+  async cancelTossPayment(
+    intentId: number,
+    cancelReason?: string,
+  ): Promise<{ intentId: number; status: string; message: string }> {
+    return this.request<{ intentId: number; status: string; message: string }>(
+      `/payments/toss/${intentId}/cancel`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ cancelReason: cancelReason ?? null }),
+      },
+    );
   },
 };

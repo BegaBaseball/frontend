@@ -1,11 +1,11 @@
 // AdminPage.tsx - Stadium Night Theme
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
-import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X } from 'lucide-react';
+import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X, UserCog, MapPin, Pencil, Plus } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,10 +17,66 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from './ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 import TeamLogo from './TeamLogo';
 import { useAdminData } from '../hooks/useAdminData';
+import { useAuthStore } from '../store/authStore';
 import { TEAM_DATA } from '../constants/teams';
 import { formatDate, formatGameDate, getTimeAgo } from '../utils/formatters';
+import { createPlace, updatePlace, deletePlace, Place, PlaceFormData } from '../api/admin';
+import { getApiBaseUrl } from '../api/apiBase';
+
+const API_BASE_URL = getApiBaseUrl();
+
+// ─── Stadium types (mirrors StadiumDto) ──────────────────────────────────────
+interface StadiumDto {
+  stadiumId: string;
+  stadiumName: string;
+  team: string;
+  lat: number;
+  lng: number;
+  address: string;
+  phone: string;
+}
+
+// ─── Place form default ───────────────────────────────────────────────────────
+const PLACE_CATEGORIES = [
+  '음식점',
+  '카페',
+  '편의점',
+  '주차장',
+  '대중교통',
+  '숙박',
+  '관광명소',
+  '기타',
+];
+
+const emptyForm = (): PlaceFormData => ({
+  name: '',
+  category: '',
+  description: '',
+  address: '',
+  phone: '',
+  lat: 0,
+  lng: 0,
+  rating: undefined,
+  openTime: '',
+  closeTime: '',
+});
 
 // Animated counter component
 function AnimatedNumber({ value, duration = 1000 }: { value: number; duration?: number }) {
@@ -130,6 +186,15 @@ function StatCard({
   );
 }
 
+// Pending role change state for the confirmation dialog
+interface PendingRoleChange {
+  userId: number;
+  userName: string;
+  userEmail: string;
+  currentRole: string;
+  targetRole: 'ROLE_ADMIN' | 'ROLE_USER';
+}
+
 export default function AdminPage() {
   const {
     searchTerm,
@@ -157,8 +222,125 @@ export default function AdminPage() {
     handleDeletePost,
     handleDeleteMate,
     handleReportAction,
+    handleRoleChange,
   } = useAdminData();
+
+  // Determine if the current logged-in user is a SUPER_ADMIN
+  const currentUser = useAuthStore((state) => state.user);
+  const isSuperAdmin = currentUser?.role === 'ROLE_SUPER_ADMIN';
+
   const [adminMemo, setAdminMemo] = useState('');
+
+  // Role change confirmation dialog state
+  const [pendingRoleChange, setPendingRoleChange] = useState<PendingRoleChange | null>(null);
+  const [roleChangeReason, setRoleChangeReason] = useState('');
+
+  // ─── Stadium / Place management state ──────────────────────────────────────
+  const [stadiums, setStadiums] = useState<StadiumDto[]>([]);
+  const [stadiumsLoading, setStadiumsLoading] = useState(false);
+  const [selectedStadiumId, setSelectedStadiumId] = useState<string>('');
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [placesLoading, setPlacesLoading] = useState(false);
+  const [stadiumError, setStadiumError] = useState<string | null>(null);
+
+  // Dialog state: null = closed, 'create' = adding, Place = editing
+  const [placeDialog, setPlaceDialog] = useState<null | 'create' | Place>(null);
+  const [placeForm, setPlaceForm] = useState<PlaceFormData>(emptyForm());
+  const [placeSubmitting, setPlaceSubmitting] = useState(false);
+
+  // AlertDialog for delete confirmation
+  const [deletingPlaceId, setDeletingPlaceId] = useState<number | null>(null);
+
+  // Load stadiums once on mount
+  useEffect(() => {
+    setStadiumsLoading(true);
+    fetch(`${API_BASE_URL}/stadiums`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data: StadiumDto[]) => {
+        setStadiums(data);
+        if (data.length > 0) setSelectedStadiumId(data[0].stadiumId);
+      })
+      .catch(() => setStadiumError('구장 목록을 불러올 수 없습니다.'))
+      .finally(() => setStadiumsLoading(false));
+  }, []);
+
+  // Load places whenever the selected stadium changes
+  const loadPlaces = useCallback(async (stadiumId: string) => {
+    if (!stadiumId) return;
+    setPlacesLoading(true);
+    setStadiumError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/stadiums/${stadiumId}/places`, {
+        credentials: 'include',
+      });
+      const data: Place[] = await res.json();
+      setPlaces(Array.isArray(data) ? data : []);
+    } catch {
+      setStadiumError('장소 목록을 불러올 수 없습니다.');
+    } finally {
+      setPlacesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedStadiumId) loadPlaces(selectedStadiumId);
+  }, [selectedStadiumId, loadPlaces]);
+
+  // Open create dialog
+  const openCreateDialog = () => {
+    setPlaceForm(emptyForm());
+    setPlaceDialog('create');
+  };
+
+  // Open edit dialog
+  const openEditDialog = (place: Place) => {
+    setPlaceForm({
+      name: place.name,
+      category: place.category,
+      description: place.description ?? '',
+      address: place.address ?? '',
+      phone: place.phone ?? '',
+      lat: place.lat,
+      lng: place.lng,
+      rating: place.rating,
+      openTime: place.openTime ?? '',
+      closeTime: place.closeTime ?? '',
+    });
+    setPlaceDialog(place);
+  };
+
+  // Submit create/edit
+  const handlePlaceSubmit = async () => {
+    if (!selectedStadiumId) return;
+    setPlaceSubmitting(true);
+    setStadiumError(null);
+    try {
+      if (placeDialog === 'create') {
+        await createPlace(selectedStadiumId, placeForm);
+      } else if (placeDialog && typeof placeDialog === 'object') {
+        await updatePlace(placeDialog.id, placeForm);
+      }
+      setPlaceDialog(null);
+      await loadPlaces(selectedStadiumId);
+    } catch (err) {
+      setStadiumError(err instanceof Error ? err.message : '저장 실패');
+    } finally {
+      setPlaceSubmitting(false);
+    }
+  };
+
+  // Delete place
+  const handleDeletePlace = async () => {
+    if (deletingPlaceId == null) return;
+    setStadiumError(null);
+    try {
+      await deletePlace(deletingPlaceId);
+      setDeletingPlaceId(null);
+      await loadPlaces(selectedStadiumId);
+    } catch (err) {
+      setStadiumError(err instanceof Error ? err.message : '삭제 실패');
+    }
+  };
 
   useEffect(() => {
     setAdminMemo(selectedReportDetail?.adminMemo || '');
@@ -258,7 +440,7 @@ export default function AdminPage() {
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="border-b border-slate-800 px-6 pt-6">
-              <TabsList className="grid w-full max-w-xl grid-cols-4 bg-slate-800/50 p-1 rounded-xl">
+              <TabsList className="grid w-full max-w-3xl grid-cols-5 bg-slate-800/50 p-1 rounded-xl">
                 <TabsTrigger
                   value="users"
                   className="rounded-lg data-[state=active]:bg-amber-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/25 transition-all duration-300"
@@ -286,6 +468,13 @@ export default function AdminPage() {
                 >
                   <Search className="w-4 h-4 mr-2" />
                   신고
+                </TabsTrigger>
+                <TabsTrigger
+                  value="stadiums"
+                  className="rounded-lg data-[state=active]:bg-violet-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/25 transition-all duration-300"
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  구장
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -320,13 +509,21 @@ export default function AdminPage() {
                         <TableHead className="text-slate-400 font-semibold">가입일</TableHead>
                         <TableHead className="text-slate-400 font-semibold">게시글</TableHead>
                         <TableHead className="text-slate-400 font-semibold">역할</TableHead>
+                        {isSuperAdmin && (
+                          <TableHead className="text-slate-400 font-semibold">
+                            <span className="flex items-center gap-1">
+                              <UserCog className="w-4 h-4" />
+                              역할 변경
+                            </span>
+                          </TableHead>
+                        )}
                         <TableHead className="text-slate-400 font-semibold text-right">관리</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {users.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-16 text-slate-500">
+                          <TableCell colSpan={isSuperAdmin ? 9 : 8} className="text-center py-16 text-slate-500">
                             <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
                             유저가 없습니다.
                           </TableCell>
@@ -358,7 +555,11 @@ export default function AdminPage() {
                               </span>
                             </TableCell>
                             <TableCell>
-                              {user.role?.includes('ROLE_ADMIN') ? (
+                              {user.role === 'ROLE_SUPER_ADMIN' ? (
+                                <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0 shadow-lg shadow-purple-500/20">
+                                  최고관리자
+                                </Badge>
+                              ) : user.role === 'ROLE_ADMIN' ? (
                                 <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg shadow-amber-500/20">
                                   관리자
                                 </Badge>
@@ -368,6 +569,41 @@ export default function AdminPage() {
                                 </Badge>
                               )}
                             </TableCell>
+                            {isSuperAdmin && (
+                              <TableCell>
+                                {/* SUPER_ADMIN 자신의 역할은 변경 불가 */}
+                                {user.id === currentUser?.id || user.role === 'ROLE_SUPER_ADMIN' ? (
+                                  <span className="text-slate-600 text-xs">변경 불가</span>
+                                ) : (
+                                  <Select
+                                    value={user.role}
+                                    onValueChange={(nextRole: 'ROLE_ADMIN' | 'ROLE_USER') => {
+                                      if (nextRole === user.role) return;
+                                      setPendingRoleChange({
+                                        userId: user.id,
+                                        userName: user.name,
+                                        userEmail: user.email,
+                                        currentRole: user.role,
+                                        targetRole: nextRole,
+                                      });
+                                      setRoleChangeReason('');
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-[120px] bg-slate-800/60 border-slate-700 text-slate-200 text-xs h-8 rounded-lg focus:ring-amber-500 focus:border-amber-500">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
+                                      <SelectItem value="ROLE_USER" className="text-xs focus:bg-slate-700 focus:text-slate-100">
+                                        일반 사용자
+                                      </SelectItem>
+                                      <SelectItem value="ROLE_ADMIN" className="text-xs focus:bg-slate-700 focus:text-slate-100">
+                                        관리자
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </TableCell>
+                            )}
                             <TableCell className="text-right">
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -769,8 +1005,338 @@ export default function AdminPage() {
                 </Table>
               </div>
             </TabsContent>
+
+            {/* ── Stadium / Place Management Tab ───────────────────────── */}
+            <TabsContent value="stadiums" className="p-6">
+
+              {/* Error banner */}
+              {stadiumError && (
+                <div className="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 text-sm">
+                  {stadiumError}
+                </div>
+              )}
+
+              {/* Top toolbar: stadium selector + add button */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                <div className="flex-1">
+                  <Select
+                    value={selectedStadiumId}
+                    onValueChange={(val) => setSelectedStadiumId(val)}
+                    disabled={stadiumsLoading}
+                  >
+                    <SelectTrigger className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl focus:ring-violet-500 focus:border-violet-500">
+                      <SelectValue placeholder={stadiumsLoading ? '로딩 중...' : '구장을 선택하세요'} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
+                      {stadiums.map((s) => (
+                        <SelectItem key={s.stadiumId} value={s.stadiumId} className="focus:bg-slate-700">
+                          {s.stadiumName}
+                          {s.team ? ` (${s.team})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={openCreateDialog}
+                  disabled={!selectedStadiumId}
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/25 rounded-xl"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  장소 추가
+                </Button>
+              </div>
+
+              {/* Places table */}
+              {placesLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-800 overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/50">
+                        <TableHead className="text-slate-400 font-semibold">ID</TableHead>
+                        <TableHead className="text-slate-400 font-semibold">카테고리</TableHead>
+                        <TableHead className="text-slate-400 font-semibold">이름</TableHead>
+                        <TableHead className="text-slate-400 font-semibold">주소</TableHead>
+                        <TableHead className="text-slate-400 font-semibold">전화</TableHead>
+                        <TableHead className="text-slate-400 font-semibold">평점</TableHead>
+                        <TableHead className="text-slate-400 font-semibold">영업시간</TableHead>
+                        <TableHead className="text-slate-400 font-semibold text-right">관리</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {places.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-16 text-slate-500">
+                            <MapPin className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                            {selectedStadiumId ? '등록된 장소가 없습니다.' : '구장을 먼저 선택하세요.'}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        places.map((place, index) => (
+                          <TableRow
+                            key={place.id}
+                            className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
+                            style={{ animationDelay: `${index * 40}ms` }}
+                          >
+                            <TableCell className="text-slate-300 font-mono text-sm">{place.id}</TableCell>
+                            <TableCell>
+                              <Badge className="bg-violet-500/20 text-violet-300 border-0">
+                                {place.category}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-slate-200 font-medium">{place.name}</TableCell>
+                            <TableCell className="text-slate-400 text-sm max-w-[160px] truncate">
+                              {place.address || '-'}
+                            </TableCell>
+                            <TableCell className="text-slate-400 text-sm">{place.phone || '-'}</TableCell>
+                            <TableCell>
+                              {place.rating != null ? (
+                                <span className="inline-flex items-center gap-1 text-amber-400 font-semibold text-sm">
+                                  {place.rating.toFixed(1)}
+                                  <span className="text-amber-500/60">★</span>
+                                </span>
+                              ) : (
+                                <span className="text-slate-600">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-slate-400 text-sm">
+                              {place.openTime && place.closeTime
+                                ? `${place.openTime} ~ ${place.closeTime}`
+                                : place.openTime || '-'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {/* Edit button */}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openEditDialog(place)}
+                                  className="text-slate-400 hover:text-violet-400 hover:bg-violet-500/10 rounded-lg transition-all duration-200"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                {/* Delete button */}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDeletingPlaceId(place.id)}
+                                  className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </TabsContent>
+
           </Tabs>
         </div>
+
+        {/* ── Place Create / Edit Dialog ────────────────────────────────────── */}
+        <Dialog open={placeDialog !== null} onOpenChange={(open) => { if (!open) setPlaceDialog(null); }}>
+          <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-violet-400" />
+                {placeDialog === 'create' ? '장소 추가' : '장소 수정'}
+              </DialogTitle>
+              <DialogDescription className="text-slate-400">
+                {placeDialog === 'create'
+                  ? `${stadiums.find((s) => s.stadiumId === selectedStadiumId)?.stadiumName ?? ''} 구장에 새 장소를 추가합니다.`
+                  : '장소 정보를 수정합니다.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-2">
+              {/* Name */}
+              <div className="grid gap-1.5">
+                <label className="text-sm text-slate-400">이름 *</label>
+                <Input
+                  value={placeForm.name}
+                  onChange={(e) => setPlaceForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="장소 이름"
+                  className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
+                />
+              </div>
+
+              {/* Category */}
+              <div className="grid gap-1.5">
+                <label className="text-sm text-slate-400">카테고리 *</label>
+                <Select
+                  value={placeForm.category}
+                  onValueChange={(val) => setPlaceForm((f) => ({ ...f, category: val }))}
+                >
+                  <SelectTrigger className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-lg">
+                    <SelectValue placeholder="카테고리 선택" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
+                    {PLACE_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat} className="focus:bg-slate-700">
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Description */}
+              <div className="grid gap-1.5">
+                <label className="text-sm text-slate-400">설명</label>
+                <Input
+                  value={placeForm.description ?? ''}
+                  onChange={(e) => setPlaceForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="장소 설명"
+                  className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
+                />
+              </div>
+
+              {/* Address */}
+              <div className="grid gap-1.5">
+                <label className="text-sm text-slate-400">주소</label>
+                <Input
+                  value={placeForm.address ?? ''}
+                  onChange={(e) => setPlaceForm((f) => ({ ...f, address: e.target.value }))}
+                  placeholder="도로명 주소"
+                  className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="grid gap-1.5">
+                <label className="text-sm text-slate-400">전화번호</label>
+                <Input
+                  value={placeForm.phone ?? ''}
+                  onChange={(e) => setPlaceForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="02-1234-5678"
+                  className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
+                />
+              </div>
+
+              {/* Lat / Lng */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <label className="text-sm text-slate-400">위도 *</label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={placeForm.lat}
+                    onChange={(e) => setPlaceForm((f) => ({ ...f, lat: parseFloat(e.target.value) || 0 }))}
+                    placeholder="37.123456"
+                    className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <label className="text-sm text-slate-400">경도 *</label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={placeForm.lng}
+                    onChange={(e) => setPlaceForm((f) => ({ ...f, lng: parseFloat(e.target.value) || 0 }))}
+                    placeholder="126.987654"
+                    className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              {/* Rating */}
+              <div className="grid gap-1.5">
+                <label className="text-sm text-slate-400">평점 (0.0 ~ 5.0)</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="5"
+                  value={placeForm.rating ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setPlaceForm((f) => ({ ...f, rating: v === '' ? undefined : parseFloat(v) }));
+                  }}
+                  placeholder="4.5"
+                  className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
+                />
+              </div>
+
+              {/* Open / Close Time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <label className="text-sm text-slate-400">오픈 시간</label>
+                  <Input
+                    value={placeForm.openTime ?? ''}
+                    onChange={(e) => setPlaceForm((f) => ({ ...f, openTime: e.target.value }))}
+                    placeholder="09:00"
+                    className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <label className="text-sm text-slate-400">마감 시간</label>
+                  <Input
+                    value={placeForm.closeTime ?? ''}
+                    onChange={(e) => setPlaceForm((f) => ({ ...f, closeTime: e.target.value }))}
+                    placeholder="22:00"
+                    className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {stadiumError && (
+              <p className="text-red-400 text-sm mt-1">{stadiumError}</p>
+            )}
+
+            <DialogFooter className="mt-2">
+              <Button
+                variant="ghost"
+                onClick={() => setPlaceDialog(null)}
+                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handlePlaceSubmit}
+                disabled={placeSubmitting || !placeForm.name || !placeForm.category}
+                className="bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/25"
+              >
+                {placeSubmitting ? '저장 중...' : (placeDialog === 'create' ? '추가' : '저장')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── Place Delete AlertDialog ──────────────────────────────────────── */}
+        <AlertDialog
+          open={deletingPlaceId !== null}
+          onOpenChange={(open) => { if (!open) setDeletingPlaceId(null); }}
+        >
+          <AlertDialogContent className="bg-slate-900 border-slate-800 text-slate-100">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">장소를 삭제하시겠습니까?</AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-400">
+                이 작업은 되돌릴 수 없습니다. 해당 장소 정보가 영구적으로 삭제됩니다.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700">
+                취소
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeletePlace}
+                className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25"
+              >
+                삭제
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {selectedReportId && (
           <div className="fixed inset-0 z-50">
@@ -861,6 +1427,82 @@ export default function AdminPage() {
             </aside>
           </div>
         )}
+
+        {/* Role Change Confirmation Dialog */}
+        <AlertDialog
+          open={pendingRoleChange !== null}
+          onOpenChange={(open) => {
+            if (!open) setPendingRoleChange(null);
+          }}
+        >
+          <AlertDialogContent className="bg-slate-900 border-slate-800 text-slate-100 max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white flex items-center gap-2">
+                <UserCog className="w-5 h-5 text-amber-400" />
+                역할 변경 확인
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-400 space-y-2">
+                <span className="block">
+                  <span className="text-slate-200 font-medium">{pendingRoleChange?.userName}</span>
+                  {' '}({pendingRoleChange?.userEmail}) 의 역할을 변경합니다.
+                </span>
+                <span className="flex items-center gap-2 text-sm">
+                  <Badge className="bg-slate-700 text-slate-300 border-0 text-xs">
+                    {pendingRoleChange?.currentRole === 'ROLE_ADMIN' ? '관리자' : '일반 사용자'}
+                  </Badge>
+                  <span className="text-slate-500">→</span>
+                  <Badge
+                    className={
+                      pendingRoleChange?.targetRole === 'ROLE_ADMIN'
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-xs'
+                        : 'bg-slate-700 text-slate-300 border-0 text-xs'
+                    }
+                  >
+                    {pendingRoleChange?.targetRole === 'ROLE_ADMIN' ? '관리자' : '일반 사용자'}
+                  </Badge>
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="px-1 pb-2">
+              <label className="block text-sm text-slate-400 mb-1">변경 사유 (선택)</label>
+              <Input
+                placeholder="역할 변경 사유를 입력하세요..."
+                value={roleChangeReason}
+                onChange={(e) => setRoleChangeReason(e.target.value)}
+                className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg focus:ring-amber-500 focus:border-amber-500"
+              />
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                className="bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                onClick={() => setPendingRoleChange(null)}
+              >
+                취소
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className={
+                  pendingRoleChange?.targetRole === 'ROLE_ADMIN'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/25'
+                    : 'bg-gradient-to-r from-slate-600 to-slate-700 text-white border-0 hover:from-slate-500 hover:to-slate-600'
+                }
+                onClick={async () => {
+                  if (!pendingRoleChange) return;
+                  await handleRoleChange(
+                    pendingRoleChange.userId,
+                    pendingRoleChange.targetRole,
+                    roleChangeReason || undefined,
+                  );
+                  setPendingRoleChange(null);
+                  setRoleChangeReason('');
+                }}
+              >
+                {pendingRoleChange?.targetRole === 'ROLE_ADMIN' ? '관리자로 승격' : '일반 사용자로 강등'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Footer */}
         <footer className="mt-10 text-center text-slate-600 text-sm">

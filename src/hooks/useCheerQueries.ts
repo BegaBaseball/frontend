@@ -373,9 +373,9 @@ export const useCheerMutations = () => {
             await cancelRepostListQueries(queryClient);
 
             const previousPost = queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]);
-            const currentLiked = (post: CheerPost | cheerApi.CheerPost) => post.liked || post.likedByUser || false;
+            const currentLiked = (post: CheerPost | cheerApi.CheerPost) => post.liked || false;
             const nextCount = (post: CheerPost | cheerApi.CheerPost, liked: boolean) => {
-                const current = post.likeCount ?? post.likes ?? 0;
+                const current = post.likeCount ?? 0;
                 return Math.max(0, liked ? current + 1 : current - 1);
             };
 
@@ -384,10 +384,8 @@ export const useCheerMutations = () => {
                 const optimisticLiked = !currentLiked(previousPost);
                 queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], {
                     ...previousPost,
-                    likes: nextCount(previousPost, optimisticLiked),
                     likeCount: nextCount(previousPost, optimisticLiked),
                     liked: optimisticLiked,
-                    likedByUser: optimisticLiked,
                 });
             }
 
@@ -402,8 +400,8 @@ export const useCheerMutations = () => {
                             if (!isRepostTargetMatch(post, postId)) return post;
                             const optimisticLiked = !currentLiked(post);
                             const currentLikeCount = post.originalPost?.id === postId
-                                ? (post.originalPost.likeCount ?? post.likeCount ?? post.likes ?? 0)
-                                : (post.likeCount ?? post.likes ?? 0);
+                                ? (post.originalPost.likeCount ?? post.likeCount ?? 0)
+                                : (post.likeCount ?? 0);
                             const optimisticLikeCount = Math.max(0, currentLikeCount + (optimisticLiked ? 1 : -1));
                             return syncLikeActionState(post, postId, optimisticLiked, optimisticLikeCount);
                         }),
@@ -446,7 +444,7 @@ export const useCheerMutations = () => {
                         ...page,
                         content: page.content.map((post) => {
                             if (!isRepostTargetMatch(post, postId)) return post;
-                            const currentBookmarked = post.isBookmarked ?? post.bookmarked ?? false;
+                            const currentBookmarked = post.bookmarked ?? false;
                             const nextBookmarked = !currentBookmarked;
                             const nextBookmarkCount = Math.max(
                                 0,
@@ -464,7 +462,7 @@ export const useCheerMutations = () => {
                     ...old,
                     content: old.content.map((post) => {
                         if (post.id !== postId) return post;
-                        const currentBookmarked = post.isBookmarked ?? post.bookmarked ?? false;
+                        const currentBookmarked = post.bookmarked ?? false;
                         const nextBookmarked = !currentBookmarked;
                         const nextBookmarkCount = Math.max(
                             0,
@@ -472,7 +470,6 @@ export const useCheerMutations = () => {
                         );
                         return {
                             ...post,
-                            isBookmarked: nextBookmarked,
                             bookmarked: nextBookmarked,
                             bookmarkCount: nextBookmarkCount,
                         };
@@ -481,7 +478,7 @@ export const useCheerMutations = () => {
             };
 
             if (previousPost) {
-                const currentBookmarked = previousPost.isBookmarked ?? previousPost.bookmarked ?? false;
+                const currentBookmarked = previousPost.bookmarked ?? false;
                 const nextBookmarked = !currentBookmarked;
                 const nextBookmarkCount = Math.max(
                     0,
@@ -489,7 +486,6 @@ export const useCheerMutations = () => {
                 );
                 queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], {
                     ...previousPost,
-                    isBookmarked: nextBookmarked,
                     bookmarked: nextBookmarked,
                     bookmarkCount: nextBookmarkCount,
                 });

@@ -8,16 +8,18 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient, InfiniteData }
 import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Smile, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TEAM_DATA } from '../constants/teams';
-import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost, ShareMode } from '../api/cheerApi';
+import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPostChanges, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost, ShareMode } from '../api/cheerApi';
 import { fetchTeamFranchiseMetadata } from '../api/teamFranchiseApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
 import { motion } from 'framer-motion';
 import TeamLogo from './TeamLogo';
 import CheerCard from './CheerCard';
+import CheerBattleBanner from './CheerBattleBanner';
 import CheerHot from './CheerHot';
 import CheerWriteModal, { CheerWritePayload } from './CheerWriteModal';
 import EndOfFeed from './EndOfFeed';
+import ErrorBoundary from './common/ErrorBoundary';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import {
     normalizeHexColor,
@@ -26,6 +28,8 @@ import {
     getContrastText,
     DEFAULT_BRAND_COLOR,
 } from '../utils/teamColors';
+import { compressImages } from '../utils/imageCompression';
+import { resolveLatestVisiblePostId } from '../utils/cheerPolling';
 
 type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
 type FeedTabKey = 'all' | 'popular' | 'following';
@@ -291,8 +295,21 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
             let uploadedUrls: string[] = [];
             let uploadFailed = false;
             if (created?.id && payload.files.length > 0) {
+                let filesToUpload = payload.files;
                 try {
-                    uploadedUrls = await uploadPostImages(created.id, payload.files);
+                    filesToUpload = await compressImages(payload.files, {
+                        maxSizeMB: 1,
+                        maxWidthOrHeight: 1920,
+                        initialQuality: 0.82,
+                        useWebWorker: true,
+                    });
+                } catch (compressionError) {
+                    console.warn('이미지 선압축에 실패하여 원본 업로드를 진행합니다.', compressionError);
+                    filesToUpload = payload.files;
+                }
+
+                try {
+                    uploadedUrls = await uploadPostImages(created.id, filesToUpload);
                 } catch (error) {
                     // 이미지 업로드 실패 시 게시글 삭제 (Atomic 처럼 동작하게)
                     console.error('Image upload failed, deleting post...', error);
@@ -420,7 +437,6 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                     ...post,
                                     ...createdPost,
                                     authorProfileImageUrl: createdPost.authorProfileImageUrl ?? post.authorProfileImageUrl,
-                                    images: uploadedUrls.length > 0 ? uploadedUrls : post.images ?? createdPost.images,
                                     imageUrls: uploadedUrls.length > 0 ? uploadedUrls : post.imageUrls ?? createdPost.imageUrls,
                                     imageUploadFailed: uploadFailed,
                                 }
@@ -530,31 +546,27 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
         });
     }, [data]);
 
+    const latestVisiblePostId = useMemo(
+        () => resolveLatestVisiblePostId(currentPosts),
+        [currentPosts]
+    );
+
     // Polling for new posts
-    const { data: polledData } = useQuery({
-        queryKey: ['cheer-polling', activeFeedTab],
-        queryFn: () => fetchPosts({
-            page: 0,
-            size: 10,
-            postType: activeTabConfig?.postType
+    const { data: polledChanges } = useQuery({
+        queryKey: ['cheer-polling-changes', activeFeedTab, latestVisiblePostId],
+        queryFn: () => fetchPostChanges({
+            sinceId: latestVisiblePostId,
         }),
         refetchInterval: 15000,
-        enabled: !isLoading && activeFeedTab === 'all',
+        enabled: !isLoading && activeFeedTab === 'all' && latestVisiblePostId !== null,
     });
 
     useEffect(() => {
-        if (!polledData?.content || !currentPosts.length) return;
-
-        // Find the maximum ID in current posts to handle pinned/notice posts correctly
-        const maxCurrentId = Math.max(...currentPosts.map((p) => p.id));
-
-        // Count how many polled posts have ID > maxCurrentId
-        const newCount = polledData.content.filter((p: CheerPost) => p.id > maxCurrentId).length;
-
-        if (newCount > 0) {
-            setNewPostCount(newCount);
+        if (!polledChanges) return;
+        if (polledChanges.newCount > 0) {
+            setNewPostCount(polledChanges.newCount);
         }
-    }, [polledData, currentPosts]);
+    }, [polledChanges]);
 
     // Smart Retry for Infinite Scroll (Fix for Duplicate/Offset Loop)
     useEffect(() => {
@@ -729,9 +741,25 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                 </button>
                             )}
 
-                            <div className="mx-4 mt-4">
-
-                            </div>
+                            {/* CheerBattle Banner - only shown when a valid game with gameId exists */}
+                            {featuredGame?.gameId &&
+                                featuredGame.gameStatus !== 'OFFSEASON' &&
+                                featuredGame.homeTeam &&
+                                featuredGame.awayTeam && (
+                                    <ErrorBoundary
+                                        fallback={(
+                                            <div className="mx-4 mt-4 mb-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                                                실시간 응원 배틀을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+                                            </div>
+                                        )}
+                                    >
+                                        <CheerBattleBanner
+                                            gameId={featuredGame.gameId}
+                                            homeTeamId={featuredGame.homeTeam}
+                                            awayTeamId={featuredGame.awayTeam}
+                                        />
+                                    </ErrorBoundary>
+                                )}
 
                             <section
                                 className={cn(
@@ -948,7 +976,16 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                 ) : (
                                     <div className="px-4 py-4 space-y-4">
                                         {currentPosts.map((post) => (
-                                            <CheerCard key={post.id} post={post} />
+                                            <ErrorBoundary
+                                                key={post.id}
+                                                fallback={(
+                                                    <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                                                        일부 게시글을 표시하는 중 오류가 발생했습니다. 다음 게시글부터 계속 볼 수 있습니다.
+                                                    </article>
+                                                )}
+                                            >
+                                                <CheerCard post={post} />
+                                            </ErrorBoundary>
                                         ))}
                                     </div>
                                 )}

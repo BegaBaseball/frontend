@@ -1,0 +1,152 @@
+{
+  "ok": true,
+  "checkedAt": "2026-02-26T20:54:55.435Z",
+  "siteUrl": "https://www.begabaseball.xyz",
+  "timeoutMs": 30000,
+  "routes": [
+    "/",
+    "/home",
+    "/cheer"
+  ],
+  "strategies": [
+    "mobile",
+    "desktop"
+  ],
+  "checks": [],
+  "warnings": [
+    "[/ | mobile] 측정 예외: fetch failed",
+    "[/ | desktop] 측정 예외: fetch failed",
+    "[/home | mobile] 측정 예외: fetch failed",
+    "[/home | desktop] 측정 예외: fetch failed",
+    "[/cheer | mobile] 측정 예외: fetch failed",
+    "[/cheer | desktop] 측정 예외: fetch failed"
+  ],
+  "results": [
+    {
+      "route": "/",
+      "strategy": "mobile",
+      "targetUrl": "https://www.begabaseball.xyz",
+      "status": "warning",
+      "performanceScore": null,
+      "lcp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "inp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "cls": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "rawFinalUrl": null,
+      "error": "fetch failed"
+    },
+    {
+      "route": "/",
+      "strategy": "desktop",
+      "targetUrl": "https://www.begabaseball.xyz",
+      "status": "warning",
+      "performanceScore": null,
+      "lcp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "inp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "cls": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "rawFinalUrl": null,
+      "error": "fetch failed"
+    },
+    {
+      "route": "/home",
+      "strategy": "mobile",
+      "targetUrl": "https://www.begabaseball.xyz/home",
+      "status": "warning",
+      "performanceScore": null,
+      "lcp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "inp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "cls": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "rawFinalUrl": null,
+      "error": "fetch failed"
+    },
+    {
+      "route": "/home",
+      "strategy": "desktop",
+      "targetUrl": "https://www.begabaseball.xyz/home",
+      "status": "warning",
+      "performanceScore": null,
+      "lcp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "inp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "cls": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "rawFinalUrl": null,
+      "error": "fetch failed"
+    },
+    {
+      "route": "/cheer",
+      "strategy": "mobile",
+      "targetUrl": "https://www.begabaseball.xyz/cheer",
+      "status": "warning",
+      "performanceScore": null,
+      "lcp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "inp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "cls": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "rawFinalUrl": null,
+      "error": "fetch failed"
+    },
+    {
+      "route": "/cheer",
+      "strategy": "desktop",
+      "targetUrl": "https://www.begabaseball.xyz/cheer",
+      "status": "warning",
+      "performanceScore": null,
+      "lcp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "inp": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "cls": {
+        "numericValue": null,
+        "displayValue": "-"
+      },
+      "rawFinalUrl": null,
+      "error": "fetch failed"
+    }
+  ]
+}

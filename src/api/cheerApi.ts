@@ -1,6 +1,7 @@
 import { formatTimeAgo } from '../utils/time';
 import api from './axios';
 import { getTeamColorByAnyKey, TEAM_DATA, getFullTeamName } from '../constants/teams';
+import { buildPostChangesQuery } from '../utils/cheerPolling';
 
 export function getTeamNameById(teamId: string | null): string {
     if (!teamId) return '전체';
@@ -40,15 +41,10 @@ export interface CheerPost {
     createdAt: string;
     updatedAt: string;
     liked: boolean;
-    likedByUser: boolean; // compatibility
     bookmarked: boolean;
-    isBookmarked: boolean; // compatibility
     isOwner: boolean;
     repostedByMe: boolean;
     imageUrls?: string[];
-    images?: string[]; // compatibility
-    comments: number; // Changed from any[] to number (count)
-    likes: number; // Changed from number | undefined to number
     imageUploadFailed?: boolean; // Added
     // 리포스트 관련 필드
     repostOfId?: number;           // 원본 게시글 ID (리포스트인 경우)
@@ -78,6 +74,11 @@ export interface FetchPostsParams {
     page?: number;
     size?: number;
     sort?: string;
+}
+
+export interface PostChangesResponse {
+    newCount: number;
+    latestId: number | null;
 }
 
 export type PopularFeedAlgorithm = 'TIME_DECAY' | 'ENGAGEMENT_RATE' | 'HYBRID';
@@ -204,6 +205,16 @@ export const fetchFollowingPosts = async (params: FetchPostsParams = {}): Promis
     return transformPostPage(response.data);
 };
 
+// 게시글 변경사항 조회 (폴링용 경량 엔드포인트)
+export const fetchPostChanges = async (params: {
+    sinceId?: number | null;
+    teamId?: string | null;
+} = {}): Promise<PostChangesResponse> => {
+    const query = buildPostChangesQuery(params);
+    const response = await api.get(`/cheer/posts/changes${query}`);
+    return response.data;
+};
+
 export const searchPosts = async (params: SearchPostsParams): Promise<PageResponse<CheerPost>> => {
     const { q, teamId, page = 0, size = 20, sort } = params;
     const searchParams = new URLSearchParams({
@@ -300,18 +311,13 @@ function transformPost(post: PostDTO): CheerPost {
         authorProfileImageUrl: post.authorProfileImageUrl,
         authorTeamId: post.authorTeamId,
         timeAgo: formatTimeAgo(post.createdAt),
-        comments: post.comments || 0, // Now number
-        likes: post.likes || 0,
         likeCount: post.likeCount ?? post.likes ?? 0,
         commentCount: post.commentCount ?? post.comments ?? 0,
         bookmarkCount: post.bookmarkCount ?? 0,
         repostCount: post.repostCount ?? 0,
         views: post.views,
         liked: post.liked ?? post.likedByMe ?? false,
-        likedByUser: post.liked ?? post.likedByMe ?? false,
         bookmarked: post.bookmarkedByMe ?? post.isBookmarked ?? false,
-        isBookmarked: post.bookmarkedByMe ?? post.isBookmarked ?? false,
-        images: post.imageUrls || [],
         imageUrls: post.imageUrls || [],
         isOwner: post.isOwner ?? false,
         repostedByMe: post.repostedByMe ?? false,

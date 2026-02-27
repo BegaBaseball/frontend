@@ -1,6 +1,66 @@
 /// <reference types="cypress" />
 
 describe('Cheer 커뮤니티 결함 해결 검증', () => {
+    const authToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3RVc2VyIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+    const seedAuthState = (win: Window, role: 'ROLE_USER' | 'ROLE_ADMIN' = 'ROLE_USER') => {
+        const isAdmin = role === 'ROLE_ADMIN';
+        const id = isAdmin ? 2 : 123;
+        const name = isAdmin ? 'AdminUser' : 'TestUser';
+        const handle = isAdmin ? 'admin' : 'testuser';
+        const email = isAdmin ? 'admin@example.com' : 'test@example.com';
+
+        win.localStorage.setItem(
+            'auth-storage',
+            JSON.stringify({
+                state: {
+                    user: {
+                        id,
+                        email,
+                        name,
+                        handle,
+                        favoriteTeam: 'HH',
+                        role,
+                        isAdmin,
+                        profileImageUrl: null,
+                        hasPassword: true,
+                        policyConsentRequired: false,
+                        policyConsentNoticeRequired: false,
+                        missingPolicyTypes: [],
+                    },
+                    isLoggedIn: true,
+                    isAdmin,
+                },
+                version: 0,
+            })
+        );
+        win.localStorage.setItem('accessToken', authToken);
+        win.localStorage.setItem('bega_has_visited', 'true');
+        win.localStorage.setItem('bega_dont_show_guide', 'true');
+    };
+    const stubAuthProfile = (role: 'ROLE_USER' | 'ROLE_ADMIN' = 'ROLE_USER') => {
+        const isAdmin = role === 'ROLE_ADMIN';
+        cy.intercept('GET', '**/auth/mypage*', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    id: isAdmin ? 2 : 123,
+                    email: isAdmin ? 'admin@example.com' : 'test@example.com',
+                    name: isAdmin ? 'AdminUser' : 'TestUser',
+                    handle: isAdmin ? 'admin' : 'testuser',
+                    favoriteTeam: 'HH',
+                    role,
+                    profileImageUrl: null,
+                    hasPassword: true,
+                    policyConsentRequired: false,
+                    policyConsentNoticeRequired: false,
+                    missingPolicyTypes: [],
+                },
+            },
+        }).as('getMeAnyPath');
+    };
+
     it('1) NoticePage 글쓰기 버튼이 /cheer/write로 이동하고 작성 composer가 열린다', () => {
         const noticePost = {
             id: 901,
@@ -33,8 +93,8 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             imageUrls: [],
         };
 
-        cy.login('admin');
         cy.mockAPI();
+        stubAuthProfile('ROLE_ADMIN');
         cy.intercept('GET', '**/api/auth/mypage*', {
             statusCode: 200,
             body: {
@@ -89,7 +149,11 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             });
         }).as('getCheerPosts');
 
-        cy.visit('/notice');
+        cy.visit('/notice', {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_ADMIN');
+            },
+        });
         cy.wait('@getAdminMe');
         cy.wait('@getCheerPosts');
         cy.contains('button', '글쓰기').click();
@@ -167,8 +231,8 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
     });
 
     it('3) 새 글 작성 시 payload postType이 NORMAL로 전송된다', () => {
-        cy.login('user');
         cy.mockAPI();
+        stubAuthProfile('ROLE_USER');
 
         cy.intercept('GET', '**/api/cheer/posts*', {
             statusCode: 200,
@@ -220,7 +284,11 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             });
         }).as('createCheerPost');
 
-        cy.visit('/cheer');
+        cy.visit('/cheer', {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER');
+            },
+        });
         cy.get('textarea[placeholder*="응원"]').type('Cypress postType check');
         cy.get('[data-testid="write-post-btn"]').click();
 
@@ -228,8 +296,8 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
     });
 
     it('4) 단순 리포스트 상세에서 액션 상태/목표가 원글 기준으로 정합화된다', () => {
-        cy.login('user');
         cy.mockAPI();
+        stubAuthProfile('ROLE_USER');
 
         const originalPostId = 1;
         const repostPostId = 20;
@@ -354,7 +422,11 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             });
         });
 
-        cy.visit(`/cheer/${repostPostId}`);
+        cy.visit(`/cheer/${repostPostId}`, {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER');
+            },
+        });
 
         cy.contains('리포스트 본문').should('be.visible');
         cy.get('article .mt-6.flex.flex-wrap').as('actionBar');
@@ -389,8 +461,8 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
     });
 
     it('5) 공지/인기/팔로우 탭 회귀 동작을 점검한다', () => {
-        cy.login('user');
         cy.mockAPI();
+        stubAuthProfile('ROLE_USER');
 
         const now = new Date().toISOString();
 
@@ -567,7 +639,11 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             body: { content: [], totalElements: 0, totalPages: 1, last: true, size: 20, number: 0 },
         });
 
-        cy.visit('/notice');
+        cy.visit('/notice', {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER');
+            },
+        });
         cy.wait('@getNoticePosts');
         cy.contains('공지 글').should('be.visible');
 

@@ -11,6 +11,7 @@ import { useNotificationStore } from '../store/notificationStore';
 import NotificationPanel from './NotificationPanel';
 import { motion } from 'framer-motion';
 import { notificationApi, isIgnorableNotificationError } from '../utils/notificationApi';
+import { getChatUnreadCounts } from '../api/mate';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -42,6 +43,29 @@ export default function Navbar() {
   useEffect(() => {
     setUserId(user ? user.id : null);
   }, [user]);
+
+  // 안 읽은 채팅 메시지 수 (폴링)
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setChatUnreadCount(0);
+      return;
+    }
+
+    const checkChatUnread = async () => {
+      try {
+        const count = await getChatUnreadCounts();
+        setChatUnreadCount(count);
+      } catch (error) {
+        // 백그라운드 폴링이므로 에러 무시
+      }
+    };
+
+    void checkChatUnread();
+    const interval = setInterval(checkChatUnread, 30000); // 30초마다 갱신
+    return () => clearInterval(interval);
+  }, [isLoggedIn, location.pathname]); // 경로 변경 시(채팅 뷰 진입/이탈 등) 즉각 업데이트
 
 
   // 초기 알림 개수만 가져오기 (WebSocket이 실시간으로 업데이트)
@@ -96,18 +120,18 @@ export default function Navbar() {
     }
 
     if ('requestIdleCallback' in window) {
-      const idleId = window.requestIdleCallback(() => {
+      const idleId = (window as any).requestIdleCallback(() => {
         prefetchPredictionPage();
       }, { timeout: 1500 });
 
-      return () => window.cancelIdleCallback(idleId);
+      return () => (window as any).cancelIdleCallback(idleId);
     }
 
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       prefetchPredictionPage();
     }, 1200);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => clearTimeout(timeoutId);
   }, [isLoggedIn, prefetchPredictionPage]);
 
 
@@ -174,6 +198,12 @@ export default function Navbar() {
                     {/* 선택된 메뉴 아래에 작은 점 표시 */}
                     {location.pathname === `/${item.id}` && (
                       <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary dark:bg-primary-light" />
+                    )}
+                    {/* 채팅 안 읽은 수 배지 */}
+                    {item.id === 'mate' && chatUnreadCount > 0 && (
+                      <span className="absolute -top-2 -right-5 inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                        {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                      </span>
                     )}
                   </button>
                 ))}
@@ -370,7 +400,14 @@ export default function Navbar() {
                       }`}
                   >
                     <Icon className={`w-5 h-5 ${isActive ? '' : 'text-gray-400'}`} />
-                    <span>{item.label}</span>
+                    <span className="flex items-center gap-2">
+                      {item.label}
+                      {item.id === 'mate' && chatUnreadCount > 0 && (
+                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
+                          {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                        </span>
+                      )}
+                    </span>
                     {isActive && (
                       <span className="ml-auto w-2 h-2 rounded-full bg-current" />
                     )}

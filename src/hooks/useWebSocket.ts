@@ -9,6 +9,7 @@ interface ChatMessage {
   senderId: string | number;
   senderName: string;
   message: string;
+  imageUrl?: string;
   createdAt: string;
 }
 
@@ -84,6 +85,7 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
       senderId: string | number;
       senderName: string;
       message: string;
+      imageUrl?: string;
     }) => {
       if (!clientRef.current || !isConnected) {
         console.error('WebSocket is not connected');

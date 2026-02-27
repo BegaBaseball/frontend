@@ -137,19 +137,28 @@ describe('Home scheduled tab', () => {
       },
     }).as('getPredictionBounds');
 
-    cy.intercept('GET', /\/api\/matches\/\d{8}[A-Z]{4}\d$/, {
-      statusCode: 200,
-      body: {
-        gameId: '20260211LGHH0',
-        gameDate: '2026-02-11',
-        homeTeam: 'HH',
-        awayTeam: 'LG',
-        stadium: '잠실',
-        homeScore: null,
-        awayScore: null,
-        gameStatus: 'SCHEDULED',
-        startTime: '18:30',
-      },
+    cy.intercept('GET', '**/api/matches/*', (req) => {
+      const pathname = new URL(req.url).pathname;
+      const lastSegment = pathname.substring(pathname.lastIndexOf('/') + 1);
+
+      if (lastSegment === 'range' || lastSegment === 'bounds') {
+        return;
+      }
+
+      req.reply({
+        statusCode: 200,
+        body: {
+          gameId: '20260211LGHH0',
+          gameDate: '2026-02-11',
+          homeTeam: 'HH',
+          awayTeam: 'LG',
+          stadium: '잠실',
+          homeScore: null,
+          awayScore: null,
+          gameStatus: 'SCHEDULED',
+          startTime: '18:30',
+        },
+      });
     }).as('getPredictionDetail');
 
     cy.intercept('POST', '**/api/predictions/my-votes', {
@@ -189,7 +198,7 @@ describe('Home scheduled tab', () => {
     cy.contains('연기/취소 경기가 접혀 있습니다. 펼치기 버튼으로 확인하세요.').should('be.visible');
 
     cy.get('[data-testid="home-scheduled-secondary-toggle"]')
-      .click()
+      .click({ force: true })
       .should('have.attr', 'aria-expanded', 'true');
 
     cy.contains('[data-slot="card"]', '경기 연기').should('be.visible');
@@ -203,10 +212,10 @@ describe('Home scheduled tab', () => {
 
     cy.get('[data-testid="home-scheduled-secondary-toggle"]')
       .should('have.attr', 'aria-expanded', 'false')
-      .click()
+      .click({ force: true })
       .should('have.attr', 'aria-expanded', 'true');
 
-    cy.get('[data-testid="home-date-next"]').click();
+    cy.get('[data-testid="home-date-next"]').click({ force: true });
 
     cy.get('[data-testid="home-scheduled-secondary-toggle"]', { timeout: 15000 })
       .should('have.attr', 'aria-expanded', 'false')

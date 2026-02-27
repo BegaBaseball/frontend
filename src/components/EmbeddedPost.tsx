@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import { formatTimeAgo } from '../utils/time';
 import { Trash2 } from 'lucide-react';
+import { OptimizedImage } from './common/OptimizedImage';
 
 interface EmbeddedPostProps {
     post: EmbeddedPostType;
@@ -53,10 +54,14 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
             <div className="flex items-center gap-2 mb-2">
                 <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-secondary overflow-hidden flex-shrink-0">
                     {post.authorProfileImageUrl ? (
-                        <img
+                        <OptimizedImage
                             src={post.authorProfileImageUrl}
                             alt={post.author}
                             className="h-full w-full object-cover block image-render-quality"
+                            loading="lazy"
+                            width={24}
+                            height={24}
+                            sizes="24px"
                         />
                     ) : (
                         <div className="h-full w-full flex items-center justify-center text-xs font-medium text-slate-500 dark:text-gray-300">
@@ -84,10 +89,14 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
             {/* 이미지 미리보기 (첫 번째 이미지만) */}
             {post.imageUrls && post.imageUrls.length > 0 && (
                 <div className="mt-2 relative">
-                    <img
+                    <OptimizedImage
                         src={post.imageUrls[0]}
                         alt="첨부 이미지"
                         className="h-20 w-full object-cover rounded-lg image-render-quality"
+                        loading="lazy"
+                        width={320}
+                        height={80}
+                        sizes="(max-width: 1024px) 100vw, 320px"
                     />
                     {post.imageUrls.length > 1 && (
                         <div className="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
