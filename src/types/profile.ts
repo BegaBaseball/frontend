@@ -46,7 +46,6 @@ export interface ProfileUpdateData {
 export interface ProfileUpdateResponse {
   success: boolean;
   data: {
-    token?: string;
     profileImageUrl?: string | null;
     name?: string;
     email?: string;

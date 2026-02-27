@@ -4,12 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchPublicUserProfileByHandle } from '../../api/profile';
 import { fetchUserPostsByHandle } from '../../api/cheerApi';
 import { getFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
     Loader2,
-    User,
     Trophy,
     Quote,
     ArrowLeft,
@@ -137,7 +136,9 @@ export default function UserProfile() {
                     <Skeleton className="h-[150px] w-full" />
                     {/* 아바타 */}
                     <div className="px-6 -mt-[50px] relative z-10">
-                        <Skeleton className="w-[100px] h-[100px] rounded-full border-4 border-white dark:border-border" />
+                        <div className="w-20 h-20 sm:w-[100px] sm:h-[100px] rounded-full p-1 bg-white dark:bg-border shadow-sm">
+                            <Skeleton className="h-full w-full rounded-full" />
+                        </div>
                     </div>
                     {/* 이름 & 핸들 */}
                     <div className="px-6 pt-4 pb-6 space-y-3">
@@ -233,12 +234,16 @@ export default function UserProfile() {
 
                 {/* Avatar - overlapping banner */}
                 <div className="px-6 -mt-[50px] relative z-10">
-                    <Avatar className="w-[100px] h-[100px] border-4 border-white dark:border-border shadow-xl">
-                        <AvatarImage src={profile.profileImageUrl} className="object-cover" />
-                        <AvatarFallback className="bg-gray-100 dark:bg-secondary text-gray-400">
-                            <User className="w-12 h-12" />
-                        </AvatarFallback>
-                    </Avatar>
+                    <ProfileAvatar
+                        src={profile.profileImageUrl ?? undefined}
+                        alt={profile.name}
+                        fallbackName={profile.name}
+                        width={96}
+                        height={96}
+                        showRing
+                        ringClassName="p-1 bg-white/95 dark:bg-border shadow-sm"
+                        className="shadow-xl"
+                    />
                 </div>
 
                 {/* Profile Info */}
@@ -381,11 +386,11 @@ export default function UserProfile() {
                 </div>
 
                 {isPostsLoading ? (
-                    <div className="flex justify-center py-12">
+                    <div className="flex justify-center py-8 sm:py-10">
                         <Loader2 className="h-8 w-8 animate-spin" style={{ color: theme.primary }} />
                     </div>
                 ) : isPostsError ? (
-                    <div className="text-center py-12 bg-gray-50 dark:bg-card/50 rounded-2xl border border-gray-200 dark:border-border">
+                    <div className="text-center py-8 sm:py-10 bg-gray-50 dark:bg-card/50 rounded-2xl border border-gray-200 dark:border-border">
                         <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-500" />
                         <p className="text-gray-600 dark:text-gray-300 mb-4">
                             게시글을 불러오지 못했습니다.
@@ -410,7 +415,7 @@ export default function UserProfile() {
                         {!hasNextPage && uniquePosts.length > 0 && <EndOfFeed />}
                     </div>
                 ) : (
-                    <div className="text-center py-20 bg-gray-50 dark:bg-card/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-border">
+                    <div className="text-center py-12 sm:py-14 bg-gray-50 dark:bg-card/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-border">
                         <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-300" />
                         <p className="text-gray-400 dark:text-gray-300">
                             아직 작성한 게시글이 없습니다.

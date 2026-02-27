@@ -1,14 +1,8 @@
 
 import { getApiBaseUrl } from './apiBase';
 
-const API_URL = (() => {
-  if (typeof window !== 'undefined' && window.Cypress) {
-    return '/ai';
-  }
-
-  return import.meta.env.VITE_AI_API_URL || '/ai';
-})();
 const APP_API_URL = getApiBaseUrl();
+const COACH_ANALYZE_ENDPOINT = `${APP_API_URL}/ai/coach/analyze`;
 
 export interface AnalyzeLeagueContext {
     season?: number | string;
@@ -36,8 +30,14 @@ export interface AnalyzeRequest {
     league_context?: AnalyzeLeagueContext;
     focus?: string[];
     game_id?: string;
-    request_mode?: 'auto_brief' | 'manual_detail';
+    request_mode: CoachRequestMode;
     question_override?: string;
+}
+
+export type CoachRequestMode = 'auto_brief' | 'manual_detail';
+
+export interface AnalyzeRequestBase {
+    request_mode: CoachRequestMode;
 }
 
 // Structured dashboard stat
@@ -98,6 +98,7 @@ export interface CoachStructuredResponse {
 // API Response wrapper
 export interface CoachAnalyzeResponse {
     data?: CoachAnalysisData;
+    request_mode?: CoachRequestMode;
     raw_answer?: string;  // For debugging
     answer?: string;
     tool_calls?: Array<unknown>;
@@ -134,27 +135,91 @@ function isAbortLikeError(error: unknown): boolean {
     return String(error ?? '').toLowerCase().includes('abort');
 }
 
+const isCoachRequestMode = (requestMode: AnalyzeRequest['request_mode']): requestMode is CoachRequestMode => (
+    requestMode === 'auto_brief' || requestMode === 'manual_detail'
+);
+
+const normalizeCoachRequestMode = (requestMode?: AnalyzeRequest['request_mode']): CoachRequestMode => {
+    if (!requestMode) {
+        return 'manual_detail';
+    }
+    if (isCoachRequestMode(requestMode)) {
+        return requestMode;
+    }
+    throw new Error(`Unsupported request_mode: ${requestMode}`);
+};
+
+const normalizeQuestionOverride = (questionOverride: AnalyzeRequest['question_override']): string | undefined => {
+    if (typeof questionOverride !== 'string') {
+        return undefined;
+    }
+    const trimmed = questionOverride.trim();
+    if (!trimmed) {
+        return undefined;
+    }
+    return trimmed;
+};
+
+const buildCoachAnalyzePayload = (
+    requestMode: CoachRequestMode,
+    baseRequest: AnalyzeRequest,
+    normalizedQuestionOverride: string | undefined,
+): AnalyzeRequest => {
+    const requestPayload: AnalyzeRequest = {
+        ...baseRequest,
+        request_mode: requestMode,
+    };
+
+    if (requestMode === 'auto_brief') {
+        // 자동 브리핑 경로에서는 질문 오버라이드는 정책상 허용되지 않습니다.
+        delete requestPayload.question_override;
+        return requestPayload;
+    }
+
+    if (normalizedQuestionOverride) {
+        requestPayload.question_override = normalizedQuestionOverride;
+    } else {
+        delete requestPayload.question_override;
+    }
+
+    return requestPayload;
+};
+
 export async function analyzeTeam(
     data: AnalyzeRequest,
     onStream?: (chunk: string) => void,
     options?: AnalyzeOptions
 ): Promise<CoachAnalyzeResponse> {
+    const requestMode = normalizeCoachRequestMode(data.request_mode);
+    const normalizedQuestionOverride = normalizeQuestionOverride(data.question_override);
+    const requestPayload = buildCoachAnalyzePayload(
+        requestMode,
+        {
+            ...data,
+            request_mode: requestMode,
+        },
+        normalizedQuestionOverride,
+    );
+
     const requestInit: RequestInit = {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+        },
         credentials: 'include',
-        body: JSON.stringify(data),
+        body: JSON.stringify(requestPayload),
         signal: options?.signal,
     };
 
-    let response = await fetch(`${API_URL}/coach/analyze`, requestInit);
+    let response = await fetch(COACH_ANALYZE_ENDPOINT, requestInit);
+
     if (response.status === 401) {
         const refreshResponse = await fetch(`${APP_API_URL}/auth/reissue`, {
             method: 'POST',
             credentials: 'include',
         });
         if (refreshResponse.ok) {
-            response = await fetch(`${API_URL}/coach/analyze`, requestInit);
+            response = await fetch(COACH_ANALYZE_ENDPOINT, requestInit);
         }
     }
 
@@ -183,6 +248,7 @@ export async function analyzeTeam(
     let resolvedFocus: string[] | undefined = undefined;
     let focusSignature: string | undefined = undefined;
     let questionSignature: string | undefined = undefined;
+    let requestModeFromMeta: CoachRequestMode = requestPayload.request_mode;
     let cacheKeyVersion: string | undefined = undefined;
     let cacheState: string | undefined = undefined;
     let cached: boolean | undefined = undefined;
@@ -234,6 +300,12 @@ export async function analyzeTeam(
                                 if (parsed.verified !== undefined) verified = parsed.verified;
                                 if (parsed.data_sources) dataSources = parsed.data_sources;
                                 if (Array.isArray(parsed.resolved_focus)) resolvedFocus = parsed.resolved_focus;
+                                if (
+                                    parsed.request_mode === 'auto_brief'
+                                    || parsed.request_mode === 'manual_detail'
+                                ) {
+                                    requestModeFromMeta = parsed.request_mode;
+                                }
                                 if (typeof parsed.focus_signature === 'string') focusSignature = parsed.focus_signature;
                                 if (typeof parsed.question_signature === 'string') questionSignature = parsed.question_signature;
                                 if (typeof parsed.cache_key_version === 'string') cacheKeyVersion = parsed.cache_key_version;
@@ -272,6 +344,7 @@ export async function analyzeTeam(
         resolved_focus: resolvedFocus,
         focus_signature: focusSignature,
         question_signature: questionSignature,
+        request_mode: requestModeFromMeta,
         cache_key_version: cacheKeyVersion,
         cache_state: cacheState,
         cached: cached,

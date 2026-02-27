@@ -2,23 +2,25 @@ import { Edit, BarChart3, Ticket, UserPlus, Users, Coins } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Skeleton } from './ui/skeleton';
+import LoadingSpinner from './LoadingSpinner';
 import TeamLogo from './TeamLogo';
 import ProfileEditSection from './mypage/ProfileEditSection';
 import PasswordChangeSection from './mypage/PasswordChangeSection';
 import DiaryViewSection from './mypage/Diaryform';
-import DiaryStatistics from './mypage/Diarystatistics';
 import MateHistorySection from './mypage/MateHistorySection';
 import { useMyPage } from '../hooks/useMyPage';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useQuery } from '@tanstack/react-query';
 import { getFollowCounts } from '../api/followApi';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import UserListModal from './profile/UserListModal';
 import { TicketUploadModal } from './ticket/TicketUploadModal';
 import { useDiaryStore } from '../store/diaryStore';
 import { TicketInfo } from '../api/ticket';
 import { ProfileAvatar } from './ui/ProfileAvatar';
+
+const DiaryStatistics = lazy(() => import('./mypage/Diarystatistics'));
 
 export default function MyPage() {
     const {
@@ -101,7 +103,7 @@ export default function MyPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-[calc(7rem+env(safe-area-inset-bottom))]">
         {/* 상단 프로필 카드 */}
           <Card className="p-4 md:p-8 mb-8 dark:bg-card dark:border-border">
             {isProfileLoading ? (
@@ -209,14 +211,14 @@ export default function MyPage() {
 
               <Button
                 onClick={() => setViewMode('mateHistory')}
-                className="flex items-center justify-center gap-2 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 md:h-11 px-4 whitespace-nowrap"
+                  className="flex items-center justify-center gap-2 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-11 px-4 whitespace-nowrap"
               >
                 <Users className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">메이트 내역</span>
               </Button>
               <Button
                 onClick={handleToggleStats}
-                className="flex items-center justify-center gap-2 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 md:h-11 px-4 whitespace-nowrap"
+                  className="flex items-center justify-center gap-2 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-11 px-4 whitespace-nowrap"
               >
                 <BarChart3 className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">
@@ -226,7 +228,7 @@ export default function MyPage() {
 
               <Button
                 onClick={() => setViewMode('editProfile')}
-                className={`flex items-center justify-center gap-2 text-white bg-primary-dark hover:bg-primary h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
+                className={`flex items-center justify-center gap-2 text-white bg-primary-dark hover:bg-primary h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
               >
                 <Edit className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm md:text-base">내 정보 수정</span>
@@ -234,10 +236,9 @@ export default function MyPage() {
 
               <TicketUploadModal
                 onConfirm={handleTicketConfirm}
-                onTicketAnalyzed={(data) => console.log('Analyzed Ticket:', data)}
                 trigger={
                   <Button
-                    className={`flex items-center justify-center gap-2 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 md:h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
+                  className={`flex items-center justify-center gap-2 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-11 px-4 whitespace-nowrap ${!isDesktop ? 'col-span-2' : ''}`}
                   >
                     <Ticket className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm md:text-base">티켓 등록</span>
@@ -294,7 +295,11 @@ export default function MyPage() {
 
         {viewMode === 'diary' && <DiaryViewSection />}
 
-        {viewMode === 'stats' && <DiaryStatistics />}
+        {viewMode === 'stats' && (
+          <Suspense fallback={<LoadingSpinner size="lg" text="통계를 불러오는 중..." fullScreen={false} />}>
+            <DiaryStatistics />
+          </Suspense>
+        )}
 
         {viewMode === 'mateHistory' && <MateHistorySection />}
 

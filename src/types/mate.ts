@@ -5,7 +5,7 @@ export interface Party {
   hostName: string;
   hostProfileImageUrl?: string;
   hostFavoriteTeam?: string;
-  hostBadge: string;
+  hostBadge: BadgeType;
   hostRating: number;
   teamId: string;
   gameDate: string;
@@ -39,11 +39,15 @@ export interface Application {
   partyId: number;
   applicantId: number;
   applicantName: string;
-  applicantBadge: string;
+  applicantBadge: BadgeType;
   applicantRating: number;
   message: string;
   depositAmount: number;
   paymentType: 'DEPOSIT' | 'FULL';
+  feeAmount?: number;
+  netSettlementAmount?: number;
+  paymentStatus?: 'PAID' | 'REFUND_REQUESTED' | 'CANCELED' | 'REFUND_FAILED';
+  settlementStatus?: 'PENDING' | 'REQUESTED' | 'COMPLETED' | 'FAILED' | 'SKIPPED' | 'REFUNDED_AFTER_SETTLEMENT';
   isApproved: boolean;
   isRejected: boolean;
   ticketVerified?: boolean;
@@ -77,10 +81,11 @@ export interface ChatMessage {
   senderId: number | string;
   senderName: string;
   message: string;
+  imageUrl?: string;
   createdAt: string;
 }
 
-export type BadgeType = 'new' | 'verified' | 'trusted';
+export type BadgeType = 'NEW' | 'VERIFIED' | 'TRUSTED';
 
 // MateParty: 히스토리/목록용 간소화 타입 (Party의 서브셋)
 export interface MateParty {
@@ -113,7 +118,7 @@ export type MateHistoryTab = 'all' | 'completed' | 'ongoing';
 export interface CreatePartyRequest {
   hostId: number;
   hostName: string;
-  hostBadge?: string;
+  hostBadge?: BadgeType;
   hostRating?: number;
   teamId: string;
   gameDate: string;
@@ -140,9 +145,11 @@ export interface UpdatePartyRequest {
 
 export interface CreateApplicationRequest {
   partyId: number;
-  applicantId: number;
-  applicantName: string;
-  applicantBadge: string;
+  applicantId?: number;
+  applicantName?: string;
+  applicantBadge?: BadgeType;
+  applicantRating?: number;
+  message?: string;
   depositAmount: number;
   paymentType: 'DEPOSIT' | 'FULL';
   verificationToken?: string | null;
@@ -152,8 +159,21 @@ export interface CreateApplicationRequest {
 
 export interface CreateCheckInRequest {
   partyId: number;
-  userId: number;
   location: string;
+  qrSessionId?: string;
+  manualCode?: string;
+}
+
+export interface CreateCheckInQrSessionRequest {
+  partyId: number;
+}
+
+export interface CreateCheckInQrSessionResponse {
+  sessionId: string;
+  partyId: number;
+  expiresAt: string;
+  checkinUrl: string;
+  manualCode?: string;
 }
 
 export interface CreateReviewRequest {
@@ -162,4 +182,27 @@ export interface CreateReviewRequest {
   revieweeId: number;
   rating: number;
   comment?: string;
+}
+
+export type PaymentFlowType = 'DEPOSIT' | 'SELLING_FULL';
+
+export type CancelReasonType =
+  | 'BUYER_CHANGED_MIND'
+  | 'SELLER_CHANGED_MIND'
+  | 'SYSTEM'
+  | 'EVENT_CANCELED'
+  | 'OTHER';
+
+export interface CancelApplicationRequest {
+  cancelReasonType: CancelReasonType;
+  cancelMemo?: string;
+}
+
+export interface CancelApplicationResponse {
+  applicationId: number;
+  refundAmount: number;
+  feeCharged: number;
+  refundPolicyApplied: string;
+  paymentStatus?: Application['paymentStatus'];
+  settlementStatus?: Application['settlementStatus'];
 }

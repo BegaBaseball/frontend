@@ -67,6 +67,12 @@ describe('Authentication Flow', () => {
 
     describe('Protected Routes', () => {
         it('should block access to /mypage without login', () => {
+            // Override default mock to simulate not logged in
+            cy.intercept('GET', '**/api/auth/mypage', {
+                statusCode: 401,
+                body: { success: false, message: 'Unauthorized' }
+            }).as('getMeUnauthorized');
+
             cy.visit('/mypage');
             // Instead of redirecting to /login, it shows a dialog
             cy.contains('로그인 필요').should('be.visible');

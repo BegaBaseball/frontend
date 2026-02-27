@@ -11,6 +11,7 @@ import {
 import api from './axios';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
+import { compressImage } from '../utils/imageCompression';
 
 /**
  * 다른 사용자 프로필 조회 (공개 정보 - ID 기준)
@@ -64,15 +65,24 @@ export async function fetchUserProfile(): Promise<UserProfile> {
  * 프로필 이미지 업로드
  */
 export async function uploadProfileImage(file: File): Promise<ProfileImageDto> {
+  let fileToUpload = file;
+  try {
+    fileToUpload = await compressImage(file, {
+      maxSizeMB: 0.8,
+      maxWidthOrHeight: 1536,
+      initialQuality: 0.88,
+      useWebWorker: true,
+    });
+  } catch (compressionError) {
+    console.warn('프로필 이미지 선압축에 실패하여 원본 업로드를 진행합니다.', compressionError);
+    fileToUpload = file;
+  }
+
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', fileToUpload);
 
   try {
-    const response = await api.post('/profile/image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.postForm('/profile/image', formData);
 
     if (response.data.success) {
       return response.data.data;
@@ -118,6 +128,17 @@ export interface NicknameCheckResponse {
   message?: string;
   normalized?: string;
 }
+
+const isNicknameCheckResponse = (value: unknown): value is NicknameCheckResponse => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return (
+    'available' in value &&
+    typeof (value as { available: unknown }).available === 'boolean'
+  );
+};
 
 export async function changePassword(data: ChangePasswordRequest): Promise<void> {
   try {
@@ -247,7 +268,7 @@ export async function deleteOtherDeviceSessions(): Promise<string> {
  */
 export async function checkNicknameAvailability(name: string): Promise<NicknameCheckResponse> {
   try {
-    const response = await api.get<{ success: boolean; message?: string; data?: NicknameCheckResponse }>(`/auth/check-name`, {
+    const response = await api.get<{ success: boolean; message?: string; data?: unknown }>(`/auth/check-name`, {
       params: { name },
     });
 
@@ -258,8 +279,8 @@ export async function checkNicknameAvailability(name: string): Promise<NicknameC
       };
     }
 
-    const payload = response.data.data || {};
-    if (typeof payload.available === 'boolean') {
+    const payload = response.data.data;
+    if (isNicknameCheckResponse(payload)) {
       return payload;
     }
 

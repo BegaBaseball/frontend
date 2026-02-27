@@ -50,7 +50,7 @@
 | 수탁업체 | 위탁업무 내용 |
 | :--- | :--- |
 | **AWS (Amazon Web Services)** | 서비스 서버 운영 및 데이터 관리 |
-| **Supabase** | 데이터베이스 시스템 운영 및 데이터 보관 |
+| **OCI (Oracle Cloud Infrastructure)** | Autonomous Database 및 Object Storage 운영 |
 
 ### 7. 이용자 및 법정대리인의 권리와 그 행사방법
 

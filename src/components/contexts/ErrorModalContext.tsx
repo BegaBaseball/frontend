@@ -39,14 +39,29 @@ export function ErrorModalProvider({ children }: ErrorModalProviderProps) {
     React.useEffect(() => {
         const handleGlobalError = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const errorData = customEvent.detail;
+            const errorData = customEvent.detail as {
+                message?: string;
+                statusCode?: number | null;
+                responseCode?: string;
+            } | undefined;
             const responseCode = (errorData as { responseCode?: string } | undefined)?.responseCode;
             if (responseCode === 'INVALID_AUTHOR') {
                 return;
             }
+            const message = (errorData?.message || '').toString();
+            const statusCode = errorData?.statusCode ?? null;
+            const normalizedMessage = message.toLowerCase();
+            const isCanceledError = statusCode === 0 && (
+                normalizedMessage.includes('canceled')
+                || normalizedMessage.includes('aborted')
+                || normalizedMessage.includes('abort')
+            );
+            if (isCanceledError) {
+                return;
+            }
             openErrorModal({
-                message: errorData.message,
-                statusCode: errorData.statusCode,
+                message,
+                statusCode,
             });
         };
 

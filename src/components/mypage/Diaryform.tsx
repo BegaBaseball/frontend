@@ -25,7 +25,7 @@ interface DiaryReadModeProps {
 interface DiaryEditModeProps {
   diaryForm: DiaryFormData;
   updateForm: (updates: Partial<DiaryFormData>) => void;
-  handlePhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handlePhotoUpload: (files: FileList | null) => Promise<void> | void;
   removePhoto: (index: number) => void;
   availableGames: Game[];
   selectedDiary: DiaryEntry | undefined;
@@ -457,7 +457,7 @@ const getPhotoPreviewUrl = (photo: string | File): string => {
     // File 객체면 임시 미리보기 URL 생성
     return URL.createObjectURL(photo);
   }
-  // 문자열이면 Supabase Storage URL
+  // 문자열이면 기존 storage URL
   return getFullImageUrl(photo);
 };
 
@@ -490,7 +490,7 @@ function DiaryEditMode({
       // 폼 필드 자동 채우기
       // 1. gameId 매칭 (백엔드에서 이미 처리해서 내려줌)
       if (ticketInfo.gameId) {
-        updateForm({ gameId: String(ticketInfo.gameId) });
+        updateForm({ gameId: ticketInfo.gameId });
       } else if (ticketInfo.homeTeam && ticketInfo.awayTeam) {
         // 백엔드에서 매칭 실패시 기존 로직으로 재시도
         const { homeTeam, awayTeam } = ticketInfo;
@@ -507,15 +507,15 @@ function DiaryEditMode({
       // 2. 좌석 정보 매칭
       const seatUpdates: Partial<DiaryFormData> = {};
       if (ticketInfo.section) seatUpdates.section = ticketInfo.section;
-      if (ticketInfo.row) seatUpdates.row = ticketInfo.row;
-      if (ticketInfo.seat) seatUpdates.seat = ticketInfo.seat;
+      if (ticketInfo.row) seatUpdates.seatRow = ticketInfo.row;
+      if (ticketInfo.seat) seatUpdates.seatNumber = ticketInfo.seat;
 
       if (Object.keys(seatUpdates).length > 0) {
         updateForm(seatUpdates);
       }
 
       // 스캔한 티켓 이미지도 사진으로 추가
-      handlePhotoUpload(files);
+      await handlePhotoUpload(files);
 
       toast.success('티켓 분석 완료!', { description: `경기장: ${ticketInfo.stadium || '미확인'} / 날짜: ${ticketInfo.date || '미확인'} / 좌석: ${ticketInfo.section || ''} ${ticketInfo.row || ''} ${ticketInfo.seat || ''}` });
 
@@ -696,7 +696,12 @@ function DiaryEditMode({
       {/* 좌석 정보 (직관 완료시만) */}
       {diaryForm.type === 'attended' && (
         <div className="space-y-3 p-4 bg-gray-50 dark:bg-card/50 rounded-xl border border-gray-100 dark:border-border">
-          <label className="text-sm font-bold text-primary">좌석 정보</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-bold text-primary">좌석 정보</label>
+            <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
+              📸 사진 + 좌석 정보 = +50 포인트
+            </span>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <input
               type="text"
@@ -715,15 +720,15 @@ function DiaryEditMode({
             <input
               type="text"
               placeholder="열 (예: 5열)"
-              value={diaryForm.row || ''}
-              onChange={(e) => updateForm({ row: e.target.value })}
+              value={diaryForm.seatRow || ''}
+              onChange={(e) => updateForm({ seatRow: e.target.value })}
               className="p-2 border rounded-lg text-sm dark:bg-secondary dark:border-border dark:text-gray-100"
             />
             <input
               type="text"
               placeholder="번 (예: 13번)"
-              value={diaryForm.seat || ''}
-              onChange={(e) => updateForm({ seat: e.target.value })}
+              value={diaryForm.seatNumber || ''}
+              onChange={(e) => updateForm({ seatNumber: e.target.value })}
               className="p-2 border rounded-lg text-sm dark:bg-secondary dark:border-border dark:text-gray-100"
             />
           </div>

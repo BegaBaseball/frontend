@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Button } from '../ui/button';
 import { AlertCircle, Loader2, User, X } from 'lucide-react';
 import { getFollowers, getFollowing } from '../../api/followApi';
@@ -67,7 +67,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-gray-500"
+                        className="h-11 w-11 min-h-11 p-0 text-gray-400 hover:text-gray-500"
                         onClick={onClose}
                     >
                         <X className="h-5 w-5" />
@@ -83,7 +83,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
                     ) : isError ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                        <div className="flex flex-col items-center justify-center py-8 sm:py-10 text-center px-4">
                             <AlertCircle className="h-8 w-8 text-red-500 mb-3" />
                             <p className="text-gray-900 dark:text-gray-100 font-medium mb-3">
                                 목록을 불러오지 못했습니다.
@@ -96,17 +96,20 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                         <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
                             {users.map((user) => (
                                 <div key={user.id} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                    <div
-                                        className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 mr-4"
-                                        onClick={() => handleUserClick(user.handle)}
-                                    >
-                                        <Avatar className="h-10 w-10 border border-gray-200 dark:border-border">
-                                            <AvatarImage src={user.profileImageUrl} />
-                                            <AvatarFallback className="bg-gray-100 text-gray-400">
-                                                <User className="h-5 w-5" />
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex flex-col truncate">
+                                <div
+                                    className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 mr-4"
+                                    onClick={() => handleUserClick(user.handle)}
+                                >
+                                    <ProfileAvatar
+                                        src={user.profileImageUrl ?? undefined}
+                                        alt={user.name}
+                                        fallbackName={user.name}
+                                        width={40}
+                                        height={40}
+                                        showRing
+                                        ringClassName="p-0.5 bg-gray-200/70 dark:bg-white/10"
+                                    />
+                                    <div className="flex flex-col truncate">
                                             <span className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
                                                 {user.name}
                                             </span>
@@ -136,7 +139,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                             )}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                        <div className="flex flex-col items-center justify-center py-8 sm:py-10 text-center px-4">
                             <div className="w-12 h-12 bg-gray-100 dark:bg-card rounded-full flex items-center justify-center mb-3">
                                 <User className="h-6 w-6 text-gray-400" />
                             </div>

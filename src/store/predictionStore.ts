@@ -2,37 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getTeamColorByAnyKey } from '../constants/teams';
 
-export interface Game {
-  id: number;
-  date: string;
-  time: string;
-  homeTeam: string;
-  awayTeam: string;
-  homeTeamColor: string;
-  awayTeamColor: string;
-  stadium: string;
-  homeScore?: number;
-  awayScore?: number;
-  status: 'upcoming' | 'live' | 'finished';
-}
-
-export interface Prediction {
-  gameId: number;
-  predictedWinner: string;
-  predictedScore?: {
-    home: number;
-    away: number;
-  };
-  timestamp: string;
-}
-
-export interface PredictionStats {
-  total: number;
-  correct: number;
-  wrong: number;
-  accuracy: number;
-}
-
 export interface Team {
   id: string;
   name: string;
@@ -54,25 +23,12 @@ const initialTeams: Team[] = [
 ];
 
 interface PredictionState {
-  // 경기 예측 관련
-  games: Game[];
-  predictions: Prediction[];
-  stats: PredictionStats;
-  selectedTab: 'today' | 'upcoming' | 'finished';
-  
   // 순위 예측 관련
   rankings: (Team | null)[];
   availableTeams: Team[];
-  allTeams: Team[]; // ← 추가
+  allTeams: Team[];
   isPredictionSaved: boolean;
-  
-  // 경기 예측 함수들
-  setGames: (games: Game[]) => void;
-  setSelectedTab: (tab: 'today' | 'upcoming' | 'finished') => void;
-  addPrediction: (prediction: Prediction) => void;
-  updatePrediction: (gameId: number, prediction: Partial<Prediction>) => void;
-  calculateStats: () => void;
-  
+
   // 순위 예측 함수들
   addTeamToRanking: (team: Team) => void;
   removeTeamFromRanking: (index: number) => void;
@@ -80,91 +36,30 @@ interface PredictionState {
   resetRankings: () => void;
   completePrediction: () => void;
   setIsPredictionSaved: (saved: boolean) => void;
-  setRankings: (rankings: (Team | null)[]) => void; // ← 추가
+  setRankings: (rankings: (Team | null)[]) => void;
 }
 
 export const usePredictionStore = create<PredictionState>()(
   persist(
     (set, get) => ({
-      // 경기 예측 초기 상태
-      games: [],
-      predictions: [],
-      stats: {
-        total: 0,
-        correct: 0,
-        wrong: 0,
-        accuracy: 0,
-      },
-      selectedTab: 'today',
-      
       // 순위 예측 초기 상태
       rankings: Array(10).fill(null),
       availableTeams: [...initialTeams],
-      allTeams: [...initialTeams], // ← 추가
+      allTeams: [...initialTeams],
       isPredictionSaved: false,
-      
-      // 경기 예측 함수들
-      setGames: (games) => set({ games }),
-      setSelectedTab: (tab) => set({ selectedTab: tab }),
-      addPrediction: (prediction) =>
-        set((state) => ({
-          predictions: [...state.predictions.filter((p) => p.gameId !== prediction.gameId), prediction],
-        })),
-      updatePrediction: (gameId, prediction) =>
-        set((state) => ({
-          predictions: state.predictions.map((p) =>
-            p.gameId === gameId ? { ...p, ...prediction } : p
-          ),
-        })),
-      calculateStats: () => {
-        const { games, predictions } = get();
-        const finishedGames = games.filter((g) => g.status === 'finished');
-        const finishedPredictions = predictions.filter((p) =>
-          finishedGames.some((g) => g.id === p.gameId)
-        );
-        
-        let correct = 0;
-        finishedPredictions.forEach((pred) => {
-          const game = finishedGames.find((g) => g.id === pred.gameId);
-          if (game && game.homeScore !== undefined && game.awayScore !== undefined) {
-            const actualWinner =
-              game.homeScore > game.awayScore
-                ? game.homeTeam
-                : game.awayScore > game.homeScore
-                ? game.awayTeam
-                : 'draw';
-            if (pred.predictedWinner === actualWinner) {
-              correct++;
-            }
-          }
-        });
-        
-        set({
-          stats: {
-            total: finishedPredictions.length,
-            correct,
-            wrong: finishedPredictions.length - correct,
-            accuracy: finishedPredictions.length > 0 ? (correct / finishedPredictions.length) * 100 : 0,
-          },
-        });
-      },
-      
-      // ← 추가: 순위를 직접 설정하는 함수
+
       setRankings: (newRankings: (Team | null)[]) => {
-        // 새로운 rankings에 있는 팀들을 availableTeams에서 제거
         const usedTeamIds = newRankings.filter(team => team !== null).map(team => team!.id);
         const newAvailableTeams = initialTeams.filter(team => !usedTeamIds.includes(team.id));
-        
-        set({ 
+        set({
           rankings: newRankings,
           availableTeams: newAvailableTeams
         });
       },
-      
+
       // 순위 예측 함수들
       addTeamToRanking: (team) => {
         const { rankings, availableTeams } = get();
-        // 앞에서부터 빈 자리 찾기 (1위부터 채우기)
         let firstEmptyIndex = -1;
         for (let i = 0; i < rankings.length; i++) {
           if (rankings[i] === null) {
@@ -173,28 +68,24 @@ export const usePredictionStore = create<PredictionState>()(
           }
         }
         if (firstEmptyIndex === -1) return;
-        
+
         const newRankings = [...rankings];
         newRankings[firstEmptyIndex] = team;
-        
         const newAvailableTeams = availableTeams.filter(t => t.id !== team.id);
-        
         set({ rankings: newRankings, availableTeams: newAvailableTeams });
       },
-      
+
       removeTeamFromRanking: (index) => {
         const { rankings, availableTeams } = get();
         const team = rankings[index];
         if (!team) return;
-        
+
         const newRankings = [...rankings];
         newRankings[index] = null;
-        
         const newAvailableTeams = [...availableTeams, team];
-        
         set({ rankings: newRankings, availableTeams: newAvailableTeams });
       },
-      
+
       moveTeam: (fromIndex, toIndex) => {
         const { rankings } = get();
         const newRankings = [...rankings];
@@ -202,7 +93,7 @@ export const usePredictionStore = create<PredictionState>()(
         newRankings.splice(toIndex, 0, movedTeam);
         set({ rankings: newRankings });
       },
-      
+
       resetRankings: () => {
         set({
           rankings: Array(10).fill(null),
@@ -210,11 +101,11 @@ export const usePredictionStore = create<PredictionState>()(
           isPredictionSaved: false,
         });
       },
-      
+
       completePrediction: () => {
         set({ isPredictionSaved: true });
       },
-      
+
       setIsPredictionSaved: (saved) => {
         set({ isPredictionSaved: saved });
       },
@@ -222,8 +113,6 @@ export const usePredictionStore = create<PredictionState>()(
     {
       name: 'prediction-storage',
       partialize: (state) => ({
-        predictions: state.predictions,
-        stats: state.stats,
         rankings: state.rankings,
         isPredictionSaved: state.isPredictionSaved,
       }),

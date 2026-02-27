@@ -69,6 +69,12 @@ export interface DateGames {
   games: Game[];
 }
 
+export interface MatchBounds {
+  hasData: boolean;
+  earliestGameDate: string | null;
+  latestGameDate: string | null;
+}
+
 export interface VoteStatus {
   home: number;
   away: number;

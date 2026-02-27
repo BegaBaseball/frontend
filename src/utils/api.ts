@@ -2,7 +2,8 @@
 import type {
   Party, Application, CheckIn, PartyReview, ChatMessage, PartyStatus,
   CreatePartyRequest, UpdatePartyRequest, CreateApplicationRequest,
-  CreateCheckInRequest, CreateReviewRequest,
+  CreateCheckInRequest, CreateCheckInQrSessionRequest, CreateCheckInQrSessionResponse, CreateReviewRequest,
+  CancelApplicationRequest, CancelApplicationResponse, PaymentFlowType,
 } from '../types/mate';
 import type { UserProfileApiResponse } from '../types/profile';
 import type { NotificationData } from '../types/notification';
@@ -131,7 +132,16 @@ export const api = {
   },
 
   // Party
-  async getParties(teamId?: string, stadium?: string, page = 0, size = 9, status?: PartyStatus, searchQuery?: string, gameDate?: string): Promise<PaginatedResponse<Party>> {
+  async getParties(
+    teamId?: string,
+    stadium?: string,
+    page = 0,
+    size = 9,
+    status?: PartyStatus,
+    searchQuery?: string,
+    gameDate?: string,
+    signal?: AbortSignal,
+  ): Promise<PaginatedResponse<Party>> {
     const params = new URLSearchParams();
     if (teamId) params.append('teamId', teamId);
     if (stadium) params.append('stadium', stadium);
@@ -141,7 +151,7 @@ export const api = {
     params.append('page', page.toString());
     params.append('size', size.toString());
 
-    return this.request<PaginatedResponse<Party>>(`/parties?${params}`);
+    return this.request<PaginatedResponse<Party>>(`/parties?${params}`, { signal });
   },
 
   async createParty(data: CreatePartyRequest): Promise<Party> {
@@ -184,6 +194,10 @@ export const api = {
     return this.request<Application[]>('/applications/my');
   },
 
+  async getMyApplicationByParty(partyId: string | number): Promise<Application | null> {
+    return this.request<Application | null>(`/applications/party/${partyId}/mine`);
+  },
+
   async approveApplication(applicationId: string | number): Promise<Application> {
     return this.request<Application>(`/applications/${applicationId}/approve`, {
       method: 'POST',
@@ -202,6 +216,16 @@ export const api = {
     });
   },
 
+  async cancelApplicationWithReason(
+    applicationId: string | number,
+    data: CancelApplicationRequest,
+  ): Promise<CancelApplicationResponse> {
+    return this.request<CancelApplicationResponse>(`/applications/${applicationId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // CheckIn
   async getCheckInsByParty(partyId: string | number): Promise<CheckIn[]> {
     return this.request<CheckIn[]>(`/checkin/party/${partyId}`);
@@ -214,19 +238,26 @@ export const api = {
     });
   },
 
+  async createCheckInQrSession(data: CreateCheckInQrSessionRequest): Promise<CreateCheckInQrSessionResponse> {
+    return this.request<CreateCheckInQrSessionResponse>('/checkin/qr-session', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Chat
   async getChatMessages(partyId: string | number): Promise<ChatMessage[]> {
     return this.request<ChatMessage[]>(`/chat/party/${partyId}`);
   },
 
-  // Post (cheerboard 타입은 별도 도메인 — 향후 타입 추가)
+  // Post (cheerboard - cheerApi.ts 사용 권장)
   async getPosts(teamId?: string) {
     const query = teamId ? `?teamId=${teamId}` : '';
-    return this.request(`/posts${query}`);
+    return this.request(`/cheer/posts${query}`);
   },
 
   async createPost(data: unknown) {
-    return this.request('/posts', {
+    return this.request('/cheer/posts', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -406,5 +437,75 @@ export const api = {
 
   async getUserAverageRating(userId: number): Promise<number> {
     return this.request<number>(`/reviews/user/${userId}/average`);
+  },
+
+  // Payments
+  async prepareTossPayment(data: {
+    partyId: number;
+    flowType?: PaymentFlowType;
+    cancelPolicyVersion?: string;
+  }): Promise<{
+    intentId: number;
+    orderId: string;
+    amount: number;
+    currency: 'KRW';
+    orderName: string;
+    flowType: PaymentFlowType;
+    cancelPolicyVersion?: string;
+    paymentType: 'DEPOSIT' | 'FULL';
+  }> {
+    return this.request<{
+      intentId: number;
+      orderId: string;
+      amount: number;
+      currency: 'KRW';
+      orderName: string;
+      flowType: PaymentFlowType;
+      cancelPolicyVersion?: string;
+      paymentType: 'DEPOSIT' | 'FULL';
+    }>('/payments/toss/prepare', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async confirmTossPayment(data: {
+    paymentKey: string;
+    orderId: string;
+    intentId?: number;
+    flowType?: PaymentFlowType;
+    cancelPolicyVersion?: string;
+    partyId: number;
+    message?: string;
+    verificationToken?: string | null;
+    ticketVerified?: boolean;
+    ticketImageUrl?: string | null;
+    paymentType?: 'DEPOSIT' | 'FULL';
+  }): Promise<Application> {
+    return this.request<Application>('/payments/toss/confirm', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * POST /api/payments/toss/{intentId}/cancel
+   * 결제 Intent를 취소합니다.
+   *
+   * PREPARED 상태: Toss API 호출 없이 DB 취소 처리
+   * CONFIRMED 상태: Toss API 취소 후 DB 취소 처리
+   * CANCELED 상태: 멱등 처리 (200 반환)
+   */
+  async cancelTossPayment(
+    intentId: number,
+    cancelReason?: string,
+  ): Promise<{ intentId: number; status: string; message: string }> {
+    return this.request<{ intentId: number; status: string; message: string }>(
+      `/payments/toss/${intentId}/cancel`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ cancelReason: cancelReason ?? null }),
+      },
+    );
   },
 };

@@ -2,6 +2,22 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../api/axios';
 
+const LEGACY_AUTH_TOKEN_KEY = 'authToken';
+
+const clearLegacyAuthTokenStorage = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+  } catch {
+    // 스토리지 접근 실패는 보안 정합성 검증에서 제외하고 진행합니다.
+  }
+};
+
+clearLegacyAuthTokenStorage();
+
 interface User {
   id: number;
   email: string;
@@ -64,6 +80,17 @@ const normalizeProfileImageUrl = (value?: string | null) => {
   return trimmedValue.length > 0 ? trimmedValue : null;
 };
 
+const blurFocusedElement = () => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  const activeElement = document.activeElement;
+  if (activeElement instanceof HTMLElement) {
+    activeElement.blur();
+  }
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -85,8 +112,8 @@ export const useAuthStore = create<AuthState>()(
           set({ isAuthLoading: true });
 
           try {
-            // Using axios api instance to handle 401 interceptor
-            const response = await api.get('/auth/mypage');
+            // Initial auth probe should not trigger global login-required modal on public pages.
+            const response = await api.get('/auth/mypage', { skipGlobalErrorHandler: true });
 
             if (response.status === 200) {
               const result = response.data;
@@ -217,6 +244,9 @@ export const useAuthStore = create<AuthState>()(
         if (!pendingLogoutRequest) {
           pendingLogoutRequest = api
             .post('/auth/logout', undefined, { skipGlobalErrorHandler: true })
+            .then(() => {
+              // Normalize axios response to void for store-internal promise type.
+            })
             .catch(() => {
               // Ignore logout request failures (e.g., already expired token / invalid session).
               // Local auth state is already cleared above.
@@ -244,12 +274,17 @@ export const useAuthStore = create<AuthState>()(
           user: state.user ? { ...state.user, favoriteTeam: team, favoriteTeamColor: color } : null,
         })),
 
-      setShowLoginRequiredDialog: (show) => set({ showLoginRequiredDialog: show }),
+      setShowLoginRequiredDialog: (show) => {
+        if (show) {
+          blurFocusedElement();
+        }
+        set({ showLoginRequiredDialog: show });
+      },
 
       requireLogin: (callback) => {
         const { isLoggedIn } = get();
         if (!isLoggedIn) {
-          set({ showLoginRequiredDialog: true });
+          get().setShowLoginRequiredDialog(true);
           return false;
         }
         callback?.();

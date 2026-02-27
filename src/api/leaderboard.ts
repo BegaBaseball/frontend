@@ -188,6 +188,9 @@ export function formatScoreEvent(event: RecentScore): {
   } else if (event.eventType === 'PERFECT_DAY') {
     type = 'perfect';
     text = `${event.userName} PERFECT DAY 달성! +${event.score}PTS`;
+  } else if (event.eventType === 'SEAT_VIEW_CONTRIBUTION') {
+    type = 'fire';
+    text = `${event.userName} 시야 사진 기여! +${event.score}PTS`;
   }
 
   return {

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Party, PartyStatus, ChatMessage, MateParty } from '../types/mate';
+import { Party, PartyStatus, ChatMessage, MateParty, BadgeType } from '../types/mate';
+import { validateMateApplyMessage, validateMateChatMessage, validateMateDescription } from '../utils/mateValidation';
 
 
 
@@ -9,7 +10,7 @@ export interface PartyApplication {
   partyId: number;
   applicantId: number;
   applicantName: string;
-  applicantBadge: 'verified' | 'trusted' | 'new';
+  applicantBadge: BadgeType;
   applicantRating: number;
   message: string;
   depositAmount: number;
@@ -56,6 +57,37 @@ export interface PartyFormData {
 export interface ApplicationFormData {
   message: string;
 }
+
+const normalizeSelectedParty = (party: Party | MateParty | null): Party | null => {
+  if (!party) {
+    return null;
+  }
+
+  if ('hostName' in party) {
+    return party;
+  }
+
+  return {
+    id: party.id,
+    hostId: party.hostId,
+    hostName: '',
+    hostBadge: 'NEW',
+    hostRating: 0,
+    teamId: party.teamId,
+    gameDate: party.gameDate,
+    gameTime: party.gameTime,
+    stadium: party.stadium,
+    homeTeam: party.homeTeam,
+    awayTeam: party.awayTeam,
+    section: party.section,
+    maxParticipants: party.maxParticipants,
+    currentParticipants: party.currentParticipants,
+    description: party.description || '',
+    ticketVerified: false,
+    status: party.status,
+    createdAt: '',
+  };
+};
 
 interface MateState {
   parties: Party[];
@@ -165,7 +197,7 @@ export const useMateStore = create<MateState>()(
 
       setSearchQuery: (query) => set({ searchQuery: query }),
       setParties: (parties) => set({ parties }),
-      setSelectedParty: (party) => set({ selectedParty: party }),
+      setSelectedParty: (party) => set({ selectedParty: normalizeSelectedParty(party) }),
 
       addParty: (party) => set((state) => ({
         parties: [party, ...state.parties],
@@ -316,72 +348,16 @@ export const useMateStore = create<MateState>()(
       }),
 
       validateDescription: (text) => {
-        if (text.length < 10) {
-          return '소개글은 최소 10자 이상 입력해주세요.';
-        }
-        if (text.length > 200) {
-          return '소개글은 200자를 초과할 수 없습니다.';
-        }
-
-        const forbiddenWords = ['욕설', '비방', '광고'];
-        for (const word of forbiddenWords) {
-          if (text.includes(word)) {
-            return '부적절한 단어가 포함되어 있습니다.';
-          }
-        }
-
-        const phonePattern = /\d{3}[-.\\s]?\d{3,4}[-.\\s]?\d{4}/;
-        const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-        const urlPattern = /https?:\/\/[^\s]+|www\.[^\s]+/i;
-        if (phonePattern.test(text) || emailPattern.test(text) || urlPattern.test(text)) {
-          return '연락처 정보나 링크는 입력할 수 없습니다. 매칭 후 채팅을 이용해주세요.';
-        }
-
-        return '';
+        return validateMateDescription(text);
       },
 
       validateMessage: (text) => {
-        if (text.length < 10) {
-          return '메시지는 최소 10자 이상 입력해주세요.';
-        }
-        if (text.length > 500) {
-          return '메시지는 500자를 초과할 수 없습니다.';
-        }
-
-        const forbiddenWords = ['욕설', '비방', '광고'];
-        for (const word of forbiddenWords) {
-          if (text.includes(word)) {
-            return '부적절한 단어가 포함되어 있습니다.';
-          }
-        }
-
-        const phonePattern = /\d{3}[-.\\s]?\d{3,4}[-.\\s]?\d{4}/;
-        const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-        const urlPattern = /https?:\/\/[^\s]+|www\.[^\s]+/i;
-        if (phonePattern.test(text) || emailPattern.test(text) || urlPattern.test(text)) {
-          return '연락처 정보나 링크는 입력할 수 없습니다. 매칭 후 채팅을 이용해주세요.';
-        }
-
-        return '';
+        return validateMateApplyMessage(text);
       },
 
       // 채팅 메시지 검증 (길이 제한 없이 금칙어/연락처/URL만 체크)
       validateChatMessage: (text) => {
-        const forbiddenWords = ['욕설', '비방', '광고'];
-        for (const word of forbiddenWords) {
-          if (text.includes(word)) {
-            return '부적절한 단어가 포함되어 있습니다.';
-          }
-        }
-
-        const phonePattern = /\d{3}[-.\\s]?\d{3,4}[-.\\s]?\d{4}/;
-        const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-        const urlPattern = /https?:\/\/[^\s]+|www\.[^\s]+/i;
-        if (phonePattern.test(text) || emailPattern.test(text) || urlPattern.test(text)) {
-          return '연락처 정보나 링크는 입력할 수 없습니다. 직접 만나서 교환해주세요.';
-        }
-
-        return '';
+        return validateMateChatMessage(text);
       },
 
       // Application form actions
@@ -398,9 +374,8 @@ export const useMateStore = create<MateState>()(
     name: 'mate-storage',
     storage: createJSONStorage(() => sessionStorage),
     partialize: (state) => ({
-      selectedParty: state.selectedParty,
       createStep: state.createStep,
-      formData: state.formData,
+      formData: { ...state.formData, ticketFile: null },
       searchQuery: state.searchQuery,
     }),
   })

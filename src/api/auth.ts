@@ -2,7 +2,7 @@
 import api from './axios';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
-import { getApiBaseUrl } from './apiBase';
+import { SERVER_BASE_URL } from '../constants/config';
 
 // ========== 타입 정의 ==========
 export interface LoginRequest {
@@ -14,8 +14,6 @@ export interface LoginResponse {
   success: boolean;
   message: string;
   data: {
-    accessToken: string;
-    refreshToken?: string;
     id: number;
     name: string;
     role: string;
@@ -114,7 +112,7 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
 /**
  * 소셜 로그인 URL 생성
  */
-const OAUTH_LOGIN_BASE_URL = getApiBaseUrl();
+const OAUTH_LOGIN_BASE_URL = SERVER_BASE_URL;
 
 export const getSocialLoginUrl = (
   provider: 'kakao' | 'google' | 'naver',

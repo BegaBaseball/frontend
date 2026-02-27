@@ -121,7 +121,7 @@ export default function OffSeasonList() {
                 {/* Mini Hero Banner */}
                 <section className="relative overflow-hidden rounded-xl md:rounded-2xl shadow-lg border-none bg-primary">
                     <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('/grid-pattern.svg')] bg-center"></div>
-                    <div className="px-5 py-6 md:px-8 md:py-8 relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="px-4 py-5 md:px-8 md:py-8 relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h1 className="text-white text-xl md:text-2xl font-black flex items-center gap-2">
                                 <TrendingUp className="w-6 h-6" />
@@ -168,7 +168,7 @@ export default function OffSeasonList() {
                             ))}
                         </div>
                     ) : filteredList.length === 0 ? (
-                        <div className="py-16 text-center text-gray-400">
+                        <div className="py-8 sm:py-10 text-center text-gray-400">
                             검색 결과가 없습니다.
                         </div>
                     ) : (
@@ -205,10 +205,10 @@ export default function OffSeasonList() {
                         <Table>
                             <TableHeader className="bg-gray-50 dark:bg-card">
                                 <TableRow>
-                                    <TableHead className="w-[120px] text-center font-bold text-gray-700 dark:text-gray-300">날짜</TableHead>
-                                    <TableHead className="w-[100px] text-center font-bold text-gray-700 dark:text-gray-300">구분</TableHead>
-                                    <TableHead className="w-[140px] text-center font-bold text-gray-700 dark:text-gray-300">구단</TableHead>
-                                    <TableHead className="w-[120px] text-center font-bold text-gray-700 dark:text-gray-300">선수</TableHead>
+                                    <TableHead className="w-[96px] sm:w-[120px] text-center font-bold text-gray-700 dark:text-gray-300">날짜</TableHead>
+                                    <TableHead className="w-[72px] sm:w-[100px] text-center font-bold text-gray-700 dark:text-gray-300">구분</TableHead>
+                                    <TableHead className="w-[112px] sm:w-[140px] text-center font-bold text-gray-700 dark:text-gray-300">구단</TableHead>
+                                    <TableHead className="w-[88px] sm:w-[120px] text-center font-bold text-gray-700 dark:text-gray-300">선수</TableHead>
                                     <TableHead className="font-bold text-gray-700 dark:text-gray-300">내용</TableHead>
                                 </TableRow>
                             </TableHeader>

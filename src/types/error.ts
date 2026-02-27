@@ -1,7 +1,7 @@
 // 모달을 열 때 전달되는 오류 데이터의 타입
 export interface ErrorData {
     message: string;
-    statusCode: number;
+    statusCode: number | null;
 }
 
 // Context에서 관리하는 상태의 타입

@@ -1,0 +1,81 @@
+{
+  "ok": true,
+  "checkedAt": "2026-02-26T20:47:36.814Z",
+  "baseUrl": "http://127.0.0.1:4173",
+  "expectedSiteUrl": "https://www.begabaseball.xyz",
+  "timeoutMs": 25000,
+  "checks": [
+    "robots.txt 정책 검증",
+    "sitemap URL 집합이 SEO 정책과 일치"
+  ],
+  "failures": [],
+  "warnings": [
+    "Post-deploy smoke는 단기 상태 점검이며, CWV 평가는 별도 기준선 리포트를 사용합니다.",
+    "baseUrl(http://127.0.0.1:4173)과 expectedSiteUrl(https://www.begabaseball.xyz)이 다릅니다."
+  ],
+  "routes": [
+    {
+      "path": "/",
+      "url": "http://127.0.0.1:4173",
+      "ok": true,
+      "status": 200,
+      "failures": []
+    },
+    {
+      "path": "/home",
+      "url": "http://127.0.0.1:4173/home/",
+      "ok": true,
+      "status": 200,
+      "failures": []
+    },
+    {
+      "path": "/offseason",
+      "url": "http://127.0.0.1:4173/offseason/",
+      "ok": true,
+      "status": 200,
+      "failures": []
+    },
+    {
+      "path": "/offseason/list",
+      "url": "http://127.0.0.1:4173/offseason/list/",
+      "ok": true,
+      "status": 200,
+      "failures": []
+    },
+    {
+      "path": "/cheer",
+      "url": "http://127.0.0.1:4173/cheer/",
+      "ok": true,
+      "status": 200,
+      "failures": []
+    },
+    {
+      "path": "/notice",
+      "url": "http://127.0.0.1:4173/notice/",
+      "ok": true,
+      "status": 200,
+      "failures": []
+    },
+    {
+      "path": "/terms",
+      "url": "http://127.0.0.1:4173/terms/",
+      "ok": true,
+      "status": 200,
+      "failures": []
+    },
+    {
+      "path": "/privacy",
+      "url": "http://127.0.0.1:4173/privacy/",
+      "ok": true,
+      "status": 200,
+      "failures": []
+    },
+    {
+      "path": "/leaderboard",
+      "url": "http://127.0.0.1:4173/leaderboard/",
+      "ok": true,
+      "status": 200,
+      "failures": []
+    }
+  ]
+}

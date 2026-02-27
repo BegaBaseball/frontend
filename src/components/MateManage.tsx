@@ -24,13 +24,15 @@ import {
   Ticket,
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
+import { useAuthStore } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import { api } from '../utils/api';
+import { api, getApiErrorStatus } from '../utils/api';
 import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { Application } from '../types/mate';
+import { Application, BadgeType } from '../types/mate';
 import { formatGameDate } from '../utils/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { getPaymentStatusLabel, getSettlementStatusLabel } from '../utils/paymentStatus';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Pencil } from 'lucide-react';
@@ -39,13 +41,26 @@ export default function MateManage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { confirm } = useConfirmDialog();
-  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
+  const {
+    party: selectedParty,
+    isLoading: isPartyLoading,
+    isRevalidating: isPartyRevalidating,
+    error: partyError,
+  } = useMatePartyFromRoute(id);
+  const { validateDescription } = useMateStore();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const setShowLoginRequiredDialog = useAuthStore((state) => state.setShowLoginRequiredDialog);
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
+  const [userLoadError, setUserLoadError] = useState<string | null>(null);
+  const [userRetryCount, setUserRetryCount] = useState(0);
+  const [isHostAccessDenied, setIsHostAccessDenied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -54,44 +69,69 @@ export default function MateManage() {
     ticketPrice: 0,
     description: '',
   });
+  const [descriptionError, setDescriptionError] = useState('');
+  const [applicationActionError, setApplicationActionError] = useState('');
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
+    if (user?.id) {
+      setCurrentUserId(user.id);
+      setUserLoadError(null);
+      setUserLoading(false);
+      return;
+    }
+
     const fetchCurrentUser = async () => {
       try {
+        setUserLoading(true);
+        setUserLoadError(null);
         const userData = await api.getCurrentUser();
-        const userIdResponse = await api.getUserIdByEmail(userData.data.email);
-        setCurrentUserId(userIdResponse.data);
-      } catch (error) {
+        setCurrentUserId(userData.data.id);
+      } catch (error: unknown) {
         console.error('사용자 정보 가져오기 실패:', error);
+        if (getApiErrorStatus(error) === 401) {
+          logout(true);
+          setShowLoginRequiredDialog(true);
+        }
+        setUserLoadError('사용자 정보를 불러오지 못했습니다.');
+      } finally {
+        setUserLoading(false);
       }
     };
 
-    fetchCurrentUser();
-  }, []);
+    void fetchCurrentUser();
+  }, [user?.id, logout, setShowLoginRequiredDialog, userRetryCount]);
 
   // 신청 목록 불러오기
   useEffect(() => {
-    if (!selectedParty) return;
+    if (!selectedParty || !currentUserId) return;
+    if (selectedParty.hostId !== currentUserId) return;
 
     const fetchApplications = async () => {
       setIsLoading(true);
       setFetchError(false);
+      setIsHostAccessDenied(false);
       try {
         const data = await api.getApplicationsByParty(selectedParty.id);
         setApplications(data);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('신청 목록 불러오기 오류:', error);
+        if (getApiErrorStatus(error) === 403) {
+          setIsHostAccessDenied(true);
+          setApplicationActionError('호스트만 신청 목록을 조회할 수 있습니다.');
+          setApplications([]);
+          return;
+        }
         setFetchError(true);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchApplications();
-  }, [selectedParty, retryCount]);
+    void fetchApplications();
+  }, [selectedParty?.id, selectedParty?.hostId, retryCount, currentUserId]);
 
-  if (isPartyLoading) {
+  if (isPartyLoading && !selectedParty) {
     return <LoadingSpinner text="파티 정보를 불러오는 중..." fullScreen />;
   }
 
@@ -110,7 +150,7 @@ export default function MateManage() {
     );
   }
 
-  if (!currentUserId) {
+  if (userLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -122,9 +162,39 @@ export default function MateManage() {
     );
   }
 
+  if (userLoadError) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-background">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Alert className="mb-4">
+            <AlertDescription>{userLoadError}</AlertDescription>
+          </Alert>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setUserRetryCount((c) => c + 1)}>
+              다시 시도
+            </Button>
+            <Button onClick={() => navigate('/mate')}>목록으로 이동</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUserId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Alert>
+            <AlertDescription>사용자 정보를 확인할 수 없습니다.</AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
   const isHost = selectedParty.hostId === currentUserId;
 
-  if (!isHost) {
+  if (!isHost || isHostAccessDenied) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -141,6 +211,7 @@ export default function MateManage() {
 
   // 신청 승인
   const handleApprove = async (applicationId: string | number) => {
+    setApplicationActionError('');
     try {
       await api.approveApplication(applicationId);
       toast.success('신청이 승인되었습니다!');
@@ -148,14 +219,17 @@ export default function MateManage() {
       // 신청 목록 다시 불러오기
       const data = await api.getApplicationsByParty(selectedParty.id);
       setApplications(data);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('신청 승인 중 오류:', error);
-      toast.error('신청 승인에 실패했습니다.');
+      const errorMessage = getApiErrorMessage(error, '신청 승인에 실패했습니다.');
+      setApplicationActionError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
   // 신청 거절
   const handleReject = async (applicationId: string | number) => {
+    setApplicationActionError('');
     try {
       await api.rejectApplication(applicationId);
       toast.success('신청이 거절되었습니다.');
@@ -163,9 +237,11 @@ export default function MateManage() {
       // 신청 목록 다시 불러오기
       const data = await api.getApplicationsByParty(selectedParty.id);
       setApplications(data);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('신청 거절 중 오류:', error);
-      toast.error('신청 거절에 실패했습니다.');
+      const errorMessage = getApiErrorMessage(error, '신청 거절에 실패했습니다.');
+      setApplicationActionError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -224,15 +300,22 @@ export default function MateManage() {
       ticketPrice: selectedParty.ticketPrice || 0,
       description: selectedParty.description,
     });
+    setDescriptionError('');
     setIsEditing(true);
   };
 
   const handleSaveEdit = async () => {
+    const error = validateDescription(editForm.description);
+    if (error) {
+      setDescriptionError(error);
+      return;
+    }
     try {
       await api.updateParty(selectedParty.id, editForm);
       // 로컬 상태 업데이트
       useMateStore.getState().updateParty(selectedParty.id, editForm);
       toast.success('파티 정보가 수정되었습니다.');
+      setDescriptionError('');
       setIsEditing(false);
     } catch (error: unknown) {
       console.error('파티 수정 중 오류:', error);
@@ -252,79 +335,102 @@ export default function MateManage() {
     return `${minutes}분 남음`;
   };
 
-  const getBadgeIcon = (badge: string) => {
-    if (badge === 'verified' || badge === 'VERIFIED') return <Shield className="w-4 h-4 text-blue-500" />;
-    if (badge === 'trusted' || badge === 'TRUSTED') return <Star className="w-4 h-4 text-yellow-500" />;
+  const getBadgeIcon = (badge: BadgeType) => {
+    if (badge === 'VERIFIED') return <Shield className="w-4 h-4 text-blue-500" />;
+    if (badge === 'TRUSTED') return <Star className="w-4 h-4 text-yellow-500" />;
     return null;
   };
 
-  const renderApplication = (app: Application, showActions: boolean = false) => (
-    <Card key={app.id} className="p-5 mb-4">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span>{app.applicantName}</span>
-            {getBadgeIcon(app.applicantBadge)}
-            {app.ticketVerified && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
-                <Ticket className="w-3 h-3" />
-                티켓 인증
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1 text-sm text-gray-500">
-            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-            <span>{app.applicantRating}</span>
-          </div>
-        </div>
-        <div className="text-sm text-gray-500">
-          {new Date(app.createdAt).toLocaleString('ko-KR')}
-        </div>
-      </div>
-
-      <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-        <p className="text-sm text-gray-700">{app.message}</p>
-      </div>
-
-      <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-        <span>결제 금액:</span>
-        <span className="text-primary">{app.depositAmount.toLocaleString()}원</span>
-        <Badge variant="outline" className="ml-2">
-          {app.paymentType === 'DEPOSIT' ? '보증금' : '전액결제'}
-        </Badge>
-      </div>
-
-      {showActions && (
-        <>
-          {app.responseDeadline && (
-            <div className="flex items-center gap-1.5 text-xs mb-3 px-2 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-md">
-              <Clock className="w-3.5 h-3.5 text-orange-500" />
-              <span className="text-orange-600 dark:text-orange-400 font-medium">
-                응답 기한: {getDeadlineText(app.responseDeadline)}
-              </span>
+  const renderApplication = (app: Application, showActions: boolean = false) => {
+    const hasPaymentTracking = Boolean(app.paymentStatus || app.settlementStatus);
+    return (
+      <Card key={app.id} className="p-5 mb-4">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span>{app.applicantName}</span>
+              {getBadgeIcon(app.applicantBadge)}
+              {app.ticketVerified && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
+                  <Ticket className="w-3 h-3" />
+                  티켓 인증
+                </span>
+              )}
             </div>
-          )}
-          <div className="flex gap-2">
-            <Button
-              onClick={() => handleApprove(app.id)}
-              className="flex-1 text-white bg-primary"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              승인
-            </Button>
-            <Button
-              onClick={() => handleReject(app.id)}
-              variant="outline"
-              className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
-            >
-              <XCircle className="w-4 h-4 mr-2" />
-              거절
-            </Button>
+            <div className="flex items-center gap-1 text-sm text-gray-500">
+              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+              <span>{app.applicantRating}</span>
+            </div>
           </div>
-        </>
-      )}
-    </Card>
-  );
+          <div className="text-sm text-gray-500">
+            {new Date(app.createdAt).toLocaleString('ko-KR')}
+          </div>
+        </div>
+
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-700">{app.message}</p>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+          <span>결제 금액:</span>
+          <span className="text-primary">{app.depositAmount.toLocaleString()}원</span>
+          <Badge variant="outline" className="ml-2">
+            {app.paymentType === 'DEPOSIT' ? '보증금' : '전액결제'}
+          </Badge>
+          {!hasPaymentTracking && (
+            <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
+              결제 안됨 (직거래 베타 적용)
+            </Badge>
+          )}
+          {app.paymentStatus && (
+            <Badge variant="outline">
+              결제: {getPaymentStatusLabel(app.paymentStatus)}
+            </Badge>
+          )}
+          {app.settlementStatus && (
+            <Badge variant="outline">
+              정산: {getSettlementStatusLabel(app.settlementStatus)}
+            </Badge>
+          )}
+          {hasPaymentTracking && typeof app.netSettlementAmount === 'number' && (
+            <span className="ml-auto text-xs text-gray-500">
+              순정산 {app.netSettlementAmount.toLocaleString()}원
+            </span>
+          )}
+        </div>
+
+        {showActions && (
+          <>
+            {app.responseDeadline && (
+              <div className="flex items-center gap-1.5 text-xs mb-3 px-2 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-md">
+                <Clock className="w-3.5 h-3.5 text-orange-500" />
+                <span className="text-orange-600 dark:text-orange-400 font-medium">
+                  응답 기한: {getDeadlineText(app.responseDeadline)}
+                </span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleApprove(app.id)}
+                className="flex-1 text-white bg-primary"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                승인
+              </Button>
+              <Button
+                onClick={() => handleReject(app.id)}
+                variant="outline"
+                className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                거절
+              </Button>
+            </div>
+          </>
+        )}
+      </Card>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -379,6 +485,13 @@ export default function MateManage() {
           파티 관리
         </h1>
         <p className="text-gray-600 mb-8">신청 목록을 확인하고 승인/거절하세요</p>
+        {isPartyRevalidating && (
+          <Alert className="mb-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+            <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+              최신 파티 정보를 다시 확인하고 있습니다.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Party Info */}
         <Card className="p-6 mb-6">
@@ -418,9 +531,19 @@ export default function MateManage() {
                 <Label>소개글</Label>
                 <textarea
                   value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 min-h-[80px]"
+                  onChange={(e) => {
+                    const nextDescription = e.target.value;
+                    setEditForm({ ...editForm, description: nextDescription });
+                    if (descriptionError) {
+                      setDescriptionError(validateDescription(nextDescription));
+                    }
+                  }}
+                  onBlur={() => setDescriptionError(validateDescription(editForm.description))}
+                  className={`w-full rounded-md border px-3 py-2 min-h-[80px] ${descriptionError ? 'border-red-400' : 'border-gray-300'}`}
                 />
+                {descriptionError && (
+                  <p className="text-sm text-red-500">{descriptionError}</p>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleSaveEdit} className="flex-1 text-white bg-primary">
@@ -488,6 +611,13 @@ export default function MateManage() {
             </>
           )}
         </Card>
+        {applicationActionError && (
+          <Alert className="mb-6 border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-900">
+            <AlertDescription className="text-red-600 dark:text-red-400">
+              {applicationActionError}
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Applications Tabs */}
         <Tabs defaultValue="pending">
           <TabsList className="grid w-full grid-cols-3 mb-6">

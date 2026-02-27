@@ -81,7 +81,7 @@ export default function LeaderboardPage() {
       userStats={myRank}
       tickerMessages={tickerMessages}
       hotStreaks={hotStreakEntries}
-      powerups={powerups as unknown as Record<string, number>}
+      powerups={powerups}
       activePowerups={activePowerups}
       isLoading={isLoading}
       currentUserId={currentUserId}

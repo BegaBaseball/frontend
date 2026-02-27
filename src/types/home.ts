@@ -6,13 +6,15 @@ export interface Game {
     gameStatus: string; 
     gameStatusKr: string;
     gameInfo: string; 
-    leagueType: 'REGULAR' | 'POSTSEASON' | 'KOREAN_SERIES' | 'OFFSEASON';
+    leagueType: 'REGULAR' | 'POSTSEASON' | 'KOREAN_SERIES' | 'OFFSEASON' | 'PRE' | 'PRESEASON' | string;
     homeTeam: string; 
     homeTeamFull: string; 
     awayTeam: string; 
     awayTeamFull: string; 
     homeScore?: number;  
-    awayScore?: number;  
+    awayScore?: number;
+    sourceDate?: string;
+    leagueBadge?: string;
 }
 
 export interface Ranking {
@@ -25,6 +27,7 @@ export interface Ranking {
     winRate: string;
     games: number;
     gamesBehind?: number;
+    shortName?: string;
 }
 
 export interface LeagueStartDates {

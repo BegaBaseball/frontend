@@ -96,6 +96,15 @@ export const useProfileEdit = ({
     setProfileImage(initialProfileImage);
   }, [initialProfileImage, newProfileImageFile]);
 
+  // 컴포넌트 언마운트 또는 profileImage 교체 시 이전 blob URL 정리
+  useEffect(() => {
+    return () => {
+      if (profileImage?.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImage);
+      }
+    };
+  }, [profileImage]);
+
   const resetProfileState = useCallback(() => {
     if (profileImage && profileImage.startsWith('blob:')) {
       URL.revokeObjectURL(profileImage);
@@ -150,19 +159,16 @@ export const useProfileEdit = ({
     onSuccess: async (response, variables) => {
       const { setUserProfile, fetchProfileAndAuthenticate, user } = useAuthStore.getState();
 
-      if (response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
-      }
-
       if (profileImage?.startsWith('blob:')) {
         URL.revokeObjectURL(profileImage);
       }
 
       const resolvedProfileImageUrl = response.data.profileImageUrl ?? variables.profileImageUrl;
+      const resolvedName = response.data.name ?? name.trim();
       const normalizedFavoriteTeam = normalizeFavoriteTeam(editingFavoriteTeam);
 
       const cachedProfilePatch: Partial<UserProfile> = {
-        name: response.data.name ?? name.trim(),
+        name: resolvedName,
         email,
         favoriteTeam: response.data.favoriteTeam ?? (normalizedFavoriteTeam === '없음' ? null : normalizedFavoriteTeam),
         bio: response.data.bio ?? (bio.trim() || null),
@@ -172,19 +178,13 @@ export const useProfileEdit = ({
         cachedProfilePatch.profileImageUrl = resolvedProfileImageUrl;
       }
 
-      const updatedUserProfilePatch: {
-        email: string;
-        name: string;
-        favoriteTeam?: string | null;
-        profileImageUrl?: string | null;
-        bio?: string | null;
-      } = {
+      const updatedUserProfilePatch: Parameters<typeof setUserProfile>[0] = {
         email,
-        name: cachedProfilePatch.name,
+        name: resolvedName,
       };
 
       if (cachedProfilePatch.favoriteTeam !== undefined) {
-        updatedUserProfilePatch.favoriteTeam = cachedProfilePatch.favoriteTeam;
+        updatedUserProfilePatch.favoriteTeam = cachedProfilePatch.favoriteTeam ?? undefined;
       }
       if (cachedProfilePatch.profileImageUrl !== undefined) {
         updatedUserProfilePatch.profileImageUrl = cachedProfilePatch.profileImageUrl;
@@ -260,12 +260,15 @@ export const useProfileEdit = ({
       return;
     }
 
+    let isCurrent = true;
+
     const timer = window.setTimeout(async () => {
       setNicknameCheckState('checking');
       setNicknameCheckMessage(NICKNAME_CHECKING_MESSAGE);
 
       try {
         const result = await checkNicknameAvailability(normalizedName);
+        if (!isCurrent) return;
         if (result.available) {
           setNicknameCheckState('available');
           setNicknameCheckMessage(NICKNAME_AVAILABLE_MESSAGE);
@@ -275,12 +278,16 @@ export const useProfileEdit = ({
         setNicknameCheckState('taken');
         setNicknameCheckMessage(NICKNAME_TAKEN_MESSAGE);
       } catch (error) {
+        if (!isCurrent) return;
         setNicknameCheckState('error');
         setNicknameCheckMessage(NICKNAME_CHECK_ERROR_MESSAGE);
       }
     }, NICKNAME_CHECK_DELAY_MS);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timer);
+    };
   }, [initialName, isLoading, name]);
 
   // ========== Input Handlers ==========

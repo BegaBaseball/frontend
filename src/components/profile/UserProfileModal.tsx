@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Badge } from '../ui/badge';
-import { Loader2, User, Trophy, Quote, Users } from 'lucide-react';
+import { Loader2, Trophy, Quote, Users } from 'lucide-react';
 import { PublicUserProfile } from '../../types/profile';
 import { fetchPublicUserProfile } from '../../api/profile';
 import { getTeamKoreanName } from '../../utils/teamNames';
@@ -90,12 +90,15 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
                         <>
                             {/* Profile Image */}
                             <div className="relative">
-                                <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
-                                    <AvatarImage src={profile.profileImageUrl} className="object-cover" />
-                                    <AvatarFallback className="bg-gray-100 text-gray-400">
-                                        <User className="w-12 h-12" />
-                                    </AvatarFallback>
-                                </Avatar>
+                                <ProfileAvatar
+                                    src={profile.profileImageUrl ?? undefined}
+                                    alt={profile.name}
+                                    fallbackName={profile.name}
+                                    width={96}
+                                    height={96}
+                                    showRing
+                                    ringClassName="p-1 bg-white/95 dark:bg-border shadow-lg"
+                                />
                             </div>
 
                             {/* Name & Team */}

@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import SeatViewGallery from './SeatViewGallery';
 import QRCode from 'react-qr-code';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { KBO_STADIUMS, StadiumZone } from '../utils/stadiumData';
 import { OptimizedImage } from './common/OptimizedImage';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -46,22 +48,29 @@ import { useMateStore } from '../store/mateStore';
 import { useAuthStore } from '../store/authStore';
 import UserProfileModal from './profile/UserProfileModal';
 import TeamLogo, { teamIdToName } from './TeamLogo';
-import { api } from '../utils/api';
+import { api, getApiErrorStatus } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import { formatGameDate, extractHashtags, mapBackendPartyToFrontend, stripHashtags } from '../utils/mate';
 import ReviewDialog from './ReviewDialog';
-import type { PartyReview, Application } from '../types/mate';
+import type { CancelReasonType, PartyReview, Application } from '../types/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { resolveQrRefreshDelayMs } from '../utils/qrRefresh';
+import { getRefundPolicyMessage } from '../utils/paymentStatus';
+import { isDirectTradeMode } from '../utils/paymentMode';
 
 export default function MateDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { confirm } = useConfirmDialog();
-  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
+  const {
+    party: selectedParty,
+    isLoading: isPartyLoading,
+    isRevalidating: isPartyRevalidating,
+    error: partyError,
+  } = useMatePartyFromRoute(id);
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
-  const updateParty = useMateStore((state) => state.updateParty);
   const user = useAuthStore((state) => state.user);
 
   // Use user from auth store directly
@@ -70,9 +79,18 @@ export default function MateDetail() {
   const [myApplication, setMyApplication] = useState<Application | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isConvertingToSale, setIsConvertingToSale] = useState(false);
   const [showSaleDialog, setShowSaleDialog] = useState(false);
   const [salePrice, setSalePrice] = useState('');
   const [salePriceError, setSalePriceError] = useState('');
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [selectedCancelReason, setSelectedCancelReason] = useState<CancelReasonType>('BUYER_CHANGED_MIND');
+  const [cancelMemo, setCancelMemo] = useState('');
+  const [qrCheckInUrl, setQrCheckInUrl] = useState('');
+  const [qrSessionExpiresAt, setQrSessionExpiresAt] = useState<string | null>(null);
+  const [isQrLoading, setIsQrLoading] = useState(false);
+  const [qrSessionError, setQrSessionError] = useState<string | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false); // For Seat View toggle
   const [hostAvgRating, setHostAvgRating] = useState<number | null>(null);
   const [showHostProfile, setShowHostProfile] = useState(false);
@@ -94,7 +112,12 @@ export default function MateDetail() {
     if (!selectedParty || selectedParty.status !== 'COMPLETED') return;
     api.getPartyReviews(selectedParty.id)
       .then((data) => setReviews(Array.isArray(data) ? data : []))
-      .catch(() => { });
+      .catch((err: unknown) => {
+        const status = getApiErrorStatus(err);
+        if (status !== 403) {
+          toast.error('리뷰 정보를 불러오는데 실패했습니다.');
+        }
+      });
   }, [selectedPartyId, selectedPartyStatus]);
 
   // 내 신청 정보 가져오기
@@ -103,12 +126,21 @@ export default function MateDetail() {
 
     const fetchMyApplication = async () => {
       try {
-        const applicationsData = await api.getMyApplications();
-        const myApp = applicationsData.find((app: Application) =>
-          String(app.partyId) === String(selectedParty.id)
-        );
-        setMyApplication(myApp ?? null);
-      } catch (error) {
+        const myApp = await api.getMyApplicationByParty(selectedParty.id);
+        setMyApplication(myApp);
+      } catch (error: unknown) {
+        if (getApiErrorStatus(error) === 404) {
+          try {
+            const applicationsData = await api.getMyApplications();
+            const fallback = applicationsData.find((app: Application) =>
+              String(app.partyId) === String(selectedParty.id)
+            );
+            setMyApplication(fallback ?? null);
+            return;
+          } catch (fallbackError) {
+            console.error('내 신청 정보 fallback 조회 실패:', fallbackError);
+          }
+        }
         console.error('내 신청 정보 가져오기 실패:', error);
       }
     };
@@ -159,20 +191,34 @@ export default function MateDetail() {
     const isApproved = myApplication.isApproved;
     // ... logic ...
     const confirmMessage = isApproved
-      ? '참여를 취소하시겠습니까?\n\n⚠️ 승인 후 취소 시:\n- 보증금 10,000원은 환불되지 않습니다\n- 티켓 가격만 환불됩니다\n- 취소는 경기 하루 전까지만 가능합니다'
-      : '신청을 취소하시겠습니까?\n\n전액 환불됩니다.';
+      ? '참여를 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.\n취소는 경기 하루 전까지만 가능합니다.'
+      : '신청을 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.';
 
     const confirmed = await confirm({ title: isApproved ? '참여 취소' : '신청 취소', description: confirmMessage, confirmLabel: '취소하기', variant: 'destructive' });
     if (!confirmed) return;
 
+    setSelectedCancelReason(isApproved ? 'BUYER_CHANGED_MIND' : 'OTHER');
+    setCancelMemo('');
+    setShowCancelDialog(true);
+  };
+
+  const executeCancelApplication = async () => {
+    if (!selectedParty || !myApplication || !currentUserId) return;
+
     setIsCancelling(true);
+    setShowCancelDialog(false);
     try {
-      await api.cancelApplication(myApplication.id);
-      if (isApproved) {
-        toast.success('참여가 취소되었습니다.', { description: '티켓 가격만 환불되며, 보증금은 환불되지 않습니다.' });
-      } else {
-        toast.success('신청이 취소되었습니다.', { description: '결제 금액이 전액 환불됩니다.' });
-      }
+      const result = await api.cancelApplicationWithReason(myApplication.id, {
+        cancelReasonType: selectedCancelReason,
+        cancelMemo: cancelMemo.trim() || undefined,
+      });
+      toast.success('신청이 취소되었습니다.', {
+        description: getRefundPolicyMessage(
+          result.refundPolicyApplied,
+          result.refundAmount,
+          result.feeCharged,
+        ),
+      });
       setMyApplication(null);
       const updatedParty = await api.getPartyById(selectedParty.id);
       setSelectedParty(mapBackendPartyToFrontend(updatedParty));
@@ -184,9 +230,115 @@ export default function MateDetail() {
     }
   };
 
+  const cancelReasonOptions = [
+    {
+      value: 'BUYER_CHANGED_MIND' as const,
+      label: '단순변심(구매자)',
+      description: '부분환불(수수료 차감)',
+    },
+    {
+      value: 'SELLER_CHANGED_MIND' as const,
+      label: '단순변심(판매자)',
+      description: '부분환불(수수료 차감)',
+    },
+    {
+      value: 'OTHER' as const,
+      label: '기타 사유',
+      description: '전액환불',
+    },
+  ];
+
+  const isHost = selectedParty?.hostId === currentUserId;
+  const isApproved = myApplication?.isApproved || false;
+  const canAccessCheckIn = Boolean(selectedParty) &&
+    (isHost || isApproved) &&
+    selectedParty?.status !== 'CHECKED_IN' &&
+    selectedParty?.status !== 'COMPLETED' &&
+    selectedParty?.status !== 'FAILED';
+
+  const fallbackCheckInUrl = useMemo(() => {
+    if (!id && !selectedParty?.id) {
+      return typeof window === 'undefined' ? '/mate' : window.location.href;
+    }
+    const path = `/mate/${id ?? selectedParty?.id}/checkin`;
+    if (typeof window === 'undefined') {
+      return path;
+    }
+    return new URL(path, window.location.origin).toString();
+  }, [id, selectedParty?.id]);
+
+  const fetchQrSession = useCallback(async (isMountedRef: { current: boolean }) => {
+    if (selectedPartyId === undefined) return;
+    setIsQrLoading(true);
+    try {
+      const qrSession = await api.createCheckInQrSession({ partyId: selectedPartyId });
+      if (!isMountedRef.current) return;
+
+      setQrCheckInUrl(qrSession.checkinUrl || fallbackCheckInUrl);
+      const expiresAt = qrSession.expiresAt ?? null;
+      const parsedExpiresAtMs = expiresAt ? Date.parse(expiresAt) : Number.NaN;
+      const isValidExpiresAt = expiresAt ? !Number.isNaN(parsedExpiresAtMs) : false;
+      if (expiresAt && !isValidExpiresAt) {
+        console.warn('[MateDetail] Invalid QR session expiresAt:', expiresAt);
+      }
+      setQrSessionExpiresAt(isValidExpiresAt ? expiresAt : null);
+
+      const delay = resolveQrRefreshDelayMs(expiresAt, Date.now());
+      if (refreshTimerRef.current !== null) {
+        clearTimeout(refreshTimerRef.current);
+      }
+      refreshTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          void fetchQrSession(isMountedRef);
+        }
+      }, delay);
+    } catch (error: unknown) {
+      if (!isMountedRef.current) return;
+      console.error('QR 세션 발급 실패:', error);
+      setQrCheckInUrl(fallbackCheckInUrl);
+      setQrSessionError(getApiErrorMessage(error, 'QR 세션을 발급하지 못했습니다.'));
+    } finally {
+      if (isMountedRef.current) {
+        setIsQrLoading(false);
+      }
+    }
+  }, [selectedPartyId, fallbackCheckInUrl]);
+
+  useEffect(() => {
+    const isMountedRef = { current: true };
+
+    setQrCheckInUrl(fallbackCheckInUrl);
+    setQrSessionExpiresAt(null);
+    setQrSessionError(null);
+
+    if (refreshTimerRef.current !== null) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    if (selectedPartyId === undefined || !canAccessCheckIn) {
+      setIsQrLoading(false);
+      return () => {
+        isMountedRef.current = false;
+      };
+    }
+
+    void fetchQrSession(isMountedRef);
+
+    return () => {
+      isMountedRef.current = false;
+      if (refreshTimerRef.current !== null) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, [selectedPartyId, canAccessCheckIn, fallbackCheckInUrl, fetchQrSession]);
+
+  const qrCodeValue = useMemo(() => qrCheckInUrl || fallbackCheckInUrl, [qrCheckInUrl, fallbackCheckInUrl]);
 
 
-  if (isPartyLoading) {
+
+  if (isPartyLoading && !selectedParty) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
         <div className="max-w-3xl mx-auto px-4 py-6">
@@ -264,8 +416,6 @@ export default function MateDetail() {
     );
   }
 
-  const isHost = selectedParty.hostId === currentUserId;
-  const isApproved = myApplication?.isApproved || false;
   const approvedApplications = applications.filter(app => app.isApproved);
   const pendingApplications = applications.filter(app => !app.isApproved && !app.isRejected);
 
@@ -308,7 +458,7 @@ export default function MateDetail() {
     setShowSaleDialog(true);
   };
 
-  const handleConfirmSale = () => {
+  const handleConfirmSale = async () => {
     const parsed = parseInt(salePrice, 10);
     if (!salePrice || isNaN(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
       setSalePriceError('양의 정수를 입력해주세요.');
@@ -318,15 +468,53 @@ export default function MateDetail() {
       setSalePriceError('최소 100원 이상 입력해주세요.');
       return;
     }
-    updateParty(selectedParty.id, { status: 'SELLING', price: parsed });
-    setShowSaleDialog(false);
+    setIsConvertingToSale(true);
+    try {
+      const updatedParty = await api.updateParty(selectedParty.id, { status: 'SELLING', price: parsed });
+      const mappedParty = mapBackendPartyToFrontend(updatedParty);
+      setSelectedParty(mappedParty);
+      toast.success('판매 전환이 완료되었습니다.');
+      setShowSaleDialog(false);
+    } catch (error: unknown) {
+      console.error('판매 전환 중 오류:', error);
+      toast.error(getApiErrorMessage(error, '판매 전환 중 오류가 발생했습니다.'));
+    } finally {
+      setIsConvertingToSale(false);
+    }
   };
-  const handleShare = () => {
-    if (navigator.share) navigator.share({ title: '직관메이트 파티', text: '함께 직관 가실 분?', url: window.location.href });
-    else toast.success('공유 링크 복사 완료');
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: '직관메이트 파티', text: '함께 직관 가실 분?', url: shareUrl });
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('공유 링크를 복사했습니다.');
+        return;
+      }
+
+      toast.error('이 브라우저에서는 공유 링크 복사를 지원하지 않습니다.');
+    } catch (error) {
+      console.error('공유 처리 중 오류:', error);
+      toast.error('복사에 실패했습니다. 주소창의 링크를 직접 복사해주세요.');
+    }
   };
   const handleApply = () => navigate(`/mate/${id}/apply`);
-  const handleCheckIn = () => navigate(`/mate/${id}/checkin`);
+  const handleCheckIn = () => {
+    const fallbackPath = `/mate/${id}/checkin`;
+    try {
+      const parsedUrl = new URL(qrCheckInUrl || fallbackPath, window.location.origin);
+      navigate(`${parsedUrl.pathname}${parsedUrl.search}`);
+      return;
+    } catch (error) {
+      console.error('체크인 URL 파싱 실패:', error);
+    }
+
+    navigate(fallbackPath);
+  };
   const handleManageParty = () => navigate(`/mate/${id}/manage`);
   const handleOpenChat = () => navigate(`/mate/${id}/chat`);
 
@@ -342,7 +530,7 @@ export default function MateDetail() {
   // description에서 해시태그 추출 (생성 Step 4에서 추가된 스타일 태그)
   const hostTags = extractHashtags(selectedParty.description);
   // 리뷰 기반 평균 평점 우선, 없으면 hostRating 사용 (1-5 스케일)
-  const mannerScore = hostAvgRating && hostAvgRating > 0 ? hostAvgRating : (selectedParty.hostRating ?? 5.0);
+  const mannerScore = hostAvgRating !== null && hostAvgRating !== undefined ? hostAvgRating : (selectedParty.hostRating ?? 5.0);
 
 
   // Helper: Find matching zone in stadium data
@@ -360,12 +548,6 @@ export default function MateDetail() {
 
   const currentZone = selectedParty ? resolveSeatZone(selectedParty.stadium, selectedParty.section) : null;
 
-  const qrCodeValue = useMemo(() => JSON.stringify({
-    type: 'MATE_CHECKIN',
-    partyId: selectedParty?.id,
-    createdAt: selectedParty?.createdAt,
-  }), [selectedParty?.id, selectedParty?.createdAt]);
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
       <OptimizedImage
@@ -375,15 +557,28 @@ export default function MateDetail() {
       />
 
       <div className="max-w-3xl mx-auto px-4 py-6 relative z-10">
-        <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent" onClick={() => navigate('/mate')}>
-          <ChevronLeft className="w-5 h-5 mr-1" /> 목록으로
-        </Button>
+        <div className="mb-4 flex items-center justify-between">
+          <Button variant="ghost" className="pl-0 hover:bg-transparent" onClick={() => navigate('/mate')}>
+            <ChevronLeft className="w-5 h-5 mr-1" /> 목록으로
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleShare}>
+            <Share2 className="w-4 h-4 mr-1.5" />
+            공유
+          </Button>
+        </div>
+        {isPartyRevalidating && (
+          <Alert className="mb-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+            <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+              최신 파티 정보를 다시 확인하고 있습니다.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* 1. 매치 포스터 (Ticket Metaphor Evolution) */}
         <div className="rounded-3xl shadow-2xl overflow-hidden mb-8 transform transition-all hover:scale-[1.01]">
           {/* Header / Banner Area with Team Color Gradient */}
           <div
-            className="relative p-8 text-white"
+            className="relative p-4 sm:p-6 text-white"
             style={{
               background: `linear-gradient(135deg, ${homeTeamColor} 0%, ${homeTeamColor}dd 60%, #1a1a1a 100%)`
             }}
@@ -453,7 +648,7 @@ export default function MateDetail() {
                         {currentZone.name}
                       </Badge>
                       {/* Tooltip for Price & Desc */}
-                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 p-3 bg-gray-900/95 text-white text-xs rounded-lg shadow-xl z-50 animate-in fade-in slide-in-from-bottom-1 ring-1 ring-white/10">
+                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 p-3 bg-gray-900/95 text-white text-xs rounded-lg shadow-xl z-50 border border-white/10 animate-in fade-in slide-in-from-bottom-1">
                         <p className="font-bold text-sm mb-1">{currentZone.description}</p>
                         {currentZone.price && (
                           <div className="text-gray-300 space-y-0.5">
@@ -472,7 +667,7 @@ export default function MateDetail() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 text-xs text-gray-500 hover:text-primary"
+                    className="min-h-11 text-xs text-gray-500 hover:text-primary"
                     onClick={() => setShowSeatViewGuide(!showSeatViewGuide)}
                   >
                     <MapIcon className="w-3 h-3 mr-1" /> {showSeatViewGuide ? '닫기' : '위치/시야 보기'}
@@ -481,21 +676,12 @@ export default function MateDetail() {
 
                 {/* UGC Seat View Guide Area */}
                 {showSeatViewGuide && (
-                  <div className="mt-4 mb-4 bg-gray-50 dark:bg-secondary/70 rounded-xl border border-dashed border-gray-300 dark:border-border p-4 text-center animate-in zoom-in-95 duration-200">
-                    <div className="w-10 h-10 bg-gray-200 dark:bg-border rounded-full flex items-center justify-center mx-auto mb-2">
-                      <span className="text-xl">📷</span>
-                    </div>
-                    <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1">
-                      아직 등록된 시야가 없어요
-                    </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-300 mb-3">
-                      직관 후 이 좌석의 뷰를 공유해주시면<br />
-                      <span className="text-primary font-bold">50 포인트</span>를 즉시 적립해 다려요!
-                    </p>
-                    <Button size="sm" className="bg-primary hover:bg-primary-hover text-white rounded-full h-8 text-xs">
-                      <Plus className="w-3 h-3 mr-1" />
-                      첫 번째 사진 등록하기
-                    </Button>
+                  <div className="mt-4 mb-4 animate-in zoom-in-95 duration-200">
+                    <SeatViewGallery
+                      compact
+                      stadium={selectedParty.stadium}
+                      section={selectedParty.section}
+                    />
                   </div>
                 )}
                 <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-2">
@@ -515,11 +701,11 @@ export default function MateDetail() {
 
               {/* QR Code - 모바일: 중앙 정렬 / 데스크톱: 우측 구분선 포함 */}
               <div className="flex flex-col items-center md:border-l md:border-gray-200 md:dark:border-border md:pl-8">
-                <div className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm max-w-full">
+                <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
                   <QRCode
                     value={qrCodeValue}
-                    size={80}
-                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    size={132}
+                    style={{ width: 132, height: 132 }}
                     viewBox={`0 0 256 256`}
                     fgColor="#1a1a1a"
                     bgColor="#ffffff"
@@ -527,6 +713,17 @@ export default function MateDetail() {
                   />
                 </div>
                 <p className="text-[10px] text-center text-gray-400 mt-1">ENTRY CODE</p>
+                {isQrLoading && (
+                  <p className="text-[10px] text-gray-400 mt-1">QR 준비 중...</p>
+                )}
+                {qrSessionExpiresAt && (
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    유효: {new Date(qrSessionExpiresAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+                {qrSessionError && (
+                  <p className="text-[10px] text-red-500 mt-1 text-center">{qrSessionError}</p>
+                )}
               </div>
             </div>
           </div>
@@ -585,7 +782,7 @@ export default function MateDetail() {
                         <div className="group relative">
                           <HelpCircle className="w-3.5 h-3.5 text-gray-400 cursor-help" />
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50">
-                            경기 당일 체크인 시 100% 환급됩니다 (노쇼 방지)
+                            취소 사유에 따라 전액 또는 부분 환불 정책이 적용됩니다
                           </div>
                         </div>
                       </div>
@@ -594,18 +791,20 @@ export default function MateDetail() {
                       </span>
                     </div>
                     <Separator className="bg-gray-200 dark:bg-border my-2" />
-                    <div className="flex justify-between items-center text-lg">
-                      <span className="font-bold text-primary dark:text-[#5abba6]">총 결제 금액</span>
-                      <span className="font-black text-primary dark:text-[#5abba6]">
-                        {((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT).toLocaleString()}원
-                      </span>
-                    </div>
+                    {!isDirectTradeMode() && (
+                      <div className="flex justify-between items-center text-lg mt-2">
+                        <span className="font-bold text-primary dark:text-[#5abba6]">총 결제 금액</span>
+                        <span className="font-black text-primary dark:text-[#5abba6]">
+                          {((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT).toLocaleString()}원
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-              {selectedParty.status !== 'SELLING' && (
+              {selectedParty.status !== 'SELLING' && !isDirectTradeMode() && (
                 <p className="text-xs text-gray-400 mt-3 text-right">
-                  * 결제 수수료 별도
+                  * 단순변심 취소 시 수수료가 차감될 수 있습니다
                 </p>
               )}
             </Card>
@@ -615,13 +814,10 @@ export default function MateDetail() {
               <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
               </h3>
-              <div className="aspect-video bg-gray-200 dark:bg-secondary rounded-xl flex items-center justify-center relative overflow-hidden group">
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <Button variant="secondary" className="bg-white/90 text-gray-800 hover:bg-white shadow-lg backdrop-blur-sm">
-                    {selectedParty.stadium} {selectedParty.section} 시야 보기
-                  </Button>
-                </div>
-              </div>
+              <SeatViewGallery
+                stadium={selectedParty.stadium}
+                section={selectedParty.section}
+              />
             </Card>
           </div>
 
@@ -634,20 +830,16 @@ export default function MateDetail() {
             >
               <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-gray-100 to-transparent dark:from-gray-700/50"></div>
 
-              <div className="relative z-10 mb-2">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-border shadow-lg mx-auto bg-white">
-                  {selectedParty.hostProfileImageUrl ? (
-                    <OptimizedImage
-                      src={selectedParty.hostProfileImageUrl}
-                      alt={selectedParty.hostName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 dark:bg-secondary flex items-center justify-center">
-                      <User className="w-10 h-10 text-gray-400" />
-                    </div>
-                  )}
-                </div>
+              <div className="relative z-10 mb-2 flex justify-center">
+                <ProfileAvatar
+                  src={selectedParty.hostProfileImageUrl ?? undefined}
+                  alt={selectedParty.hostName}
+                  fallbackName={selectedParty.hostName}
+                  width={96}
+                  height={96}
+                  showRing
+                  ringClassName="p-1 bg-white/95 dark:bg-border shadow-lg"
+                />
                 {/* Manner Temperature Bar (Carrot Market Style) */}
                 <div className="mt-3 mb-1">
                   <div className="flex items-center justify-center gap-1 mb-1">
@@ -768,13 +960,24 @@ export default function MateDetail() {
                       채팅방 입장
                     </Button>
                   )}
+                  {canAccessCheckIn && (
+                    <Button
+                      onClick={handleCheckIn}
+                      variant="outline"
+                      className="w-full h-12 border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10"
+                    >
+                      <QrCode className="w-5 h-5 mr-2" />
+                      체크인 페이지
+                    </Button>
+                  )}
                   {canConvertToSale && (
                     <Button
                       onClick={handleOpenSaleDialog}
+                      disabled={isConvertingToSale}
                       variant="outline"
                       className="w-full h-12 border-orange-400 text-orange-600 hover:bg-orange-50"
                     >
-                      판매 전환
+                      {isConvertingToSale ? '전환 중...' : '판매 전환'}
                     </Button>
                   )}
                 </>
@@ -790,6 +993,16 @@ export default function MateDetail() {
                         <MessageSquare className="w-5 h-5 mr-2" />
                         채팅방 입장
                       </Button>
+                      {canAccessCheckIn && (
+                        <Button
+                          onClick={handleCheckIn}
+                          variant="outline"
+                          className="w-full h-12 border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10"
+                        >
+                          <QrCode className="w-5 h-5 mr-2" />
+                          체크인 페이지
+                        </Button>
+                      )}
 
                       {canCancel() && (
                         <Button
@@ -871,6 +1084,61 @@ export default function MateDetail() {
         />
       )}
 
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>취소 사유 선택</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">취소 사유를 선택하면 환불 규칙이 자동 적용됩니다.</p>
+            <div className="space-y-2">
+              {cancelReasonOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setSelectedCancelReason(option.value)}
+                  className={`w-full border rounded-lg px-3 py-2 text-left transition ${selectedCancelReason === option.value
+                    ? 'bg-primary/10 border-primary text-primary'
+                    : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-gray-200'
+                    }`}
+                  disabled={isCancelling}
+                >
+                  <p className="font-medium">{option.label}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{option.description}</p>
+                </button>
+              ))}
+            </div>
+            <div className="mt-3">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                추가 메모 (선택)
+              </label>
+              <Input
+                value={cancelMemo}
+                onChange={(e) => setCancelMemo(e.target.value)}
+                placeholder="선택 사유를 더 자세히 입력하세요."
+                disabled={isCancelling}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={isCancelling}
+              onClick={() => setShowCancelDialog(false)}
+            >
+              뒤로가기
+            </Button>
+            <Button
+              disabled={isCancelling}
+              className="bg-primary text-white"
+              onClick={executeCancelApplication}
+            >
+              {isCancelling ? '취소 처리 중...' : '취소하기'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 판매 전환 Dialog */}
       <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
         <DialogContent>
@@ -900,15 +1168,17 @@ export default function MateDetail() {
           <DialogFooter>
             <Button
               variant="outline"
+              disabled={isConvertingToSale}
               onClick={() => setShowSaleDialog(false)}
             >
               취소
             </Button>
             <Button
+              disabled={isConvertingToSale}
               className="bg-primary text-white"
               onClick={handleConfirmSale}
             >
-              확인
+              {isConvertingToSale ? '전환 중...' : '확인'}
             </Button>
           </DialogFooter>
         </DialogContent>
