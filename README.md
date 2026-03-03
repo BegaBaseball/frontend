@@ -230,6 +230,15 @@ docker run -p 5173:5173 bega-frontend
 docker-compose up -d
 ```
 
+### Stadium E2E 표준 실행
+```bash
+# 1순위(로컬 서버 기동 상태): self-heal 경로
+npm run cy:run:heal -- --spec cypress/e2e/stadium.cy.ts --config baseUrl=http://127.0.0.1:5176
+
+# 기본 대체 경로(서버 미기동/포트 바인딩 실패 포함): rescue 경로
+npm run test:e2e:rescue -- --spec cypress/e2e/stadium.cy.ts
+```
+
 ---
 
 ## ⚙️ 환경 변수

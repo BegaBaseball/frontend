@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -44,6 +44,8 @@ export default function Prediction() {
     deepLinkNotice,
     voteStatusError,
     voteStatusLoading,
+    isCurrentVotePartial,
+    currentVotePartialReason,
     handleVote,
     goToPreviousDate,
     goToNextDate,
@@ -58,6 +60,7 @@ export default function Prediction() {
     reloadCurrentVoteStatus,
     reloadCurrentGameDetail,
     isRunInProgress,
+    isRunBannerDismissed,
     retryLoadMoreFutureMatches,
     runProgressMessage,
     dismissRunProgressBanner,
@@ -185,14 +188,6 @@ export default function Prediction() {
   const shouldAutoRequestCoachBriefing =
     coachBriefingPolicy.autoEnabled && coachBriefingPolicy.requestMode === 'auto_brief';
 
-  const [isRunBannerDismissed, setIsRunBannerDismissed] = useState(false);
-
-  useEffect(() => {
-    if (!isRunInProgress) {
-      setIsRunBannerDismissed(false);
-    }
-  }, [isRunInProgress]);
-
   const showRunProgressBanner = isRunInProgress && !isRunBannerDismissed;
   const canMovePrevDate = currentDateIndex > 0 || pastRangeLoadState === 'ready';
   const canMoveNextDate = currentDateIndex < allDatesData.length - 1 || futureRangeLoadState === 'ready';
@@ -272,7 +267,6 @@ export default function Prediction() {
                   className="min-h-11 border-emerald-300/70 hover:bg-emerald-100 dark:border-emerald-600/70 dark:hover:bg-emerald-900/40"
                   onClick={() => {
                     dismissRunProgressBanner();
-                    setIsRunBannerDismissed(true);
                   }}
                 >
                   백그라운드로 계산
@@ -282,7 +276,6 @@ export default function Prediction() {
                   className="min-h-11 bg-emerald-900 hover:bg-emerald-800 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950"
                   onClick={() => {
                     resumeRunProgressBanner();
-                    setIsRunBannerDismissed(false);
                   }}
                 >
                   지금 계속
@@ -315,6 +308,41 @@ export default function Prediction() {
       };
     }
 
+    if (isCurrentVotePartial) {
+      return {
+        kind: 'INFO',
+        content: (
+          <Card
+            data-testid="prediction-partial-result-notice"
+            className={`${noticeCardBaseClass} border border-amber-200 text-amber-900 bg-amber-50 dark:bg-amber-900/30 dark:border-amber-700/40 dark:text-amber-100`}
+          >
+            <div className="mb-2 flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-amber-200/80 px-2 py-0.5 text-[11px] font-bold text-amber-900 dark:bg-amber-800/70 dark:text-amber-100">
+                부분 결과
+              </span>
+              <p className="text-sm font-medium">투표 집계가 일부만 도착했습니다.</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                size="sm"
+                disabled={isVoteRetryLoading}
+                data-testid="prediction-partial-retry-btn"
+                className="min-h-11 bg-amber-800 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-400 dark:text-amber-950"
+                onClick={() => {
+                  reloadCurrentVoteStatus({ source: 'manual' });
+                }}
+              >
+                {renderRetryLabel(isVoteRetryLoading, '투표 집계 다시 시도')}
+              </Button>
+              <span className="inline-flex items-center text-xs text-amber-800/80 dark:text-amber-100/80">
+                사유: {currentVotePartialReason || 'unknown'}
+              </span>
+            </div>
+          </Card>
+        ),
+      };
+    }
+
     if (voteStatusError) {
       return {
         kind: 'ERROR',
@@ -326,41 +354,15 @@ export default function Prediction() {
                 size="sm"
                 disabled={isVoteRetryLoading}
                 className="min-h-11 bg-rose-900 hover:bg-rose-800 text-white dark:bg-rose-400 dark:hover:bg-rose-300 dark:text-rose-950"
-                onClick={reloadCurrentVoteStatus}
+                onClick={() => {
+                  reloadCurrentVoteStatus();
+                }}
               >
                 {renderRetryLabel(isVoteRetryLoading, '투표 집계 다시 시도')}
               </Button>
               <Link
                 to="/"
                 className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-rose-200 text-rose-900 hover:bg-rose-100 dark:border-rose-300/70 dark:text-rose-100 dark:hover:bg-rose-900/40"
-              >
-                홈으로 이동
-              </Link>
-            </div>
-          </Card>
-        ),
-      };
-    }
-
-    if (currentGameDetailError) {
-      return {
-        kind: 'ERROR',
-        content: (
-          <Card className={`${noticeCardBaseClass} border border-amber-200 text-amber-900 bg-amber-50 dark:bg-amber-900/30 dark:border-amber-700/40 dark:text-amber-100`}>
-            <p className="text-sm font-medium mb-2">경기 상세 조회 실패: {currentGameDetailError}</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={isDetailRetryLoading}
-                className="min-h-11 border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-400/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
-                onClick={reloadCurrentGameDetail}
-              >
-                {renderRetryLabel(isDetailRetryLoading, '경기 상세 다시 시도')}
-              </Button>
-              <Link
-                to="/"
-                className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
               >
                 홈으로 이동
               </Link>
@@ -557,57 +559,6 @@ export default function Prediction() {
     );
   }
 
-  // legacy empty-state dead-end path (kept for backward compatibility)
-  if (false && (matchesLoadState as string) === 'empty') {
-    const hasFutureRangeFailure = futureRangeLoadState === 'error' && Boolean(futureRangeNotice);
-    return (
-      <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="relative p-4 sm:p-6 md:p-8 text-center bg-white/90 border border-slate-300/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[120px] sm:min-h-[180px] md:min-h-[200px] rounded-2xl">
-            <TrendingUp className="w-8 h-8 text-slate-500 dark:text-slate-300 mb-4" />
-            {hasFutureRangeFailure ? (
-              <div className="w-full flex flex-col items-center">
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
-                  미래 구간 조회에 실패했습니다.
-                </h3>
-                <p className="text-slate-500 dark:text-gray-300 mb-4">
-                  아래 액션으로 재시도하거나 홈으로 이동해 주세요.
-                </p>
-                {futureRangeNotice}
-              </div>
-            ) : (
-              <>
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
-                  현재 표시할 예측 경기가 없습니다.
-                </h3>
-                <p className="text-slate-500 dark:text-gray-300">
-                  잠시 후 다시 시도하거나 홈 화면으로 이동해 주세요.
-                </p>
-                <Button
-                  size="sm"
-                  className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500 dark:hover:bg-emerald-600"
-                  onClick={reloadMatches}
-                >
-                  목록 다시 불러오기
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mt-2 bg-white text-slate-600 dark:text-slate-200 border-slate-300/70 dark:border-border"
-                  onClick={() => {
-                    window.location.href = '/';
-                  }}
-                >
-                  홈으로 이동
-                </Button>
-              </>
-            )}
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   const topNotice = activeTab === 'match' ? getTopNotice(futureRangeNotice) : null;
 
   return (
@@ -739,35 +690,88 @@ export default function Prediction() {
                     <>
                       {/* Advanced Game Card */}
                       {currentGame && (
-                        <AdvancedMatchCard
-                          key={currentGame.gameId}
-                          game={currentGame}
-                          gameDetail={currentGameDetail}
-                          gameDetailLoading={currentGameDetailLoading}
-                          userVote={userVote[currentGameId!] || null}
-                          votePercentages={votePercentages}
-                          isVoteOpen={gameStatus.isVoteOpen}
-                          statusLabel={gameStatus.statusLabel}
-                          statusCode={statusCode}
-                          onVote={(team) => handleVote(team, currentGame, gameStatus.isVoteOpen)}
-                          onPrevDate={goToPreviousDate}
-                          onNextDate={goToNextDate}
-                          hasPrevDate={canMovePrevDate}
-                          hasNextDate={canMoveNextDate}
-                          coachBriefing={(
-                          <CoachBriefing
+                        currentGameDetailError ? (
+                          <Card
+                            data-testid="prediction-render-fallback-card"
+                            className="overflow-hidden border border-amber-200/70 shadow-lg bg-amber-50/80 dark:border-amber-700/40 dark:bg-amber-900/20 dark:shadow-xl transition-colors duration-300 mb-6 rounded-2xl"
+                          >
+                            <div className="p-5 md:p-6 space-y-4">
+                              <div>
+                                <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">경기 상세를 불러오지 못했습니다.</h3>
+                                <p className="text-sm text-amber-800/90 dark:text-amber-100/80 mt-1">
+                                  {currentGame.awayTeam} vs {currentGame.homeTeam} · {formatDate(currentDate)} · {gameStatus.statusLabel}
+                                </p>
+                                <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-2">오류: {currentGameDetailError}</p>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <Button
+                                  onClick={() => handleVote('away', currentGame, gameStatus.isVoteOpen)}
+                                  disabled={!gameStatus.isVoteOpen}
+                                  className="min-h-11"
+                                >
+                                  {currentGame.awayTeam} 승
+                                </Button>
+                                <Button
+                                  onClick={() => handleVote('home', currentGame, gameStatus.isVoteOpen)}
+                                  disabled={!gameStatus.isVoteOpen}
+                                  className="min-h-11"
+                                >
+                                  {currentGame.homeTeam} 승
+                                </Button>
+                              </div>
+
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={isDetailRetryLoading}
+                                  data-testid="prediction-render-fallback-retry-btn"
+                                  className="min-h-11 border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-400/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
+                                  onClick={() => reloadCurrentGameDetail({ emitRetryEvent: true })}
+                                >
+                                  {renderRetryLabel(isDetailRetryLoading, '다시 시도')}
+                                </Button>
+                                <Link
+                                  to="/"
+                                  className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
+                                >
+                                  목록으로 이동
+                                </Link>
+                              </div>
+                            </div>
+                          </Card>
+                        ) : (
+                          <AdvancedMatchCard
+                            key={currentGame.gameId}
                             game={currentGame}
                             gameDetail={currentGameDetail}
-                            seasonContext={seasonContext}
-                            isPastGame={isPastGame}
-                            isFutureGame={isFutureGame}
-                            requestMode={coachBriefingPolicy.requestMode}
-                            autoEnabled={shouldAutoRequestCoachBriefing}
-                            forceManual={coachBriefingPolicy.forceManual}
-                          />
+                            gameDetailLoading={currentGameDetailLoading}
+                            userVote={userVote[currentGameId!] || null}
+                            votePercentages={votePercentages}
+                            isVoteOpen={gameStatus.isVoteOpen}
+                            statusLabel={gameStatus.statusLabel}
+                            statusCode={statusCode}
+                            onVote={(team) => handleVote(team, currentGame, gameStatus.isVoteOpen)}
+                            onPrevDate={goToPreviousDate}
+                            onNextDate={goToNextDate}
+                            hasPrevDate={canMovePrevDate}
+                            hasNextDate={canMoveNextDate}
+                            coachBriefing={(
+                            <CoachBriefing
+                              game={currentGame}
+                              gameDetail={currentGameDetail}
+                              seasonContext={seasonContext}
+                              isPastGame={isPastGame}
+                              isFutureGame={isFutureGame}
+                              requestMode={coachBriefingPolicy.requestMode}
+                              autoEnabled={shouldAutoRequestCoachBriefing}
+                              forceManual={coachBriefingPolicy.forceManual}
+                            />
 
-                          )}
-                        />
+                            )}
+                          />
+                        )
                       )}
                     </>
                   ) : (

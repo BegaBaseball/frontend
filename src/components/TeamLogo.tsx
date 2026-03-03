@@ -159,6 +159,29 @@ const normalizeTeamLabel = (value?: string | null): string | undefined => {
 
   if (alphaToken) {
     const upperToken = alphaToken.toUpperCase();
+    const candidateCodes = Array.from(new Set([
+      upperToken,
+      upperToken.slice(0, 3),
+      upperToken.slice(0, 2),
+    ].filter((candidate) => candidate.length >= 2)));
+
+    for (const candidateCode of candidateCodes) {
+      const canonicalCode = LEGACY_CODE_TO_CANONICAL[candidateCode] || candidateCode;
+
+      if (teamLogoImages[canonicalCode]) {
+        return canonicalCode;
+      }
+
+      const mappedName = teamIdToName[canonicalCode.toLowerCase()];
+      if (mappedName && teamLogoImages[mappedName]) {
+        return mappedName;
+      }
+    }
+  }
+
+  const embeddedAlphaTokens = normalized.match(/[A-Za-z]{2,10}/g) || [];
+  for (const token of embeddedAlphaTokens) {
+    const upperToken = token.toUpperCase();
     const canonicalCode = LEGACY_CODE_TO_CANONICAL[upperToken] || upperToken;
 
     if (teamLogoImages[canonicalCode]) {
@@ -208,7 +231,7 @@ export const resolveTeamDisplayName = (value?: string | null): string => {
     return CANONICAL_TO_DISPLAY_NAME[canonicalUpper];
   }
 
-  if (trimmed.toUpperCase().startsWith('OB')) {
+  if (trimmed.toUpperCase().includes('OB')) {
     return '두산 베어스';
   }
 

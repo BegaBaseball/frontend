@@ -810,7 +810,7 @@ export default function MateCreate() {
                   <Alert>
                     <AlertCircle className="w-4 h-4" />
                     <AlertDescription className="text-sm">
-                      참여자는 티켓 가격 <span className="text-primary">{formData.ticketPrice.toLocaleString()}원</span> + 보증금 10,000원을 결제합니다.
+                      참여자는 호스트 승인 후 채팅에서 티켓 가격 <span className="text-primary">{formData.ticketPrice.toLocaleString()}원</span> 기준으로 직거래를 조율합니다.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -999,17 +999,12 @@ export default function MateCreate() {
             {/* Price Info */}
             <div className="border-t pt-3 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">티켓 가격</span>
+                <span className="text-gray-500">거래 기준 금액</span>
                 <span className="font-medium">{formData.ticketPrice.toLocaleString()}원</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">보증금</span>
-                <span className="font-medium">10,000원</span>
-              </div>
-              <div className="flex justify-between font-bold text-primary">
-                <span>총 결제 금액</span>
-                <span>{(formData.ticketPrice + 10000).toLocaleString()}원</span>
-              </div>
+              <p className="text-xs text-gray-500">
+                앱 내 결제/보증금 없이 승인 후 채팅으로 직거래를 진행합니다.
+              </p>
             </div>
 
             {/* Description Preview */}

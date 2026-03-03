@@ -442,7 +442,7 @@ export default function Mate() {
                     {(party.ticketPrice || 0).toLocaleString()}
                     <span className="text-sm font-normal text-gray-500 ml-0.5">원</span>
                   </span>
-                  <span className="text-xs text-gray-400">+ 보증금 1만원</span>
+                  <span className="text-xs text-gray-400">거래 기준 금액</span>
                 </>
               )}
             </div>
@@ -530,7 +530,7 @@ export default function Mate() {
               <div>
                 <h3 className="mb-2 font-bold text-primary text-sm">🦺 안전한 직관을 위한 가이드</h3>
                 <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
-                  <li>• <strong>보증금 제도:</strong> 노쇼 방지를 위해 소정의 보증금이 있을 수 있습니다.</li>
+                  <li>• <strong>직거래 조율:</strong> 승인 후 채팅에서 만날 시간/장소를 먼저 확정하세요.</li>
                   <li>• <strong>티켓 인증:</strong> 티켓 판매글은 예매 내역 인증 마크를 확인하세요.</li>
                   <li>• <strong>매너 응원:</strong> 상대 팀 비방이나 과격한 언행은 삼가주세요.</li>
                 </ul>
