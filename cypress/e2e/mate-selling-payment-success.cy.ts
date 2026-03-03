@@ -1,15 +1,10 @@
 /// <reference types="cypress" />
 
-const toLocalDateString = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+const toUtcDateString = (date: Date): string => date.toISOString().slice(0, 10);
 
 const buildParty = (overrides: Record<string, unknown> = {}) => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const nextUtcDay = new Date();
+  nextUtcDay.setUTCDate(nextUtcDay.getUTCDate() + 1);
 
   return {
     id: 777,
@@ -18,7 +13,7 @@ const buildParty = (overrides: Record<string, unknown> = {}) => {
     hostBadge: 'VERIFIED',
     hostRating: 4.9,
     teamId: 'LG',
-    gameDate: toLocalDateString(tomorrow),
+    gameDate: toUtcDateString(nextUtcDay),
     gameTime: '18:30:00',
     stadium: '잠실',
     homeTeam: 'LG',
@@ -35,8 +30,53 @@ const buildParty = (overrides: Record<string, unknown> = {}) => {
 };
 
 describe('Mate Selling Payment Success', () => {
+  const fakeToken = 'e2e-mate-token';
+  const authState = {
+    state: {
+      user: {
+        id: 123,
+        email: 'test@example.com',
+        name: 'TestUser',
+        handle: '@testuser',
+        role: 'ROLE_USER',
+        favoriteTeam: 'HH',
+        profileImageUrl: null,
+        hasPassword: true,
+      },
+      isLoggedIn: true,
+      isAdmin: false,
+    },
+    version: 0,
+  };
+
+  const bootstrapAuthenticatedWindow = (win: Window, paymentMode?: string) => {
+    const originalAddEventListener = win.addEventListener.bind(win);
+    win.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+      if (type === 'auth-session-expired' || type === 'global-api-error') {
+        return;
+      }
+      return originalAddEventListener(type, listener, options);
+    }) as typeof win.addEventListener;
+
+    win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+    win.localStorage.setItem('accessToken', fakeToken);
+    win.localStorage.setItem('bega_has_visited', 'true');
+    win.localStorage.setItem('bega_dont_show_guide', 'true');
+    if (paymentMode) {
+      (win as unknown as { __MATE_PAYMENT_MODE__?: string }).__MATE_PAYMENT_MODE__ = paymentMode;
+    }
+  };
+
+  const visitAsLoggedIn = (path: string, paymentMode?: string) => {
+    cy.visit(path, {
+      onBeforeLoad(win) {
+        bootstrapAuthenticatedWindow(win, paymentMode);
+      },
+    });
+    cy.setCookie('Authorization', fakeToken);
+  };
+
   beforeEach(() => {
-    cy.login('user');
     cy.mockAPI();
   });
 
@@ -72,10 +112,9 @@ describe('Mate Selling Payment Success', () => {
       });
     }).as('convertToSelling');
 
-    cy.visit('/mate/777');
+    visitAsLoggedIn('/mate/777');
     cy.wait('@getParty');
     cy.wait('@getMyApplication');
-    cy.wait('@getPartyApplications');
 
     cy.contains('button', '판매 전환').scrollIntoView().click({ force: true });
     cy.contains('티켓 판매 전환').should('be.visible');
@@ -117,11 +156,7 @@ describe('Mate Selling Payment Success', () => {
       req.reply({ statusCode: 201, body: {} });
     }).as('createApplication');
 
-    cy.visit('/mate/777/apply', {
-      onBeforeLoad(win) {
-        (win as unknown as { __MATE_PAYMENT_MODE__?: string }).__MATE_PAYMENT_MODE__ = 'TOSS_TEST';
-      },
-    });
+    visitAsLoggedIn('/mate/777/apply', 'TOSS_TEST');
     cy.wait('@getSellingParty');
     cy.contains('결제하기').click();
     cy.wait('@preparePayment');
@@ -153,7 +188,7 @@ describe('Mate Selling Payment Success', () => {
 
     cy.visit('/payment/success?paymentKey=pk-selling-test&orderId=MATE-777-11-1735123456789', {
       onBeforeLoad(win) {
-        (win as unknown as { __MATE_PAYMENT_MODE__?: string }).__MATE_PAYMENT_MODE__ = 'TOSS_TEST';
+        bootstrapAuthenticatedWindow(win, 'TOSS_TEST');
         win.sessionStorage.setItem('toss_payment_pending', JSON.stringify({
           intentId: 11,
           partyId: 777,
@@ -181,7 +216,7 @@ describe('Mate Selling Payment Success', () => {
 
     cy.visit('/payment/success?paymentKey=pk-selling-test&orderId=MATE-777-11-1735123456789', {
       onBeforeLoad(win) {
-        (win as unknown as { __MATE_PAYMENT_MODE__?: string }).__MATE_PAYMENT_MODE__ = 'DIRECT_TRADE';
+        bootstrapAuthenticatedWindow(win, 'DIRECT_TRADE');
         win.sessionStorage.setItem('toss_payment_pending', JSON.stringify({
           partyId: 777,
           flowType: 'SELLING_FULL',

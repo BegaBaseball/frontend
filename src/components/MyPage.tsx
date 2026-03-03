@@ -157,7 +157,7 @@ export default function MyPage() {
                   </h2>
                   <div className="flex items-center gap-2">
                     {savedFavoriteTeam !== '없음' && (
-                      <div className="w-5 h-5 md:w-6 md:h-6">
+                      <div className="w-5 h-5 md:w-6 md:h-6" data-testid="mypage-favorite-team-logo">
                         <TeamLogo team={savedFavoriteTeam} size="sm" />
                       </div>
                     )}

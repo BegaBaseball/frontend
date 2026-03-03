@@ -15,6 +15,8 @@ import { getChatUnreadCounts } from '../api/mate';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
+const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
+
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -66,6 +68,21 @@ export default function Navbar() {
     const interval = setInterval(checkChatUnread, 30000); // 30초마다 갱신
     return () => clearInterval(interval);
   }, [isLoggedIn, location.pathname]); // 경로 변경 시(채팅 뷰 진입/이탈 등) 즉각 업데이트
+
+  useEffect(() => {
+    const handleChatUnreadUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ count?: number }>;
+      const count = customEvent.detail?.count;
+      if (typeof count === 'number' && Number.isFinite(count)) {
+        setChatUnreadCount(Math.max(0, count));
+      }
+    };
+
+    window.addEventListener(CHAT_UNREAD_UPDATED_EVENT, handleChatUnreadUpdated as EventListener);
+    return () => {
+      window.removeEventListener(CHAT_UNREAD_UPDATED_EVENT, handleChatUnreadUpdated as EventListener);
+    };
+  }, []);
 
 
   // 초기 알림 개수만 가져오기 (WebSocket이 실시간으로 업데이트)

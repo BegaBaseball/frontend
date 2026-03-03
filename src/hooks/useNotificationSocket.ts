@@ -4,7 +4,7 @@ import { Client } from '@stomp/stompjs';
 import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { NotificationData } from '../types/notification';
-import { getApiBaseUrl } from '../api/apiBase';
+import { SERVER_BASE_URL } from '../constants/config';
 
 export const useNotificationSocket = () => {
     const { user } = useAuthStore();
@@ -26,22 +26,18 @@ export const useNotificationSocket = () => {
             return;
         }
 
-        const apiBaseUrl = getApiBaseUrl();
-        let wsBaseUrl = '';
+        const resolveBrokerUrl = (): string => {
+            try {
+                const serverUrl = new URL(SERVER_BASE_URL);
+                const serverProtocol = serverUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+                return `${serverProtocol}//${serverUrl.host}/ws`;
+            } catch {
+                const pageProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                return `${pageProtocol}//${window.location.host}/ws`;
+            }
+        };
 
-        if (apiBaseUrl.startsWith('http')) {
-            wsBaseUrl = apiBaseUrl
-                .replace(/^http:/, 'ws:')
-                .replace(/^https:/, 'wss:')
-                .replace(/\/api\/?$/, '');
-        } else {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // "/api" -> ""
-            const cleanPath = apiBaseUrl.replace(/\/api\/?$/, '');
-            wsBaseUrl = `${protocol}//${window.location.host}${cleanPath}`;
-        }
-
-        const brokerUrl = `${wsBaseUrl}/ws`;
+        const brokerUrl = resolveBrokerUrl();
 
         const client = new Client({
             brokerURL: brokerUrl,

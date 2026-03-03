@@ -13,6 +13,24 @@ import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
 import { compressImage } from '../utils/imageCompression';
 
+const normalizeFavoriteTeam = (value?: string | null): string | null => {
+  if (value == null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed === '' || trimmed === '없음' ? null : trimmed;
+};
+
+const normalizePublicProfile = (profile: PublicUserProfile): PublicUserProfile => ({
+  ...profile,
+  favoriteTeam: normalizeFavoriteTeam(profile.favoriteTeam),
+});
+
+const normalizeUserProfile = (profile: UserProfile): UserProfile => ({
+  ...profile,
+  favoriteTeam: normalizeFavoriteTeam(profile.favoriteTeam),
+});
+
 /**
  * 다른 사용자 프로필 조회 (공개 정보 - ID 기준)
  */
@@ -23,7 +41,7 @@ export async function fetchPublicUserProfile(userId: number): Promise<PublicUser
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
     }
-    return response.data.data;
+    return normalizePublicProfile(response.data.data);
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
   }
@@ -39,7 +57,7 @@ export async function fetchPublicUserProfileByHandle(handle: string): Promise<Pu
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
     }
-    return response.data.data;
+    return normalizePublicProfile(response.data.data);
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
   }
@@ -55,7 +73,7 @@ export async function fetchUserProfile(): Promise<UserProfile> {
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
     }
-    return response.data.data;
+    return normalizeUserProfile(response.data.data);
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
   }
@@ -105,7 +123,13 @@ export async function updateProfile(data: ProfileUpdateData): Promise<ProfileUpd
       throw new Error(response.data.message || '프로필 저장에 실패했습니다.');
     }
 
-    return response.data;
+    return {
+      ...response.data,
+      data: {
+        ...response.data.data,
+        favoriteTeam: normalizeFavoriteTeam(response.data.data?.favoriteTeam),
+      },
+    };
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response?.status === 401) {
       throw new Error('인증 정보가 만료되었습니다. 다시 로그인해주세요.');

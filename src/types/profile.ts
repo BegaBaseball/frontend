@@ -49,7 +49,7 @@ export interface ProfileUpdateResponse {
     profileImageUrl?: string | null;
     name?: string;
     email?: string;
-    favoriteTeam?: string;
+    favoriteTeam?: string | null;
     bio?: string;
   };
   message?: string;

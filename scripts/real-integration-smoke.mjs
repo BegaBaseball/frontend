@@ -1,0 +1,517 @@
+#!/usr/bin/env node
+
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const DEFAULT_API_BASE = 'http://127.0.0.1:5176/api';
+const API_BASE = (process.env.SMOKE_API_BASE_URL || DEFAULT_API_BASE).replace(/\/+$/, '');
+const FRONTEND_ORIGIN = (process.env.SMOKE_FRONTEND_ORIGIN || 'http://localhost:5176').replace(/\/+$/, '');
+const REPORT_DIR = resolve(process.cwd(), 'reports');
+const reportTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
+const reportPath = resolve(REPORT_DIR, `real-integration-smoke-${reportTimestamp}.json`);
+const reportLatestPath = resolve(REPORT_DIR, 'real-integration-smoke-latest.json');
+const FALLBACK_LOGIN_EMAIL = (process.env.SMOKE_LOGIN_EMAIL || '').trim();
+const FALLBACK_LOGIN_PASSWORD = process.env.SMOKE_LOGIN_PASSWORD || '';
+const SKIP_SIGNUP = process.env.SMOKE_SKIP_SIGNUP === '1';
+
+const cookieJar = new Map();
+const warnings = [];
+const steps = [];
+const runStartedAt = new Date().toISOString();
+
+const randomSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+const signupIdentity = {
+  name: `smoke_user_${randomSuffix.slice(-6)}`,
+  handle: `@s${randomSuffix.slice(-8)}`,
+  email: `smoke_${randomSuffix}@example.com`,
+  password: 'Test1234!',
+  favoriteTeam: 'LG',
+};
+let activeLoginEmail = signupIdentity.email;
+let activeLoginPassword = signupIdentity.password;
+let samplePartyId = null;
+
+const withTimeout = async (promise, timeoutMs, timeoutMessage) => {
+  let timer;
+  try {
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error(timeoutMessage));
+      }, timeoutMs);
+    });
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const sleep = (ms) => new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+
+const parseSetCookie = (setCookieValue) => {
+  const token = setCookieValue.split(';')[0]?.trim();
+  if (!token || !token.includes('=')) {
+    return null;
+  }
+
+  const idx = token.indexOf('=');
+  const name = token.slice(0, idx);
+  const value = token.slice(idx + 1);
+  if (!name) {
+    return null;
+  }
+
+  return { name, value };
+};
+
+const updateCookieJar = (response) => {
+  const getSetCookie = response.headers?.getSetCookie;
+  const setCookies = typeof getSetCookie === 'function'
+    ? getSetCookie.call(response.headers)
+    : [];
+
+  for (const rawCookie of setCookies) {
+    const parsed = parseSetCookie(rawCookie);
+    if (parsed) {
+      cookieJar.set(parsed.name, parsed.value);
+    }
+  }
+};
+
+const buildCookieHeader = () => {
+  if (cookieJar.size === 0) {
+    return '';
+  }
+  return Array.from(cookieJar.entries())
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+};
+
+const requestJson = async (path, options = {}) => {
+  const {
+    method = 'GET',
+    headers = {},
+    body,
+    authenticated = false,
+    timeoutMs = 15000,
+    expectedStatuses = [200],
+  } = options;
+
+  const url = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+  const requestHeaders = { ...headers };
+  if (method !== 'GET' && method !== 'HEAD') {
+    if (!requestHeaders.Origin) {
+      requestHeaders.Origin = FRONTEND_ORIGIN;
+    }
+    if (!requestHeaders.Referer) {
+      requestHeaders.Referer = `${FRONTEND_ORIGIN}/`;
+    }
+  }
+  if (authenticated) {
+    const cookieHeader = buildCookieHeader();
+    if (!cookieHeader) {
+      throw new Error(`인증 쿠키가 없어 ${method} ${path} 요청을 진행할 수 없습니다.`);
+    }
+    requestHeaders.Cookie = cookieHeader;
+  }
+
+  const response = await withTimeout(
+    fetch(url, {
+      method,
+      headers: requestHeaders,
+      body,
+    }),
+    timeoutMs,
+    `${method} ${url} 요청 타임아웃(${timeoutMs}ms)`,
+  );
+
+  updateCookieJar(response);
+  const rawText = await response.text();
+  let parsed;
+  try {
+    parsed = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    parsed = null;
+  }
+
+  if (!expectedStatuses.includes(response.status)) {
+    const message = parsed?.message || rawText || '응답 본문 없음';
+    const error = new Error(
+      `${method} ${path} 상태코드 ${response.status} (기대: ${expectedStatuses.join(', ')}) - ${message}`,
+    );
+    error.status = response.status;
+    error.payload = parsed;
+    throw error;
+  }
+
+  return {
+    status: response.status,
+    data: parsed,
+    rawText,
+  };
+};
+
+const runStep = async (name, fn) => {
+  const startedAt = new Date().toISOString();
+  const start = Date.now();
+  try {
+    const result = await fn();
+    const durationMs = Date.now() - start;
+    steps.push({
+      name,
+      status: 'passed',
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      durationMs,
+      result,
+    });
+    console.log(`✓ ${name} (${durationMs}ms)`);
+    return result;
+  } catch (error) {
+    const durationMs = Date.now() - start;
+    steps.push({
+      name,
+      status: 'failed',
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      durationMs,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    console.error(`✗ ${name} (${durationMs}ms)`);
+    throw error;
+  }
+};
+
+const requestWithRetry = async (stepName, attempts, fn, delayMs = 800) => {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        const reason = error instanceof Error ? error.message : String(error);
+        warnings.push(`${stepName} 재시도 ${attempt}/${attempts - 1}: ${reason}`);
+        await sleep(delayMs);
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+};
+
+const extractRequiredPolicyConsents = (payload) => {
+  const policies = payload?.data?.policies;
+  if (!Array.isArray(policies) || policies.length === 0) {
+    throw new Error('필수 정책 목록 응답이 비어 있습니다.');
+  }
+
+  const consents = policies
+    .filter((policy) => policy?.required === true)
+    .map((policy) => ({
+      policyType: policy.policyType,
+      version: policy.version,
+      agreed: true,
+    }))
+    .filter((policy) => (
+      typeof policy.policyType === 'string'
+      && policy.policyType.length > 0
+      && typeof policy.version === 'string'
+      && policy.version.length > 0
+    ));
+
+  if (consents.length === 0) {
+    throw new Error('필수 정책 동의 항목 생성에 실패했습니다.');
+  }
+
+  return consents;
+};
+
+const buildTinyPng = () => Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6zK+QAAAAASUVORK5CYII=',
+  'base64',
+);
+
+const main = async () => {
+  console.log(`[real-smoke] api base: ${API_BASE}`);
+
+  const policyResponse = await runStep('required-policies', async () => requestWithRetry(
+    'required-policies',
+    40,
+    () => requestJson('/auth/policies/required', { expectedStatuses: [200] }),
+    1500,
+  ));
+
+  const policyConsents = extractRequiredPolicyConsents(policyResponse.data);
+
+  await runStep('signup', async () => {
+    if (SKIP_SIGNUP) {
+      if (!FALLBACK_LOGIN_EMAIL || !FALLBACK_LOGIN_PASSWORD) {
+        throw new Error('SMOKE_SKIP_SIGNUP=1 사용 시 SMOKE_LOGIN_EMAIL/SMOKE_LOGIN_PASSWORD가 필요합니다.');
+      }
+      activeLoginEmail = FALLBACK_LOGIN_EMAIL;
+      activeLoginPassword = FALLBACK_LOGIN_PASSWORD;
+      return {
+        status: 'skipped',
+        reason: 'SMOKE_SKIP_SIGNUP=1',
+      };
+    }
+
+    try {
+      const response = await requestJson('/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...signupIdentity,
+          confirmPassword: signupIdentity.password,
+          policyConsents,
+        }),
+        expectedStatuses: [200, 201],
+      });
+
+      if (response.data?.success !== true) {
+        throw new Error(response.data?.message || '회원가입 응답 success=false');
+      }
+
+      activeLoginEmail = signupIdentity.email;
+      activeLoginPassword = signupIdentity.password;
+      return { status: response.status, message: response.data?.message };
+    } catch (error) {
+      const status = typeof error?.status === 'number' ? error.status : null;
+      if (status === 429 && FALLBACK_LOGIN_EMAIL && FALLBACK_LOGIN_PASSWORD) {
+        activeLoginEmail = FALLBACK_LOGIN_EMAIL;
+        activeLoginPassword = FALLBACK_LOGIN_PASSWORD;
+        warnings.push('signup 429로 인해 기존 계정으로 로그인 단계를 진행했습니다.');
+        return {
+          status: 'fallback-login',
+          reason: 'signup rate-limited (429)',
+          fallbackEmail: FALLBACK_LOGIN_EMAIL,
+        };
+      }
+      throw error;
+    }
+  });
+
+  await runStep('login', async () => {
+    const response = await requestJson('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: activeLoginEmail,
+        password: activeLoginPassword,
+      }),
+      expectedStatuses: [200],
+    });
+
+    if (response.data?.success !== true) {
+      throw new Error(response.data?.message || '로그인 응답 success=false');
+    }
+
+    return {
+      status: response.status,
+      userId: response.data?.data?.id,
+      handle: response.data?.data?.handle,
+      cookieCount: cookieJar.size,
+    };
+  });
+
+  await runStep('auth-mypage', async () => {
+    const response = await requestJson('/auth/mypage', {
+      authenticated: true,
+      expectedStatuses: [200],
+    });
+
+    if (response.data?.success !== true || !response.data?.data?.id) {
+      throw new Error(response.data?.message || 'mypage 응답이 유효하지 않습니다.');
+    }
+
+    return {
+      status: response.status,
+      id: response.data.data.id,
+      email: response.data.data.email,
+      policyConsentRequired: response.data.data.policyConsentRequired,
+    };
+  });
+
+  await runStep('chat-unread-count', async () => {
+    const response = await requestJson('/chat/my/unread-counts', {
+      authenticated: true,
+      expectedStatuses: [200],
+    });
+
+    if (response.data?.success !== true || typeof response.data?.data !== 'number') {
+      throw new Error('chat unread 응답 형식이 예상과 다릅니다.');
+    }
+
+    return { status: response.status, unreadCount: response.data.data };
+  });
+
+  await runStep('storage-image-upload', async () => {
+    const formData = new FormData();
+    const tinyPng = buildTinyPng();
+    const file = new File([tinyPng], `smoke-${Date.now()}.png`, { type: 'image/png' });
+    formData.append('file', file);
+
+    const response = await requestJson('/storage/image', {
+      method: 'POST',
+      body: formData,
+      authenticated: true,
+      expectedStatuses: [200],
+      timeoutMs: 30000,
+    });
+
+    const payload = response.data?.data;
+    const path = typeof payload === 'string'
+      ? payload
+      : payload?.path || payload?.url || payload?.publicUrl;
+    if (!response.data?.success || !path) {
+      throw new Error(response.data?.message || '스토리지 업로드 응답에 경로가 없습니다.');
+    }
+
+    if (typeof path === 'string' && /^https?:\/\//i.test(path) && process.env.SMOKE_CHECK_STORAGE_URL !== '0') {
+      try {
+        const urlResponse = await withTimeout(
+          fetch(path, { method: 'HEAD' }),
+          12000,
+          '스토리지 URL HEAD 확인 타임아웃',
+        );
+        if (urlResponse.status >= 400) {
+          warnings.push(`스토리지 URL 접근 상태코드 ${urlResponse.status}: ${path}`);
+        }
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        warnings.push(`스토리지 URL 접근 확인 실패(비치명): ${reason}`);
+      }
+    }
+
+    return {
+      status: response.status,
+      path,
+    };
+  });
+
+  await runStep('mate-list-smoke', async () => {
+    const response = await requestJson('/parties?page=0&size=20', {
+      authenticated: true,
+      expectedStatuses: [200],
+    });
+
+    const body = response.data;
+    const content = Array.isArray(body)
+      ? body
+      : Array.isArray(body?.content)
+        ? body.content
+        : Array.isArray(body?.data?.content)
+          ? body.data.content
+          : [];
+
+    if (content.length > 0 && typeof content[0]?.id === 'number') {
+      samplePartyId = content[0].id;
+    }
+
+    return {
+      status: response.status,
+      listedCount: content.length,
+      samplePartyId,
+    };
+  });
+
+  await runStep('my-application-smoke', async () => {
+    const response = await requestJson('/applications/my', {
+      authenticated: true,
+      expectedStatuses: [200],
+    });
+
+    const body = response.data;
+    const content = Array.isArray(body)
+      ? body
+      : Array.isArray(body?.content)
+        ? body.content
+        : Array.isArray(body?.data?.content)
+          ? body.data.content
+          : [];
+
+    return {
+      status: response.status,
+      applicationCount: content.length,
+    };
+  });
+
+  await runStep('payment-prepare-smoke', async () => {
+    if (samplePartyId == null) {
+      warnings.push('payment-prepare-smoke: 파티 데이터가 없어 검증을 건너뜁니다.');
+      return {
+        status: 'skipped',
+        reason: 'no-party-data',
+      };
+    }
+
+    const response = await requestJson('/payments/toss/prepare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        partyId: samplePartyId,
+        flowType: 'DEPOSIT',
+        cancelPolicyVersion: 'v1',
+      }),
+      authenticated: true,
+      expectedStatuses: [200, 400, 401, 403, 404, 409, 503],
+      timeoutMs: 15000,
+    });
+
+    if (response.status === 200) {
+      if (!response.data?.intentId || !response.data?.orderId) {
+        throw new Error('결제 준비 응답(200)에 intentId/orderId가 없습니다.');
+      }
+      return {
+        status: response.status,
+        partyId: samplePartyId,
+        intentId: response.data.intentId,
+      };
+    }
+
+    const message = response.data?.message
+      || response.data?.error
+      || response.rawText
+      || 'no-message';
+    warnings.push(`payment-prepare-smoke business rejection: status=${response.status}, message=${message}`);
+
+    return {
+      status: response.status,
+      partyId: samplePartyId,
+      message,
+    };
+  });
+};
+
+const writeReport = (status, fatalError = null) => {
+  mkdirSync(REPORT_DIR, { recursive: true });
+  const report = {
+    status,
+    runStartedAt,
+    runFinishedAt: new Date().toISOString(),
+    apiBase: API_BASE,
+    signupIdentity: {
+      name: signupIdentity.name,
+      handle: signupIdentity.handle,
+      email: signupIdentity.email,
+    },
+    steps,
+    warnings,
+    fatalError: fatalError ? (fatalError instanceof Error ? fatalError.message : String(fatalError)) : null,
+  };
+
+  writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  writeFileSync(reportLatestPath, JSON.stringify(report, null, 2));
+  console.log(`[real-smoke] report: ${reportPath}`);
+  console.log(`[real-smoke] latest: ${reportLatestPath}`);
+};
+
+try {
+  await main();
+  writeReport('passed');
+  process.exit(0);
+} catch (error) {
+  writeReport('failed', error);
+  const reason = error instanceof Error ? error.message : String(error);
+  console.error(`[real-smoke] failed: ${reason}`);
+  process.exit(1);
+}

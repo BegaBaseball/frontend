@@ -165,6 +165,7 @@ const StreakCell = styled.div`
 `;
 
 export interface LeaderboardEntry {
+  rank?: number;
   userId: number;
   userName: string;
   handle?: string;
