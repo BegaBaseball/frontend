@@ -12,14 +12,57 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   success: boolean;
-  message: string;
+  message: string | null;
   data: {
-    id: number;
-    name: string;
-    role: string;
-    handle?: string;
+    id?: number;
+    name?: string;
+    role?: string;
+    handle?: string | null;
+    cheerPoints?: number;
   };
 }
+
+interface RawLoginResponse {
+  success?: boolean;
+  message?: string | null;
+  data?: {
+    id?: number | string;
+    name?: string;
+    role?: string;
+    handle?: string | null;
+    cheerPoints?: number | string;
+  } | null;
+}
+
+const normalizeOptionalNumber = (value: number | string | undefined): number | undefined => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  return undefined;
+};
+
+const normalizeLoginResponse = (payload: RawLoginResponse): LoginResponse => ({
+  success: payload.success === true,
+  message: typeof payload.message === 'string' ? payload.message : null,
+  data: {
+    id: normalizeOptionalNumber(payload.data?.id),
+    name: typeof payload.data?.name === 'string' ? payload.data.name : undefined,
+    role: typeof payload.data?.role === 'string' ? payload.data.role : undefined,
+    handle:
+      typeof payload.data?.handle === 'string'
+        ? payload.data.handle
+        : payload.data?.handle === null
+          ? null
+          : undefined,
+    cheerPoints: normalizeOptionalNumber(payload.data?.cheerPoints),
+  },
+});
 
 export interface SignUpRequest {
   name: string;
@@ -28,6 +71,7 @@ export interface SignUpRequest {
   password: string;
   confirmPassword: string;
   favoriteTeam: string | null;
+  policyConsents?: PolicyConsentPayloadItem[];
 }
 
 export interface SignUpResponse {
@@ -36,6 +80,26 @@ export interface SignUpResponse {
   data?: {
     userId: number;
     email: string;
+  };
+}
+
+export interface PolicyConsentPayloadItem {
+  policyType: string;
+  version: string;
+  agreed: boolean;
+}
+
+interface RequiredPolicyItem {
+  policyType?: string;
+  version?: string;
+  required?: boolean;
+}
+
+interface RequiredPoliciesApiResponse {
+  success?: boolean;
+  message?: string;
+  data?: {
+    policies?: RequiredPolicyItem[];
   };
 }
 
@@ -66,10 +130,10 @@ export interface PasswordResetConfirmResponse {
  */
 export const loginUser = async (credentials: LoginRequest): Promise<LoginResponse> => {
   try {
-    const response = await api.post<LoginResponse>('/auth/login', credentials, {
+    const response = await api.post<RawLoginResponse>('/auth/login', credentials, {
       skipGlobalErrorHandler: true, // 로그인 실패 시 모달 대신 폼 에러 표시
     });
-    return response.data;
+    return normalizeLoginResponse(response.data);
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response?.status === 401) {
       throw new Error('이메일 또는 비밀번호가 일치하지 않습니다.');
@@ -95,7 +159,14 @@ export const loginUser = async (credentials: LoginRequest): Promise<LoginRespons
  */
 export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> => {
   try {
-    const response = await api.post<SignUpResponse>('/auth/signup', data, {
+    const policyConsents = data.policyConsents && data.policyConsents.length > 0
+      ? data.policyConsents
+      : await fetchRequiredPolicyConsents();
+
+    const response = await api.post<SignUpResponse>('/auth/signup', {
+      ...data,
+      policyConsents,
+    }, {
       skipGlobalErrorHandler: true,
     });
     return response.data;
@@ -105,8 +176,42 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
         (typeof error.response?.data === 'string' ? error.response.data : `회원가입 실패: ${error.message}`);
       throw new Error(errorMessage);
     }
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error(getApiErrorMessage(error, '회원가입에 실패했습니다.'));
   }
+};
+
+const fetchRequiredPolicyConsents = async (): Promise<PolicyConsentPayloadItem[]> => {
+  const response = await api.get<RequiredPoliciesApiResponse>('/auth/policies/required', {
+    skipGlobalErrorHandler: true,
+  });
+
+  const policies = response.data?.data?.policies;
+  if (!Array.isArray(policies) || policies.length === 0) {
+    throw new Error('필수 정책 정보를 불러오지 못했습니다.');
+  }
+
+  const requiredConsents = policies
+    .filter((policy): policy is RequiredPolicyItem & { policyType: string; version: string; required: true } => (
+      policy?.required === true
+      && typeof policy.policyType === 'string'
+      && policy.policyType.length > 0
+      && typeof policy.version === 'string'
+      && policy.version.length > 0
+    ))
+    .map((policy) => ({
+      policyType: policy.policyType,
+      version: policy.version,
+      agreed: true,
+    }));
+
+  if (requiredConsents.length === 0) {
+    throw new Error('필수 정책 동의 항목이 없습니다.');
+  }
+
+  return requiredConsents;
 };
 
 /**

@@ -25,7 +25,6 @@ import {
 import { cacheLeagueStartDates, getFallbackLeagueStartDates } from '../utils/home';
 import { fetchHotPosts, CheerPost } from '../api/cheerApi';
 import { fetchAllParties } from '../api/mate';
-import { mapBackendPartyToFrontend } from '../utils/mate';
 import { Party } from '../types/mate';
 import { formatTimeAgo } from '../utils/time';
 import { getTeamColorByAnyKey } from '../constants/teams';
@@ -603,9 +602,8 @@ export default function Home({ onNavigate }: HomeProps) {
             try {
                 // Fetch Mate Parties (assuming fetchAllParties gets upcoming ones based on API defaults)
                 const mateData = await fetchAllParties();
-                const mappedMates = (mateData as any[]).map(mapBackendPartyToFrontend);
                 // Filter for upcoming parties and take top 4
-                const upcomingMates = mappedMates.filter(p => new Date(p.gameDate) >= new Date() && p.status === 'PENDING').slice(0, 4);
+                const upcomingMates = mateData.filter(p => new Date(p.gameDate) >= new Date() && p.status === 'PENDING').slice(0, 4);
                 setFeaturedMates(upcomingMates);
             } catch (err) {
                 console.error('[Widget] Error loading Mates:', err);

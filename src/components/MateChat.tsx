@@ -31,9 +31,12 @@ import { api, getApiErrorStatus } from '../utils/api';
 import { uploadChatImage, updateChatReadTimestamp } from '../api/mate';
 import { useAuthStore } from '../store/authStore';
 
+const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
+
 export default function MateChat() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const chatImageInputId = 'mate-chat-image-upload';
   const {
     party: selectedParty,
     isLoading: isPartyLoading,
@@ -62,17 +65,75 @@ export default function MateChat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const currentUserIdRef = useRef<number | null>(null);
+  const pendingWsSendsRef = useRef<Array<{
+    payload: {
+      partyId: number;
+      senderId: number;
+      senderName: string;
+      message: string;
+      imageUrl?: string;
+    };
+    timer: ReturnType<typeof setTimeout>;
+  }>>([]);
 
   const handleMessageReceived = useCallback((message: ChatMessage) => {
+    const currentUserId = currentUserIdRef.current;
+    if (currentUserId !== null && Number(message.senderId) === Number(currentUserId)) {
+      const pendingIndex = pendingWsSendsRef.current.findIndex((pending) =>
+        pending.payload.message === message.message &&
+        (pending.payload.imageUrl || '') === (message.imageUrl || '')
+      );
+      if (pendingIndex >= 0) {
+        clearTimeout(pendingWsSendsRef.current[pendingIndex].timer);
+        pendingWsSendsRef.current.splice(pendingIndex, 1);
+      }
+    }
+
     setMessages((prev) => {
-      if (prev.some(m => m.id === message.id)) {
+      if (prev.some((m) =>
+        m.id === message.id ||
+        (
+          Number(m.senderId) === Number(message.senderId) &&
+          m.message === message.message &&
+          (m.imageUrl || '') === (message.imageUrl || '') &&
+          Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 5000
+        )
+      )) {
         return prev;
       }
       return [...prev, message];
     });
   }, []);
 
+  const notifyChatUnreadCount = useCallback((count: number) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.dispatchEvent(
+      new CustomEvent(CHAT_UNREAD_UPDATED_EVENT, {
+        detail: { count: Math.max(0, count) },
+      }),
+    );
+  }, []);
+
   // 사용자 정보 가져오기
+  useEffect(() => {
+    currentUserIdRef.current = currentUser?.id ?? null;
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      pendingWsSendsRef.current.forEach((pending) => clearTimeout(pending.timer));
+      pendingWsSendsRef.current = [];
+    };
+  }, []);
+
   useEffect(() => {
     if (authUser?.id) {
       setCurrentUser({
@@ -158,6 +219,7 @@ export default function MateChat() {
     const markAsRead = async () => {
       try {
         await updateChatReadTimestamp(selectedParty.id);
+        notifyChatUnreadCount(0);
       } catch (error) {
         console.error('읽음 처리 실패', error);
       }
@@ -165,7 +227,7 @@ export default function MateChat() {
     // 디바운스 역할로 타임아웃
     const timer = setTimeout(markAsRead, 500);
     return () => clearTimeout(timer);
-  }, [messages, selectedParty?.id, currentUser]);
+  }, [messages, selectedParty?.id, currentUser, notifyChatUnreadCount]);
 
   // isHost 계산 (조건부 return 전에)
   const isHost = currentUser && selectedParty
@@ -367,10 +429,27 @@ export default function MateChat() {
     }
   };
 
+  const openImagePicker = () => {
+    if (isUploadingImage) return;
+    const input = fileInputRef.current;
+    if (!input) return;
+
+    const pickerInput = input as HTMLInputElement & { showPicker?: () => void };
+    if (typeof pickerInput.showPicker === 'function') {
+      try {
+        pickerInput.showPicker();
+        return;
+      } catch (error) {
+        console.warn('showPicker 호출에 실패하여 click fallback을 사용합니다.', error);
+      }
+    }
+
+    input.click();
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!messageText.trim() && !selectedImage) || !isConnected) {
-      console.warn('메시지 전송 불가:', { messageText, selectedImage, isConnected });
+    if (!messageText.trim() && !selectedImage) {
       return;
     }
 
@@ -382,13 +461,13 @@ export default function MateChat() {
       }
     }
 
-    let finalImageUrl: string | undefined = undefined;
+    let finalImagePath: string | undefined = undefined;
 
     if (selectedImage) {
       setIsUploadingImage(true);
       try {
         const uploadResult = await uploadChatImage(selectedImage);
-        finalImageUrl = uploadResult.url;
+        finalImagePath = uploadResult.path;
       } catch (error) {
         toast.error('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
         setIsUploadingImage(false);
@@ -401,11 +480,66 @@ export default function MateChat() {
       partyId: selectedParty.id,
       senderId: currentUser.id,
       senderName: currentUser.name,
-      message: messageText.trim() || (finalImageUrl ? '(사진 전송)' : ''),
-      ...(finalImageUrl && { imageUrl: finalImageUrl }),
+      message: messageText.trim() || (finalImagePath ? '(사진 전송)' : ''),
+      ...(finalImagePath && { imageUrl: finalImagePath }),
     };
 
-    sendWebSocketMessage(newMessage);
+    const persistViaHttp = async () => {
+      const savedMessage = await api.sendChatMessage(newMessage);
+      setMessages((prev) => {
+        if (prev.some((m) =>
+          m.id === savedMessage.id ||
+          (
+            Number(m.senderId) === Number(savedMessage.senderId) &&
+            m.message === savedMessage.message &&
+            (m.imageUrl || '') === (savedMessage.imageUrl || '') &&
+            Math.abs(new Date(m.createdAt).getTime() - new Date(savedMessage.createdAt).getTime()) < 5000
+          )
+        )) {
+          return prev;
+        }
+        return [...prev, savedMessage];
+      });
+    };
+
+    const wsSent = isConnected && sendWebSocketMessage(newMessage);
+
+    if (wsSent) {
+      const pendingEntry = {
+        payload: newMessage,
+        timer: setTimeout(async () => {
+          const pendingIndex = pendingWsSendsRef.current.findIndex((pending) => pending === pendingEntry);
+          if (pendingIndex < 0) return;
+          pendingWsSendsRef.current.splice(pendingIndex, 1);
+
+          const currentUserId = currentUserIdRef.current;
+          const hasSameRecentOwnMessage = currentUserId !== null && messagesRef.current.some((m) =>
+            Number(m.senderId) === Number(currentUserId) &&
+            m.message === pendingEntry.payload.message &&
+            (m.imageUrl || '') === (pendingEntry.payload.imageUrl || '') &&
+            Date.now() - new Date(m.createdAt).getTime() < 7000
+          );
+          if (hasSameRecentOwnMessage) {
+            return;
+          }
+
+          try {
+            await persistViaHttp();
+          } catch {
+            toast.error('메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.');
+          }
+        }, 1500),
+      };
+      pendingWsSendsRef.current.push(pendingEntry);
+    } else {
+      try {
+        await persistViaHttp();
+      } catch (error) {
+        toast.error('메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        return;
+      }
+    }
+
     setMessageText('');
     cancelImageSelection(); // 메시지 전송 후 초기화
   };
@@ -605,33 +739,40 @@ export default function MateChat() {
           )}
           <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
             <input
+              id={chatImageInputId}
               type="file"
               accept="image/*"
-              className="hidden"
+              className="sr-only"
               ref={fileInputRef}
               onChange={handleImageSelect}
-              disabled={!isConnected || isUploadingImage}
+              onClick={(e) => {
+                // 동일 파일 재선택 시에도 onChange가 동작하도록 초기화
+                e.currentTarget.value = '';
+              }}
+              disabled={isUploadingImage}
+              aria-label="채팅 이미지 업로드"
             />
             <Button
               type="button"
               variant="outline"
               size="icon"
-              disabled={!isConnected || isUploadingImage}
-              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingImage}
+              onClick={openImagePicker}
               className="shrink-0"
+              aria-label="이미지 업로드"
             >
               <ImageIcon className="w-4 h-4" />
             </Button>
             <Input
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
-              placeholder={isConnected ? "메시지를 입력하세요..." : "서버 연결 중..."}
+              placeholder={isConnected ? "메시지를 입력하세요..." : "연결 재시도 중... (전송은 가능합니다)"}
               className="flex-1"
-              disabled={!isConnected || isUploadingImage}
+              disabled={isUploadingImage}
             />
             <Button
               type="submit"
-              disabled={(!messageText.trim() && !selectedImage) || !isConnected || isUploadingImage}
+              disabled={(!messageText.trim() && !selectedImage) || isUploadingImage}
               className="text-white px-6 bg-primary"
             >
               {isUploadingImage ? (

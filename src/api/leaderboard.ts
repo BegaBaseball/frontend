@@ -5,6 +5,7 @@ import api from './axios';
 // ============================================
 
 export interface LeaderboardEntry {
+  rank: number;
   userId: number;
   userName: string;
   handle?: string;
@@ -13,6 +14,8 @@ export interface LeaderboardEntry {
   rankTitle: string;
   score: number;
   streak: number;
+  maxStreak?: number;
+  accuracy?: number;
   rankChange?: number;
 }
 
@@ -74,6 +77,19 @@ export interface PowerupUseResult {
 
 export type LeaderboardType = 'season' | 'monthly' | 'weekly';
 
+interface LeaderboardPageResponse {
+  content?: Array<Partial<LeaderboardEntry> & { rank?: number | string }>;
+  totalPages?: number;
+  totalElements?: number;
+}
+
+const normalizeNumber = (value: unknown, fallback: number): number =>
+  typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : typeof value === 'string'
+      ? (Number.isFinite(Number(value)) ? Number(value) : fallback)
+      : fallback;
+
 // ============================================
 // API FUNCTIONS
 // ============================================
@@ -86,18 +102,70 @@ export async function fetchLeaderboard(
   page: number = 0,
   size: number = 20
 ): Promise<{ content: LeaderboardEntry[]; totalPages: number; totalElements: number }> {
-  const response = await api.get('/leaderboard', {
+  const response = await api.get<LeaderboardPageResponse>('/leaderboard', {
     params: { type, page, size },
   });
-  return response.data;
+
+  const entries = Array.isArray(response.data?.content) ? response.data.content : [];
+  const content = entries.map((entry, index) => ({
+    ...entry,
+    rank: normalizeNumber(entry.rank, page * size + index + 1),
+    userId: normalizeNumber(entry.userId, 0),
+    level: normalizeNumber(entry.level, 1),
+    score: normalizeNumber(entry.score, 0),
+    streak: normalizeNumber(entry.streak, 0),
+    maxStreak: entry.maxStreak == null ? undefined : normalizeNumber(entry.maxStreak, 0),
+    accuracy: entry.accuracy == null ? undefined : normalizeNumber(entry.accuracy, 0),
+    rankChange: entry.rankChange == null ? undefined : normalizeNumber(entry.rankChange, 0),
+  }));
+
+  return {
+    content,
+    totalPages: normalizeNumber(response.data?.totalPages, 0),
+    totalElements: normalizeNumber(response.data?.totalElements, 0),
+  };
 }
 
 /**
  * Fetch current user's rank and stats
  */
 export async function fetchMyRank(): Promise<UserLeaderboardStats> {
-  const response = await api.get('/leaderboard/me');
-  return response.data;
+  const response = await api.get<Partial<UserLeaderboardStats>>('/leaderboard/me');
+  const data = response.data ?? {};
+  const fallback: UserLeaderboardStats = {
+    userId: 0,
+    userName: '',
+    rank: 0,
+    totalScore: 0,
+    seasonScore: 0,
+    monthlyScore: 0,
+    weeklyScore: 0,
+    level: 1,
+    rankTitle: 'ROOKIE',
+    currentStreak: 0,
+    maxStreak: 0,
+    experiencePoints: 0,
+    nextLevelExp: 100,
+  };
+
+  return {
+    ...fallback,
+    ...data,
+    userId: normalizeNumber(data.userId, fallback.userId),
+    rank: normalizeNumber(data.rank, fallback.rank),
+    totalScore: normalizeNumber(data.totalScore, fallback.totalScore),
+    seasonScore: normalizeNumber(data.seasonScore, fallback.seasonScore),
+    monthlyScore: normalizeNumber(data.monthlyScore, fallback.monthlyScore),
+    weeklyScore: normalizeNumber(data.weeklyScore, fallback.weeklyScore),
+    level: normalizeNumber(data.level, fallback.level),
+    currentStreak: normalizeNumber(data.currentStreak, fallback.currentStreak),
+    maxStreak: normalizeNumber(data.maxStreak, fallback.maxStreak),
+    experiencePoints: normalizeNumber(data.experiencePoints, fallback.experiencePoints),
+    nextLevelExp: normalizeNumber(data.nextLevelExp, fallback.nextLevelExp),
+    accuracy: data.accuracy == null ? undefined : normalizeNumber(data.accuracy, 0),
+    totalPredictions: data.totalPredictions == null ? undefined : normalizeNumber(data.totalPredictions, 0),
+    correctPredictions: data.correctPredictions == null ? undefined : normalizeNumber(data.correctPredictions, 0),
+  };
 }
 
 /**
@@ -124,8 +192,13 @@ export async function fetchRecentScores(limit: number = 20): Promise<RecentScore
  * Fetch user's powerup inventory
  */
 export async function fetchPowerups(): Promise<PowerupInventory> {
-  const response = await api.get('/leaderboard/powerups');
-  return response.data;
+  const response = await api.get<Partial<Record<keyof PowerupInventory, number | null>>>('/leaderboard/powerups');
+  const data = response.data ?? {};
+  return {
+    MAGIC_BAT: normalizeNumber(data.MAGIC_BAT, 0),
+    GOLDEN_GLOVE: normalizeNumber(data.GOLDEN_GLOVE, 0),
+    SCOUTER: normalizeNumber(data.SCOUTER, 0),
+  };
 }
 
 /**
@@ -155,8 +228,12 @@ export async function fetchUserRank(userId: number): Promise<{
   score: number;
   level: number;
 }> {
-  const response = await api.get(`/leaderboard/users/${userId}/rank`);
-  return response.data;
+  const response = await api.get<Partial<{ rank: number; score: number; level: number }>>(`/leaderboard/users/${userId}/rank`);
+  return {
+    rank: normalizeNumber(response.data?.rank, 0),
+    score: normalizeNumber(response.data?.score, 0),
+    level: normalizeNumber(response.data?.level, 0),
+  };
 }
 
 // ============================================

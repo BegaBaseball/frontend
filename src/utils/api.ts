@@ -250,6 +250,19 @@ export const api = {
     return this.request<ChatMessage[]>(`/chat/party/${partyId}`);
   },
 
+  async sendChatMessage(data: {
+    partyId: number | string;
+    senderId: number | string;
+    senderName: string;
+    message: string;
+    imageUrl?: string;
+  }): Promise<ChatMessage> {
+    return this.request<ChatMessage>('/chat/messages', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Post (cheerboard - cheerApi.ts 사용 권장)
   async getPosts(teamId?: string) {
     const query = teamId ? `?teamId=${teamId}` : '';

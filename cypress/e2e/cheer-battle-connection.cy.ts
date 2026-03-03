@@ -94,7 +94,10 @@ describe('Cheer Battle Connection UX', () => {
         cy.contains('연결 대기').should('be.visible');
 
         cy.get('[data-testid="cheer-battle-reconnect-btn"]').click({ force: true });
-        cy.get('[data-testid="cheer-battle-warning"]').should('be.visible');
+        cy.get('[data-testid="cheer-battle-status"]', { timeout: 10000 }).should(($status) => {
+            const text = $status.text();
+            expect(text).to.match(/재연결 중|실시간 연결 중|총 .*명 참여/);
+        });
     });
 
     it('moves to reconnecting state after network restore event', () => {

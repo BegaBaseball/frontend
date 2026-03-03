@@ -84,13 +84,13 @@ export const useLoginForm = () => {
       // login(email: string, name: string, profileImageUrl?: string, role?: string)
       login(
         formData.email,
-        response.data.name,
+        response.data.name ?? formData.email,
         undefined, // profileImageUrl는 나중에 마이페이지에서 가져옴
         response.data.role,
         undefined, // favoriteTeam
         response.data.id,
-        undefined, // cheerPoints (will be fetched)
-        response.data.handle
+        response.data.cheerPoints,
+        response.data.handle ?? undefined
       );
 
       await fetchProfileAndAuthenticate();

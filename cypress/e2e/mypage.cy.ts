@@ -129,8 +129,8 @@ describe('My Page (User Profile)', () => {
             // Check top profile card
             cy.contains('TestUser').should('be.visible');
             cy.contains('test@example.com').should('be.visible');
-            // Team name might only be visible via logo, so we check for HH logo
-            cy.get('img[alt*="HH"]').should('be.visible');
+            // Team badge can render with localized name, so use stable test id.
+            cy.get('[data-testid="mypage-favorite-team-logo"]').should('be.visible');
             // Check for points
             cy.contains('P').should('be.visible');
         });
