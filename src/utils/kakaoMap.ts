@@ -1,13 +1,19 @@
 // src/utils/kakaoMap.ts 생성
 import { KAKAO_API_KEY, MAP_CONFIG } from './constants';
 
-import { Place, Stadium } from '../types/stadium';
+import { CategoryType, Place, Stadium } from '../types/stadium';
 
 export interface KakaoMapOptions {
   lat: number;
   lng: number;
   level?: number;
 }
+
+const isValidCoordinate = (value: number | null | undefined): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const hasPlaceCoordinates = (place: Place): place is Place & { lat: number; lng: number } =>
+  isValidCoordinate(place.lat) && isValidCoordinate(place.lng);
 
 export const loadKakaoMapScript = (onLoad?: () => void, onError?: (message?: string) => void) => {
   if (!KAKAO_API_KEY) {
@@ -74,7 +80,12 @@ export const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2
   return R * c;
 };
 
-export const openKakaoMapRoute = (name: string, lat: number, lng: number) => {
+export const openKakaoMapRoute = (name: string, lat: number | null | undefined, lng: number | null | undefined): boolean => {
+  if (!isValidCoordinate(lat) || !isValidCoordinate(lng)) {
+    console.error('길찾기 실패: 좌표 정보 없음');
+    return false;
+  }
+
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   
   if (isMobile) {
@@ -89,6 +100,8 @@ export const openKakaoMapRoute = (name: string, lat: number, lng: number) => {
     const url = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lng}`;
     window.open(url, '_blank');
   }
+
+  return true;
 };
 
 export const waitForKakaoMaps = (
@@ -133,7 +146,7 @@ export const waitForKakaoMaps = (
  */
 export const searchNearbyPlaces = (
   keyword: string,
-  category: string,
+  category: Extract<CategoryType, 'store' | 'parking'>,
   stadium: Stadium,
   map: kakao.maps.Map,
   onSuccess: (places: Place[]) => void,
@@ -144,8 +157,15 @@ export const searchNearbyPlaces = (
     return;
   }
 
+  if (!isValidCoordinate(stadium.lat) || !isValidCoordinate(stadium.lng)) {
+    onError('검색 준비 미완료');
+    return;
+  }
+
+  const stadiumLat = stadium.lat;
+  const stadiumLng = stadium.lng;
   const ps = new window.kakao.maps.services.Places();
-  const center = new window.kakao.maps.LatLng(stadium.lat, stadium.lng);
+  const center = new window.kakao.maps.LatLng(stadiumLat, stadiumLng);
 
   ps.keywordSearch(
     keyword,
@@ -154,8 +174,8 @@ export const searchNearbyPlaces = (
         const nearbyPlaces = data
           .filter((place: kakao.maps.services.PlaceSearchResult) => {
             const distance = calculateDistance(
-              stadium.lat,
-              stadium.lng,
+              stadiumLat,
+              stadiumLng,
               parseFloat(place.y),
               parseFloat(place.x)
             );
@@ -178,9 +198,11 @@ export const searchNearbyPlaces = (
           }));
 
         onSuccess(nearbyPlaces);
+      } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
+        onSuccess([]);
       } else {
         console.error(`${keyword} 검색 실패:`, status);
-        onSuccess([]);
+        onError(`${keyword} 검색 실패`);
       }
     },
     {
@@ -212,8 +234,9 @@ export const updateMapMarkers = (
 
     const newMarkers: kakao.maps.Marker[] = [];
     const newInfowindows: kakao.maps.InfoWindow[] = [];
+    const renderablePlaces = places.filter(hasPlaceCoordinates);
 
-    places.forEach((place) => {
+    renderablePlaces.forEach((place) => {
       const position = new window.kakao.maps.LatLng(place.lat, place.lng);
 
       const marker = new window.kakao.maps.Marker({
@@ -241,8 +264,8 @@ export const updateMapMarkers = (
     infowindowsRef.current = newInfowindows;
 
     // 선택된 장소가 있으면 해당 마커만 표시
-    if (selectedPlace) {
-      const selectedIndex = places.findIndex((p) => p.id === selectedPlace.id);
+    if (selectedPlace && isValidCoordinate(selectedPlace.lat) && isValidCoordinate(selectedPlace.lng)) {
+      const selectedIndex = renderablePlaces.findIndex((p) => p.id === selectedPlace.id);
 
       if (selectedIndex !== -1) {
         markersRef.current.forEach((marker) => marker.setMap(null));

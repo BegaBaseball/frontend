@@ -73,6 +73,15 @@ export type RunProgressBannerAction = 'bg' | 'foreground';
 
 export type PredRecoveryConfig = PredictionRecoveryState;
 
+export interface PredictionRunEventMeta extends Record<string, unknown> {
+  retryAttempt?: number;
+  retryMax?: number;
+  offline?: boolean;
+  restoredFromSession?: boolean;
+  partialReason?: string;
+  fallbackShown?: boolean;
+}
+
 export type PredictionToastMessageKey =
   | 'list_load_success'
   | 'list_load_empty'
@@ -122,6 +131,7 @@ export interface PredictionRunEvent {
   gameId?: string;
   tab?: 'match' | 'ranking';
   predictionTabIndex?: number;
+  // Contract: onRunProgress 이벤트에서만 사용한다.
   runProgressBannerAction?: RunProgressBannerAction;
   errorCode?: PredictionErrorCode;
   stage?: PredictionFlowStage;
@@ -131,7 +141,7 @@ export interface PredictionRunEvent {
   recoverable?: boolean;
   recoveryAction?: PredRecoveryAction;
   validation?: PredictionInputValidation[];
-  meta?: Record<string, unknown>;
+  meta?: PredictionRunEventMeta;
   toastKey?: PredictionToastMessageKey;
   copyKey?: UnifiedPredictionMessageKey;
   errorState?: PredictionErrorState;

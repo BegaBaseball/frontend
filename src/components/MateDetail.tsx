@@ -190,8 +190,8 @@ export default function MateDetail() {
     const directTrade = isDirectTradeMode();
     const confirmMessage = directTrade
       ? (isApproved
-        ? '참여를 취소하시겠습니까?\n\n직거래는 당사자 간 결제 방식이며 플랫폼 환불/예치가 적용되지 않습니다.\n취소는 경기 하루 전까지만 가능합니다.'
-        : '신청을 취소하시겠습니까?\n\n직거래는 당사자 간 결제 방식이며 플랫폼 환불/예치가 적용되지 않습니다.')
+        ? '참여를 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.\n취소는 경기 하루 전까지만 가능합니다.'
+        : '신청을 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.')
       : (isApproved
         ? '참여를 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.\n취소는 경기 하루 전까지만 가능합니다.'
         : '신청을 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.');
@@ -237,17 +237,17 @@ export default function MateDetail() {
       {
         value: 'BUYER_CHANGED_MIND' as const,
         label: '단순변심(구매자)',
-        description: '직거래 취소(플랫폼 환불 없음)',
+        description: '직거래 신청 취소(플랫폼 결제/환불 없음)',
       },
       {
         value: 'SELLER_CHANGED_MIND' as const,
         label: '단순변심(판매자)',
-        description: '직거래 취소(플랫폼 환불 없음)',
+        description: '직거래 신청 취소(플랫폼 결제/환불 없음)',
       },
       {
         value: 'OTHER' as const,
         label: '기타 사유',
-        description: '사유 확인 후 취소(플랫폼 환불 없음)',
+        description: '사유 확인 후 신청 취소(플랫폼 결제/환불 없음)',
       },
     ]
     : [
@@ -794,7 +794,7 @@ export default function MateDetail() {
                       <>
                         <Separator className="bg-gray-200 dark:bg-border my-2" />
                         <p className="text-sm text-blue-700 dark:text-blue-300">
-                          직거래 안내: 결제는 당사자 간 직접 진행되며 플랫폼 예치 없음(환불 정책 미적용)입니다.
+                          직거래 안내: 승인 후 채팅에서 거래 시간/장소를 조율하고 당사자 간 직접 거래합니다.
                         </p>
                       </>
                     )}
@@ -810,7 +810,7 @@ export default function MateDetail() {
                       </div>
                       <Separator className="bg-gray-200 dark:bg-border my-2" />
                       <p className="text-sm text-blue-700 dark:text-blue-300">
-                        직거래 안내: 결제는 당사자 간 직접 진행되며 플랫폼 예치 없음(환불 정책 미적용)입니다.
+                        직거래 안내: 승인 후 채팅에서 거래 시간/장소를 조율하고 당사자 간 직접 거래합니다.
                       </p>
                     </div>
                   ) : (
@@ -1128,7 +1128,7 @@ export default function MateDetail() {
           <div className="py-2">
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
               {isDirectTrade
-                ? '직거래 파티는 취소 시 플랫폼 환불/예치가 적용되지 않습니다.'
+                ? '직거래 파티는 취소 시 플랫폼 결제/환불이 적용되지 않습니다.'
                 : '취소 사유를 선택하면 환불 규칙이 자동 적용됩니다.'}
             </p>
             <div className="space-y-2">

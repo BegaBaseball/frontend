@@ -1,6 +1,6 @@
 // src/utils/constants.ts 생성
 import { Utensils, Truck, ShoppingBag, ParkingCircle } from 'lucide-react';
-import { CategoryConfig } from '../types/stadium';
+import { CategoryConfig, CategoryType } from '../types/stadium';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 
 export const KAKAO_API_KEY = (import.meta.env.VITE_KAKAO_MAP_KEY || import.meta.env.VITE_KAKAO_API_KEY || '') as string;
@@ -21,7 +21,7 @@ export const POLLING_CONFIG = {
   INIT_DELAY: 100, // ms
 } as const;
 
-export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
+export const CATEGORY_CONFIGS: Record<CategoryType, CategoryConfig> = {
   food: {
     key: 'food',
     label: '구장 먹거리',

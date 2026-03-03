@@ -372,14 +372,16 @@ export default function MateManage() {
         </div>
 
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-          <span>결제 금액:</span>
+          <span>{hasPaymentTracking ? '결제 금액:' : '거래 기준 금액:'}</span>
           <span className="text-primary">{app.depositAmount.toLocaleString()}원</span>
           <Badge variant="outline" className="ml-2">
-            {app.paymentType === 'DEPOSIT' ? '보증금' : '전액결제'}
+            {app.paymentType === 'DEPOSIT'
+              ? (hasPaymentTracking ? '보증금 결제' : '일반 신청')
+              : (hasPaymentTracking ? '전액결제' : '판매 신청')}
           </Badge>
           {!hasPaymentTracking && (
             <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
-              결제 안됨 (직거래 적용, 플랫폼 결제 없음)
+              직거래 적용 (플랫폼 결제 없음)
             </Badge>
           )}
           {app.paymentStatus && (

@@ -20,6 +20,11 @@ import { formatGameDate } from '../utils/mate';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { isCompatibleFlowAndPaymentType, savePendingPayment } from '../utils/payment';
 import { isTossTestMode } from '../utils/paymentMode';
+import {
+  getMateApplyAmountSectionTitle,
+  getMateApplySummaryAmountLabel,
+  resolveDirectTradeApplicationSnapshot,
+} from '../utils/directTradePolicy';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
 import { analyzeTicket, TicketInfo } from '../api/ticket';
 import { getApiErrorMessage } from '../utils/errorUtils';
@@ -166,19 +171,23 @@ export default function MateApply() {
     setIsSubmitting(true);
 
     const applyMessage = message || (isSelling ? '티켓 구매 신청합니다.' : '함께 즐거운 관람 부탁드립니다!');
-    const directTradeAmount = isSelling ? sellingPrice : DEPOSIT_AMOUNT;
+    const directTradeSnapshot = resolveDirectTradeApplicationSnapshot({
+      isSelling,
+      sellingPrice,
+      ticketPrice: ticketAmount,
+    });
 
     try {
       if (!tossTestMode) {
-        if (isSelling && directTradeAmount <= 0) {
+        if (isSelling && directTradeSnapshot.amount <= 0) {
           throw new Error('판매 가격 정보가 올바르지 않습니다.');
         }
 
         await api.createApplication({
           partyId: selectedParty.id,
           message: applyMessage,
-          depositAmount: directTradeAmount,
-          paymentType: isSelling ? 'FULL' : 'DEPOSIT',
+          depositAmount: directTradeSnapshot.amount,
+          paymentType: directTradeSnapshot.paymentType,
           verificationToken: isSelling ? null : ticketInfo?.verificationToken ?? null,
           ticketVerified: isSelling ? false : ticketVerified,
           ticketImageUrl: null,
@@ -409,7 +418,7 @@ export default function MateApply() {
         <Card className="p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <CreditCard className="w-5 h-5 text-primary" />
-            <h3 className="text-primary">{tossTestMode ? '결제 금액' : '신청 기준 금액'}</h3>
+            <h3 className="text-primary">{getMateApplyAmountSectionTitle(tossTestMode)}</h3>
           </div>
 
           {!isSelling && (
@@ -421,19 +430,21 @@ export default function MateApply() {
                     {ticketAmount.toLocaleString()}원
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-700">노쇼 방지 보증금</span>
-                  <span className="text-gray-900">
-                    {DEPOSIT_AMOUNT.toLocaleString()}원
-                  </span>
-                </div>
+                {tossTestMode && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">노쇼 방지 보증금</span>
+                    <span className="text-gray-900">
+                      {DEPOSIT_AMOUNT.toLocaleString()}원
+                    </span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between items-center">
                   <span className="text-gray-900" style={{ fontWeight: 'bold' }}>
-                    {tossTestMode ? '총 결제 금액' : '신청 보증금 기준'}
+                    {getMateApplySummaryAmountLabel(tossTestMode)}
                   </span>
                   <span className="text-lg text-primary font-bold">
-                    {(tossTestMode ? totalAmount : DEPOSIT_AMOUNT).toLocaleString()}원
+                    {(tossTestMode ? totalAmount : ticketAmount).toLocaleString()}원
                   </span>
                 </div>
               </div>
@@ -452,7 +463,7 @@ export default function MateApply() {
                     <ul className="list-disc list-inside space-y-1">
                       <li>현재 베타에서는 앱 내 결제를 제공하지 않습니다</li>
                       <li>신청 승인 후 채팅을 통해 직거래로 진행됩니다</li>
-                      <li>취소 시 결제/환불 처리는 발생하지 않습니다</li>
+                      <li>플랫폼 결제/환불 없이 취소만 처리됩니다</li>
                     </ul>
                   )}
                 </AlertDescription>
@@ -477,7 +488,7 @@ export default function MateApply() {
           <Shield className="w-4 h-4" />
           <AlertDescription>
             <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>{tossTestMode ? '결제는 BEGA 안전거래를 통해 진행됩니다' : '현재는 중계 중심 베타로 직거래를 안내합니다'}</li>
+              <li>{tossTestMode ? '결제는 BEGA 안전거래를 통해 진행됩니다' : '현재는 승인 후 채팅으로 직거래 조율을 안내합니다'}</li>
               <li>호스트 승인 후 채팅으로 소통할 수 있습니다</li>
               <li>노쇼 시 패널티가 부여될 수 있습니다</li>
             </ul>
@@ -491,7 +502,7 @@ export default function MateApply() {
             <AlertDescription className="text-orange-800">
               {tossTestMode
                 ? '단순변심 취소 시 수수료 차감 환불 정책이 적용됩니다.'
-                : '베타 직거래 모드에서는 결제/환불 없이 신청 취소만 처리됩니다.'}
+                : '직거래 모드에서는 플랫폼 결제/환불 없이 신청 취소만 처리됩니다.'}
             </AlertDescription>
           </Alert>
         )}

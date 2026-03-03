@@ -80,7 +80,11 @@ describe('Game Prediction', () => {
         cy.window().then((win) => {
             if (captureFlowEvents) {
                 const typedWin = win as Window & {
-                    __predictionFlowEvents?: Array<{ eventName: string; runProgressBannerAction?: string }>;
+                    __predictionFlowEvents?: Array<{
+                        eventName: string;
+                        runProgressBannerAction?: string;
+                        meta?: Record<string, unknown>;
+                    }>;
                     __predictionFlowEventHandler?: (evt: Event) => void;
                 };
 
@@ -184,7 +188,7 @@ describe('Game Prediction', () => {
         // Mock prediction status
         cy.intercept('**/api/predictions/status/*', {
             statusCode: 200,
-            body: { homeVotes: 10, awayVotes: 5 }
+            body: { homeVotes: 10, awayVotes: 5, totalVotes: 15 }
         }).as('getVoteStatus');
 
         // Mock league dates specifically for this spec to avoid any 500 from global mock
@@ -887,6 +891,25 @@ describe('Game Prediction', () => {
         cy.contains('예측 처리 지연: 백그라운드로 전환해 계속 진행합니다.').should('not.exist');
     });
 
+    it('should complete prediction successfully even after 15s timeout banner appears', () => {
+        installSubmitVote(16000);
+
+        openPredictionPage({ captureFlowEvents: true });
+
+        cy.get('[data-testid="vote-home-btn"]')
+            .should('exist')
+            .scrollIntoView()
+            .should('be.visible')
+            .click({ force: true });
+
+        cy.tick(16000);
+        cy.contains('예측 처리 지연: 백그라운드로 전환해 계속 진행합니다.').should('be.visible');
+
+        cy.wait('@submitVote');
+        cy.get('[data-testid="vote-home-btn"]').should('have.attr', 'aria-pressed', 'true');
+        cy.contains('예측 처리 중 오류가 발생했습니다.').should('not.exist');
+    });
+
     it('should show timeout overlay after 45 seconds and require recovery actions', () => {
         installSubmitVote(120000);
 
@@ -930,6 +953,100 @@ describe('Game Prediction', () => {
 
         cy.contains('button', '다시 시도').click();
         cy.get('@submitVote.all').should('have.length', 1);
+    });
+
+    it('should fallback to overlay after offline retry limit is exceeded', () => {
+        cy.intercept('POST', /\/predictions\/vote(?:\?.*)?$/, {
+            statusCode: 500,
+            body: {
+                message: 'network-failure-for-recovery',
+            },
+        }).as('submitVoteFailForRecovery');
+
+        openPredictionPage({ captureFlowEvents: true });
+
+        cy.get('[data-testid="vote-home-btn"]')
+            .should('exist')
+            .scrollIntoView()
+            .should('be.visible')
+            .click({ force: true });
+
+        cy.wait('@submitVoteFailForRecovery');
+        cy.contains('예측 처리 중 오류가 발생했습니다.', { timeout: 20000 }).should('be.visible');
+        cy.contains('button', '다시 시도').should('be.visible');
+        cy.contains('button', '목록으로 이동').should('be.visible');
+    });
+
+    it('should restore running banner from session and sync vote status', () => {
+        cy.intercept('**/api/predictions/status/*', {
+            statusCode: 200,
+            delay: 1500,
+            body: { homeVotes: 14, awayVotes: 9, totalVotes: 23 },
+        }).as('getVoteStatusRestore');
+
+        cy.window().then((win) => {
+            const startedAt = Date.now() - 30_000;
+            win.sessionStorage.setItem('prediction:run-session:v1', JSON.stringify({
+                flowId: 'restore-flow-1',
+                gameId: '20240510HHSS0',
+                action: 'vote',
+                startedAt,
+                team: 'home',
+                bannerDismissed: false,
+                timeoutStage: 'none',
+            }));
+        });
+
+        openPredictionPage({ captureFlowEvents: true });
+
+        cy.wait('@getVoteStatusRestore');
+        cy.window().should((win) => {
+            expect(win.sessionStorage.getItem('prediction:run-session:v1')).to.eq(null);
+        });
+    });
+
+    it('should show partial result badge and clear it after vote status retry succeeds', () => {
+        let voteStatusCallCount = 0;
+        cy.intercept('**/api/predictions/status/*', (req) => {
+            voteStatusCallCount += 1;
+            const body = voteStatusCallCount < 2
+                ? { homeVotes: 10, awayVotes: 5 }
+                : { homeVotes: 10, awayVotes: 5, totalVotes: 15 };
+            req.reply({
+                statusCode: 200,
+                body,
+            });
+        }).as('getVoteStatusPartial');
+
+        openPredictionPage();
+
+        cy.wait('@getVoteStatusPartial');
+        cy.get('[data-testid="prediction-partial-result-notice"]').should('be.visible');
+        cy.get('[data-testid="prediction-partial-retry-btn"]').click();
+        cy.wait('@getVoteStatusPartial');
+        cy.get('[data-testid="prediction-partial-result-notice"]').should('not.exist');
+    });
+
+    it('should show text fallback card when detail render fails', () => {
+        cy.intercept('GET', '**/api/matches/*', (req) => {
+            if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/bounds')) {
+                return;
+            }
+
+            req.reply({
+                statusCode: 500,
+                body: {
+                    message: 'detail render failed',
+                },
+            });
+        }).as('getGameDetailFail');
+
+        openPredictionPage({ captureFlowEvents: true });
+
+        cy.wait('@getGameDetailFail');
+        cy.get('[data-testid="prediction-render-fallback-card"]').should('be.visible');
+        cy.get('[data-testid="prediction-render-fallback-retry-btn"]').should('be.visible');
+        cy.contains('목록으로 이동').should('be.visible');
     });
 
     it('should block duplicate prediction submit while request is running', () => {

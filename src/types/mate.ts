@@ -42,6 +42,7 @@ export interface Application {
   applicantBadge: BadgeType;
   applicantRating: number;
   message: string;
+  // DIRECT_TRADE: 거래 기준 금액 스냅샷, TOSS_TEST: 보증금/결제 금액
   depositAmount: number;
   paymentType: 'DEPOSIT' | 'FULL';
   feeAmount?: number;
@@ -150,6 +151,7 @@ export interface CreateApplicationRequest {
   applicantBadge?: BadgeType;
   applicantRating?: number;
   message?: string;
+  // DIRECT_TRADE: 거래 기준 금액 스냅샷, TOSS_TEST: 보증금/결제 금액
   depositAmount: number;
   paymentType: 'DEPOSIT' | 'FULL';
   verificationToken?: string | null;

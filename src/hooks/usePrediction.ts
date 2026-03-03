@@ -23,6 +23,21 @@ import {
   formatDate,
 } from '../utils/prediction';
 import {
+  PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
+  PREDICTION_RUN_SESSION_STORAGE_KEY,
+  canSchedulePredictionRetry,
+  createPredictionRetryAttemptState,
+  getPredictionRetryDelayMs,
+  increasePredictionRetryAttempt,
+  isPredictionRunSessionStale,
+  parsePredictionRunSession,
+  resetPredictionRetryAttempt,
+  type PredictionRetryActionKey,
+  type PredictionRunAction,
+  type PredictionRunSessionV1,
+  type PredictionRunTimeoutStage,
+} from '../utils/predictionRecovery';
+import {
   resolveDeepLinkSelection,
   resolveInitialPredictionDateIndex,
   normalizePredictionDate,
@@ -60,6 +75,17 @@ type GameDetailRequestState = {
 type RangeLoadState = 'idle' | 'ready' | 'loading' | 'end' | 'error';
 
 type ErrorOverlayAction = () => Promise<void> | void;
+type PredictionPartialReason = 'totalVotes_missing';
+type VoteStatusLoadSource = 'auto' | 'manual' | 'overlay' | 'session-restore';
+
+type LoadVoteStatusOptions = {
+  source?: VoteStatusLoadSource;
+  emitRetryEvent?: boolean;
+  flowId?: string;
+  restoredFromSession?: boolean;
+};
+
+type RunSessionRestoreTrigger = 'mount' | 'visibilitychange' | 'pageshow';
 
 type PredictionErrorOverlayState = {
   isOpen: boolean;
@@ -83,6 +109,8 @@ const MATCH_FETCH_SIZE = 150;
 const PREDICTION_RUN_WARNING_TIMEOUT_MS = 15_000;
 const PREDICTION_RUN_FATAL_TIMEOUT_MS = 45_000;
 const PREDICTION_GAME_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+const PREDICTION_OFFLINE_TOAST_MESSAGE = '오프라인 상태입니다. 네트워크 연결 후 자동으로 재시도합니다.';
+const PREDICTION_PARTIAL_REASON_TOTAL_VOTES_MISSING: PredictionPartialReason = 'totalVotes_missing';
 
 const toPredictionGameId = (value: string): string | null => {
   const normalized = value.trim();
@@ -164,7 +192,9 @@ export const usePrediction = () => {
   const [deepLinkNotice, setDeepLinkNotice] = useState<string | null>(null);
   const [deepLinkParamValidationNotice, setDeepLinkParamValidationNotice] = useState<string | null>(null);
   const [isRunInProgress, setIsRunInProgress] = useState(false);
+  const [isRunBannerDismissed, setIsRunBannerDismissed] = useState(false);
   const [runProgressMessage, setRunProgressMessage] = useState('예측을 준비 중입니다.');
+  const [partialReasonsByGameId, setPartialReasonsByGameId] = useState<Record<string, PredictionPartialReason | null>>({});
 
   // 투표 현황
   const [votes, setVotes] = useState<{ [key: string]: VoteStatus }>({});
@@ -205,6 +235,15 @@ export const usePrediction = () => {
   const matchBoundsRef = useRef<MatchBounds | null>(null);
   const flowRunCounterRef = useRef(0);
   const runInProgressRef = useRef(false);
+  const runTimeoutStageRef = useRef<PredictionRunTimeoutStage>('none');
+  const runSessionRef = useRef<PredictionRunSessionV1 | null>(null);
+  const runSessionRestoreInFlightRef = useRef(false);
+  const retryAttemptRef = useRef(createPredictionRetryAttemptState());
+  const offlineToastShownRef = useRef<Record<PredictionRetryActionKey, boolean>>({
+    submitVote: false,
+    cancelVote: false,
+    voteStatus: false,
+  });
   const rawDeepLinkGameId = (searchParams.get('gameId') || '').trim();
   const rawDeepLinkDate = (searchParams.get('date') || '').trim();
   const deepLinkGameId = rawDeepLinkGameId ? toPredictionGameId(rawDeepLinkGameId) || '' : '';
@@ -224,6 +263,10 @@ export const usePrediction = () => {
   useEffect(() => {
     runInProgressRef.current = isRunInProgress;
   }, [isRunInProgress]);
+
+  useEffect(() => {
+    patchRunSession({ bannerDismissed: isRunBannerDismissed });
+  }, [isRunBannerDismissed]);
 
   useEffect(() => {
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -371,6 +414,110 @@ export const usePrediction = () => {
         && (error as { code?: string }).code === 'ERR_CANCELED'
       )
     );
+  };
+
+  const isOfflineNow = (): boolean => {
+    if (typeof navigator === 'undefined') {
+      return false;
+    }
+    return navigator.onLine === false;
+  };
+
+  const waitForRetryDelay = (ms: number) => {
+    return new Promise<void>((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  };
+
+  const resetNetworkRetryAttempt = (actionKey: PredictionRetryActionKey) => {
+    resetPredictionRetryAttempt(retryAttemptRef.current, actionKey);
+    offlineToastShownRef.current[actionKey] = false;
+  };
+
+  const showOfflineToastOnce = (actionKey: PredictionRetryActionKey) => {
+    if (offlineToastShownRef.current[actionKey]) {
+      return;
+    }
+    offlineToastShownRef.current[actionKey] = true;
+    toast.error(PREDICTION_OFFLINE_TOAST_MESSAGE);
+  };
+
+  const nextNetworkRetryAttempt = (actionKey: PredictionRetryActionKey) => {
+    return increasePredictionRetryAttempt(retryAttemptRef.current, actionKey);
+  };
+
+  const upsertRunSession = (session: PredictionRunSessionV1 | null) => {
+    runSessionRef.current = session;
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (!session) {
+      window.sessionStorage.removeItem(PREDICTION_RUN_SESSION_STORAGE_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(PREDICTION_RUN_SESSION_STORAGE_KEY, JSON.stringify(session));
+  };
+
+  const patchRunSession = (patch: Partial<PredictionRunSessionV1>) => {
+    const current = runSessionRef.current;
+    if (!current) {
+      return;
+    }
+
+    upsertRunSession({
+      ...current,
+      ...patch,
+    });
+  };
+
+  const clearRunSession = () => {
+    upsertRunSession(null);
+  };
+
+  const beginRunSession = (params: {
+    flowId: string;
+    gameId: string;
+    action: PredictionRunAction;
+    startedAt: number;
+    team?: 'home' | 'away';
+  }) => {
+    runTimeoutStageRef.current = 'none';
+    upsertRunSession({
+      flowId: params.flowId,
+      gameId: params.gameId,
+      action: params.action,
+      startedAt: params.startedAt,
+      team: params.team,
+      bannerDismissed: isRunBannerDismissed,
+      timeoutStage: 'none',
+    });
+  };
+
+  const setRunTimeoutStage = (stage: PredictionRunTimeoutStage) => {
+    runTimeoutStageRef.current = stage;
+    patchRunSession({ timeoutStage: stage });
+  };
+
+  const getRunProgressMessageByStage = (stage: PredictionRunTimeoutStage) => {
+    if (stage === 'warning') {
+      return '예측 처리 지연: 백그라운드로 전환해 계속 진행합니다.';
+    }
+    if (stage === 'fatal') {
+      return '예측 응답이 오래 지연돼 복구 액션을 제공합니다.';
+    }
+    return '예측 처리 결과를 동기화하는 중입니다.';
+  };
+
+  const resetRunProgressState = () => {
+    runInProgressRef.current = false;
+    runTimeoutStageRef.current = 'none';
+    setIsRunInProgress(false);
+    setRunStartAt(null);
+    setIsRunBannerDismissed(false);
+    clearRunSession();
   };
 
   const isRangeResultCanceled = (error?: {
@@ -761,6 +908,7 @@ export const usePrediction = () => {
       toastKey?: PredictionRunEvent['toastKey'];
       copyKey?: PredictionRunEvent['copyKey'];
       retryConfig?: PredictionRunEvent['retryConfig'];
+      runProgressBannerAction?: PredictionRunEvent['runProgressBannerAction'];
     } = {}
   ) => {
     emitPredictionFlowEvent(eventName, {
@@ -787,6 +935,7 @@ export const usePrediction = () => {
       meta: overrides.meta,
       retryConfig: overrides.retryConfig,
       recoveryAction: overrides.recoveryAction,
+      runProgressBannerAction: overrides.runProgressBannerAction,
     });
   };
 
@@ -806,6 +955,7 @@ export const usePrediction = () => {
       keepDraft: true,
       copyKey: 'run_timeout',
       toastKey: action === 'bg' ? 'run_timeout' : 'run_started',
+      runProgressBannerAction: action,
       meta: {
         action,
       },
@@ -813,10 +963,14 @@ export const usePrediction = () => {
   };
 
   const dismissRunProgressBanner = () => {
+    setIsRunBannerDismissed(true);
+    patchRunSession({ bannerDismissed: true });
     emitRunProgressBannerAction('bg');
   };
 
   const resumeRunProgressBanner = () => {
+    setIsRunBannerDismissed(false);
+    patchRunSession({ bannerDismissed: false });
     emitRunProgressBannerAction('foreground');
   };
 
@@ -995,36 +1149,10 @@ export const usePrediction = () => {
         meta: {
           requestType: 'gameDetail',
           requestId,
+          fallbackShown: true,
         },
       });
-      showPredictionErrorOverlay(mappedErrorCode, {
-        message: parsedError.message || '경기 상세를 불러오지 못했습니다.',
-        copyKey: getPredictionCopyKey(mappedErrorCode),
-        toastKey: 'result_render_fail',
-        recovery: {
-          recoverable: true,
-          retryEnabled: true,
-          keepDraft: true,
-          actionPriorityOrder: ['RETRY', 'GO_LIST'],
-        },
-        onRetry: () => {
-          if (detailRequestRef.current !== requestId) {
-            return;
-          }
-          setGameDetails((prev) => ({
-            ...prev,
-            [gameId]: {
-              status: 'idle',
-              data: prev[gameId]?.data ?? null,
-              error: undefined,
-            },
-          }));
-          reloadCurrentGameDetail();
-        },
-        onGoList: () => {
-          window.location.href = '/';
-        },
-      });
+      toast.error(parsedError.message || '경기 상세를 불러오지 못했습니다.');
     }
   };
 
@@ -1930,7 +2058,11 @@ export const usePrediction = () => {
   const currentGameDetailError = currentGameDetailState?.error || null;
 
   // 투표 상태 가져오기
-  const loadVoteStatus = async (gameId: string) => {
+  const loadVoteStatus = async (
+    gameId: string,
+    options: LoadVoteStatusOptions = {}
+  ): Promise<boolean> => {
+    const source = options.source ?? 'auto';
     const requestId = ++voteStatusRequestRef.current;
 
     if (voteStatusAbortRef.current) {
@@ -1948,188 +2080,430 @@ export const usePrediction = () => {
     }));
     emitFlowEvent('onRunProgress', 'RUNNING', {
       gameId,
-      meta: { requestType: 'voteStatus', requestId },
+      flowId: options.flowId,
+      meta: {
+        requestType: 'voteStatus',
+        requestId,
+        source,
+        restoredFromSession: options.restoredFromSession === true,
+      },
       stage: 'RUN_POLL',
       elapsedMs: getRunElapsedMs(),
     });
 
-    try {
-      const status = await fetchVoteStatus(gameId, { signal: abortController.signal });
-
-      if (requestId !== voteStatusRequestRef.current) {
-        return;
+    while (true) {
+      if (requestId !== voteStatusRequestRef.current || abortController.signal.aborted) {
+        return false;
       }
 
-      if (status.ok) {
-        const isPartial = status.data.totalVotes === undefined || status.data.totalVotes === null;
-        setVotes((prev) => ({
-          ...prev,
-          [gameId]: {
-            home: status.data.homeVotes,
-            away: status.data.awayVotes,
-          },
-        }));
+      const offline = isOfflineNow();
+      if (offline) {
+        showOfflineToastOnce('voteStatus');
+        const retryAttempt = nextNetworkRetryAttempt('voteStatus');
+        const canRetry = canSchedulePredictionRetry(retryAttempt);
+        const retryMeta = {
+          requestType: 'voteStatus',
+          requestId,
+          source,
+          retryAttempt,
+          retryMax: PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
+          offline: true,
+          restoredFromSession: options.restoredFromSession === true,
+        };
+
+        if (canRetry) {
+          const retryDelayMs = getPredictionRetryDelayMs(retryAttempt);
+          setRunProgressMessage(`오프라인 감지: 투표 집계를 ${retryAttempt}/${PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS}회 재시도합니다.`);
+          emitFlowEvent('onRunProgress', 'RUNNING', {
+            gameId,
+            flowId: options.flowId,
+            stage: 'RUN_POLL',
+            elapsedMs: getRunElapsedMs(),
+            meta: retryMeta,
+          });
+          await waitForRetryDelay(retryDelayMs);
+          continue;
+        }
+
+        const networkErrorCode: PredictionErrorCode = 'NETWORK';
+        const errorMessage = '오프라인 상태로 투표 집계 조회를 완료하지 못했습니다.';
         setVoteStatusState((prev) => ({
           ...prev,
-          [gameId]: { status: 'ready' },
+          [gameId]: {
+            status: 'error',
+            error: errorMessage,
+          },
         }));
-        emitFlowEvent('onResultSuccess', 'RESULT', {
+        emitFlowEvent('onRunFail', 'RUNNING', {
           gameId,
+          flowId: options.flowId,
+          errorCode: networkErrorCode,
           recoverable: true,
-          toastKey: 'run_complete',
-          stage: 'RESULT_SUCCESS',
-        });
-        if (isPartial) {
-          emitFlowEvent('onResultPartial', 'RESULT', {
-            gameId,
-            errorCode: 'PARTIAL_DATA',
+          copyKey: getPredictionCopyKey(networkErrorCode),
+          stage: 'RUN_POLL',
+          retryConfig: {
+            errorCode: networkErrorCode,
             recoverable: true,
-            copyKey: 'render_fallback_message',
-            toastKey: 'result_partial',
-            stage: 'RESULT_PARTIAL',
-            retryConfig: {
+            retryEnabled: true,
+            keepDraft: true,
+            actionPriorityOrder: ['RETRY', 'GO_LIST'],
+          },
+          recoveryAction: 'RETRY',
+          meta: retryMeta,
+        });
+        showPredictionErrorOverlay(networkErrorCode, {
+          message: errorMessage,
+          copyKey: getPredictionCopyKey(networkErrorCode),
+          recovery: {
+            recoverable: true,
+            retryEnabled: true,
+            keepDraft: true,
+            actionPriorityOrder: ['RETRY', 'GO_LIST'],
+          },
+          onRetry: () => {
+            reloadCurrentVoteStatus({ emitRetryEvent: false, source: 'overlay' });
+          },
+          onGoList: () => {
+            window.location.href = '/';
+          },
+        });
+        return false;
+      }
+
+      try {
+        const status = await fetchVoteStatus(gameId, { signal: abortController.signal });
+
+        if (requestId !== voteStatusRequestRef.current || abortController.signal.aborted) {
+          return false;
+        }
+
+        if (status.ok) {
+          resetNetworkRetryAttempt('voteStatus');
+          const partialReason = status.data.totalVotes == null
+            ? PREDICTION_PARTIAL_REASON_TOTAL_VOTES_MISSING
+            : null;
+          setVotes((prev) => ({
+            ...prev,
+            [gameId]: {
+              home: status.data.homeVotes,
+              away: status.data.awayVotes,
+            },
+          }));
+          setVoteStatusState((prev) => ({
+            ...prev,
+            [gameId]: { status: 'ready' },
+          }));
+          setPartialReasonsByGameId((prev) => ({
+            ...prev,
+            [gameId]: partialReason,
+          }));
+          emitFlowEvent('onResultSuccess', 'RESULT', {
+            gameId,
+            flowId: options.flowId,
+            recoverable: true,
+            toastKey: 'run_complete',
+            stage: 'RESULT_SUCCESS',
+            meta: {
+              source,
+              restoredFromSession: options.restoredFromSession === true,
+            },
+          });
+          if (partialReason) {
+            emitFlowEvent('onResultPartial', 'RESULT', {
+              gameId,
+              flowId: options.flowId,
               errorCode: 'PARTIAL_DATA',
+              recoverable: true,
+              copyKey: 'render_fallback_message',
+              toastKey: 'result_partial',
+              stage: 'RESULT_PARTIAL',
+              retryConfig: {
+                errorCode: 'PARTIAL_DATA',
+                recoverable: true,
+                retryEnabled: true,
+                keepDraft: true,
+                actionPriorityOrder: ['RETRY', 'GO_LIST'],
+              },
+              meta: {
+                partialReason,
+                source,
+                restoredFromSession: options.restoredFromSession === true,
+              },
+            });
+          }
+          return true;
+        }
+
+        if (abortController.signal.aborted) {
+          return false;
+        }
+
+        const errorCode = mapVoteStatusErrorCode(status.error.status);
+        const errorMessage = status.error.message;
+        const isNetworkFailure = (
+          errorCode === 'NETWORK'
+          || status.error.status === 0
+          || isOfflineNow()
+        );
+
+        if (isNetworkFailure) {
+          const retryAttempt = nextNetworkRetryAttempt('voteStatus');
+          const canRetry = canSchedulePredictionRetry(retryAttempt);
+          const retryMeta = {
+            requestType: 'voteStatus',
+            requestId,
+            source,
+            retryAttempt,
+            retryMax: PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
+            offline: isOfflineNow(),
+            restoredFromSession: options.restoredFromSession === true,
+          };
+
+          if (canRetry) {
+            const retryDelayMs = getPredictionRetryDelayMs(retryAttempt);
+            emitFlowEvent('onRunProgress', 'RUNNING', {
+              gameId,
+              flowId: options.flowId,
+              stage: 'RUN_POLL',
+              elapsedMs: getRunElapsedMs(),
+              meta: retryMeta,
+            });
+            await waitForRetryDelay(retryDelayMs);
+            continue;
+          }
+        }
+
+        setVoteStatusState((prev) => ({
+          ...prev,
+          [gameId]: {
+            status: 'error',
+            error: errorMessage,
+          },
+        }));
+        emitFlowEvent('onRunFail', 'RUNNING', {
+          gameId,
+          flowId: options.flowId,
+          errorCode,
+          recoverable: true,
+          copyKey: getPredictionCopyKey(errorCode),
+          stage: 'RUN_POLL',
+          retryConfig: {
+            errorCode,
+            recoverable: true,
+            retryEnabled: true,
+            keepDraft: true,
+            actionPriorityOrder: ['RETRY', 'GO_LIST'],
+          },
+          recoveryAction: 'RETRY',
+        });
+        showPredictionErrorOverlay(errorCode, {
+          message: errorMessage,
+          copyKey: getPredictionCopyKey(errorCode),
+          recovery: {
+            recoverable: true,
+            retryEnabled: true,
+            keepDraft: true,
+            actionPriorityOrder: ['RETRY', 'GO_LIST'],
+          },
+          onRetry: () => {
+            reloadCurrentVoteStatus({ emitRetryEvent: false, source: 'overlay' });
+          },
+          onGoList: () => {
+            window.location.href = '/';
+          },
+        });
+        return false;
+      } catch (error: unknown) {
+        if (requestId !== voteStatusRequestRef.current || abortController.signal.aborted) {
+          return false;
+        }
+        if (isCancelLikeError(error)) {
+          return false;
+        }
+
+        const parsedError = parseError(error);
+        const errorCode = mapVoteStatusErrorCode(parsedError.statusCode);
+        const isNetworkFailure = (
+          parsedError.type === 'NETWORK'
+          || parsedError.statusCode === 0
+          || errorCode === 'NETWORK'
+          || isOfflineNow()
+        );
+        const errorMessage = parsedError.message || '투표 집계 조회에 실패했습니다.';
+
+        if (isNetworkFailure) {
+          if (isOfflineNow()) {
+            showOfflineToastOnce('voteStatus');
+          }
+
+          const retryAttempt = nextNetworkRetryAttempt('voteStatus');
+          const canRetry = canSchedulePredictionRetry(retryAttempt);
+          const retryMeta = {
+            requestType: 'voteStatus',
+            requestId,
+            source,
+            retryAttempt,
+            retryMax: PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
+            offline: isOfflineNow(),
+            restoredFromSession: options.restoredFromSession === true,
+          };
+
+          if (canRetry) {
+            const retryDelayMs = getPredictionRetryDelayMs(retryAttempt);
+            emitFlowEvent('onRunProgress', 'RUNNING', {
+              gameId,
+              flowId: options.flowId,
+              stage: 'RUN_POLL',
+              elapsedMs: getRunElapsedMs(),
+              meta: retryMeta,
+            });
+            await waitForRetryDelay(retryDelayMs);
+            continue;
+          }
+
+          setVoteStatusState((prev) => ({
+            ...prev,
+            [gameId]: {
+              status: 'error',
+              error: errorMessage,
+            },
+          }));
+          emitFlowEvent('onRunFail', 'RUNNING', {
+            gameId,
+            flowId: options.flowId,
+            errorCode: 'NETWORK',
+            recoverable: true,
+            copyKey: getPredictionCopyKey('NETWORK'),
+            stage: 'RUN_POLL',
+            retryConfig: {
+              errorCode: 'NETWORK',
               recoverable: true,
               retryEnabled: true,
               keepDraft: true,
               actionPriorityOrder: ['RETRY', 'GO_LIST'],
             },
+            recoveryAction: 'RETRY',
+            meta: retryMeta,
           });
+          showPredictionErrorOverlay('NETWORK', {
+            message: errorMessage,
+            copyKey: getPredictionCopyKey('NETWORK'),
+            recovery: {
+              recoverable: true,
+              retryEnabled: true,
+              keepDraft: true,
+              actionPriorityOrder: ['RETRY', 'GO_LIST'],
+            },
+            onRetry: () => {
+              reloadCurrentVoteStatus({ emitRetryEvent: false, source: 'overlay' });
+            },
+            onGoList: () => {
+              window.location.href = '/';
+            },
+          });
+          return false;
         }
-        return;
-      }
 
-      if (abortController.signal.aborted) {
-        return;
-      }
-
-      const errorCode = mapVoteStatusErrorCode(status.error.status);
-      const errorMessage = status.error.message;
-      setVoteStatusState((prev) => ({
-        ...prev,
-        [gameId]: {
-          status: 'error',
-          error: errorMessage,
-        },
-      }));
-      emitFlowEvent('onRunFail', 'RUNNING', {
-        gameId,
-        errorCode,
-        recoverable: true,
-        copyKey: getPredictionCopyKey(errorCode),
-        stage: 'RUN_POLL',
-        retryConfig: {
+        setVoteStatusState((prev) => ({
+          ...prev,
+          [gameId]: {
+            status: 'error',
+            error: errorMessage,
+          },
+        }));
+        emitFlowEvent('onRunFail', 'RUNNING', {
+          gameId,
+          flowId: options.flowId,
           errorCode,
           recoverable: true,
-          retryEnabled: true,
-          keepDraft: true,
-          actionPriorityOrder: ['RETRY', 'GO_LIST'],
-        },
-        recoveryAction: 'RETRY',
-      });
-      showPredictionErrorOverlay(errorCode, {
-        message: errorMessage,
-        copyKey: getPredictionCopyKey(errorCode),
-        recovery: {
-          recoverable: true,
-          retryEnabled: true,
-          keepDraft: true,
-          actionPriorityOrder: ['RETRY', 'GO_LIST'],
-        },
-        onRetry: () => {
-          reloadCurrentVoteStatus();
-        },
-        onGoList: () => {
-          window.location.href = '/';
-        },
-      });
-    } catch (error: unknown) {
-      if (requestId !== voteStatusRequestRef.current) {
-        return;
+          copyKey: getPredictionCopyKey(errorCode),
+          stage: 'RUN_POLL',
+          retryConfig: {
+            errorCode,
+            recoverable: true,
+            retryEnabled: true,
+            keepDraft: true,
+            actionPriorityOrder: ['RETRY', 'GO_LIST'],
+          },
+          recoveryAction: 'RETRY',
+        });
+        showPredictionErrorOverlay(errorCode, {
+          message: errorMessage,
+          copyKey: getPredictionCopyKey(errorCode),
+          recovery: {
+            recoverable: true,
+            retryEnabled: true,
+            keepDraft: true,
+            actionPriorityOrder: ['RETRY', 'GO_LIST'],
+          },
+          onRetry: () => {
+            reloadCurrentVoteStatus({ emitRetryEvent: false, source: 'overlay' });
+          },
+          onGoList: () => {
+            window.location.href = '/';
+          },
+        });
+        return false;
       }
-      if (isCancelLikeError(error)) {
-        return;
-      }
-      if (abortController.signal.aborted) {
-        return;
-      }
-
-      const parsedError = parseError(error);
-      const errorMessage = parsedError.message || '투표 집계 조회에 실패했습니다.';
-      const errorCode = mapVoteStatusErrorCode(parsedError.statusCode);
-      setVoteStatusState((prev) => ({
-        ...prev,
-        [gameId]: {
-          status: 'error',
-          error: errorMessage,
-        },
-      }));
-      emitFlowEvent('onRunFail', 'RUNNING', {
-        gameId,
-        errorCode,
-        recoverable: true,
-        copyKey: getPredictionCopyKey(errorCode),
-        stage: 'RUN_POLL',
-        retryConfig: {
-          errorCode,
-          recoverable: true,
-          retryEnabled: true,
-          keepDraft: true,
-          actionPriorityOrder: ['RETRY', 'GO_LIST'],
-        },
-        recoveryAction: 'RETRY',
-      });
-      showPredictionErrorOverlay(errorCode, {
-        message: errorMessage,
-        copyKey: getPredictionCopyKey(errorCode),
-        recovery: {
-          recoverable: true,
-          retryEnabled: true,
-          keepDraft: true,
-          actionPriorityOrder: ['RETRY', 'GO_LIST'],
-        },
-        onRetry: () => {
-          reloadCurrentVoteStatus();
-        },
-        onGoList: () => {
-          window.location.href = '/';
-        },
-      });
     }
   };
 
-  const reloadVoteStatus = async (gameId: string) => {
-    await loadVoteStatus(gameId);
+  const reloadVoteStatus = async (gameId: string, options: LoadVoteStatusOptions = {}) => {
+    return loadVoteStatus(gameId, {
+      source: options.source ?? 'manual',
+      emitRetryEvent: options.emitRetryEvent,
+      flowId: options.flowId,
+      restoredFromSession: options.restoredFromSession,
+    });
   };
 
-  const reloadCurrentVoteStatus = () => {
+  const reloadCurrentVoteStatus = (
+    options: {
+      emitRetryEvent?: boolean;
+      source?: VoteStatusLoadSource;
+      flowId?: string;
+      restoredFromSession?: boolean;
+    } = {}
+  ) => {
     const currentGameId = getCurrentGameId();
     if (!currentGameId) {
       return;
     }
 
-    emitFlowEvent('onErrorOverlayRetry', 'ERROR', {
-      gameId: currentGameId,
-      recoveryAction: 'RETRY',
-    });
+    if (options.emitRetryEvent !== false) {
+      emitFlowEvent('onErrorOverlayRetry', 'ERROR', {
+        gameId: currentGameId,
+        recoveryAction: 'RETRY',
+      });
+    }
     setVoteStatusState((prev) => ({
       ...prev,
       [currentGameId]: { status: 'idle' },
     }));
-    void loadVoteStatus(currentGameId);
+    void loadVoteStatus(currentGameId, {
+      source: options.source ?? 'manual',
+      flowId: options.flowId,
+      restoredFromSession: options.restoredFromSession,
+    });
   };
 
-  const reloadCurrentGameDetail = () => {
+  const reloadCurrentGameDetail = (
+    options: {
+      emitRetryEvent?: boolean;
+    } = {}
+  ) => {
     const currentGameId = getCurrentGameId();
     if (!currentGameId) {
       return;
     }
 
-    emitFlowEvent('onErrorOverlayRetry', 'ERROR', {
-      gameId: currentGameId,
-      recoveryAction: 'RETRY',
-      toastKey: 'run_retry_started',
-    });
+    if (options.emitRetryEvent !== false) {
+      emitFlowEvent('onErrorOverlayRetry', 'ERROR', {
+        gameId: currentGameId,
+        recoveryAction: 'RETRY',
+        toastKey: 'run_retry_started',
+      });
+    }
     setGameDetails((prev) => ({
       ...prev,
       [currentGameId]: {
@@ -2235,17 +2609,28 @@ export const usePrediction = () => {
     }
 
     const flowId = getNextFlowId(gameId, 'vote');
-    setRunStartAt(Date.now());
+    const startedAt = Date.now();
+    setRunStartAt(startedAt);
     runInProgressRef.current = true;
     setIsRunInProgress(true);
+    setIsRunBannerDismissed(false);
     setRunProgressMessage('투표(예측) 요청을 전송하는 중입니다.');
+    beginRunSession({
+      flowId,
+      gameId,
+      action: 'vote',
+      startedAt,
+      team,
+    });
     emitFlowEvent('onRunStart', 'RUNNING', {
       gameId,
       flowId,
       stage: 'RUN_SUBMIT',
       recoverable: true,
       toastKey: 'run_started',
-      meta: { team },
+      meta: {
+        team,
+      },
     });
 
     let didTimeout = false;
@@ -2258,7 +2643,8 @@ export const usePrediction = () => {
         return;
       }
       didTimeout = true;
-      setRunProgressMessage('예측 처리 지연: 백그라운드로 전환해 계속 진행합니다.');
+      setRunTimeoutStage('warning');
+      setRunProgressMessage(getRunProgressMessageByStage('warning'));
       emitFlowEvent('onRunTimeout', 'RUNNING', {
         gameId,
         flowId,
@@ -2276,6 +2662,9 @@ export const usePrediction = () => {
           keepDraft: true,
           actionPriorityOrder: ['FALLBACK_SIMPLE', 'GO_LIST'],
         },
+        meta: {
+          timeoutStage: 'warning',
+        },
       });
     }, PREDICTION_RUN_WARNING_TIMEOUT_MS);
 
@@ -2284,7 +2673,8 @@ export const usePrediction = () => {
         return;
       }
       didTimeoutFatal = true;
-      setRunProgressMessage('예측 응답이 오래 지연돼 복구 액션을 제공합니다.');
+      setRunTimeoutStage('fatal');
+      setRunProgressMessage(getRunProgressMessageByStage('fatal'));
       showPredictionErrorOverlay('TIMEOUT', {
         message: '예측 요청이 지연되고 있습니다. 재시도 또는 목록 복귀로 이동할 수 있습니다.',
         copyKey: 'timeout_hint',
@@ -2308,34 +2698,227 @@ export const usePrediction = () => {
     }, PREDICTION_RUN_FATAL_TIMEOUT_MS);
 
     try {
-      emitFlowEvent('onRunProgress', 'RUNNING', {
-        gameId,
-        flowId,
-        stage: 'RUN_SUBMIT',
-        elapsedMs: getRunElapsedMs(),
-        meta: { requestType: 'submitVote' },
-      });
-      await submitVote(gameId, team);
-      if (didTimeout) {
-        emitFlowEvent('onErrorOverlayFallback', 'ERROR', {
+      while (true) {
+        const offline = isOfflineNow();
+        if (offline) {
+          showOfflineToastOnce('submitVote');
+          const retryAttempt = nextNetworkRetryAttempt('submitVote');
+          const canRetry = canSchedulePredictionRetry(retryAttempt);
+          const retryMeta = {
+            requestType: 'submitVote',
+            retryAttempt,
+            retryMax: PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
+            offline: true,
+          };
+
+          if (canRetry) {
+            const retryDelayMs = getPredictionRetryDelayMs(retryAttempt);
+            emitFlowEvent('onRunProgress', 'RUNNING', {
+              gameId,
+              flowId,
+              stage: 'RUN_SUBMIT',
+              elapsedMs: getRunElapsedMs(),
+              meta: retryMeta,
+            });
+            await waitForRetryDelay(retryDelayMs);
+            continue;
+          }
+
+          emitFlowEvent('onRunFail', 'RUNNING', {
+            gameId,
+            flowId,
+            errorCode: 'NETWORK',
+            recoverable: true,
+            stage: didTimeout ? 'RUN_TIMEOUT' : 'RUN_SUBMIT',
+            elapsedMs: getRunElapsedMs(),
+            copyKey: getPredictionCopyKey('NETWORK'),
+            toastKey: didTimeout ? 'run_timeout' : 'run_retry_started',
+            recoveryAction: 'RETRY',
+            retryConfig: {
+              errorCode: 'NETWORK',
+              recoverable: true,
+              retryEnabled: true,
+              keepDraft: true,
+              actionPriorityOrder: ['RETRY', 'GO_LIST'],
+            },
+            meta: retryMeta,
+          });
+          toast.error('오프라인 상태로 투표에 실패했습니다.');
+          setRunProgressMessage('예측 처리 중 오류가 발생했습니다.');
+          showPredictionErrorOverlay('NETWORK', {
+            message: '오프라인 상태로 투표 요청을 완료하지 못했습니다.',
+            copyKey: getPredictionCopyKey('NETWORK'),
+            toastKey: didTimeout ? 'run_timeout' : 'run_retry_started',
+            recovery: {
+              recoverable: true,
+              retryEnabled: true,
+              keepDraft: true,
+              actionPriorityOrder: ['RETRY', 'GO_LIST'],
+            },
+            onRetry: () => {
+              void executeVote(gameId, team, game);
+            },
+            onGoList: () => {
+              window.location.href = '/';
+            },
+          });
+          return;
+        }
+
+        emitFlowEvent('onRunProgress', 'RUNNING', {
           gameId,
           flowId,
-          errorCode: 'TIMEOUT',
-          recoverable: true,
-          copyKey: 'timeout_hint',
-          toastKey: 'run_timeout',
-          recoveryAction: 'FALLBACK_SIMPLE',
-          stage: 'RUN_TIMEOUT',
+          stage: 'RUN_SUBMIT',
           elapsedMs: getRunElapsedMs(),
-        retryConfig: {
-          errorCode: 'TIMEOUT',
-          recoverable: true,
-          retryEnabled: true,
-          keepDraft: true,
-          actionPriorityOrder: ['FALLBACK_SIMPLE', 'GO_LIST'],
-        },
+          meta: { requestType: 'submitVote' },
         });
-        return;
+
+        try {
+          await submitVote(gameId, team);
+          resetNetworkRetryAttempt('submitVote');
+          break;
+        } catch (error: unknown) {
+          if (isCancelLikeError(error)) {
+            return;
+          }
+
+          const parsedError = parseError(error);
+          const isNetworkFailure = (
+            parsedError.type === 'NETWORK'
+            || parsedError.statusCode === 0
+            || isOfflineNow()
+          );
+
+          if (isNetworkFailure) {
+            if (isOfflineNow()) {
+              showOfflineToastOnce('submitVote');
+            }
+
+            const retryAttempt = nextNetworkRetryAttempt('submitVote');
+            const canRetry = canSchedulePredictionRetry(retryAttempt);
+            const retryMeta = {
+              requestType: 'submitVote',
+              retryAttempt,
+              retryMax: PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
+              offline: isOfflineNow(),
+            };
+
+            if (canRetry) {
+              const retryDelayMs = getPredictionRetryDelayMs(retryAttempt);
+              emitFlowEvent('onRunProgress', 'RUNNING', {
+                gameId,
+                flowId,
+                stage: 'RUN_SUBMIT',
+                elapsedMs: getRunElapsedMs(),
+                meta: retryMeta,
+              });
+              await waitForRetryDelay(retryDelayMs);
+              continue;
+            }
+
+            emitFlowEvent('onRunFail', 'RUNNING', {
+              gameId,
+              flowId,
+              errorCode: 'NETWORK',
+              recoverable: true,
+              stage: didTimeout ? 'RUN_TIMEOUT' : 'RUN_SUBMIT',
+              elapsedMs: getRunElapsedMs(),
+              copyKey: getPredictionCopyKey('NETWORK'),
+              toastKey: didTimeout ? 'run_timeout' : 'run_retry_started',
+              recoveryAction: 'RETRY',
+              retryConfig: {
+                errorCode: 'NETWORK',
+                recoverable: true,
+                retryEnabled: true,
+                keepDraft: true,
+                actionPriorityOrder: ['RETRY', 'GO_LIST'],
+              },
+              meta: retryMeta,
+            });
+            toast.error(parsedError.message || '투표에 실패했습니다.');
+            setRunProgressMessage('예측 처리 중 오류가 발생했습니다.');
+            showPredictionErrorOverlay('NETWORK', {
+              message: parsedError.message || '네트워크 오류로 투표 요청에 실패했습니다.',
+              copyKey: getPredictionCopyKey('NETWORK'),
+              toastKey: didTimeout ? 'run_timeout' : 'run_retry_started',
+              recovery: {
+                recoverable: true,
+                retryEnabled: true,
+                keepDraft: true,
+                actionPriorityOrder: ['RETRY', 'GO_LIST'],
+              },
+              onRetry: () => {
+                void executeVote(gameId, team, game);
+              },
+              onGoList: () => {
+                window.location.href = '/';
+              },
+            });
+            return;
+          }
+
+          const mappedErrorCode = mapPredictionErrorCode(parsedError.type);
+          emitFlowEvent('onRunFail', 'RUNNING', {
+            gameId,
+            flowId,
+            errorCode: mappedErrorCode,
+            recoverable: true,
+            stage: didTimeout ? 'RUN_TIMEOUT' : 'RUN_SUBMIT',
+            elapsedMs: getRunElapsedMs(),
+            copyKey: getPredictionCopyKey(mappedErrorCode),
+            toastKey: didTimeout ? 'run_timeout' : 'run_retry_started',
+            recoveryAction: 'RETRY',
+            retryConfig: {
+              errorCode: mappedErrorCode,
+              recoverable: true,
+              retryEnabled: true,
+              keepDraft: true,
+              actionPriorityOrder: ['RETRY', 'GO_LIST'],
+            },
+          });
+          toast.error(parsedError.message || '투표에 실패했습니다.');
+          setRunProgressMessage('예측 처리 중 오류가 발생했습니다.');
+          showPredictionErrorOverlay(mappedErrorCode, {
+            message: parsedError.message || '예측 요청에 실패했습니다.',
+            copyKey: getPredictionCopyKey(mappedErrorCode),
+            toastKey: didTimeout ? 'run_timeout' : 'run_retry_started',
+            recovery: {
+              recoverable: true,
+              retryEnabled: true,
+              keepDraft: true,
+              actionPriorityOrder: ['RETRY', 'GO_LIST'],
+            },
+            onRetry: () => {
+              void executeVote(gameId, team, game);
+            },
+            onGoList: () => {
+              window.location.href = '/';
+            },
+          });
+          if (mappedErrorCode === 'AUTH_EXPIRED') {
+            emitFlowEvent('onErrorOverlayFallback', 'ERROR', {
+              gameId,
+              flowId,
+              errorCode: mappedErrorCode,
+              recoverable: true,
+              copyKey: getPredictionCopyKey(mappedErrorCode),
+              recoveryAction: 'GO_LIST',
+            });
+          }
+          return;
+        }
+      }
+
+      if (didTimeout) {
+        emitFlowEvent('onRunProgress', 'RUNNING', {
+          gameId,
+          flowId,
+          stage: 'RUN_SUCCESS',
+          elapsedMs: getRunElapsedMs(),
+          copyKey: 'run_complete',
+          toastKey: 'run_complete',
+          meta: { timeoutRecovered: true },
+        });
       }
 
       emitFlowEvent('onRunSuccess', 'RUNNING', {
@@ -2353,7 +2936,10 @@ export const usePrediction = () => {
       }
 
       setUserVote((prev) => ({ ...prev, [gameId]: team }));
-      await reloadVoteStatus(gameId);
+      await reloadVoteStatus(gameId, {
+        source: 'manual',
+        flowId,
+      });
 
       const teamName = team === 'home'
         ? getFullTeamName(game.homeTeam)
@@ -2365,54 +2951,29 @@ export const usePrediction = () => {
         triggerCombo(currentStreak);
       }
     } catch (error: unknown) {
-      const parsedError = parseError(error);
-      const mappedErrorCode = mapPredictionErrorCode(parsedError.type);
-      emitFlowEvent('onRunFail', 'RUNNING', {
-        gameId,
-        flowId,
-        errorCode: mappedErrorCode,
-        recoverable: true,
-        stage: didTimeout ? 'RUN_TIMEOUT' : 'RUN_SUBMIT',
-        elapsedMs: getRunElapsedMs(),
-        copyKey: getPredictionCopyKey(mappedErrorCode),
-        toastKey: didTimeout ? 'run_timeout' : 'run_retry_started',
-        recoveryAction: 'RETRY',
-        retryConfig: {
-          errorCode: mappedErrorCode,
-          recoverable: true,
-          retryEnabled: true,
-          keepDraft: true,
-          actionPriorityOrder: ['RETRY', 'GO_LIST'],
-        },
-      });
-      toast.error(parsedError.message || '투표에 실패했습니다.');
-      setRunProgressMessage('예측 처리 중 오류가 발생했습니다.');
-      showPredictionErrorOverlay(mappedErrorCode, {
-        message: parsedError.message || '예측 요청에 실패했습니다.',
-        copyKey: getPredictionCopyKey(mappedErrorCode),
-        toastKey: didTimeout ? 'run_timeout' : 'run_retry_started',
-        recovery: {
-          recoverable: true,
-          retryEnabled: true,
-          keepDraft: true,
-          actionPriorityOrder: ['RETRY', 'GO_LIST'],
-        },
-        onRetry: () => {
-          void executeVote(gameId, team, game);
-        },
-        onGoList: () => {
-          window.location.href = '/';
-        },
-      });
-      if (mappedErrorCode === 'AUTH_EXPIRED') {
-        emitFlowEvent('onErrorOverlayFallback', 'ERROR', {
+      if (!isCancelLikeError(error)) {
+        const parsedError = parseError(error);
+        const mappedErrorCode = mapPredictionErrorCode(parsedError.type);
+        emitFlowEvent('onRunFail', 'RUNNING', {
           gameId,
           flowId,
           errorCode: mappedErrorCode,
           recoverable: true,
+          stage: didTimeout ? 'RUN_TIMEOUT' : 'RUN_SUBMIT',
+          elapsedMs: getRunElapsedMs(),
           copyKey: getPredictionCopyKey(mappedErrorCode),
-          recoveryAction: 'GO_LIST',
+          toastKey: didTimeout ? 'run_timeout' : 'run_retry_started',
+          recoveryAction: 'RETRY',
+          retryConfig: {
+            errorCode: mappedErrorCode,
+            recoverable: true,
+            retryEnabled: true,
+            keepDraft: true,
+            actionPriorityOrder: ['RETRY', 'GO_LIST'],
+          },
         });
+        toast.error(parsedError.message || '투표에 실패했습니다.');
+        setRunProgressMessage('예측 처리 중 오류가 발생했습니다.');
       }
     } finally {
       if (warningTimeoutId) {
@@ -2421,9 +2982,8 @@ export const usePrediction = () => {
       if (fatalTimeoutId) {
         clearTimeout(fatalTimeoutId);
       }
-      runInProgressRef.current = false;
-      setIsRunInProgress(false);
-      setRunStartAt(null);
+      resetNetworkRetryAttempt('submitVote');
+      resetRunProgressState();
     }
   };
 
@@ -2444,9 +3004,18 @@ export const usePrediction = () => {
     }
 
     const flowId = getNextFlowId(gameId, 'cancel');
-    setRunStartAt(Date.now());
+    const startedAt = Date.now();
+    setRunStartAt(startedAt);
+    runInProgressRef.current = true;
     setIsRunInProgress(true);
+    setIsRunBannerDismissed(false);
     setRunProgressMessage('투표(예측) 취소 요청을 전송하는 중입니다.');
+    beginRunSession({
+      flowId,
+      gameId,
+      action: 'cancel',
+      startedAt,
+    });
     emitFlowEvent('onRunCancel', 'RUNNING', {
       gameId,
       flowId,
@@ -2464,9 +3033,197 @@ export const usePrediction = () => {
     });
 
     try {
-      await cancelVote(gameId);
+      while (true) {
+        const offline = isOfflineNow();
+        if (offline) {
+          showOfflineToastOnce('cancelVote');
+          const retryAttempt = nextNetworkRetryAttempt('cancelVote');
+          const canRetry = canSchedulePredictionRetry(retryAttempt);
+          const retryMeta = {
+            requestType: 'cancelVote',
+            retryAttempt,
+            retryMax: PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
+            offline: true,
+          };
+
+          if (canRetry) {
+            const retryDelayMs = getPredictionRetryDelayMs(retryAttempt);
+            emitFlowEvent('onRunProgress', 'RUNNING', {
+              gameId,
+              flowId,
+              stage: 'RUN_SUBMIT',
+              elapsedMs: getRunElapsedMs(),
+              meta: retryMeta,
+            });
+            await waitForRetryDelay(retryDelayMs);
+            continue;
+          }
+
+          emitFlowEvent('onRunFail', 'RUNNING', {
+            gameId,
+            flowId,
+            errorCode: 'NETWORK',
+            recoverable: true,
+            stage: 'RUN_SUBMIT',
+            elapsedMs: getRunElapsedMs(),
+            copyKey: getPredictionCopyKey('NETWORK'),
+            recoveryAction: 'RETRY',
+            retryConfig: {
+              errorCode: 'NETWORK',
+              recoverable: true,
+              retryEnabled: true,
+              keepDraft: true,
+              actionPriorityOrder: ['RETRY', 'GO_LIST'],
+            },
+            meta: retryMeta,
+          });
+          toast.error('오프라인 상태로 투표 취소에 실패했습니다.');
+          setRunProgressMessage('예측 취소 처리 중 오류가 발생했습니다.');
+          showPredictionErrorOverlay('NETWORK', {
+            message: '오프라인 상태로 투표 취소 요청을 완료하지 못했습니다.',
+            copyKey: getPredictionCopyKey('NETWORK'),
+            recovery: {
+              recoverable: true,
+              retryEnabled: true,
+              keepDraft: true,
+              actionPriorityOrder: ['RETRY', 'GO_LIST'],
+            },
+            onRetry: () => {
+              void executeCancelVote(gameId);
+            },
+            onGoList: () => {
+              window.location.href = '/';
+            },
+          });
+          return;
+        }
+
+        try {
+          await cancelVote(gameId);
+          resetNetworkRetryAttempt('cancelVote');
+          break;
+        } catch (error: unknown) {
+          if (isCancelLikeError(error)) {
+            return;
+          }
+
+          const parsedError = parseError(error);
+          const isNetworkFailure = (
+            parsedError.type === 'NETWORK'
+            || parsedError.statusCode === 0
+            || isOfflineNow()
+          );
+
+          if (isNetworkFailure) {
+            if (isOfflineNow()) {
+              showOfflineToastOnce('cancelVote');
+            }
+            const retryAttempt = nextNetworkRetryAttempt('cancelVote');
+            const canRetry = canSchedulePredictionRetry(retryAttempt);
+            const retryMeta = {
+              requestType: 'cancelVote',
+              retryAttempt,
+              retryMax: PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
+              offline: isOfflineNow(),
+            };
+
+            if (canRetry) {
+              const retryDelayMs = getPredictionRetryDelayMs(retryAttempt);
+              emitFlowEvent('onRunProgress', 'RUNNING', {
+                gameId,
+                flowId,
+                stage: 'RUN_SUBMIT',
+                elapsedMs: getRunElapsedMs(),
+                meta: retryMeta,
+              });
+              await waitForRetryDelay(retryDelayMs);
+              continue;
+            }
+
+            emitFlowEvent('onRunFail', 'RUNNING', {
+              gameId,
+              flowId,
+              errorCode: 'NETWORK',
+              recoverable: true,
+              stage: 'RUN_SUBMIT',
+              elapsedMs: getRunElapsedMs(),
+              copyKey: getPredictionCopyKey('NETWORK'),
+              recoveryAction: 'RETRY',
+              retryConfig: {
+                errorCode: 'NETWORK',
+                recoverable: true,
+                retryEnabled: true,
+                keepDraft: true,
+                actionPriorityOrder: ['RETRY', 'GO_LIST'],
+              },
+              meta: retryMeta,
+            });
+            toast.error(parsedError.message || '투표 취소에 실패했습니다.');
+            setRunProgressMessage('예측 취소 처리 중 오류가 발생했습니다.');
+            showPredictionErrorOverlay('NETWORK', {
+              message: parsedError.message || '네트워크 오류로 투표 취소에 실패했습니다.',
+              copyKey: getPredictionCopyKey('NETWORK'),
+              recovery: {
+                recoverable: true,
+                retryEnabled: true,
+                keepDraft: true,
+                actionPriorityOrder: ['RETRY', 'GO_LIST'],
+              },
+              onRetry: () => {
+                void executeCancelVote(gameId);
+              },
+              onGoList: () => {
+                window.location.href = '/';
+              },
+            });
+            return;
+          }
+
+          const mappedErrorCode = mapPredictionErrorCode(parsedError.type);
+          emitFlowEvent('onRunFail', 'RUNNING', {
+            gameId,
+            flowId,
+            errorCode: mappedErrorCode,
+            recoverable: true,
+            stage: 'RUN_SUBMIT',
+            elapsedMs: getRunElapsedMs(),
+            copyKey: getPredictionCopyKey(mappedErrorCode),
+            recoveryAction: 'RETRY',
+            retryConfig: {
+              errorCode: mappedErrorCode,
+              recoverable: true,
+              retryEnabled: true,
+              keepDraft: true,
+              actionPriorityOrder: ['RETRY', 'GO_LIST'],
+            },
+          });
+          toast.error(parsedError.message || '투표 취소에 실패했습니다.');
+          setRunProgressMessage('예측 취소 처리 중 오류가 발생했습니다.');
+          showPredictionErrorOverlay(mappedErrorCode, {
+            message: parsedError.message || '투표 취소에 실패했습니다.',
+            copyKey: getPredictionCopyKey(mappedErrorCode),
+            recovery: {
+              recoverable: true,
+              retryEnabled: true,
+              keepDraft: true,
+              actionPriorityOrder: ['RETRY', 'GO_LIST'],
+            },
+            onRetry: () => {
+              void executeCancelVote(gameId);
+            },
+            onGoList: () => {
+              window.location.href = '/';
+            },
+          });
+          return;
+        }
+      }
+
       setUserVote((prev) => ({ ...prev, [gameId]: null }));
-      await reloadVoteStatus(gameId);
+      await reloadVoteStatus(gameId, {
+        source: 'manual',
+        flowId,
+      });
       emitFlowEvent('onRunSuccess', 'RUNNING', {
         gameId,
         flowId,
@@ -2476,30 +3233,61 @@ export const usePrediction = () => {
       });
       toast.success('투표가 취소되었습니다.');
     } catch (error) {
-      const parsedError = parseError(error);
-      const mappedErrorCode = mapPredictionErrorCode(parsedError.type);
-      emitFlowEvent('onRunFail', 'RUNNING', {
-        gameId,
-        flowId,
-        errorCode: mappedErrorCode,
+      if (!isCancelLikeError(error)) {
+        const parsedError = parseError(error);
+        toast.error(parsedError.message || '투표 취소에 실패했습니다.');
+      }
+    } finally {
+      resetNetworkRetryAttempt('cancelVote');
+      resetRunProgressState();
+    }
+  };
+
+  const restoreRunSession = async (trigger: RunSessionRestoreTrigger) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (runInProgressRef.current || runSessionRestoreInFlightRef.current) {
+      return;
+    }
+
+    const parsedSession = parsePredictionRunSession(
+      window.sessionStorage.getItem(PREDICTION_RUN_SESSION_STORAGE_KEY)
+    );
+
+    if (!parsedSession) {
+      clearRunSession();
+      return;
+    }
+
+    if (isPredictionRunSessionStale(parsedSession.startedAt)) {
+      clearRunSession();
+      setRunProgressMessage('이전 예측 실행 세션이 만료되었습니다. 다시 시도해 주세요.');
+      emitFlowEvent('onRunTimeout', 'RUNNING', {
+        gameId: parsedSession.gameId,
+        flowId: parsedSession.flowId,
+        errorCode: 'TIMEOUT',
         recoverable: true,
-        stage: 'RUN_SUBMIT',
-        elapsedMs: getRunElapsedMs(),
-        copyKey: getPredictionCopyKey(mappedErrorCode),
+        toastKey: 'run_timeout',
+        copyKey: 'timeout_hint',
+        stage: 'RUN_TIMEOUT',
         recoveryAction: 'RETRY',
         retryConfig: {
-          errorCode: mappedErrorCode,
+          errorCode: 'TIMEOUT',
           recoverable: true,
           retryEnabled: true,
           keepDraft: true,
           actionPriorityOrder: ['RETRY', 'GO_LIST'],
         },
+        meta: {
+          restoredFromSession: true,
+          staleSession: true,
+          trigger,
+        },
       });
-      toast.error(parsedError.message || '투표 취소에 실패했습니다.');
-      setRunProgressMessage('예측 취소 처리 중 오류가 발생했습니다.');
-      showPredictionErrorOverlay(mappedErrorCode, {
-        message: parsedError.message || '투표 취소에 실패했습니다.',
-        copyKey: getPredictionCopyKey(mappedErrorCode),
+      showPredictionErrorOverlay('TIMEOUT', {
+        message: '실행 세션이 만료되었습니다. 다시 시도하거나 목록으로 이동해 주세요.',
+        copyKey: 'timeout_hint',
         recovery: {
           recoverable: true,
           retryEnabled: true,
@@ -2507,17 +3295,80 @@ export const usePrediction = () => {
           actionPriorityOrder: ['RETRY', 'GO_LIST'],
         },
         onRetry: () => {
-          void executeCancelVote(gameId);
+          void reloadVoteStatus(parsedSession.gameId, {
+            source: 'session-restore',
+            flowId: parsedSession.flowId,
+            restoredFromSession: true,
+          });
         },
         onGoList: () => {
           window.location.href = '/';
         },
       });
+      return;
+    }
+
+    runSessionRestoreInFlightRef.current = true;
+    try {
+      upsertRunSession(parsedSession);
+      setRunStartAt(parsedSession.startedAt);
+      runInProgressRef.current = true;
+      setIsRunInProgress(true);
+      setIsRunBannerDismissed(parsedSession.bannerDismissed);
+      setRunTimeoutStage(parsedSession.timeoutStage);
+      setRunProgressMessage(
+        parsedSession.action === 'cancel'
+          ? '투표 취소 결과를 동기화하는 중입니다.'
+          : getRunProgressMessageByStage(parsedSession.timeoutStage)
+      );
+      emitFlowEvent('onRunProgress', 'RUNNING', {
+        gameId: parsedSession.gameId,
+        flowId: parsedSession.flowId,
+        stage: 'RUN_POLL',
+        elapsedMs: Date.now() - parsedSession.startedAt,
+        meta: {
+          requestType: 'sessionRestore',
+          restoredFromSession: true,
+          trigger,
+          timeoutStage: parsedSession.timeoutStage,
+        },
+      });
+      await loadVoteStatus(parsedSession.gameId, {
+        source: 'session-restore',
+        flowId: parsedSession.flowId,
+        restoredFromSession: true,
+      });
     } finally {
-      setIsRunInProgress(false);
-      setRunStartAt(null);
+      runSessionRestoreInFlightRef.current = false;
+      resetRunProgressState();
     }
   };
+
+  useEffect(() => {
+    if (isAuthLoading || !isLoggedIn) {
+      return;
+    }
+
+    void restoreRunSession('mount');
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+      void restoreRunSession('visibilitychange');
+    };
+    const handlePageShow = () => {
+      void restoreRunSession('pageshow');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [isAuthLoading, isLoggedIn]);
 
   // 이전/다음 날짜로 이동
   const goToPreviousDate = () => {
@@ -2545,6 +3396,8 @@ export const usePrediction = () => {
   const currentDateVoteState = currentGameId ? voteStatusState[currentGameId] : null;
   const currentDateVoteError = currentDateVoteState?.error || null;
   const currentDateVoteLoading = currentDateVoteState?.status === 'loading';
+  const currentVotePartialReason = currentGameId ? partialReasonsByGameId[currentGameId] ?? null : null;
+  const isCurrentVotePartial = Boolean(currentVotePartialReason);
 
   return {
     activeTab,
@@ -2569,6 +3422,8 @@ export const usePrediction = () => {
     voteStatusState,
     voteStatusError: currentDateVoteError,
     voteStatusLoading: currentDateVoteLoading,
+    isCurrentVotePartial,
+    currentVotePartialReason,
     userVote,
     currentGameDetail,
     currentGameDetailLoading,
@@ -2588,6 +3443,7 @@ export const usePrediction = () => {
     goToPreviousDate,
     goToNextDate,
     isRunInProgress,
+    isRunBannerDismissed,
     runProgressMessage,
     runStartAt,
     dismissRunProgressBanner,

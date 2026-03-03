@@ -232,4 +232,53 @@ describe('Prediction Range Recovery', () => {
         cy.contains(/홈으로 이동|목록으로 이동/).should('be.visible');
         cy.contains(/예정 경기 다시 불러오기|다시 시도/).should('be.visible');
     });
+
+    it('120초가 지난 실행 세션은 stale 처리 후 timeout 복구 오버레이를 노출한다', () => {
+        cy.window().then((win) => {
+            const staleStartedAt = Date.now() - 130_000;
+            win.sessionStorage.setItem('prediction:run-session:v1', JSON.stringify({
+                flowId: 'stale-flow-1',
+                gameId: todayGameId,
+                action: 'vote',
+                startedAt: staleStartedAt,
+                team: 'home',
+                bannerDismissed: true,
+                timeoutStage: 'warning',
+            }));
+        });
+
+        cy.intercept('**/api/matches/bounds*', {
+            statusCode: 200,
+            body: {
+                hasData: true,
+                earliestGameDate: '2026-02-01',
+                latestGameDate: '2026-10-01',
+            },
+        }).as('getBoundsStaleSession');
+
+        cy.intercept('GET', '**/api/matches/range*', {
+            statusCode: 200,
+            body: [
+                {
+                    gameId: todayGameId,
+                    gameDate: today,
+                    homeTeam: 'HH',
+                    awayTeam: 'SS',
+                    stadium: '대전',
+                    homeScore: null,
+                    awayScore: null,
+                    winner: null,
+                },
+            ],
+        }).as('getRangeStaleSession');
+
+        openPredictionPage();
+
+        cy.wait('@getBoundsStaleSession');
+        cy.wait('@getRangeStaleSession');
+        cy.contains('예측 처리 중 오류가 발생했습니다.', { timeout: 10000 }).should('be.visible');
+        cy.contains('실행 세션이 만료되었습니다.').should('be.visible');
+        cy.contains('button', '다시 시도').should('be.visible');
+        cy.contains('button', '목록으로 이동').should('be.visible');
+    });
 });
