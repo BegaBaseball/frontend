@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import { toast } from 'sonner';
 import { getApiBaseUrl } from '../api/apiBase';
@@ -138,10 +138,14 @@ export function useCheerBattle({
         };
     }, [enabled, gameId, state.connectionStatus]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!gameId || !enabled) return;
 
         const handleOffline = () => {
+            const client = clientRef.current;
+            if (client?.active) {
+                client.deactivate().catch(() => undefined);
+            }
             setState((prev) => ({
                 ...prev,
                 isConnected: false,
@@ -151,10 +155,23 @@ export function useCheerBattle({
         };
 
         const handleOnline = () => {
+            const client = clientRef.current;
+            if (client && !client.active) {
+                client.activate();
+            }
             setState((prev) => {
+                if (prev.connectionStatus === 'offline' || !prev.isConnected) {
+                    return {
+                        ...prev,
+                        isConnected: false,
+                        connectionStatus: 'reconnecting',
+                        error: '실시간 연결을 다시 시도 중입니다.',
+                    };
+                }
                 if (prev.isConnected) return prev;
                 return {
                     ...prev,
+                    isConnected: false,
                     connectionStatus: 'reconnecting',
                     error: '실시간 연결을 다시 시도 중입니다.',
                 };
@@ -311,8 +328,10 @@ export function useCheerBattle({
 
         setState((prev) => ({
             ...prev,
-            connectionStatus: 'connecting',
-            error: null,
+            isConnected: false,
+            connectionStatus: 'reconnecting',
+            reconnectAttempts: prev.reconnectAttempts + 1,
+            error: '실시간 연결을 다시 시도 중입니다.',
         }));
 
         if (!client.active) {

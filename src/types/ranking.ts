@@ -9,9 +9,15 @@ export interface SeasonResponse {
 
 export interface SavedPredictionResponse {
   id: number;
-  userId: number;
+  userId: string;
   seasonYear: number;
   teamIdsInOrder: string[];
+  teamDetails?: Array<{
+    teamId: string;
+    teamName: string;
+    currentRank: number | null;
+    lastSeasonRank: number | null;
+  }>;
   createdAt: string;
 }
 

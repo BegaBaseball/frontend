@@ -88,31 +88,131 @@ const teamLogoImages: Record<string, string> = {
 // 영어 ID -> 한글 이름 매핑
 export const teamIdToName: Record<string, string> = {
   'hanwha': '한화',
+  'hh': '한화',
+  'be': '한화',
   'kiwoom': '키움',
+  'kh': '키움',
+  'wo': '키움',
+  'ki': '키움',
+  'kw': '키움',
   'samsung': '삼성 라이온즈',
+  'ss': '삼성 라이온즈',
   'lotte': '롯데 자이언츠',
+  'lt': '롯데 자이언츠',
+  'lot': '롯데 자이언츠',
   'doosan': '두산 베어스',
+  'db': '두산 베어스',
+  'ob': '두산 베어스',
+  'do': '두산 베어스',
   'kia': '기아 타이거즈',
+  'ht': '기아 타이거즈',
   'ssg': 'SSG 랜더스',
   'sk': 'SSG 랜더스',
   'nx': '키움',
   'nexen': '키움',
   'nc': 'NC 다이노스',
   'lg': 'LG 트윈스',
+  'mbc': 'LG 트윈스',
   'kt': 'KT 위즈',
+};
+
+const LEGACY_CODE_TO_CANONICAL: Record<string, string> = {
+  OB: 'DB',
+  DO: 'DB',
+  BE: 'HH',
+  WO: 'KH',
+  KI: 'KH',
+  KW: 'KH',
+  NX: 'KH',
+  SK: 'SSG',
+  LOT: 'LT',
+  HT: 'KIA',
+  MBC: 'LG',
+};
+
+const CANONICAL_TO_DISPLAY_NAME: Record<string, string> = {
+  HH: '한화 이글스',
+  KH: '키움 히어로즈',
+  SS: '삼성 라이온즈',
+  LT: '롯데 자이언츠',
+  DB: '두산 베어스',
+  KIA: '기아 타이거즈',
+  SSG: 'SSG 랜더스',
+  NC: 'NC 다이노스',
+  LG: 'LG 트윈스',
+  KT: 'KT 위즈',
 };
 
 const normalizeTeamLabel = (value?: string | null): string | undefined => {
   if (!value) return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
-  // Remove words like "라이온즈", "베어스" 등 by splitting first token if there is a space.
-  const firstToken = trimmed.split(/\s+/)[0];
-  // Normalize short codes to uppercase (kt, lg, ssg 등)
-  if (firstToken.length <= 3 && /^[A-Za-z가-힣]+$/.test(firstToken)) {
-    return /^[가-힣]+$/.test(firstToken) ? firstToken : firstToken.toUpperCase();
+
+  const normalized = trimmed
+    .replace(/[()[\]{}]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const firstToken = normalized.split(/[\/|,:-]|\s+/).find(Boolean) || normalized;
+  const leadingAlphaToken = firstToken.match(/^[A-Za-z]{2,10}/)?.[0];
+  const alphaToken = leadingAlphaToken || firstToken.replace(/[^A-Za-z]/g, '');
+
+  if (alphaToken) {
+    const upperToken = alphaToken.toUpperCase();
+    const canonicalCode = LEGACY_CODE_TO_CANONICAL[upperToken] || upperToken;
+
+    if (teamLogoImages[canonicalCode]) {
+      return canonicalCode;
+    }
+
+    const mappedName = teamIdToName[canonicalCode.toLowerCase()];
+    if (mappedName && teamLogoImages[mappedName]) {
+      return mappedName;
+    }
   }
-  return firstToken;
+
+  const hangulTokenMatch = normalized.match(/[가-힣]+/);
+  if (hangulTokenMatch && teamLogoImages[hangulTokenMatch[0]]) {
+    return hangulTokenMatch[0];
+  }
+
+  if (teamLogoImages[firstToken]) {
+    return firstToken;
+  }
+
+  return normalized;
+};
+
+export const resolveTeamDisplayName = (value?: string | null): string => {
+  if (!value) return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  const directMapped = teamIdToName[trimmed.toLowerCase()];
+  if (directMapped) {
+    return directMapped;
+  }
+
+  const canonicalKey = normalizeTeamLabel(trimmed);
+  if (!canonicalKey) {
+    return trimmed;
+  }
+
+  const canonicalUpper = (LEGACY_CODE_TO_CANONICAL[canonicalKey.toUpperCase()] || canonicalKey).toUpperCase();
+  const canonicalMapped = teamIdToName[canonicalUpper.toLowerCase()];
+  if (canonicalMapped) {
+    return canonicalMapped;
+  }
+
+  if (CANONICAL_TO_DISPLAY_NAME[canonicalUpper]) {
+    return CANONICAL_TO_DISPLAY_NAME[canonicalUpper];
+  }
+
+  if (trimmed.toUpperCase().startsWith('OB')) {
+    return '두산 베어스';
+  }
+
+  return trimmed;
 };
 
 // 크기 문자열 -> 숫자 변환
@@ -123,9 +223,9 @@ const sizeMap: Record<string, number> = {
 };
 
 export default function TeamLogo({ team, teamId, size = 64, className = '' }: TeamLogoProps) {
-  // teamId가 있으면 한글 이름으로 변환
-  const teamName = teamId ? teamIdToName[teamId.toLowerCase()] : team;
-  const canonicalKey = normalizeTeamLabel(teamName ?? team);
+  const rawTeamValue = teamId ?? team;
+  const teamName = resolveTeamDisplayName(rawTeamValue);
+  const canonicalKey = normalizeTeamLabel(rawTeamValue ?? teamName);
 
   // size가 문자열이면 숫자로 변환
   const numericSize = typeof size === 'string' && size !== 'full' ? sizeMap[size] : size;

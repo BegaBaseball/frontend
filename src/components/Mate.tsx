@@ -15,7 +15,7 @@ import { Plus, Users, MapPin, Shield, Star, Search, ChevronLeft, ChevronRight, X
 import { useMateStore } from '../store/mateStore';
 import { useAuthStore } from '../store/authStore';
 import LoadingSpinner from './LoadingSpinner';
-import TeamLogo, { teamIdToName } from './TeamLogo';
+import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { Input } from './ui/input';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { getTeamColorByAnyKey } from '../constants/teams';
@@ -389,7 +389,7 @@ export default function Mate() {
             </div>
             <div className="flex flex-col items-center">
               <span className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-1 truncate max-w-full">
-                {teamIdToName[party.homeTeam.toLowerCase()] || party.homeTeam}
+                {resolveTeamDisplayName(party.homeTeam) || party.homeTeam}
               </span>
               <span className="text-[10px] text-gray-400 border border-gray-200 dark:border-border rounded px-1.5 py-0.5 bg-white dark:bg-card mt-1">HOME</span>
             </div>
@@ -412,7 +412,7 @@ export default function Mate() {
             </div>
             <div className="flex flex-col items-center">
               <span className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-1 truncate max-w-full">
-                {teamIdToName[party.awayTeam.toLowerCase()] || party.awayTeam}
+                {resolveTeamDisplayName(party.awayTeam) || party.awayTeam}
               </span>
               <span className="text-[10px] text-gray-400 border border-gray-200 dark:border-border rounded px-1.5 py-0.5 bg-white dark:bg-card mt-1">AWAY</span>
             </div>

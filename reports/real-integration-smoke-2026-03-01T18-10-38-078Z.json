@@ -1,0 +1,63 @@
+{
+  "status": "failed",
+  "runStartedAt": "2026-03-01T18:10:38.079Z",
+  "runFinishedAt": "2026-03-01T18:11:36.722Z",
+  "apiBase": "http://127.0.0.1:5176/api",
+  "signupIdentity": {
+    "name": "smoke_user_079240",
+    "handle": "@s38079240",
+    "email": "smoke_1772388638079240@example.com"
+  },
+  "steps": [
+    {
+      "name": "required-policies",
+      "status": "failed",
+      "startedAt": "2026-03-01T18:10:38.083Z",
+      "finishedAt": "2026-03-01T18:11:36.722Z",
+      "durationMs": 58639,
+      "error": "fetch failed"
+    }
+  ],
+  "warnings": [
+    "required-policies 재시도 1/39: fetch failed",
+    "required-policies 재시도 2/39: fetch failed",
+    "required-policies 재시도 3/39: fetch failed",
+    "required-policies 재시도 4/39: fetch failed",
+    "required-policies 재시도 5/39: fetch failed",
+    "required-policies 재시도 6/39: fetch failed",
+    "required-policies 재시도 7/39: fetch failed",
+    "required-policies 재시도 8/39: fetch failed",
+    "required-policies 재시도 9/39: fetch failed",
+    "required-policies 재시도 10/39: fetch failed",
+    "required-policies 재시도 11/39: fetch failed",
+    "required-policies 재시도 12/39: fetch failed",
+    "required-policies 재시도 13/39: fetch failed",
+    "required-policies 재시도 14/39: fetch failed",
+    "required-policies 재시도 15/39: fetch failed",
+    "required-policies 재시도 16/39: fetch failed",
+    "required-policies 재시도 17/39: fetch failed",
+    "required-policies 재시도 18/39: fetch failed",
+    "required-policies 재시도 19/39: fetch failed",
+    "required-policies 재시도 20/39: fetch failed",
+    "required-policies 재시도 21/39: fetch failed",
+    "required-policies 재시도 22/39: fetch failed",
+    "required-policies 재시도 23/39: fetch failed",
+    "required-policies 재시도 24/39: fetch failed",
+    "required-policies 재시도 25/39: fetch failed",
+    "required-policies 재시도 26/39: fetch failed",
+    "required-policies 재시도 27/39: fetch failed",
+    "required-policies 재시도 28/39: fetch failed",
+    "required-policies 재시도 29/39: fetch failed",
+    "required-policies 재시도 30/39: fetch failed",
+    "required-policies 재시도 31/39: fetch failed",
+    "required-policies 재시도 32/39: fetch failed",
+    "required-policies 재시도 33/39: fetch failed",
+    "required-policies 재시도 34/39: fetch failed",
+    "required-policies 재시도 35/39: fetch failed",
+    "required-policies 재시도 36/39: fetch failed",
+    "required-policies 재시도 37/39: fetch failed",
+    "required-policies 재시도 38/39: fetch failed",
+    "required-policies 재시도 39/39: fetch failed"
+  ],
+  "fatalError": "fetch failed"
+}
