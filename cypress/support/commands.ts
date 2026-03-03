@@ -37,37 +37,42 @@ Cypress.Commands.add('login', (userType = 'user') => {
             version: 0
         };
 
-        // NOTE:
-        // Set auth state inside AUT window (onBeforeLoad) so cy.session can
-        // reliably snapshot/restore it across tests.
-        cy.session(`auth-${userType}-v2`, () => {
-            cy.visit('/', {
-                onBeforeLoad(win) {
-                    win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-                    win.localStorage.setItem('accessToken', fakeToken);
-                    win.localStorage.setItem('bega_has_visited', 'true');
-                    win.localStorage.setItem('bega_dont_show_guide', 'true');
+        const seedAuthState = (win: Window) => {
+            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+            win.localStorage.setItem('accessToken', fakeToken);
+            win.localStorage.setItem('bega_has_visited', 'true');
+            win.localStorage.setItem('bega_dont_show_guide', 'true');
+        };
+
+        cy.intercept('GET', '**/auth/mypage*', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    handle: user.handle?.replace(/^@/, ''),
+                    favoriteTeam: user.favoriteTeam,
+                    role: user.role,
+                    hasPassword: user.hasPassword ?? true,
+                    profileImageUrl: user.profileImageUrl ?? null,
                 },
-            });
-            cy.window().then((win) => {
-                // Re-assert auth state right before session snapshot is captured.
-                win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-                win.localStorage.setItem('accessToken', fakeToken);
-                win.localStorage.setItem('bega_has_visited', 'true');
-                win.localStorage.setItem('bega_dont_show_guide', 'true');
-            });
-            cy.setCookie('Authorization', fakeToken);
-        }, {
-            validate: () => {
-                cy.window().then((win) => {
-                    expect(win.localStorage.getItem('auth-storage')).to.be.a('string');
-                });
-                cy.getCookie('Authorization').should('exist');
+            },
+        }).as('sessionGetMe');
+
+        cy.visit('/', {
+            onBeforeLoad(win) {
+                seedAuthState(win);
             },
         });
+        cy.window().then((win) => {
+            seedAuthState(win);
+        });
+        cy.setCookie('Authorization', fakeToken);
 
         // Mock reissue to prevent loops
-        cy.intercept('**/api/auth/reissue', {
+        cy.intercept('**/auth/reissue*', {
             statusCode: 200,
             body: { success: true, data: { accessToken: fakeToken } }
         }).as('reissue');
@@ -76,13 +81,13 @@ Cypress.Commands.add('login', (userType = 'user') => {
 
 Cypress.Commands.add('mockAPI', () => {
     // Mock reissue usage in mockAPI
-    cy.intercept('**/api/auth/reissue', {
+    cy.intercept('**/auth/reissue*', {
         statusCode: 200,
         body: { success: true, data: { accessToken: 'fake-new-token' } }
     }).as('reissue');
 
     // Current User
-    cy.intercept('GET', '**/api/auth/mypage*', {
+    cy.intercept('GET', '**/auth/mypage*', {
         statusCode: 200,
         body: {
             success: true,

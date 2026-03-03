@@ -13,7 +13,6 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
-import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -39,7 +38,6 @@ import {
   QrCode,
   Info,
   Map as MapIcon,
-  HelpCircle,
   Plus,
   User,
   RefreshCw,
@@ -47,7 +45,7 @@ import {
 import { useMateStore } from '../store/mateStore';
 import { useAuthStore } from '../store/authStore';
 import UserProfileModal from './profile/UserProfileModal';
-import TeamLogo, { teamIdToName } from './TeamLogo';
+import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { api, getApiErrorStatus } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
@@ -189,10 +187,14 @@ export default function MateDetail() {
   const handleCancelApplication = async () => {
     if (!selectedParty || !myApplication || !currentUserId) return;
     const isApproved = myApplication.isApproved;
-    // ... logic ...
-    const confirmMessage = isApproved
-      ? '참여를 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.\n취소는 경기 하루 전까지만 가능합니다.'
-      : '신청을 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.';
+    const directTrade = isDirectTradeMode();
+    const confirmMessage = directTrade
+      ? (isApproved
+        ? '참여를 취소하시겠습니까?\n\n직거래는 당사자 간 결제 방식이며 플랫폼 환불/예치가 적용되지 않습니다.\n취소는 경기 하루 전까지만 가능합니다.'
+        : '신청을 취소하시겠습니까?\n\n직거래는 당사자 간 결제 방식이며 플랫폼 환불/예치가 적용되지 않습니다.')
+      : (isApproved
+        ? '참여를 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.\n취소는 경기 하루 전까지만 가능합니다.'
+        : '신청을 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.');
 
     const confirmed = await confirm({ title: isApproved ? '참여 취소' : '신청 취소', description: confirmMessage, confirmLabel: '취소하기', variant: 'destructive' });
     if (!confirmed) return;
@@ -230,25 +232,44 @@ export default function MateDetail() {
     }
   };
 
-  const cancelReasonOptions = [
-    {
-      value: 'BUYER_CHANGED_MIND' as const,
-      label: '단순변심(구매자)',
-      description: '부분환불(수수료 차감)',
-    },
-    {
-      value: 'SELLER_CHANGED_MIND' as const,
-      label: '단순변심(판매자)',
-      description: '부분환불(수수료 차감)',
-    },
-    {
-      value: 'OTHER' as const,
-      label: '기타 사유',
-      description: '전액환불',
-    },
-  ];
+  const cancelReasonOptions = isDirectTradeMode()
+    ? [
+      {
+        value: 'BUYER_CHANGED_MIND' as const,
+        label: '단순변심(구매자)',
+        description: '직거래 취소(플랫폼 환불 없음)',
+      },
+      {
+        value: 'SELLER_CHANGED_MIND' as const,
+        label: '단순변심(판매자)',
+        description: '직거래 취소(플랫폼 환불 없음)',
+      },
+      {
+        value: 'OTHER' as const,
+        label: '기타 사유',
+        description: '사유 확인 후 취소(플랫폼 환불 없음)',
+      },
+    ]
+    : [
+      {
+        value: 'BUYER_CHANGED_MIND' as const,
+        label: '단순변심(구매자)',
+        description: '부분환불(수수료 차감)',
+      },
+      {
+        value: 'SELLER_CHANGED_MIND' as const,
+        label: '단순변심(판매자)',
+        description: '부분환불(수수료 차감)',
+      },
+      {
+        value: 'OTHER' as const,
+        label: '기타 사유',
+        description: '전액환불',
+      },
+    ];
 
   const isHost = selectedParty?.hostId === currentUserId;
+  const isDirectTrade = isDirectTradeMode();
   const isApproved = myApplication?.isApproved || false;
   const canAccessCheckIn = Boolean(selectedParty) &&
     (isHost || isApproved) &&
@@ -610,7 +631,7 @@ export default function MateDetail() {
                   <TeamLogo teamId={selectedParty.homeTeam} size={80} />
                 </div>
                 <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
-                  {teamIdToName[selectedParty.homeTeam.toLowerCase()] || selectedParty.homeTeam}
+                  {resolveTeamDisplayName(selectedParty.homeTeam) || selectedParty.homeTeam}
                 </span>
               </div>
 
@@ -623,7 +644,7 @@ export default function MateDetail() {
                   <TeamLogo teamId={selectedParty.awayTeam} size={80} />
                 </div>
                 <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
-                  {teamIdToName[selectedParty.awayTeam.toLowerCase()] || selectedParty.awayTeam}
+                  {resolveTeamDisplayName(selectedParty.awayTeam) || selectedParty.awayTeam}
                 </span>
               </div>
             </div>
@@ -762,47 +783,62 @@ export default function MateDetail() {
               {/* Surface Color Box for Dark Mode */}
               <div className="bg-gray-50 dark:bg-secondary/70 rounded-xl p-5 border border-gray-100 dark:border-border">
                 {selectedParty.status === 'SELLING' ? (
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-600 dark:text-gray-300">티켓 판매가</span>
-                    <span className="text-xl font-bold text-orange-600">
-                      {selectedParty.price?.toLocaleString()}원
-                    </span>
-                  </div>
-                ) : (
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
-                      <span className="font-semibold text-gray-900 dark:text-gray-200">
-                        {(selectedParty.ticketPrice || 0).toLocaleString()}원
+                      <span className="font-medium text-gray-600 dark:text-gray-300">티켓 판매가</span>
+                      <span className="text-xl font-bold text-orange-600">
+                        {selectedParty.price?.toLocaleString()}원
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-600 dark:text-gray-300">보증금</span>
-                        <div className="group relative">
-                          <HelpCircle className="w-3.5 h-3.5 text-gray-400 cursor-help" />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50">
-                            취소 사유에 따라 전액 또는 부분 환불 정책이 적용됩니다
-                          </div>
-                        </div>
+                    {isDirectTrade && (
+                      <>
+                        <Separator className="bg-gray-200 dark:bg-border my-2" />
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          직거래 안내: 결제는 당사자 간 직접 진행되며 플랫폼 예치 없음(환불 정책 미적용)입니다.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  isDirectTrade ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center text-lg mt-2">
+                        <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-200">
+                          {(selectedParty.ticketPrice || 0).toLocaleString()}원
+                        </span>
                       </div>
-                      <span className="font-semibold text-gray-900 dark:text-gray-200">
-                        {DEPOSIT_AMOUNT.toLocaleString()}원
-                      </span>
+                      <Separator className="bg-gray-200 dark:bg-border my-2" />
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        직거래 안내: 결제는 당사자 간 직접 진행되며 플랫폼 예치 없음(환불 정책 미적용)입니다.
+                      </p>
                     </div>
-                    <Separator className="bg-gray-200 dark:bg-border my-2" />
-                    {!isDirectTradeMode() && (
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-200">
+                          {(selectedParty.ticketPrice || 0).toLocaleString()}원
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 dark:text-gray-300">보증금</span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-200">
+                          {DEPOSIT_AMOUNT.toLocaleString()}원
+                        </span>
+                      </div>
+                      <Separator className="bg-gray-200 dark:bg-border my-2" />
                       <div className="flex justify-between items-center text-lg mt-2">
                         <span className="font-bold text-primary dark:text-[#5abba6]">총 결제 금액</span>
                         <span className="font-black text-primary dark:text-[#5abba6]">
                           {((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT).toLocaleString()}원
                         </span>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )
                 )}
               </div>
-              {selectedParty.status !== 'SELLING' && !isDirectTradeMode() && (
+              {selectedParty.status !== 'SELLING' && !isDirectTrade && (
                 <p className="text-xs text-gray-400 mt-3 text-right">
                   * 단순변심 취소 시 수수료가 차감될 수 있습니다
                 </p>
@@ -1090,7 +1126,11 @@ export default function MateDetail() {
             <DialogTitle>취소 사유 선택</DialogTitle>
           </DialogHeader>
           <div className="py-2">
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">취소 사유를 선택하면 환불 규칙이 자동 적용됩니다.</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+              {isDirectTrade
+                ? '직거래 파티는 취소 시 플랫폼 환불/예치가 적용되지 않습니다.'
+                : '취소 사유를 선택하면 환불 규칙이 자동 적용됩니다.'}
+            </p>
             <div className="space-y-2">
               {cancelReasonOptions.map((option) => (
                 <button

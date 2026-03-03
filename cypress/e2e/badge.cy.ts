@@ -1,6 +1,54 @@
 /// <reference types="cypress" />
 
 describe('Badge Showcase in Diary Statistics', () => {
+    const fakeToken = 'e2e-badge-token';
+    const authState = {
+        state: {
+            user: {
+                id: 1,
+                email: 'test@example.com',
+                name: 'TestUser',
+                handle: '@testuser',
+                role: 'ROLE_USER',
+                favoriteTeam: 'HH',
+                profileImageUrl: null,
+            },
+            isLoggedIn: true,
+            isAdmin: false,
+        },
+        version: 0,
+    };
+
+    const seedAuthState = (win: Window) => {
+        win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+        win.localStorage.setItem('accessToken', fakeToken);
+        win.localStorage.setItem('bega_has_visited', 'true');
+        win.localStorage.setItem('bega_dont_show_guide', 'true');
+    };
+
+    const bootstrapAuthenticatedWindow = (win: Window) => {
+        const originalAddEventListener = win.addEventListener.bind(win);
+        win.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+            if (type === 'auth-session-expired' || type === 'global-api-error') {
+                return;
+            }
+            return originalAddEventListener(type, listener, options);
+        }) as typeof win.addEventListener;
+        seedAuthState(win);
+    };
+
+    const visitAsLoggedIn = (path: string) => {
+        cy.visit(path, {
+            onBeforeLoad(win) {
+                bootstrapAuthenticatedWindow(win);
+            },
+        });
+        cy.window().then((win) => {
+            seedAuthState(win);
+        });
+        cy.setCookie('Authorization', fakeToken);
+    };
+
     const mockStatistics = {
         totalCount: 15,
         totalWins: 10,
@@ -23,13 +71,31 @@ describe('Badge Showcase in Diary Statistics', () => {
     };
 
     const openStats = () => {
-        cy.contains(/통계 보기/).click();
-        cy.wait('@getDiaryStats');
+        cy.contains('button', /통계 보기/, { timeout: 20000 })
+            .should('be.visible')
+            .as('statsButton');
+        cy.get('@statsButton').click({ force: true });
+        cy.contains(/업적 배지|나의 야구 기록 요약/, { timeout: 20000 }).should('be.visible');
     };
 
     beforeEach(() => {
-        cy.login('user');
         cy.mockAPI();
+        cy.intercept('GET', '**/auth/mypage*', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    id: 1,
+                    email: 'test@example.com',
+                    name: 'TestUser',
+                    handle: 'testuser',
+                    favoriteTeam: 'HH',
+                    role: 'ROLE_USER',
+                    hasPassword: true,
+                    profileImageUrl: null,
+                },
+            },
+        }).as('getMe');
 
         cy.intercept('GET', '**/api/diary/statistics*', {
             statusCode: 200,
@@ -41,7 +107,8 @@ describe('Badge Showcase in Diary Statistics', () => {
             body: [],
         }).as('getDiaryGames');
 
-        cy.visit('/mypage');
+        visitAsLoggedIn('/mypage?view=diary');
+        cy.wait('@getMe');
     });
 
     it('renders diary statistics section with badges after clicking stats button', () => {

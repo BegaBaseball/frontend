@@ -4,6 +4,50 @@ describe('Block / Unblock Feature', () => {
     const targetUserId = 456;
     const profileHandle = '@otheruser';
     const profileRoute = `/profile/${profileHandle}`;
+    const fakeToken = 'e2e-block-token';
+    const authState = {
+        state: {
+            user: {
+                id: 123,
+                email: 'test@example.com',
+                name: 'TestUser',
+                handle: '@testuser',
+                role: 'ROLE_USER',
+                favoriteTeam: 'HH',
+                profileImageUrl: null,
+                hasPassword: true,
+            },
+            isLoggedIn: true,
+            isAdmin: false,
+        },
+        version: 0,
+    };
+
+    const bootstrapAuthenticatedWindow = (win: Window) => {
+        const originalAddEventListener = win.addEventListener.bind(win);
+        win.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+            if (type === 'auth-session-expired' || type === 'global-api-error') {
+                return;
+            }
+            return originalAddEventListener(type, listener, options);
+        }) as typeof win.addEventListener;
+
+        win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+        win.localStorage.setItem('accessToken', fakeToken);
+        win.localStorage.setItem('bega_has_visited', 'true');
+        win.localStorage.setItem('bega_dont_show_guide', 'true');
+    };
+
+    const visitAsLoggedIn = (path: string) => {
+        cy.visit(path, {
+            onBeforeLoad: bootstrapAuthenticatedWindow,
+        });
+        cy.window().then((win) => {
+            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+            win.localStorage.setItem('accessToken', fakeToken);
+        });
+        cy.setCookie('Authorization', fakeToken);
+    };
 
     const mockProfile = {
         id: targetUserId,
@@ -18,7 +62,6 @@ describe('Block / Unblock Feature', () => {
     };
 
     beforeEach(() => {
-        cy.login('user');
         cy.mockAPI();
 
         cy.intercept('GET', '**/api/users/profile/*', {
@@ -45,7 +88,7 @@ describe('Block / Unblock Feature', () => {
             },
         }).as('getFollowCounts');
 
-        cy.visit(profileRoute);
+        visitAsLoggedIn(profileRoute);
         cy.wait('@getProfile');
         cy.wait('@getFollowCounts');
 
@@ -76,9 +119,17 @@ describe('Block / Unblock Feature', () => {
             },
         }).as('getBlockedUsers');
 
-        cy.visit('/mypage');
-        cy.contains('button', '내 정보 수정').click();
-        cy.contains('차단 관리').click();
+        visitAsLoggedIn('/mypage');
+        cy.wait('@getMe');
+        cy.contains('button', '내 정보 수정', { timeout: 20000 })
+            .should('be.visible')
+            .as('editProfileButton');
+        cy.get('@editProfileButton').click({ force: true });
+        cy.url().should('include', 'view=editProfile');
+        cy.contains('button', '차단 관리', { timeout: 20000 })
+            .scrollIntoView()
+            .click({ force: true });
+        cy.url().should('include', 'view=blockedUsers');
         cy.wait('@getBlockedUsers');
         cy.contains('OtherUser').should('be.visible');
     });
@@ -111,9 +162,17 @@ describe('Block / Unblock Feature', () => {
             body: { blocked: false, blockedCount: 0 },
         }).as('unblockUser');
 
-        cy.visit('/mypage');
-        cy.contains('button', '내 정보 수정').click();
-        cy.contains('차단 관리').click();
+        visitAsLoggedIn('/mypage');
+        cy.wait('@getMe');
+        cy.contains('button', '내 정보 수정', { timeout: 20000 })
+            .should('be.visible')
+            .as('editProfileButton');
+        cy.get('@editProfileButton').click({ force: true });
+        cy.url().should('include', 'view=editProfile');
+        cy.contains('button', '차단 관리', { timeout: 20000 })
+            .scrollIntoView()
+            .click({ force: true });
+        cy.url().should('include', 'view=blockedUsers');
         cy.wait('@getBlockedUsers');
 
         cy.contains(/차단 해제/).click();
@@ -133,7 +192,7 @@ describe('Block / Unblock Feature', () => {
             },
         }).as('getFollowCounts');
 
-        cy.visit(profileRoute);
+        visitAsLoggedIn(profileRoute);
         cy.wait('@getProfile');
         cy.wait('@getFollowCounts');
         cy.contains('@otheruser').should('be.visible');

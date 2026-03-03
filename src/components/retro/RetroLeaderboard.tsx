@@ -522,7 +522,7 @@ export default function RetroLeaderboard({
                     {displayLeaderboard.map((entry, index) => (
                       <LeaderboardRow
                         key={entry.userId}
-                        rank={index + 1}
+                        rank={entry.rank ?? index + 1}
                         entry={entry}
                         isCurrentUser={entry.userId === currentUserId}
                       />

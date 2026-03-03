@@ -379,7 +379,7 @@ export default function MateManage() {
           </Badge>
           {!hasPaymentTracking && (
             <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
-              결제 안됨 (직거래 베타 적용)
+              결제 안됨 (직거래 적용, 플랫폼 결제 없음)
             </Badge>
           )}
           {app.paymentStatus && (

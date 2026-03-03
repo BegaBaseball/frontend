@@ -120,9 +120,10 @@
             "test:e2e:full:dev": "node scripts/test-e2e.mjs",
             "test:e2e:full:prodlike": "node scripts/test-e2e.mjs --no-server",
             "test:e2e:full:prodlike:docker": "node scripts/test-e2e.mjs --no-server --docker",
-            "test:e2e:smoke:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts",
-            "test:e2e:smoke:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts",
-            "test:e2e:smoke:prodlike:docker": "node scripts/test-e2e.mjs --no-server --docker --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts",
+            "test:e2e:smoke:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts,cypress/e2e/stadium.cy.ts",
+            "test:e2e:smoke:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts,cypress/e2e/stadium.cy.ts",
+            "test:e2e:smoke:prodlike:docker": "node scripts/test-e2e.mjs --no-server --docker --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts,cypress/e2e/stadium.cy.ts",
+            "test:integration:real": "node scripts/real-integration-smoke.mjs",
             "test:e2e": "node scripts/test-e2e.mjs",
             "test:seo": "node --import tsx --test \"src/seo/**/*.test.ts\"",
             "test:unit": "node --import tsx --test \"src/**/*.test.ts\""
