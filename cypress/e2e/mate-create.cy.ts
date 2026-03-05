@@ -89,6 +89,62 @@ describe('Mate Create Flow', () => {
     cy.contains('button', '다음').should('not.be.disabled');
   });
 
+  it('allows manual match input when schedule API returns empty', () => {
+    cy.intercept('POST', '**/api/tickets/analyze', {
+      statusCode: 200,
+      body: {
+        date: '2026-05-20',
+        time: '18:30:00',
+        stadium: '잠실야구장',
+        homeTeam: 'LG',
+        awayTeam: 'KT',
+        section: '1루석',
+        row: '12',
+        seat: '15',
+        peopleCount: 2,
+        price: 22000,
+        reservationNumber: 'R-123456',
+        gameId: 1001,
+        verificationToken: 'verification-token',
+      },
+    }).as('analyzeTicketSuccess');
+
+    cy.intercept('GET', '**/api/kbo/schedule*', {
+      statusCode: 200,
+      body: [],
+    }).as('emptySchedule');
+
+    cy.visit('/mate/create');
+    cy.contains('직관메이트 파티 만들기').should('be.visible');
+
+    uploadTicketImage();
+    cy.wait('@analyzeTicketSuccess');
+    cy.contains('경기 선택').should('be.visible');
+
+    cy.get('#gameDate').clear().type('2026-05-20');
+    cy.wait('@emptySchedule');
+
+    cy.contains('경기 목록 조회 결과가 없습니다. 수동 입력으로 계속 진행할 수 있습니다.').should('be.visible');
+    cy.get('#manualGameTime').clear().type('18:30');
+    cy.get('#manualStadium').clear().type('잠실야구장');
+
+    cy.contains('label', '원정 팀')
+      .parent()
+      .within(() => {
+        cy.get('button[role="combobox"]').click();
+      });
+    cy.contains('[role="option"]', 'KT 위즈').click();
+
+    cy.contains('label', '홈 팀')
+      .parent()
+      .within(() => {
+        cy.get('button[role="combobox"]').click();
+      });
+    cy.contains('[role="option"]', 'LG 트윈스').click();
+
+    cy.contains('button', '다음').should('not.be.disabled');
+  });
+
   it('handles submit modal cancel/confirm, 403 and 500 errors, then success redirect', () => {
     cy.intercept('POST', '**/api/tickets/analyze', {
       statusCode: 200,
