@@ -200,6 +200,11 @@ export default function MateCreate() {
   const fileErrorMessage = errorType === 'scan' ? errorMessage : formErrors.ticketFile;
   const isScanFailed = errorType === 'scan' && Boolean(formData.ticketFile);
   const matchLoadErrorMessage = isMatchLoadError ? errorMessage : '';
+  const knownStadiumNames = Array.from(new Set(Object.values(KBO_STADIUMS).map((stadium) => stadium.name)));
+  const shouldShowManualMatchInput = createStep === 2
+    && Boolean(formData.gameDate)
+    && !isLoadingMatches
+    && (isMatchLoadError || availableMatches.length === 0);
 
   useEffect(() => {
     if (createStep !== 2 || !formData.gameDate) {
@@ -279,6 +284,9 @@ export default function MateCreate() {
     if (createStep === 2 && !canGoNext) {
       if (!formData.gameDate) {
         return '경기 날짜를 선택해주세요.';
+      }
+      if (shouldShowManualMatchInput) {
+        return '경기 정보(시간/팀/구장)를 수동 입력해주세요.';
       }
       return '경기 목록에서 관람할 경기를 선택해주세요.';
     }
@@ -565,9 +573,75 @@ export default function MateCreate() {
 
                       })
                     ) : (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-300 bg-gray-50 dark:bg-card rounded-lg">
-                        경기가 없는 날입니다 😴 <br />
-                        <span className="text-xs">다른 날짜를 선택해주세요</span>
+                      <div className="space-y-4 rounded-lg border border-dashed border-amber-300 bg-amber-50/70 p-4 dark:border-amber-700/40 dark:bg-amber-900/20">
+                        <div className="text-center py-2 text-gray-600 dark:text-gray-200">
+                          경기 목록 조회 결과가 없습니다. 수동 입력으로 계속 진행할 수 있습니다.
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label htmlFor="manualGameTime">경기 시간</Label>
+                            <Input
+                              id="manualGameTime"
+                              type="time"
+                              value={formData.gameTime}
+                              onChange={(e) => updateFormData({ gameTime: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="manualStadium">구장</Label>
+                            <Input
+                              id="manualStadium"
+                              list="manual-stadium-options"
+                              value={formData.stadium}
+                              onChange={(e) => updateFormData({ stadium: e.target.value })}
+                              placeholder="예: 잠실야구장"
+                            />
+                            <datalist id="manual-stadium-options">
+                              {knownStadiumNames.map((stadiumName) => (
+                                <option key={stadiumName} value={stadiumName} />
+                              ))}
+                            </datalist>
+                          </div>
+                          <div className="space-y-1">
+                            <Label>원정 팀</Label>
+                            <Select
+                              value={formData.awayTeam || undefined}
+                              onValueChange={(value: string) => updateFormData({ awayTeam: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="원정 팀 선택" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {TEAMS.map((team) => (
+                                  <SelectItem key={`away-${team.id}`} value={team.id}>
+                                    {team.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label>홈 팀</Label>
+                            <Select
+                              value={formData.homeTeam || undefined}
+                              onValueChange={(value: string) => updateFormData({ homeTeam: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="홈 팀 선택" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {TEAMS.map((team) => (
+                                  <SelectItem key={`home-${team.id}`} value={team.id}>
+                                    {team.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          팀/구장까지 입력하면 다음 단계로 진행할 수 있습니다.
+                        </p>
                       </div>
                     )}
                   </div>

@@ -17,6 +17,10 @@ export interface KboScheduleItem {
   stadium: string;
   homeTeam: string;
   awayTeam: string;
+  gameStatus?: string | null;
+  gameStatusKr?: string | null;
+  homeScore?: number | string | null;
+  awayScore?: number | string | null;
 }
 
 const API_BASE_URL = getApiBaseUrl();
