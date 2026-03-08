@@ -62,12 +62,25 @@ export const useNotificationSocket = () => {
             },
 
             onStompError: (frame) => {
-                console.error('Broker reported error: ' + frame.headers['message']);
-                console.error('Additional details: ' + frame.body);
+                const brokerMessage = frame.headers?.message || 'Unknown broker error';
+                const detailLength = frame.body ? frame.body.length : 0;
+                console.error('Broker STOMP error', {
+                    message: brokerMessage,
+                    detailLength,
+                    command: frame.command,
+                    code: frame.headers?.['message-id'] || frame.headers?.receipt,
+                });
             },
 
             onWebSocketError: (event) => {
-                console.error('WebSocket error:', event);
+                const eventLike = event as Record<string, unknown>;
+                const eventTarget = eventLike.target as Record<string, unknown> | undefined;
+                console.error('WebSocket error:', {
+                    type: eventLike.type ?? 'websocket',
+                    message: eventLike.message ?? eventLike.reason ?? 'Unknown websocket error',
+                    readyState: eventTarget?.readyState,
+                    url: eventTarget?.url,
+                });
             }
         });
 

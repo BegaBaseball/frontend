@@ -67,7 +67,7 @@ export default function DiaryViewSection() {
   const monthCalendar = useMonthCalendar(currentMonth);
 
   return (
-    <div className="diary-green-surface rounded-2xl md:rounded-3xl p-3 md:p-8 bg-primary dark:bg-primary-dark text-gray-900 dark:text-gray-100 transition-colors duration-200">
+    <div className="diary-green-surface rounded-2xl md:rounded-3xl p-3 md:p-8 bg-primary dark:bg-primary-dark text-primary-foreground transition-colors duration-200">
       {isDesktop ? (
         // 데스크톱: 기존 월간 뷰
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-10">
@@ -80,7 +80,7 @@ export default function DiaryViewSection() {
                     new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
                   )
                 }
-                className="p-2 hover:bg-gray-100 dark:hover:bg-secondary rounded-full"
+                className="p-2 hover:bg-muted rounded-full"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -93,7 +93,7 @@ export default function DiaryViewSection() {
                     new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
                   )
                 }
-                className="p-2 hover:bg-gray-100 dark:hover:bg-secondary rounded-full"
+                className="p-2 hover:bg-muted rounded-full"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -101,7 +101,7 @@ export default function DiaryViewSection() {
 
             <div className="grid grid-cols-7 gap-2 md:gap-3">
               {monthCalendar.weekDays.map((day) => (
-                <div key={day} className="text-center py-2 text-sm text-gray-500 dark:text-gray-300">
+                <div key={day} className="text-center py-2 text-sm text-muted-foreground">
                   {day}
                 </div>
               ))}
@@ -121,9 +121,9 @@ export default function DiaryViewSection() {
                     bgClass = 'bg-amber-100 dark:bg-secondary border-amber-300 dark:border-amber-500';
                   }
                 } else if (day.isValidDay) {
-                  bgClass = 'bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-border';
+                  bgClass = 'bg-card hover:bg-muted/80 dark:hover:bg-secondary border-border dark:border-border';
                 } else {
-                  bgClass = 'bg-gray-50 dark:bg-background border-gray-100 dark:border-border';
+                  bgClass = 'bg-muted dark:bg-background border-border dark:border-border';
                 }
 
                 return (
@@ -142,14 +142,14 @@ export default function DiaryViewSection() {
                   >
                     {day.isValidDay && (
                       <>
-                        <div className={`text-sm text-center w-full mb-2 ${!day.isValidDay ? 'text-gray-300 dark:text-gray-300' : 'text-gray-900 dark:text-gray-100'
+                        <div className={`text-sm text-center w-full mb-2 ${!day.isValidDay ? 'text-muted-foreground' : 'text-foreground'
                           }`}>
                           {day.dayNumber}
                         </div>
                         {entry && (
                           <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
                             {entry.team && (
-                              <div className="text-[10px] font-semibold text-center leading-snug px-1 line-clamp-2 text-gray-700 dark:text-gray-200">
+                              <div className="text-[10px] font-semibold text-center leading-snug px-1 line-clamp-2 text-muted-foreground">
                                 {entry.team}
                               </div>
                             )}
@@ -172,13 +172,13 @@ export default function DiaryViewSection() {
                   <div
                     className="w-4 h-4 rounded bg-emerald-50 dark:bg-secondary border-2 border-primary dark:border-primary"
                   />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">직관 완료</span>
+                  <span className="text-sm text-muted-foreground">직관 완료</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div
                     className="w-4 h-4 rounded bg-amber-100 dark:bg-secondary border-2 border-amber-300 dark:border-amber-500"
                   />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">직관 예정</span>
+                  <span className="text-sm text-muted-foreground">직관 예정</span>
                 </div>
             </div>
           </Card>
@@ -223,7 +223,7 @@ export default function DiaryViewSection() {
           {/* 주간 캘린더 */}
           <Card className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <button onClick={weekCalendar.goToPrevWeek} className="p-2 hover:bg-gray-100 dark:hover:bg-secondary rounded-full">
+              <button onClick={weekCalendar.goToPrevWeek} className="p-2 hover:bg-muted rounded-full">
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <h3 style={{ fontWeight: 900, fontSize: '16px' }}>
@@ -232,14 +232,14 @@ export default function DiaryViewSection() {
                 {weekCalendar.getWeekDays()[6].getMonth() + 1}월{' '}
                 {weekCalendar.getWeekDays()[6].getDate()}일
               </h3>
-              <button onClick={weekCalendar.goToNextWeek} className="p-2 hover:bg-gray-100 dark:hover:bg-secondary rounded-full">
+              <button onClick={weekCalendar.goToNextWeek} className="p-2 hover:bg-muted rounded-full">
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
 
             <div className="grid grid-cols-7 gap-1.5">
               {weekCalendar.weekDays.map((day) => (
-                <div key={day} className="text-center py-1 text-xs text-gray-500 dark:text-gray-300">
+                <div key={day} className="text-center py-1 text-xs text-muted-foreground">
                   {day}
                 </div>
               ))}
@@ -255,15 +255,15 @@ export default function DiaryViewSection() {
                     key={index}
                     data-testid={`day-${date.getDate()}`}
                     onClick={() => handleDateSelect(date)}
-                    className={`border rounded-lg p-2 flex flex-col min-h-[84px] hover:bg-gray-50 dark:hover:bg-gray-700 ${isSelected ? 'ring-2 ring-offset-1 ring-primary dark:ring-offset-gray-900' : ''} ${
+                    className={`border rounded-lg p-2 flex flex-col min-h-[84px] hover:bg-muted/80 dark:hover:bg-secondary ${isSelected ? 'ring-2 ring-offset-1 ring-primary dark:ring-offset-gray-900' : ''} ${
                       entry
                         ? entry.type === 'attended'
                           ? 'bg-emerald-50 dark:bg-secondary border-primary dark:border-primary'
                           : 'bg-amber-100 dark:bg-secondary border-amber-300 dark:border-amber-500'
-                        : 'bg-white dark:bg-card border-gray-200 dark:border-border'
+                        : 'bg-card border-border dark:border-border'
                     }`}
                   >
-                    <div className="text-sm text-center w-full mb-1 text-gray-900 dark:text-gray-100">
+                    <div className="text-sm text-center w-full mb-1 text-foreground">
                       {date.getDate()}
                     </div>
                     {entry && (
@@ -285,13 +285,13 @@ export default function DiaryViewSection() {
                 <div
                   className="w-3 h-3 rounded bg-emerald-50 dark:bg-secondary border-2 border-primary dark:border-primary"
                 />
-                <span className="text-gray-600 dark:text-gray-300">직관 완료</span>
+                <span className="text-muted-foreground">직관 완료</span>
               </div>
               <div className="flex items-center gap-1">
                 <div
                   className="w-3 h-3 rounded bg-amber-100 dark:bg-secondary border-2 border-amber-300 dark:border-amber-500"
                 />
-                <span className="text-gray-600 dark:text-gray-300">직관 예정</span>
+                <span className="text-muted-foreground">직관 예정</span>
               </div>
             </div>
           </Card>
@@ -353,7 +353,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
           className="w-20 h-20 object-contain"
         />
         <div>
-          <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">오늘의 기분</div>
+          <div className="text-sm text-muted-foreground mb-1">오늘의 기분</div>
           <div className="text-2xl text-primary" style={{ fontWeight: 900 }}>
             {diaryForm.emojiName}
           </div>
@@ -398,20 +398,20 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
       {/* 경기 정보 */}
       <div className="space-y-4">
         <div className="grid grid-cols-[80px_1fr] gap-2">
-          <div className="text-sm text-gray-600 dark:text-gray-300">경기</div>
+          <div className="text-sm text-muted-foreground">경기</div>
           <div className="font-bold text-primary">
             {selectedDiary?.team || '경기 정보 없음'}
           </div>
         </div>
         <div className="grid grid-cols-[80px_1fr] gap-2">
-          <div className="text-sm text-gray-600 dark:text-gray-300">구장</div>
+          <div className="text-sm text-muted-foreground">구장</div>
           <div className="font-bold text-primary">
             {selectedDiary?.stadium || '구장 정보 없음'}
           </div>
         </div>
         {diaryForm.winningName && (
           <div className="grid grid-cols-[80px_1fr] gap-2">
-            <div className="text-sm text-gray-600 dark:text-gray-300">승패</div>
+            <div className="text-sm text-muted-foreground">승패</div>
             <div className="font-bold text-primary">
               {getWinningLabel(diaryForm.winningName)}
             </div>
@@ -419,10 +419,10 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         )}
         {diaryForm.memo && (
           <div className="grid grid-cols-[80px_1fr] gap-2">
-            <div className="text-sm text-gray-600 dark:text-gray-300">메모</div>
+            <div className="text-sm text-muted-foreground">메모</div>
             <div
               data-testid="diary-memo"
-              className="text-gray-700 dark:text-gray-100 leading-relaxed whitespace-pre-wrap"
+              className="text-foreground leading-relaxed whitespace-pre-wrap"
             >
               {diaryForm.memo}
             </div>
@@ -434,7 +434,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         <Button
           data-testid="edit-diary-btn"
           onClick={() => setIsEditMode(true)}
-          className="text-white bg-primary"
+          className="text-primary-foreground bg-primary"
           disabled={deleteMutation.isPending}
         >
           수정하기
@@ -561,24 +561,24 @@ function DiaryEditMode({
             disabled={isScanning}
           />
         </label>
-        <p className="text-xs text-gray-500 dark:text-gray-300 text-center mt-1">티켓 사진을 올리면 AI가 자동으로 정보를 채워줍니다</p>
+        <p className="text-xs text-muted-foreground text-center mt-1">티켓 사진을 올리면 AI가 자동으로 정보를 채워줍니다</p>
       </div>
 
       {/* 직관 유형 선택 */}
       <div>
-        <label className="text-sm text-gray-600 dark:text-gray-300 mb-3 block">직관 유형</label>
+        <label className="text-sm text-muted-foreground mb-3 block">직관 유형</label>
         <div className="flex gap-3">
           <button
             type="button"
             onClick={() => updateForm({ type: 'attended' })}
-            className={`flex-1 rounded-lg transition-all ${diaryForm.type === 'attended' ? 'shadow-md scale-105 bg-primary' : 'bg-gray-100 dark:bg-secondary/50'
+            className={`flex-1 rounded-lg transition-all ${diaryForm.type === 'attended' ? 'shadow-md scale-105 bg-primary' : 'bg-muted dark:bg-secondary/50'
               }`}
             style={{
               padding: '10px',
             }}
           >
             <div
-              className={`font-bold ${diaryForm.type === 'attended' ? 'text-white' : 'text-gray-700 dark:text-gray-200'
+              className={`font-bold ${diaryForm.type === 'attended' ? 'text-white' : 'text-muted-foreground'
                 }`}
             >
               직관 완료
@@ -589,12 +589,12 @@ function DiaryEditMode({
             onClick={() => updateForm({ type: 'scheduled' })}
             className={`flex-1 rounded-lg transition-all ${diaryForm.type === 'scheduled'
               ? 'shadow-md scale-105 bg-amber-400 text-white'
-              : 'bg-gray-100 dark:bg-secondary/50'
+              : 'bg-muted dark:bg-secondary/50'
               }`}
             style={{ padding: '10px' }}
           >
             <div
-              className={`font-bold ${diaryForm.type === 'scheduled' ? 'text-white' : 'text-gray-700 dark:text-gray-200'
+              className={`font-bold ${diaryForm.type === 'scheduled' ? 'text-white' : 'text-muted-foreground'
                 }`}
             >
               직관 예정
@@ -606,16 +606,16 @@ function DiaryEditMode({
       {/* 감정 선택 (직관 완료시만) */}
       {diaryForm.type === 'attended' && (
         <div>
-          <label className="text-sm text-gray-600 dark:text-gray-300 mb-3 block">오늘의 기분</label>
-          <div className="flex items-center justify-between gap-3 p-4 bg-gray-50 dark:bg-card/50 rounded-2xl overflow-x-auto">
+          <label className="text-sm text-muted-foreground mb-3 block">오늘의 기분</label>
+          <div className="flex items-center justify-between gap-3 p-4 bg-muted dark:bg-card/50 rounded-2xl overflow-x-auto">
             {EMOJI_STATS.map((item, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => updateForm({ emoji: item.emoji, emojiName: item.name })}
                 className={`flex min-w-[80px] flex-col items-center gap-2 rounded-xl px-3 py-2 transition-all ${diaryForm.emojiName === item.name
-                  ? 'bg-white dark:bg-card shadow-md scale-110'
-                  : 'bg-gray-50 dark:bg-secondary/50 hover:bg-gray-100 dark:hover:bg-secondary'
+                  ? 'bg-card shadow-md scale-110'
+                  : 'bg-muted dark:bg-secondary/50 hover:bg-muted/80 dark:hover:bg-secondary'
                   }`}
               >
                 <img
@@ -623,7 +623,7 @@ function DiaryEditMode({
                   alt={item.name}
                   className="h-12 w-12 object-contain md:h-14 md:w-14"
                 />
-                <span className="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">{item.name}</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{item.name}</span>
               </button>
             ))}
           </div>
@@ -633,7 +633,7 @@ function DiaryEditMode({
       {/* 사진 업로드 (직관 완료시만) */}
       {diaryForm.type === 'attended' && (
         <div>
-          <label className="text-sm text-gray-600 dark:text-gray-300 mb-3 block">사진 추가</label>
+          <label className="text-sm text-muted-foreground mb-3 block">사진 추가</label>
           <div className="grid grid-cols-3 gap-3">
             {allPhotos.map((photo: string | File, index: number) => (
               <div key={index} className="relative aspect-square">
@@ -652,9 +652,9 @@ function DiaryEditMode({
               </div>
             ))}
             {allPhotos.length < MAX_PHOTOS && (
-              <label className="aspect-square border-2 border-dashed border-gray-300 dark:border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 dark:hover:bg-secondary">
-                <Camera className="w-8 h-8 text-gray-400 mb-2" />
-                <span className="text-xs text-gray-500 dark:text-gray-300">사진 추가</span>
+              <label className="aspect-square border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted dark:hover:bg-secondary">
+                <Camera className="w-8 h-8 text-muted-foreground mb-2" />
+                <span className="text-xs text-muted-foreground">사진 추가</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -665,18 +665,18 @@ function DiaryEditMode({
               </label>
             )}
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-300 mt-2">최대 {MAX_PHOTOS}장까지 업로드 가능합니다</p>
+          <p className="text-xs text-muted-foreground mt-2">최대 {MAX_PHOTOS}장까지 업로드 가능합니다</p>
         </div>
       )}
 
       {/* 경기 선택 */}
       <div>
-        <label className="text-sm text-gray-500 dark:text-gray-300 mb-1 block">경기 선택</label>
+        <label className="text-sm text-muted-foreground mb-1 block">경기 선택</label>
         {availableGames.length > 0 ? (
           <select
             value={diaryForm.gameId}
             onChange={(e) => updateForm({ gameId: e.target.value })}
-            className="w-full p-2 border border-gray-300 dark:border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-card text-gray-900 dark:text-gray-100"
+            className="w-full p-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-card text-foreground"
           >
             <option value="">경기를 선택하세요</option>
             {availableGames.map((game: Game) => (
@@ -687,7 +687,7 @@ function DiaryEditMode({
             ))}
           </select>
         ) : (
-          <div className="w-full p-2 border border-gray-300 dark:border-border rounded-lg bg-gray-50 dark:bg-card/50 text-gray-500 dark:text-gray-300 text-center">
+          <div className="w-full p-2 border border-border rounded-lg bg-muted dark:bg-card/50 text-muted-foreground text-center">
             이 날짜에 예정된 경기가 없습니다
           </div>
         )}
@@ -695,7 +695,7 @@ function DiaryEditMode({
 
       {/* 좌석 정보 (직관 완료시만) */}
       {diaryForm.type === 'attended' && (
-        <div className="space-y-3 p-4 bg-gray-50 dark:bg-card/50 rounded-xl border border-gray-100 dark:border-border">
+        <div className="space-y-3 p-4 bg-muted dark:bg-card/50 rounded-xl border border-border dark:border-border">
           <div className="flex items-center justify-between">
             <label className="text-sm font-bold text-primary">좌석 정보</label>
             <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
@@ -708,28 +708,28 @@ function DiaryEditMode({
               placeholder="구역 (예: 1루 레드석)"
               value={diaryForm.section || ''}
               onChange={(e) => updateForm({ section: e.target.value })}
-              className="p-2 border rounded-lg text-sm dark:bg-secondary dark:border-border dark:text-gray-100"
+              className="p-2 border rounded-lg text-sm bg-card border-border text-foreground"
             />
             <input
               type="text"
               placeholder="블록 (예: 101블록)"
               value={diaryForm.block || ''}
               onChange={(e) => updateForm({ block: e.target.value })}
-              className="p-2 border rounded-lg text-sm dark:bg-secondary dark:border-border dark:text-gray-100"
+              className="p-2 border rounded-lg text-sm bg-card border-border text-foreground"
             />
             <input
               type="text"
               placeholder="열 (예: 5열)"
               value={diaryForm.seatRow || ''}
               onChange={(e) => updateForm({ seatRow: e.target.value })}
-              className="p-2 border rounded-lg text-sm dark:bg-secondary dark:border-border dark:text-gray-100"
+              className="p-2 border rounded-lg text-sm bg-card border-border text-foreground"
             />
             <input
               type="text"
               placeholder="번 (예: 13번)"
               value={diaryForm.seatNumber || ''}
               onChange={(e) => updateForm({ seatNumber: e.target.value })}
-              className="p-2 border rounded-lg text-sm dark:bg-secondary dark:border-border dark:text-gray-100"
+              className="p-2 border rounded-lg text-sm bg-card border-border text-foreground"
             />
           </div>
         </div>
@@ -738,7 +738,7 @@ function DiaryEditMode({
       {/* 승패 선택 (직관 완료시만) */}
       {diaryForm.type === 'attended' && (
         <div className="space-y-2">
-          <label className="block text-sm text-gray-500 dark:text-gray-300 mb-2">응원 팀 승패</label>
+          <label className="block text-sm text-muted-foreground mb-2">응원 팀 승패</label>
           <div className="flex gap-3">
             {WINNING_OPTIONS.map(({ value, label, bg, lightBg, textColor }) => (
               <button
@@ -770,7 +770,7 @@ function DiaryEditMode({
 
       {/* 메모 */}
       <div>
-        <label className="text-sm text-gray-500 dark:text-gray-300 mb-1 block">메모</label>
+        <label className="text-sm text-muted-foreground mb-1 block">메모</label>
         <textarea
           disabled={diaryForm.type === 'scheduled'}
           value={diaryForm.memo}
@@ -779,7 +779,7 @@ function DiaryEditMode({
             diaryForm.type === 'attended' ? '오늘의 직관 경험을 기록해보세요' : '경기 후 입력 가능'
           }
           rows={4}
-          className="w-full p-2 border border-gray-300 dark:border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-card text-gray-900 dark:text-gray-100 resize-none placeholder-gray-400 dark:placeholder-gray-500"
+          className="w-full p-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-card text-foreground resize-none placeholder:text-muted-foreground"
         />
       </div>
 
@@ -800,7 +800,7 @@ function DiaryEditMode({
         )}
         <Button
           data-testid="save-diary-btn"
-          className={`${selectedDiary ? 'flex-1' : 'w-full'} text-white bg-primary`}
+          className={`${selectedDiary ? 'flex-1' : 'w-full'} text-primary-foreground bg-primary`}
           onClick={handleSaveDiary}
           disabled={saveMutation.isPending || updateMutation.isPending}
         >

@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App";
 import "./index.css";
+import { installSafeConsole } from "./utils/safeLogger";
 
 // 기존 bega-theme를 kbo-theme으로 마이그레이션
 const oldTheme = localStorage.getItem('bega-theme');
@@ -26,6 +27,8 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+installSafeConsole();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

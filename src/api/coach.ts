@@ -386,7 +386,12 @@ export async function analyzeTeam(
             if (isAbortLikeError(error)) {
                 throw error instanceof Error ? error : new DOMException('aborted', 'AbortError');
             }
-            console.error("Streaming error:", error);
+            const errorLike = error instanceof Error ? error : undefined;
+            console.error("Streaming error:", {
+                name: errorLike?.name ?? 'Error',
+                message: errorLike?.message ?? 'Streaming request failed',
+                type: typeof error,
+            });
             throw error instanceof Error ? error : new Error(String(error));
         }
     } else {

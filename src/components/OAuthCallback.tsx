@@ -8,7 +8,6 @@ import LoadingSpinner from './LoadingSpinner';
 export default function OAuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const login = useAuthStore((state) => state.login);
   const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
   const [error, setError] = useState(false);
 
@@ -28,28 +27,21 @@ export default function OAuthCallback() {
     (async () => {
       try {
         const data = await consumeOAuth2State(state);
-        const { email, name, role, profileImageUrl, favoriteTeam, handle } = data;
+        const { email, name, handle } = data;
 
         if (email && name) {
-          login(
-            email,
-            name,
-            profileImageUrl ?? null,
-            role || undefined,
-            favoriteTeam || undefined,
-            undefined,
-            undefined,
-            handle || undefined,
-            undefined
-          );
+          await fetchProfileAndAuthenticate();
+          const { isLoggedIn, user } = useAuthStore.getState();
 
-          setTimeout(() => {
-            fetchProfileAndAuthenticate();
-            const redirectPath = handle
-              ? `/mypage/${handle.startsWith('@') ? handle : `@${handle}`}`
-              : '/home';
-            navigate(redirectPath, { replace: true });
-          }, 100);
+          if (!isLoggedIn || !user) {
+            throw new Error('로그인 상태 동기화 실패');
+          }
+
+          const normalizedHandle = (handle || user.handle || '').trim();
+          const redirectPath = normalizedHandle
+            ? `/mypage/${normalizedHandle.startsWith('@') ? normalizedHandle : `@${normalizedHandle}`}`
+            : '/mypage';
+          navigate(redirectPath, { replace: true });
         } else {
           navigate('/login', { replace: true });
         }
@@ -58,16 +50,16 @@ export default function OAuthCallback() {
         setTimeout(() => navigate('/login', { replace: true }), 2000);
       }
     })();
-  }, [searchParams, login, navigate, fetchProfileAndAuthenticate]);
+  }, [searchParams, navigate, fetchProfileAndAuthenticate]);
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
-          <p className="text-red-500 font-semibold mb-2">
+          <p className="font-semibold mb-2 text-red-600 dark:text-red-400">
             로그인 처리에 실패했습니다.
           </p>
-          <p className="text-gray-500 text-sm">
+          <p className="text-muted-foreground text-sm">
             로그인 페이지로 이동합니다...
           </p>
         </div>
