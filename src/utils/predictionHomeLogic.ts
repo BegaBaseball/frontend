@@ -4,6 +4,10 @@ export type LeagueTab = 'regular' | 'postseason' | 'koreanseries' | 'scheduled';
 
 interface GameWithStatus {
   gameStatus?: string | null;
+  sourceDate?: string | null;
+  gameDate?: string | null;
+  homeScore?: number | string | null;
+  awayScore?: number | string | null;
 }
 
 interface AutoSwitchInput {
@@ -57,11 +61,51 @@ export const isPredictionDateParamValid = (value: string | null): value is strin
 const SCHEDULED_STATUS = 'SCHEDULED';
 const POSTPONED_STATUS = 'POSTPONED';
 const CANCELLED_STATUS = 'CANCELLED';
+const NON_UPCOMING_STATUSES = new Set([
+  'COMPLETED',
+  'FINAL',
+  'DRAW',
+  'LIVE',
+  'PLAYING',
+  'IN_PROGRESS',
+  'INPROGRESS',
+]);
 
-export const partitionScheduledGames = <T extends GameWithStatus>(games: T[]) => {
+const toDateKey = (value?: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+  const primary = value.trim().split('T')[0];
+  return normalizePredictionDate(primary);
+};
+
+const getTodayKey = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const hasKnownScore = (value?: number | string | null) => {
+  if (value === null || value === undefined) {
+    return false;
+  }
+  const raw = `${value}`.trim();
+  if (!raw) {
+    return false;
+  }
+  return Number.isFinite(Number(raw));
+};
+
+export const partitionScheduledGames = <T extends GameWithStatus>(
+  games: T[],
+  options?: { todayKey?: string }
+) => {
   const primary: T[] = [];
   const secondary: T[] = [];
   const excluded: T[] = [];
+  const todayKey = options?.todayKey || getTodayKey();
 
   games.forEach((game) => {
     const status = (game.gameStatus || '').toUpperCase();
@@ -73,6 +117,17 @@ export const partitionScheduledGames = <T extends GameWithStatus>(games: T[]) =>
 
     if (status === POSTPONED_STATUS || status === CANCELLED_STATUS) {
       secondary.push(game);
+      return;
+    }
+
+    const gameDateKey = toDateKey(game.sourceDate || game.gameDate);
+    const isFutureGame = Boolean(gameDateKey && gameDateKey > todayKey);
+    const isUnknownStatus = !status || !NON_UPCOMING_STATUSES.has(status);
+    const gameHasScore = hasKnownScore(game.homeScore) && hasKnownScore(game.awayScore);
+
+    // Fallback classification: future + no score + unknown status should still show as upcoming.
+    if (isFutureGame && isUnknownStatus && !gameHasScore) {
+      primary.push(game);
       return;
     }
 

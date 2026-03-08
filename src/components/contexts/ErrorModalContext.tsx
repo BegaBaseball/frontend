@@ -11,6 +11,8 @@ interface ErrorModalProviderProps {
 
 // 2. Provider 컴포넌트
 export function ErrorModalProvider({ children }: ErrorModalProviderProps) {
+    const shouldSkipServerErrorsInDev = import.meta.env.DEV
+        && import.meta.env.VITE_DISABLE_SERVER_ERROR_MODAL !== 'false';
     const [state, setState] = useState<ErrorModalState>({
         isOpen: false,
         message: '',
@@ -59,6 +61,10 @@ export function ErrorModalProvider({ children }: ErrorModalProviderProps) {
             if (isCanceledError) {
                 return;
             }
+            if (shouldSkipServerErrorsInDev && statusCode !== null && statusCode >= 500) {
+                console.warn('[global-api-error] server error received, modal disabled in dev:', message);
+                return;
+            }
             openErrorModal({
                 message,
                 statusCode,
@@ -69,7 +75,7 @@ export function ErrorModalProvider({ children }: ErrorModalProviderProps) {
         return () => {
             window.removeEventListener('global-api-error', handleGlobalError);
         };
-    }, [openErrorModal]);
+    }, [openErrorModal, shouldSkipServerErrorsInDev]);
 
     const value: ErrorModalContextType = {
         ...state,

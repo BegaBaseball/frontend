@@ -197,6 +197,7 @@ export const useChatBot = (initialOpen = false) => {
           streamingBuffer.current += delta;
         },
         (_error: string) => {
+          setIsTyping(false);
           // 스트림 오류 발생 시 마지막 봇 메시지에 isError 플래그 설정
           setMessages((prev) => {
             if (prev.length === 0) return prev;
@@ -308,8 +309,8 @@ export const useChatBot = (initialOpen = false) => {
     } finally {
       // 스트리밍 연결이 끊어지면 처리 상태 해제
       setIsProcessing(false);
-      // 안전장치: 혹시라도 스트리밍이 공백으로 끝날 경우를 대비해 일정 시간 후 타이핑 상태 해제
-      setTimeout(() => setIsTyping(false), 100);
+      // 안전장치: 스트리밍 종료 시 즉시 로딩 상태 해제
+      setIsTyping(false);
     }
   };
 

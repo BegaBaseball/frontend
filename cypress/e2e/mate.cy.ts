@@ -271,6 +271,40 @@ describe('Mate Page Accuracy', () => {
     cy.contains('대구 삼성 라이온즈파크').should('be.visible');
   });
 
+  it('surfaces decision-first signals on cards and detail summary', () => {
+    cy.intercept('GET', '**/api/parties/777*', {
+      statusCode: 200,
+      body: detailParty,
+    }).as('getPartyById');
+    cy.intercept('GET', '**/api/applications/party/777/mine', {
+      statusCode: 200,
+      body: null,
+    }).as('getMyApplicationByParty');
+    cy.intercept('GET', '**/api/reviews/user/123/average', {
+      statusCode: 200,
+      body: 4.3,
+    }).as('getHostRating');
+    cy.intercept('GET', '**/api/applications/party/777*', {
+      statusCode: 200,
+      body: [],
+    }).as('getPartyApplications');
+
+    cy.visit('/mate');
+    cy.wait('@getPartiesPage0');
+    cy.contains('거래 기준 금액').should('be.visible');
+    cy.contains('신뢰').should('be.visible');
+    cy.contains('호스트 평점').should('be.visible');
+    cy.contains('참여 현황').should('be.visible');
+    cy.contains('진행 방식').should('be.visible');
+
+    cy.visit('/mate/777');
+    cy.wait('@getPartyById');
+    cy.contains('거래 방식').should('be.visible');
+    cy.contains('취소 규칙').should('be.visible');
+    cy.contains('Host Trust').should('be.visible');
+    cy.contains('비용 안내').should('be.visible');
+  });
+
   it('resets pagination to first page on search and date filter changes', () => {
     cy.visit('/mate');
     cy.wait('@getPartiesPage0')
@@ -334,6 +368,8 @@ describe('Mate Page Accuracy', () => {
     // Verify team names to ensure data loaded
     cy.contains('KT').should('be.visible');
     cy.contains('LG').should('be.visible');
+    cy.contains('비용 안내').should('be.visible');
+    cy.contains('파티 소개').should('be.visible');
 
     cy.visit('/mate/777/manage');
     cy.wait('@getPartyApplications');

@@ -8,9 +8,15 @@ export interface AnalyzeLeagueContext {
     season?: number | string;
     season_year?: number;
     league_type?: string;
+    league_type_code?: number;
     round?: string;
+    stage_label?: string;
     game_no?: number;
+    series_game_no?: number;
     game_date?: string;
+    home_pitcher?: string;
+    away_pitcher?: string;
+    lineup_announced?: boolean;
     home?: {
         rank: number;
         gamesBehind: number;
@@ -35,6 +41,8 @@ export interface AnalyzeRequest {
 }
 
 export type CoachRequestMode = 'auto_brief' | 'manual_detail';
+export type CoachGenerationMode = 'deterministic_auto' | 'llm_manual' | 'evidence_fallback';
+export type CoachDataQuality = 'grounded' | 'partial' | 'insufficient';
 
 export interface AnalyzeRequestBase {
     request_mode: CoachRequestMode;
@@ -115,7 +123,36 @@ export interface CoachAnalyzeResponse {
     in_progress?: boolean;
     focus_section_missing?: boolean;
     missing_focus_sections?: string[];
+    generation_mode?: CoachGenerationMode;
+    data_quality?: CoachDataQuality;
+    used_evidence?: string[];
 }
+
+export const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
+    switch (value) {
+        case 'grounded':
+            return '실데이터 기반';
+        case 'partial':
+            return '실데이터 일부 기반';
+        case 'insufficient':
+            return '데이터 부족';
+        default:
+            return '근거 확인 중';
+    }
+};
+
+export const getCoachGenerationModeLabel = (value?: CoachGenerationMode): string => {
+    switch (value) {
+        case 'deterministic_auto':
+            return '규칙 기반 자동 브리핑';
+        case 'llm_manual':
+            return '근거 기반 상세 분석';
+        case 'evidence_fallback':
+            return '근거 기반 보수 생성';
+        default:
+            return '생성 방식 확인 중';
+    }
+};
 
 export interface AnalyzeOptions {
     signal?: AbortSignal;
@@ -225,14 +262,17 @@ export async function analyzeTeam(
 
     if (!response.ok) {
         const errorText = await response.text();
-        let errorDetail = errorText;
-        try {
-            const parsed = JSON.parse(errorText);
-            if (parsed?.detail) {
-                errorDetail = String(parsed.detail);
+        let errorDetail = 'coach_internal_error';
+        if (response.status < 500) {
+            errorDetail = errorText;
+            try {
+                const parsed = JSON.parse(errorText);
+                if (parsed?.detail) {
+                    errorDetail = String(parsed.detail);
+                }
+            } catch {
+                // keep raw text for 4xx
             }
-        } catch {
-            // keep raw text
         }
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorDetail}`);
     }
@@ -255,6 +295,9 @@ export async function analyzeTeam(
     let inProgress: boolean | undefined = undefined;
     let focusSectionMissing: boolean | undefined = undefined;
     let missingFocusSections: string[] | undefined = undefined;
+    let generationMode: CoachGenerationMode | undefined = undefined;
+    let dataQuality: CoachDataQuality | undefined = undefined;
+    let usedEvidence: string[] | undefined = undefined;
 
     if (reader) {
         try {
@@ -314,6 +357,21 @@ export async function analyzeTeam(
                                 if (parsed.cached !== undefined) cached = Boolean(parsed.cached);
                                 if (parsed.focus_section_missing !== undefined) focusSectionMissing = Boolean(parsed.focus_section_missing);
                                 if (Array.isArray(parsed.missing_focus_sections)) missingFocusSections = parsed.missing_focus_sections;
+                                if (
+                                    parsed.generation_mode === 'deterministic_auto'
+                                    || parsed.generation_mode === 'llm_manual'
+                                    || parsed.generation_mode === 'evidence_fallback'
+                                ) {
+                                    generationMode = parsed.generation_mode;
+                                }
+                                if (
+                                    parsed.data_quality === 'grounded'
+                                    || parsed.data_quality === 'partial'
+                                    || parsed.data_quality === 'insufficient'
+                                ) {
+                                    dataQuality = parsed.data_quality;
+                                }
+                                if (Array.isArray(parsed.used_evidence)) usedEvidence = parsed.used_evidence.map(String);
                             }
 
                             // Reset event type after processing data
@@ -350,6 +408,9 @@ export async function analyzeTeam(
         cached: cached,
         in_progress: inProgress,
         focus_section_missing: focusSectionMissing,
-        missing_focus_sections: missingFocusSections
+        missing_focus_sections: missingFocusSections,
+        generation_mode: generationMode,
+        data_quality: dataQuality,
+        used_evidence: usedEvidence,
     };
 }

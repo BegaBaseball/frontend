@@ -53,7 +53,7 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
           {party.status === 'COMPLETED' && (
             <div className="mt-3 p-3 bg-green-50 rounded-lg">
               <p className="text-sm text-green-700">
-                경기 관람 완료 · 보증금 환불 완료
+                경기 관람 완료 · 직거래 일정 종료
               </p>
             </div>
           )}

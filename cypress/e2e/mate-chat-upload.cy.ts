@@ -65,6 +65,13 @@ describe('Mate Chat Image Upload', () => {
     cy.wait('@getMatchedParty');
     cy.wait('@getChatMessages');
 
+    cy.get('[data-testid="chat-summary-strip"]').within(() => {
+      cy.contains('대화 권한').should('be.visible');
+      cy.contains('거래 흐름').should('be.visible');
+      cy.contains('연결 상태').should('be.visible');
+    });
+    cy.contains('대화 기록').should('be.visible');
+
     cy.get('button[aria-label="이미지 업로드"]').should('be.enabled');
 
     cy.get('#mate-chat-image-upload').selectFile(

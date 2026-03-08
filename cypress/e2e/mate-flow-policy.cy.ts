@@ -4,6 +4,131 @@ describe('Mate Flow Policy', () => {
     cy.mockAPI();
   });
 
+  it('DIRECT_TRADE 일반 모집 신청은 ticketPrice 기반 스냅샷으로 생성한다', () => {
+    cy.intercept('GET', '**/api/parties/666', {
+      statusCode: 200,
+      body: {
+        id: 666,
+        hostId: 1,
+        hostName: 'HOST',
+        hostBadge: 'NEW',
+        hostRating: 5,
+        teamId: 'LG',
+        gameDate: '2026-03-05',
+        gameTime: '18:30:00',
+        stadium: '잠실',
+        homeTeam: 'LG',
+        awayTeam: 'OB',
+        section: '내야',
+        maxParticipants: 3,
+        currentParticipants: 1,
+        description: 'direct trade pending party',
+        ticketVerified: false,
+        status: 'PENDING',
+        ticketPrice: 17000,
+      },
+    }).as('getDirectTradePendingParty');
+
+    cy.intercept('POST', '**/api/applications', (req) => {
+      expect(req.body.depositAmount).to.eq(17000);
+      expect(req.body.paymentType).to.eq('DEPOSIT');
+      req.reply({
+        statusCode: 201,
+        body: {
+          id: 1,
+          partyId: 666,
+          applicantId: 9,
+          applicantName: 'USER',
+          applicantBadge: 'NEW',
+          applicantRating: 5,
+          message: '직거래 신청 메시지 테스트입니다',
+          depositAmount: 17000,
+          paymentType: 'DEPOSIT',
+          isPaid: false,
+          isApproved: false,
+          isRejected: false,
+          createdAt: '2026-03-03T10:00:00Z',
+        },
+      });
+    }).as('createDirectTradePendingApplication');
+
+    cy.visit('/mate/666/apply', {
+      onBeforeLoad(win) {
+        (win as unknown as { __MATE_PAYMENT_MODE__?: string }).__MATE_PAYMENT_MODE__ = 'DIRECT_TRADE';
+      },
+    });
+
+    cy.wait('@getDirectTradePendingParty');
+    cy.contains('직거래 베타').should('be.visible');
+    cy.contains('정책 안내').should('be.visible');
+    cy.contains('다음 단계').should('be.visible');
+    cy.get('textarea#message').type('직거래 신청 메시지 테스트입니다');
+    cy.contains('참여 신청하기').click();
+    cy.wait('@createDirectTradePendingApplication');
+  });
+
+  it('DIRECT_TRADE SELLING 신청은 price/FULL 스냅샷으로 생성한다', () => {
+    cy.intercept('GET', '**/api/parties/667', {
+      statusCode: 200,
+      body: {
+        id: 667,
+        hostId: 1,
+        hostName: 'SELLER',
+        hostBadge: 'VERIFIED',
+        hostRating: 5,
+        teamId: 'LG',
+        gameDate: '2026-03-06',
+        gameTime: '18:30:00',
+        stadium: '잠실',
+        homeTeam: 'LG',
+        awayTeam: 'OB',
+        section: '1루',
+        maxParticipants: 2,
+        currentParticipants: 1,
+        description: 'direct trade selling party',
+        ticketVerified: true,
+        status: 'SELLING',
+        price: 50000,
+        ticketPrice: 12000,
+      },
+    }).as('getDirectTradeSellingParty');
+
+    cy.intercept('POST', '**/api/applications', (req) => {
+      expect(req.body.depositAmount).to.eq(50000);
+      expect(req.body.paymentType).to.eq('FULL');
+      req.reply({
+        statusCode: 201,
+        body: {
+          id: 2,
+          partyId: 667,
+          applicantId: 9,
+          applicantName: 'USER',
+          applicantBadge: 'NEW',
+          applicantRating: 5,
+          message: '티켓 구매 신청합니다.',
+          depositAmount: 50000,
+          paymentType: 'FULL',
+          isPaid: false,
+          isApproved: false,
+          isRejected: false,
+          createdAt: '2026-03-03T10:00:01Z',
+        },
+      });
+    }).as('createDirectTradeSellingApplication');
+
+    cy.visit('/mate/667/apply', {
+      onBeforeLoad(win) {
+        (win as unknown as { __MATE_PAYMENT_MODE__?: string }).__MATE_PAYMENT_MODE__ = 'DIRECT_TRADE';
+      },
+    });
+
+    cy.wait('@getDirectTradeSellingParty');
+    cy.contains('직거래 베타').should('be.visible');
+    cy.contains('현재 상태').should('be.visible');
+    cy.contains('직거래 신청하기').click();
+    cy.wait('@createDirectTradeSellingApplication');
+  });
+
   it('SELLING 파티는 결제 준비 API를 반드시 호출하고 직접 신청 생성을 우회하지 않는다', () => {
     let createApplicationCalled = false;
 
@@ -56,6 +181,8 @@ describe('Mate Flow Policy', () => {
       },
     });
     cy.wait('@getSellingParty');
+    cy.contains('판매 티켓 구매').should('be.visible');
+    cy.contains('정책 안내').should('be.visible');
     cy.contains('결제하기').click();
     cy.wait('@preparePayment');
     cy.wrap(null).then(() => {
