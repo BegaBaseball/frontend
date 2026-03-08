@@ -26,7 +26,7 @@ export default function OpponentWinRateChart({ opponentStats = {} }: OpponentWin
                 <CardHeader>
                     <CardTitle className="text-lg font-bold text-primary">상대팀별 승률</CardTitle>
                 </CardHeader>
-                <CardContent className="flex items-center justify-center h-[200px] text-gray-400">
+                <CardContent className="flex items-center justify-center h-[200px] text-muted-foreground">
                     데이터가 부족합니다.
                 </CardContent>
             </Card>

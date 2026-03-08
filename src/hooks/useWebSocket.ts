@@ -72,7 +72,12 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
     };
 
     client.onStompError = (frame) => {
-      console.error('STOMP error:', frame);
+      const headerKeys = Object.keys(frame.headers || {}).sort().slice(0, 12);
+      console.error('STOMP error', {
+        command: frame.command,
+        headerKeys,
+        bodyLength: frame.body ? frame.body.length : 0,
+      });
       setIsConnected(false);
     };
 

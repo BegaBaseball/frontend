@@ -40,7 +40,7 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
             </span>
           </div>
 
-          <div className="space-y-1 text-sm text-gray-600">
+          <div className="space-y-1 text-sm text-muted-foreground">
             <p>
               날짜: {formatGameDate(party.gameDate)} {party.gameTime.substring(0, 5)}
             </p>

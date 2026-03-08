@@ -102,7 +102,7 @@ export default function MyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-[calc(7rem+env(safe-area-inset-bottom))]">
         {/* 상단 프로필 카드 */}
           <Card className="p-2.5 md:p-4 mb-5 gap-2 dark:bg-card dark:border-border">

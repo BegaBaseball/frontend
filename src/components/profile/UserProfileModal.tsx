@@ -43,7 +43,7 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
             const data = await fetchPublicUserProfile(id);
             setProfile(data);
         } catch (err: unknown) {
-            console.error(err);
+            console.error('Failed to load public user profile:', err);
             setError(getApiErrorMessage(err, '프로필을 불러오는데 실패했습니다.'));
         } finally {
             setIsLoading(false);

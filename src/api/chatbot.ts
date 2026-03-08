@@ -184,7 +184,12 @@ export async function sendChatMessageStream(
             }
             currentEvent = 'message';
           } catch (parseError) {
-            console.warn('Failed to parse SSE data:', line, parseError);
+            const preview = line.length > 160 ? `${line.slice(0, 160)}...` : line;
+            console.warn('Failed to parse SSE data:', {
+              previewLength: line.length,
+              preview,
+              parseErrorName: parseError instanceof Error ? parseError.name : 'ParseError',
+            });
           }
         }
       }
