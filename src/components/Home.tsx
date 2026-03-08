@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Calendar as CalendarComponent } from './ui/calendar';
 import { Skeleton } from './ui/skeleton';
-import TeamLogo, { teamCodeToKoreanName } from './TeamLogo';
+import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import GameCard from './GameCard';
 import ScheduledGameCard from './ScheduledGameCard';
 import WelcomeGuide from './WelcomeGuide';
@@ -27,7 +27,7 @@ import { fetchHotPosts, CheerPost } from '../api/cheerApi';
 import { fetchAllParties } from '../api/mate';
 import { Party } from '../types/mate';
 import { formatTimeAgo } from '../utils/time';
-import { getTeamColorByAnyKey } from '../constants/teams';
+import { getFullTeamName, TEAM_NAME_TO_ID, TEAM_ID_TO_CODE } from '../constants/teams';
 
 // --- Types ---
 interface Game {
@@ -38,12 +38,14 @@ interface Game {
     gameStatusKr: string;
     gameInfo: string;
     leagueType: 'REGULAR' | 'POSTSEASON' | 'KOREAN_SERIES' | 'OFFSEASON' | 'PRE' | 'PRESEASON' | string;
+    winner?: string;
     homeTeam: string;
     homeTeamFull: string;
     awayTeam: string;
     awayTeamFull: string;
-    homeScore?: number;
-    awayScore?: number;
+    gameDate?: string;
+    homeScore?: number | string;
+    awayScore?: number | string;
     sourceDate?: string;
     leagueBadge?: string;
 }
@@ -72,18 +74,56 @@ interface HomeProps {
 
 
 // --- Helpers ---
+const GAME_CARD_MIN_HEIGHT = 'min-h-[240px]';
+const GAME_CARD_MIN_HEIGHT_PX = 240;
+const SCHEDULED_GAME_CARD_MIN_HEIGHT = 'h-[224px]';
+const SCHEDULED_GAME_CARD_MIN_HEIGHT_PX = 224;
+const MIN_LOADING_CARD_COUNT = 5;
+const LOADING_CARD_COUNT_MAX = 9;
+
 const GameCardSkeleton = () => (
-    <Card className="overflow-hidden h-full border border-gray-100 dark:border-white/10 shadow-sm bg-white dark:bg-secondary/60">
-        <CardContent className="p-6">
+    <Card
+        className={`overflow-hidden ${GAME_CARD_MIN_HEIGHT} rounded-2xl border border-slate-200/90 dark:border-white/12 shadow-sm bg-gradient-to-b from-white via-white to-slate-50 dark:from-secondary/80 dark:via-secondary/70 dark:to-secondary/55`}
+    >
+        <CardContent className="p-6 h-full flex flex-col justify-between">
             <div className="flex justify-between items-center mb-4">
-                <Skeleton className="h-4 w-1/3 rounded-full" />
-                <Skeleton className="h-6 w-12 rounded-full" />
+                <Skeleton className="h-4 w-1/3 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
+                <Skeleton className="h-6 w-12 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
             </div>
             <div className="flex justify-between items-center py-2">
-                <Skeleton className="h-14 w-14 rounded-full" />
-                <Skeleton className="h-8 w-16 rounded-md" />
-                <Skeleton className="h-14 w-14 rounded-full" />
+                <Skeleton className="h-14 w-14 rounded-2xl bg-slate-200/80 dark:bg-slate-700/80" />
+                <Skeleton className="h-8 w-16 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
+                <Skeleton className="h-14 w-14 rounded-2xl bg-slate-200/80 dark:bg-slate-700/80" />
             </div>
+            <div className="pt-2">
+                <Skeleton className="h-4 w-5/6 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
+            </div>
+        </CardContent>
+    </Card>
+);
+
+const ScheduledGameCardSkeleton = () => (
+    <Card
+        className={`overflow-hidden ${SCHEDULED_GAME_CARD_MIN_HEIGHT} rounded-2xl border border-slate-200/90 dark:border-white/12 shadow-sm bg-gradient-to-b from-white via-white to-slate-50 dark:from-secondary/80 dark:via-secondary/70 dark:to-secondary/55`}
+    >
+        <CardContent className="p-4 h-full flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2">
+                <Skeleton className="h-6 w-24 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
+                <Skeleton className="h-5 w-20 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
+            </div>
+            <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-100 bg-gray-50/90 px-3 py-2 dark:border-border/80 dark:bg-secondary/70">
+                    <Skeleton className="h-8 w-24 rounded-xl bg-slate-200/80 dark:bg-slate-700/80" />
+                    <Skeleton className="h-3.5 w-8 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
+                    <Skeleton className="h-8 w-24 rounded-xl bg-slate-200/80 dark:bg-slate-700/80" />
+                </div>
+                <div className="space-y-1.5">
+                    <Skeleton className="h-4 w-16 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
+                    <Skeleton className="h-5 w-full rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
+                    <Skeleton className="h-5 w-full rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
+                </div>
+            </div>
+            <Skeleton className="h-9 w-full rounded-xl bg-slate-200/80 dark:bg-slate-700/80" />
         </CardContent>
     </Card>
 );
@@ -130,6 +170,8 @@ export default function Home({ onNavigate }: HomeProps) {
     const hasUserChangedTabRef = useRef(false);
     const scheduledRequestIdRef = useRef(0);
     const navRequestIdRef = useRef(0);
+    const matchLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
+    const scheduledLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
 
     // --- Helpers ---
     const formatDateForAPI = (date: Date): string => {
@@ -147,6 +189,10 @@ export default function Home({ onNavigate }: HomeProps) {
         const dayOfWeek = days[date.getDay()];
         return `${year}.${month}.${day} (${dayOfWeek})`;
     };
+
+    const clampLoadingCount = (value: number) => (
+        Math.max(MIN_LOADING_CARD_COUNT, Math.min(LOADING_CARD_COUNT_MAX, value))
+    );
 
     const getDateWindow = (baseDate: Date, length: number): Date[] => {
         return Array.from({ length }, (_, offset) => {
@@ -219,12 +265,25 @@ export default function Home({ onNavigate }: HomeProps) {
         const normalizedTeamId = (teamId || '').trim().toUpperCase();
         const normalizedTeamName = (teamName || '').trim();
 
-        const byCode = (teamCode: string): string | undefined => teamCodeToKoreanName[teamCode.toUpperCase()];
+        if (normalizedTeamId) {
+            const mappedById = getFullTeamName(normalizedTeamId);
+            if (mappedById) {
+                return mappedById;
+            }
+        }
 
         if (normalizedTeamName) {
+            const mappedTeamIdByName = TEAM_NAME_TO_ID[normalizedTeamName] || TEAM_NAME_TO_ID[normalizedTeamName.toUpperCase()];
+            if (mappedTeamIdByName) {
+                const mappedByName = getFullTeamName(mappedTeamIdByName);
+                if (mappedByName) {
+                    return mappedByName;
+                }
+            }
+
             const normalizedTeamNameUpper = normalizedTeamName.toUpperCase();
-            const mappedByName = byCode(normalizedTeamNameUpper);
-            if (mappedByName) {
+            const mappedByName = getFullTeamName(normalizedTeamNameUpper);
+            if (mappedByName && normalizedTeamName !== mappedByName) {
                 return mappedByName;
             }
 
@@ -233,20 +292,86 @@ export default function Home({ onNavigate }: HomeProps) {
             }
         }
 
-        if (normalizedTeamId) {
-            const mappedById = byCode(normalizedTeamId);
-            if (mappedById) {
-                return mappedById;
-            }
-        }
-
         const normalizedTeamNameForCode = normalizedTeamName.toUpperCase();
         const isAllCapsCode = /^[A-Z]{2,10}$/.test(normalizedTeamNameForCode);
         if (isAllCapsCode) {
-            return normalizedTeamId || normalizedTeamName;
+            const mappedByNameCode = getFullTeamName(normalizedTeamNameForCode);
+            return mappedByNameCode || (normalizedTeamId || normalizedTeamName);
         }
 
         return normalizedTeamName || normalizedTeamId;
+    };
+
+    const getMateTeamDisplayName = (teamName: string): string => {
+        const normalizedTeamName = (teamName || '').trim();
+        if (!normalizedTeamName) return '';
+        const normalizedTeamNameLower = normalizedTeamName.toLowerCase();
+
+        const resolvedTeamName = resolveTeamDisplayName(normalizedTeamName);
+        if (resolvedTeamName && resolvedTeamName !== normalizedTeamName) {
+            return resolvedTeamName;
+        }
+
+        const directMapped = getFullTeamName(normalizedTeamName);
+        if (directMapped && directMapped !== normalizedTeamName) {
+            return directMapped;
+        }
+
+        const mappedTeamId = TEAM_NAME_TO_ID[normalizedTeamName] || TEAM_NAME_TO_ID[normalizedTeamName.toUpperCase()];
+        if (mappedTeamId) {
+            return getFullTeamName(mappedTeamId);
+        }
+
+        const mappedTeamIdByCode = TEAM_ID_TO_CODE[normalizedTeamName.toLowerCase()];
+        if (mappedTeamIdByCode) {
+            return getFullTeamName(mappedTeamIdByCode);
+        }
+
+        const normalizedWithoutSpace = normalizedTeamName.replace(/\s+/g, '');
+        const mappedByNoSpace = getFullTeamName(normalizedWithoutSpace);
+        if (mappedByNoSpace && mappedByNoSpace !== normalizedWithoutSpace) {
+            return mappedByNoSpace;
+        }
+
+        const normalizedWithoutSpaceLower = normalizedWithoutSpace.toLowerCase();
+        const mappedTeamIdByNoSpaceCode = TEAM_ID_TO_CODE[normalizedWithoutSpaceLower];
+        if (mappedTeamIdByNoSpaceCode) {
+            return getFullTeamName(mappedTeamIdByNoSpaceCode);
+        }
+
+        const normalizedByTokens = normalizedTeamName.toLowerCase().split(/[^a-z가-힣0-9]+/).filter(Boolean);
+        const candidateTeamEntries = [
+            ...normalizedByTokens,
+            normalizedTeamNameLower,
+            normalizedWithoutSpaceLower,
+        ];
+
+        for (const candidate of candidateTeamEntries) {
+            for (const [alias, teamId] of Object.entries(TEAM_NAME_TO_ID)) {
+                const aliasLower = alias.toLowerCase();
+                if (candidate.includes(aliasLower) || aliasLower.includes(candidate)) {
+                    const mapped = getFullTeamName(teamId);
+                    if (mapped) {
+                        return mapped;
+                    }
+                }
+            }
+
+            const mappedCodeByAlias = TEAM_ID_TO_CODE[candidate];
+            if (mappedCodeByAlias) {
+                return getFullTeamName(mappedCodeByAlias);
+            }
+        }
+
+        const alphaOnly = normalizedTeamNameLower.replace(/[^a-z]/g, '');
+        for (const [codeAlias, teamId] of Object.entries(TEAM_ID_TO_CODE)) {
+            if (!codeAlias) continue;
+            if (alphaOnly.includes(codeAlias)) {
+                return getFullTeamName(teamId);
+            }
+        }
+
+        return normalizedTeamName;
     };
 
     const resolveLeagueBadge = (leagueType?: string): string => {
@@ -276,13 +401,47 @@ export default function Home({ onNavigate }: HomeProps) {
         return formatDate(date);
     };
 
+    const normalizePredictionDate = (value?: string): string => {
+        const fallback = formatDateForAPI(selectedDate);
+        if (!value) return fallback;
+
+        const direct = new Date(`${value}T12:00:00`);
+        if (!Number.isNaN(direct.getTime())) {
+            direct.setHours(12, 0, 0, 0);
+            return formatDateForAPI(direct);
+        }
+
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+            parsed.setHours(12, 0, 0, 0);
+            return formatDateForAPI(parsed);
+        }
+
+        return fallback;
+    };
+
     const handleGameCardSelectPrediction = (game: Game) => {
-        const targetDate = game.sourceDate || formatDateForAPI(selectedDate);
-        const params = new URLSearchParams({
-            gameId: game.gameId,
-            date: targetDate,
+        const targetDate = normalizePredictionDate(
+            game.sourceDate || game.gameDate || formatDateForAPI(selectedDate),
+        );
+        navigate('/prediction', {
+            state: {
+                sourcePage: 'home',
+                gameId: game.gameId,
+                date: targetDate,
+                game: {
+                    gameId: game.gameId,
+                    homeTeam: game.homeTeam,
+                    homeTeamFull: game.homeTeamFull,
+                    awayTeam: game.awayTeam,
+                    awayTeamFull: game.awayTeamFull,
+                    homeScore: game.homeScore,
+                    awayScore: game.awayScore,
+                    sourceDate: game.sourceDate,
+                    date: targetDate,
+                },
+            },
         });
-        navigate(`/prediction?${params.toString()}`);
     };
 
     const changeDate = (direction: 'prev' | 'next') => {
@@ -365,10 +524,11 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
-    const loadGamesData = async (date: Date) => {
+  const loadGamesData = async (date: Date) => {
         const apiDate = formatDateForAPI(date);
         setIsLoading(true);
         setIsGamesError(false);
+        matchLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
 
         try {
             const response = await fetch(`${API_BASE}/kbo/schedule?date=${apiDate}`, {
@@ -394,10 +554,11 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
-    const loadScheduledGamesData = async (baseDate: Date) => {
+  const loadScheduledGamesData = async (baseDate: Date) => {
         const requestId = ++scheduledRequestIdRef.current;
         setIsScheduledLoading(true);
         setIsScheduledError(false);
+        scheduledLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
 
         try {
             const dates = getDateWindow(baseDate, 8);
@@ -660,6 +821,40 @@ export default function Home({ onNavigate }: HomeProps) {
     const rankingStatusHintMessage = isOffSeasonByDate(selectedDate, leagueStartDates)
         ? '현재는 비시즌이므로 이전 시즌 순위를 표시하고 있습니다.'
         : '현재 시즌이 시작된 상태입니다. 시즌 순위는 경기 결과 집계 후 표시됩니다.';
+    const matchSkeletonCount = clampLoadingCount(
+        Math.max(regularSeasonGames.length, postSeasonGames.length, koreanSeriesGames.length),
+    );
+    const scheduledSkeletonCount = clampLoadingCount(
+        Math.max(scheduledPrimaryGames.length + scheduledSecondaryGames.length, scheduledGames.length),
+    );
+
+    if (!isLoading) {
+        matchLoadingCardCountRef.current = Math.max(
+            matchLoadingCardCountRef.current,
+            matchSkeletonCount
+        );
+    }
+
+    if (!isScheduledLoading) {
+        scheduledLoadingCardCountRef.current = Math.max(
+            MIN_LOADING_CARD_COUNT,
+            scheduledSkeletonCount,
+            scheduledLoadingCardCountRef.current
+        );
+    }
+
+    const activeTabIsScheduled = activeLeagueTab === 'scheduled';
+    const activeCardHeight = activeTabIsScheduled ? SCHEDULED_GAME_CARD_MIN_HEIGHT_PX : GAME_CARD_MIN_HEIGHT_PX;
+    const loadingMatchCardCount = activeTabIsScheduled
+        ? scheduledLoadingCardCountRef.current
+        : matchLoadingCardCountRef.current;
+    const minLoadingCount = Math.max(MIN_LOADING_CARD_COUNT, loadingMatchCardCount);
+  const desktopRows = Math.max(1, Math.ceil(Math.min(minLoadingCount, 4) / 2));
+  const mobileRows = Math.max(1, Math.min(minLoadingCount, 2));
+  const mobileHeight = (mobileRows * activeCardHeight) + ((mobileRows - 1) * 12);
+  const desktopHeight = (desktopRows * activeCardHeight) + ((desktopRows - 1) * 12);
+  const calculatedMatchSectionMinHeight = Math.min(Math.max(mobileHeight, desktopHeight) + 24, 100);
+  const matchSectionMinHeightStyle = { minHeight: `${calculatedMatchSectionMinHeight}px` };
 
     useEffect(() => {
         const shouldSwitch = shouldAutoSwitchToScheduled({
@@ -698,7 +893,7 @@ export default function Home({ onNavigate }: HomeProps) {
         <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-300 pb-20">
             <WelcomeGuide />
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
 
                 {/* Header (Green Accent Included) */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b pb-6 border-gray-100 dark:border-border">
@@ -741,7 +936,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 </div>
 
                 {/* Games Area (Full Width visually and structurally inside max-w-7xl) */}
-                <div className="flex flex-col gap-8 mt-8">
+                <div className="flex flex-col gap-3 mt-3">
                     {/* Filters (Green Accent Included) */}
                     <Tabs value={activeLeagueTab} onValueChange={handleTabChange} className="w-full">
                         <div className="flex justify-center mb-6">
@@ -754,11 +949,19 @@ export default function Home({ onNavigate }: HomeProps) {
                         </div>
 
                         {isLoading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {[1, 2, 3].map((i) => <GameCardSkeleton key={i} />)}
+                            <div
+                              className="rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm"
+                              style={matchSectionMinHeightStyle}
+                            >
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-0 items-stretch">
+                                    {Array.from({ length: loadingMatchCardCount }, (_, index) => <GameCardSkeleton key={`loading-game-${index}`} />)}
+                                </div>
                             </div>
                         ) : isGamesError ? (
-                            <div className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-card rounded-2xl border border-red-100 dark:border-red-900/40 shadow-sm">
+                            <div
+                              className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-card rounded-2xl border border-red-100 dark:border-red-900/40 shadow-sm"
+                              style={matchSectionMinHeightStyle}
+                            >
                                 <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
                                     <AlertTriangle className="w-8 h-8 text-red-500 dark:text-red-400" />
                                 </div>
@@ -779,7 +982,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="animate-in fade-in duration-500">
+                            <div className="animate-in fade-in duration-150" style={matchSectionMinHeightStyle}>
                                 {['regular', 'postseason', 'koreanseries'].map(tab => {
                                     const currentGames = tab === 'regular' ? regularSeasonGames
                                         : tab === 'postseason' ? postSeasonGames
@@ -788,12 +991,15 @@ export default function Home({ onNavigate }: HomeProps) {
                                     return (
                                         <TabsContent key={tab} value={tab} className="mt-0">
                                             {currentGames.length === 0 ? (
-                                                <div className="text-center py-16 text-gray-500 dark:text-gray-300">
+                                                <div
+                                                    className="text-center py-16 flex items-center justify-center text-gray-500 dark:text-gray-300"
+                                                    style={matchSectionMinHeightStyle}
+                                                >
                                                     경기가 없는 날입니다.
                                                 </div>
                                             ) : (
                                                 <div className="rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
                                                         {currentGames.map((game, index) => (
                                                             <GameCard
                                                                 key={`${game.gameId}-${index}`}
@@ -809,12 +1015,22 @@ export default function Home({ onNavigate }: HomeProps) {
                                 })}
 
                                 <TabsContent value="scheduled" className="mt-0">
-                                    {isScheduledLoading ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {[1, 2, 3].map((i) => <GameCardSkeleton key={`scheduled-skeleton-${i}`} />)}
+                                            {isScheduledLoading ? (
+                                        <div
+                                          className="rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm"
+                                          style={matchSectionMinHeightStyle}
+                                        >
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-0 items-stretch">
+                                                {Array.from({ length: loadingMatchCardCount }, (_, index) => (
+                                                    <ScheduledGameCardSkeleton key={`scheduled-skeleton-${index}`} />
+                                                ))}
+                                            </div>
                                         </div>
                                     ) : isScheduledError ? (
-                                        <div className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-card rounded-2xl border border-red-100 dark:border-red-900/40 shadow-sm">
+                                            <div
+                                              className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-card rounded-2xl border border-red-100 dark:border-red-900/40 shadow-sm"
+                                              style={matchSectionMinHeightStyle}
+                                            >
                                             <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
                                                 <AlertTriangle className="w-8 h-8 text-red-500 dark:text-red-400" />
                                             </div>
@@ -832,7 +1048,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                             </Button>
                                         </div>
                                     ) : (scheduledPrimaryGames.length === 0 && scheduledSecondaryGames.length === 0) ? (
-                                        <div className="text-center py-16 text-gray-500 dark:text-gray-300">
+                                        <div className="text-center py-16 flex items-center justify-center text-gray-500 dark:text-gray-300" style={matchSectionMinHeightStyle}>
                                             선택한 날짜부터 7일 내 예정 경기가 없습니다.
                                         </div>
                                     ) : (
@@ -853,7 +1069,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                                             <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
                                                                 {formatSourceDateLabel(sourceDate)}
                                                             </h4>
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
                                                                 {groupedGames.map((game, index) => (
                                                                     <ScheduledGameCard
                                                                         key={`${game.gameId}-${sourceDate}-${index}`}
@@ -896,9 +1112,9 @@ export default function Home({ onNavigate }: HomeProps) {
                                                                 <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
                                                                     {formatSourceDateLabel(sourceDate)}
                                                                 </h4>
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                    {groupedGames.map((game, index) => (
-                                                                        <ScheduledGameCard
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                                                                {groupedGames.map((game, index) => (
+                                                                    <ScheduledGameCard
                                                                             key={`${game.gameId}-${sourceDate}-${index}`}
                                                                             game={game}
                                                                             onSelectPrediction={() => handleGameCardSelectPrediction(game)}
@@ -929,50 +1145,56 @@ export default function Home({ onNavigate }: HomeProps) {
                 </div>
 
                 {/* Main Content & Sidebar Grid (Widgets & Rankings) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4">
                     {/* Left Content Area (Widgets) */}
-                    <div className="lg:col-span-8 flex flex-col gap-8">
+                    <div className="lg:col-span-8 flex flex-col gap-4">
                         {/* New Dashboard Widgets: Mate & Cheer Previews */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-0">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-0">
                             {/* Hot Cheer Posts Preview Section */}
-                            <section className="space-y-4">
+                            <section className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                    <h3 className="text-lg font-bold flex items-center gap-2 text-zinc-100">
                                         <Flame className="w-5 h-5 text-red-500" />
                                         실시간 인기 응원글
                                     </h3>
-                                    <Button variant="ghost" size="sm" onClick={() => navigate('/cheer')} className="text-sm text-gray-500 hover:text-primary">
+                                    <Button variant="ghost" size="sm" onClick={() => navigate('/cheer')} className="text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/40">
                                         더보기 <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>
-                                <Card className="p-4 bg-white dark:bg-card shadow-sm border border-gray-100 dark:border-border h-[280px] overflow-hidden relative">
+                                <Card className="p-4 bg-[#121316] border border-zinc-800 shadow-sm h-[260px] overflow-hidden relative">
                                     {isHotCheerLoading ? (
                                         <div className="space-y-4 flex flex-col justify-center h-full">
-                                            <Skeleton className="h-16 w-full" />
-                                            <Skeleton className="h-16 w-full" />
-                                            <Skeleton className="h-16 w-full" />
+                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
+                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
+                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
                                         </div>
                                     ) : hotCheerPosts.length === 0 ? (
-                                        <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                                        <div className="flex items-center justify-center h-full text-zinc-400">
                                             인기 응원글이 없습니다.
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col gap-3">
+                                        <div className="flex flex-col divide-y divide-zinc-800/60">
                                             {hotCheerPosts.map(post => (
-                                                <button key={post.id} onClick={() => navigate(`/cheer?postId=${post.id}`)} className="text-left w-full hover:bg-gray-50 dark:hover:bg-secondary/50 p-2 rounded-lg transition-colors group border border-transparent hover:border-gray-200 dark:hover:border-border">
+                                                <button
+                                                    key={post.id}
+                                                    onClick={() => navigate(`/cheer?postId=${post.id}`)}
+                                                    className="text-left w-full px-2.5 py-2.5 rounded-md transition-colors group hover:bg-zinc-800/45"
+                                                >
                                                     <div className="flex gap-3">
-                                                        <TeamLogo team={post.team} size={28} />
+                                                        <TeamLogo team={post.team} size={26} />
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex justify-between items-start mb-1">
-                                                                <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">{post.author || '익명'}</span>
-                                                                <span className="text-[10px] text-gray-400">{formatTimeAgo(post.createdAt)}</span>
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <span className="text-[11px] text-zinc-500 font-medium">{post.author || '익명'}</span>
+                                                                    <p className="text-sm text-zinc-100 font-medium leading-snug mt-0.5 line-clamp-2">
+                                                                        {post.content}
+                                                                    </p>
+                                                                </div>
+                                                                <span className="text-[10px] text-zinc-400 shrink-0">{formatTimeAgo(post.createdAt)}</span>
                                                             </div>
-                                                            <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed">
-                                                                {post.content}
-                                                            </p>
-                                                            <div className="flex gap-3 mt-1.5 opacity-70">
-                                                                <span className="text-[10px] text-gray-500 flex items-center gap-1"><Flame className="w-3 h-3 text-red-500" /> {post.likeCount}</span>
-                                                                <span className="text-[10px] text-gray-500 flex items-center gap-1"><MessageSquare className="w-3 h-3" /> {post.commentCount}</span>
+                                                            <div className="flex gap-2.5 mt-1.5">
+                                                                <span className="text-[10px] font-semibold text-rose-300 flex items-center gap-1.5"><Flame className="w-3 h-3 text-rose-400" /> {post.likeCount}</span>
+                                                                <span className="text-[10px] text-zinc-400 flex items-center gap-1.5"><MessageSquare className="w-3 h-3 text-zinc-500" /> {post.commentCount}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -984,49 +1206,91 @@ export default function Home({ onNavigate }: HomeProps) {
                             </section>
 
                             {/* Mate Preview Section */}
-                            <section className="space-y-4">
+                            <section className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                    <h3 className="text-lg font-bold flex items-center gap-2 text-zinc-100">
                                         <Users className="w-5 h-5 text-blue-500" />
                                         직관 메이트 찾기
                                     </h3>
-                                    <Button variant="ghost" size="sm" onClick={() => navigate('/mate')} className="text-sm text-gray-500 hover:text-primary">
+                                    <Button variant="ghost" size="sm" onClick={() => navigate('/mate')} className="text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/40">
                                         더보기 <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>
-                                <Card className="p-4 bg-white dark:bg-card shadow-sm border border-gray-100 dark:border-border h-[280px] overflow-hidden relative">
+                                <Card className="p-4 bg-[#121316] border border-zinc-800 shadow-sm h-[260px] overflow-hidden relative">
                                     {isFeaturedMatesLoading ? (
                                         <div className="space-y-4 flex flex-col justify-center h-full">
-                                            <Skeleton className="h-16 w-full" />
-                                            <Skeleton className="h-16 w-full" />
-                                            <Skeleton className="h-16 w-full" />
+                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
+                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
+                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
                                         </div>
                                     ) : featuredMates.length === 0 ? (
-                                        <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                                        <div className="flex items-center justify-center h-full text-zinc-400">
                                             모집 중인 팟이 없습니다.
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col gap-3">
-                                            {featuredMates.map(mate => (
-                                                <button key={mate.id} onClick={() => navigate(`/mate/${mate.id}`)} className="text-left w-full hover:bg-gray-50 dark:hover:bg-secondary/50 p-2 rounded-lg transition-colors group flex flex-col border border-gray-100 dark:border-border/50 bg-white dark:bg-secondary/30">
-                                                    <div className="flex justify-between items-start mb-1 w-full">
-                                                        <div className="flex items-center gap-1.5 overflow-hidden">
-                                                            <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                                                            <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{mate.stadium}</span>
-                                                            <span className="text-[10px] text-gray-500 whitespace-nowrap">{mate.section}구역</span>
+                                        <div className="flex flex-col divide-y divide-zinc-800/60">
+                                            {featuredMates.map(mate => {
+                                                const gameDate = new Date(`${mate.gameDate}T12:00:00`);
+                                                const gameDateLabel = Number.isNaN(gameDate.getTime())
+                                                    ? mate.gameDate
+                                                    : gameDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' });
+                                                const ticketLabel = mate.ticketPrice == null
+                                                    ? '가격 협의'
+                                                    : mate.ticketPrice === 0
+                                                        ? '무료'
+                                                        : `${mate.ticketPrice.toLocaleString()}원`;
+                                                const homeTeamLabel = getMateTeamDisplayName(mate.homeTeam);
+                                                const awayTeamLabel = getMateTeamDisplayName(mate.awayTeam);
+
+                                                return (
+                                                    <button
+                                                        key={mate.id}
+                                                        onClick={() => navigate(`/mate/${mate.id}`)}
+                                                        className="text-left w-full px-2.5 py-2.5 transition-colors hover:bg-zinc-800/35 last:pb-0 overflow-hidden"
+                                                    >
+                                                        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                                                            <div className="flex flex-wrap items-center gap-2 min-w-0">
+                                                                <span className="inline-flex shrink-0 rounded-full border border-zinc-700 bg-zinc-800/65 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-semibold text-zinc-300 max-w-[9rem] sm:max-w-none truncate">
+                                                                    {mate.stadium}
+                                                                </span>
+                                                                {mate.section ? (
+                                                                    <span className="inline-flex shrink-0 rounded-full border border-zinc-700 bg-zinc-800/65 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-semibold text-zinc-300 max-w-[9rem] sm:max-w-none truncate">
+                                                                        {mate.section}구역
+                                                                    </span>
+                                                                ) : null}
+                                                                <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 min-w-0 max-w-full sm:max-w-none break-keep">
+                                                                    <MapPin className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
+                                                                    {gameDateLabel} {mate.gameTime}
+                                                                </span>
+                                                            </div>
+                                                            <span className="inline-flex shrink-0 rounded-full border border-emerald-500/45 bg-emerald-500/10 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-emerald-200 whitespace-nowrap">
+                                                                {mate.maxParticipants}명 모집
+                                                            </span>
                                                         </div>
-                                                        <span className="text-xs font-bold text-primary whitespace-nowrap">{mate.maxParticipants}명 모집</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-end mt-1 w-full">
-                                                        <div className="text-xs text-gray-600 dark:text-gray-300">
-                                                            {new Date(mate.gameDate).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' })}
+                                                        <div className="flex flex-wrap items-center justify-between w-full gap-2 text-[11px]">
+                                                            <span className="inline-flex items-center gap-1.5 text-zinc-300 min-w-0 flex-wrap">
+                                                                <span className="inline-flex shrink-0 rounded-full border border-zinc-700 bg-zinc-800/65 px-2.5 py-0.5 max-w-[8.2rem] sm:max-w-[9.8rem] truncate">
+                                                                    {homeTeamLabel}
+                                                                </span>
+                                                                <span className="text-zinc-500 font-semibold">vs</span>
+                                                                <span className="inline-flex shrink-0 rounded-full border border-zinc-700 bg-zinc-800/65 px-2.5 py-0.5 max-w-[8.2rem] sm:max-w-[9.8rem] truncate">
+                                                                    {awayTeamLabel}
+                                                                </span>
+                                                            </span>
+                                                            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold shrink-0 whitespace-nowrap ${mate.ticketPrice == null || mate.ticketPrice === undefined
+                                                                ? 'border-zinc-700 bg-zinc-800/50 text-zinc-300'
+                                                                : mate.ticketPrice === 0
+                                                                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+                                                                    : 'border-amber-500/45 bg-zinc-800/80 text-amber-100'
+                                                            }`}
+                                                            >
+                                                                <Ticket className={`w-3 h-3 ${mate.ticketPrice == null || mate.ticketPrice === undefined ? 'text-zinc-400' : mate.ticketPrice === 0 ? 'text-emerald-200' : 'text-amber-200'}`} />
+                                                                {ticketLabel}
+                                                            </span>
                                                         </div>
-                                                        <div className="flex items-center gap-1 bg-yellow-100/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 rounded text-[10px] font-medium border border-yellow-200/50">
-                                                            <Ticket className="w-3 h-3" /> {(mate.ticketPrice ?? 0).toLocaleString()}원
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            ))}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </Card>
@@ -1035,23 +1299,23 @@ export default function Home({ onNavigate }: HomeProps) {
                     </div>
 
                     {/* Right Sidebar (Rankings) */}
-                    <div className="lg:col-span-4 flex flex-col gap-8">
-                        <section className="space-y-4">
-                            <div className="flex items-center justify-between mt-1">
-                                <div className="flex items-center gap-2">
-                                    <Trophy className="w-5 h-5 text-primary" />
-                                    <h2 className="text-xl font-bold">팀 순위</h2>
+                    <div className="lg:col-span-4 flex flex-col gap-4">
+                            <section className="space-y-4">
+                            <div className="flex items-center justify-between px-1">
+                                <div className="flex items-center gap-2.5">
+                                    <Trophy className="w-5 h-5 text-[#2ecc71]" />
+                                    <h2 className="text-lg font-bold text-white tracking-tight">팀 순위</h2>
                                 </div>
-                                <div className="flex items-center bg-gray-100 dark:bg-card border border-gray-200 dark:border-border rounded-lg p-0.5">
+                                <div className="flex items-center bg-[#121316] border border-zinc-800 rounded-full p-0.5 shadow-sm">
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => loadRankingsData(rankingSeasonYear - 1)}
-                                        className="h-7 w-7 rounded-md hover:bg-white dark:hover:bg-secondary hover:shadow-sm"
+                                        className="h-7 w-7 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800/60"
                                     >
                                         <ChevronLeft className="w-4 h-4" />
                                     </Button>
-                                    <span className="text-sm font-bold w-12 text-center text-gray-700 dark:text-gray-200">
+                                    <span className="text-sm font-bold w-12 text-center text-zinc-200">
                                         {rankingSeasonYear}
                                     </span>
                                     <Button
@@ -1059,22 +1323,23 @@ export default function Home({ onNavigate }: HomeProps) {
                                         size="icon"
                                         onClick={() => loadRankingsData(rankingSeasonYear + 1)}
                                         disabled={rankingSeasonYear >= new Date().getFullYear()}
-                                        className="h-7 w-7 rounded-md hover:bg-white dark:hover:bg-secondary hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none"
+                                        className="h-7 w-7 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800/60 disabled:opacity-30 disabled:hover:bg-transparent"
                                     >
                                         <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>
                             </div>
 
-                            <Card className="overflow-hidden shadow-sm border border-gray-200 dark:border-border bg-white dark:bg-card">
+                            <Card className="overflow-hidden border border-zinc-800 bg-[#121316] rounded-2xl">
                                 {isRankingsLoading ? (
-                                    <div className="p-8 space-y-2">
-                                        <Skeleton className="h-10 w-full" />
-                                        <Skeleton className="h-10 w-full" />
+                                    <div className="p-8 space-y-4">
+                                        <Skeleton className="h-12 w-full bg-zinc-800/50 rounded-lg" />
+                                        <Skeleton className="h-12 w-full bg-zinc-800/50 rounded-lg" />
+                                        <Skeleton className="h-12 w-full bg-zinc-800/50 rounded-lg" />
                                     </div>
                                 ) : rankingsError ? (
-                                    <div className="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-card">
-                                        <p className="text-gray-700 dark:text-gray-200 font-semibold mb-3">
+                                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                                        <p className="text-zinc-300 font-medium mb-4">
                                             팀 순위를 불러오는 중 문제가 발생했습니다.
                                         </p>
                                         <Button
@@ -1084,47 +1349,58 @@ export default function Home({ onNavigate }: HomeProps) {
                                                 const seasonYear = resolveRankingSeasonYear(selectedDate, leagueStartDates);
                                                 loadRankingsData(seasonYear);
                                             }}
-                                            className="border-primary/30 text-primary hover:bg-primary/5"
+                                            className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white bg-transparent"
                                         >
-                                            <RefreshCw className="w-4 h-4 mr-1.5" />
+                                            <RefreshCw className="w-4 h-4 mr-2" />
                                             다시 시도
                                         </Button>
                                     </div>
                                 ) : displayableRankings.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                                        <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">
+                                    <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                                        <p className="text-zinc-200 font-medium mb-2">
                                             {rankingDataVisibilityMessage}
                                         </p>
-                                        <p className="text-gray-400 dark:text-gray-400 text-sm">
+                                        <p className="text-zinc-500 text-sm">
                                             {rankingStatusHintMessage}
                                         </p>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col">
-                                        {displayableRankings.map(team => (
-                                            <div
-                                                key={team.teamId}
-                                                className="flex items-center justify-between p-3.5 border-b border-gray-100 dark:border-border/70 last:border-b-0 hover:bg-emerald-50/50 dark:hover:bg-secondary/70 transition-colors"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className={`font-bold w-5 text-center text-sm ${team.rank <= 3 ? 'text-primary dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                                                        {team.rank}
-                                                    </span>
-                                                    <TeamLogo team={team.displayName} teamId={team.teamId} size={24} />
-                                                    <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                                                        {team.displayName}
-                                                    </span>
+                                        {displayableRankings.map(team => {
+                                            const isTopThree = team.rank <= 3;
+                                                return (
+                                                    <div
+                                                        key={team.teamId}
+                                                        className={`group flex items-center justify-between px-2.5 py-2 border-b border-zinc-800/80 last:border-b-0 hover:bg-zinc-800/40 transition-colors ${isTopThree ? 'border-l border-l-[#2ecc71]/40' : ''}`}
+                                                    >
+                                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                                        <span className={`w-5 text-center text-[13px] sm:text-sm font-black flex-shrink-0 ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500'}`}>
+                                                            {team.rank}
+                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-9 h-9 flex items-center justify-center bg-white rounded-full p-1.25 shadow-sm">
+                                                                <TeamLogo team={team.displayName} teamId={team.teamId} size={28} className="object-contain" />
+                                                            </div>
+                                                            <span className="font-bold text-sm sm:text-base leading-tight truncate max-w-[6.5rem] sm:max-w-[7.5rem] text-zinc-100">
+                                                                {team.displayName}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 sm:gap-3">
+                                                        <span className="font-bold text-white text-sm sm:text-base leading-none tracking-tight">
+                                                            {team.winRate}
+                                                        </span>
+                                                        <span className="flex items-center gap-1.5 text-[12px] sm:text-[13px] font-semibold text-zinc-300 whitespace-nowrap">
+                                                            <span className="text-zinc-200">{team.wins}승</span>
+                                                            <span className="text-zinc-500">·</span>
+                                                            <span className="text-zinc-300">{team.draws}무</span>
+                                                            <span className="text-zinc-500">·</span>
+                                                            <span className="text-zinc-300">{team.losses}패</span>
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex flex-col items-end">
-                                                    <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
-                                                        {team.winRate}
-                                                    </span>
-                                                    <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
-                                                        {team.wins}승 {team.draws}무 {team.losses}패
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </Card>

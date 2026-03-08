@@ -13,8 +13,13 @@ import { useStadiumGuide } from '../hooks/useStadiumGuide';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../store/authStore';
 import { getMyFavoriteStadiumIds, addStadiumFavorite, removeStadiumFavorite } from '../api/stadium';
-
-type SortOrder = 'default' | 'rating' | 'name';
+import {
+  filterAndSortPlaces,
+  formatOptionalText,
+  hasValidCoordinates,
+  normalizeOptionalText,
+  StadiumGuideSortOrder,
+} from '../utils/stadiumGuideUtils';
 
 export default function StadiumGuide() {
   const { theme, resolvedTheme } = useTheme();
@@ -25,16 +30,25 @@ export default function StadiumGuide() {
     setSelectedCategory,
     places,
     selectedPlace,
-    loading,
-    error,
     isMapReady,
     mapContainer,
     handleStadiumChange,
     handlePlaceClick,
+    stadiumsStatus,
+    placesStatus,
+    nearbyStatus,
+    mapStatus,
+    stadiumsError,
+    placesError,
+    nearbyError,
+    mapError,
+    retryStadiums,
+    retryPlaces,
+    retryMap,
   } = useStadiumGuide();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('default');
+  const [sortOrder, setSortOrder] = useState<StadiumGuideSortOrder>('default');
 
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const queryClient = useQueryClient();
@@ -61,18 +75,16 @@ export default function StadiumGuide() {
   const isDark = effectiveTheme === 'dark';
 
   const filteredPlaces = useMemo(() => {
-    let result = places;
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      result = result.filter((p) => p.name.toLowerCase().includes(q));
-    }
-    if (sortOrder === 'rating') {
-      result = [...result].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-    } else if (sortOrder === 'name') {
-      result = [...result].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-    }
-    return result;
+    return filterAndSortPlaces(places, searchQuery, sortOrder);
   }, [places, searchQuery, sortOrder]);
+
+  const isNearbyCategory = selectedCategory === 'store' || selectedCategory === 'parking';
+  const listStatus = isNearbyCategory ? nearbyStatus : placesStatus;
+  const listError = isNearbyCategory ? nearbyError : placesError;
+  const hasStadiumCoordinates = hasValidCoordinates(selectedStadium?.lat, selectedStadium?.lng);
+  const selectedStadiumAddress = normalizeOptionalText(selectedStadium?.address);
+  const selectedStadiumPhone = normalizeOptionalText(selectedStadium?.phone);
+  const canRenderMap = Boolean(selectedStadium && KAKAO_API_KEY && isMapReady && mapStatus === 'success' && hasStadiumCoordinates);
 
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
@@ -84,17 +96,17 @@ export default function StadiumGuide() {
           <h2 className="text-2xl sm:text-3xl" style={{ color: THEME_COLORS.primary, fontWeight: 900 }}>구장 가이드</h2>
         </div>
 
-        {error && (
+        {stadiumsStatus === 'error' && stadiumsError && (
           <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm">{error}</span>
+              <span className="text-sm">{stadiumsError}</span>
             </div>
             <Button
               size="sm"
               variant="outline"
               className="text-red-600 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 flex-shrink-0"
-              onClick={() => window.location.reload()}
+              onClick={retryStadiums}
             >
               <RefreshCw className="w-3.5 h-3.5 mr-1" />
               재시도
@@ -125,6 +137,7 @@ export default function StadiumGuide() {
                 <select
                   value={selectedStadium?.stadiumId || ''}
                   onChange={(e) => handleStadiumChange(e.target.value)}
+                  disabled={stadiumsStatus === 'loading' || stadiumsStatus === 'empty'}
                   className="w-full py-6 px-4 pr-12 bg-white dark:bg-card border-2 rounded-2xl text-base cursor-pointer dark:text-gray-200"
                   style={{
                     borderColor: isDark ? '#374151' : THEME_COLORS.primary,
@@ -133,6 +146,11 @@ export default function StadiumGuide() {
                     MozAppearance: 'none',
                   }}
                 >
+                  {stadiums.length === 0 && (
+                    <option value="">
+                      {stadiumsStatus === 'loading' ? '구장 목록 로딩 중...' : '등록된 구장이 없습니다.'}
+                    </option>
+                  )}
                   {stadiums.map((stadium) => (
                     <option key={stadium.stadiumId} value={stadium.stadiumId}>
                       {stadium.stadiumName}
@@ -195,13 +213,18 @@ export default function StadiumGuide() {
                           </button>
                         )}
                       </div>
-                      {selectedStadium.address && (
+                      {selectedStadiumAddress && (
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
-                          📍 {selectedStadium.address}
+                          📍 {selectedStadiumAddress}
                         </p>
                       )}
-                      {selectedStadium.phone && (
-                        <p className="text-sm text-gray-600 dark:text-gray-300">📞 {selectedStadium.phone}</p>
+                      {selectedStadiumPhone && (
+                        <p className="text-sm text-gray-600 dark:text-gray-300">📞 {selectedStadiumPhone}</p>
+                      )}
+                      {!hasStadiumCoordinates && (
+                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
+                          좌표 정보가 없어 길찾기/지도 표시를 제공할 수 없습니다.
+                        </p>
                       )}
                     </div>
                     <Button
@@ -212,7 +235,8 @@ export default function StadiumGuide() {
                           selectedStadium.lng
                         )
                       }
-                      className="px-6 py-3 rounded-lg text-white transition-colors hover:opacity-90 whitespace-nowrap"
+                      disabled={!hasStadiumCoordinates}
+                      className="px-6 py-3 rounded-lg text-white transition-colors hover:opacity-90 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: THEME_COLORS.primary }}
                     >
                       길찾기
@@ -221,7 +245,7 @@ export default function StadiumGuide() {
                 </div>
               )}
 
-              {selectedStadium && KAKAO_API_KEY && isMapReady ? (
+              {canRenderMap ? (
                 <div
                   className="p-2 rounded-3xl border-2 dark:bg-card dark:border-border"
                   style={{
@@ -250,8 +274,27 @@ export default function StadiumGuide() {
                   </h4>
                   <p className="text-gray-600 dark:text-gray-300 mt-2">주변 지도</p>
                   <p className="text-sm text-gray-500 dark:text-gray-300 mt-4">
-                    {!KAKAO_API_KEY ? '* 카카오맵 API 키를 설정해주세요' : '* 지도 로딩 중이거나 현재 도메인에서 지도를 사용할 수 없습니다.'}
+                    {!selectedStadium
+                      ? '구장을 선택하면 지도를 표시합니다.'
+                      : !KAKAO_API_KEY
+                        ? '카카오맵 API 키를 설정해주세요.'
+                        : !hasStadiumCoordinates
+                          ? '선택된 구장의 좌표 정보가 없어 지도를 표시할 수 없습니다.'
+                          : mapStatus === 'loading'
+                            ? '지도를 준비하고 있습니다...'
+                            : formatOptionalText(mapError, '현재 도메인에서 지도를 사용할 수 없습니다.')}
                   </p>
+                  {selectedStadium && KAKAO_API_KEY && hasStadiumCoordinates && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-4"
+                      onClick={retryMap}
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                      지도 다시 시도
+                    </Button>
+                  )}
                 </Card>
               )}
             </div>
@@ -322,7 +365,7 @@ export default function StadiumGuide() {
                   <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
                   <select
                     value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                    onChange={(e) => setSortOrder(e.target.value as StadiumGuideSortOrder)}
                     className="h-9 pl-8 pr-3 text-sm rounded-md border border-input bg-background dark:bg-card dark:border-border dark:text-gray-200 cursor-pointer"
                   >
                     <option value="default">기본순</option>
@@ -349,7 +392,7 @@ export default function StadiumGuide() {
                 }
               `}</style>
 
-              {loading ? (
+              {listStatus === 'loading' ? (
                 <div
                   className="rounded-2xl border-2 overflow-hidden dark:bg-card dark:border-border p-4 space-y-3"
                   style={{
@@ -394,10 +437,34 @@ export default function StadiumGuide() {
                     }}
                   >
                     <div className="space-y-3 pr-2">
-                      {filteredPlaces.length > 0 ? (
+                      {listStatus === 'error' ? (
+                        <div className="rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700 p-4">
+                          <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span className="text-sm font-semibold">
+                              {formatOptionalText(listError, '목록을 불러오지 못했습니다.')}
+                            </span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700"
+                            onClick={retryPlaces}
+                          >
+                            <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                            목록 다시 시도
+                          </Button>
+                        </div>
+                      ) : filteredPlaces.length > 0 ? (
                         filteredPlaces.map((place) => {
                           const { Icon, color } = getCategoryIconConfig(place.category);
                           const isSelected = selectedPlace?.id === place.id;
+                          const placeDescription = normalizeOptionalText(place.description);
+                          const placeAddress = normalizeOptionalText(place.address);
+                          const placePhone = normalizeOptionalText(place.phone);
+                          const placeOpenTime = normalizeOptionalText(place.openTime);
+                          const placeCloseTime = normalizeOptionalText(place.closeTime);
+                          const hasPlaceCoordinates = hasValidCoordinates(place.lat, place.lng);
 
                           return (
                             <Card
@@ -423,27 +490,32 @@ export default function StadiumGuide() {
                                     <Icon className="w-5 h-5" style={{ color }} />
                                     <h4 className="dark:text-white" style={{ fontWeight: 700 }}>{place.name}</h4>
                                   </div>
-                                  {place.description && (
+                                  {placeDescription && (
                                     <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">
-                                      {place.description}
+                                      {placeDescription}
                                     </p>
                                   )}
-                                  {place.address && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-300">📍 {place.address}</p>
+                                  {placeAddress && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-300">📍 {placeAddress}</p>
                                   )}
-                                  {place.phone && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-300">📞 {place.phone}</p>
+                                  {placePhone && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-300">📞 {placePhone}</p>
                                   )}
-                                  {place.openTime && place.closeTime && (
+                                  {(placeOpenTime || placeCloseTime) && (
                                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                                      ⏰ {place.openTime} - {place.closeTime}
+                                      ⏰ {formatOptionalText(placeOpenTime)} - {formatOptionalText(placeCloseTime)}
+                                    </p>
+                                  )}
+                                  {!hasPlaceCoordinates && (
+                                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                      좌표 정보가 없어 길찾기를 제공할 수 없습니다.
                                     </p>
                                   )}
                                 </div>
 
                                 {/* 오른쪽: Rating과 길찾기 버튼 */}
                                 <div className="flex items-center gap-3">
-                                  {place.rating && (
+                                  {typeof place.rating === 'number' && (
                                     <div className="flex items-center gap-1">
                                       <span className="text-yellow-500">★</span>
                                       <span style={{ fontWeight: 700 }} className="dark:text-white">
@@ -457,7 +529,8 @@ export default function StadiumGuide() {
                                       e.stopPropagation();
                                       openKakaoMapRoute(place.name, place.lat, place.lng);
                                     }}
-                                    className="px-4 py-2 rounded-lg text-white transition-colors hover:opacity-90 whitespace-nowrap"
+                                    disabled={!hasPlaceCoordinates}
+                                    className="px-4 py-2 rounded-lg text-white transition-colors hover:opacity-90 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                                     style={{ backgroundColor: THEME_COLORS.primary }}
                                   >
                                     길찾기
@@ -471,10 +544,12 @@ export default function StadiumGuide() {
                         <div className="text-center py-8 text-gray-500 dark:text-gray-300">
                           {!selectedStadium ? (
                             '구장을 선택해주세요.'
+                          ) : listStatus === 'idle' ? (
+                            '카테고리를 선택하면 장소 목록을 표시합니다.'
                           ) : searchQuery.trim() ? (
                             `'${searchQuery}'에 해당하는 장소가 없습니다.`
-                          ) : places.length === 0 && (selectedCategory === 'store' || selectedCategory === 'parking') ? (
-                            `주변 ${CATEGORY_CONFIGS[selectedCategory].label}을 검색 중입니다...`
+                          ) : listStatus === 'empty' && isNearbyCategory ? (
+                            `주변 ${CATEGORY_CONFIGS[selectedCategory].label} 검색 결과가 없습니다.`
                           ) : (
                             '해당 카테고리에 등록된 장소가 없습니다.'
                           )}

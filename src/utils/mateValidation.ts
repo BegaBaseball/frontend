@@ -46,7 +46,7 @@ export const validateMateChatMessage = (text: string): string => {
     return '부적절한 단어가 포함되어 있습니다.';
   }
   if (hasBlockedContactOrLink(text)) {
-    return '연락처 정보나 링크는 입력할 수 없습니다. 직접 만나서 교환해주세요.';
+    return '개인정보 보호를 위해 연락처 정보나 외부 링크는 공유할 수 없습니다.';
   }
   return '';
 };

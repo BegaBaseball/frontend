@@ -1,41 +1,105 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useConfirmDialog } from './contexts/ConfirmDialogContext';
+import {
+  AlertCircle,
+  ArrowRightCircle,
+  Calendar,
+  CheckCircle,
+  ChevronLeft,
+  Clock,
+  LucideIcon,
+  MapPin,
+  MessageSquare,
+  Pencil,
+  RefreshCw,
+  Shield,
+  Star,
+  Ticket,
+  Trash2,
+  Users,
+  Wallet,
+  XCircle,
+} from 'lucide-react';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import LoadingSpinner from './LoadingSpinner';
+import TeamLogo from './TeamLogo';
+import { useConfirmDialog } from './contexts/ConfirmDialogContext';
+import { Alert, AlertDescription } from './ui/alert';
+import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import {
-  ChevronLeft,
-  Users,
-  CheckCircle,
-  XCircle,
-  MessageSquare,
-  Star,
-  Shield,
-  Calendar,
-  MapPin,
-  Clock,
-  AlertCircle,
-  RefreshCw,
-  Ticket,
-} from 'lucide-react';
-import { useMateStore } from '../store/mateStore';
-import { useAuthStore } from '../store/authStore';
-import TeamLogo from './TeamLogo';
-import { Alert, AlertDescription } from './ui/alert';
-import { api, getApiErrorStatus } from '../utils/api';
-import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { Application, BadgeType } from '../types/mate';
-import { formatGameDate } from '../utils/mate';
-import { getApiErrorMessage } from '../utils/errorUtils';
-import { getPaymentStatusLabel, getSettlementStatusLabel } from '../utils/paymentStatus';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Pencil } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Textarea } from './ui/textarea';
+import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
+import { useAuthStore } from '../store/authStore';
+import { useMateStore } from '../store/mateStore';
+import { Application, BadgeType } from '../types/mate';
+import { cn } from '../lib/utils';
+import { api, getApiErrorStatus } from '../utils/api';
+import { getApiErrorMessage } from '../utils/errorUtils';
+import {
+  getBadgeMeta,
+  getPartyFlowLabel,
+  getPartyStatusMeta,
+  mateHeroCardClass,
+  mateInsetPanelClass,
+  mateMobileBarClass,
+  matePageShellClass,
+  mateSectionCardClass,
+  mateSubtlePanelClass,
+} from '../utils/mateFlowUi';
+import { formatGameDate } from '../utils/mate';
+import { getMatePaymentMode } from '../utils/paymentMode';
+import { getPaymentStatusLabel, getSettlementStatusLabel } from '../utils/paymentStatus';
+
+type SummaryItemProps = {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  detail: string;
+};
+
+function SummaryItem({ icon: Icon, label, value, detail }: SummaryItemProps) {
+  return (
+    <div className={`${mateInsetPanelClass} p-4`}>
+      <div className="flex items-start gap-3">
+        <div className="rounded-2xl border border-gray-200/80 bg-white p-2.5 shadow-sm dark:border-border/70 dark:bg-card/80">
+          <Icon className="h-4 w-4 text-primary" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+            {label}
+          </p>
+          <p className="mt-2 text-base font-bold text-gray-900 dark:text-white">{value}</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{detail}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className={`${mateSubtlePanelClass} flex min-h-[240px] flex-col items-center justify-center px-6 py-10 text-center`}>
+      <div className="rounded-full bg-gray-100 p-4 dark:bg-secondary/80">
+        <Icon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+      </div>
+      <p className="mt-4 text-base font-semibold text-gray-900 dark:text-white">{title}</p>
+      <p className="mt-2 max-w-sm text-sm leading-6 text-gray-500 dark:text-gray-300">{description}</p>
+    </div>
+  );
+}
 
 export default function MateManage() {
   const navigate = useNavigate();
@@ -72,7 +136,6 @@ export default function MateManage() {
   const [descriptionError, setDescriptionError] = useState('');
   const [applicationActionError, setApplicationActionError] = useState('');
 
-  // 현재 사용자 정보 가져오기
   useEffect(() => {
     if (user?.id) {
       setCurrentUserId(user.id);
@@ -100,12 +163,16 @@ export default function MateManage() {
     };
 
     void fetchCurrentUser();
-  }, [user?.id, logout, setShowLoginRequiredDialog, userRetryCount]);
+  }, [logout, setShowLoginRequiredDialog, user?.id, userRetryCount]);
 
-  // 신청 목록 불러오기
   useEffect(() => {
-    if (!selectedParty || !currentUserId) return;
-    if (selectedParty.hostId !== currentUserId) return;
+    if (!selectedParty || !currentUserId) {
+      return;
+    }
+
+    if (selectedParty.hostId !== currentUserId) {
+      return;
+    }
 
     const fetchApplications = async () => {
       setIsLoading(true);
@@ -129,96 +196,22 @@ export default function MateManage() {
     };
 
     void fetchApplications();
-  }, [selectedParty?.id, selectedParty?.hostId, retryCount, currentUserId]);
+  }, [currentUserId, retryCount, selectedParty]);
 
-  if (isPartyLoading && !selectedParty) {
-    return <LoadingSpinner text="파티 정보를 불러오는 중..." fullScreen />;
-  }
+  const refetchApplications = async () => {
+    if (!selectedParty) {
+      return;
+    }
+    const data = await api.getApplicationsByParty(selectedParty.id);
+    setApplications(data);
+  };
 
-  if (partyError || !selectedParty) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-background">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Alert>
-            <AlertDescription>{partyError || '파티 정보를 찾을 수 없습니다.'}</AlertDescription>
-          </Alert>
-          <Button onClick={() => navigate('/mate')} className="mt-4">
-            목록으로 이동
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (userLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Alert>
-            <AlertDescription>사용자 정보를 불러오는 중...</AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
-  }
-
-  if (userLoadError) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-background">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Alert className="mb-4">
-            <AlertDescription>{userLoadError}</AlertDescription>
-          </Alert>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setUserRetryCount((c) => c + 1)}>
-              다시 시도
-            </Button>
-            <Button onClick={() => navigate('/mate')}>목록으로 이동</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!currentUserId) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Alert>
-            <AlertDescription>사용자 정보를 확인할 수 없습니다.</AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
-  }
-
-  const isHost = selectedParty.hostId === currentUserId;
-
-  if (!isHost || isHostAccessDenied) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Alert>
-            <AlertDescription>호스트만 접근할 수 있는 페이지입니다.</AlertDescription>
-          </Alert>
-          <Button onClick={() => navigate(`/mate/${id}`)} className="mt-4">
-            뒤로 가기
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // 신청 승인
   const handleApprove = async (applicationId: string | number) => {
     setApplicationActionError('');
     try {
       await api.approveApplication(applicationId);
       toast.success('신청이 승인되었습니다!');
-
-      // 신청 목록 다시 불러오기
-      const data = await api.getApplicationsByParty(selectedParty.id);
-      setApplications(data);
+      await refetchApplications();
     } catch (error: unknown) {
       console.error('신청 승인 중 오류:', error);
       const errorMessage = getApiErrorMessage(error, '신청 승인에 실패했습니다.');
@@ -227,16 +220,12 @@ export default function MateManage() {
     }
   };
 
-  // 신청 거절
   const handleReject = async (applicationId: string | number) => {
     setApplicationActionError('');
     try {
       await api.rejectApplication(applicationId);
       toast.success('신청이 거절되었습니다.');
-
-      // 신청 목록 다시 불러오기
-      const data = await api.getApplicationsByParty(selectedParty.id);
-      setApplications(data);
+      await refetchApplications();
     } catch (error: unknown) {
       console.error('신청 거절 중 오류:', error);
       const errorMessage = getApiErrorMessage(error, '신청 거절에 실패했습니다.');
@@ -245,35 +234,39 @@ export default function MateManage() {
     }
   };
 
-  // 파티 삭제 핸들러
   const handleDeleteParty = async () => {
-    if (!selectedParty || !currentUserId) return;
-
-    // 승인된 신청자 확인
-    const approvedCount = applications.filter(app => app.isApproved).length;
-
-    if (approvedCount > 0) {
-      toast.warning('승인된 참여자가 있어 파티를 삭제할 수 없습니다.', { description: '참여자가 취소하거나 거절 후 삭제해주세요.' });
+    if (!selectedParty || !currentUserId) {
       return;
     }
 
-    const pendingCount = applications.filter(
-      app => !app.isApproved && !app.isRejected
-    ).length;
+    const approvedCount = applications.filter((app) => app.isApproved).length;
+    if (approvedCount > 0) {
+      toast.warning('승인된 참여자가 있어 파티를 삭제할 수 없습니다.', {
+        description: '참여자가 취소하거나 거절된 뒤 다시 시도해주세요.',
+      });
+      return;
+    }
+
+    const pendingCount = applications.filter((app) => !app.isApproved && !app.isRejected).length;
 
     let confirmMessage = '파티를 삭제하시겠습니까?\n\n';
-
     if (pendingCount > 0) {
       confirmMessage += `⚠️ 대기 중인 신청 ${pendingCount}건도 함께 삭제됩니다.`;
     } else {
       confirmMessage += '이 작업은 되돌릴 수 없습니다.';
     }
 
-    const confirmed = await confirm({ title: '파티 삭제', description: confirmMessage, confirmLabel: '삭제', variant: 'destructive' });
-    if (!confirmed) return;
+    const confirmed = await confirm({
+      title: '파티 삭제',
+      description: confirmMessage,
+      confirmLabel: '삭제',
+      variant: 'destructive',
+    });
+    if (!confirmed) {
+      return;
+    }
 
     setIsDeleting(true);
-
     try {
       await api.deleteParty(selectedParty.id);
       toast.success('파티가 삭제되었습니다.');
@@ -286,14 +279,19 @@ export default function MateManage() {
     }
   };
 
-
   const handleOpenChat = () => {
     navigate(`/mate/${id}/chat`);
   };
 
-  const canEdit = selectedParty.status === 'PENDING' && !applications.some(app => app.isApproved);
+  const handleOpenCheckIn = () => {
+    navigate(`/mate/${id}/checkin`);
+  };
 
   const handleStartEdit = () => {
+    if (!selectedParty) {
+      return;
+    }
+
     setEditForm({
       section: selectedParty.section,
       maxParticipants: selectedParty.maxParticipants,
@@ -305,14 +303,18 @@ export default function MateManage() {
   };
 
   const handleSaveEdit = async () => {
+    if (!selectedParty) {
+      return;
+    }
+
     const error = validateDescription(editForm.description);
     if (error) {
       setDescriptionError(error);
       return;
     }
+
     try {
       await api.updateParty(selectedParty.id, editForm);
-      // 로컬 상태 업데이트
       useMateStore.getState().updateParty(selectedParty.id, editForm);
       toast.success('파티 정보가 수정되었습니다.');
       setDescriptionError('');
@@ -324,118 +326,399 @@ export default function MateManage() {
   };
 
   const getDeadlineText = (deadline?: string) => {
-    if (!deadline) return null;
+    if (!deadline) {
+      return null;
+    }
+
     const now = new Date();
     const deadlineDate = new Date(deadline);
     const diffMs = deadlineDate.getTime() - now.getTime();
-    if (diffMs <= 0) return '기한 만료';
+    if (diffMs <= 0) {
+      return '기한 만료';
+    }
+
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    if (hours > 0) return `${hours}시간 ${minutes}분 남음`;
+    if (hours > 0) {
+      return `${hours}시간 ${minutes}분 남음`;
+    }
     return `${minutes}분 남음`;
   };
 
   const getBadgeIcon = (badge: BadgeType) => {
-    if (badge === 'VERIFIED') return <Shield className="w-4 h-4 text-blue-500" />;
-    if (badge === 'TRUSTED') return <Star className="w-4 h-4 text-yellow-500" />;
+    if (badge === 'VERIFIED') {
+      return <Shield className="h-3.5 w-3.5" />;
+    }
+    if (badge === 'TRUSTED') {
+      return <Star className="h-3.5 w-3.5" />;
+    }
     return null;
   };
 
-  const renderApplication = (app: Application, showActions: boolean = false) => {
-    const hasPaymentTracking = Boolean(app.paymentStatus || app.settlementStatus);
+  if (isPartyLoading && !selectedParty) {
+    return <LoadingSpinner text="파티 정보를 불러오는 중..." fullScreen />;
+  }
+
+  if (partyError || !selectedParty) {
     return (
-      <Card key={app.id} className="p-5 mb-4">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span>{app.applicantName}</span>
-              {getBadgeIcon(app.applicantBadge)}
-              {app.ticketVerified && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
-                  <Ticket className="w-3 h-3" />
-                  티켓 인증
-                </span>
-              )}
+      <div className={matePageShellClass}>
+        <img
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
+        />
+        <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+          <Card className={`p-6 ${mateSectionCardClass}`}>
+            <Alert className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/25">
+              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <AlertDescription className="text-red-700 dark:text-red-300">
+                {partyError || '파티 정보를 찾을 수 없습니다.'}
+              </AlertDescription>
+            </Alert>
+            <Button onClick={() => navigate('/mate')} className="mt-4 w-fit">
+              목록으로 이동
+            </Button>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (userLoading) {
+    return (
+      <div className={matePageShellClass}>
+        <img
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
+        />
+        <div className="relative z-10 mx-auto flex min-h-screen max-w-4xl items-center px-4 py-10 sm:px-6 lg:px-8">
+          <LoadingSpinner text="호스트 권한을 확인하는 중..." fullScreen={false} />
+        </div>
+      </div>
+    );
+  }
+
+  if (userLoadError) {
+    return (
+      <div className={matePageShellClass}>
+        <img
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
+        />
+        <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+          <Card className={`p-6 ${mateSectionCardClass}`}>
+            <Alert className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/25">
+              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <AlertDescription className="text-red-700 dark:text-red-300">
+                {userLoadError}
+              </AlertDescription>
+            </Alert>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setUserRetryCount((count) => count + 1)}>
+                다시 시도
+              </Button>
+              <Button onClick={() => navigate('/mate')}>목록으로 이동</Button>
             </div>
-            <div className="flex items-center gap-1 text-sm text-gray-500">
-              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-              <span>{app.applicantRating}</span>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUserId) {
+    return (
+      <div className={matePageShellClass}>
+        <img
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
+        />
+        <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+          <Card className={`p-6 ${mateSectionCardClass}`}>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>사용자 정보를 확인할 수 없습니다.</AlertDescription>
+            </Alert>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const isHost = selectedParty.hostId === currentUserId;
+
+  if (!isHost || isHostAccessDenied) {
+    return (
+      <div className={matePageShellClass}>
+        <img
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
+        />
+        <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+          <Card className={`p-6 ${mateSectionCardClass}`}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+              Access
+            </p>
+            <h1 className="mt-2 text-2xl font-black text-gray-900 dark:text-white">호스트 전용 관리 화면</h1>
+            <p className="mt-3 text-sm leading-6 text-gray-600 dark:text-gray-300">
+              신청 검토, 승인, 후속 진행은 호스트만 처리할 수 있습니다. 상세페이지로 돌아가 현재 파티 상태를 확인하세요.
+            </p>
+            <Button onClick={() => navigate(`/mate/${id}`)} className="mt-6 w-fit">
+              상세로 돌아가기
+            </Button>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const paymentMode = getMatePaymentMode();
+  const statusMeta = getPartyStatusMeta(selectedParty.status);
+  const hostBadgeMeta = getBadgeMeta(selectedParty.hostBadge);
+  const pendingApplications = applications.filter((app) => !app.isApproved && !app.isRejected);
+  const approvedApplications = applications.filter((app) => app.isApproved);
+  const rejectedApplications = applications.filter((app) => app.isRejected);
+  const canEdit = selectedParty.status === 'PENDING' && approvedApplications.length === 0;
+  const canReviewCheckIn = approvedApplications.length > 0 || ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(selectedParty.status);
+  const flowLabel = getPartyFlowLabel(selectedParty.status, paymentMode);
+  const responseSummary = pendingApplications.length > 0 ? `${pendingApplications.length}건` : '없음';
+  const nextStepSummary = pendingApplications.length > 0
+    ? '대기 신청 검토'
+    : approvedApplications.length > 0
+      ? '채팅과 체크인 준비'
+      : canEdit
+        ? '파티 정보 정리'
+        : '새 신청 대기';
+  const primaryMobileAction = approvedApplications.length > 0
+    ? {
+      label: '채팅방 입장',
+      onClick: handleOpenChat,
+      variant: 'default' as const,
+      className: 'bg-primary text-white',
+    }
+    : canEdit
+      ? {
+        label: isEditing ? '수정 저장' : '정보 수정',
+        onClick: isEditing ? handleSaveEdit : handleStartEdit,
+        variant: isEditing ? 'default' as const : 'outline' as const,
+        className: isEditing ? 'bg-primary text-white' : 'border-primary text-primary hover:bg-primary/10',
+      }
+      : null;
+  const secondaryMobileAction = canReviewCheckIn
+    ? {
+      label: '체크인 현황',
+      onClick: handleOpenCheckIn,
+      className: 'border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950/30',
+    }
+    : null;
+  const defaultTab = pendingApplications.length > 0 ? 'pending' : approvedApplications.length > 0 ? 'approved' : 'rejected';
+
+  const summaryItems = [
+    {
+      icon: Wallet,
+      label: '거래 방식',
+      value: flowLabel,
+      detail: paymentMode === 'TOSS_TEST' ? '결제/정산 상태를 함께 추적합니다.' : '승인 후 채팅으로 전달을 조율합니다.',
+    },
+    {
+      icon: Ticket,
+      label: '티켓 상태',
+      value: selectedParty.ticketVerified ? '호스트 인증 완료' : '티켓 인증 전',
+      detail: selectedParty.ticketVerified ? '상세페이지와 동일한 신뢰 배지가 노출됩니다.' : '참여자에게 인증 배지가 아직 보이지 않습니다.',
+    },
+    {
+      icon: CheckCircle,
+      label: '승인 완료',
+      value: `${approvedApplications.length}명`,
+      detail: approvedApplications.length > 0 ? '채팅방과 체크인 흐름을 바로 열 수 있습니다.' : '아직 확정된 참여자가 없습니다.',
+    },
+    {
+      icon: Clock,
+      label: '응답 필요',
+      value: responseSummary,
+      detail: pendingApplications.length > 0 ? '빠른 승인/거절이 전환율에 직접 영향을 줍니다.' : '새 신청이 들어오면 여기서 바로 대응합니다.',
+    },
+  ];
+
+  const renderApplicationCard = (app: Application, tabKey: 'pending' | 'approved' | 'rejected') => {
+    const badgeMeta = getBadgeMeta(app.applicantBadge);
+    const responseDeadline = getDeadlineText(app.responseDeadline);
+    const hasPaymentTracking = Boolean(app.paymentStatus || app.settlementStatus);
+    const amountLabel = hasPaymentTracking ? '결제 기준 금액' : '거래 기준 금액';
+    const createdAt = new Date(app.createdAt).toLocaleString('ko-KR');
+    const tabTone = tabKey === 'pending'
+      ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300'
+      : tabKey === 'approved'
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
+        : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/35 dark:text-rose-300';
+    const tabLabel = tabKey === 'pending' ? '응답 대기' : tabKey === 'approved' ? '승인 완료' : '거절됨';
+
+    return (
+      <Card
+        key={app.id}
+        className={`gap-0 overflow-hidden p-0 ${mateSectionCardClass}`}
+        data-testid={`manage-application-${tabKey}`}
+      >
+        <div className="border-b border-gray-200/80 px-5 py-5 dark:border-border/70">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{app.applicantName}</p>
+                {badgeMeta && (
+                  <Badge className={cn('border text-xs font-semibold', badgeMeta.className)}>
+                    <span className="flex items-center gap-1">
+                      {getBadgeIcon(app.applicantBadge)}
+                      {badgeMeta.label}
+                    </span>
+                  </Badge>
+                )}
+                <Badge className={cn('border text-xs font-semibold', tabTone)}>{tabLabel}</Badge>
+                {app.ticketVerified && (
+                  <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
+                    <span className="flex items-center gap-1">
+                      <Ticket className="h-3.5 w-3.5" />
+                      티켓 인증
+                    </span>
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-300">
+                <span className="inline-flex items-center gap-1">
+                  <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                  평점 {app.applicantRating.toFixed(1)}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  신청 {createdAt}
+                </span>
+                {responseDeadline && tabKey === 'pending' && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    응답 기한 {responseDeadline}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className={`${mateInsetPanelClass} min-w-[240px] p-4`}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                신청 메시지
+              </p>
+              <p className="mt-2 text-sm leading-6 text-gray-700 dark:text-gray-200">
+                {app.message || '전달된 메시지가 없습니다.'}
+              </p>
             </div>
           </div>
-          <div className="text-sm text-gray-500">
-            {new Date(app.createdAt).toLocaleString('ko-KR')}
+        </div>
+
+        <div className="grid gap-4 px-5 py-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className={`${mateInsetPanelClass} p-4`}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                {amountLabel}
+              </p>
+              <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">
+                {app.depositAmount.toLocaleString()}원
+              </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+                {app.paymentType === 'FULL' ? '전액 결제/구매 흐름' : '보증금/일반 모집 흐름'}
+              </p>
+            </div>
+
+            <div className={`${mateInsetPanelClass} p-4`}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                결제 / 정산
+              </p>
+              <div className="mt-2 space-y-2 text-sm text-gray-700 dark:text-gray-200">
+                <div className="flex items-center justify-between gap-3">
+                  <span>결제 상태</span>
+                  <span className="font-medium">
+                    {app.paymentStatus ? getPaymentStatusLabel(app.paymentStatus) : '직거래 기준'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span>정산 상태</span>
+                  <span className="font-medium">
+                    {app.settlementStatus ? getSettlementStatusLabel(app.settlementStatus) : '추적 없음'}
+                  </span>
+                </div>
+                {typeof app.netSettlementAmount === 'number' && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span>순정산</span>
+                    <span className="font-medium">{app.netSettlementAmount.toLocaleString()}원</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-700">{app.message}</p>
-        </div>
+          <div className={`${mateInsetPanelClass} p-4`}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+              다음 단계
+            </p>
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
+              {tabKey === 'pending'
+                ? '이 신청은 승인/거절을 먼저 결정해야 다음 흐름이 열립니다.'
+                : tabKey === 'approved'
+                  ? '승인된 참여자는 채팅과 체크인 흐름으로 이어집니다.'
+                  : '거절된 신청은 기록만 유지되며 추가 액션이 필요하지 않습니다.'}
+            </p>
 
-        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-          <span>결제 금액:</span>
-          <span className="text-primary">{app.depositAmount.toLocaleString()}원</span>
-          <Badge variant="outline" className="ml-2">
-            {app.paymentType === 'DEPOSIT' ? '보증금' : '전액결제'}
-          </Badge>
-          {!hasPaymentTracking && (
-            <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
-              결제 안됨 (직거래 적용, 플랫폼 결제 없음)
-            </Badge>
-          )}
-          {app.paymentStatus && (
-            <Badge variant="outline">
-              결제: {getPaymentStatusLabel(app.paymentStatus)}
-            </Badge>
-          )}
-          {app.settlementStatus && (
-            <Badge variant="outline">
-              정산: {getSettlementStatusLabel(app.settlementStatus)}
-            </Badge>
-          )}
-          {hasPaymentTracking && typeof app.netSettlementAmount === 'number' && (
-            <span className="ml-auto text-xs text-gray-500">
-              순정산 {app.netSettlementAmount.toLocaleString()}원
-            </span>
-          )}
-        </div>
-
-        {showActions && (
-          <>
-            {app.responseDeadline && (
-              <div className="flex items-center gap-1.5 text-xs mb-3 px-2 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-md">
-                <Clock className="w-3.5 h-3.5 text-orange-500" />
-                <span className="text-orange-600 dark:text-orange-400 font-medium">
-                  응답 기한: {getDeadlineText(app.responseDeadline)}
-                </span>
+            {tabKey === 'pending' ? (
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <Button
+                  onClick={() => handleApprove(app.id)}
+                  className="flex-1 bg-primary text-white"
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  승인
+                </Button>
+                <Button
+                  onClick={() => handleReject(app.id)}
+                  variant="outline"
+                  className="flex-1 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  거절
+                </Button>
+              </div>
+            ) : tabKey === 'approved' ? (
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <Button onClick={handleOpenChat} className="flex-1 bg-primary text-white">
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  채팅방 입장
+                </Button>
+                <Button
+                  onClick={handleOpenCheckIn}
+                  variant="outline"
+                  className="flex-1 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950/30"
+                >
+                  <ArrowRightCircle className="mr-2 h-4 w-4" />
+                  체크인 연결
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-dashed border-gray-200 bg-white/80 px-4 py-3 text-sm text-gray-500 dark:border-border/70 dark:bg-card/60 dark:text-gray-300">
+                거절 처리된 신청은 보관용 상태입니다. 후속 조치는 필요하지 않습니다.
               </div>
             )}
-            <div className="flex gap-2">
-              <Button
-                onClick={() => handleApprove(app.id)}
-                className="flex-1 text-white bg-primary"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                승인
-              </Button>
-              <Button
-                onClick={() => handleReject(app.id)}
-                variant="outline"
-                className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
-              >
-                <XCircle className="w-4 h-4 mr-2" />
-                거절
-              </Button>
-            </div>
-          </>
-        )}
+          </div>
+        </div>
       </Card>
     );
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className={matePageShellClass}>
+        <img
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
+        />
+        <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl items-center px-4 py-10 sm:px-6 lg:px-8">
           <LoadingSpinner size="lg" text="신청 목록을 불러오는 중..." fullScreen={false} />
         </div>
       </div>
@@ -444,237 +727,443 @@ export default function MateManage() {
 
   if (fetchError) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center py-24 bg-white rounded-2xl border border-dashed border-red-200">
-            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-red-400" />
-            <p className="text-gray-600 font-medium">신청 목록을 불러오지 못했습니다</p>
-            <p className="text-gray-400 text-sm mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
-            <Button variant="outline" className="mt-4" onClick={() => setRetryCount((c) => c + 1)}>
-              <RefreshCw className="w-4 h-4 mr-1.5" /> 다시 시도
+      <div className={matePageShellClass}>
+        <img
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
+        />
+        <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+          <Card className={`p-6 ${mateSectionCardClass}`}>
+            <EmptyState
+              icon={AlertCircle}
+              title="신청 목록을 불러오지 못했습니다"
+              description="네트워크 연결을 확인한 뒤 다시 시도해주세요. 목록과 상세는 유지되고 신청 관리 데이터만 다시 불러옵니다."
+            />
+            <Button variant="outline" className="mt-4 w-fit" onClick={() => setRetryCount((count) => count + 1)}>
+              <RefreshCw className="mr-1.5 h-4 w-4" />
+              다시 시도
             </Button>
-          </div>
+          </Card>
         </div>
       </div>
     );
   }
 
-  const pendingApplications = applications.filter(app => !app.isApproved && !app.isRejected);
-  const approvedApplications = applications.filter(app => app.isApproved);
-  const rejectedApplications = applications.filter(app => app.isRejected);
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
+    <div className={`${matePageShellClass} pb-32 lg:pb-10`}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.10),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_48%)]" />
       <img
         src={grassDecor}
         alt=""
-        className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
       />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <Button
           variant="ghost"
           onClick={() => navigate(`/mate/${id}`)}
           className="mb-4"
         >
-          <ChevronLeft className="w-4 h-4 mr-2" />
+          <ChevronLeft className="mr-2 h-4 w-4" />
           뒤로
         </Button>
 
-        <h1 className="mb-2 text-primary">
-          파티 관리
-        </h1>
-        <p className="text-gray-600 mb-8">신청 목록을 확인하고 승인/거절하세요</p>
-        {isPartyRevalidating && (
-          <Alert className="mb-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-            <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
-              최신 파티 정보를 다시 확인하고 있습니다.
-            </AlertDescription>
-          </Alert>
-        )}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-6">
+            <Card className={`p-0 ${mateHeroCardClass}`}>
+              <div className="border-b border-gray-200/70 bg-[linear-gradient(135deg,_rgba(22,163,74,0.12),_rgba(255,255,255,0.92)_55%,_rgba(22,163,74,0.04))] px-6 py-6 dark:border-border/70 dark:bg-[linear-gradient(135deg,_rgba(16,185,129,0.18),_rgba(10,15,20,0.94)_58%,_rgba(16,185,129,0.08))] sm:px-8">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex min-w-0 gap-4">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10">
+                      <TeamLogo teamId={selectedParty.teamId} size="md" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
+                        Host Control
+                      </p>
+                      <h1 className="mt-2 text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                        파티 관리
+                      </h1>
+                      <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
+                        신청 검토, 승인 결정, 채팅 연결, 체크인 준비까지 한 흐름으로 정리합니다.
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Badge className={cn('border text-xs font-semibold', statusMeta.className)}>
+                          {statusMeta.label}
+                        </Badge>
+                        <Badge className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
+                          {flowLabel}
+                        </Badge>
+                        {selectedParty.ticketVerified && (
+                          <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
+                            <span className="flex items-center gap-1">
+                              <Ticket className="h-3.5 w-3.5" />
+                              티켓 인증
+                            </span>
+                          </Badge>
+                        )}
+                        {hostBadgeMeta && (
+                          <Badge className={cn('border text-xs font-semibold', hostBadgeMeta.className)}>
+                            {hostBadgeMeta.label}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-        {/* Party Info */}
-        <Card className="p-6 mb-6">
-          {isEditing ? (
-            <div className="space-y-4">
-              <h3 className="mb-2 text-primary">파티 정보 수정</h3>
-              <div className="space-y-2">
-                <Label>좌석</Label>
-                <Input
-                  value={editForm.section}
-                  onChange={(e) => setEditForm({ ...editForm, section: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>모집 인원</Label>
-                  <select
-                    value={editForm.maxParticipants}
-                    onChange={(e) => setEditForm({ ...editForm, maxParticipants: parseInt(e.target.value) })}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
-                  >
-                    <option value={2}>2명</option>
-                    <option value={3}>3명</option>
-                    <option value={4}>4명</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label>티켓 가격 (원)</Label>
-                  <Input
-                    type="number"
-                    value={editForm.ticketPrice}
-                    onChange={(e) => setEditForm({ ...editForm, ticketPrice: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>소개글</Label>
-                <textarea
-                  value={editForm.description}
-                  onChange={(e) => {
-                    const nextDescription = e.target.value;
-                    setEditForm({ ...editForm, description: nextDescription });
-                    if (descriptionError) {
-                      setDescriptionError(validateDescription(nextDescription));
-                    }
-                  }}
-                  onBlur={() => setDescriptionError(validateDescription(editForm.description))}
-                  className={`w-full rounded-md border px-3 py-2 min-h-[80px] ${descriptionError ? 'border-red-400' : 'border-gray-300'}`}
-                />
-                {descriptionError && (
-                  <p className="text-sm text-red-500">{descriptionError}</p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={handleSaveEdit} className="flex-1 text-white bg-primary">
-                  저장
-                </Button>
-                <Button onClick={() => setIsEditing(false)} variant="outline" className="flex-1">
-                  취소
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-4 mb-4">
-                <TeamLogo teamId={selectedParty.teamId} size="md" />
-                <div className="flex-1">
-                  <h3 className="mb-1 text-primary">
-                    {selectedParty.stadium}
-                  </h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {formatGameDate(selectedParty.gameDate)}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      {selectedParty.section}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {selectedParty.currentParticipants}/{selectedParty.maxParticipants}명
+                  <div className={`${mateInsetPanelClass} min-w-full p-4 sm:min-w-[280px] lg:max-w-[320px]`}>
+                    <div className="grid gap-3 text-sm text-gray-600 dark:text-gray-300">
+                      <div className="flex items-start gap-3">
+                        <Calendar className="mt-0.5 h-4 w-4 text-primary" />
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">일정</p>
+                          <p className="mt-1 font-medium text-gray-900 dark:text-white">
+                            {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <MapPin className="mt-0.5 h-4 w-4 text-primary" />
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
+                          <p className="mt-1 font-medium text-gray-900 dark:text-white">
+                            {selectedParty.stadium}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">{selectedParty.section}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Users className="mt-0.5 h-4 w-4 text-primary" />
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">참여 현황</p>
+                          <p className="mt-1 font-medium text-gray-900 dark:text-white">
+                            {selectedParty.currentParticipants}/{selectedParty.maxParticipants}명
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">승인 {approvedApplications.length}명, 대기 {pendingApplications.length}건</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+            </Card>
 
-              <div className="flex gap-2 mt-4">
-                {canEdit && (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="manage-summary-strip">
+              {summaryItems.map((item) => (
+                <SummaryItem key={item.label} {...item} />
+              ))}
+            </div>
+
+            {isPartyRevalidating && (
+              <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20">
+                <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+                  최신 파티 정보를 다시 확인하고 있습니다.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {applicationActionError && (
+              <Alert className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20">
+                <AlertDescription className="text-red-700 dark:text-red-300">
+                  {applicationActionError}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {isEditing ? (
+              <Card className={`p-6 ${mateSectionCardClass}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                      Edit Draft
+                    </p>
+                    <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">파티 정보 수정</h2>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                      승인 완료 전까지 좌석, 모집 인원, 가격, 소개를 정리할 수 있습니다.
+                    </p>
+                  </div>
+                  <Badge className="border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
+                    승인 완료 전 수정 가능
+                  </Badge>
+                </div>
+
+                <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="manage-section">좌석</Label>
+                    <Input
+                      id="manage-section"
+                      value={editForm.section}
+                      onChange={(event) => setEditForm({ ...editForm, section: event.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="manage-ticket-price">티켓 가격 (원)</Label>
+                    <Input
+                      id="manage-ticket-price"
+                      type="number"
+                      value={editForm.ticketPrice}
+                      onChange={(event) => setEditForm({ ...editForm, ticketPrice: parseInt(event.target.value, 10) || 0 })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="manage-max-participants">모집 인원</Label>
+                    <select
+                      id="manage-max-participants"
+                      value={editForm.maxParticipants}
+                      onChange={(event) => setEditForm({ ...editForm, maxParticipants: parseInt(event.target.value, 10) })}
+                      className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm dark:border-border dark:bg-input/30"
+                    >
+                      <option value={2}>2명</option>
+                      <option value={3}>3명</option>
+                      <option value={4}>4명</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <Label htmlFor="manage-description">소개글</Label>
+                  <Textarea
+                    id="manage-description"
+                    value={editForm.description}
+                    onChange={(event) => {
+                      const nextDescription = event.target.value;
+                      setEditForm({ ...editForm, description: nextDescription });
+                      if (descriptionError) {
+                        setDescriptionError(validateDescription(nextDescription));
+                      }
+                    }}
+                    onBlur={() => setDescriptionError(validateDescription(editForm.description))}
+                    className={cn(descriptionError && 'border-red-400 focus-visible:ring-red-200')}
+                  />
+                  {descriptionError && (
+                    <p className="text-sm text-red-500">{descriptionError}</p>
+                  )}
+                </div>
+
+                <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+                  <Button onClick={handleSaveEdit} className="bg-primary text-white">
+                    저장
+                  </Button>
+                  <Button onClick={() => setIsEditing(false)} variant="outline">
+                    취소
+                  </Button>
+                </div>
+              </Card>
+            ) : null}
+
+            <Card className={`p-6 ${mateSectionCardClass}`}>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                    Decision Queue
+                  </p>
+                  <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">신청 검토와 후속 진행</h2>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                    카드마다 신뢰 신호, 금액 기준, 결제/정산 상태, 응답 기한을 먼저 보여주고 그 뒤에 액션을 둡니다.
+                  </p>
+                </div>
+                <div className={`${mateInsetPanelClass} p-4 text-sm text-gray-600 dark:text-gray-300`}>
+                  <p className="font-semibold text-gray-900 dark:text-white">지금 우선순위</p>
+                  <p className="mt-1">
+                    {pendingApplications.length > 0
+                      ? `대기 신청 ${pendingApplications.length}건을 먼저 처리하세요.`
+                      : approvedApplications.length > 0
+                        ? '승인된 참여자와 채팅/체크인 준비로 넘어갈 수 있습니다.'
+                        : '새 신청을 기다리는 상태입니다.'}
+                  </p>
+                </div>
+              </div>
+
+              <Tabs defaultValue={defaultTab} className="mt-6">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="pending">대기 ({pendingApplications.length})</TabsTrigger>
+                  <TabsTrigger value="approved">승인 ({approvedApplications.length})</TabsTrigger>
+                  <TabsTrigger value="rejected">거절 ({rejectedApplications.length})</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="pending" className="mt-6 space-y-4">
+                  {pendingApplications.length === 0 ? (
+                    <EmptyState
+                      icon={Users}
+                      title="대기 중인 신청이 없습니다"
+                      description="새 신청이 들어오면 이 탭에서 바로 검토할 수 있습니다. 상세페이지 CTA와 연결된 첫 판단 지점입니다."
+                    />
+                  ) : (
+                    pendingApplications.map((application) => renderApplicationCard(application, 'pending'))
+                  )}
+                </TabsContent>
+
+                <TabsContent value="approved" className="mt-6 space-y-4">
+                  {approvedApplications.length === 0 ? (
+                    <EmptyState
+                      icon={CheckCircle}
+                      title="승인된 신청이 없습니다"
+                      description="참여가 확정되면 여기서 채팅과 체크인 연결 흐름을 이어갈 수 있습니다."
+                    />
+                  ) : (
+                    approvedApplications.map((application) => renderApplicationCard(application, 'approved'))
+                  )}
+                </TabsContent>
+
+                <TabsContent value="rejected" className="mt-6 space-y-4">
+                  {rejectedApplications.length === 0 ? (
+                    <EmptyState
+                      icon={XCircle}
+                      title="거절된 신청이 없습니다"
+                      description="거절된 신청은 기록만 유지됩니다. 이후 다시 검토할 항목은 없습니다."
+                    />
+                  ) : (
+                    rejectedApplications.map((application) => renderApplicationCard(application, 'rejected'))
+                  )}
+                </TabsContent>
+              </Tabs>
+            </Card>
+          </div>
+
+          <div className="space-y-4">
+            <Card className={`hidden p-5 lg:flex lg:sticky lg:top-6 ${mateSectionCardClass}`}>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                  Next Action
+                </p>
+                <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">지금 먼저 할 일</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
+                  {pendingApplications.length > 0
+                    ? `응답 필요 ${pendingApplications.length}건이 있어 승인/거절이 최우선입니다.`
+                    : approvedApplications.length > 0
+                      ? '승인된 참여자와 채팅을 열고 체크인 준비까지 이어서 확인하세요.'
+                      : '새 신청을 기다리면서 파티 정보와 가격 구성을 점검할 수 있습니다.'}
+                </p>
+
+                <div className="mt-4 space-y-2">
+                  {approvedApplications.length > 0 && (
+                    <Button onClick={handleOpenChat} className="w-full bg-primary text-white">
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      채팅방 입장
+                    </Button>
+                  )}
+                  {canReviewCheckIn && (
+                    <Button
+                      onClick={handleOpenCheckIn}
+                      variant="outline"
+                      className="w-full border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950/30"
+                    >
+                      <ArrowRightCircle className="mr-2 h-4 w-4" />
+                      체크인 현황
+                    </Button>
+                  )}
+                  {canEdit && (
+                    <Button
+                      onClick={handleStartEdit}
+                      variant="outline"
+                      className="w-full border-primary text-primary hover:bg-primary/10"
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      정보 수정
+                    </Button>
+                  )}
+                </div>
+
+                <div className={`${mateInsetPanelClass} mt-4 p-4`}>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">관리 기준</p>
+                  <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <li className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span>상태와 신뢰 배지를 먼저 보고, 그 다음 금액과 메시지를 확인합니다.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span>응답 기한이 있는 신청은 같은 세션에서 바로 처리하는 편이 좋습니다.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span>승인 뒤에는 채팅과 체크인 흐름이 열리므로 후속 단계까지 같이 확인합니다.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+
+            <Card className={`hidden p-5 lg:flex ${mateSectionCardClass}`}>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                  Secondary Controls
+                </p>
+                <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">보조 관리 영역</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
+                  수정과 삭제는 승인 결정 뒤에 다루는 보조 액션입니다. 주 판단 흐름과 섞이지 않도록 아래에 분리했습니다.
+                </p>
+                <div className="mt-4 space-y-2">
+                  {canEdit ? (
+                    <Button
+                      onClick={handleStartEdit}
+                      variant="outline"
+                      className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-border dark:text-gray-200 dark:hover:bg-secondary"
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      파티 정보 수정
+                    </Button>
+                  ) : (
+                    <div className={`${mateInsetPanelClass} p-4 text-sm text-gray-500 dark:text-gray-300`}>
+                      승인 완료 이후에는 파티 정보를 수정할 수 없습니다.
+                    </div>
+                  )}
                   <Button
-                    onClick={handleStartEdit}
+                    onClick={handleDeleteParty}
+                    disabled={isDeleting}
                     variant="outline"
-                    className="flex-1"
+                    className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
                   >
-                    <Pencil className="w-4 h-4 mr-2" />
-                    정보 수정
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {isDeleting ? '삭제 중...' : '파티 삭제'}
                   </Button>
-                )}
-                {approvedApplications.length > 0 && (
-                  <Button
-                    onClick={handleOpenChat}
-                    className="flex-1 text-white bg-primary"
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    채팅방 입장
-                  </Button>
-                )}
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {(primaryMobileAction || secondaryMobileAction) && (
+          <div
+            className={`${mateMobileBarClass} lg:hidden`}
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+          >
+            <div className="mx-auto flex max-w-6xl items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                  관리 요약
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                  {pendingApplications.length > 0
+                    ? `응답 필요 ${pendingApplications.length}건`
+                    : `다음 단계: ${nextStepSummary}`}
+                </p>
+              </div>
+              {secondaryMobileAction && (
                 <Button
-                  onClick={handleDeleteParty}
-                  disabled={isDeleting}
+                  onClick={secondaryMobileAction.onClick}
                   variant="outline"
-                  className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+                  className={secondaryMobileAction.className}
                 >
-                  {isDeleting ? '삭제 중...' : '파티 삭제'}
+                  {secondaryMobileAction.label}
                 </Button>
-              </div>
-            </>
-          )}
-        </Card>
-        {applicationActionError && (
-          <Alert className="mb-6 border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-900">
-            <AlertDescription className="text-red-600 dark:text-red-400">
-              {applicationActionError}
-            </AlertDescription>
-          </Alert>
+              )}
+              {primaryMobileAction && (
+                <Button
+                  onClick={primaryMobileAction.onClick}
+                  variant={primaryMobileAction.variant}
+                  className={primaryMobileAction.className}
+                >
+                  {primaryMobileAction.label}
+                </Button>
+              )}
+            </div>
+          </div>
         )}
-        {/* Applications Tabs */}
-        <Tabs defaultValue="pending">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="pending">
-              대기 중 ({pendingApplications.length})
-            </TabsTrigger>
-            <TabsTrigger value="approved">
-              승인됨 ({approvedApplications.length})
-            </TabsTrigger>
-            <TabsTrigger value="rejected">
-              거절됨 ({rejectedApplications.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="pending">
-            {pendingApplications.length === 0 ? (
-              <div className="text-center py-16">
-                <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">대기 중인 신청이 없습니다</p>
-              </div>
-            ) : (
-              pendingApplications.map(app => renderApplication(app, true))
-            )}
-          </TabsContent>
-
-          <TabsContent value="approved">
-            {approvedApplications.length === 0 ? (
-              <div className="text-center py-16">
-                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">승인된 신청이 없습니다</p>
-              </div>
-            ) : (
-              <>
-                <Alert className="mb-4">
-                  <MessageSquare className="w-4 h-4" />
-                  <AlertDescription>
-                    승인된 참여자와 채팅방에서 소통할 수 있습니다
-                  </AlertDescription>
-                </Alert>
-                {approvedApplications.map(app => renderApplication(app, false))}
-              </>
-            )}
-          </TabsContent>
-
-          <TabsContent value="rejected">
-            {rejectedApplications.length === 0 ? (
-              <div className="text-center py-16">
-                <XCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">거절된 신청이 없습니다</p>
-              </div>
-            ) : (
-              rejectedApplications.map(app => renderApplication(app, false))
-            )}
-          </TabsContent>
-        </Tabs>
       </div>
-
     </div>
   );
 }

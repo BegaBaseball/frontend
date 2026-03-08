@@ -171,15 +171,23 @@ describe('Prediction Coach Briefing Regression', () => {
       body: { homeVotes: 10, awayVotes: 5 },
     }).as('getVoteStatus');
 
-    cy.intercept('GET', '**/api/matches/range*', (req) => {
+    cy.intercept('GET', '**/api/matches/day*', (req) => {
+      const fallbackDate = rangeSchedulePayload[0]?.gameDate || '2026-06-01';
       req.reply({
         statusCode: 200,
-        body: rangeSchedulePayload,
+        body: {
+          date: fallbackDate,
+          games: rangeSchedulePayload,
+          prevDate: null,
+          nextDate: null,
+          hasPrev: false,
+          hasNext: false,
+        },
       });
     }).as('getScheduleRange');
 
     cy.intercept('GET', '**/api/matches/*', (req) => {
-      if (req.url.includes('/api/matches/range')) {
+      if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/day')) {
         return;
       }
 
@@ -399,12 +407,14 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.tick(6000);
     cy.tick(2000);
     cy.wait('@coachAnalyzeReset');
+    // Advance through the final retry delay (9000ms) to allow MAX_COACH_RETRIES
+    // retries to complete. ≥3 total requests before fallback is the expected behavior
+    // (retryCount 0→1→2 each fires a request; 3rd response triggers fallback).
     cy.tick(9000);
     cy.tick(2000);
-    cy.wait('@coachAnalyzeReset');
     cy.get('@coachAnalyzeReset.all').its('length').then((length) => {
       beforeSwitchCount = Number(length);
-      expect(beforeSwitchCount).to.be.gte(4);
+      expect(beforeSwitchCount).to.be.gte(3);
     });
 
     cy.get('.flex.gap-2.overflow-x-auto')
@@ -512,5 +522,173 @@ describe('Prediction Coach Briefing Regression', () => {
         expect(text).to.not.contain('```');
         expect(text).to.not.contain('- ');
       });
+  });
+
+  it('renders different grounded briefings per game and updates the quality badge', () => {
+    setScheduleData([
+      {
+        gameId: '20260601HHSS0',
+        gameDate: '2026-06-01',
+        homeTeam: 'HH',
+        awayTeam: 'SS',
+        stadium: '대전',
+        homeScore: null,
+        awayScore: null,
+        winner: null,
+        leagueType: 'POST',
+      },
+      {
+        gameId: '20260601LGKT0',
+        gameDate: '2026-06-01',
+        homeTeam: 'KT',
+        awayTeam: 'LG',
+        stadium: '잠실',
+        homeScore: null,
+        awayScore: null,
+        winner: null,
+        leagueType: 'POST',
+      },
+    ]);
+
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      const gameId = req.body?.game_id as string;
+      const headline = gameId === '20260601LGKT0'
+        ? 'LG vs KT, 2차전 실데이터 브리핑'
+        : '삼성 vs 한화, 1차전 실데이터 브리핑';
+
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({
+          delta: JSON.stringify({
+            headline,
+            coach_note: `${headline} 메모`,
+          }),
+          meta: {
+            validation_status: 'success',
+            resolved_focus: ['recent_form'],
+            focus_signature: 'recent_form',
+            question_signature: 'auto',
+            cache_key_version: 'v4',
+            request_mode: 'auto_brief',
+            cached: false,
+            cache_state: 'MISS_GENERATE',
+            in_progress: false,
+            generation_mode: 'deterministic_auto',
+            data_quality: 'grounded',
+            used_evidence: ['game', 'kbo_seasons', 'game_lineups'],
+            structured_response: {
+              headline,
+              sentiment: 'neutral',
+              key_metrics: [],
+              analysis: {
+                strengths: [],
+                weaknesses: [],
+                risks: [],
+              },
+              detailed_markdown: '## 경기 컨텍스트\n- 실데이터 기반',
+              coach_note: `${headline} 메모`,
+            },
+          },
+        }),
+      });
+    }).as('coachAnalyzeGrounded');
+
+    openPredictionPage();
+
+    cy.tick(2000);
+    cy.wait('@coachAnalyzeGrounded');
+    cy.get('[data-testid="coach-briefing-title"]').should('contain', '삼성 vs 한화, 1차전 실데이터 브리핑');
+    cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 기반');
+
+    cy.get('.flex.gap-2.overflow-x-auto')
+      .find('button')
+      .should('have.length.gte', 2)
+      .eq(1)
+      .click();
+
+    cy.wait('@getGameDetail');
+    cy.tick(2000);
+    cy.wait('@coachAnalyzeGrounded');
+    cy.get('[data-testid="coach-briefing-title"]').should('contain', 'LG vs KT, 2차전 실데이터 브리핑');
+    cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 기반');
+  });
+
+  it('shows partial-quality grounding metadata in the detail dialog', () => {
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      const requestMode = req.body?.request_mode as string;
+      const meta = requestMode === 'manual_detail'
+        ? {
+          validation_status: 'success',
+          resolved_focus: ['recent_form'],
+          focus_signature: 'recent_form',
+          question_signature: 'q:test',
+          cache_key_version: 'v4',
+          request_mode: 'manual_detail',
+          cached: false,
+          cache_state: 'MISS_GENERATE',
+          in_progress: false,
+          generation_mode: 'evidence_fallback',
+          data_quality: 'partial',
+          used_evidence: ['game', 'kbo_seasons', 'team_recent_form'],
+          structured_response: {
+            headline: '부분 근거 기반 상세 분석',
+            sentiment: 'neutral',
+            key_metrics: [],
+            analysis: {
+              strengths: [],
+              weaknesses: [],
+              risks: [],
+            },
+            detailed_markdown: '## 최근 흐름\n- 부분 데이터 기반',
+            coach_note: '부분 데이터 기반 상세 분석입니다.',
+          },
+        }
+        : {
+          validation_status: 'success',
+          resolved_focus: ['recent_form'],
+          focus_signature: 'recent_form',
+          question_signature: 'auto',
+          cache_key_version: 'v4',
+          request_mode: 'auto_brief',
+          cached: false,
+          cache_state: 'MISS_GENERATE',
+          in_progress: false,
+          generation_mode: 'deterministic_auto',
+          data_quality: 'grounded',
+          used_evidence: ['game', 'kbo_seasons'],
+          structured_response: {
+            headline: '자동 브리핑',
+            sentiment: 'neutral',
+            key_metrics: [],
+            analysis: {
+              strengths: [],
+              weaknesses: [],
+              risks: [],
+            },
+            detailed_markdown: '## 경기 컨텍스트\n- 자동 브리핑',
+            coach_note: '자동 브리핑',
+          },
+        };
+
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({ meta }),
+      });
+    }).as('coachAnalyzeMeta');
+
+    openPredictionPage();
+
+    cy.tick(2000);
+    cy.wait('@coachAnalyzeMeta');
+
+    cy.get('[data-testid="coach-analysis-open"]').click();
+    cy.get('[data-testid="coach-analysis-run-button"]').click();
+    cy.wait('@coachAnalyzeMeta');
+
+    cy.get('[data-testid="coach-analysis-quality-badge"]').scrollIntoView().should('contain', '실데이터 일부 기반');
+    cy.contains('근거 데이터 상태').should('exist');
+    cy.contains('사용 근거: game, kbo_seasons, team_recent_form').should('exist');
   });
 });

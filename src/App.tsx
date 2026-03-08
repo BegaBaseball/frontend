@@ -239,11 +239,11 @@ export default function App() {
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/leaderboard" element={<LeaderboardPage />} />
                   <Route path="/stadium" element={<StadiumGuide />} />
+                  <Route path="/prediction" element={<Prediction />} />
                   {/* 로그인 필요한 라우트 */}
                   <Route element={<ProtectedRoute />}>
                     <Route path="/mate/:id" element={<MateDetail />} />
                     <Route path="/mate" element={<Mate />} />
-                    <Route path="/prediction" element={<Prediction />} />
                     <Route path="/cheer/bookmarks" element={<CheerBookmarks />} />
                     <Route path="/cheer/edit/:postId" element={<CheerEdit />} />
                     <Route path="/mate/create" element={<MateCreate />} />

@@ -1,7 +1,7 @@
 import { AxiosError } from 'axios';
 import { ApiError } from './api';
 
-export type ErrorType = 'AUTH' | 'PERMISSION' | 'NOT_FOUND' | 'SERVER' | 'NETWORK' | 'UNKNOWN';
+export type ErrorType = 'AUTH' | 'PERMISSION' | 'NOT_FOUND' | 'RATE_LIMIT' | 'CONFLICT' | 'SERVER' | 'NETWORK' | 'UNKNOWN';
 
 export interface ParsedError {
     type: ErrorType;
@@ -49,6 +49,24 @@ export const parseError = (error: unknown): ParsedError => {
                 responseCode,
                 message: serverMessage || '요청한 정보를 찾을 수 없습니다.',
                 statusCode: 404,
+            };
+        }
+
+        if (code === 409) {
+            return {
+                type: 'CONFLICT',
+                responseCode,
+                message: serverMessage || '이미 처리된 요청입니다.',
+                statusCode: 409,
+            };
+        }
+
+        if (code === 429) {
+            return {
+                type: 'RATE_LIMIT',
+                responseCode,
+                message: serverMessage || '너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.',
+                statusCode: 429,
             };
         }
 
@@ -111,6 +129,24 @@ export const parseError = (error: unknown): ParsedError => {
                 responseCode,
                 message: serverMessage || '요청한 정보를 찾을 수 없습니다.',
                 statusCode: 404,
+            };
+        }
+
+        if (code === 409) {
+            return {
+                type: 'CONFLICT',
+                responseCode,
+                message: typeof serverMessage === 'string' && serverMessage ? serverMessage : '이미 처리된 요청입니다.',
+                statusCode: 409,
+            };
+        }
+
+        if (code === 429) {
+            return {
+                type: 'RATE_LIMIT',
+                responseCode,
+                message: typeof serverMessage === 'string' && serverMessage ? serverMessage : '너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.',
+                statusCode: 429,
             };
         }
 

@@ -46,42 +46,73 @@ const teamLogoImages: Record<string, string> = {
   '한화': hanwhaLogo,
   'Hanwha': hanwhaLogo,
   BE: hanwhaLogo,
+  hanwha: hanwhaLogo,
+  '한화 이글스': hanwhaLogo,
+  'hanwha eagles': hanwhaLogo,
   KH: kiwoomLogo,
   WO: kiwoomLogo,
   KI: kiwoomLogo,
   '키움': kiwoomLogo,
   'Kiwoom': kiwoomLogo,
   KW: kiwoomLogo,
+  kiwoom: kiwoomLogo,
+  '키움 히어로즈': kiwoomLogo,
+  'kiwoom heroes': kiwoomLogo,
+  'nexen heroes': kiwoomLogo,
   SS: samsungLogo,
   '삼성': samsungLogo,
   'Samsung': samsungLogo,
+  samsung: samsungLogo,
+  'samsung lions': samsungLogo,
+  'samsung 라이온즈': samsungLogo,
+  '삼성 라이온즈': samsungLogo,
   LT: lotteLogo,
   LOT: lotteLogo,
   '롯데': lotteLogo,
   'Lotte': lotteLogo,
   'LOTTE': lotteLogo,
+  lotte: lotteLogo,
+  'lotte giants': lotteLogo,
   DB: doosanLogo,
   OB: doosanLogo,
   DO: doosanLogo,
   '두산': doosanLogo,
   'Doosan': doosanLogo,
+  doosan: doosanLogo,
+  'doosan bears': doosanLogo,
+  '두산 베어스': doosanLogo,
   HT: kiaLogo,
   '기아': kiaLogo,
   'KIA': kiaLogo,
   'Kia': kiaLogo,
+  kia: kiaLogo,
+  'kia tigers': kiaLogo,
+  '기아 타이거즈': kiaLogo,
   SK: ssgLogo,
   SSG: ssgLogo,
   'SSG 랜더스': ssgLogo,
+  ssg: ssgLogo,
+  sk: ssgLogo,
+  'ssg 랜더스': ssgLogo,
+  'ssg 랜더즈': ssgLogo,
+  'ssglanders': ssgLogo,
+  'ssg landers': ssgLogo,
   NX: kiwoomLogo,
   '넥센': kiwoomLogo,
   'NC': ncLogo,
+  nc: ncLogo,
+  'nc dinos': ncLogo,
+  'nc 다이노스': ncLogo,
   MBC: lgLogo,
   'LG': lgLogo,
   'LG 트윈스': lgLogo,
+  lg: lgLogo,
+  'lg twins': lgLogo,
   'KT': ktLogo,
   'KT 위즈': ktLogo,
   'NC 다이노스': ncLogo,
   'kt': ktLogo,
+  'kt wiz': ktLogo,
   '롯데 자이언츠': lotteLogo,
 };
 
@@ -159,6 +190,29 @@ const normalizeTeamLabel = (value?: string | null): string | undefined => {
 
   if (alphaToken) {
     const upperToken = alphaToken.toUpperCase();
+    const candidateCodes = Array.from(new Set([
+      upperToken,
+      upperToken.slice(0, 3),
+      upperToken.slice(0, 2),
+    ].filter((candidate) => candidate.length >= 2)));
+
+    for (const candidateCode of candidateCodes) {
+      const canonicalCode = LEGACY_CODE_TO_CANONICAL[candidateCode] || candidateCode;
+
+      if (teamLogoImages[canonicalCode]) {
+        return canonicalCode;
+      }
+
+      const mappedName = teamIdToName[canonicalCode.toLowerCase()];
+      if (mappedName && teamLogoImages[mappedName]) {
+        return mappedName;
+      }
+    }
+  }
+
+  const embeddedAlphaTokens = normalized.match(/[A-Za-z]{2,10}/g) || [];
+  for (const token of embeddedAlphaTokens) {
+    const upperToken = token.toUpperCase();
     const canonicalCode = LEGACY_CODE_TO_CANONICAL[upperToken] || upperToken;
 
     if (teamLogoImages[canonicalCode]) {
@@ -208,7 +262,7 @@ export const resolveTeamDisplayName = (value?: string | null): string => {
     return CANONICAL_TO_DISPLAY_NAME[canonicalUpper];
   }
 
-  if (trimmed.toUpperCase().startsWith('OB')) {
+  if (trimmed.toUpperCase().includes('OB')) {
     return '두산 베어스';
   }
 

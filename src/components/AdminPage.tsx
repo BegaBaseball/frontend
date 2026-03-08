@@ -2,10 +2,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
-import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X, UserCog, MapPin, Pencil, Plus } from 'lucide-react';
+import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X, UserCog, MapPin, Pencil, Plus, Bot, Sparkles, ClipboardCopy, RefreshCw, FileSearch, Save, Download, FolderOpen } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,8 +38,29 @@ import { useAdminData } from '../hooks/useAdminData';
 import { useAuthStore } from '../store/authStore';
 import { TEAM_DATA } from '../constants/teams';
 import { formatDate, formatGameDate, getTimeAgo } from '../utils/formatters';
-import { createPlace, updatePlace, deletePlace, Place, PlaceFormData } from '../api/admin';
+import {
+  createPlace,
+  updatePlace,
+  deletePlace,
+  draftReleaseDecision,
+  evaluateReleaseDecisionDraft,
+  fetchReleaseDecisionArtifactDetail,
+  fetchReleaseDecisionArtifacts,
+  fetchReleaseDecisionEvalCases,
+  fetchReleaseDecisionPresets,
+  saveReleaseDecisionArtifact,
+  Place,
+  PlaceFormData,
+} from '../api/admin';
 import { getApiBaseUrl } from '../api/apiBase';
+import type {
+  ReleaseDecisionArtifactRecord,
+  ReleaseDecisionArtifactSummary,
+  ReleaseDecisionDraftResponse,
+  ReleaseDecisionEvalCase,
+  ReleaseDecisionEvaluateResponse,
+  ReleaseDecisionPreset,
+} from '../types/admin';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -77,6 +99,41 @@ const emptyForm = (): PlaceFormData => ({
   openTime: '',
   closeTime: '',
 });
+
+const parseMultilineEntries = (value: string): string[] =>
+  value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const downloadTextFile = (filename: string, content: string, mimeType: string) => {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const decisionBadgeClass: Record<'GO' | 'NO_GO' | 'PENDING', string> = {
+  GO: 'bg-emerald-500/20 text-emerald-300 border-0',
+  NO_GO: 'bg-red-500/20 text-red-300 border-0',
+  PENDING: 'bg-amber-500/20 text-amber-300 border-0',
+};
+
+const confidenceBadgeClass: Record<'low' | 'medium' | 'high', string> = {
+  low: 'bg-slate-700 text-slate-300 border-0',
+  medium: 'bg-sky-500/20 text-sky-300 border-0',
+  high: 'bg-violet-500/20 text-violet-300 border-0',
+};
+
+const evalStatusBadgeClass: Record<'PASS' | 'FAIL', string> = {
+  PASS: 'bg-emerald-500/20 text-emerald-300 border-0',
+  FAIL: 'bg-red-500/20 text-red-300 border-0',
+};
 
 // Animated counter component
 function AnimatedNumber({ value, duration = 1000 }: { value: number; duration?: number }) {
@@ -243,6 +300,35 @@ export default function AdminPage() {
   const [placesLoading, setPlacesLoading] = useState(false);
   const [stadiumError, setStadiumError] = useState<string | null>(null);
 
+  // ─── AI release decision state ───────────────────────────────────────────
+  const [releasePresets, setReleasePresets] = useState<ReleaseDecisionPreset[]>([]);
+  const [releasePresetsLoading, setReleasePresetsLoading] = useState(false);
+  const [releaseSelectedScenario, setReleaseSelectedScenario] = useState('');
+  const [releaseTaskPrompt, setReleaseTaskPrompt] = useState('');
+  const [releaseSeedPathsInput, setReleaseSeedPathsInput] = useState('');
+  const [releaseAllowedRootsInput, setReleaseAllowedRootsInput] = useState('');
+  const [releaseDraftResult, setReleaseDraftResult] = useState<ReleaseDecisionDraftResponse | null>(null);
+  const [releaseDraftLoading, setReleaseDraftLoading] = useState(false);
+  const [releaseDraftError, setReleaseDraftError] = useState<string | null>(null);
+  const [releaseCopyState, setReleaseCopyState] = useState<'idle' | 'done' | 'error'>('idle');
+  const [releaseEvalCases, setReleaseEvalCases] = useState<ReleaseDecisionEvalCase[]>([]);
+  const [releaseEvalCasesLoading, setReleaseEvalCasesLoading] = useState(false);
+  const [releaseSelectedCaseId, setReleaseSelectedCaseId] = useState('');
+  const [releaseEvaluationResult, setReleaseEvaluationResult] = useState<ReleaseDecisionEvaluateResponse | null>(null);
+  const [releaseEvaluationLoading, setReleaseEvaluationLoading] = useState(false);
+  const [releaseEvaluationError, setReleaseEvaluationError] = useState<string | null>(null);
+  const [releaseArtifacts, setReleaseArtifacts] = useState<ReleaseDecisionArtifactSummary[]>([]);
+  const [releaseArtifactsLoading, setReleaseArtifactsLoading] = useState(false);
+  const [releaseArtifactsError, setReleaseArtifactsError] = useState<string | null>(null);
+  const [releaseLoadedArtifact, setReleaseLoadedArtifact] = useState<ReleaseDecisionArtifactRecord | null>(null);
+  const [releaseSaveLoading, setReleaseSaveLoading] = useState(false);
+  const [releaseSaveMessage, setReleaseSaveMessage] = useState<string | null>(null);
+  const [releaseSaveError, setReleaseSaveError] = useState<string | null>(null);
+  const [releaseArtifactAction, setReleaseArtifactAction] = useState<{
+    artifactId: string;
+    mode: 'load' | 'markdown' | 'json';
+  } | null>(null);
+
   // Dialog state: null = closed, 'create' = adding, Place = editing
   const [placeDialog, setPlaceDialog] = useState<null | 'create' | Place>(null);
   const [placeForm, setPlaceForm] = useState<PlaceFormData>(emptyForm());
@@ -250,6 +336,10 @@ export default function AdminPage() {
 
   // AlertDialog for delete confirmation
   const [deletingPlaceId, setDeletingPlaceId] = useState<number | null>(null);
+
+  const selectedReleasePreset = releasePresets.find((preset) => preset.scenario === releaseSelectedScenario) ?? null;
+  const releaseScenarioEvalCases = releaseEvalCases.filter((item) => item.scenario === releaseSelectedScenario);
+  const releaseScenarioArtifacts = releaseArtifacts.filter((item) => item.scenario === releaseSelectedScenario);
 
   // Load stadiums once on mount
   useEffect(() => {
@@ -285,6 +375,245 @@ export default function AdminPage() {
   useEffect(() => {
     if (selectedStadiumId) loadPlaces(selectedStadiumId);
   }, [selectedStadiumId, loadPlaces]);
+
+  const loadReleasePresets = useCallback(async () => {
+    setReleasePresetsLoading(true);
+    setReleaseDraftError(null);
+    try {
+      const presets = await fetchReleaseDecisionPresets();
+      setReleasePresets(presets);
+      if (!releaseSelectedScenario && presets.length > 0) {
+        setReleaseSelectedScenario(presets[0].scenario);
+        setReleaseTaskPrompt(presets[0].task_prompt);
+      }
+    } catch (err) {
+      setReleaseDraftError(err instanceof Error ? err.message : 'AI 운영 프리셋을 불러오지 못했습니다.');
+    } finally {
+      setReleasePresetsLoading(false);
+    }
+  }, [releaseSelectedScenario]);
+
+  const loadReleaseEvalCases = useCallback(async () => {
+    setReleaseEvalCasesLoading(true);
+    setReleaseEvaluationError(null);
+    try {
+      const cases = await fetchReleaseDecisionEvalCases();
+      setReleaseEvalCases(cases);
+    } catch (err) {
+      setReleaseEvaluationError(err instanceof Error ? err.message : 'AI 평가 케이스를 불러오지 못했습니다.');
+    } finally {
+      setReleaseEvalCasesLoading(false);
+    }
+  }, []);
+
+  const loadReleaseArtifacts = useCallback(async () => {
+    setReleaseArtifactsLoading(true);
+    setReleaseArtifactsError(null);
+    try {
+      const artifacts = await fetchReleaseDecisionArtifacts();
+      setReleaseArtifacts(artifacts);
+    } catch (err) {
+      setReleaseArtifactsError(err instanceof Error ? err.message : 'AI 아티팩트 목록을 불러오지 못했습니다.');
+    } finally {
+      setReleaseArtifactsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'ai' && releasePresets.length === 0 && !releasePresetsLoading) {
+      loadReleasePresets();
+    }
+    if (activeTab === 'ai' && releaseEvalCases.length === 0 && !releaseEvalCasesLoading) {
+      loadReleaseEvalCases();
+    }
+    if (activeTab === 'ai' && releaseArtifacts.length === 0 && !releaseArtifactsLoading) {
+      loadReleaseArtifacts();
+    }
+  }, [activeTab, loadReleaseArtifacts, loadReleaseEvalCases, loadReleasePresets, releaseArtifacts.length, releaseArtifactsLoading, releaseEvalCases.length, releaseEvalCasesLoading, releasePresets.length, releasePresetsLoading]);
+
+  useEffect(() => {
+    if (releaseScenarioEvalCases.length === 0) {
+      setReleaseSelectedCaseId('');
+      return;
+    }
+    if (!releaseScenarioEvalCases.some((item) => item.case_id === releaseSelectedCaseId)) {
+      setReleaseSelectedCaseId(releaseScenarioEvalCases[0].case_id);
+    }
+  }, [releaseScenarioEvalCases, releaseSelectedCaseId]);
+
+  const handleReleaseScenarioChange = (scenario: string) => {
+    setReleaseSelectedScenario(scenario);
+    const nextPreset = releasePresets.find((preset) => preset.scenario === scenario);
+    setReleaseTaskPrompt(nextPreset?.task_prompt ?? '');
+    setReleaseDraftResult(null);
+    setReleaseEvaluationResult(null);
+    setReleaseEvaluationError(null);
+    setReleaseDraftError(null);
+    setReleaseLoadedArtifact(null);
+    setReleaseSaveMessage(null);
+    setReleaseSaveError(null);
+    setReleaseCopyState('idle');
+  };
+
+  const handleReleaseDraftGenerate = async () => {
+    if (!releaseSelectedScenario) {
+      setReleaseDraftError('시나리오를 먼저 선택하세요.');
+      return;
+    }
+
+    setReleaseDraftLoading(true);
+    setReleaseDraftError(null);
+    setReleaseCopyState('idle');
+
+    try {
+      const result = await draftReleaseDecision({
+        scenario: releaseSelectedScenario,
+        task_prompt: releaseTaskPrompt.trim() || undefined,
+        seed_paths: parseMultilineEntries(releaseSeedPathsInput),
+        allowed_roots: parseMultilineEntries(releaseAllowedRootsInput),
+      });
+      setReleaseDraftResult(result);
+      setReleaseEvaluationResult(null);
+      setReleaseEvaluationError(null);
+      setReleaseLoadedArtifact(null);
+      setReleaseSaveMessage(null);
+      setReleaseSaveError(null);
+    } catch (err) {
+      setReleaseDraftError(err instanceof Error ? err.message : 'AI 초안 생성에 실패했습니다.');
+    } finally {
+      setReleaseDraftLoading(false);
+    }
+  };
+
+  const handleReleaseMarkdownCopy = async () => {
+    if (!releaseDraftResult?.markdown) {
+      return;
+    }
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('clipboard-unavailable');
+      }
+      await navigator.clipboard.writeText(releaseDraftResult.markdown);
+      setReleaseCopyState('done');
+    } catch {
+      setReleaseCopyState('error');
+    }
+  };
+
+  const applyLoadedArtifact = useCallback((artifact: ReleaseDecisionArtifactRecord) => {
+    setReleaseSelectedScenario(artifact.scenario);
+    setReleaseTaskPrompt(artifact.task_prompt ?? '');
+    setReleaseSeedPathsInput(artifact.seed_paths.join('\n'));
+    setReleaseAllowedRootsInput(artifact.allowed_roots.join('\n'));
+    setReleaseDraftResult({
+      result: artifact.draft_response,
+      markdown: artifact.markdown,
+    });
+    setReleaseEvaluationResult(artifact.evaluation ?? null);
+    setReleaseLoadedArtifact(artifact);
+    setReleaseCopyState('idle');
+    setReleaseSaveError(null);
+    setReleaseDraftError(null);
+  }, []);
+
+  const handleReleaseSave = async () => {
+    if (!releaseDraftResult) {
+      setReleaseSaveError('저장할 초안을 먼저 생성하세요.');
+      return;
+    }
+
+    setReleaseSaveLoading(true);
+    setReleaseSaveError(null);
+    setReleaseSaveMessage(null);
+
+    try {
+      const summary = await saveReleaseDecisionArtifact({
+        scenario: releaseSelectedScenario,
+        task_prompt: releaseTaskPrompt.trim() || undefined,
+        seed_paths: parseMultilineEntries(releaseSeedPathsInput),
+        allowed_roots: parseMultilineEntries(releaseAllowedRootsInput),
+        draft_response: releaseDraftResult.result,
+        markdown: releaseDraftResult.markdown,
+        evaluation: releaseEvaluationResult ?? null,
+      });
+      const detail = await fetchReleaseDecisionArtifactDetail(summary.artifact_id);
+      applyLoadedArtifact(detail);
+      await loadReleaseArtifacts();
+      setReleaseSaveMessage(`아티팩트가 저장되었습니다: ${summary.artifact_id}`);
+    } catch (err) {
+      setReleaseSaveError(err instanceof Error ? err.message : 'AI 아티팩트 저장에 실패했습니다.');
+    } finally {
+      setReleaseSaveLoading(false);
+    }
+  };
+
+  const handleReleaseEvaluate = async () => {
+    if (!releaseDraftResult?.result?.draft) {
+      setReleaseEvaluationError('평가할 초안을 먼저 생성하세요.');
+      return;
+    }
+    if (!releaseSelectedCaseId) {
+      setReleaseEvaluationError('평가 케이스를 먼저 선택하세요.');
+      return;
+    }
+
+    setReleaseEvaluationLoading(true);
+    setReleaseEvaluationError(null);
+
+    try {
+      const evaluation = await evaluateReleaseDecisionDraft({
+        case_id: releaseSelectedCaseId,
+        draft: releaseDraftResult.result.draft,
+      });
+      setReleaseEvaluationResult(evaluation);
+    } catch (err) {
+      setReleaseEvaluationError(err instanceof Error ? err.message : 'AI 평가 실행에 실패했습니다.');
+    } finally {
+      setReleaseEvaluationLoading(false);
+    }
+  };
+
+  const handleReleaseArtifactLoad = async (artifactId: string) => {
+    setReleaseArtifactAction({ artifactId, mode: 'load' });
+    setReleaseArtifactsError(null);
+    try {
+      const detail = await fetchReleaseDecisionArtifactDetail(artifactId);
+      applyLoadedArtifact(detail);
+      setReleaseSaveMessage(`저장된 아티팩트를 불러왔습니다: ${artifactId}`);
+      if (detail.evaluation?.case?.case_id) {
+        setReleaseSelectedCaseId(detail.evaluation.case.case_id);
+      }
+    } catch (err) {
+      setReleaseArtifactsError(err instanceof Error ? err.message : 'AI 아티팩트 불러오기에 실패했습니다.');
+    } finally {
+      setReleaseArtifactAction(null);
+    }
+  };
+
+  const handleReleaseArtifactDownload = async (
+    artifactId: string,
+    mode: 'markdown' | 'json'
+  ) => {
+    setReleaseArtifactAction({ artifactId, mode });
+    setReleaseArtifactsError(null);
+    try {
+      const detail = await fetchReleaseDecisionArtifactDetail(artifactId);
+      if (mode === 'markdown') {
+        downloadTextFile(`${artifactId}.md`, detail.markdown, 'text/markdown;charset=utf-8');
+      } else {
+        downloadTextFile(
+          `${artifactId}.json`,
+          `${JSON.stringify(detail, null, 2)}\n`,
+          'application/json;charset=utf-8'
+        );
+      }
+    } catch (err) {
+      setReleaseArtifactsError(err instanceof Error ? err.message : 'AI 아티팩트 다운로드에 실패했습니다.');
+    } finally {
+      setReleaseArtifactAction(null);
+    }
+  };
 
   // Open create dialog
   const openCreateDialog = () => {
@@ -440,7 +769,7 @@ export default function AdminPage() {
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="border-b border-slate-800 px-6 pt-6">
-              <TabsList className="grid w-full max-w-3xl grid-cols-5 bg-slate-800/50 p-1 rounded-xl">
+              <TabsList className="grid w-full max-w-5xl grid-cols-6 bg-slate-800/50 p-1 rounded-xl">
                 <TabsTrigger
                   value="users"
                   className="rounded-lg data-[state=active]:bg-amber-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/25 transition-all duration-300"
@@ -475,6 +804,13 @@ export default function AdminPage() {
                 >
                   <MapPin className="w-4 h-4 mr-2" />
                   구장
+                </TabsTrigger>
+                <TabsTrigger
+                  value="ai"
+                  className="rounded-lg data-[state=active]:bg-fuchsia-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-fuchsia-500/25 transition-all duration-300"
+                >
+                  <Bot className="w-4 h-4 mr-2" />
+                  AI 운영
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -1137,6 +1473,549 @@ export default function AdminPage() {
                   </Table>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="ai" className="p-6">
+              <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+                <div className="space-y-6">
+                  <div className="rounded-2xl border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-500/10 via-slate-900 to-slate-900 p-5 shadow-lg shadow-fuchsia-500/10">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-fuchsia-300" />
+                          릴리즈 결정 초안 생성
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-400">
+                          운영 문서만 읽어 `GO / NO_GO / PENDING` 초안을 만듭니다.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={loadReleasePresets}
+                        disabled={releasePresetsLoading}
+                        className="text-slate-300 hover:bg-fuchsia-500/10 hover:text-fuchsia-200"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${releasePresetsLoading ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
+
+                    <div className="mt-5 space-y-4">
+                      <div className="grid gap-1.5">
+                        <label className="text-sm text-slate-400">시나리오</label>
+                        <Select
+                          value={releaseSelectedScenario}
+                          onValueChange={handleReleaseScenarioChange}
+                          disabled={releasePresetsLoading || releasePresets.length === 0}
+                        >
+                          <SelectTrigger className="bg-slate-800/60 border-slate-700 text-slate-100 rounded-xl">
+                            <SelectValue placeholder={releasePresetsLoading ? '프리셋 로딩 중...' : '시나리오 선택'} />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
+                            {releasePresets.map((preset) => (
+                              <SelectItem
+                                key={preset.scenario}
+                                value={preset.scenario}
+                                className="focus:bg-slate-700 focus:text-white"
+                              >
+                                {preset.scenario}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid gap-1.5">
+                        <label className="text-sm text-slate-400">작업 프롬프트</label>
+                        <Textarea
+                          value={releaseTaskPrompt}
+                          onChange={(e) => setReleaseTaskPrompt(e.target.value)}
+                          rows={5}
+                          placeholder="프리셋 프롬프트를 덮어쓸 수 있습니다."
+                          className="bg-slate-800/60 border-slate-700 text-slate-100 placeholder:text-slate-500"
+                        />
+                      </div>
+
+                      <div className="grid gap-1.5">
+                        <label className="text-sm text-slate-400">추가 seed path (줄바꿈)</label>
+                        <Textarea
+                          value={releaseSeedPathsInput}
+                          onChange={(e) => setReleaseSeedPathsInput(e.target.value)}
+                          rows={4}
+                          placeholder={'docs/qa/custom-note.md\nreports/custom-summary.json'}
+                          className="bg-slate-800/60 border-slate-700 text-slate-100 placeholder:text-slate-500"
+                        />
+                      </div>
+
+                      <div className="grid gap-1.5">
+                        <label className="text-sm text-slate-400">추가 allowed root (줄바꿈)</label>
+                        <Textarea
+                          value={releaseAllowedRootsInput}
+                          onChange={(e) => setReleaseAllowedRootsInput(e.target.value)}
+                          rows={3}
+                          placeholder={'docs/qa\nreports'}
+                          className="bg-slate-800/60 border-slate-700 text-slate-100 placeholder:text-slate-500"
+                        />
+                      </div>
+
+                      <Button
+                        type="button"
+                        onClick={handleReleaseDraftGenerate}
+                        disabled={releaseDraftLoading || releasePresetsLoading || !releaseSelectedScenario}
+                        className="w-full bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white hover:from-fuchsia-600 hover:to-pink-700 shadow-lg shadow-fuchsia-500/20"
+                      >
+                        {releaseDraftLoading ? '초안 생성 중...' : 'AI 초안 생성'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                    <div className="flex items-center gap-2 text-white">
+                      <FileSearch className="w-4 h-4 text-fuchsia-300" />
+                      <h4 className="font-medium">현재 프리셋 문서 범위</h4>
+                    </div>
+                    {selectedReleasePreset ? (
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-500">Seed Paths</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {selectedReleasePreset.seed_paths.map((path) => (
+                              <Badge key={path} className="bg-slate-800 text-slate-300 border-slate-700">
+                                {path}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-500">Allowed Roots</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {selectedReleasePreset.allowed_roots.map((path) => (
+                              <Badge key={path} className="bg-fuchsia-500/10 text-fuchsia-200 border-fuchsia-500/20">
+                                {path}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-sm text-slate-500">시나리오를 선택하면 기본 문서 범위가 표시됩니다.</p>
+                    )}
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="font-medium text-white flex items-center gap-2">
+                          <Activity className="w-4 h-4 text-emerald-300" />
+                          Deterministic Eval
+                        </h4>
+                        <p className="mt-1 text-sm text-slate-500">
+                          현재 초안을 로컬 채점 규칙으로 검증합니다.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={loadReleaseEvalCases}
+                        disabled={releaseEvalCasesLoading}
+                        className="text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-200"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${releaseEvalCasesLoading ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+                      <div className="grid gap-1.5">
+                        <label className="text-sm text-slate-400">평가 케이스</label>
+                        <Select
+                          value={releaseSelectedCaseId}
+                          onValueChange={(value) => {
+                            setReleaseSelectedCaseId(value);
+                            setReleaseEvaluationResult(null);
+                            setReleaseEvaluationError(null);
+                          }}
+                          disabled={releaseEvalCasesLoading || releaseScenarioEvalCases.length === 0}
+                        >
+                          <SelectTrigger className="bg-slate-800/60 border-slate-700 text-slate-100 rounded-xl">
+                            <SelectValue
+                              placeholder={
+                                releaseEvalCasesLoading
+                                  ? '평가 케이스 로딩 중...'
+                                  : releaseScenarioEvalCases.length === 0
+                                    ? '시나리오용 케이스 없음'
+                                    : '평가 케이스 선택'
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
+                            {releaseScenarioEvalCases.map((item) => (
+                              <SelectItem
+                                key={item.case_id}
+                                value={item.case_id}
+                                className="focus:bg-slate-700 focus:text-white"
+                              >
+                                {item.case_id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {releaseSelectedCaseId && (
+                        <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+                          <p className="text-xs uppercase tracking-wide text-slate-500">Expected Decision</p>
+                          <div className="mt-2 flex items-center gap-2">
+                            <Badge className={decisionBadgeClass[releaseScenarioEvalCases.find((item) => item.case_id === releaseSelectedCaseId)?.expected_decision ?? 'PENDING']}>
+                              {releaseScenarioEvalCases.find((item) => item.case_id === releaseSelectedCaseId)?.expected_decision}
+                            </Badge>
+                          </div>
+                          <p className="mt-4 text-xs uppercase tracking-wide text-slate-500">Required Keywords</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {(releaseScenarioEvalCases.find((item) => item.case_id === releaseSelectedCaseId)?.required_keywords ?? []).map((item) => (
+                              <Badge key={item} className="bg-slate-800 text-slate-300 border-slate-700">
+                                {item}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <Button
+                        type="button"
+                        onClick={handleReleaseEvaluate}
+                        disabled={releaseEvaluationLoading || !releaseDraftResult || !releaseSelectedCaseId}
+                        className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20"
+                      >
+                        {releaseEvaluationLoading ? '평가 실행 중...' : '현재 초안 평가'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="font-medium text-white flex items-center gap-2">
+                          <Save className="w-4 h-4 text-sky-300" />
+                          저장된 아티팩트
+                        </h4>
+                        <p className="mt-1 text-sm text-slate-500">
+                          현재 시나리오 기준으로 수동 저장한 초안 이력입니다.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={loadReleaseArtifacts}
+                        disabled={releaseArtifactsLoading}
+                        className="text-slate-300 hover:bg-sky-500/10 hover:text-sky-200"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${releaseArtifactsLoading ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      {releaseArtifactsLoading ? (
+                        <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-5 text-sm text-slate-500">
+                          저장된 아티팩트 목록을 불러오는 중입니다.
+                        </div>
+                      ) : releaseScenarioArtifacts.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/70 px-4 py-5 text-sm text-slate-500">
+                          현재 시나리오에 저장된 아티팩트가 없습니다.
+                        </div>
+                      ) : (
+                        releaseScenarioArtifacts.map((artifact) => {
+                          const isBusy = releaseArtifactAction?.artifactId === artifact.artifact_id;
+                          const isLoaded = releaseLoadedArtifact?.artifact_id === artifact.artifact_id;
+                          return (
+                            <div
+                              key={artifact.artifact_id}
+                              className={`rounded-xl border px-4 py-4 ${isLoaded ? 'border-sky-500/30 bg-sky-500/5' : 'border-slate-800 bg-slate-950/70'}`}
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge className={decisionBadgeClass[artifact.decision]}>
+                                  {artifact.decision}
+                                </Badge>
+                                {artifact.eval_status ? (
+                                  <Badge className={evalStatusBadgeClass[artifact.eval_status]}>
+                                    {artifact.eval_status}
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-slate-700 text-slate-300 border-0">
+                                    eval 없음
+                                  </Badge>
+                                )}
+                                <span className="text-xs text-slate-500">
+                                  {new Date(artifact.saved_at_utc).toLocaleString('ko-KR')}
+                                </span>
+                              </div>
+                              <p className="mt-2 break-all text-sm font-medium text-white">{artifact.artifact_id}</p>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => handleReleaseArtifactLoad(artifact.artifact_id)}
+                                  disabled={isBusy}
+                                  className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+                                >
+                                  <FolderOpen className="w-4 h-4 mr-2" />
+                                  {isBusy && releaseArtifactAction?.mode === 'load' ? '불러오는 중...' : '불러오기'}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => handleReleaseArtifactDownload(artifact.artifact_id, 'markdown')}
+                                  disabled={isBusy}
+                                  className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  MD 다운로드
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => handleReleaseArtifactDownload(artifact.artifact_id, 'json')}
+                                  disabled={isBusy}
+                                  className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  JSON 다운로드
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {releaseDraftError && (
+                    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+                      {releaseDraftError}
+                    </div>
+                  )}
+                  {releaseEvaluationError && (
+                    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+                      {releaseEvaluationError}
+                    </div>
+                  )}
+                  {releaseSaveError && (
+                    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+                      {releaseSaveError}
+                    </div>
+                  )}
+                  {releaseArtifactsError && (
+                    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+                      {releaseArtifactsError}
+                    </div>
+                  )}
+                  {releaseSaveMessage && (
+                    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-300">
+                      {releaseSaveMessage}
+                    </div>
+                  )}
+
+                  {releaseDraftResult ? (
+                    <>
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                          <p className="text-xs uppercase tracking-wide text-slate-500">Decision</p>
+                          <div className="mt-3 flex items-center gap-2">
+                            <Badge className={decisionBadgeClass[releaseDraftResult.result.draft.decision]}>
+                              {releaseDraftResult.result.draft.decision}
+                            </Badge>
+                            <Badge className={confidenceBadgeClass[releaseDraftResult.result.draft.confidence]}>
+                              {releaseDraftResult.result.draft.confidence}
+                            </Badge>
+                          </div>
+                          <p className="mt-4 text-sm text-slate-300">{releaseDraftResult.result.draft.title}</p>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                          <p className="text-xs uppercase tracking-wide text-slate-500">Scenario</p>
+                          <p className="mt-3 text-sm font-medium text-white">{releaseDraftResult.result.scenario}</p>
+                          <p className="mt-2 text-xs text-slate-500">model: {releaseDraftResult.result.model}</p>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                          <p className="text-xs uppercase tracking-wide text-slate-500">Evidence</p>
+                          <p className="mt-3 text-2xl font-semibold text-fuchsia-200">
+                            {releaseDraftResult.result.draft.evidence.length}
+                          </p>
+                          <p className="mt-2 text-xs text-slate-500">
+                            generated: {new Date(releaseDraftResult.result.generated_at_utc).toLocaleString('ko-KR')}
+                          </p>
+                          {releaseLoadedArtifact?.artifact_id && (
+                            <p className="mt-2 break-all text-xs text-sky-300">
+                              loaded: {releaseLoadedArtifact.artifact_id}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {releaseEvaluationResult && (
+                        <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                          <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <h4 className="text-base font-semibold text-white">Eval Result</h4>
+                                <p className="mt-1 text-sm text-slate-500">
+                                  case: {releaseEvaluationResult.case.case_id}
+                                </p>
+                              </div>
+                              <Badge className={evalStatusBadgeClass[releaseEvaluationResult.evaluation.status]}>
+                                {releaseEvaluationResult.evaluation.status}
+                              </Badge>
+                            </div>
+                            <div className="mt-4 flex items-center gap-2">
+                              <Badge className={decisionBadgeClass[releaseEvaluationResult.case.expected_decision]}>
+                                expected {releaseEvaluationResult.case.expected_decision}
+                              </Badge>
+                              <Badge className={releaseEvaluationResult.evaluation.decision_ok ? evalStatusBadgeClass.PASS : evalStatusBadgeClass.FAIL}>
+                                decision {releaseEvaluationResult.evaluation.decision_ok ? 'ok' : 'mismatch'}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                              <h4 className="text-base font-semibold text-white">Missing Keywords</h4>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {(releaseEvaluationResult.evaluation.missing_keywords.length
+                                  ? releaseEvaluationResult.evaluation.missing_keywords
+                                  : ['없음']).map((item) => (
+                                  <Badge
+                                    key={item}
+                                    className={
+                                      item === '없음'
+                                        ? 'bg-emerald-500/10 text-emerald-200 border-emerald-500/20'
+                                        : 'bg-red-500/10 text-red-200 border-red-500/20'
+                                    }
+                                  >
+                                    {item}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                              <h4 className="text-base font-semibold text-white">Missing Sources</h4>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {(releaseEvaluationResult.evaluation.missing_sources.length
+                                  ? releaseEvaluationResult.evaluation.missing_sources
+                                  : ['없음']).map((item) => (
+                                  <Badge
+                                    key={item}
+                                    className={
+                                      item === '없음'
+                                        ? 'bg-emerald-500/10 text-emerald-200 border-emerald-500/20'
+                                        : 'bg-red-500/10 text-red-200 border-red-500/20'
+                                    }
+                                  >
+                                    {item}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <h4 className="text-base font-semibold text-white">Markdown Draft</h4>
+                              <p className="mt-1 text-sm text-slate-500">운영 문서에 바로 붙일 수 있는 초안입니다.</p>
+                            </div>
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleReleaseMarkdownCopy}
+                                className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+                              >
+                                <ClipboardCopy className="w-4 h-4 mr-2" />
+                                {releaseCopyState === 'done' ? '복사됨' : releaseCopyState === 'error' ? '복사 실패' : '복사'}
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={handleReleaseSave}
+                                disabled={releaseSaveLoading}
+                                className="bg-gradient-to-r from-sky-500 to-cyan-600 text-white hover:from-sky-600 hover:to-cyan-700 shadow-lg shadow-sky-500/20"
+                              >
+                                <Save className="w-4 h-4 mr-2" />
+                                {releaseSaveLoading ? '저장 중...' : '저장'}
+                              </Button>
+                            </div>
+                          </div>
+                          <pre className="mt-4 max-h-[520px] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-800 bg-slate-950/80 p-4 text-sm leading-6 text-slate-200">
+                            {releaseDraftResult.markdown}
+                          </pre>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                            <h4 className="text-base font-semibold text-white">Summary</h4>
+                            <p className="mt-3 text-sm leading-6 text-slate-300">
+                              {releaseDraftResult.result.draft.summary}
+                            </p>
+                          </div>
+
+                          <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                            <h4 className="text-base font-semibold text-white">Blockers</h4>
+                            <div className="mt-3 space-y-2">
+                              {(releaseDraftResult.result.draft.blockers.length ? releaseDraftResult.result.draft.blockers : ['없음']).map((item) => (
+                                <div key={item} className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-sm text-slate-300">
+                                  {item}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                            <h4 className="text-base font-semibold text-white">Next Actions</h4>
+                            <div className="mt-3 space-y-2">
+                              {(releaseDraftResult.result.draft.next_actions.length ? releaseDraftResult.result.draft.next_actions : ['없음']).map((item) => (
+                                <div key={item} className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-sm text-slate-300">
+                                  {item}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
+                        <h4 className="text-base font-semibold text-white">Evidence</h4>
+                        <div className="mt-4 grid gap-3">
+                          {releaseDraftResult.result.draft.evidence.map((item, index) => (
+                            <div key={`${item.source}-${index}`} className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge className="bg-fuchsia-500/10 text-fuchsia-200 border-fuchsia-500/20">
+                                  {item.source}
+                                </Badge>
+                              </div>
+                              <p className="mt-3 text-sm font-medium text-white">{item.claim}</p>
+                              <p className="mt-2 text-sm leading-6 text-slate-400">{item.excerpt}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/60 p-10 text-center">
+                      <Bot className="h-12 w-12 text-fuchsia-300" />
+                      <h3 className="mt-4 text-lg font-semibold text-white">AI 운영 초안 대기 중</h3>
+                      <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+                        왼쪽에서 시나리오를 선택하고 초안을 생성하면 `GO / NO_GO / PENDING` 결정,
+                        근거 문서, 후속 작업이 여기 표시됩니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </TabsContent>
 
           </Tabs>

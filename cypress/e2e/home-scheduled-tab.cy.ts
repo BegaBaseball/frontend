@@ -84,6 +84,23 @@ describe('Home scheduled tab', () => {
         awayScore: 1,
       },
     ],
+    '2026-02-14': [
+      {
+        gameId: '20260214KIASS0',
+        time: '18:30',
+        stadium: '광주구장',
+        gameStatus: null,
+        gameStatusKr: '정보 없음',
+        gameInfo: '',
+        leagueType: 'REGULAR',
+        homeTeam: 'KIA',
+        homeTeamFull: 'KIA 타이거즈',
+        awayTeam: 'SS',
+        awayTeamFull: '삼성 라이온즈',
+        homeScore: null,
+        awayScore: null,
+      },
+    ],
   };
 
   beforeEach(() => {
@@ -188,6 +205,7 @@ describe('Home scheduled tab', () => {
 
     cy.contains('[data-slot="card"]', 'LG').should('contain.text', '프리시즌');
     cy.contains('[data-slot="card"]', 'NC').should('contain.text', '기타 일정');
+    cy.contains('[data-slot="card"]', 'KIA').should('contain.text', '경기 예정');
 
     cy.get('[data-testid="home-scheduled-secondary-toggle"]')
       .should('have.attr', 'aria-expanded', 'false')
@@ -224,7 +242,7 @@ describe('Home scheduled tab', () => {
     cy.contains('연기/취소 경기가 접혀 있습니다. 펼치기 버튼으로 확인하세요.').should('be.visible');
   });
 
-  it('navigates to prediction using scheduled card CTA with gameId/date query', () => {
+  it('navigates to prediction using scheduled card CTA', () => {
     cy.visit('/home');
 
     cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
@@ -235,9 +253,7 @@ describe('Home scheduled tab', () => {
         cy.contains('승부예측 하러가기').click();
       });
 
-    cy.url().should('include', '/prediction?');
-    cy.url().should('include', 'gameId=20260211LGHH0');
-    cy.url().should('include', 'date=2026-02-11');
+    cy.location('pathname').should('eq', '/prediction');
     cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
 
     cy.contains('전력분석실', { timeout: 15000 }).should('exist');

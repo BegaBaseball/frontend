@@ -7,7 +7,6 @@ import { useChatBot } from '../hooks/useChatBot';
 import { useAuthStore } from '../store/authStore';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useEffect, useRef, useState } from 'react';
-import { useTheme } from 'next-themes';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -56,11 +55,84 @@ interface ChatBotProps {
   onClosed?: () => void;
 }
 
+type TypingPhase = 1 | 2 | 3;
+
+type TypingHintGroup = {
+  category: string;
+  weight: number;
+  texts: string[];
+};
+
+type SelectedTypingHint = {
+  category: string;
+  text: string;
+};
+
+const TYPING_PHASE_HINTS: Record<TypingPhase, TypingHintGroup[]> = {
+  1: [
+    { category: '상황형', weight: 5, texts: ['야구 장면을 정렬하고 있어요. 잠깐만 응답 포인트를 맞추고 있어요.', '핵심 장면을 골라 흐름대로 정리 중이에요.', '요청하신 포인트를 다시 한 번 다듬고 있어요.'] },
+    { category: '신뢰형', weight: 3, texts: ['데이터의 문맥을 정리해 정확한 답변으로 붙들어 넣고 있어요.', '근거 기반 순서로 답안을 정렬하고 있어요.'] },
+    { category: '유머형', weight: 2, texts: ['잠시 타격 준비! 말이 완성될 위치를 잡고 있어요.', '타자처럼 타이밍 맞춰 문장을 준비 중이에요.'] },
+  ],
+  2: [
+    { category: '상황형', weight: 4, texts: ['요청량이 조금 많아요. 더 정확한 답변으로 정리 중이에요.', '많은 구간을 한 번 더 정렬해 응답 품질을 맞추고 있어요.', '동시 처리량이 높아 확인 과정을 늘리고 있어요.'] },
+    { category: '신뢰형', weight: 4, texts: ['실시간 기록을 재확인해 오차를 줄이고 있어요.', '출처와 수치를 다시 매칭해 정합성을 맞추고 있어요.'] },
+    { category: '유머형', weight: 2, texts: ['투구가 조금 빡빡하네요. 추가 교차검증 중이에요.', '방금 전달한 장면을 한 번 더 리플레이하고 있어요.'] },
+  ],
+  3: [
+    { category: '상황형', weight: 5, texts: ['요청이 누적되어 최종 정리 중이에요. 정확도를 최우선으로 처리하고 있어요.', '남은 집계 라인을 마무리해 최종 답변으로 결합 중이에요.', '응답 품질 검수를 마친 뒤 한 번에 전달 준비 중이에요.'] },
+    { category: '신뢰형', weight: 4, texts: ['최종 교차체크를 진행하고 있습니다. 조금만 더 기다려 주세요.', '데이터 정합성 경로를 재확인해 마무리 중입니다.'] },
+    { category: '유머형', weight: 1, texts: ['야구장 점검 중처럼 마지막 정렬 라운드를 돌고 있어요.'] },
+  ],
+};
+
+const TYPING_HINT_REPEAT_HISTORY_COUNT = 2;
+const TYPING_CHAR_INTERVAL_MS = 50;
+const TYPING_RESTART_DELAY_MS = 700;
+const TYPING_HINT_PHASE_2_DELAY_MS = 6000;
+const TYPING_HINT_PHASE_3_DELAY_MS = 11000;
+const TYPING_A11Y_TEXT_BY_PHASE: Record<TypingPhase, string> = {
+  1: '챗봇이 답변을 준비하고 있습니다.',
+  2: '요청량이 많아 응답 정확도 검토 중입니다.',
+  3: '최종 정리를 마무리하고 있어요.',
+};
+
+const pickTypingHint = (phase: TypingPhase, recentHints: string[], previousCategory: string | null): SelectedTypingHint => {
+  const phaseGroups = TYPING_PHASE_HINTS[phase] ?? TYPING_PHASE_HINTS[1];
+  const weightedGroups = phaseGroups.map((group) => ({
+    ...group,
+    effectiveWeight: Math.max(group.weight - (group.category === previousCategory ? 1 : 0), 1),
+  }));
+  const totalWeight = weightedGroups.reduce((acc, group) => acc + group.effectiveWeight, 0);
+  let seed = Math.random() * totalWeight;
+  let selectedIndex = 0;
+
+  for (const group of weightedGroups) {
+    const index = weightedGroups.indexOf(group);
+    seed -= group.effectiveWeight;
+    if (seed <= 0) {
+      selectedIndex = index;
+      break;
+    }
+  }
+
+  const selectedGroup = phaseGroups[selectedIndex];
+  const available = selectedGroup.texts.filter((text) => !recentHints.includes(text));
+  if (available.length > 0) {
+    return {
+      category: selectedGroup.category,
+      text: available[Math.floor(Math.random() * available.length)],
+    };
+  }
+
+  const fallback = selectedGroup.texts[Math.floor(Math.random() * selectedGroup.texts.length)];
+  return { category: selectedGroup.category, text: fallback };
+};
+
 export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
   const { isLoggedIn } = useAuthStore();
   // const isLoggedIn = true;
   const isMobile = useIsMobile();
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const {
     isOpen,
@@ -84,6 +156,10 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
   const [isClosing, setIsClosing] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [expandedToolCalls, setExpandedToolCalls] = useState<Set<number>>(new Set());
+  const [typingPhase, setTypingPhase] = useState<TypingPhase>(1);
+  const [typingText, setTypingText] = useState('');
+  const recentTypingHintsRef = useRef<string[]>([]);
+  const previousTypingCategoryRef = useRef<string | null>(null);
   const isRateLimited = rateLimitActive && rateLimitCountdown > 0;
 
   useEffect(() => {
@@ -189,6 +265,84 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
       }, 10);
     }
   }, [isOpen, isProcessing]);
+
+  useEffect(() => {
+    if (!isTyping) {
+      setTypingPhase(1);
+      recentTypingHintsRef.current = [];
+      previousTypingCategoryRef.current = null;
+      setTypingText('');
+      return;
+    }
+
+    setTypingPhase(1);
+    const mediumDelayTimer = window.setTimeout(() => {
+      setTypingPhase(2);
+    }, TYPING_HINT_PHASE_2_DELAY_MS);
+    const longDelayTimer = window.setTimeout(() => {
+      setTypingPhase(3);
+    }, TYPING_HINT_PHASE_3_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(mediumDelayTimer);
+      window.clearTimeout(longDelayTimer);
+      setTypingPhase(1);
+    };
+  }, [isTyping]);
+
+  useEffect(() => {
+    if (!isTyping) {
+      setTypingText('');
+      return;
+    }
+
+    let typingInterval: ReturnType<typeof setInterval> | null = null;
+    let restartTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearTimers = () => {
+      if (typingInterval) {
+        window.clearInterval(typingInterval);
+        typingInterval = null;
+      }
+      if (restartTimer) {
+        window.clearTimeout(restartTimer);
+        restartTimer = null;
+      }
+    };
+
+    const startTyping = () => {
+      clearTimers();
+      const usedHints = recentTypingHintsRef.current.slice(-TYPING_HINT_REPEAT_HISTORY_COUNT);
+      const selectedHint = pickTypingHint(typingPhase, usedHints, previousTypingCategoryRef.current);
+      const message = selectedHint.text;
+      recentTypingHintsRef.current = [...usedHints, message].slice(-TYPING_HINT_REPEAT_HISTORY_COUNT);
+      previousTypingCategoryRef.current = selectedHint.category;
+      let index = 0;
+      setTypingText('');
+
+      typingInterval = window.setInterval(() => {
+        index += 1;
+        const nextText = message.slice(0, index);
+        setTypingText(nextText);
+
+        if (index >= message.length) {
+          clearTimers();
+          restartTimer = window.setTimeout(() => {
+            if (!isTyping) return;
+            startTyping();
+          }, TYPING_RESTART_DELAY_MS);
+        }
+      }, TYPING_CHAR_INTERVAL_MS);
+    };
+
+    startTyping();
+
+    return () => {
+      clearTimers();
+    };
+  }, [isTyping, typingPhase]);
+
+  const typingLiveText = TYPING_A11Y_TEXT_BY_PHASE[typingPhase];
 
   return (
     <div className="fixed z-[9999]">
@@ -377,12 +531,13 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
                 })}
                 {isTyping && (
                   <div className="flex justify-start">
-                    <div className="py-3 px-4 rounded-2xl bg-gray-100 dark:bg-secondary/80 border border-gray-300 dark:border-white/10">
-                      <div className="flex gap-1">
-                        <span className="w-1.5 h-1.5 bg-gray-500 dark:bg-border rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                        <span className="w-1.5 h-1.5 bg-gray-500 dark:bg-border rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="w-1.5 h-1.5 bg-gray-500 dark:bg-border rounded-full animate-bounce"></span>
-                      </div>
+                    <div className="chatbot-typing-text text-sm text-zinc-500 dark:text-zinc-300 leading-6" aria-live="polite">
+                      <span className="chatbot-baseball h-4 w-4 mr-1 inline-flex items-center justify-center text-[14px] align-top">
+                        ⚾
+                      </span>
+                      <span>{typingText}</span>
+                      <span aria-hidden="true" className="chatbot-typing-cursor">|</span>
+                      <span className="sr-only">{typingLiveText}</span>
                     </div>
                   </div>
                 )}

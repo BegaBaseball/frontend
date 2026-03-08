@@ -1,6 +1,6 @@
 import api from './axios';
 import { parseError } from '../utils/errorUtils';
-import { Game, GameDetail, MatchBounds, UserPredictionStat } from '../types/prediction';
+import { Game, GameDetail, MatchBounds, MatchDayNavigation, UserPredictionStat } from '../types/prediction';
 
 export interface MyVotesRequest {
   gameIds: string[];
@@ -73,6 +73,7 @@ export interface MatchRangePageMeta {
 
 export type MatchRangeResult = ApiResult<Game[] | MatchRangePageMeta>;
 export type GameDetailResult = ApiResult<GameDetail>;
+export type MatchDayResult = ApiResult<MatchDayNavigation>;
 
 export interface FetchOptions {
   signal?: AbortSignal;
@@ -93,6 +94,33 @@ export const fetchMatchBounds = async (): Promise<ApiResult<MatchBounds>> => {
       ok: false,
       error: {
         message: parsed.message || '경기 경계 조회에 실패했습니다.',
+        status: parsed.statusCode,
+        code: parsed.responseCode,
+      },
+    };
+  }
+};
+
+export const fetchMatchesByDay = async (
+  date: string,
+  options: FetchOptions = {}
+): Promise<MatchDayResult> => {
+  try {
+    const params = new URLSearchParams({ date });
+    const response = await api.get<MatchDayNavigation>(`/matches/day?${params}`, {
+      signal: options.signal,
+      skipGlobalErrorHandler: true,
+    });
+    return {
+      ok: true,
+      data: response.data,
+    };
+  } catch (error) {
+    const parsed = parseError(error);
+    return {
+      ok: false,
+      error: {
+        message: parsed.message || '경기일 조회에 실패했습니다.',
         status: parsed.statusCode,
         code: parsed.responseCode,
       },

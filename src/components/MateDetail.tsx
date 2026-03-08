@@ -14,6 +14,12 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
 import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider
+} from './ui/tooltip';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -90,6 +96,7 @@ export default function MateDetail() {
   const [qrSessionError, setQrSessionError] = useState<string | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false); // For Seat View toggle
+  const [showZoneDetails, setShowZoneDetails] = useState(false);
   const [hostAvgRating, setHostAvgRating] = useState<number | null>(null);
   const [showHostProfile, setShowHostProfile] = useState(false);
   const [reviews, setReviews] = useState<PartyReview[]>([]);
@@ -190,8 +197,8 @@ export default function MateDetail() {
     const directTrade = isDirectTradeMode();
     const confirmMessage = directTrade
       ? (isApproved
-        ? '참여를 취소하시겠습니까?\n\n직거래는 당사자 간 결제 방식이며 플랫폼 환불/예치가 적용되지 않습니다.\n취소는 경기 하루 전까지만 가능합니다.'
-        : '신청을 취소하시겠습니까?\n\n직거래는 당사자 간 결제 방식이며 플랫폼 환불/예치가 적용되지 않습니다.')
+        ? '참여를 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.\n취소는 경기 하루 전까지만 가능합니다.'
+        : '신청을 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.')
       : (isApproved
         ? '참여를 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.\n취소는 경기 하루 전까지만 가능합니다.'
         : '신청을 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.');
@@ -237,17 +244,17 @@ export default function MateDetail() {
       {
         value: 'BUYER_CHANGED_MIND' as const,
         label: '단순변심(구매자)',
-        description: '직거래 취소(플랫폼 환불 없음)',
+        description: '직거래 신청 취소(플랫폼 결제/환불 없음)',
       },
       {
         value: 'SELLER_CHANGED_MIND' as const,
         label: '단순변심(판매자)',
-        description: '직거래 취소(플랫폼 환불 없음)',
+        description: '직거래 신청 취소(플랫폼 결제/환불 없음)',
       },
       {
         value: 'OTHER' as const,
         label: '기타 사유',
-        description: '사유 확인 후 취소(플랫폼 환불 없음)',
+        description: '사유 확인 후 신청 취소(플랫폼 결제/환불 없음)',
       },
     ]
     : [
@@ -542,10 +549,10 @@ export default function MateDetail() {
   // UI Helpers
   const homeTeamColor = getTeamColorByAnyKey(selectedParty.homeTeam);
   const getSeatBadgeColor = (section: string) => {
-    if (section.includes('응원')) return 'bg-red-100 text-red-700 border-red-200';
-    if (section.includes('테이블')) return 'bg-purple-100 text-purple-700 border-purple-200';
-    if (section.includes('블루')) return 'bg-blue-100 text-blue-700 border-blue-200';
-    return 'bg-gray-100 text-gray-700 border-gray-200';
+    if (section.includes('응원')) return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-900/50';
+    if (section.includes('테이블')) return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/35 dark:text-purple-200 dark:border-purple-900/50';
+    if (section.includes('블루')) return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-900/50';
+    return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-secondary/80 dark:text-gray-200 dark:border-border/70';
   };
 
   // description에서 해시태그 추출 (생성 Step 4에서 추가된 스타일 태그)
@@ -568,661 +575,852 @@ export default function MateDetail() {
   };
 
   const currentZone = selectedParty ? resolveSeatZone(selectedParty.stadium, selectedParty.section) : null;
+  const posterShellClass = 'rounded-3xl overflow-hidden mb-8 border border-gray-200/80 shadow-2xl ring-1 ring-black/5 transform transition-all hover:scale-[1.01] dark:border-white/10 dark:shadow-[0_32px_80px_rgba(0,0,0,0.72)] dark:ring-white/10';
+  const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
+  const insetPanelClass = 'rounded-xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
+  const summaryTradeLabel = selectedParty.status === 'SELLING'
+    ? '판매 티켓'
+    : (isDirectTrade ? '직거래' : '보증금 결제');
+  const summaryAmountLabel = selectedParty.status === 'SELLING'
+    ? '판매가'
+    : (isDirectTrade ? '거래 기준 금액' : '총 결제 금액');
+  const summaryAmount = selectedParty.status === 'SELLING'
+    ? (selectedParty.price || 0)
+    : (isDirectTrade ? (selectedParty.ticketPrice || 0) : ((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT));
+  const summaryPolicyText = isHost
+    ? (canConvertToSale ? '경기 임박 시 판매 전환 가능' : '파티 상태를 관리할 수 있습니다')
+    : canCancel()
+      ? (isApproved ? '경기 하루 전까지 취소 가능' : '승인 전에는 자유 취소 가능')
+      : (myApplication?.isRejected ? '거절된 신청입니다' : '상태에 따라 취소가 제한됩니다');
+  const actionContext = (() => {
+    if (isHost) {
+      return {
+        eyebrow: '호스트 모드',
+        title: pendingApplications.length > 0 ? '신청을 검토하고 파티를 관리하세요.' : '현재 파티 상태를 관리할 수 있습니다.',
+        detail: approvedApplications.length > 0
+          ? '승인된 참여자와 채팅을 열고 체크인 준비를 진행할 수 있습니다.'
+          : (canConvertToSale ? '경기 임박 시 판매 전환도 가능합니다.' : '새 신청이 들어오면 이 영역에서 바로 대응할 수 있습니다.'),
+      };
+    }
+    if (isApproved) {
+      return {
+        eyebrow: '참여 확정',
+        title: '채팅과 체크인 준비를 진행하세요.',
+        detail: canAccessCheckIn
+          ? '체크인 QR은 자동으로 갱신됩니다. 경기 당일 전까지 확인해두세요.'
+          : '경기 전까지 채팅에서 만날 시간과 장소를 확정해두세요.',
+      };
+    }
+    if (myApplication && !myApplication.isApproved && !myApplication.isRejected) {
+      return {
+        eyebrow: '승인 대기',
+        title: '호스트 승인 대기 중입니다.',
+        detail: '승인 전까지는 신청을 취소할 수 있습니다.',
+      };
+    }
+    if (myApplication?.isRejected) {
+      return {
+        eyebrow: '신청 결과',
+        title: '이번 신청은 거절되었습니다.',
+        detail: '다른 파티를 찾아보거나 목록으로 돌아갈 수 있습니다.',
+      };
+    }
+    if (selectedParty.status === 'SELLING') {
+      return {
+        eyebrow: '지금 구매 가능',
+        title: '티켓 정보와 정책을 확인하고 신청하세요.',
+        detail: isDirectTrade
+          ? '승인 후 채팅에서 전달 시간과 장소를 조율합니다.'
+          : '결제 후 승인 상태를 상세페이지에서 확인할 수 있습니다.',
+      };
+    }
+    return {
+      eyebrow: '지금 참여 가능',
+      title: '핵심 정보 확인 후 바로 참여할 수 있습니다.',
+      detail: isDirectTrade
+        ? '승인 후 채팅에서 거래 시간과 장소를 조율합니다.'
+        : '비용 안내에서 보증금과 환불 정책을 다시 확인할 수 있습니다.',
+    };
+  })();
+  const actionButtons: Array<{
+    key: string;
+    label: string;
+    onClick?: () => void;
+    disabled?: boolean;
+    variant?: 'default' | 'outline' | 'ghost';
+    className?: string;
+  }> = [];
+
+  if (isHost) {
+    actionButtons.push({
+      key: 'manage',
+      label: `신청 관리 (${pendingApplications.length})`,
+      onClick: handleManageParty,
+      className: 'w-full h-14 text-lg font-bold text-white shadow-xl hover:shadow-2xl transition-all bg-primary',
+    });
+    if (approvedApplications.length > 0) {
+      actionButtons.push({
+        key: 'chat',
+        label: '채팅방 입장',
+        onClick: handleOpenChat,
+        variant: 'outline',
+        className: 'w-full h-12 border-primary text-primary hover:bg-primary/10',
+      });
+    }
+    if (canAccessCheckIn) {
+      actionButtons.push({
+        key: 'checkin',
+        label: '체크인 페이지',
+        onClick: handleCheckIn,
+        variant: 'outline',
+        className: 'w-full h-12 border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10',
+      });
+    }
+    if (canConvertToSale) {
+      actionButtons.push({
+        key: 'sale',
+        label: isConvertingToSale ? '전환 중...' : '판매 전환',
+        onClick: handleOpenSaleDialog,
+        disabled: isConvertingToSale,
+        variant: 'outline',
+        className: 'w-full h-12 border-orange-400 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30',
+      });
+    }
+  } else if (isApproved) {
+    actionButtons.push({
+      key: 'chat',
+      label: '채팅방 입장',
+      onClick: handleOpenChat,
+      className: 'w-full h-14 text-lg font-bold text-white shadow-lg bg-primary',
+    });
+    if (canAccessCheckIn) {
+      actionButtons.push({
+        key: 'checkin',
+        label: '체크인 페이지',
+        onClick: handleCheckIn,
+        variant: 'outline',
+        className: 'w-full h-12 border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10',
+      });
+    }
+    if (canCancel()) {
+      actionButtons.push({
+        key: 'cancel',
+        label: isCancelling ? '취소 중...' : '참여 취소',
+        onClick: handleCancelApplication,
+        disabled: isCancelling,
+        variant: 'outline',
+        className: 'w-full h-10 border-red-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30',
+      });
+    }
+  } else if (myApplication && !myApplication.isApproved && !myApplication.isRejected) {
+    actionButtons.push({
+      key: 'pending',
+      label: '승인 대기 중...',
+      disabled: true,
+      className: 'w-full h-14 text-lg cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-secondary/80 dark:text-gray-400',
+    });
+    actionButtons.push({
+      key: 'cancel',
+      label: isCancelling ? '취소 중...' : '신청 취소',
+      onClick: handleCancelApplication,
+      disabled: isCancelling,
+      variant: 'ghost',
+      className: 'w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-sm',
+    });
+  } else if (myApplication?.isRejected) {
+    actionButtons.push({
+      key: 'back',
+      label: '다른 파티 보기',
+      onClick: () => navigate('/mate'),
+      variant: 'outline',
+      className: 'w-full h-12 border-primary text-primary hover:bg-primary/10',
+    });
+  } else if (selectedParty.status === 'PENDING') {
+    actionButtons.push({
+      key: 'apply',
+      label: '참여하기',
+      onClick: handleApply,
+      className: 'w-full h-14 text-xl font-bold text-white shadow-xl hover:shadow-2xl hover:bg-primary-hover transition-all bg-primary',
+    });
+  }
+  const primaryMobileAction = actionButtons.find((action) => !action.disabled) ?? actionButtons[0] ?? null;
+  const secondaryMobileAction = actionButtons[0]?.disabled ? null : (actionButtons[1] ?? null);
+  const getMobileActionClass = (actionKey: string) => {
+    if (actionKey === 'checkin') return 'border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10';
+    if (actionKey === 'sale') return 'border-orange-400 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30';
+    if (actionKey === 'cancel') return 'border-red-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30';
+    if (actionKey === 'back') return 'border-primary text-primary hover:bg-primary/10';
+    return 'bg-primary text-white';
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
-      <OptimizedImage
-        src={grassDecor}
-        alt=""
-        className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
-      />
+    <TooltipProvider>
+      <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background pb-32 lg:pb-20">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_48%)]" />
+        <OptimizedImage
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        />
 
-      <div className="max-w-3xl mx-auto px-4 py-6 relative z-10">
-        <div className="mb-4 flex items-center justify-between">
-          <Button variant="ghost" className="pl-0 hover:bg-transparent" onClick={() => navigate('/mate')}>
-            <ChevronLeft className="w-5 h-5 mr-1" /> 목록으로
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleShare}>
-            <Share2 className="w-4 h-4 mr-1.5" />
-            공유
-          </Button>
-        </div>
-        {isPartyRevalidating && (
-          <Alert className="mb-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-            <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
-              최신 파티 정보를 다시 확인하고 있습니다.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* 1. 매치 포스터 (Ticket Metaphor Evolution) */}
-        <div className="rounded-3xl shadow-2xl overflow-hidden mb-8 transform transition-all hover:scale-[1.01]">
-          {/* Header / Banner Area with Team Color Gradient */}
-          <div
-            className="relative p-4 sm:p-6 text-white"
-            style={{
-              background: `linear-gradient(135deg, ${homeTeamColor} 0%, ${homeTeamColor}dd 60%, #1a1a1a 100%)`
-            }}
-          >
-            {/* Background Pattern */}
-            <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
-
-            {/* Date & Place Badge (Scoreboard Style) */}
-            <div className="relative z-10 flex justify-center mb-8">
-              <div className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-md px-5 py-2 rounded-full border border-white/20 shadow-lg">
-                <span className="font-mono font-bold tracking-wider">
-                  {formatGameDate(selectedParty.gameDate)}
-                </span>
-                <div className="w-px h-3 bg-white/40"></div>
-                <span className="font-mono font-bold">
-                  {selectedParty.gameTime.substring(0, 5)}
-                </span>
-                <div className="w-px h-3 bg-white/40"></div>
-                <span className="font-bold flex items-center gap-1">
-                  {selectedParty.stadium}
-                </span>
-              </div>
-            </div>
-
-            {/* Main Matchup */}
-            <div className="relative z-10 flex justify-between items-center max-w-lg mx-auto">
-              <div className="flex flex-col items-center gap-3 transform hover:scale-105 transition-transform">
-                <div className="bg-white p-3 rounded-full shadow-lg">
-                  <TeamLogo teamId={selectedParty.homeTeam} size={80} />
-                </div>
-                <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
-                  {resolveTeamDisplayName(selectedParty.homeTeam) || selectedParty.homeTeam}
-                </span>
-              </div>
-
-              <div className="flex flex-col items-center">
-                <span className="text-4xl font-black italic text-white/90 drop-shadow-xl" style={{ fontFamily: 'Georgia, serif' }}>VS</span>
-              </div>
-
-              <div className="flex flex-col items-center gap-3 transform hover:scale-105 transition-transform">
-                <div className="bg-white p-3 rounded-full shadow-lg">
-                  <TeamLogo teamId={selectedParty.awayTeam} size={80} />
-                </div>
-                <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
-                  {resolveTeamDisplayName(selectedParty.awayTeam) || selectedParty.awayTeam}
-                </span>
-              </div>
-            </div>
+        <div className="max-w-3xl mx-auto px-4 py-6 relative z-10">
+          <div className="mb-4 flex items-center justify-between">
+            <Button variant="ghost" className="pl-0 hover:bg-transparent" onClick={() => navigate('/mate')}>
+              <ChevronLeft className="w-5 h-5 mr-1" /> 목록으로
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleShare}>
+              <Share2 className="w-4 h-4 mr-1.5" />
+              공유
+            </Button>
           </div>
+          {isPartyRevalidating && (
+            <Alert className="mb-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+              <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+                최신 파티 정보를 다시 확인하고 있습니다.
+              </AlertDescription>
+            </Alert>
+          )}
 
-          {/* Ticket Body */}
-          <div className="bg-white dark:bg-card p-6 md:p-8 border-t-4 border-dashed border-gray-200 dark:border-border relative">
-            {/* Punch Holes for Ticket realism */}
-            <div className="absolute -left-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
-            <div className="absolute -right-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
+          {/* 1. 매치 포스터 (Ticket Metaphor Evolution) */}
+          <div className={posterShellClass}>
+            {/* Header / Banner Area with Team Color Gradient */}
+            <div
+              className="relative p-4 sm:p-6 text-white"
+              style={{
+                background: `linear-gradient(135deg, ${homeTeamColor} 0%, ${homeTeamColor}dd 60%, #1a1a1a 100%)`
+              }}
+            >
+              {/* Background Pattern */}
+              <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
 
-            <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
-              {/* Seat Info with Visualization */}
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                  {currentZone ? (
-                    <div className="group relative">
-                      <Badge
-                        className="border-none text-white px-3 py-1 text-sm shadow-sm"
-                        style={{ backgroundColor: currentZone.color || '#4b5563' }} // Default gray if no color
-                      >
-                        {currentZone.name}
-                      </Badge>
-                      {/* Tooltip for Price & Desc */}
-                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 p-3 bg-gray-900/95 text-white text-xs rounded-lg shadow-xl z-50 border border-white/10 animate-in fade-in slide-in-from-bottom-1">
-                        <p className="font-bold text-sm mb-1">{currentZone.description}</p>
-                        {currentZone.price && (
-                          <div className="text-gray-300 space-y-0.5">
-                            <div className="flex justify-between"><span>주중</span> <span>{currentZone.price.weekday}</span></div>
-                            <div className="flex justify-between"><span>주말</span> <span className="text-[#ff6f0f]">{currentZone.price.weekend}</span></div>
-                          </div>
-                        )}
+              {/* Date & Place Badge (Scoreboard Style) */}
+              <div className="relative z-10 flex justify-center mb-8">
+                <div className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-md px-5 py-2 rounded-full border border-white/20 shadow-lg">
+                  <span className="font-mono font-bold tracking-wider">
+                    {formatGameDate(selectedParty.gameDate)}
+                  </span>
+                  <div className="w-px h-3 bg-white/40"></div>
+                  <span className="font-mono font-bold">
+                    {selectedParty.gameTime.substring(0, 5)}
+                  </span>
+                  <div className="w-px h-3 bg-white/40"></div>
+                  <span className="font-bold flex items-center gap-1">
+                    {selectedParty.stadium}
+                  </span>
+                </div>
+              </div>
+
+              {/* Main Matchup */}
+              <div className="relative z-10 flex justify-between items-center max-w-lg mx-auto">
+                <div className="flex flex-col items-center gap-3 transform hover:scale-105 transition-transform">
+                  <div className="bg-white p-3 rounded-full shadow-lg">
+                    <TeamLogo teamId={selectedParty.homeTeam} size={80} />
+                  </div>
+                  <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
+                    {resolveTeamDisplayName(selectedParty.homeTeam) || selectedParty.homeTeam}
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl font-black italic text-white/90 drop-shadow-xl" style={{ fontFamily: 'Georgia, serif' }}>VS</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-3 transform hover:scale-105 transition-transform">
+                  <div className="bg-white p-3 rounded-full shadow-lg">
+                    <TeamLogo teamId={selectedParty.awayTeam} size={80} />
+                  </div>
+                  <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
+                    {resolveTeamDisplayName(selectedParty.awayTeam) || selectedParty.awayTeam}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Ticket Body */}
+            <div className="bg-white dark:bg-card/95 p-6 md:p-8 border-t-4 border-dashed border-gray-200 dark:border-border relative">
+              {/* Punch Holes for Ticket realism */}
+              <div className="absolute -left-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
+              <div className="absolute -right-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
+
+              <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
+                {/* Seat Info with Visualization */}
+                <div className="flex-1 text-center md:text-left">
+                  <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                    {currentZone ? (
+                      <div className="group relative">
+                        <Badge
+                          className="border-none text-white px-3 py-1 text-sm shadow-sm"
+                          style={{ backgroundColor: currentZone.color || '#4b5563' }} // Default gray if no color
+                        >
+                          {currentZone.name}
+                        </Badge>
+                        {/* Tooltip for Price & Desc */}
+                        <div className="absolute bottom-full left-0 mb-2 hidden md:group-hover:block w-64 p-3 bg-gray-900/95 text-white text-xs rounded-lg shadow-xl z-50 border border-white/10 animate-in fade-in slide-in-from-bottom-1">
+                          <p className="font-bold text-sm mb-1">{currentZone.description}</p>
+                          {currentZone.price && (
+                            <div className="text-gray-300 space-y-0.5">
+                              <div className="flex justify-between"><span>주중</span> <span>{currentZone.price.weekday}</span></div>
+                              <div className="flex justify-between"><span>주말</span> <span className="text-[#ff6f0f]">{currentZone.price.weekend}</span></div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <Badge variant="outline" className={`${getSeatBadgeColor(selectedParty.section)}`}>
-                      {selectedParty.section.split(' ')[0]}
-                    </Badge>
-                  )}
+                    ) : (
+                      <Badge variant="outline" className={`${getSeatBadgeColor(selectedParty.section)}`}>
+                        {selectedParty.section.split(' ')[0]}
+                      </Badge>
+                    )}
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-11 text-xs text-gray-500 hover:text-primary"
-                    onClick={() => setShowSeatViewGuide(!showSeatViewGuide)}
-                  >
-                    <MapIcon className="w-3 h-3 mr-1" /> {showSeatViewGuide ? '닫기' : '위치/시야 보기'}
-                  </Button>
-                </div>
-
-                {/* UGC Seat View Guide Area */}
-                {showSeatViewGuide && (
-                  <div className="mt-4 mb-4 animate-in zoom-in-95 duration-200">
-                    <SeatViewGallery
-                      compact
-                      stadium={selectedParty.stadium}
-                      section={selectedParty.section}
-                    />
-                  </div>
-                )}
-                <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-2">
-                  {selectedParty.section}
-                </h2>
-                <div className="flex items-center justify-center md:justify-start gap-4 text-gray-500 dark:text-gray-300">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{selectedParty.currentParticipants}/{selectedParty.maxParticipants}명</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span className="text-green-600 dark:text-green-400 font-medium">티켓 인증됨</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* QR Code - 모바일: 중앙 정렬 / 데스크톱: 우측 구분선 포함 */}
-              <div className="flex flex-col items-center md:border-l md:border-gray-200 md:dark:border-border md:pl-8">
-                <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
-                  <QRCode
-                    value={qrCodeValue}
-                    size={132}
-                    style={{ width: 132, height: 132 }}
-                    viewBox={`0 0 256 256`}
-                    fgColor="#1a1a1a"
-                    bgColor="#ffffff"
-                    level="Q"
-                  />
-                </div>
-                <p className="text-[10px] text-center text-gray-400 mt-1">ENTRY CODE</p>
-                {isQrLoading && (
-                  <p className="text-[10px] text-gray-400 mt-1">QR 준비 중...</p>
-                )}
-                {qrSessionExpiresAt && (
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    유효: {new Date(qrSessionExpiresAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                )}
-                {qrSessionError && (
-                  <p className="text-[10px] text-red-500 mt-1 text-center">{qrSessionError}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-        {/* 2. 상세 정보 Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-20">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* 파티 소개 */}
-            <Card className="p-6 border-none shadow-md bg-white dark:bg-card/80 backdrop-blur-sm">
-              <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
-                <MessageSquare className="w-5 h-5 text-primary" /> 파티 소개
-              </h3>
-              <p className="whitespace-pre-wrap text-gray-600 dark:text-gray-300 leading-relaxed text-sm md:text-base mb-4">
-                {stripHashtags(selectedParty.description)}
-              </p>
-              {hostTags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {hostTags.map((tag, i) => (
-                    <Badge key={i} variant="secondary" className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-none">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            {/* 결제 정보 (Improved) */}
-            <Card className="p-6 border-none shadow-md bg-white dark:bg-card/80">
-              <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
-                <Info className="w-5 h-5 text-primary" /> 비용 안내
-              </h3>
-
-              {/* Surface Color Box for Dark Mode */}
-              <div className="bg-gray-50 dark:bg-secondary/70 rounded-xl p-5 border border-gray-100 dark:border-border">
-                {selectedParty.status === 'SELLING' ? (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-gray-600 dark:text-gray-300">티켓 판매가</span>
-                      <span className="text-xl font-bold text-orange-600">
-                        {selectedParty.price?.toLocaleString()}원
-                      </span>
-                    </div>
-                    {isDirectTrade && (
-                      <>
-                        <Separator className="bg-gray-200 dark:bg-border my-2" />
-                        <p className="text-sm text-blue-700 dark:text-blue-300">
-                          직거래 안내: 결제는 당사자 간 직접 진행되며 플랫폼 예치 없음(환불 정책 미적용)입니다.
-                        </p>
-                      </>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-11 text-xs text-gray-500 hover:text-primary dark:text-gray-300 dark:hover:text-primary"
+                      onClick={() => setShowSeatViewGuide(!showSeatViewGuide)}
+                    >
+                      <MapIcon className="w-3 h-3 mr-1" /> {showSeatViewGuide ? '닫기' : '위치/시야 보기'}
+                    </Button>
+                    {currentZone && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-11 text-xs text-gray-500 hover:text-primary dark:text-gray-300 dark:hover:text-primary md:hidden"
+                        onClick={() => setShowZoneDetails(!showZoneDetails)}
+                      >
+                        <Info className="w-3 h-3 mr-1" /> {showZoneDetails ? '구역 설명 닫기' : '구역 설명'}
+                      </Button>
                     )}
                   </div>
-                ) : (
-                  isDirectTrade ? (
+
+                  {currentZone && showZoneDetails && (
+                    <div className={`mb-4 ${insetPanelClass} p-4 text-left md:hidden`}>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{currentZone.description}</p>
+                      {currentZone.price && (
+                        <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                          <div className="flex justify-between">
+                            <span>주중</span>
+                            <span>{currentZone.price.weekday}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>주말</span>
+                            <span>{currentZone.price.weekend}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* UGC Seat View Guide Area */}
+                  {showSeatViewGuide && (
+                    <div className="mt-4 mb-4 animate-in zoom-in-95 duration-200">
+                      <SeatViewGallery
+                        compact
+                        stadium={selectedParty.stadium}
+                        section={selectedParty.section}
+                      />
+                    </div>
+                  )}
+                  <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-2">
+                    {selectedParty.section}
+                  </h2>
+                  <div className="flex items-center justify-center md:justify-start gap-4 text-gray-500 dark:text-gray-300">
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      <span>{selectedParty.currentParticipants}/{selectedParty.maxParticipants}명</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {selectedParty.ticketVerified ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span className="font-medium text-green-600 dark:text-green-400">티켓 인증됨</span>
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="w-4 h-4 text-amber-500" />
+                          <span className="font-medium text-amber-600 dark:text-amber-300">티켓 확인 전</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* QR Code - 모바일: 중앙 정렬 / 데스크톱: 우측 구분선 포함 */}
+                <div className="flex flex-col items-center md:border-l md:border-gray-200 md:dark:border-border/80 md:pl-8">
+                  <div className="bg-white dark:bg-secondary/80 p-3 rounded-2xl border border-gray-200 dark:border-border/70 shadow-sm dark:shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
+                    <QRCode
+                      value={qrCodeValue}
+                      size={132}
+                      style={{ width: 132, height: 132 }}
+                      viewBox={`0 0 256 256`}
+                      fgColor="#1a1a1a"
+                      bgColor="#ffffff"
+                      level="Q"
+                    />
+                  </div>
+                  <p className="text-[10px] text-center text-gray-400 dark:text-gray-500 mt-1">ENTRY CODE</p>
+                  {isQrLoading && (
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">QR 준비 중...</p>
+                  )}
+                  {qrSessionExpiresAt && (
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                      유효: {new Date(qrSessionExpiresAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                  {qrSessionError && (
+                    <p className="text-[10px] text-red-500 mt-1 text-center">{qrSessionError}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          <Card className={`mb-6 p-4 ${sectionCardClass}`}>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
+              <div className={`${insetPanelClass} p-3`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">거래 방식</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryTradeLabel}</p>
+              </div>
+              <div className={`${insetPanelClass} p-3`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">티켓 인증</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{selectedParty.ticketVerified ? '인증 완료' : '확인 전'}</p>
+              </div>
+              <div className={`${insetPanelClass} p-3`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">{summaryAmountLabel}</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryAmount.toLocaleString()}원</p>
+              </div>
+              <div className={`${insetPanelClass} p-3`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">취소 규칙</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryPolicyText}</p>
+              </div>
+              <div className={`${insetPanelClass} p-3`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">참여 현황</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{selectedParty.currentParticipants}/{selectedParty.maxParticipants}명</p>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-20">
+            <div className="space-y-6 lg:col-span-2">
+              <Card className={`p-6 ${sectionCardClass}`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
+                  <Info className="w-5 h-5 text-primary" /> 비용 안내
+                </h3>
+                <div className={`${insetPanelClass} p-5`}>
+                  {selectedParty.status === 'SELLING' ? (
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center text-lg mt-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-600 dark:text-gray-300">티켓 판매가</span>
+                        <span className="text-xl font-bold text-orange-600">
+                          {selectedParty.price?.toLocaleString()}원
+                        </span>
+                      </div>
+                      {isDirectTrade && (
+                        <>
+                          <Separator className="my-2 bg-gray-200 dark:bg-border" />
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  ) : isDirectTrade ? (
+                    <div className="space-y-3">
+                      <div className="mt-2 flex items-center justify-between text-lg">
                         <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
                         <span className="font-semibold text-gray-900 dark:text-gray-200">
                           {(selectedParty.ticketPrice || 0).toLocaleString()}원
                         </span>
                       </div>
-                      <Separator className="bg-gray-200 dark:bg-border my-2" />
+                      <Separator className="my-2 bg-gray-200 dark:bg-border" />
                       <p className="text-sm text-blue-700 dark:text-blue-300">
-                        직거래 안내: 결제는 당사자 간 직접 진행되며 플랫폼 예치 없음(환불 정책 미적용)입니다.
+                        직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center">
+                      <div className="flex items-center justify-between">
                         <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
                         <span className="font-semibold text-gray-900 dark:text-gray-200">
                           {(selectedParty.ticketPrice || 0).toLocaleString()}원
                         </span>
                       </div>
-                      <div className="flex justify-between items-center">
+                      <div className="flex items-center justify-between">
                         <span className="text-gray-600 dark:text-gray-300">보증금</span>
                         <span className="font-semibold text-gray-900 dark:text-gray-200">
                           {DEPOSIT_AMOUNT.toLocaleString()}원
                         </span>
                       </div>
-                      <Separator className="bg-gray-200 dark:bg-border my-2" />
-                      <div className="flex justify-between items-center text-lg mt-2">
+                      <Separator className="my-2 bg-gray-200 dark:bg-border" />
+                      <div className="mt-2 flex items-center justify-between text-lg">
                         <span className="font-bold text-primary dark:text-[#5abba6]">총 결제 금액</span>
                         <span className="font-black text-primary dark:text-[#5abba6]">
                           {((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT).toLocaleString()}원
                         </span>
                       </div>
                     </div>
-                  )
-                )}
-              </div>
-              {selectedParty.status !== 'SELLING' && !isDirectTrade && (
-                <p className="text-xs text-gray-400 mt-3 text-right">
-                  * 단순변심 취소 시 수수료가 차감될 수 있습니다
-                </p>
-              )}
-            </Card>
-
-            {/* 좌석 시야 */}
-            <Card className="p-6 border-none shadow-md overflow-hidden bg-white dark:bg-card/80">
-              <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
-              </h3>
-              <SeatViewGallery
-                stadium={selectedParty.stadium}
-                section={selectedParty.section}
-              />
-            </Card>
-          </div>
-
-          {/* Right Sidebar: Host Info & Actions */}
-          <div className="space-y-4">
-            {/* Host Profile Card */}
-            <Card
-              className="p-6 text-center border-none shadow-md bg-white dark:bg-card/80 relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => setShowHostProfile(true)}
-            >
-              <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-gray-100 to-transparent dark:from-gray-700/50"></div>
-
-              <div className="relative z-10 mb-2 flex justify-center">
-                <ProfileAvatar
-                  src={selectedParty.hostProfileImageUrl ?? undefined}
-                  alt={selectedParty.hostName}
-                  fallbackName={selectedParty.hostName}
-                  width={96}
-                  height={96}
-                  showRing
-                  ringClassName="p-1 bg-white/95 dark:bg-border shadow-lg"
-                />
-                {/* Manner Temperature Bar (Carrot Market Style) */}
-                <div className="mt-3 mb-1">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <span className="font-bold text-lg text-gray-900 dark:text-white">{selectedParty.hostName}</span>
+                  )}
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className={`${insetPanelClass} p-4`}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">정책 안내</p>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                      {isDirectTrade
+                        ? '플랫폼 결제/환불 없이 승인 후 채팅으로 직거래를 조율합니다.'
+                        : '취소 사유에 따라 전액 또는 부분 환불 정책이 적용됩니다.'}
+                    </p>
                   </div>
-                  <div className="inline-flex items-center gap-2 bg-gray-100 dark:bg-secondary px-3 py-1 rounded-full">
-                    <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                    <span className="text-xs font-bold text-gray-900 dark:text-white">{mannerScore.toFixed(1)}</span>
-                    <div className="w-16 h-1.5 bg-gray-300 rounded-full overflow-hidden">
-                      <div className="h-full bg-yellow-500" style={{ width: `${(mannerScore / 5) * 100}%` }}></div>
+                  <div className={`${insetPanelClass} p-4`}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">다음 단계</p>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                      {isHost
+                        ? '신청 관리에서 승인 여부를 결정하고, 이후 채팅이나 체크인으로 흐름을 이어갈 수 있습니다.'
+                        : '상태에 따라 승인 대기, 채팅 입장, 체크인 준비로 이어집니다.'}
+                    </p>
+                  </div>
+                </div>
+                {selectedParty.status !== 'SELLING' && !isDirectTrade && (
+                  <p className="mt-3 text-right text-xs text-gray-400 dark:text-gray-500">
+                    * 단순변심 취소 시 수수료가 차감될 수 있습니다
+                  </p>
+                )}
+              </Card>
+
+              <Card className={`p-6 ${sectionCardClass}`}>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <ProfileAvatar
+                      src={selectedParty.hostProfileImageUrl ?? undefined}
+                      alt={selectedParty.hostName}
+                      fallbackName={selectedParty.hostName}
+                      width={96}
+                      height={96}
+                      showRing
+                      ringClassName="p-1 bg-white/95 dark:bg-secondary/90 border border-white/60 dark:border-white/10 shadow-lg"
+                    />
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">Host Trust</p>
+                      <button
+                        type="button"
+                        className="mt-1 text-left text-xl font-black text-gray-900 dark:text-white"
+                        onClick={() => setShowHostProfile(true)}
+                      >
+                        {selectedParty.hostName}
+                      </button>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Badge variant="outline" className="dark:border-border dark:text-gray-200">
+                          <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                          평점 {mannerScore.toFixed(1)}
+                        </Badge>
+                        <Badge variant="outline" className={`${selectedParty.ticketVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200' : 'dark:border-border dark:text-gray-200'}`}>
+                          <Shield className="w-3 h-3" />
+                          {selectedParty.ticketVerified ? '티켓 인증' : '인증 확인 전'}
+                        </Badge>
+                        <Badge variant="outline" className="border-purple-200 bg-purple-50 text-purple-600 dark:border-purple-900/50 dark:bg-purple-950/35 dark:text-purple-200">
+                          {summaryTradeLabel}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-
-
-              {/* Click hint */}
-              <p className="text-xs text-gray-400 mt-3">클릭하여 프로필 보기</p>
-            </Card>
-
-
-            {/* Review Section - COMPLETED parties only */}
-            {selectedParty.status === 'COMPLETED' && currentUserId && (isHost || isApproved) && (
-              <Card className="p-4 mb-4">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-1.5">
-                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  리뷰
-                </h3>
-                <div className="space-y-2">
-                  {(() => {
-                    // 리뷰 대상 목록 구성
-                    const targets = isHost
-                      ? approvedApplications.map((app) => ({
-                        id: app.applicantId,
-                        name: app.applicantName,
-                      }))
-                      : [{ id: selectedParty.hostId, name: selectedParty.hostName }];
-
-                    if (targets.length === 0) {
-                      return <p className="text-sm text-gray-400">리뷰 대상이 없습니다.</p>;
-                    }
-
-                    return targets.map((target) => {
-                      const myReview = reviews.find(
-                        (r) => r.reviewerId === currentUserId && r.revieweeId === target.id
-                      );
-
-                      return (
-                        <div
-                          key={target.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-card rounded-lg"
-                        >
-                          <div className="flex flex-col gap-1">
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              {target.name}
-                            </span>
-                            {myReview && (
-                              <div className="flex items-center gap-1">
-                                {[1, 2, 3, 4, 5].map((num) => (
-                                  <Star
-                                    key={num}
-                                    className={`w-3.5 h-3.5 ${num <= myReview.rating
-                                      ? 'text-yellow-500 fill-yellow-500'
-                                      : 'text-gray-300'
-                                      }`}
-                                  />
-                                ))}
-                                {myReview.comment && (
-                                  <span className="text-xs text-gray-500 ml-1 truncate max-w-[120px]">
-                                    "{myReview.comment}"
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          {myReview ? (
-                            <Badge variant="outline" className="text-xs text-gray-500">
-                              작성 완료
-                            </Badge>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs border-primary text-primary hover:bg-primary/10"
-                              onClick={() => setReviewTarget(target)}
-                            >
-                              리뷰 작성
-                            </Button>
-                          )}
-                        </div>
-                      );
-                    });
-                  })()}
+                  <Button variant="outline" className="border-primary text-primary hover:bg-primary/10" onClick={() => setShowHostProfile(true)}>
+                    프로필 보기
+                  </Button>
                 </div>
               </Card>
-            )}
 
-            {/* Floating Action Buttons (Sticky) */}
-            <div className="space-y-3 sticky top-6 z-20">
-              {/* Host Actions */}
-              {isHost ? (
-                <>
-                  <Button
-                    onClick={handleManageParty}
-                    className="w-full text-white shadow-xl hover:shadow-2xl transition-all h-14 text-lg font-bold bg-primary"
-                  >
-                    <Settings className="w-5 h-5 mr-2" />
-                    신청 관리 ({pendingApplications.length})
-                  </Button>
-                  {approvedApplications.length > 0 && (
-                    <Button
-                      onClick={handleOpenChat}
-                      variant="outline"
-                      className="w-full h-12 border-primary text-primary hover:bg-primary/10"
-                    >
-                      <MessageSquare className="w-5 h-5 mr-2" />
-                      채팅방 입장
-                    </Button>
-                  )}
-                  {canAccessCheckIn && (
-                    <Button
-                      onClick={handleCheckIn}
-                      variant="outline"
-                      className="w-full h-12 border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10"
-                    >
-                      <QrCode className="w-5 h-5 mr-2" />
-                      체크인 페이지
-                    </Button>
-                  )}
-                  {canConvertToSale && (
-                    <Button
-                      onClick={handleOpenSaleDialog}
-                      disabled={isConvertingToSale}
-                      variant="outline"
-                      className="w-full h-12 border-orange-400 text-orange-600 hover:bg-orange-50"
-                    >
-                      {isConvertingToSale ? '전환 중...' : '판매 전환'}
-                    </Button>
-                  )}
-                </>
-              ) : (
-                /* Participant Actions */
-                <>
-                  {isApproved ? (
-                    <>
-                      <Button
-                        onClick={handleOpenChat}
-                        className="w-full text-white h-14 text-lg font-bold shadow-lg bg-primary"
-                      >
-                        <MessageSquare className="w-5 h-5 mr-2" />
-                        채팅방 입장
-                      </Button>
-                      {canAccessCheckIn && (
-                        <Button
-                          onClick={handleCheckIn}
-                          variant="outline"
-                          className="w-full h-12 border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10"
-                        >
-                          <QrCode className="w-5 h-5 mr-2" />
-                          체크인 페이지
-                        </Button>
-                      )}
+              <Card className={`p-6 ${sectionCardClass}`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
+                  <MessageSquare className="w-5 h-5 text-primary" /> 파티 소개
+                </h3>
+                <p className="mb-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-300 md:text-base">
+                  {stripHashtags(selectedParty.description)}
+                </p>
+                {hostTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {hostTags.map((tag, i) => (
+                      <Badge key={i} variant="secondary" className="border border-blue-100 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-200">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </Card>
 
-                      {canCancel() && (
-                        <Button
-                          onClick={handleCancelApplication}
-                          disabled={isCancelling}
-                          variant="outline"
-                          className="w-full text-red-500 border-red-200 hover:bg-red-50 h-10"
-                        >
-                          {isCancelling ? '취소 중...' : '참여 취소'}
-                        </Button>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {/* Pending & Not Applied */}
-                      {selectedParty.status === 'PENDING' && !myApplication && (
-                        <Button
-                          onClick={handleApply}
-                          className="w-full text-white h-14 text-xl font-bold shadow-xl hover:shadow-2xl hover:bg-primary-hover transition-all bg-primary"
-                        >
-                          참여하기
-                        </Button>
-                      )}
+              <Card className={`p-6 overflow-hidden ${sectionCardClass}`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
+                  <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
+                </h3>
+                <SeatViewGallery
+                  stadium={selectedParty.stadium}
+                  section={selectedParty.section}
+                />
+              </Card>
 
-                      {/* Applied & Pending Approval */}
-                      {myApplication && !myApplication.isApproved && !myApplication.isRejected && (
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            disabled
-                            className="w-full bg-gray-300 text-gray-500 h-14 text-lg cursor-not-allowed"
+              {selectedParty.status === 'COMPLETED' && currentUserId && (isHost || isApproved) && (
+                <Card className={`p-4 ${sectionCardClass}`}>
+                  <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white">
+                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    리뷰
+                  </h3>
+                  <div className="space-y-2">
+                    {(() => {
+                      const targets = isHost
+                        ? approvedApplications.map((app) => ({
+                          id: app.applicantId,
+                          name: app.applicantName,
+                        }))
+                        : [{ id: selectedParty.hostId, name: selectedParty.hostName }];
+
+                      if (targets.length === 0) {
+                        return <p className="text-sm text-gray-400">리뷰 대상이 없습니다.</p>;
+                      }
+
+                      return targets.map((target) => {
+                        const myReview = reviews.find(
+                          (r) => r.reviewerId === currentUserId && r.revieweeId === target.id
+                        );
+
+                        return (
+                          <div
+                            key={target.id}
+                            className={`flex items-center justify-between p-3 ${insetPanelClass}`}
                           >
-                            승인 대기 중...
-                          </Button>
-                          <Button
-                            onClick={handleCancelApplication}
-                            disabled={isCancelling}
-                            variant="ghost"
-                            className="w-full text-red-500 hover:bg-red-50 text-sm"
-                          >
-                            신청 취소
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Rejected */}
-                      {myApplication && myApplication.isRejected && (
-                        <Alert className="border-red-200 bg-red-50 mb-2">
-                          <AlertTriangle className="w-4 h-4 text-red-600" />
-                          <AlertDescription className="text-red-800 font-medium">
-                            신청이 거절되었습니다.
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </>
-                  )}
-                </>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                {target.name}
+                              </span>
+                              {myReview && (
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map((num) => (
+                                    <Star
+                                      key={num}
+                                      className={`w-3.5 h-3.5 ${num <= myReview.rating
+                                        ? 'text-yellow-500 fill-yellow-500'
+                                        : 'text-gray-300'
+                                        }`}
+                                    />
+                                  ))}
+                                  {myReview.comment && (
+                                    <span className="ml-1 max-w-[120px] truncate text-xs text-gray-500 dark:text-gray-400">
+                                      "{myReview.comment}"
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {myReview ? (
+                              <Badge variant="outline" className="text-xs text-gray-500 dark:border-border dark:text-gray-300">
+                                작성 완료
+                              </Badge>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs border-primary text-primary hover:bg-primary/10"
+                                onClick={() => setReviewTarget(target)}
+                              >
+                                리뷰 작성
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </Card>
               )}
             </div>
-          </div>
-        </div>
-      </div>
-      <UserProfileModal
-        userId={selectedParty?.hostId ?? null}
-        isOpen={showHostProfile}
-        onClose={() => setShowHostProfile(false)}
-      />
-      {reviewTarget && currentUserId && (
-        <ReviewDialog
-          isOpen={reviewTarget !== null}
-          onClose={() => setReviewTarget(null)}
-          partyId={selectedParty.id}
-          reviewerId={currentUserId}
-          reviewee={reviewTarget}
-          onSuccess={() => {
-            api.getPartyReviews(selectedParty.id)
-              .then((data) => setReviews(Array.isArray(data) ? data : []))
-              .catch((err) => console.error('리뷰 목록 갱신 실패:', err));
-          }}
-        />
-      )}
 
-      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>취소 사유 선택</DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-              {isDirectTrade
-                ? '직거래 파티는 취소 시 플랫폼 환불/예치가 적용되지 않습니다.'
-                : '취소 사유를 선택하면 환불 규칙이 자동 적용됩니다.'}
-            </p>
-            <div className="space-y-2">
-              {cancelReasonOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setSelectedCancelReason(option.value)}
-                  className={`w-full border rounded-lg px-3 py-2 text-left transition ${selectedCancelReason === option.value
-                    ? 'bg-primary/10 border-primary text-primary'
-                    : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-gray-200'
-                    }`}
-                  disabled={isCancelling}
-                >
-                  <p className="font-medium">{option.label}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{option.description}</p>
-                </button>
-              ))}
+            <div className="space-y-4">
+              <Card className={`sticky top-6 p-5 ${sectionCardClass}`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
+                  {actionContext.eyebrow}
+                </p>
+                <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">
+                  {actionContext.title}
+                </h3>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  {actionContext.detail}
+                </p>
+
+                <div className="mt-4 space-y-2">
+                  {actionButtons.length > 0 ? actionButtons.map((action) => (
+                    <Button
+                      key={action.key}
+                      onClick={action.onClick}
+                      disabled={action.disabled}
+                      variant={action.variant}
+                      className={action.className}
+                    >
+                      {action.label}
+                    </Button>
+                  )) : (
+                    <div className={`${insetPanelClass} p-4 text-sm text-gray-600 dark:text-gray-300`}>
+                      현재 바로 실행할 수 있는 액션은 없습니다. 상태 변화를 기다리거나 목록으로 돌아가세요.
+                    </div>
+                  )}
+                </div>
+              </Card>
             </div>
-            <div className="mt-3">
+          </div>
+
+          {primaryMobileAction && (
+            <div
+              className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/90 bg-white/95 px-4 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:border-border dark:bg-card/95 lg:hidden"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+            >
+              <div className="mx-auto flex max-w-3xl items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                    {actionContext.eyebrow}
+                  </p>
+                  <p className="mt-1 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                    {actionButtons[0]?.disabled ? actionButtons[0].label : actionContext.title}
+                  </p>
+                </div>
+                {secondaryMobileAction && (
+                  <Button
+                    onClick={secondaryMobileAction.onClick}
+                    disabled={secondaryMobileAction.disabled}
+                    variant={secondaryMobileAction.variant ?? 'outline'}
+                    className={`min-w-[104px] ${getMobileActionClass(secondaryMobileAction.key)}`}
+                  >
+                    {secondaryMobileAction.label}
+                  </Button>
+                )}
+                <Button
+                  onClick={primaryMobileAction.onClick}
+                  disabled={primaryMobileAction.disabled}
+                  variant={primaryMobileAction.key === 'manage' || primaryMobileAction.key === 'apply' || primaryMobileAction.key === 'chat' ? 'default' : (primaryMobileAction.variant ?? 'outline')}
+                  className={`min-w-[124px] ${primaryMobileAction.disabled ? 'bg-gray-300 text-gray-500 dark:bg-secondary/80 dark:text-gray-400' : getMobileActionClass(primaryMobileAction.key)}`}
+                >
+                  {primaryMobileAction.label}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+        <UserProfileModal
+          userId={selectedParty?.hostId ?? null}
+          isOpen={showHostProfile}
+          onClose={() => setShowHostProfile(false)}
+        />
+        {reviewTarget && currentUserId && (
+          <ReviewDialog
+            isOpen={reviewTarget !== null}
+            onClose={() => setReviewTarget(null)}
+            partyId={selectedParty.id}
+            reviewerId={currentUserId}
+            reviewee={reviewTarget}
+            onSuccess={() => {
+              api.getPartyReviews(selectedParty.id)
+                .then((data) => setReviews(Array.isArray(data) ? data : []))
+                .catch((err) => console.error('리뷰 목록 갱신 실패:', err));
+            }}
+          />
+        )}
+
+        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>취소 사유 선택</DialogTitle>
+            </DialogHeader>
+            <div className="py-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                {isDirectTrade
+                  ? '직거래 파티는 취소 시 플랫폼 결제/환불이 적용되지 않습니다.'
+                  : '취소 사유를 선택하면 환불 규칙이 자동 적용됩니다.'}
+              </p>
+              <div className="space-y-2">
+                {cancelReasonOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setSelectedCancelReason(option.value)}
+                    className={`w-full border rounded-lg px-3 py-2 text-left transition ${selectedCancelReason === option.value
+                      ? 'bg-primary/10 border-primary text-primary'
+                      : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-gray-200'
+                      }`}
+                    disabled={isCancelling}
+                  >
+                    <p className="font-medium">{option.label}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{option.description}</p>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  추가 메모 (선택)
+                </label>
+                <Input
+                  value={cancelMemo}
+                  onChange={(e) => setCancelMemo(e.target.value)}
+                  placeholder="선택 사유를 더 자세히 입력하세요."
+                  disabled={isCancelling}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                disabled={isCancelling}
+                onClick={() => setShowCancelDialog(false)}
+              >
+                뒤로가기
+              </Button>
+              <Button
+                disabled={isCancelling}
+                className="bg-primary text-white"
+                onClick={executeCancelApplication}
+              >
+                {isCancelling ? '취소 처리 중...' : '취소하기'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 판매 전환 Dialog */}
+        <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>티켓 판매 전환</DialogTitle>
+            </DialogHeader>
+            <div className="py-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                추가 메모 (선택)
+                판매 가격 (원)
               </label>
               <Input
-                value={cancelMemo}
-                onChange={(e) => setCancelMemo(e.target.value)}
-                placeholder="선택 사유를 더 자세히 입력하세요."
-                disabled={isCancelling}
+                type="number"
+                min={100}
+                step={1}
+                placeholder="예: 15000"
+                value={salePrice}
+                onChange={(e) => {
+                  setSalePrice(e.target.value);
+                  setSalePriceError('');
+                }}
+                className="mt-1"
               />
+              {salePriceError && (
+                <p className="text-sm text-red-500 mt-1">{salePriceError}</p>
+              )}
             </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              disabled={isCancelling}
-              onClick={() => setShowCancelDialog(false)}
-            >
-              뒤로가기
-            </Button>
-            <Button
-              disabled={isCancelling}
-              className="bg-primary text-white"
-              onClick={executeCancelApplication}
-            >
-              {isCancelling ? '취소 처리 중...' : '취소하기'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 판매 전환 Dialog */}
-      <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>티켓 판매 전환</DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-              판매 가격 (원)
-            </label>
-            <Input
-              type="number"
-              min={100}
-              step={1}
-              placeholder="예: 15000"
-              value={salePrice}
-              onChange={(e) => {
-                setSalePrice(e.target.value);
-                setSalePriceError('');
-              }}
-              className="mt-1"
-            />
-            {salePriceError && (
-              <p className="text-sm text-red-500 mt-1">{salePriceError}</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              disabled={isConvertingToSale}
-              onClick={() => setShowSaleDialog(false)}
-            >
-              취소
-            </Button>
-            <Button
-              disabled={isConvertingToSale}
-              className="bg-primary text-white"
-              onClick={handleConfirmSale}
-            >
-              {isConvertingToSale ? '전환 중...' : '확인'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                disabled={isConvertingToSale}
+                onClick={() => setShowSaleDialog(false)}
+              >
+                취소
+              </Button>
+              <Button
+                disabled={isConvertingToSale}
+                className="bg-primary text-white"
+                onClick={handleConfirmSale}
+              >
+                {isConvertingToSale ? '전환 중...' : '확인'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }
