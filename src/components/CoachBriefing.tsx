@@ -6,7 +6,12 @@ import { Game, GameDetail } from '../types/prediction';
 import { TEAM_DATA, TEAM_NAME_TO_ID } from '../constants/teams';
 import CoachAnalysisDialog from './CoachAnalysisDialog';
 import { motion, AnimatePresence } from 'framer-motion';
-import { analyzeTeam } from '../api/coach';
+import {
+  analyzeTeam,
+  CoachDataQuality,
+  CoachGenerationMode,
+  getCoachDataQualityLabel,
+} from '../api/coach';
 import {
   COACH_BRIEFING_DISPLAY_MESSAGE,
   COACH_BRIEFING_MANUAL_HINT,
@@ -46,7 +51,78 @@ interface CoachBriefingCachePayload {
   message: string;
   displayText?: string;
   expiresAt: number;
+  generationMode?: CoachGenerationMode;
+  dataQuality?: CoachDataQuality;
+  usedEvidence?: string[];
 }
+
+interface CoachBriefingMetaState {
+  generationMode?: CoachGenerationMode;
+  dataQuality?: CoachDataQuality;
+  usedEvidence: string[];
+}
+
+const resolvePitcherName = (
+  pitcher?: { name?: string | null } | string | null,
+): string | undefined => {
+  if (!pitcher) {
+    return undefined;
+  }
+  if (typeof pitcher === 'string') {
+    const normalized = pitcher.trim();
+    return normalized || undefined;
+  }
+  const normalized = pitcher.name?.trim();
+  return normalized || undefined;
+};
+
+const resolveLeagueTypeCode = (
+  leagueType?: string,
+  stageLabel?: string,
+): number | undefined => {
+  const normalizedStage = String(stageLabel || '').trim().toUpperCase();
+  if (normalizedStage === 'WC') return 2;
+  if (normalizedStage === 'SEMI_PO' || normalizedStage === 'DS') return 3;
+  if (normalizedStage === 'PO') return 4;
+  if (normalizedStage === 'KS') return 5;
+
+  const normalizedLeagueType = String(leagueType || '').trim().toUpperCase();
+  if (normalizedLeagueType === 'REGULAR') return 0;
+  if (normalizedLeagueType === 'PRE') return 1;
+  return undefined;
+};
+
+const normalizeCoachBriefingMeta = (
+  payload?: Partial<CoachBriefingMetaState> | null,
+): CoachBriefingMetaState | null => {
+  if (!payload) {
+    return null;
+  }
+  const usedEvidence = Array.isArray(payload.usedEvidence)
+    ? payload.usedEvidence.filter((value): value is string => typeof value === 'string' && value.length > 0)
+    : [];
+  if (!payload.generationMode && !payload.dataQuality && usedEvidence.length === 0) {
+    return null;
+  }
+  return {
+    generationMode: payload.generationMode,
+    dataQuality: payload.dataQuality,
+    usedEvidence,
+  };
+};
+
+const getCoachBriefingBadgeClassName = (dataQuality?: CoachDataQuality): string => {
+  if (dataQuality === 'grounded') {
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-200 dark:border-emerald-800/30';
+  }
+  if (dataQuality === 'partial') {
+    return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-200 dark:border-amber-800/30';
+  }
+  if (dataQuality === 'insufficient') {
+    return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-200 dark:border-rose-800/30';
+  }
+  return 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-secondary dark:text-gray-200 dark:border-border';
+};
 
 const purgeExpiredCoachBriefingCache = (cache: Map<string, { expiresAt: number }>) => {
   const now = Date.now();
@@ -168,6 +244,7 @@ export default function CoachBriefing({
 }: CoachBriefingProps) {
     const [displayedMessage, setDisplayedMessage] = useState('');
     const [aiBriefing, setAiBriefing] = useState<NormalizedAiBriefing | null>(null);
+    const [briefingMeta, setBriefingMeta] = useState<CoachBriefingMetaState | null>(null);
     const [aiLoading, setAiLoading] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
     const cacheRef = useRef<Map<string, CoachBriefingCachePayload>>(new Map());
@@ -175,12 +252,17 @@ export default function CoachBriefing({
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const abortRef = useRef<AbortController | null>(null);
     const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const retryCountRef = useRef(0);
+    const requestCacheKeyRef = useRef<string | null>(null);
     const homeRank = seasonContext?.home?.rank ?? null;
     const homeGamesBehind = seasonContext?.home?.gamesBehind ?? null;
     const homeRemainingGames = seasonContext?.home?.remainingGames ?? null;
     const awayRank = seasonContext?.away?.rank ?? null;
     const awayGamesBehind = seasonContext?.away?.gamesBehind ?? null;
     const awayRemainingGames = seasonContext?.away?.remainingGames ?? null;
+    const homePitcherName = resolvePitcherName(gameDetail?.homePitcher ?? game?.homePitcher);
+    const awayPitcherName = resolvePitcherName(gameDetail?.awayPitcher ?? game?.awayPitcher);
+    const requestLeagueTypeCode = resolveLeagueTypeCode(game?.leagueType, game?.postSeasonSeries);
 
     const MAX_COACH_RETRIES = 3;
     const RETRY_DELAYS_MS = [4000, 6000, 9000] as const;
@@ -277,8 +359,29 @@ export default function CoachBriefing({
             return null;
         }
 
-        return `${game.gameId}-${requestSeasonYear || 'na'}`;
-    }, [game?.gameId, requestSeasonYear]);
+        return [
+            game.gameId,
+            requestSeasonYear || 'na',
+            game.leagueType || 'na',
+            game.postSeasonSeries || 'na',
+            game.seriesGameNo ?? 'na',
+            homePitcherName || 'na',
+            awayPitcherName || 'na',
+            gameDetail?.gameStatus || 'na',
+            game.homeScore ?? 'na',
+            game.awayScore ?? 'na',
+            gameDetail?.homeScore ?? 'na',
+            gameDetail?.awayScore ?? 'na',
+        ].join(':');
+    }, [
+        awayPitcherName,
+        game,
+        gameDetail?.awayScore,
+        gameDetail?.gameStatus,
+        gameDetail?.homeScore,
+        homePitcherName,
+        requestSeasonYear,
+    ]);
 
     const requestCacheKey = useMemo(() => {
         if (!requestMatchupKey) {
@@ -288,7 +391,10 @@ export default function CoachBriefing({
         return `${requestMatchupKey}-${effectiveRequestMode}-${focusSignature}`;
     }, [focusSignature, effectiveRequestMode, requestMatchupKey]);
 
-    const persistCoachBriefingCache = (data: NormalizedAiBriefing) => {
+    const persistCoachBriefingCache = (
+      data: NormalizedAiBriefing,
+      meta: CoachBriefingMetaState | null,
+    ) => {
         if (!requestCacheKey) {
             return;
         }
@@ -298,6 +404,9 @@ export default function CoachBriefing({
             message: data.message,
             displayText: data.displayText,
             expiresAt: Date.now() + COACH_BRIEFING_CACHE_TTL_MS,
+            generationMode: meta?.generationMode,
+            dataQuality: meta?.dataQuality,
+            usedEvidence: meta?.usedEvidence,
         };
 
         cacheRef.current.set(requestCacheKey, payload);
@@ -314,27 +423,48 @@ export default function CoachBriefing({
         if (!cachedValue || !requestCacheKey) {
             return null;
         }
+        const cachedMeta = normalizeCoachBriefingMeta({
+          generationMode: payload.generationMode,
+          dataQuality: payload.dataQuality,
+          usedEvidence: payload.usedEvidence,
+        });
 
         cacheRef.current.set(requestCacheKey, {
             title: cachedValue.title,
             message: cachedValue.message,
             displayText: cachedValue.displayText,
             expiresAt: Date.now() + COACH_BRIEFING_CACHE_TTL_MS,
+            generationMode: cachedMeta?.generationMode,
+            dataQuality: cachedMeta?.dataQuality,
+            usedEvidence: cachedMeta?.usedEvidence,
         });
+        setBriefingMeta(cachedMeta);
         return cachedValue;
     };
 
     const applyFallbackBriefing = (message: string) => {
         setAiBriefing(normalizeBriefing(message, message || COACH_BRIEFING_FALLBACK_MESSAGES.error));
+        setBriefingMeta({
+          generationMode: 'evidence_fallback',
+          dataQuality: 'insufficient',
+          usedEvidence: [],
+        });
+        retryCountRef.current = 0;
         setRetryCount(0);
     };
 
-    useEffect(() => {
-        setRetryCount(0);
+    const clearRetryTimer = () => {
         if (retryTimerRef.current) {
             clearTimeout(retryTimerRef.current);
             retryTimerRef.current = null;
         }
+    };
+
+    useEffect(() => {
+        requestCacheKeyRef.current = requestCacheKey;
+        retryCountRef.current = 0;
+        setRetryCount(0);
+        clearRetryTimer();
     }, [requestCacheKey]);
 
     const getSeasonBanner = () => {
@@ -365,16 +495,15 @@ export default function CoachBriefing({
     useEffect(() => {
         if (!game) {
             setAiBriefing(null);
+            setBriefingMeta(null);
             setAiLoading(false);
+            retryCountRef.current = 0;
             setRetryCount(0);
             if (abortRef.current) {
                 abortRef.current.abort();
                 abortRef.current = null;
             }
-            if (retryTimerRef.current) {
-                clearTimeout(retryTimerRef.current);
-                retryTimerRef.current = null;
-            }
+            clearRetryTimer();
             return;
         }
 
@@ -389,12 +518,11 @@ export default function CoachBriefing({
 
         if (!effectiveAutoEnabled || !requestCacheKey) {
             setAiBriefing(null);
+            setBriefingMeta(null);
             setAiLoading(false);
+            retryCountRef.current = 0;
             setRetryCount(0);
-            if (retryTimerRef.current) {
-                clearTimeout(retryTimerRef.current);
-                retryTimerRef.current = null;
-            }
+            clearRetryTimer();
             return;
         }
 
@@ -402,12 +530,15 @@ export default function CoachBriefing({
         const cached = cacheRef.current.get(requestCacheKey);
         if (cached) {
             setAiBriefing(normalizeBriefing(cached));
+            setBriefingMeta(normalizeCoachBriefingMeta({
+              generationMode: cached.generationMode,
+              dataQuality: cached.dataQuality,
+              usedEvidence: cached.usedEvidence,
+            }));
             setAiLoading(false);
+            retryCountRef.current = 0;
             setRetryCount(0);
-            if (retryTimerRef.current) {
-                clearTimeout(retryTimerRef.current);
-                retryTimerRef.current = null;
-            }
+            clearRetryTimer();
             return;
         }
 
@@ -417,18 +548,12 @@ export default function CoachBriefing({
             if (cachedValue) {
                 setAiBriefing(cachedValue);
                 setAiLoading(false);
+                retryCountRef.current = 0;
                 setRetryCount(0);
-                if (retryTimerRef.current) {
-                    clearTimeout(retryTimerRef.current);
-                    retryTimerRef.current = null;
-                }
+                clearRetryTimer();
                 return;
             }
         }
-
-        const persistCache = (data: NormalizedAiBriefing) => {
-            persistCoachBriefingCache(data);
-        };
 
         if (inFlightRef.current.has(requestCacheKey)) {
             return;
@@ -461,6 +586,7 @@ export default function CoachBriefing({
             const controller = new AbortController();
             abortRef.current = controller;
             setAiBriefing(null);
+            setBriefingMeta(null);
             setAiLoading(true);
             inFlightRef.current.add(requestCacheKey);
 
@@ -472,8 +598,13 @@ export default function CoachBriefing({
                     season_year: requestSeasonYear,
                     game_date: game.gameDate,
                     league_type: game.leagueType,
+                    league_type_code: requestLeagueTypeCode,
                     round: game.postSeasonSeries,
+                    stage_label: game.postSeasonSeries,
                     game_no: game.seriesGameNo,
+                    series_game_no: game.seriesGameNo,
+                    home_pitcher: homePitcherName,
+                    away_pitcher: awayPitcherName,
                     home: homeLeagueContext,
                     away: awayLeagueContext,
                 },
@@ -506,22 +637,22 @@ export default function CoachBriefing({
                             }
                             : undefined,
                     });
-
-                    const clearRetryTimer = () => {
-                        if (retryTimerRef.current) {
-                            clearTimeout(retryTimerRef.current);
-                            retryTimerRef.current = null;
-                        }
-                    };
+                    const normalizedMeta = normalizeCoachBriefingMeta({
+                      generationMode: response.generation_mode,
+                      dataQuality: response.data_quality,
+                      usedEvidence: response.used_evidence,
+                    });
 
                     const scheduleRetryIfNeeded = (inProgress: boolean) => {
                         if (!inProgress) {
                             clearRetryTimer();
+                            retryCountRef.current = 0;
                             setRetryCount(0);
                             return;
                         }
 
-                        if (retryCount >= MAX_COACH_RETRIES) {
+                        const currentRetryCount = retryCountRef.current;
+                        if (currentRetryCount >= MAX_COACH_RETRIES) {
                             clearRetryTimer();
                             applyFallbackBriefing(fallbackRetryMessage);
                             return;
@@ -529,20 +660,23 @@ export default function CoachBriefing({
 
                         clearRetryTimer();
                         const selectedDelay =
-                            RETRY_DELAYS_MS[retryCount] ??
+                            RETRY_DELAYS_MS[currentRetryCount] ??
                             RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
                         const backoffMs = Math.min(selectedDelay, MAX_BACKOFF_MS);
+                        const nextRetryCount = currentRetryCount + 1;
                         retryTimerRef.current = setTimeout(() => {
                             retryTimerRef.current = null;
                             if (!active) return;
+                            if (requestCacheKeyRef.current !== requestCacheKey) return;
                             cacheRef.current.delete(requestCacheKey);
                             inFlightRef.current.delete(requestCacheKey);
-                            setRetryCount((count) => count + 1);
+                            retryCountRef.current = nextRetryCount;
+                            setRetryCount(nextRetryCount);
                         }, backoffMs);
                     };
 
                     if (!isTransientState && normalizedResponse) {
-                        persistCache(normalizedResponse);
+                        persistCoachBriefingCache(normalizedResponse, normalizedMeta);
                     }
 
                     const inProgress = response.in_progress ?? false;
@@ -550,6 +684,7 @@ export default function CoachBriefing({
 
                     if (normalizedResponse) {
                         setAiBriefing(normalizedResponse);
+                        setBriefingMeta(normalizedMeta);
                     } else {
                         applyFallbackBriefing(fallbackErrorMessage);
                     }
@@ -568,19 +703,15 @@ export default function CoachBriefing({
                             abortMessage.includes('invalid_season_year_for_analysis')
                         ) {
                             applyFallbackBriefing(fallbackYearMessage);
+                            retryCountRef.current = 0;
                             setRetryCount(0);
-                            if (retryTimerRef.current) {
-                                clearTimeout(retryTimerRef.current);
-                                retryTimerRef.current = null;
-                            }
+                            clearRetryTimer();
                             return;
                         }
                         applyFallbackBriefing(fallbackErrorMessage);
+                        retryCountRef.current = 0;
                         setRetryCount(0);
-                        if (retryTimerRef.current) {
-                            clearTimeout(retryTimerRef.current);
-                            retryTimerRef.current = null;
-                        }
+                        clearRetryTimer();
                     }
                 })
                 .finally(() => {
@@ -604,10 +735,7 @@ export default function CoachBriefing({
                 abortRef.current.abort();
                 abortRef.current = null;
             }
-            if (retryTimerRef.current) {
-                clearTimeout(retryTimerRef.current);
-                retryTimerRef.current = null;
-            }
+            clearRetryTimer();
             inFlightRef.current.delete(requestCacheKey);
             setAiLoading(false);
         };
@@ -625,12 +753,16 @@ export default function CoachBriefing({
         game?.awayScore,
         gameDetail?.homeScore,
         gameDetail?.awayScore,
+        gameDetail?.gameStatus,
         homeRank,
         homeGamesBehind,
         homeRemainingGames,
         awayRank,
         awayGamesBehind,
         awayRemainingGames,
+        homePitcherName,
+        awayPitcherName,
+        requestLeagueTypeCode,
         requestCacheKey,
         focusSignature,
         requestSeasonYear,
@@ -697,6 +829,19 @@ export default function CoachBriefing({
                                 <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-secondary text-gray-700 dark:text-gray-100 border border-gray-200 dark:border-border text-[11px] font-semibold">
                                     {briefingLabel}
                                 </span>
+                                {briefingMeta?.dataQuality && (
+                                    <span
+                                        data-testid="coach-briefing-quality-badge"
+                                        className={`px-2.5 py-0.5 rounded-full border text-[11px] font-semibold ${getCoachBriefingBadgeClassName(briefingMeta.dataQuality)}`}
+                                    >
+                                        {getCoachDataQualityLabel(briefingMeta.dataQuality)}
+                                    </span>
+                                )}
+                                {briefingMeta?.usedEvidence.length ? (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-white/70 dark:bg-black/20 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-border text-[11px] font-medium">
+                                        근거 {briefingMeta.usedEvidence.length}개
+                                    </span>
+                                ) : null}
                                 {game && (
                                     <span className="text-[11px] text-gray-500 dark:text-gray-300 font-medium">
                                         {effectiveAutoEnabled
@@ -746,6 +891,8 @@ export default function CoachBriefing({
                             leagueType={game?.leagueType}
                             round={game?.postSeasonSeries}
                             gameNo={game?.seriesGameNo}
+                            homePitcher={homePitcherName}
+                            awayPitcher={awayPitcherName}
                             trigger={
                                 <Button
                                     data-testid="coach-analysis-open"

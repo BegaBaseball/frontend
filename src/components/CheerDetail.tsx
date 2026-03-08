@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import { parseError } from '../utils/errorUtils';
 import {
     ArrowLeft,
     Heart,
@@ -100,7 +101,7 @@ export default function CheerDetail() {
 
     useEffect(() => {
         if (selectedPost) {
-            setCommentCount(selectedPost.comments ?? 0);
+            setCommentCount(selectedPost.commentCount ?? 0);
         }
     }, [selectedPost]);
 
@@ -139,7 +140,8 @@ export default function CheerDetail() {
             await deletePostMutation.mutateAsync(selectedPost.id);
             navigate('/cheer');
         } catch (e) {
-            toast.error('삭제 실패');
+            const parsed = parseError(e);
+            toast.error(parsed.message || '삭제 실패');
         }
     };
 
@@ -247,7 +249,7 @@ export default function CheerDetail() {
         } catch (e) {
             setComments((prev) => prev.filter((comment) => comment.id !== optimisticId));
             setCommentCount((prev) => Math.max(0, prev - 1));
-            toast.error('댓글 작성 실패');
+            toast.error(parseError(e).message || '댓글 작성 실패');
         } finally {
             setSendingComment(false);
         }
@@ -300,7 +302,7 @@ export default function CheerDetail() {
             console.error('Comment like failed', e);
             // Rollback
             setComments((prev) => updateCommentLikes(prev, commentId));
-            toast.error('좋아요 처리 실패');
+            toast.error(parseError(e).message || '좋아요 처리 실패');
         }
     };
 
@@ -361,7 +363,7 @@ export default function CheerDetail() {
             // Rollback
             setComments(previousComments);
             setCommentCount(previousComments.length); // Approximate, or more precise if needed
-            toast.error('댓글 삭제 실패');
+            toast.error(parseError(e).message || '댓글 삭제 실패');
         }
     };
 

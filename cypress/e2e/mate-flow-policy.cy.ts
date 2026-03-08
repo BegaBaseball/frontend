@@ -59,6 +59,9 @@ describe('Mate Flow Policy', () => {
     });
 
     cy.wait('@getDirectTradePendingParty');
+    cy.contains('직거래 베타').should('be.visible');
+    cy.contains('정책 안내').should('be.visible');
+    cy.contains('다음 단계').should('be.visible');
     cy.get('textarea#message').type('직거래 신청 메시지 테스트입니다');
     cy.contains('참여 신청하기').click();
     cy.wait('@createDirectTradePendingApplication');
@@ -120,6 +123,8 @@ describe('Mate Flow Policy', () => {
     });
 
     cy.wait('@getDirectTradeSellingParty');
+    cy.contains('직거래 베타').should('be.visible');
+    cy.contains('현재 상태').should('be.visible');
     cy.contains('직거래 신청하기').click();
     cy.wait('@createDirectTradeSellingApplication');
   });
@@ -176,6 +181,8 @@ describe('Mate Flow Policy', () => {
       },
     });
     cy.wait('@getSellingParty');
+    cy.contains('판매 티켓 구매').should('be.visible');
+    cy.contains('정책 안내').should('be.visible');
     cy.contains('결제하기').click();
     cy.wait('@preparePayment');
     cy.wrap(null).then(() => {

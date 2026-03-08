@@ -1,5 +1,19 @@
 // api/admin.ts
-import { AdminUser, AdminStats, AdminPost, AdminMate, AdminApiResponse, AdminReport, AdminReportPage } from '../types/admin';
+import {
+  AdminUser,
+  AdminStats,
+  AdminPost,
+  AdminMate,
+  AdminApiResponse,
+  AdminReport,
+  AdminReportPage,
+  ReleaseDecisionArtifactRecord,
+  ReleaseDecisionArtifactSummary,
+  ReleaseDecisionDraftResponse,
+  ReleaseDecisionEvaluateResponse,
+  ReleaseDecisionEvalCase,
+  ReleaseDecisionPreset,
+} from '../types/admin';
 import { getApiBaseUrl } from './apiBase';
 
 // ─── Stadium / Place Types ───────────────────────────────────────────────────
@@ -33,6 +47,21 @@ export interface PlaceFormData {
 }
 
 const API_BASE_URL = getApiBaseUrl();
+
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
+  try {
+    const payload = await response.json();
+    if (typeof payload?.detail === 'string' && payload.detail.trim()) {
+      return payload.detail;
+    }
+    if (typeof payload?.message === 'string' && payload.message.trim()) {
+      return payload.message;
+    }
+  } catch {
+    // ignore parse failure and fall through to fallback
+  }
+  return fallback;
+};
 
 /**
  * 관리자 통계 조회
@@ -416,4 +445,124 @@ export const deletePlace = async (placeId: number): Promise<void> => {
   if (!apiResponse.success) {
     throw new Error(apiResponse.message || '장소 삭제 실패');
   }
+};
+
+export const fetchReleaseDecisionPresets = async (): Promise<ReleaseDecisionPreset[]> => {
+  const response = await fetch(`${API_BASE_URL}/ai/release-decision/presets`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'AI 운영 프리셋 조회 실패'));
+  }
+
+  return response.json();
+};
+
+export const draftReleaseDecision = async (payload: {
+  scenario: string;
+  task_prompt?: string;
+  seed_paths?: string[];
+  allowed_roots?: string[];
+  model?: string;
+  max_tool_rounds?: number;
+  max_output_tokens?: number;
+}): Promise<ReleaseDecisionDraftResponse> => {
+  const response = await fetch(`${API_BASE_URL}/ai/release-decision/draft`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'AI 초안 생성 실패'));
+  }
+
+  return response.json();
+};
+
+export const fetchReleaseDecisionEvalCases = async (): Promise<ReleaseDecisionEvalCase[]> => {
+  const response = await fetch(`${API_BASE_URL}/ai/release-decision/eval-cases`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'AI 평가 케이스 조회 실패'));
+  }
+
+  return response.json();
+};
+
+export const evaluateReleaseDecisionDraft = async (payload: {
+  case_id: string;
+  draft: ReleaseDecisionDraftResponse['result']['draft'];
+}): Promise<ReleaseDecisionEvaluateResponse> => {
+  const response = await fetch(`${API_BASE_URL}/ai/release-decision/evaluate`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'AI 평가 실행 실패'));
+  }
+
+  return response.json();
+};
+
+export const saveReleaseDecisionArtifact = async (payload: {
+  scenario: string;
+  task_prompt?: string;
+  seed_paths: string[];
+  allowed_roots: string[];
+  draft_response: ReleaseDecisionDraftResponse['result'];
+  markdown: string;
+  evaluation?: ReleaseDecisionEvaluateResponse | null;
+}): Promise<ReleaseDecisionArtifactSummary> => {
+  const response = await fetch(`${API_BASE_URL}/ai/release-decision/save`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'AI 아티팩트 저장 실패'));
+  }
+
+  return response.json();
+};
+
+export const fetchReleaseDecisionArtifacts = async (): Promise<ReleaseDecisionArtifactSummary[]> => {
+  const response = await fetch(`${API_BASE_URL}/ai/release-decision/artifacts`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'AI 아티팩트 목록 조회 실패'));
+  }
+
+  return response.json();
+};
+
+export const fetchReleaseDecisionArtifactDetail = async (
+  artifactId: string
+): Promise<ReleaseDecisionArtifactRecord> => {
+  const response = await fetch(`${API_BASE_URL}/ai/release-decision/artifacts/${encodeURIComponent(artifactId)}`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'AI 아티팩트 상세 조회 실패'));
+  }
+
+  return response.json();
 };

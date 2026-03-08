@@ -13,7 +13,15 @@ import {
     Loader2, Zap, TrendingUp, TrendingDown, Users, Shield, Bot, Sparkles,
     BarChart2, BarChart3, AlertTriangle, CheckCircle, ArrowUpRight, ArrowDownRight, Minus, Trophy
 } from 'lucide-react';
-import { analyzeTeam, CoachAnalyzeResponse, CoachMetric, DashboardStat } from '../api/coach';
+import {
+    analyzeTeam,
+    CoachAnalyzeResponse,
+    CoachDataQuality,
+    CoachMetric,
+    DashboardStat,
+    getCoachDataQualityLabel,
+    getCoachGenerationModeLabel,
+} from '../api/coach';
 import { useAuthStore } from '../store/authStore';
 import { TEAM_LIST, TEAM_NAME_TO_ID, getRandomTeamName, TEAM_DATA } from '../constants/teams';
 import { useTheme } from '../hooks/useTheme';
@@ -61,6 +69,35 @@ const isAbortError = (error: unknown): boolean => {
     }
     const text = String(error ?? '').toLowerCase();
     return text.includes('aborterror') || text.includes('aborted') || text.includes('abort');
+};
+
+const resolveLeagueTypeCode = (
+    leagueType?: string,
+    stageLabel?: string,
+): number | undefined => {
+    const normalizedStage = String(stageLabel || '').trim().toUpperCase();
+    if (normalizedStage === 'WC') return 2;
+    if (normalizedStage === 'SEMI_PO' || normalizedStage === 'DS') return 3;
+    if (normalizedStage === 'PO') return 4;
+    if (normalizedStage === 'KS') return 5;
+
+    const normalizedLeagueType = String(leagueType || '').trim().toUpperCase();
+    if (normalizedLeagueType === 'REGULAR') return 0;
+    if (normalizedLeagueType === 'PRE') return 1;
+    return undefined;
+};
+
+const getCoachQualityBadgeClassName = (dataQuality?: CoachDataQuality): string => {
+    if (dataQuality === 'grounded') {
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-200 dark:border-emerald-800/30';
+    }
+    if (dataQuality === 'partial') {
+        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-200 dark:border-amber-800/30';
+    }
+    if (dataQuality === 'insufficient') {
+        return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-200 dark:border-rose-800/30';
+    }
+    return 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-secondary dark:text-gray-200 dark:border-border';
 };
 
 // --- Metric Card Component ---
@@ -207,6 +244,8 @@ interface CoachAnalysisDialogProps {
     leagueType?: string;
     round?: string;
     gameNo?: number;
+    homePitcher?: string | null;
+    awayPitcher?: string | null;
 }
 
 export default function CoachAnalysisDialog({
@@ -217,7 +256,9 @@ export default function CoachAnalysisDialog({
     seasonId,
     leagueType,
     round,
-    gameNo
+    gameNo,
+    homePitcher,
+    awayPitcher,
 }: CoachAnalysisDialogProps) {
     const { user } = useAuthStore();
     const { theme } = useTheme();
@@ -333,6 +374,7 @@ export default function CoachAnalysisDialog({
 
         try {
             const seasonYear = resolveSeasonYear();
+            const leagueTypeCode = resolveLeagueTypeCode(leagueType, round);
             // Streaming Implementation
                 await analyzeTeam({
                     home_team_id: TEAM_NAME_TO_ID[selectedTeam] || selectedTeam,
@@ -344,8 +386,13 @@ export default function CoachAnalysisDialog({
                     season_year: seasonYear,
                     game_date: gameDate,
                     league_type: leagueType,
+                    league_type_code: leagueTypeCode,
                     round: round,
                     game_no: gameNo,
+                    stage_label: round,
+                    series_game_no: gameNo,
+                    home_pitcher: homePitcher || undefined,
+                    away_pitcher: awayPitcher || undefined,
                 },
             }, (currentText) => {
                 // Real-time update
@@ -570,6 +617,9 @@ export default function CoachAnalysisDialog({
     const hasFocusMeta = typeof result?.focus_signature === 'string';
     const focusMismatch = hasFocusMeta
         && selectedFocusNormalized.join('+') !== resolvedFocus.join('+');
+    const hasGroundingMeta = Boolean(
+        result?.data_quality || result?.generation_mode || result?.used_evidence?.length
+    );
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -769,6 +819,42 @@ export default function CoachAnalysisDialog({
                                     일부 focus 섹션이 누락되어 다음 재생성에서 보강될 수 있습니다.
                                 </p>
                             )}
+                        </motion.div>
+                    )}
+                    {hasGroundingMeta && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="rounded-2xl border border-sky-200/60 dark:border-sky-900/30 bg-sky-50/70 dark:bg-sky-950/10 p-4 space-y-3"
+                        >
+                            <p className="text-xs font-black tracking-widest uppercase text-sky-700 dark:text-sky-300">
+                                근거 데이터 상태
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {result?.data_quality && (
+                                    <span
+                                        data-testid="coach-analysis-quality-badge"
+                                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getCoachQualityBadgeClassName(result.data_quality)}`}
+                                    >
+                                        {getCoachDataQualityLabel(result.data_quality)}
+                                    </span>
+                                )}
+                                {result?.generation_mode && (
+                                    <span className="inline-flex items-center rounded-full border border-sky-300/60 dark:border-sky-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:text-sky-200">
+                                        {getCoachGenerationModeLabel(result.generation_mode)}
+                                    </span>
+                                )}
+                                {result?.used_evidence?.length ? (
+                                    <span className="inline-flex items-center rounded-full border border-sky-300/60 dark:border-sky-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:text-sky-200">
+                                        근거 {result.used_evidence.length}개
+                                    </span>
+                                ) : null}
+                            </div>
+                            {result?.used_evidence?.length ? (
+                                <p className="text-xs text-sky-800 dark:text-sky-100 font-medium break-keep">
+                                    사용 근거: {result.used_evidence.join(', ')}
+                                </p>
+                            ) : null}
                         </motion.div>
                     )}
                     <AnimatePresence mode="wait">

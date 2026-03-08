@@ -85,6 +85,10 @@ export default function MateCreate() {
     }
   }, [createStep, formData.stadium, formData.seatCategory, formData.gameDate]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 });
+  }, [createStep]);
+
 
   const fetchCurrentUser = async () => {
     try {

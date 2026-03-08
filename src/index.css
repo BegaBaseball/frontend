@@ -259,6 +259,97 @@
   border-radius: 4px;
 }
 
+.chatbot-baseball {
+  border-radius: 9999px;
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+  animation: chatbot-baseball-spin 1.2s linear infinite;
+}
+
+.chatbot-typing-text {
+  text-shadow: 0 0 8px color-mix(in oklab, currentColor 12%, transparent);
+  letter-spacing: 0.01em;
+}
+
+.chatbot-typing-dot {
+  display: inline-block;
+  opacity: 0.35;
+  animation: chatbot-typing-text-dot 1.2s ease-in-out infinite;
+  color: currentColor;
+}
+
+.chatbot-typing-cursor {
+  margin-left: 0.125rem;
+  font-weight: 700;
+  opacity: 0.75;
+  animation: chatbot-typing-cursor-blink 0.9s steps(1, end) infinite;
+  color: currentColor;
+}
+
+.chatbot-typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.chatbot-typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes chatbot-typing-text-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+  }
+
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes chatbot-typing-cursor-blink {
+  0%,
+  45%,
+  100% {
+    opacity: 0;
+  }
+
+  55%,
+  75% {
+    opacity: 0.75;
+  }
+}
+
+@keyframes chatbot-baseball-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chatbot-baseball {
+    animation: none;
+    opacity: 0.9;
+  }
+
+  .chatbot-typing-dot {
+    animation: none;
+    opacity: 0.8;
+  }
+
+  .chatbot-typing-cursor {
+    animation: none;
+    opacity: 0.9;
+  }
+
+  .chatbot-typing-text {
+    text-shadow: none;
+  }
+}
+
 .admin-page ::-webkit-scrollbar-thumb:hover {
   background: rgb(100 116 139);
   /* slate-500 */

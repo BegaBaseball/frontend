@@ -416,6 +416,8 @@ export const useCheerMutations = () => {
                 queryClient.setQueryData(['cheer-post', postId], context.previousPost);
             }
             invalidateRepostListQueries(queryClient);
+            const parsed = parseError(_err);
+            toast.error(parsed.message || '좋아요 처리에 실패했습니다.');
         },
         onSuccess: (data, postId) => {
             syncLikeActionStateInPostDetails(queryClient, postId, data.liked, data.likes);
@@ -510,6 +512,8 @@ export const useCheerMutations = () => {
             if (context?.previousBookmarks) {
                 queryClient.setQueryData(['cheer-bookmarks'], context.previousBookmarks);
             }
+            const parsed = parseError(_err);
+            toast.error(parsed.message || '북마크 처리에 실패했습니다.');
         },
         onSuccess: (data, postId) => {
             const bookmarked = Boolean(data.bookmarked);
