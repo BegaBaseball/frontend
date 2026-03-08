@@ -16,6 +16,7 @@ export default function PasswordReset() {
     isSubmitted,
     isLoading,
     error,
+    successMessage,
     handleEmailChange,
     handleEmailBlur,
     handleSubmit,
@@ -85,9 +86,8 @@ export default function PasswordReset() {
           </div>
           <h2 className="mb-4">이메일을 확인해주세요</h2>
           <p className="text-gray-600 mb-8">
-            <span className="text-primary">{email}</span> 로<br />
-            비밀번호 재설정 링크를 보냈습니다.<br />
-            이메일을 확인하고 링크를 클릭해주세요.
+            {successMessage}<br />
+            메일을 받지 못했다면 잠시 후 다시 시도해주세요.
           </p>
 
           <Button

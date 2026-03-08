@@ -180,7 +180,7 @@ export default function CheerWriteModal({
             setSourceSnapshotType('');
             onClose();
         } catch (error) {
-            console.error(error);
+            console.error('게시글 작성 실패:', error);
             toast.error('게시글 작성에 실패했습니다. 다시 시도해주세요.');
         } finally {
             setIsSubmitting(false);

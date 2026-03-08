@@ -22,7 +22,7 @@ function MateHistoryContent({ tab }: MateHistoryContentProps) {
   if (isEmpty) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-600">{emptyMessage}</p>
+        <p className="text-muted-foreground">{emptyMessage}</p>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export default function MateHistorySection() {
               className={`px-4 py-2 -mb-px ${
                 mateHistoryTab === tab.key
                   ? 'border-b-2 font-bold border-primary text-primary'
-                  : 'text-gray-500'
+                  : 'text-muted-foreground'
               }`}
               style={{
                 borderColor: mateHistoryTab === tab.key ? undefined : 'transparent',
