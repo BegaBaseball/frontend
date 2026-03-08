@@ -86,7 +86,7 @@ const getNicknameClassName = (state: NicknameCheckState): string => {
     case 'error':
       return 'text-orange-500 dark:text-orange-400';
     default:
-      return 'text-gray-500 dark:text-gray-300';
+      return 'text-muted-foreground';
   }
 };
 
@@ -177,7 +177,9 @@ export default function ProfileEditSection({
   }, [activeSection, isDesktop]);
 
   const sectionClassForButton = (section: ProfileSection) =>
-    activeSection === section ? 'bg-primary text-white' : 'bg-white text-gray-900 dark:bg-card dark:text-gray-100';
+    activeSection === section
+      ? 'bg-primary text-primary-foreground'
+      : 'bg-card text-foreground';
 
   const handleSectionChange = (section: ProfileSection) => {
     if (!onSectionChange || section === activeSection || isLoading) {
@@ -237,7 +239,7 @@ export default function ProfileEditSection({
     }
 
     if (nicknameCheckState === 'checking') {
-      return <p className="text-xs text-gray-500 dark:text-gray-300">{nicknameCheckMessage}</p>;
+      return <p className="text-xs text-muted-foreground">{nicknameCheckMessage}</p>;
     }
 
     if (fieldErrors.name) {
@@ -258,7 +260,7 @@ export default function ProfileEditSection({
 
   const renderMobileMenu = () => (
     <div className="md:hidden space-y-4">
-      <div className="flex items-start gap-4 p-5 bg-gray-50 dark:bg-card rounded-xl border border-gray-200 dark:border-border">
+      <div className="flex items-start gap-4 p-5 bg-card rounded-xl border border-border">
         <ProfileAvatar
           src={profileImage}
           alt={name}
@@ -267,7 +269,7 @@ export default function ProfileEditSection({
         />
         <div>
           <h3 className="font-semibold text-lg text-primary">{name}</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-300">{email}</p>
+          <p className="text-sm text-muted-foreground">{email}</p>
         </div>
       </div>
 
@@ -282,7 +284,7 @@ export default function ProfileEditSection({
           >
             <span className="flex flex-col items-start">
               <span>{section.label}</span>
-              <span className="text-xs text-gray-500 text-left">{section.description}</span>
+              <span className="text-xs text-muted-foreground text-left">{section.description}</span>
             </span>
             <span className="text-sm">›</span>
           </Button>
@@ -303,14 +305,14 @@ export default function ProfileEditSection({
 
       <Card>
         <CardContent className="space-y-2 p-4">
-          <Label htmlFor="name" className="text-sm text-gray-500 dark:text-gray-300">
+          <Label htmlFor="name" className="text-sm text-muted-foreground">
             이름
           </Label>
           <Input
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={`w-full border-gray-200 dark:border-border bg-white dark:bg-card text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus-visible:ring-primary/40 ${fieldErrors.name ? 'border-red-500 dark:border-red-400' : ''}`}
+            className={`w-full border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/40 ${fieldErrors.name ? 'border-red-500 dark:border-red-400' : ''}`}
             placeholder="이름을 입력하세요"
             maxLength={21}
             disabled={isLoading}
@@ -318,8 +320,8 @@ export default function ProfileEditSection({
             aria-describedby="name-error"
           />
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-500 dark:text-gray-300">닉네임은 2~20자</p>
-            <p className={`text-xs ${name.length > 20 ? 'text-red-500' : 'text-gray-500 dark:text-gray-300'}`}>
+            <p className="text-xs text-muted-foreground">닉네임은 2~20자</p>
+            <p className={`text-xs ${name.length > 20 ? 'text-red-500' : 'text-muted-foreground'}`}>
               {name.length}/20
             </p>
           </div>
@@ -331,7 +333,7 @@ export default function ProfileEditSection({
 
       <Card>
         <CardContent className="space-y-2 p-4">
-          <Label htmlFor="email" className="text-sm text-gray-500 dark:text-gray-300">
+          <Label htmlFor="email" className="text-sm text-muted-foreground">
             이메일
           </Label>
           <div className="flex items-center gap-2">
@@ -340,14 +342,14 @@ export default function ProfileEditSection({
                 id="email"
                 type="email"
                 value={email}
-                className="w-full border-gray-200 dark:border-border bg-gray-100 dark:bg-card text-gray-700 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus-visible:ring-primary/40 disabled:opacity-100 pr-9"
+                className="w-full border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/40 disabled:opacity-100 pr-9"
                 placeholder="이메일을 입력하세요"
                 disabled
                 readOnly
               />
-              <Lock className="w-4 h-4 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-muted-foreground absolute right-2.5 top-1/2 -translate-y-1/2" />
             </div>
-            <span className="text-xs text-gray-500 dark:text-gray-300 whitespace-nowrap">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
               수정 불가
             </span>
           </div>
@@ -357,14 +359,14 @@ export default function ProfileEditSection({
 
       <Card>
         <CardContent className="space-y-2 p-4">
-          <Label htmlFor="bio" className="text-sm text-gray-500 dark:text-gray-300">
+          <Label htmlFor="bio" className="text-sm text-muted-foreground">
             자기소개
           </Label>
           <textarea
             id="bio"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            className={`flex min-h-[90px] w-full rounded-md border px-3 py-2 text-sm ring-offset-background transition-[color,box-shadow] outline-none disabled:cursor-not-allowed disabled:opacity-50 border-gray-200 dark:border-border bg-white dark:bg-card text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-primary/40 ${fieldErrors.bio ? 'border-red-500 dark:border-red-400' : ''}`}
+            className={`flex min-h-[90px] w-full rounded-md border px-3 py-2 text-sm ring-offset-background transition-[color,box-shadow] outline-none disabled:cursor-not-allowed disabled:opacity-50 border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/40 ${fieldErrors.bio ? 'border-red-500 dark:border-red-400' : ''}`}
             placeholder="자기소개를 입력하세요 (500자 이내)"
             maxLength={500}
             disabled={isLoading}
@@ -372,8 +374,8 @@ export default function ProfileEditSection({
             aria-describedby={fieldErrors.bio ? 'bio-error' : undefined}
           />
           <div className="flex justify-between">
-            <p className="text-xs text-gray-500 dark:text-gray-300">자기소개는 중요 정보입니다.</p>
-            <p className={`text-xs ${bio.length > 500 ? 'text-red-500' : 'text-gray-500 dark:text-gray-300'}`}>
+            <p className="text-xs text-muted-foreground">자기소개는 중요 정보입니다.</p>
+            <p className={`text-xs ${bio.length > 500 ? 'text-red-500' : 'text-muted-foreground'}`}>
               {bio.length}/500
             </p>
           </div>
@@ -388,7 +390,7 @@ export default function ProfileEditSection({
       {userRole === 'ROLE_USER' && (
         <Card>
           <CardContent className="space-y-3 p-4">
-            <Label htmlFor="team" className="text-sm text-gray-500 dark:text-gray-300">
+            <Label htmlFor="team" className="text-sm text-muted-foreground">
               응원구단
             </Label>
 
@@ -404,7 +406,7 @@ export default function ProfileEditSection({
                       setIsTeamSelectOpen(false);
                     }}
                   >
-                    <SelectTrigger className="w-full border-gray-200 dark:border-border bg-white dark:bg-card text-gray-900 dark:text-gray-100 focus-visible:ring-primary/40">
+                    <SelectTrigger className="w-full border-border bg-card text-foreground focus-visible:ring-primary/40">
                       <div className="flex items-center gap-2">
                         {editingFavoriteTeam !== '없음' && (
                           <div className="w-6 h-6">
@@ -424,7 +426,7 @@ export default function ProfileEditSection({
                               </div>
                             )}
                             {teamId === '없음' && (
-                              <div className="w-6 h-6 rounded-full bg-gray-400" />
+                              <div className="w-6 h-6 rounded-full bg-muted" />
                             )}
                             {TEAM_DATA[teamId].name}
                           </div>
@@ -454,18 +456,18 @@ export default function ProfileEditSection({
                   </TooltipProvider>
                 </div>
 
-                <p className="text-xs text-gray-500 dark:text-gray-300">응원구단은 응원석에서 사용됩니다</p>
+                <p className="text-xs text-muted-foreground">응원구단은 응원석에서 사용됩니다</p>
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="rounded-md border border-gray-200 dark:border-border px-3 py-2 min-h-[40px] flex items-center justify-between">
+                <div className="rounded-md border border-border px-3 py-2 min-h-[40px] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {editingFavoriteTeam !== '없음' && (
                       <div className="w-5 h-5">
                         <TeamLogo team={editingFavoriteTeam} size="sm" />
                       </div>
                     )}
-                    <span className="text-sm text-gray-900 dark:text-gray-100">
+                    <span className="text-sm text-foreground">
                       {getTeamLabel(editingFavoriteTeam)}
                     </span>
                   </div>
@@ -499,7 +501,7 @@ export default function ProfileEditSection({
                     </TooltipProvider>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-300">
+                <p className="text-xs text-muted-foreground">
                   앱처럼 빠르게 열어서 응원구단을 선택할 수 있습니다.
                 </p>
               </div>
@@ -508,12 +510,12 @@ export default function ProfileEditSection({
         </Card>
       )}
 
-      <div className={`${hideBottomActions ? 'hidden' : 'sticky'} bottom-0 z-10 p-2 bg-gray-50 dark:bg-card rounded-xl border border-gray-200 dark:border-border`}>
+      <div className={`${hideBottomActions ? 'hidden' : 'sticky'} bottom-0 z-10 p-2 bg-card rounded-xl border border-border`}>
         <div className="p-3 rounded-lg space-y-2">
-          <p className={`text-sm font-semibold ${hasChanges ? 'text-primary dark:text-primary-light' : 'text-gray-600 dark:text-gray-300'}`}>
+          <p className={`text-sm font-semibold ${hasChanges ? 'text-primary dark:text-primary-light' : 'text-muted-foreground'}`}>
             {hasChanges ? '저장되지 않은 변경사항이 있습니다.' : '변경사항 없음'}
           </p>
-          <p className="text-xs leading-5 text-gray-500 dark:text-gray-300">
+          <p className="text-xs leading-5 text-muted-foreground">
             {lastSavedAt ? `마지막 저장: ${lastSavedAt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}` : '아직 저장 기록이 없습니다.'}
             {lastSavedAt && saveMessage ? ` · ${saveMessage}` : ''}
           </p>
@@ -523,7 +525,7 @@ export default function ProfileEditSection({
             </Button>
             <Button
               onClick={handleSave}
-              className={`w-full sm:flex-1 text-white bg-primary flex items-center justify-center gap-2 ${!canSubmit && 'opacity-70'}`}
+              className={`w-full sm:flex-1 text-primary-foreground bg-primary flex items-center justify-center gap-2 ${!canSubmit && 'opacity-70'}`}
               disabled={isLoading || !canSubmit}
             >
               <Save className="w-5 h-5" />
@@ -549,7 +551,7 @@ export default function ProfileEditSection({
 
   return (
     <>
-      <div className="bg-white dark:bg-card rounded-2xl shadow-lg border-2 border-gray-100 dark:border-border p-4 md:p-8 mb-6">
+      <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-4 md:p-8 mb-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-primary">{sectionTitle}</h2>
           {!isDesktop && activeSection !== 'profile' && (
@@ -570,10 +572,10 @@ export default function ProfileEditSection({
           )
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
-            <div className="md:col-span-4 lg:col-span-3 md:border-r md:border-gray-200 md:dark:border-border md:pr-6">
+            <div className="md:col-span-4 lg:col-span-3 md:border-r md:border-border md:pr-6">
               <div className="md:sticky md:top-8 md:space-y-2">
                 <div className="md:space-y-6">
-                  <div className="hidden md:flex md:flex-col md:items-center p-4 md:p-6 bg-gray-50 dark:bg-card rounded-xl border border-gray-200 dark:border-border">
+                  <div className="hidden md:flex md:flex-col md:items-center p-4 md:p-6 bg-card rounded-xl border border-border">
                     <div className="relative">
                       <ProfileAvatar
                         src={profileImage}
@@ -582,7 +584,7 @@ export default function ProfileEditSection({
                         className="w-28 h-28"
                       />
                       <label
-                        className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white dark:bg-card border-2 border-primary dark:border-primary flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-primary/10 shadow-md transition-colors"
+                        className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-card border-2 border-primary dark:border-primary flex items-center justify-center cursor-pointer hover:bg-secondary dark:hover:bg-primary/10 shadow-md transition-colors"
                       >
                         <Camera className="w-5 h-5 text-primary" />
                         <input
@@ -595,7 +597,7 @@ export default function ProfileEditSection({
                       </label>
                     </div>
                     <h3 className="mt-4 text-lg font-semibold text-primary">{name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{email}</p>
+                    <p className="text-sm text-muted-foreground">{email}</p>
                   </div>
 
                   <div className="space-y-2 mt-4">
@@ -672,7 +674,7 @@ export default function ProfileEditSection({
                         <TeamLogo team={teamId} size="sm" />
                       </div>
                     )}
-                    {teamId === '없음' && <div className="w-6 h-6 rounded-full bg-gray-400" />}
+                    {teamId === '없음' && <div className="w-6 h-6 rounded-full bg-muted" />}
                     <span className="truncate">{TEAM_DATA[teamId].name}</span>
                   </span>
                   <CheckCircle2 className={`w-4 h-4 ${editingFavoriteTeam === teamId ? 'text-primary' : 'text-transparent'}`} />
@@ -694,19 +696,19 @@ export default function ProfileEditSection({
             <AlertDialogTitle>
               {pendingSection ? '변경사항을 버리고 이동하시겠습니까?' : '변경사항을 버리시겠습니까?'}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 dark:text-gray-300">
+            <AlertDialogDescription className="text-muted-foreground">
               {pendingSection
                 ? '저장하지 않은 변경사항이 있습니다. 이동하려면 변경사항이 사라집니다.'
                 : '저장하지 않은 변경사항이 있습니다. 나가시겠습니까?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="dark:bg-card dark:text-gray-100 dark:hover:bg-primary/10">
+            <AlertDialogCancel>
               계속 수정
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleTabDiscardConfirm}
-              className="bg-primary text-white hover:bg-primary-dark"
+              className="bg-primary text-primary-foreground hover:bg-primary-dark"
             >
               나가기
             </AlertDialogAction>

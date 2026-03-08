@@ -13,7 +13,7 @@ export default function Layout() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen">
+      <main className="min-h-screen bg-background text-foreground transition-colors duration-200">
         <Outlet /> {/* 자식 라우트 컴포넌트가 렌더링될 위치 */}
       </main>
       <Footer />

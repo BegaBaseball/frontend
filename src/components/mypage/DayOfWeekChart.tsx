@@ -23,7 +23,7 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
                 <CardHeader>
                     <CardTitle className="text-lg font-bold text-primary">요일별 승률</CardTitle>
                 </CardHeader>
-                <CardContent className="flex items-center justify-center h-[200px] text-gray-400">
+                <CardContent className="flex items-center justify-center h-[200px] text-muted-foreground">
                     데이터가 충분하지 않습니다.
                 </CardContent>
             </Card>
@@ -34,11 +34,11 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
         if (active && payload && payload.length) {
             const entry = dayOfWeekStats[label ?? ''];
             return (
-                <div className="rounded-lg border border-gray-100 bg-white px-3 py-2 shadow-md text-sm dark:bg-card dark:border-border">
+                <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-sm">
                     <p className="font-bold text-primary">{label}요일</p>
-                    <p className="text-gray-600 dark:text-gray-300">승률: <span className="font-semibold">{payload[0].value}%</span></p>
+                    <p className="text-muted-foreground">승률: <span className="font-semibold">{payload[0].value}%</span></p>
                     {entry && (
-                        <p className="text-gray-400 text-xs">{entry.count}경기 · {entry.wins}승</p>
+                        <p className="text-muted-foreground text-xs">{entry.count}경기 · {entry.wins}승</p>
                     )}
                 </div>
             );

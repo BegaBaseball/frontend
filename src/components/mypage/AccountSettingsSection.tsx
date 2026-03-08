@@ -55,7 +55,7 @@ const PROVIDERS: ProviderMeta[] = [
     key: 'google',
     label: 'Google',
     icon: (
-      <div className="w-4 h-4 rounded-full overflow-hidden bg-white shadow">
+      <div className="w-4 h-4 rounded-full overflow-hidden bg-card shadow">
         <svg viewBox="0 0 24 24" className="w-full h-full">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -64,8 +64,10 @@ const PROVIDERS: ProviderMeta[] = [
         </svg>
       </div>
     ),
-    connectedClass: 'from-blue-50 to-white border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300',
-    disconnectedClass: 'from-gray-50 to-gray-100 border-gray-300 text-gray-500 dark:from-gray-800 dark:to-gray-900 dark:border-gray-700 dark:text-gray-400',
+    connectedClass:
+      'from-blue-50 to-card border-blue-200 text-blue-700 dark:from-blue-950/40 dark:to-card dark:border-blue-800 dark:text-blue-300',
+    disconnectedClass:
+      'from-muted/60 to-card border-border text-muted-foreground dark:from-card/70 dark:border-border',
   },
   {
     key: 'kakao',
@@ -75,8 +77,10 @@ const PROVIDERS: ProviderMeta[] = [
         k
       </div>
     ),
-    connectedClass: 'from-amber-50 to-white border-amber-200 text-amber-700 dark:border-amber-800 dark:text-amber-300',
-    disconnectedClass: 'from-gray-50 to-gray-100 border-gray-300 text-gray-500 dark:from-gray-800 dark:to-gray-900 dark:border-gray-700 dark:text-gray-400',
+    connectedClass:
+      'from-amber-50 to-card border-amber-200 text-amber-700 dark:from-amber-950/40 dark:to-card dark:border-amber-800 dark:text-amber-300',
+    disconnectedClass:
+      'from-muted/60 to-card border-border text-muted-foreground dark:from-card/70 dark:border-border',
   },
   {
     key: 'naver',
@@ -86,8 +90,10 @@ const PROVIDERS: ProviderMeta[] = [
         N
       </div>
     ),
-    connectedClass: 'from-green-50 to-white border-green-200 text-green-700 dark:border-green-800 dark:text-green-300',
-    disconnectedClass: 'from-gray-50 to-gray-100 border-gray-300 text-gray-500 dark:from-gray-800 dark:to-gray-900 dark:border-gray-700 dark:text-gray-400',
+    connectedClass:
+      'from-green-50 to-card border-green-200 text-green-700 dark:from-green-950/40 dark:to-card dark:border-green-800 dark:text-green-300',
+    disconnectedClass:
+      'from-muted/60 to-card border-border text-muted-foreground dark:from-card/70 dark:border-border',
   },
 ];
 
@@ -112,6 +118,8 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [error, setError] = useState('');
   const [showSecurityDialog, setShowSecurityDialog] = useState(false);
+  const [securityDialogMode, setSecurityDialogMode] = useState<'unlink' | 'delete' | null>(null);
+  const [showAdvancedSettingsDialog, setShowAdvancedSettingsDialog] = useState(false);
   const [pendingUnlinkProvider, setPendingUnlinkProvider] = useState<ProviderKey | null>(null);
   const [isLinking, setIsLinking] = useState(false);
 
@@ -150,6 +158,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       }),
     [deviceSessions]
   );
+  const hasOtherDeviceSessions = useMemo(() => sortedDeviceSessions.some((session) => !session.isCurrent), [sortedDeviceSessions]);
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteAccount(isLocalUser ? password : undefined),
@@ -197,6 +206,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
     onSettled: () => {
       setPendingUnlinkProvider(null);
       setShowSecurityDialog(false);
+      setSecurityDialogMode(null);
     },
   });
 
@@ -254,11 +264,19 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
     }
 
     setPendingUnlinkProvider(provider);
+    setSecurityDialogMode('unlink');
     setShowSecurityDialog(true);
   };
 
-  const handleUnlinkConfirm = async () => {
-    if (!pendingUnlinkProvider) {
+  const handleSecurityConfirm = async () => {
+    if (securityDialogMode === 'delete') {
+      setShowSecurityDialog(false);
+      setSecurityDialogMode(null);
+      setShowAdvancedSettingsDialog(true);
+      return;
+    }
+
+    if (!pendingUnlinkProvider || securityDialogMode !== 'unlink') {
       return;
     }
 
@@ -274,7 +292,22 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
 
   const handleUnlinkDialogClose = () => {
     setShowSecurityDialog(false);
+    setSecurityDialogMode(null);
     setPendingUnlinkProvider(null);
+  };
+
+  const handleAdvancedSectionRequest = () => {
+    setSecurityDialogMode('delete');
+    setShowSecurityDialog(true);
+  };
+
+  const handleOpenDeleteDialog = () => {
+    setShowAdvancedSettingsDialog(false);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteOtherSessions = () => {
+    deleteOtherSessionsMutation.mutate();
   };
 
   const renderProviderCard = (provider: ProviderMeta) => {
@@ -282,9 +315,9 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
     const connectedEmail = getConnectedEmail(provider.key);
     const disabled = isLastLoginMethod(provider.key, isConnected);
     const isButtonDisabled = unlinkMutation.isPending || isProvidersLoading || (!isConnected ? isLinking : disabled);
-    const button = (
+  const button = (
       <Button
-        variant={isConnected ? 'outline' : 'outline'}
+        variant="outline"
         size="sm"
         disabled={isButtonDisabled}
         onClick={() => {
@@ -335,14 +368,14 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
             <span className={isConnected ? '' : 'grayscale opacity-70'}>{provider.icon}</span>
             <div className="min-w-0">
               <p className="font-semibold text-sm">{provider.label}</p>
-              <p className={`text-xs ${isConnected ? 'text-emerald-600 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300'}`}>
+              <p className={`text-xs ${isConnected ? 'text-emerald-600 dark:text-emerald-300' : 'text-muted-foreground'}`}>
                 {isConnected ? '연동됨' : '연동되지 않음'}
               </p>
               {isConnected && connectedEmail && (
-                <p className="text-xs text-gray-500 dark:text-gray-300 truncate mt-1">{connectedEmail}</p>
+                <p className="text-xs text-muted-foreground truncate mt-1">{connectedEmail}</p>
               )}
               {!isConnected && (
-                <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   3초 만에 연결하고 로그인 편하게 하기
                 </p>
               )}
@@ -383,21 +416,21 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
   }, [showDeleteDialog]);
 
   return (
-    <div className="bg-white dark:bg-card rounded-2xl shadow-lg border-2 border-gray-100 dark:border-border p-8 mb-6">
+      <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-8 mb-6">
       <div className="flex items-center gap-3 mb-6">
         <ShieldAlert className="w-6 h-6 text-primary" />
         <h2 className="text-xl font-bold text-primary">계정 설정</h2>
       </div>
 
       <section className="mb-8">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">로그인 연동 관리</h3>
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">로그인 연동 관리</h3>
         <div className="space-y-3">{PROVIDERS.map(renderProviderCard)}</div>
       </section>
 
       <section className="mb-8">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">현재 기기</h3>
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">현재 기기</h3>
         {isSessionLoading ? (
-          <p className="text-sm text-gray-500 dark:text-gray-300">기기 정보를 불러오는 중입니다.</p>
+          <p className="text-sm text-muted-foreground">기기 정보를 불러오는 중입니다.</p>
         ) : isSessionError ? (
           <p className="text-sm text-red-500 dark:text-red-400">
             기기 정보를 불러오지 못했습니다. 다시 시도해 주세요.
@@ -408,14 +441,14 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
             {sortedDeviceSessions.map((session) => (
               <div
                 key={session.id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-gray-200 dark:border-border p-3 bg-gray-50 dark:bg-card"
+                className="flex items-start justify-between gap-3 rounded-lg border border-border p-3 bg-card/70"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-full bg-muted/50 text-foreground flex items-center justify-center">
                     {getSessionIcon(session.deviceType)}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                    <p className="font-semibold text-sm text-foreground">
                       {session.deviceLabel || session.deviceType || '알 수 없음'}
                       {session.isCurrent ? (
                         <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium text-emerald-700 bg-emerald-100 dark:text-emerald-200 dark:bg-emerald-900/30">
@@ -429,11 +462,11 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
                         </span>
                       ) : null}
                     </p>
-                <p className="text-xs text-gray-500 dark:text-gray-300 truncate">
+                <p className="text-xs text-muted-foreground truncate">
                       {session.browser || '브라우저'}, {session.os || 'OS'} · 최근 활동: {formatSessionTime(session.lastActiveAt || session.lastSeenAt)}
                     </p>
                     {session.ip && (
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">IP: {session.ip}</p>
+                      <p className="text-[11px] text-muted-foreground/80 mt-0.5">IP: {session.ip}</p>
                     )}
                   </div>
                 </div>
@@ -463,39 +496,88 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
             )}
           </div>
         ) : (
-          <p className="text-sm text-gray-500 dark:text-gray-300">
-            기기 정보가 없습니다.
-          </p>
+            <p className="text-sm text-muted-foreground">
+              기기 정보가 없습니다.
+            </p>
         )}
       </section>
 
-      <section className="border-t border-gray-200 dark:border-border pt-6">
-        <h3 className="text-sm font-medium text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4" />
-          위험 구역
-        </h3>
-
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+      <section className="border-t border-border pt-6">
+        <div className="p-4 bg-muted/70 rounded-lg border border-border">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="font-medium text-red-800 dark:text-red-300">계정 삭제</p>
-              <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-                계정을 삭제하면 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
+              <p className="font-medium">고급 설정</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                계정 삭제 등 위험 구역 기능은 보안 확인 후 표시됩니다.
               </p>
             </div>
             <Button
-              variant="destructive"
+              variant="outline"
               size="sm"
-              onClick={() => setShowDeleteDialog(true)}
+              onClick={handleAdvancedSectionRequest}
               className="flex-shrink-0"
-              disabled={deleteMutation.isPending}
+              disabled={showSecurityDialog}
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              계정 삭제
+              <ShieldAlert className="w-4 h-4 mr-2" />
+              고급 설정 보기
             </Button>
           </div>
         </div>
       </section>
+
+      <AlertDialog open={showAdvancedSettingsDialog} onOpenChange={setShowAdvancedSettingsDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>고급 설정</AlertDialogTitle>
+            <AlertDialogDescription>
+              고급 작업은 신중하게 처리해야 하는 기능입니다. 원할한 조작을 위해 메뉴 형태로 제공합니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-3">
+            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50/80 dark:bg-red-900/20 p-4">
+              <p className="text-sm font-medium text-red-800 dark:text-red-300 mb-3">계정 삭제</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mb-3">
+                계정을 삭제하면 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
+              </p>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleOpenDeleteDialog}
+                className="w-full"
+                disabled={deleteMutation.isPending}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                계정 삭제
+              </Button>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card/80 p-4">
+              <p className="text-sm font-medium mb-3">기기 세션 정리</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                현재 기기를 제외한 다른 기기의 로그인 상태를 모두 종료합니다.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteOtherSessions}
+                disabled={deleteOtherSessionsMutation.isPending || !hasOtherDeviceSessions}
+                className="w-full"
+              >
+                {deleteOtherSessionsMutation.isPending ? '세션 정리 중...' : '다른 기기에서 로그아웃'}
+              </Button>
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button variant="outline" className="w-full">
+                닫기
+              </Button>
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
@@ -539,7 +621,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -557,7 +639,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
               className="font-medium"
               disabled={deleteMutation.isPending}
             />
-            <p className="text-xs text-gray-500 dark:text-gray-300">위 문구를 정확히 입력해 주세요.</p>
+            <p className="text-xs text-muted-foreground">위 문구를 정확히 입력해 주세요.</p>
           </div>
 
           <AlertDialogFooter>
@@ -577,15 +659,24 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
         isOpen={showSecurityDialog}
         onClose={handleUnlinkDialogClose}
         mode="security"
-        title="연동 해제"
+        title={securityDialogMode === 'delete' ? '고급 설정 진입' : '연동 해제'}
         description={(
           <>
-            로그인 수단을 변경하기 전에 본인 확인이 필요합니다.<br />
-            계속 진행하면 연동이 해제됩니다.
+            {securityDialogMode === 'delete' ? (
+              <>
+                계정 삭제와 같은 고급 설정은 신중해야 합니다.<br />
+                본인 인증 후에만 확인 가능합니다.
+              </>
+            ) : (
+              <>
+                로그인 수단을 변경하기 전에 본인 확인이 필요합니다.<br />
+                계속 진행하면 연동이 해제됩니다.
+              </>
+            )}
           </>
         )}
-        confirmLabel="연동 해제 진행"
-        onConfirm={handleUnlinkConfirm}
+        confirmLabel={securityDialogMode === 'delete' ? '고급 설정 진입' : '연동 해제 진행'}
+        onConfirm={handleSecurityConfirm}
       />
     </div>
   );

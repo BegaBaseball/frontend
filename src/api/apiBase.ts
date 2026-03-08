@@ -5,6 +5,8 @@ const LOOPBACK_HOSTS = new Set([
   '0:0:0:0:0:0:0:1',
 ]);
 
+const viteEnv = import.meta.env ?? {};
+
 const normalizeHost = (host: string): string =>
   host
     .replace(/^\[/, '')
@@ -56,7 +58,7 @@ const shouldUseRelativeApiBase = (
   return isLoopbackHostName(pageHost) && isLoopbackHostName(targetHost);
 };
 
-export const getApiBaseUrl = (value = import.meta.env.VITE_API_BASE_URL): string => {
+export const getApiBaseUrl = (value = viteEnv.VITE_API_BASE_URL): string => {
   // Cypress should always use same-origin path for stable stubs
   if (typeof window !== 'undefined' && (window as Window & { Cypress?: unknown }).Cypress) {
     return '/api';

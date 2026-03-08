@@ -22,7 +22,7 @@ export default function MonthlyStatsChart({ data }: { data: { month: string; cou
                 <CardHeader>
                     <CardTitle className="text-lg font-bold text-primary">월별 직관 추이</CardTitle>
                 </CardHeader>
-                <CardContent className="flex items-center justify-center h-[200px] text-gray-400">
+                <CardContent className="flex items-center justify-center h-[200px] text-muted-foreground">
                     데이터가 충분하지 않습니다.
                 </CardContent>
             </Card>

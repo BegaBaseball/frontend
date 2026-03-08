@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Eye, EyeOff, Lock, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { changePassword } from '../../api/profile';
 import { toast } from 'sonner';
+import { useAuthStore } from '../../store/authStore';
 
 interface PasswordChangeSectionProps {
     onCancel: () => void;
@@ -15,6 +17,8 @@ interface PasswordChangeSectionProps {
 }
 
 export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword = true }: PasswordChangeSectionProps) {
+    const navigate = useNavigate();
+    const logout = useAuthStore((state) => state.logout);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,8 +30,10 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
     const mutation = useMutation({
         mutationFn: changePassword,
         onSuccess: () => {
-            toast.success('비밀번호가 성공적으로 변경되었습니다.');
+            toast.success('비밀번호가 변경되어 다시 로그인해주세요.');
+            logout(true);
             onSuccess();
+            navigate('/login', { replace: true });
         },
         onError: (error: Error) => {
             setError(error.message);
@@ -70,7 +76,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
     };
 
     return (
-        <div className="bg-white dark:bg-card rounded-2xl shadow-lg border-2 border-gray-100 dark:border-border p-8 mb-6">
+        <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
                 <Lock className="w-6 h-6 text-primary" />
                 <h2 className="text-xl font-bold text-primary">
@@ -90,7 +96,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                 {/* Current Password (Only show if user has password) */}
                 {hasPassword && (
                     <div className="space-y-2">
-                        <Label htmlFor="currentPassword" className="text-gray-700 dark:text-gray-300">
+                        <Label htmlFor="currentPassword" className="text-muted-foreground">
                             현재 비밀번호 *
                         </Label>
                         <div className="relative">
@@ -106,7 +112,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                             <button
                                 type="button"
                                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                             >
                                 {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -116,7 +122,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
 
                 {/* New Password */}
                 <div className="space-y-2">
-                    <Label htmlFor="newPassword" className="text-gray-700 dark:text-gray-300">
+                        <Label htmlFor="newPassword" className="text-muted-foreground">
                         새 비밀번호 *
                     </Label>
                     <div className="relative">
@@ -132,17 +138,17 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                         <button
                             type="button"
                             onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
                             {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                     </div>
-                    <p className="text-xs text-gray-500">비밀번호는 8자 이상이어야 합니다.</p>
+                    <p className="text-xs text-muted-foreground">비밀번호는 8자 이상이어야 합니다.</p>
                 </div>
 
                 {/* Confirm Password */}
                 <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-gray-700 dark:text-gray-300">
+                        <Label htmlFor="confirmPassword" className="text-muted-foreground">
                         비밀번호 확인 *
                     </Label>
                     <div className="relative">
@@ -158,7 +164,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                         <button
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
                             {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -173,7 +179,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-border">
+            <div className="flex gap-3 mt-8 pt-6 border-t border-border">
                 <Button
                     variant="outline"
                     className="flex-1"
@@ -184,7 +190,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                 </Button>
                 <Button
                     onClick={handleSubmit}
-                    className="flex-1 text-white bg-primary flex items-center justify-center gap-2"
+                    className="flex-1 text-primary-foreground bg-primary flex items-center justify-center gap-2"
                     disabled={mutation.isPending || (hasPassword && !currentPassword) || !newPassword || !confirmPassword}
                 >
                     <Save className="w-5 h-5" />

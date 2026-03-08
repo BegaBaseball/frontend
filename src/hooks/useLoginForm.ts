@@ -1,16 +1,18 @@
 // hooks/useLoginForm.ts
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { loginUser } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { validateLoginField, validateLoginForm } from '../utils/validation';
 import { LoginFormData } from '../types/auth';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { getLoginQueryErrorMessage } from '../utils/loginError';
 
 const SAVED_EMAIL_KEY = 'savedEmail';
 
 export const useLoginForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const login = useAuthStore((state) => state.login);
   const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
@@ -33,6 +35,10 @@ export const useLoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rememberEmail, setRememberEmail] = useState(!!getSavedEmail());
+
+  useEffect(() => {
+    setError(getLoginQueryErrorMessage(location.search));
+  }, [location.search]);
 
   const handleFieldChange = (field: keyof LoginFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

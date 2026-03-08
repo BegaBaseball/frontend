@@ -38,7 +38,9 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
         if (post.isOwner) {
             setHasAccess(true);
             // Load images for editing - separating side-effect fetching
-            cheerApi.fetchPostImages(postId).then(setExistingImages).catch(console.error);
+            cheerApi.fetchPostImages(postId).then(setExistingImages).catch((err) => {
+                console.error('Failed to fetch post images:', err);
+            });
         } else {
             setHasAccess(false);
         }
@@ -87,7 +89,7 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
                 setExistingImages(prev => prev.filter(img => img.id !== imgId));
             })
             .catch((err) => {
-                console.error(err);
+                console.error('Failed to delete image:', err);
                 // 서버 삭제 실패 시 UI 상태 복구
                 if (imageToRestore) {
                     setExistingImages(prev => [...prev, imageToRestore]);

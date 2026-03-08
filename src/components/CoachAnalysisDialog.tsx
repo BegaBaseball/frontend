@@ -402,7 +402,7 @@ export default function CoachAnalysisDialog({
             });
 
         } catch (error) {
-            console.error(error);
+            console.error('Coach analysis failed:', error);
             const message = error instanceof Error ? error.message : String(error ?? '');
             if (isAbortError(error)) {
                 return;

@@ -123,7 +123,7 @@ export const useStadiumGuide = () => {
           setNearbyStatus(data.length > 0 ? 'success' : 'empty');
         },
         (errorMessage) => {
-          console.error(errorMessage);
+          console.error('주변 시설 검색 실패:', errorMessage);
           setPlaces([]);
           setNearbyStatus('error');
           setNearbyError(`주변 ${selectedCategory === 'store' ? '편의점' : '주차장'} 검색에 실패했습니다.`);
