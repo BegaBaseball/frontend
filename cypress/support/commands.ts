@@ -61,6 +61,25 @@ Cypress.Commands.add('login', (userType = 'user') => {
             },
         }).as('sessionGetMe');
 
+        // Prevent Navbar chat polling from hitting the real backend with a fake JWT,
+        // which would trigger auth-session-expired via the axios interceptor.
+        cy.intercept('GET', '**/api/chat/my/unread-counts', {
+            statusCode: 200,
+            body: { success: true, data: 0 },
+        });
+
+        // Prevent Navbar notification polling from hitting the real backend during login visit.
+        // mockAPI hasn't run yet at this point, so these requests would go unintercepted
+        // and potentially flip module-level availability flags in notificationApi.ts.
+        cy.intercept('GET', '**/api/notifications/my/unread-count', {
+            statusCode: 200,
+            body: 5,
+        });
+        cy.intercept('GET', '**/api/notifications/my', {
+            statusCode: 200,
+            body: [],
+        });
+
         cy.visit('/', {
             onBeforeLoad(win) {
                 seedAuthState(win);

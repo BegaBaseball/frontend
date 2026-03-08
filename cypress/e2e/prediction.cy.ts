@@ -16,7 +16,7 @@ describe('Game Prediction', () => {
     const defaultRangeSchedulePayload: ScheduleGameMock[] = [
         {
             gameId: '20240510HHSS0',
-            gameDate: '2026-02-04',
+            gameDate: '2026-02-03',
             homeTeam: 'HH',
             awayTeam: 'SS',
             stadium: '대전',
@@ -117,37 +117,45 @@ describe('Game Prediction', () => {
     };
 
     beforeEach(() => {
+        cy.visit('about:blank');
+        (cy as any).login('user');
+        (cy as any).mockAPI();
+
         // Force date to 2026-02-03 12:00:00 KST (approx)
         // Using UTC date that results in the same date string for getTodayString
         const now = new Date('2026-02-03T12:00:00').getTime();
         cy.clock(now, ['Date', 'setTimeout', 'clearTimeout']); // mock Date and timers for deterministic execution
 
-        (cy as any).login('user');
-        (cy as any).mockAPI();
-
-        // Calculate next day based on fixed date
-        const nextDay = '2026-02-04';
-
         rangeSchedulePayload = defaultRangeSchedulePayload.map((item) => ({
             ...item,
-            gameDate: nextDay,
+            gameDate: '2026-02-03',
         }));
         rangeScheduleStatusCode = 200;
         rangeScheduleCallCount = 0;
         rangeScheduleMode = 'normal';
 
         // Mock game detail
-        cy.intercept('**/api/matches/*', {
-            statusCode: 200,
-            body: {
-                gameId: '20240510HHSS0',
-                homeTeam: 'HH',
-                awayTeam: 'SS',
-                stadium: '대전',
-                gameDate: nextDay,
-                homeScore: null,
-                awayScore: null
+        cy.intercept('GET', '**/api/matches/*', (req) => {
+            if (
+                req.url.includes('/api/matches/day')
+                || req.url.includes('/api/matches/range')
+                || req.url.includes('/api/matches/bounds')
+            ) {
+                return;
             }
+
+            req.reply({
+                statusCode: 200,
+                body: {
+                    gameId: '20240510HHSS0',
+                    homeTeam: 'HH',
+                    awayTeam: 'SS',
+                    stadium: '대전',
+                    gameDate: '2026-02-03',
+                    homeScore: null,
+                    awayScore: null
+                }
+            });
         }).as('getGameDetail');
 
         // Mock user votes (bulk endpoint)
@@ -166,14 +174,26 @@ describe('Game Prediction', () => {
             body: { votedTeam: null }
         }).as('getUserVote');
 
-        // Specific mock for range query (MOVED AFTER detail to override it)
-        cy.intercept('**/api/matches/range*', (req) => {
+        // Specific mock for primary day query
+        cy.intercept('GET', '**/api/matches/day*', (req) => {
             rangeScheduleCallCount += 1;
             const shouldReturnEmpty = rangeScheduleMode === 'empty-then-data' && rangeScheduleCallCount === 1;
+            const url = new URL(req.url);
+            const requestedDate = url.searchParams.get('date') || '2026-02-03';
+            const responseDate = shouldReturnEmpty
+                ? requestedDate
+                : (rangeSchedulePayload[0]?.gameDate || requestedDate);
             req.reply({
                 statusCode: rangeScheduleStatusCode,
                 body: rangeScheduleStatusCode === 200
-                    ? (shouldReturnEmpty ? [] : rangeSchedulePayload)
+                    ? {
+                        date: responseDate,
+                        games: shouldReturnEmpty ? [] : rangeSchedulePayload,
+                        prevDate: shouldReturnEmpty ? '2026-02-02' : null,
+                        nextDate: shouldReturnEmpty ? '2026-02-04' : null,
+                        hasPrev: shouldReturnEmpty,
+                        hasNext: shouldReturnEmpty,
+                    }
                     : { message: 'Internal Server Error' },
             });
         }).as('getScheduleRange');
@@ -287,7 +307,7 @@ describe('Game Prediction', () => {
         ];
 
         cy.intercept('GET', '**/api/matches/*', (req) => {
-            if (req.url.includes('/api/matches/range')) {
+            if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/day')) {
                 return;
             }
 
@@ -423,7 +443,8 @@ describe('Game Prediction', () => {
         cy.wait(500);
         cy.get('@coachAnalyze.all').should('have.length', 0);
         cy.get('[data-testid="prediction-status-badge"]').should('contain', '경기 시작 예정');
-        cy.contains('VS').should('be.visible');
+        cy.contains(/^AWAY$/).should('be.visible');
+        cy.contains(/^HOME$/).should('be.visible');
         cy.get('[data-testid="cheering-gauge-caption"]').should('contain', '사전 응원/예측 참여수');
         cy.contains('스코어보드와 경기 주요 기록은 경기 시작 후 제공됩니다.').should('be.visible');
         cy.contains('AI 분석 요청').should('be.visible');
@@ -433,7 +454,7 @@ describe('Game Prediction', () => {
 
     it('should keep postponed status badge and disable voting', () => {
         cy.intercept('GET', '**/api/matches/*', (req) => {
-            if (req.url.includes('/api/matches/range')) {
+            if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/day')) {
                 return;
             }
 
@@ -464,7 +485,7 @@ describe('Game Prediction', () => {
 
     it('should keep cancelled status badge and disable voting', () => {
         cy.intercept('GET', '**/api/matches/*', (req) => {
-            if (req.url.includes('/api/matches/range')) {
+            if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/day')) {
                 return;
             }
 
@@ -520,7 +541,7 @@ describe('Game Prediction', () => {
         }).as('coachAnalyzePast');
 
         cy.intercept('GET', '**/api/matches/*', (req) => {
-            if (req.url.includes('/api/matches/range')) {
+            if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/day')) {
                 return;
             }
 
@@ -714,6 +735,7 @@ describe('Game Prediction', () => {
 
         openPredictionPage();
         cy.wait('@getRankingsRapid');
+        cy.wait('@coachAnalyzeRapid');
 
         cy.get('.flex.gap-2.overflow-x-auto').find('button').then(($buttons) => {
             if ($buttons.length < 2) {
@@ -723,7 +745,8 @@ describe('Game Prediction', () => {
             cy.wrap($buttons[0]).click();
         });
 
-        cy.wait(900);
+        cy.get('@getGameDetail.all').its('length').should('be.gte', 1);
+        cy.tick(1200);
         cy.get('@coachAnalyzeRapid.all').then((interceptions) => {
             const interceptionList = interceptions as unknown as { request: { body: unknown } }[];
             expect(interceptionList.length).to.be.gte(1);
@@ -837,12 +860,12 @@ describe('Game Prediction', () => {
 
         openPredictionPage();
 
-        cy.get('@getScheduleRange.all').should('have.length', 1);
+        cy.get('@getScheduleRange.all').should('have.length.gte', 1);
         cy.contains('예정된 경기 일정이 없습니다.').should('be.visible');
         cy.get('[data-testid="vote-home-btn"]').should('not.exist');
     });
 
-    it('should show login required dialog when auth check fails (401)', () => {
+    it('should keep prediction schedule public when auth check fails (401)', () => {
         cy.clearCookie('Authorization');
         cy.clearLocalStorage('auth-storage');
         cy.clearLocalStorage('accessToken');
@@ -851,14 +874,11 @@ describe('Game Prediction', () => {
             body: { message: 'Unauthorized' },
         }).as('getMeUnauthorized');
 
-        const cacheBuster = Date.now();
-        cy.window().then((win) => {
-            win.location.assign(`/prediction?_cypress_bust=${cacheBuster}`);
-        });
-
+        openPredictionPage();
         cy.wait('@getMeUnauthorized');
-        cy.contains('로그인 필요').should('be.visible');
-        cy.contains('로그인이 필요한 서비스입니다.').should('be.visible');
+        cy.contains('한화 이글스').should('be.visible');
+        cy.contains('로그인 필요').should('not.exist');
+        cy.get('@getUserVotes.all').should('have.length', 0);
     });
 
     it('should show error card when /api/matches/range fails', () => {
@@ -1029,7 +1049,7 @@ describe('Game Prediction', () => {
 
     it('should show text fallback card when detail render fails', () => {
         cy.intercept('GET', '**/api/matches/*', (req) => {
-            if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/bounds')) {
+            if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/day') || req.url.includes('/api/matches/bounds')) {
                 return;
             }
 

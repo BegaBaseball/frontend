@@ -3,7 +3,9 @@
 describe('Prediction Range Recovery', () => {
     const today = '2026-02-22';
     const todayGameId = '20260222HHSS0';
+    const pastDate = '2026-02-18';
     const pastGameId = '20260218LGKT0';
+    const futureDate = '2026-02-23';
 
     const baseRankings = [
         { teamId: 'HH', teamName: '한화 이글스', rank: 7, wins: 30, losses: 50, draws: 0, winRate: '0.375', games: 80, gamesBehind: 6.0 },
@@ -12,12 +14,27 @@ describe('Prediction Range Recovery', () => {
         { teamId: 'KT', teamName: 'KT 위즈', rank: 4, wins: 44, losses: 36, draws: 0, winRate: '0.550', games: 80, gamesBehind: 2.5 },
     ];
 
+    const buildDayResponse = (
+        date: string,
+        games: Array<Record<string, unknown>>,
+        prevDateValue: string | null,
+        nextDateValue: string | null
+    ) => ({
+        date,
+        games,
+        prevDate: prevDateValue,
+        nextDate: nextDateValue,
+        hasPrev: Boolean(prevDateValue),
+        hasNext: Boolean(nextDateValue),
+    });
+
     const openPredictionPage = () => {
         const cacheBuster = Date.now();
         cy.window().then((win) => {
             win.location.assign(`/prediction?_cypress_bust=${cacheBuster}`);
         });
-        cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
+        cy.contains('전력분석실', { timeout: 20000 }).should('exist');
+        cy.wait('@getMatchDay');
     };
 
     const interceptPredictionCommon = () => {
@@ -42,7 +59,11 @@ describe('Prediction Range Recovery', () => {
         }).as('getRankingsRecovery');
 
         cy.intercept('GET', '**/api/matches/*', (req) => {
-            if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/bounds')) {
+            if (
+                req.url.includes('/api/matches/range')
+                || req.url.includes('/api/matches/day')
+                || req.url.includes('/api/matches/bounds')
+            ) {
                 return;
             }
 
@@ -52,7 +73,7 @@ describe('Prediction Range Recovery', () => {
                     statusCode: 200,
                     body: {
                         gameId: pastGameId,
-                        gameDate: '2026-02-18',
+                        gameDate: pastDate,
                         homeTeam: 'LG',
                         awayTeam: 'KT',
                         stadium: '잠실',
@@ -83,154 +104,102 @@ describe('Prediction Range Recovery', () => {
     };
 
     beforeEach(() => {
+        cy.visit('about:blank');
+        cy.clock(new Date('2026-02-22T12:00:00').getTime(), ['Date']);
         cy.login('user');
         cy.mockAPI();
         interceptPredictionCommon();
     });
 
-    it('빈 구간에서도 자동 과거 탐색으로 이전 경기로 이동한다', () => {
-        cy.intercept('**/api/matches/bounds*', {
-            statusCode: 200,
-            body: {
-                hasData: true,
-                earliestGameDate: '2026-02-01',
-                latestGameDate: '2026-10-01',
-            },
-        }).as('getBoundsRecovery');
-
-        cy.intercept('GET', '**/api/matches/range*', (req) => {
+    it('빈 현재 날짜에서는 자동 과거 이동 없이 중립 empty state를 유지한다', () => {
+        cy.intercept('GET', '**/api/matches/day*', (req) => {
             const url = new URL(req.url);
-            const withMeta = url.searchParams.get('withMeta');
-            const endDate = url.searchParams.get('endDate') || '';
+            const date = url.searchParams.get('date') || '';
 
-            if (withMeta === 'true' && endDate < today) {
+            if (date === today) {
                 req.reply({
                     statusCode: 200,
-                    body: {
-                        content: [
-                            {
-                                gameId: pastGameId,
-                                gameDate: '2026-02-18',
-                                homeTeam: 'LG',
-                                awayTeam: 'KT',
-                                stadium: '잠실',
-                                homeScore: null,
-                                awayScore: null,
-                                winner: null,
-                            },
-                        ],
-                        page: 0,
-                        size: 150,
-                        totalElements: 1,
-                        totalPages: 1,
-                        hasNext: false,
-                        hasPrevious: false,
-                    },
-                });
-                return;
-            }
-
-            if (withMeta === 'true') {
-                req.reply({
-                    statusCode: 200,
-                    body: {
-                        content: [],
-                        page: 0,
-                        size: 150,
-                        totalElements: 0,
-                        totalPages: 0,
-                        hasNext: false,
-                        hasPrevious: false,
-                    },
+                    body: buildDayResponse(today, [], pastDate, null),
                 });
                 return;
             }
 
             req.reply({
                 statusCode: 200,
-                body: [],
-            });
-        }).as('getRangeRecovery');
-
-        openPredictionPage();
-        cy.wait('@getBoundsRecovery');
-        cy.wait('@getRangeRecovery');
-        cy.contains(/(KT vs LG|LG vs KT)/, { timeout: 20000 }).should('be.visible');
-        cy.contains('이전 경기 조회 실패').should('not.exist');
-    });
-
-    it('경계 도달 시 오류 대신 중립 안내를 표시한다', () => {
-        cy.intercept('**/api/matches/bounds*', {
-            statusCode: 200,
-            body: {
-                hasData: false,
-                earliestGameDate: null,
-                latestGameDate: null,
-            },
-        }).as('getBoundsNoData');
-
-        cy.intercept('GET', '**/api/matches/range*', {
-            statusCode: 200,
-            body: [],
-        }).as('getRangeNoData');
-
-        openPredictionPage();
-        cy.wait('@getBoundsNoData');
-        cy.wait('@getRangeNoData');
-        cy.contains(/현재 표시할 예측 경기가 없습니다.|더 이상 (이전|예정) 경기가 없습니다\./, { timeout: 10000 }).should('be.visible');
-        cy.contains('조회 실패').should('not.exist');
-    });
-
-    it('실제 미래 조회 실패에서는 오류 배너를 표시한다', () => {
-        cy.intercept('**/api/matches/bounds*', {
-            statusCode: 200,
-            body: {
-                hasData: true,
-                earliestGameDate: '2026-02-01',
-                latestGameDate: '2026-10-01',
-            },
-        }).as('getBoundsFutureError');
-
-        cy.intercept('GET', '**/api/matches/range*', (req) => {
-            const url = new URL(req.url);
-            const withMeta = url.searchParams.get('withMeta');
-
-            if (withMeta === 'true') {
-                req.reply({
-                    statusCode: 500,
-                    body: { message: 'future range failed' },
-                });
-                return;
-            }
-
-            req.reply({
-                statusCode: 200,
-                body: [
+                body: buildDayResponse(pastDate, [
                     {
-                        gameId: todayGameId,
-                        gameDate: today,
-                        homeTeam: 'HH',
-                        awayTeam: 'SS',
-                        stadium: '대전',
+                        gameId: pastGameId,
+                        gameDate: pastDate,
+                        homeTeam: 'LG',
+                        awayTeam: 'KT',
+                        stadium: '잠실',
                         homeScore: null,
                         awayScore: null,
                         winner: null,
                     },
-                ],
+                ], null, today),
             });
-        }).as('getRangeFutureError');
+        }).as('getMatchDay');
 
         openPredictionPage();
-        cy.wait('@getBoundsFutureError');
-        cy.wait('@getRangeFutureError');
-        cy.get('svg.lucide-chevron-right')
-            .filter(':visible')
-            .first()
-            .closest('button')
-            .click({ force: true });
-        cy.contains(/미래 구간 조회|요청 실패|오류/, { timeout: 10000 }).should('be.visible');
+        cy.wait('@getMatchDay');
+        cy.contains(/오늘은 예정된 경기가 없습니다\.|예정된 경기 일정이 없습니다\./, { timeout: 20000 }).should('be.visible');
+        cy.contains('KT 위즈').should('not.exist');
+        cy.contains('이전 경기 조회 실패').should('not.exist');
+    });
+
+    it('경계 도달 시 오류 대신 중립 안내를 표시한다', () => {
+        cy.intercept('GET', '**/api/matches/day*', {
+            statusCode: 200,
+            body: buildDayResponse(today, [], null, null),
+        }).as('getMatchDay');
+
+        openPredictionPage();
+        cy.contains(/예정된 경기 일정이 없습니다.|현재 표시할 예측 경기가 없습니다.|더 이상 (이전|예정) 경기가 없습니다\./, { timeout: 10000 }).should('be.visible');
+        cy.contains('조회 실패').should('not.exist');
+    });
+
+    it('실제 미래 조회 실패에서는 오류 배너를 표시한다', () => {
+        let futureRequestCount = 0;
+
+        cy.intercept('GET', '**/api/matches/day*', (req) => {
+            const url = new URL(req.url);
+            const date = url.searchParams.get('date') || '';
+
+            if (date === today) {
+                req.reply({
+                    statusCode: 200,
+                    body: buildDayResponse(today, [
+                        {
+                            gameId: todayGameId,
+                            gameDate: today,
+                            homeTeam: 'HH',
+                            awayTeam: 'SS',
+                            stadium: '대전',
+                            homeScore: null,
+                            awayScore: null,
+                            winner: null,
+                        },
+                    ], null, futureDate),
+                });
+                return;
+            }
+
+            futureRequestCount += 1;
+            req.reply({
+                statusCode: 500,
+                body: { message: 'future day failed' },
+            });
+        }).as('getMatchDay');
+
+        openPredictionPage();
+        cy.get('button[aria-label="다음 날짜 보기"]').first().click({ force: true });
+        cy.contains(/예측 처리 중 오류가 발생했습니다.|미래 구간 조회|요청 실패|오류/, { timeout: 10000 }).should('be.visible');
         cy.contains(/홈으로 이동|목록으로 이동/).should('be.visible');
-        cy.contains(/예정 경기 다시 불러오기|다시 시도/).should('be.visible');
+        cy.contains(/예정 경기 다시 불러오기|다시 시도|닫기/).should('be.visible');
+        cy.wrap(null).then(() => {
+            expect(futureRequestCount).to.be.gte(1);
+        });
     });
 
     it('120초가 지난 실행 세션은 stale 처리 후 timeout 복구 오버레이를 노출한다', () => {
@@ -247,18 +216,9 @@ describe('Prediction Range Recovery', () => {
             }));
         });
 
-        cy.intercept('**/api/matches/bounds*', {
+        cy.intercept('GET', '**/api/matches/day*', {
             statusCode: 200,
-            body: {
-                hasData: true,
-                earliestGameDate: '2026-02-01',
-                latestGameDate: '2026-10-01',
-            },
-        }).as('getBoundsStaleSession');
-
-        cy.intercept('GET', '**/api/matches/range*', {
-            statusCode: 200,
-            body: [
+            body: buildDayResponse(today, [
                 {
                     gameId: todayGameId,
                     gameDate: today,
@@ -269,13 +229,10 @@ describe('Prediction Range Recovery', () => {
                     awayScore: null,
                     winner: null,
                 },
-            ],
-        }).as('getRangeStaleSession');
+            ], null, null),
+        }).as('getMatchDay');
 
         openPredictionPage();
-
-        cy.wait('@getBoundsStaleSession');
-        cy.wait('@getRangeStaleSession');
         cy.contains('예측 처리 중 오류가 발생했습니다.', { timeout: 10000 }).should('be.visible');
         cy.contains('실행 세션이 만료되었습니다.').should('be.visible');
         cy.contains('button', '다시 시도').should('be.visible');

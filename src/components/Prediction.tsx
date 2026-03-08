@@ -33,6 +33,7 @@ export default function Prediction() {
     currentDateGames,
     currentDate,
     loading,
+    currentDayNavigationMeta,
     votes,
     userVote,
     currentGameDetail,
@@ -57,6 +58,9 @@ export default function Prediction() {
     pastRangeLoadErrorMessage,
     futureRangeLoadState,
     futureRangeLoadErrorMessage,
+    canLoadMorePast,
+    canLoadMoreFuture,
+    matchBounds,
     reloadCurrentVoteStatus,
     reloadCurrentGameDetail,
     isRunInProgress,
@@ -141,6 +145,31 @@ export default function Prediction() {
     };
   }, [currentGame?.homeTeam, currentGame?.awayTeam, currentGame?.leagueType, currentGame?.gameId, rankingByTeamId]);
 
+  const formatSelectionLabel = (game: (typeof currentDateGames)[number]) => {
+    const awayTeamLabel = getShortTeamName(game.awayTeam);
+    const homeTeamLabel = getShortTeamName(game.homeTeam);
+    const awayScore = game.awayScore;
+    const homeScore = game.homeScore;
+
+    if (awayScore === null || awayScore === undefined || homeScore === null || homeScore === undefined) {
+      return {
+        summary: `${awayTeamLabel} - ${homeTeamLabel}`,
+        detail: '경기 예정',
+      };
+    }
+
+    const result = awayScore > homeScore
+      ? `${awayTeamLabel} 승`
+      : homeScore > awayScore
+        ? `${homeTeamLabel} 승`
+        : '무승부';
+
+    return {
+      summary: `${awayTeamLabel} ${awayScore} : ${homeScore} ${homeTeamLabel}`,
+      detail: `${result}`,
+    };
+  };
+
   // 투표 현황 계산
   const currentVotes = currentGameId ? votes[currentGameId] || { home: 0, away: 0 } : { home: 0, away: 0 };
   const votePercentages = calculateVotePercentages(
@@ -189,8 +218,57 @@ export default function Prediction() {
     coachBriefingPolicy.autoEnabled && coachBriefingPolicy.requestMode === 'auto_brief';
 
   const showRunProgressBanner = isRunInProgress && !isRunBannerDismissed;
-  const canMovePrevDate = currentDateIndex > 0 || pastRangeLoadState === 'ready';
-  const canMoveNextDate = currentDateIndex < allDatesData.length - 1 || futureRangeLoadState === 'ready';
+  const canMovePrevDate = currentDateIndex > 0 || canLoadMorePast;
+  const canMoveNextDate = currentDateIndex < allDatesData.length - 1 || canLoadMoreFuture;
+  const nearestNavigationDate = useMemo(() => {
+    if (!currentDayNavigationMeta) {
+      return null;
+    }
+
+    const previousCandidate = currentDayNavigationMeta.prevDate
+      ? allDatesData.find((entry) => entry.date === currentDayNavigationMeta.prevDate) || null
+      : null;
+    const nextCandidate = currentDayNavigationMeta.nextDate
+      ? allDatesData.find((entry) => entry.date === currentDayNavigationMeta.nextDate) || null
+      : null;
+
+    if ((previousCandidate?.games.length || 0) > 0) {
+      return { date: previousCandidate!.date, isPast: true };
+    }
+
+    if ((nextCandidate?.games.length || 0) > 0) {
+      return { date: nextCandidate!.date, isPast: false };
+    }
+
+    if (currentDayNavigationMeta.prevDate) {
+      return { date: currentDayNavigationMeta.prevDate, isPast: true };
+    }
+
+    if (currentDayNavigationMeta.nextDate) {
+      return { date: currentDayNavigationMeta.nextDate, isPast: false };
+    }
+
+    return null;
+  }, [allDatesData, currentDayNavigationMeta]);
+  const handleNearestNavigation = nearestNavigationDate
+    ? nearestNavigationDate.isPast
+      ? goToPreviousDate
+      : goToNextDate
+    : null;
+  const normalizeBoundaryDate = (value: string | null | undefined): string | null => {
+    if (!value) return null;
+    const trimmed = value.trim();
+    return trimmed ? trimmed.slice(0, 10) : null;
+  };
+  const earliestBoundaryDate = normalizeBoundaryDate(matchBounds?.earliestGameDate);
+  const hasAdditionalPastMatches = Boolean(
+    matchBounds?.hasData
+    && earliestBoundaryDate
+    && allDatesData[0]?.date
+    && normalizeBoundaryDate(allDatesData[0].date)
+    && normalizeBoundaryDate(allDatesData[0].date)! > earliestBoundaryDate
+  );
+  const hasPastNavigation = canMovePrevDate || hasAdditionalPastMatches;
   type TopNoticeKind = 'RUN' | 'FUTURE' | 'ERROR' | 'END' | 'INFO';
   type TopNotice = { kind: TopNoticeKind; content: ReactNode };
   const noticeCardBaseClass = 'w-full max-w-[22rem] p-3 gap-2 pointer-events-auto';
@@ -401,7 +479,7 @@ export default function Prediction() {
       };
     }
 
-    if (currentDateIndex === 0 && pastRangeLoadState === 'end') {
+    if (currentDateIndex === 0 && !canLoadMorePast && pastRangeLoadState === 'end') {
       return {
         kind: 'END',
         content: (
@@ -414,7 +492,12 @@ export default function Prediction() {
       };
     }
 
-    if (currentDateIndex === allDatesData.length - 1 && futureRangeLoadState === 'end') {
+    if (
+      currentDateIndex === allDatesData.length - 1
+      && !canLoadMoreFuture
+      && !hasPastNavigation
+      && futureRangeLoadState === 'end'
+    ) {
       return {
         kind: 'END',
         content: (
@@ -640,23 +723,29 @@ export default function Prediction() {
           {activeTab === 'match' && currentDateGames.length > 0 && (
             <div className="w-full md:ml-auto md:w-auto">
               <div className="flex justify-end gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-                {currentDateGames.map((game, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedGame(index)}
-                    aria-pressed={selectedGame === index}
-                    aria-label={`${getShortTeamName(game.awayTeam)} vs ${getShortTeamName(game.homeTeam)} 선택`}
-                    className={`flex-shrink-0 px-3 py-2 min-h-11 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${selectedGame === index
-                      ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 shadow-sm dark:bg-emerald-900/30 dark:border-emerald-700/50 dark:text-emerald-100'
-                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 dark:bg-card dark:border-border dark:text-gray-300 dark:hover:bg-primary/10'
-                      }`}
-                  >
-                    {getShortTeamName(game.awayTeam)} vs {getShortTeamName(game.homeTeam)}
-                  </button>
-                ))}
+                    {currentDateGames.map((game, index) => {
+                      const selectionLabel = formatSelectionLabel(game);
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setSelectedGame(index)}
+                          aria-pressed={selectedGame === index}
+                          aria-label={`${selectionLabel.summary} ${selectionLabel.detail} 선택`}
+                          className={`flex-shrink-0 px-3 py-2 min-h-11 rounded-lg text-xs sm:text-sm font-bold transition-all text-left whitespace-nowrap ${selectedGame === index
+                            ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 shadow-sm dark:bg-emerald-900/30 dark:border-emerald-700/50 dark:text-emerald-100'
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 dark:bg-card dark:border-border dark:text-gray-300 dark:hover:bg-primary/10'
+                            }`}
+                        >
+                          <p className="leading-tight text-[11px] sm:text-[12px]">{selectionLabel.summary}</p>
+                          <p className="mt-1 text-[11px] text-slate-500 dark:text-gray-300">
+                            {selectionLabel.detail}
+                          </p>
+                        </button>
+                      );
+                    })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
 
         <div className="relative">
@@ -699,8 +788,8 @@ export default function Prediction() {
                               <div>
                                 <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">경기 상세를 불러오지 못했습니다.</h3>
                                 <p className="text-sm text-amber-800/90 dark:text-amber-100/80 mt-1">
-                                  {currentGame.awayTeam} vs {currentGame.homeTeam} · {formatDate(currentDate)} · {gameStatus.statusLabel}
-                                </p>
+                                {currentGame.awayTeam} - {currentGame.homeTeam} · {formatDate(currentDate)} · {gameStatus.statusLabel}
+                              </p>
                                 <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-2">오류: {currentGameDetailError}</p>
                               </div>
 
@@ -781,6 +870,7 @@ export default function Prediction() {
                         <button
                           onClick={goToPreviousDate}
                           disabled={!canMovePrevDate}
+                          aria-label="이전 날짜 보기"
                           className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
                         >
                           <ChevronLeft size={36} />
@@ -788,6 +878,7 @@ export default function Prediction() {
                         <button
                           onClick={goToNextDate}
                           disabled={!canMoveNextDate}
+                          aria-label="다음 날짜 보기"
                           className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
                         >
                           <ChevronRight size={36} />
@@ -805,7 +896,22 @@ export default function Prediction() {
                       <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
                         {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
                       </h3>
-                      <p className="text-slate-500 dark:text-gray-300">다른 날짜를 확인해보세요!</p>
+                      <p className="text-slate-500 dark:text-gray-300">
+                        {nearestNavigationDate
+                          ? `가장 가까운 경기일은 ${formatDate(nearestNavigationDate.date)}입니다. ${nearestNavigationDate.isPast ? '이전' : '다음'} 날짜로 이동해 확인해보세요!`
+                          : '다른 날짜를 확인해보세요!'}
+                      </p>
+                      {nearestNavigationDate && handleNearestNavigation ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          data-testid="prediction-empty-nearest-date-btn"
+                          className="mt-4 min-h-11 border-emerald-200 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-200 dark:hover:bg-emerald-500/10"
+                          onClick={handleNearestNavigation}
+                        >
+                          {nearestNavigationDate.isPast ? '가장 가까운 이전 경기 보기' : '가장 가까운 다음 경기 보기'}
+                        </Button>
+                      ) : null}
                     </Card>
                   )}
                 </div>
@@ -816,6 +922,7 @@ export default function Prediction() {
                   <button
                     onClick={goToPreviousDate}
                     disabled={!canMovePrevDate}
+                    aria-label="이전 날짜 보기"
                     className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
                   >
                     <ChevronLeft size={24} className="text-emerald-600 dark:text-emerald-300" />
@@ -826,6 +933,7 @@ export default function Prediction() {
                   <button
                     onClick={goToNextDate}
                     disabled={!canMoveNextDate}
+                    aria-label="다음 날짜 보기"
                     className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
                   >
                     <ChevronRight size={24} className="text-emerald-600 dark:text-emerald-300" />

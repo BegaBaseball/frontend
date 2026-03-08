@@ -5,6 +5,7 @@ import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { Badge } from './ui/badge';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
@@ -109,6 +110,55 @@ export default function MateApply() {
   const ticketAmount = selectedParty.ticketPrice || 0;
   const totalAmount = ticketAmount + DEPOSIT_AMOUNT;
   const sellingPrice = selectedParty.price || 0;
+  const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
+  const insetPanelClass = 'rounded-2xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
+  const primaryAmount = tossTestMode
+    ? (isSelling ? sellingPrice : totalAmount)
+    : (isSelling ? sellingPrice : ticketAmount);
+  const submitLabel = isSubmitting
+    ? '신청 중...'
+    : tossTestMode
+      ? (isSelling
+        ? `${sellingPrice.toLocaleString()}원 결제하기`
+        : `${totalAmount.toLocaleString()}원 결제하기`)
+      : (isSelling ? '직거래 신청하기' : '참여 신청하기');
+  const flowBadgeLabel = tossTestMode
+    ? (isSelling ? '판매 티켓 구매' : '안전결제/보증금 모드')
+    : '직거래 베타';
+  const flowDescription = isSelling
+    ? (tossTestMode
+      ? '결제 후 호스트 승인 대기 상태로 전환되며, 이후 진행 상황은 상세페이지에서 확인할 수 있습니다.'
+      : '구매 신청 후 호스트 승인 시 채팅으로 직거래 시간과 장소를 조율합니다.')
+    : (tossTestMode
+      ? '메시지와 인증 정보를 확인한 뒤 결제를 진행하면, 호스트 승인 후 참여가 확정됩니다.'
+      : '호스트에게 메시지를 보내고, 승인 후 채팅으로 직거래 및 관람 일정을 조율합니다.');
+  const policyHighlights = tossTestMode
+    ? [
+      '승인 즉시 정산 요청이 생성됩니다.',
+      '단순변심 취소에는 10% 수수료가 적용됩니다.',
+      '승인되지 않으면 전액 환불됩니다.',
+    ]
+    : [
+      '현재 베타에서는 앱 내 결제를 제공하지 않습니다.',
+      '승인 후 채팅에서 거래 시간과 장소를 조율합니다.',
+      '플랫폼 결제/환불 없이 신청 취소만 처리됩니다.',
+    ];
+  const nextSteps = isSelling
+    ? [
+      tossTestMode ? '결제 후 호스트 승인 여부를 기다립니다.' : '구매 신청 후 호스트 승인 여부를 기다립니다.',
+      '승인되면 상세페이지 또는 채팅방에서 거래 일정을 조율합니다.',
+      '경기 당일에는 체크인 또는 전달 상태를 다시 확인하세요.',
+    ]
+    : [
+      '메시지와 티켓 인증(선택)을 제출합니다.',
+      '호스트 승인 후 채팅방이 열리고 일정 조율이 시작됩니다.',
+      tossTestMode ? '보증금/결제 정책은 승인 이후 상태에 맞춰 적용됩니다.' : '직거래 베타에서는 채팅에서 직접 만남 장소를 확정합니다.',
+    ];
+  const isSubmitReady = isSelling || message.length >= 10;
+  const summaryAmountLabel = tossTestMode
+    ? getMateApplySummaryAmountLabel(true)
+    : (isSelling ? '구매 신청 금액' : '거래 기준 금액');
+  const summaryTrustLabel = selectedParty.ticketVerified ? '호스트 티켓 인증' : '티켓 인증 확인 전';
 
   // 티켓 인증 핸들러
   const handleTicketUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -251,14 +301,15 @@ export default function MateApply() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
+    <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background transition-colors duration-200">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_58%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.16),_transparent_46%)]" />
       <OptimizedImage
         src={grassDecor}
         alt=""
         className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
       />
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-36 lg:pb-8 relative z-10">
         <Button
           variant="ghost"
           onClick={() => navigate(`/mate/${id}`)}
@@ -268,18 +319,17 @@ export default function MateApply() {
           뒤로
         </Button>
 
-        <h1 className="mb-2 text-primary">
-          {isSelling ? '티켓 구매' : '파티 참여 신청'}
-        </h1>
-        <p className="text-gray-600 mb-8">
-          {isSelling
-            ? (tossTestMode
-              ? '결제 정보를 입력하고 티켓을 구매하세요'
-              : '신청 후 호스트 승인 시 직거래로 진행됩니다')
-            : (tossTestMode
-              ? '호스트에게 전달할 메시지를 작성해주세요'
-              : '신청 후 호스트와 직거래로 관람을 조율합니다')}
-        </p>
+        <div className="mb-8">
+          <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary dark:border-primary/30 dark:bg-primary/10">
+            {flowBadgeLabel}
+          </Badge>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-primary">
+            {isSelling ? '티켓 구매' : '파티 참여 신청'}
+          </h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">
+            {flowDescription}
+          </p>
+        </div>
         {isPartyRevalidating && (
           <Alert className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
             <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
@@ -288,39 +338,62 @@ export default function MateApply() {
           </Alert>
         )}
 
-        {/* Party Summary */}
-        <Card className="p-6 mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <TeamLogo teamId={selectedParty.teamId} size="md" />
-            <div className="flex-1">
-              <h3 className="mb-1 text-primary">
-                {selectedParty.stadium}
-              </h3>
-              <p className="text-sm text-gray-600">
-                {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime.substring(0, 5)}
+        <Card className={`p-6 mb-6 ${sectionCardClass}`}>
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-gray-50/90 px-4 py-3 dark:border-border/70 dark:bg-secondary/70">
+                <TeamLogo teamId={selectedParty.homeTeam} size="md" />
+                <span className="text-lg font-black italic text-primary">VS</span>
+                <TeamLogo teamId={selectedParty.awayTeam} size="md" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-primary">
+                  {selectedParty.stadium}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime.substring(0, 5)}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-right dark:border-primary/20 dark:bg-primary/10">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                {summaryAmountLabel}
+              </p>
+              <p className="mt-2 text-2xl font-black text-primary">
+                {primaryAmount.toLocaleString()}원
               </p>
             </div>
           </div>
-          <Separator className="my-4" />
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-gray-500">좌석</p>
-              <p>{selectedParty.section}</p>
+
+          <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
+            <div className={`${insetPanelClass} p-3`}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">좌석</p>
+              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">{selectedParty.section}</p>
             </div>
-            <div>
-              <p className="text-gray-500">호스트</p>
-              <p>{selectedParty.hostName}</p>
+            <div className={`${insetPanelClass} p-3`}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">호스트</p>
+              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{selectedParty.hostName}</p>
+            </div>
+            <div className={`${insetPanelClass} p-3`}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">신뢰 신호</p>
+              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryTrustLabel}</p>
+            </div>
+            <div className={`${insetPanelClass} p-3`}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">현재 상태</p>
+              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{isSelling ? '구매 신청 가능' : '참여 신청 가능'}</p>
             </div>
           </div>
         </Card>
 
-        {/* Message Section */}
         {!isSelling && (
-          <Card className="p-6 mb-6">
+          <Card className={`p-6 mb-6 ${sectionCardClass}`}>
             <div className="flex items-center gap-2 mb-4">
               <MessageSquare className="w-5 h-5 text-primary" />
-              <h3 className="text-primary">소개 메시지</h3>
+              <h3 className="font-bold text-primary">소개 메시지</h3>
             </div>
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-300">
+              승인 여부를 판단하는 핵심 정보입니다. 관람 스타일과 거래 조율 의사를 간단히 적어주세요.
+            </p>
             <Label htmlFor="message" className="mb-2 block">
               호스트에게 전달할 메시지
             </Label>
@@ -329,41 +402,40 @@ export default function MateApply() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="자기소개와 함께 야구를 즐기고 싶은 마음을 전해주세요..."
-              className="min-h-[120px] mb-2"
+              className="min-h-[120px] mb-2 border-gray-200 bg-white dark:border-border dark:bg-card/70"
               maxLength={200}
             />
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {message.length}/200
             </p>
           </Card>
         )}
 
-        {/* Ticket Verification Section (선택) */}
         {!isSelling && (
-          <Card className="p-6 mb-6">
+          <Card className={`p-6 mb-6 ${sectionCardClass}`}>
             <div className="flex items-center gap-2 mb-4">
               <Ticket className="w-5 h-5 text-primary" />
-              <h3 className="text-primary">티켓 인증 (선택)</h3>
+              <h3 className="font-bold text-primary">티켓 인증 (선택)</h3>
               {ticketVerified && (
-                <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
+                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-600 dark:bg-green-950/30 dark:text-green-300">
                   <CheckCircle className="w-3.5 h-3.5" />
                   인증 완료
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-300">
               티켓 사진을 올리면 호스트에게 인증 배지가 표시되어 승인율이 높아집니다.
             </p>
 
             {ticketVerified ? (
               <div className="space-y-3">
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2 mb-2">
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+                  <div className="mb-2 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-green-600" />
                     <span className="font-medium text-green-700 dark:text-green-400">티켓 인증 완료</span>
                   </div>
                   {ticketInfo && (
-                    <div className="text-sm text-green-600 space-y-1">
+                    <div className="space-y-1 text-sm text-green-600">
                       {ticketInfo.date && <p>📅 {ticketInfo.date}</p>}
                       {ticketInfo.stadium && <p>🏟️ {ticketInfo.stadium}</p>}
                       {(ticketInfo.section || ticketInfo.row || ticketInfo.seat) && (
@@ -374,7 +446,7 @@ export default function MateApply() {
                 </div>
                 <Button
                   variant="ghost"
-                  className="text-sm text-gray-500"
+                  className="text-sm text-gray-500 dark:text-gray-300"
                   onClick={() => { setTicketVerified(false); setTicketInfo(null); }}
                 >
                   다시 인증하기
@@ -382,7 +454,7 @@ export default function MateApply() {
               </div>
             ) : (
               <div
-                className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${isScanning
+                className={`rounded-2xl border-2 border-dashed p-6 text-center transition-colors ${isScanning
                   ? 'border-primary bg-slate-50 dark:bg-card/60'
                   : 'border-slate-300 dark:border-border hover:border-primary hover:bg-slate-50 dark:hover:bg-secondary'
                   }`}
@@ -395,16 +467,16 @@ export default function MateApply() {
                   className="hidden"
                   disabled={isScanning}
                 />
-                <label htmlFor="ticketVerifyFile" className={`cursor-pointer block ${isScanning ? 'pointer-events-none' : ''}`}>
+                <label htmlFor="ticketVerifyFile" className={`block cursor-pointer ${isScanning ? 'pointer-events-none' : ''}`}>
                   {isScanning ? (
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                      <p className="text-primary font-medium">AI가 티켓을 분석 중...</p>
+                      <p className="font-medium text-primary">AI가 티켓을 분석 중...</p>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2">
                       <Ticket className="w-10 h-10 text-primary" />
-                      <p className="text-primary font-medium">티켓 사진 업로드</p>
+                      <p className="font-medium text-primary">티켓 사진 업로드</p>
                       <p className="text-xs text-gray-400">JPG, PNG (최대 10MB)</p>
                     </div>
                   )}
@@ -414,120 +486,129 @@ export default function MateApply() {
           </Card>
         )}
 
-        {/* Payment Section */}
-        <Card className="p-6 mb-6">
+        <Card className={`p-6 mb-6 ${sectionCardClass}`}>
           <div className="flex items-center gap-2 mb-4">
             <CreditCard className="w-5 h-5 text-primary" />
-            <h3 className="text-primary">{getMateApplyAmountSectionTitle(tossTestMode)}</h3>
+            <h3 className="font-bold text-primary">{getMateApplyAmountSectionTitle(tossTestMode)}</h3>
           </div>
 
-          {!isSelling && (
-            <>
-              <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg">
+          <div className={`${insetPanelClass} p-4`}>
+            {!isSelling && (
+              <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-700">티켓 가격</span>
-                  <span className="text-gray-900">
+                  <span className="text-gray-700 dark:text-gray-300">티켓 가격</span>
+                  <span className="text-gray-900 dark:text-white">
                     {ticketAmount.toLocaleString()}원
                   </span>
                 </div>
                 {tossTestMode && (
                   <div className="flex justify-between">
-                    <span className="text-gray-700">노쇼 방지 보증금</span>
-                    <span className="text-gray-900">
+                    <span className="text-gray-700 dark:text-gray-300">노쇼 방지 보증금</span>
+                    <span className="text-gray-900 dark:text-white">
                       {DEPOSIT_AMOUNT.toLocaleString()}원
                     </span>
                   </div>
                 )}
-                <Separator />
+                <Separator className="bg-gray-200 dark:bg-border" />
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-900" style={{ fontWeight: 'bold' }}>
+                  <span className="font-bold text-gray-900 dark:text-white">
                     {getMateApplySummaryAmountLabel(tossTestMode)}
                   </span>
-                  <span className="text-lg text-primary font-bold">
+                  <span className="text-lg font-bold text-primary">
                     {(tossTestMode ? totalAmount : ticketAmount).toLocaleString()}원
                   </span>
                 </div>
               </div>
+            )}
 
-              <Alert>
-                <Shield className="w-4 h-4" />
-                <AlertDescription className="text-sm">
-                  {tossTestMode ? (
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>승인 즉시 정산 요청이 생성됩니다</li>
-                      <li>단순변심 취소에만 10% 수수료가 적용됩니다</li>
-                      <li>단순변심 취소 시 수수료가 차감 환불됩니다</li>
-                      <li>승인되지 않으면 전액 환불됩니다</li>
-                    </ul>
-                  ) : (
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>현재 베타에서는 앱 내 결제를 제공하지 않습니다</li>
-                      <li>신청 승인 후 채팅을 통해 직거래로 진행됩니다</li>
-                      <li>플랫폼 결제/환불 없이 취소만 처리됩니다</li>
-                    </ul>
-                  )}
-                </AlertDescription>
-              </Alert>
-            </>
-          )}
-
-          {isSelling && (
-            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            {isSelling && (
               <div className="flex justify-between items-center">
-                <span className="text-orange-700">티켓 판매가</span>
-                <span className="text-lg text-orange-900" style={{ fontWeight: 'bold' }}>
+                <span className="font-medium text-gray-700 dark:text-gray-300">티켓 판매가</span>
+                <span className="text-lg font-bold text-primary">
                   {sellingPrice.toLocaleString()}원
                 </span>
               </div>
+            )}
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className={`${insetPanelClass} p-4`}>
+              <div className="mb-3 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary" />
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white">정책 안내</h4>
+              </div>
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                {policyHighlights.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          )}
+
+            <div className={`${insetPanelClass} p-4`}>
+              <div className="mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-primary" />
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white">다음 단계</h4>
+              </div>
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                {nextSteps.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-6 hidden lg:block">
+            <Button
+              onClick={handleSubmit}
+              disabled={!isSubmitReady || isSubmitting}
+              className="w-full bg-primary text-white"
+              size="lg"
+            >
+              {submitLabel}
+            </Button>
+
+            {!isSelling && !isSubmitReady && (
+              <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+                메시지를 10자 이상 입력해주세요
+              </p>
+            )}
+          </div>
         </Card>
+      </div>
 
-        {/* Security Notice */}
-        <Alert className="mb-6">
-          <Shield className="w-4 h-4" />
-          <AlertDescription>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>{tossTestMode ? '결제는 BEGA 안전거래를 통해 진행됩니다' : '현재는 승인 후 채팅으로 직거래 조율을 안내합니다'}</li>
-              <li>호스트 승인 후 채팅으로 소통할 수 있습니다</li>
-              <li>노쇼 시 패널티가 부여될 수 있습니다</li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-
-        {/* Warning for selling tickets */}
-        {isSelling && (
-          <Alert className="mb-6 border-orange-200 bg-orange-50">
-            <AlertTriangle className="w-4 h-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
-              {tossTestMode
-                ? '단순변심 취소 시 수수료 차감 환불 정책이 적용됩니다.'
-                : '직거래 모드에서는 플랫폼 결제/환불 없이 신청 취소만 처리됩니다.'}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Submit Button */}
-        <Button
-          onClick={handleSubmit}
-          disabled={(!isSelling && message.length < 10) || isSubmitting}
-          className="w-full text-white bg-primary"
-          size="lg"
-        >
-          {isSubmitting
-            ? '신청 중...'
-            : tossTestMode
-              ? (isSelling
-                ? `${sellingPrice.toLocaleString()}원 결제하기`
-                : `${totalAmount.toLocaleString()}원 결제하기`)
-              : (isSelling ? '직거래 신청하기' : '참여 신청하기')}
-        </Button>
-
-        {!isSelling && message.length < 10 && (
-          <p className="text-sm text-gray-500 text-center mt-2">
-            메시지를 10자 이상 입력해주세요
-          </p>
-        )}
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/90 bg-white/95 px-4 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:border-border dark:bg-card/95 lg:hidden"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+      >
+        <div className="mx-auto flex max-w-3xl items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+              {summaryAmountLabel}
+            </p>
+            <p className="mt-1 truncate text-lg font-black text-primary">
+              {primaryAmount.toLocaleString()}원
+            </p>
+            {!isSelling && !isSubmitReady && (
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                메시지를 10자 이상 입력해주세요
+              </p>
+            )}
+          </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={!isSubmitReady || isSubmitting}
+            className="min-w-[150px] bg-primary text-white"
+            size="lg"
+          >
+            {submitLabel}
+          </Button>
+        </div>
       </div>
 
       <VerificationRequiredDialog

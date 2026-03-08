@@ -238,41 +238,41 @@ export async function fetchUserPostsByHandle(handle: string, page = 0, size = 20
 
 /** Backend response DTOs (before transformation) */
 interface PostDTO {
-  id: number;
-  teamId: string;
-  teamColor?: string;
-  content: string;
-  author: string;
-  authorId: number;
-  authorHandle: string;
-  authorProfileImageUrl?: string;
-  authorTeamId?: string;
-  createdAt: string;
-  updatedAt: string;
-  comments: number;
-  likes: number;
-  likeCount: number;
-  commentCount: number;
-  bookmarkCount?: number;
-  repostCount: number;
-  views: number;
-  liked: boolean;
-  likedByMe?: boolean;
-  bookmarkedByMe?: boolean;
-  isBookmarked?: boolean;
-  isOwner?: boolean;
-  repostedByMe?: boolean;
-  isHot?: boolean;
-  postType?: string;
-  imageUrls?: string[];
-  imageUploadFailed?: boolean;
-  repostOfId?: number;
-  repostType?: RepostType;
-  originalPost?: PostDTO;
-  originalDeleted?: boolean;
-  deleted?: boolean;
-  shareMode?: ShareMode;
-  sourceInfo?: SourceInfo;
+    id: number;
+    teamId: string;
+    teamColor?: string;
+    content: string;
+    author: string;
+    authorId: number;
+    authorHandle: string;
+    authorProfileImageUrl?: string;
+    authorTeamId?: string;
+    createdAt: string;
+    updatedAt: string;
+    comments: number;
+    likes: number;
+    likeCount: number;
+    commentCount: number;
+    bookmarkCount?: number;
+    repostCount: number;
+    views: number;
+    liked: boolean;
+    likedByMe?: boolean;
+    bookmarkedByMe?: boolean;
+    isBookmarked?: boolean;
+    isOwner?: boolean;
+    repostedByMe?: boolean;
+    isHot?: boolean;
+    postType?: string;
+    imageUrls?: string[];
+    imageUploadFailed?: boolean;
+    repostOfId?: number;
+    repostType?: RepostType;
+    originalPost?: PostDTO;
+    originalDeleted?: boolean;
+    deleted?: boolean;
+    shareMode?: ShareMode;
+    sourceInfo?: SourceInfo;
 }
 
 const normalizePostType = (postType?: string): CheerPost['postType'] => {
@@ -284,17 +284,17 @@ const normalizeCreatePostType = (postType?: string): 'NORMAL' | 'NOTICE' => {
 };
 
 interface CommentDTO {
-  id: number;
-  author: string;
-  authorEmail?: string;
-  authorTeamId?: string;
-  authorProfileImageUrl?: string;
-  authorHandle?: string;
-  content: string;
-  createdAt: string;
-  likeCount: number;
-  likedByMe?: boolean;
-  replies?: CommentDTO[];
+    id: number;
+    author: string;
+    authorEmail?: string;
+    authorTeamId?: string;
+    authorProfileImageUrl?: string;
+    authorHandle?: string;
+    content: string;
+    createdAt: string;
+    likeCount: number;
+    likedByMe?: boolean;
+    replies?: CommentDTO[];
 }
 
 // 데이터 변환 헬퍼
@@ -390,7 +390,7 @@ export async function createPost(data: {
     const response = await api.post('/cheer/posts', {
         ...data,
         postType: normalizeCreatePostType(data.postType),
-    });
+    }, { skipGlobalErrorHandler: true });
     return transformPost(response.data);
 }
 
@@ -406,18 +406,18 @@ export async function updatePost(id: number, data: {
     sourceChangedNote?: string;
     sourceSnapshotType?: string;
 }) {
-    const response = await api.put(`/cheer/posts/${id}`, data);
+    const response = await api.put(`/cheer/posts/${id}`, data, { skipGlobalErrorHandler: true });
     return transformPost(response.data);
 }
 
 // 게시글 삭제
 export async function deletePost(id: number) {
-    await api.delete(`/cheer/posts/${id}`);
+    await api.delete(`/cheer/posts/${id}`, { skipGlobalErrorHandler: true });
 }
 
 // 좋아요 토글
 export async function toggleLike(postId: number): Promise<LikeToggleResponse> {
-    const response = await api.post(`/cheer/posts/${postId}/like`);
+    const response = await api.post(`/cheer/posts/${postId}/like`, undefined, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
@@ -448,18 +448,18 @@ export async function fetchComments(postId: number, page = 0, size = 20) {
 
 // 댓글 작성
 export async function createComment(postId: number, content: string) {
-    const response = await api.post(`/cheer/posts/${postId}/comments`, { content });
+    const response = await api.post(`/cheer/posts/${postId}/comments`, { content }, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
 // 댓글 삭제
 export async function deleteComment(commentId: number) {
-    await api.delete(`/cheer/comments/${commentId}`);
+    await api.delete(`/cheer/comments/${commentId}`, { skipGlobalErrorHandler: true });
 }
 
 // 댓글 좋아요 토글
 export async function toggleCommentLike(commentId: number): Promise<LikeToggleResponse> {
-    const response = await api.post(`/cheer/comments/${commentId}/like`);
+    const response = await api.post(`/cheer/comments/${commentId}/like`, undefined, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
@@ -475,19 +475,19 @@ export async function fetchBookmarks(page = 0, size = 20): Promise<{ content: Ch
 
 // 북마크 토글
 export async function toggleBookmark(postId: number): Promise<BookmarkToggleResponse> {
-    const response = await api.post(`/cheer/posts/${postId}/bookmark`);
+    const response = await api.post(`/cheer/posts/${postId}/bookmark`, undefined, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
 // 재게시 (Repost) 토글 - 단순 리포스트
 export async function toggleRepost(postId: number): Promise<RepostToggleResponse> {
-    const response = await api.post(`/cheer/posts/${postId}/repost`);
+    const response = await api.post(`/cheer/posts/${postId}/repost`, undefined, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
 // 리포스트 취소 - 단순 리포스트 삭제
 export async function cancelRepost(repostId: number): Promise<RepostToggleResponse> {
-    const response = await api.delete(`/cheer/posts/${repostId}/repost`);
+    const response = await api.delete(`/cheer/posts/${repostId}/repost`, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
@@ -495,7 +495,7 @@ export async function cancelRepost(repostId: number): Promise<RepostToggleRespon
 export async function createQuoteRepost(postId: number, content: string) {
     const response = await api.post(`/cheer/posts/${postId}/quote`, {
         content
-    });
+    }, { skipGlobalErrorHandler: true });
     return transformPost(response.data);
 }
 
@@ -540,7 +540,7 @@ export interface ReportCaseResponse {
 }
 
 export async function reportPost(postId: number, payload: ReportPostPayload): Promise<ReportCaseResponse> {
-    const response = await api.post(`/cheer/posts/${postId}/report`, payload);
+    const response = await api.post(`/cheer/posts/${postId}/report`, payload, { skipGlobalErrorHandler: true });
     return response.data;
 }
 

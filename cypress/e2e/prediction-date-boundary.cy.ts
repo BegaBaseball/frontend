@@ -6,13 +6,14 @@ describe('Prediction Date Boundary', () => {
 
     const openPredictionPage = () => {
         const cacheBuster = Date.now();
-        cy.window().then((win) => {
-            win.location.assign(`/prediction?_cypress_bust=${cacheBuster}`);
-        });
+        cy.visit(`/prediction?_cypress_bust=${cacheBuster}`);
+        cy.tick(100);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.wait('@getScheduleRange');
         cy.wait('@getGameDetail');
         cy.wait('@getRankingsBoundary');
+        cy.wait('@getVoteStatus');
+        cy.tick(100);
     };
 
     beforeEach(() => {
@@ -22,24 +23,31 @@ describe('Prediction Date Boundary', () => {
         cy.login('user');
         cy.mockAPI();
 
-        cy.intercept('**/api/matches/range*', {
+        cy.intercept('GET', '**/api/matches/day*', {
             statusCode: 200,
-            body: [
-                {
-                    gameId,
-                    gameDate,
-                    homeTeam: 'HH',
-                    awayTeam: 'SS',
-                    stadium: '대전',
-                    homeScore: null,
-                    awayScore: null,
-                    winner: null,
-                },
-            ],
+            body: {
+                date: gameDate,
+                games: [
+                    {
+                        gameId,
+                        gameDate,
+                        homeTeam: 'HH',
+                        awayTeam: 'SS',
+                        stadium: '대전',
+                        homeScore: null,
+                        awayScore: null,
+                        winner: null,
+                    },
+                ],
+                prevDate: null,
+                nextDate: null,
+                hasPrev: false,
+                hasNext: false,
+            },
         }).as('getScheduleRange');
 
         cy.intercept('GET', '**/api/matches/*', (req) => {
-            if (req.url.includes('/api/matches/range')) {
+            if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/day')) {
                 return;
             }
 

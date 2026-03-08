@@ -585,6 +585,8 @@ export const getGameStatus = (
     ? new Date(`${matchDate}T${normalizedStartTime}`)
     : null;
   const hasValidStartTime = startDateTime != null && !Number.isNaN(startDateTime.getTime());
+  const hasKnownScore = (game.homeScore !== null && game.homeScore !== undefined)
+    && (game.awayScore !== null && game.awayScore !== undefined);
   const isDatePast = matchDate ? matchDate < todayKey : false;
   const isDateFuture = matchDate ? matchDate > todayKey : false;
   const isToday = matchDate ? matchDate === todayKey : false;
@@ -607,6 +609,9 @@ export const getGameStatus = (
     }
     if (rawStatusCode !== 'UNKNOWN') {
       return rawStatusCode;
+    }
+    if (hasKnownScore) {
+      return hasStarted ? 'COMPLETED' : 'SCHEDULED';
     }
     if (normalizedStatus && !hasNeutralStatus) {
       return 'UNKNOWN';
@@ -651,7 +656,11 @@ export const getGameStatus = (
           : '경기 예정';
 
   const isVoteOpen = statusCode === 'SCHEDULED' && !hasStarted;
-  const canShowDetails = statusCode === 'LIVE' || statusCode === 'COMPLETED' || statusCode === 'DRAW';
+  const canShowDetails =
+    statusCode === 'LIVE'
+    || statusCode === 'COMPLETED'
+    || statusCode === 'DRAW'
+    || hasKnownScore;
 
   return {
     isPastGame,
