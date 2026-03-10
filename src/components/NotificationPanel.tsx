@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText, Repeat2, Trash2, CheckCheck, Clock, Calendar, AlertTriangle, Star } from 'lucide-react';
+import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText, Repeat2, Trash2, CheckCheck, Clock, Calendar, AlertTriangle, Star, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore } from '../store/notificationStore';
-import { useAuthStore } from '../store/authStore';
+import { useAuthSession } from '../store/authStore';
 import { notificationApi, isIgnorableNotificationError } from '../utils/notificationApi';
 import { NotificationData as Notification, NotificationType } from '../types/notification';
 
@@ -12,20 +12,22 @@ type TabType = 'ALL' | 'MATE' | 'CHEER';
 
 export default function NotificationPanel() {
   const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
-  const { notifications, unreadCount, setNotifications, setUnreadCount, markAsRead, markAllAsRead, removeNotification } = useNotificationStore();
+  const { isLoggedIn } = useAuthSession();
+  const notifications = useNotificationStore((state) => state.notifications);
+  const setNotifications = useNotificationStore((state) => state.setNotifications);
+  const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
+  const removeNotification = useNotificationStore((state) => state.removeNotification);
   const [activeTab, setActiveTab] = useState<TabType>('ALL');
+  const unreadCount = notifications.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0);
 
   useEffect(() => {
-    if (!user) return;
+    if (!isLoggedIn) return;
 
     const fetchNotifications = async () => {
       try {
         const notifs = await notificationApi.getNotifications();
-        const unreadCount = notifs.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0);
-
         setNotifications(notifs);
-        setUnreadCount(unreadCount);
       } catch (error) {
         if (!isIgnorableNotificationError(error)) {
           console.error('알림 불러오기 오류:', error);
@@ -36,7 +38,7 @@ export default function NotificationPanel() {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [user, setNotifications, setUnreadCount]);
+  }, [isLoggedIn, setNotifications]);
 
   const handleNotificationClick = async (notification: Notification) => {
     try {
@@ -55,6 +57,8 @@ export default function NotificationPanel() {
         navigate(`/cheer`);
       } else if (notification.type === 'FOLLOWING_NEW_POST') {
         navigate(`/cheer/${notification.relatedId}`);
+      } else if (notification.type === 'NEW_DEVICE_LOGIN') {
+        navigate('/mypage?view=accountSettings');
       }
     } catch (error) {
       console.error('알림 처리 오류:', error);
@@ -102,6 +106,7 @@ export default function NotificationPanel() {
       case 'POST_REPOST': return <Repeat2 className="w-5 h-5 text-emerald-500" />;
       case 'NEW_FOLLOWER': return <UserPlus className="w-5 h-5 text-green-500" />;
       case 'FOLLOWING_NEW_POST': return <FileText className="w-5 h-5 text-blue-500" />;
+      case 'NEW_DEVICE_LOGIN': return <ShieldAlert className="w-5 h-5 text-red-500" />;
       default: return <Bell className="w-5 h-5 text-gray-500" />;
     }
   };

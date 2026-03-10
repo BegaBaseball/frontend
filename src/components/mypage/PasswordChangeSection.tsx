@@ -8,7 +8,7 @@ import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { changePassword } from '../../api/profile';
 import { toast } from 'sonner';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthAccessActions } from '../../store/authStore';
 
 interface PasswordChangeSectionProps {
     onCancel: () => void;
@@ -18,7 +18,7 @@ interface PasswordChangeSectionProps {
 
 export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword = true }: PasswordChangeSectionProps) {
     const navigate = useNavigate();
-    const logout = useAuthStore((state) => state.logout);
+    const { logout } = useAuthAccessActions();
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,6 +26,8 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState('');
+
+    const passwordInputClass = 'auth-autofill-input pr-10';
 
     const mutation = useMutation({
         mutationFn: changePassword,
@@ -106,7 +108,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                                 value={currentPassword}
                                 onChange={(e) => { setCurrentPassword(e.target.value); setError(''); }}
                                 placeholder="현재 비밀번호를 입력하세요"
-                                className="pr-10"
+                                className={passwordInputClass}
                                 disabled={mutation.isPending}
                             />
                             <button
@@ -132,7 +134,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                             value={newPassword}
                             onChange={(e) => { setNewPassword(e.target.value); setError(''); }}
                             placeholder="새 비밀번호를 입력하세요"
-                            className="pr-10"
+                            className={passwordInputClass}
                             disabled={mutation.isPending}
                         />
                         <button
@@ -158,7 +160,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                             value={confirmPassword}
                             onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
                             placeholder="새 비밀번호를 다시 입력하세요"
-                            className="pr-10"
+                            className={passwordInputClass}
                             disabled={mutation.isPending}
                         />
                         <button

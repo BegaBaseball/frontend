@@ -23,7 +23,7 @@ describe('Follow / Unfollow Feature', () => {
             body: { success: true, data: mockProfile },
         }).as('getProfile');
 
-        cy.intercept('GET', `**/api/users/${targetUserId}/follow-counts`, {
+        cy.intercept('GET', /\/api\/users\/profile\/[^/?#]+\/follow-counts(\?.*)?$/, {
             statusCode: 200,
             body: {
                 followerCount: isFollowedByMe ? 11 : 10,
@@ -49,7 +49,7 @@ describe('Follow / Unfollow Feature', () => {
     it('shows Follow button when not following and toggles to following', () => {
         setupProfile(false);
 
-        cy.intercept('POST', `**/api/users/${targetUserId}/follow`, {
+        cy.intercept('POST', /\/api\/users\/profile\/[^/?#]+\/follow(\?.*)?$/, {
             statusCode: 200,
             body: {
                 following: true,
@@ -72,7 +72,7 @@ describe('Follow / Unfollow Feature', () => {
     it('shows Unfollow option when already following', () => {
         setupProfile(true);
 
-        cy.intercept('POST', `**/api/users/${targetUserId}/follow`, {
+        cy.intercept('POST', /\/api\/users\/profile\/[^/?#]+\/follow(\?.*)?$/, {
             statusCode: 200,
             body: {
                 following: false,
@@ -92,7 +92,7 @@ describe('Follow / Unfollow Feature', () => {
     it('updates follower count after follow action', () => {
         setupProfile(false);
 
-        cy.intercept('POST', `**/api/users/${targetUserId}/follow`, {
+        cy.intercept('POST', /\/api\/users\/profile\/[^/?#]+\/follow(\?.*)?$/, {
             statusCode: 200,
             body: {
                 following: true,
@@ -116,7 +116,7 @@ describe('Follow / Unfollow Feature', () => {
     it('opens notification settings dropdown for followed user', () => {
         setupProfile(true);
 
-        cy.intercept('PUT', `**/api/users/${targetUserId}/follow/notify*`, {
+        cy.intercept('PUT', /\/api\/users\/profile\/[^/?#]+\/follow\/notify(\?.*)?$/, {
             statusCode: 200,
             body: { success: true },
         }).as('updateNotify');

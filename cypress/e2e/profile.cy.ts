@@ -34,7 +34,7 @@ describe('Public User Profile Page', () => {
             body: { success: true, data: mockProfile },
         }).as('getProfile');
 
-        cy.intercept('GET', `**/api/users/${mockProfile.id}/follow-counts`, {
+        cy.intercept('GET', /\/api\/users\/(?:profile\/[^/?#]+|[^/?#]+)\/follow-counts(\?.*)?$/, {
             statusCode: 200,
             body: mockFollowCounts,
         }).as('getFollowCounts');
@@ -83,7 +83,7 @@ describe('Public User Profile Page', () => {
     it('opens follower list modal when clicking follower count', () => {
         cy.wait('@getFollowCounts');
 
-        cy.intercept('GET', `**/api/users/${mockProfile.id}/followers*`, {
+        cy.intercept('GET', /\/api\/users\/(?:profile\/[^/?#]+|[^/?#]+)\/followers(?:\?.*)?$/, {
             statusCode: 200,
             body: { content: [], last: true, totalElements: 0, number: 0, size: 20 },
         }).as('getFollowers');

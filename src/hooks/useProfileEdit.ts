@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { uploadProfileImage, updateProfile, checkNicknameAvailability } from '../api/profile';
 import { ProfileUpdateData, UserProfile, NicknameCheckState } from '../types/profile';
 import { toast } from 'sonner';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileActions, useAuthProfileSnapshot } from '../store/authStore';
 import { FRANCHISE_TEAM_IDS, TEAM_NAME_TO_ID } from '../constants/teams';
 
 interface UseProfileEditProps {
@@ -44,6 +44,18 @@ export const useProfileEdit = ({
   onSave,
 }: UseProfileEditProps) => {
   const queryClient = useQueryClient();
+  const { setUserProfile, fetchProfileAndAuthenticate } = useAuthProfileActions();
+  const {
+    userId,
+    userEmail,
+    userName,
+    userHandle,
+    userFavoriteTeam,
+    userProfileImageUrl,
+    userRole,
+    userBio,
+    userCheerPoints,
+  } = useAuthProfileSnapshot();
 
   const normalizeFavoriteTeam = (team: string): string => {
     if (!team) return '없음';
@@ -157,8 +169,6 @@ export const useProfileEdit = ({
       return await updateProfile(data);
     },
     onSuccess: async (response, variables) => {
-      const { setUserProfile, fetchProfileAndAuthenticate, user } = useAuthStore.getState();
-
       if (profileImage?.startsWith('blob:')) {
         URL.revokeObjectURL(profileImage);
       }
@@ -196,17 +206,17 @@ export const useProfileEdit = ({
       setUserProfile(updatedUserProfilePatch);
 
       queryClient.setQueryData<UserProfile>(['userProfile'], (previousProfile) => {
-        const baseProfile = previousProfile ?? (user
+        const baseProfile = previousProfile ?? (userId != null
           ? {
-            id: user.id,
-            email: user.email,
-            name: user.name || name,
-            handle: user.handle,
-            favoriteTeam: user.favoriteTeam || null,
-            profileImageUrl: user.profileImageUrl ?? null,
-            role: user.role,
-            bio: user.bio ?? null,
-            cheerPoints: user.cheerPoints,
+            id: userId,
+            email: userEmail ?? '',
+            name: userName || name,
+            handle: userHandle ?? '',
+            favoriteTeam: userFavoriteTeam || null,
+            profileImageUrl: userProfileImageUrl ?? null,
+            role: userRole ?? 'USER',
+            bio: userBio ?? null,
+            cheerPoints: userCheerPoints ?? 0,
           }
           : null);
 

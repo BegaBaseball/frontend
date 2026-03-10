@@ -168,18 +168,18 @@ export default function DiaryViewSection() {
             </div>
 
             <div className="flex items-center gap-6 mt-6 justify-center">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded bg-emerald-50 dark:bg-secondary border-2 border-primary dark:border-primary"
-                  />
-                  <span className="text-sm text-muted-foreground">직관 완료</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded bg-amber-100 dark:bg-secondary border-2 border-amber-300 dark:border-amber-500"
-                  />
-                  <span className="text-sm text-muted-foreground">직관 예정</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded bg-emerald-50 dark:bg-secondary border-2 border-primary dark:border-primary"
+                />
+                <span className="text-sm text-muted-foreground">직관 완료</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded bg-amber-100 dark:bg-secondary border-2 border-amber-300 dark:border-amber-500"
+                />
+                <span className="text-sm text-muted-foreground">직관 예정</span>
+              </div>
             </div>
           </Card>
 
@@ -255,13 +255,12 @@ export default function DiaryViewSection() {
                     key={index}
                     data-testid={`day-${date.getDate()}`}
                     onClick={() => handleDateSelect(date)}
-                    className={`border rounded-lg p-2 flex flex-col min-h-[84px] hover:bg-muted/80 dark:hover:bg-secondary ${isSelected ? 'ring-2 ring-offset-1 ring-primary dark:ring-offset-gray-900' : ''} ${
-                      entry
+                    className={`border rounded-lg p-2 flex flex-col min-h-[84px] hover:bg-muted/80 dark:hover:bg-secondary ${isSelected ? 'ring-2 ring-offset-1 ring-primary dark:ring-offset-gray-900' : ''} ${entry
                         ? entry.type === 'attended'
                           ? 'bg-emerald-50 dark:bg-secondary border-primary dark:border-primary'
                           : 'bg-amber-100 dark:bg-secondary border-amber-300 dark:border-amber-500'
                         : 'bg-card border-border dark:border-border'
-                    }`}
+                      }`}
                   >
                     <div className="text-sm text-center w-full mb-1 text-foreground">
                       {date.getDate()}
@@ -674,8 +673,8 @@ function DiaryEditMode({
         <label className="text-sm text-muted-foreground mb-1 block">경기 선택</label>
         {availableGames.length > 0 ? (
           <select
-            value={diaryForm.gameId}
-            onChange={(e) => updateForm({ gameId: e.target.value })}
+            value={diaryForm.gameId || ''}
+            onChange={(e) => updateForm({ gameId: e.target.value ? Number(e.target.value) : undefined })}
             className="w-full p-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-card text-foreground"
           >
             <option value="">경기를 선택하세요</option>

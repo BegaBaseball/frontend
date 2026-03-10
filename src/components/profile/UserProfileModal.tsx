@@ -4,43 +4,44 @@ import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Badge } from '../ui/badge';
 import { Loader2, Trophy, Quote, Users } from 'lucide-react';
 import { PublicUserProfile } from '../../types/profile';
-import { fetchPublicUserProfile } from '../../api/profile';
+import { fetchPublicUserProfileByHandle } from '../../api/profile';
 import { getTeamKoreanName } from '../../utils/teamNames';
-import { getFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
+import { getPublicFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
 import FollowButton from './FollowButton';
 import BlockButton from './BlockButton';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthProfileSnapshot } from '../../store/authStore';
 import { getApiErrorMessage } from '../../utils/errorUtils';
 
 interface UserProfileModalProps {
-    userId: number | null;
+    handle: string | null;
     isOpen: boolean;
     onClose: () => void;
 }
 
-export default function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalProps) {
-    const { user: currentUser } = useAuthStore();
+export default function UserProfileModal({ handle, isOpen, onClose }: UserProfileModalProps) {
+    const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
     const [profile, setProfile] = useState<PublicUserProfile | null>(null);
     const [followCounts, setFollowCounts] = useState<FollowCountResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (isOpen && userId) {
-            loadProfile(userId);
-            loadFollowCounts(userId);
+        if (isOpen && handle) {
+            loadProfileByHandle(handle);
+            loadFollowCountsByHandle(handle);
         } else {
             setProfile(null);
             setFollowCounts(null);
             setError(null);
+            setIsLoading(false);
         }
-    }, [isOpen, userId]);
+    }, [handle, isOpen]);
 
-    const loadProfile = async (id: number) => {
+    const loadProfileByHandle = async (profileHandle: string) => {
         setIsLoading(true);
         setError(null);
         try {
-            const data = await fetchPublicUserProfile(id);
+            const data = await fetchPublicUserProfileByHandle(profileHandle);
             setProfile(data);
         } catch (err: unknown) {
             console.error('Failed to load public user profile:', err);
@@ -50,9 +51,9 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
         }
     };
 
-    const loadFollowCounts = async (id: number) => {
+    const loadFollowCountsByHandle = async (profileHandle: string) => {
         try {
-            const data = await getFollowCounts(id);
+            const data = await getPublicFollowCounts(profileHandle);
             setFollowCounts(data);
         } catch (err) {
             console.error('Failed to load follow counts:', err);
@@ -130,17 +131,20 @@ export default function UserProfileModal({ userId, isOpen, onClose }: UserProfil
                             )}
 
                             {/* Follow & Block Buttons */}
-                            {currentUser && userId && currentUser.id !== userId && (
+                            {currentUserHandle && profile.handle && currentUserHandle !== profile.handle && (
                                 <div className="flex items-center gap-2">
                                     <FollowButton
-                                        userId={userId}
+                                        handle={profile.handle}
                                         initialFollowing={followCounts?.isFollowedByMe ?? false}
                                         initialNotify={followCounts?.notifyNewPosts ?? false}
+                                        initialBlocked={followCounts?.blockedByMe ?? false}
+                                        initialBlocking={followCounts?.blockingMe ?? false}
                                         onFollowChange={handleFollowChange}
                                     />
                                     <BlockButton
-                                        userId={userId}
+                                        handle={profile.handle}
                                         userName={profile.name}
+                                        initialBlocked={followCounts?.blockedByMe ?? false}
                                         size="sm"
                                     />
                                 </div>

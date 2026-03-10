@@ -1,8 +1,9 @@
 import type { NotificationData } from '../types/notification';
-import { getApiBaseUrl } from '../api/apiBase';
+import apiClient from '../api/axios';
 import { SERVER_BASE_URL } from '../constants/config';
+import { isAxiosError } from 'axios';
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = apiClient.defaults.baseURL || '/api';
 const FALLBACK_API_BASE_URL = `${SERVER_BASE_URL.replace(/\/$/, '')}/api`;
 
 type NotificationApiErrorData = {
@@ -27,6 +28,25 @@ let notificationUnreadCountEndpointAvailable = true;
 let notificationListEndpointAvailable = true;
 let notificationAuthFailure = false;
 
+const toRequestHeaders = (headers?: HeadersInit): Record<string, string> => {
+  if (!headers) {
+    return {};
+  }
+
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+
+  if (Array.isArray(headers)) {
+    return headers.reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+  }
+
+  return headers as Record<string, string>;
+};
+
 const isHttpErrorStatus = (error: unknown, statusCode: number): boolean =>
   typeof error === 'object' &&
   error !== null &&
@@ -48,35 +68,33 @@ export const isIgnorableNotificationError = (error: unknown): boolean => {
 };
 
 const request = async <T = unknown>(endpoint: string, options?: RequestInit, baseUrl = API_BASE_URL): Promise<T> => {
-  const response = await fetch(`${baseUrl}${endpoint}`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-    ...options,
-  });
+  const method = (options?.method || 'GET').toLowerCase() || 'get';
+  const headers = toRequestHeaders(options?.headers);
+  const requestUrl = baseUrl === API_BASE_URL ? endpoint : `${baseUrl}${endpoint}`;
 
-  if (!response.ok) {
-    const apiError = new NotificationApiError(`API Error: ${response.status}`, response.status);
-    try {
-      apiError.data = await response.json();
-    } catch {
-      apiError.data = null;
+  try {
+    const response = await apiClient.request<T>({
+      url: requestUrl,
+      method,
+      data: options?.body,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      signal: options?.signal as any,
+    });
+
+    return response.status === 204 ? ({} as T) : (response.data as unknown as T);
+  } catch (error) {
+    if (isAxiosError(error) && error.response) {
+      throw new NotificationApiError(
+        `API Error: ${error.response.status}`,
+        error.response.status,
+        error.response.data as NotificationApiErrorData,
+      );
     }
-    throw apiError;
+    throw error;
   }
-
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    return response.json() as Promise<T>;
-  }
-
-  return {} as T;
 };
 
 const getNotifications = async (): Promise<NotificationData[]> => {

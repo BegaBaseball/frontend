@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Ban, Loader2 } from 'lucide-react';
-import { toggleBlock, BlockToggleResponse } from '../../api/blockApi';
-import { useAuthStore } from '../../store/authStore';
+import { toggleBlockByHandle, BlockToggleResponse } from '../../api/blockApi';
+import { useAuthProfileSnapshot } from '../../store/authStore';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +17,7 @@ import {
 } from '../ui/alert-dialog';
 
 interface BlockButtonProps {
-    userId: number;
+    handle: string;
     userName?: string;
     initialBlocked?: boolean;
     onBlockChange?: (response: BlockToggleResponse) => void;
@@ -26,19 +26,19 @@ interface BlockButtonProps {
 }
 
 export default function BlockButton({
-    userId,
+    handle,
     userName = '이 사용자',
     initialBlocked = false,
     onBlockChange,
     size = 'default',
     variant = 'ghost',
 }: BlockButtonProps) {
-    const { user } = useAuthStore();
+    const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
     const [isBlocked, setIsBlocked] = useState(initialBlocked);
     const [isLoading, setIsLoading] = useState(false);
 
     // Don't show block button for own profile
-    if (user?.id === userId) {
+    if (handle && currentUserHandle === handle) {
         return null;
     }
 
@@ -47,7 +47,7 @@ export default function BlockButton({
 
         setIsLoading(true);
         try {
-            const response = await toggleBlock(userId);
+            const response = await toggleBlockByHandle(handle);
             setIsBlocked(response.blocked);
             onBlockChange?.(response);
         } catch (error) {
@@ -56,7 +56,7 @@ export default function BlockButton({
         } finally {
             setIsLoading(false);
         }
-    }, [userId, isLoading, onBlockChange]);
+    }, [handle, isLoading, onBlockChange]);
 
     const buttonSize = size === 'sm' ? 'h-8 px-3 text-xs' : size === 'lg' ? 'h-11 px-6' : 'h-9 px-4';
 
