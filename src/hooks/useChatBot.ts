@@ -2,7 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { Message } from '../types/chatbot';
 import { buildHistoryPayload } from '../utils/chatbot';
 import { sendChatMessageStream, convertVoiceToText, RateLimitError } from '../api/chatbot';
-import { useAuthStore } from '../store/authStore';
+import {
+  CHATBOT_STATUS_RATE_LIMIT,
+  CHATBOT_STATUS_SERVICE_UNAVAILABLE,
+  CHATBOT_STREAM_TIMEOUT_ERROR,
+  CHATBOT_STREAM_INCOMPLETE_ERROR,
+  isChatStreamStatusError,
+} from '../api/stream';
+import { useAuthSession } from '../store/authStore';
 import { toast } from 'sonner';
 
 const GREETING_TEXT = '안녕하세요! 야구 가이드 BEGA입니다. 무엇을 도와드릴까요?';
@@ -45,7 +52,7 @@ const createMessageId = (): string => {
 };
 
 export const useChatBot = (initialOpen = false) => {
-  const { isLoggedIn } = useAuthStore();
+  const { isLoggedIn } = useAuthSession();
   const prevLoggedInRef = useRef(isLoggedIn);
 
   const [isOpen, setIsOpen] = useState(initialOpen);
@@ -244,7 +251,7 @@ export const useChatBot = (initialOpen = false) => {
 
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
 
-      if (error instanceof RateLimitError || errorMessage === 'STATUS_429') {
+      if (error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
         const nextFailureCount = Math.min(failureCount + 1, 3);
         const backoffSeconds = Math.min(DEFAULT_RETRY_SECONDS * Math.pow(2, nextFailureCount - 1), MAX_BACKOFF_SECONDS);
         const retryAfterSeconds = error instanceof RateLimitError ? error.retryAfterSeconds : DEFAULT_RETRY_SECONDS;
@@ -254,7 +261,7 @@ export const useChatBot = (initialOpen = false) => {
         setFailureCount(nextFailureCount);
         setRateLimitActive(true);
         setRateLimitUntil(Date.now() + waitSeconds * 1000);
-      } else if (errorMessage === 'STATUS_503') {
+      } else if (isChatStreamStatusError(error, CHATBOT_STATUS_SERVICE_UNAVAILABLE)) {
         toast.error('서비스 점검 중이거나 일시적인 오류입니다.');
         setMessages((prev) => {
           if (prev.length === 0) return prev;
@@ -266,7 +273,7 @@ export const useChatBot = (initialOpen = false) => {
           }
           return prev;
         });
-      } else if (errorMessage === 'STREAM_TIMEOUT') {
+      } else if (isChatStreamStatusError(error, CHATBOT_STREAM_TIMEOUT_ERROR)) {
         toast.error('응답 시간이 초과되었습니다.');
         setMessages((prev) => {
           if (prev.length === 0) return prev;
@@ -278,7 +285,7 @@ export const useChatBot = (initialOpen = false) => {
           }
           return prev;
         });
-      } else if (errorMessage === 'INCOMPLETE_STREAM') {
+      } else if (isChatStreamStatusError(error, CHATBOT_STREAM_INCOMPLETE_ERROR)) {
         toast.error('응답이 중단되었습니다. 다시 시도해주세요.');
         setMessages((prev) => {
           if (prev.length === 0) return prev;
@@ -303,7 +310,7 @@ export const useChatBot = (initialOpen = false) => {
         });
       }
 
-      if (!(error instanceof RateLimitError || errorMessage === 'STATUS_429')) {
+      if (!(error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT))) {
         setInputMessage(pendingMessage);
       }
     } finally {

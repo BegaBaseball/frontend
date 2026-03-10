@@ -6,7 +6,7 @@ import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
-import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X, UserCog, MapPin, Pencil, Plus, Bot, Sparkles, ClipboardCopy, RefreshCw, FileSearch, Save, Download, FolderOpen } from 'lucide-react';
+import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X, UserCog, MapPin, Pencil, Plus, Bot, Sparkles, ClipboardCopy, RefreshCw, FileSearch, Save, Download, FolderOpen, Newspaper } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,9 +35,10 @@ import {
 } from './ui/select';
 import TeamLogo from './TeamLogo';
 import { useAdminData } from '../hooks/useAdminData';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import { TEAM_DATA } from '../constants/teams';
 import { formatDate, formatGameDate, getTimeAgo } from '../utils/formatters';
+import { OffseasonMovementAdminPanel } from './admin/OffseasonMovementAdminPanel';
 import {
   createPlace,
   updatePlace,
@@ -52,7 +53,7 @@ import {
   Place,
   PlaceFormData,
 } from '../api/admin';
-import { getApiBaseUrl } from '../api/apiBase';
+import api from '../api/axios';
 import type {
   ReleaseDecisionArtifactRecord,
   ReleaseDecisionArtifactSummary,
@@ -61,8 +62,6 @@ import type {
   ReleaseDecisionEvaluateResponse,
   ReleaseDecisionPreset,
 } from '../types/admin';
-
-const API_BASE_URL = getApiBaseUrl();
 
 // ─── Stadium types (mirrors StadiumDto) ──────────────────────────────────────
 interface StadiumDto {
@@ -283,8 +282,8 @@ export default function AdminPage() {
   } = useAdminData();
 
   // Determine if the current logged-in user is a SUPER_ADMIN
-  const currentUser = useAuthStore((state) => state.user);
-  const isSuperAdmin = currentUser?.role === 'ROLE_SUPER_ADMIN';
+  const { userId: currentUserId, userRole } = useAuthProfileSnapshot();
+  const isSuperAdmin = userRole === 'ROLE_SUPER_ADMIN';
 
   const [adminMemo, setAdminMemo] = useState('');
 
@@ -344,9 +343,8 @@ export default function AdminPage() {
   // Load stadiums once on mount
   useEffect(() => {
     setStadiumsLoading(true);
-    fetch(`${API_BASE_URL}/stadiums`, { credentials: 'include' })
-      .then((res) => res.json())
-      .then((data: StadiumDto[]) => {
+    api.get<StadiumDto[]>('/stadiums')
+      .then(({ data }) => {
         setStadiums(data);
         if (data.length > 0) setSelectedStadiumId(data[0].stadiumId);
       })
@@ -360,10 +358,7 @@ export default function AdminPage() {
     setPlacesLoading(true);
     setStadiumError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/stadiums/${stadiumId}/places`, {
-        credentials: 'include',
-      });
-      const data: Place[] = await res.json();
+      const { data } = await api.get<Place[]>(`/stadiums/${stadiumId}/places`);
       setPlaces(Array.isArray(data) ? data : []);
     } catch {
       setStadiumError('장소 목록을 불러올 수 없습니다.');
@@ -769,7 +764,7 @@ export default function AdminPage() {
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="border-b border-slate-800 px-6 pt-6">
-              <TabsList className="grid w-full max-w-5xl grid-cols-6 bg-slate-800/50 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-3 gap-1 rounded-xl bg-slate-800/50 p-1 sm:grid-cols-4 xl:grid-cols-7">
                 <TabsTrigger
                   value="users"
                   className="rounded-lg data-[state=active]:bg-amber-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/25 transition-all duration-300"
@@ -797,6 +792,13 @@ export default function AdminPage() {
                 >
                   <Search className="w-4 h-4 mr-2" />
                   신고
+                </TabsTrigger>
+                <TabsTrigger
+                  value="offseason"
+                  className="rounded-lg data-[state=active]:bg-emerald-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/25 transition-all duration-300"
+                >
+                  <Newspaper className="w-4 h-4 mr-2" />
+                  스토브리그
                 </TabsTrigger>
                 <TabsTrigger
                   value="stadiums"
@@ -908,7 +910,7 @@ export default function AdminPage() {
                             {isSuperAdmin && (
                               <TableCell>
                                 {/* SUPER_ADMIN 자신의 역할은 변경 불가 */}
-                                {user.id === currentUser?.id || user.role === 'ROLE_SUPER_ADMIN' ? (
+                                {user.id === currentUserId || user.role === 'ROLE_SUPER_ADMIN' ? (
                                   <span className="text-slate-600 text-xs">변경 불가</span>
                                 ) : (
                                   <Select
@@ -1340,6 +1342,10 @@ export default function AdminPage() {
                   </TableBody>
                 </Table>
               </div>
+            </TabsContent>
+
+            <TabsContent value="offseason" className="p-6">
+              <OffseasonMovementAdminPanel active={activeTab === 'offseason'} />
             </TabsContent>
 
             {/* ── Stadium / Place Management Tab ───────────────────────── */}
