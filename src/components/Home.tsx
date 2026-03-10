@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Calendar as CalendarIcon, Trophy, ChevronLeft, ChevronRight,
-    CalendarDays, Loader2, Flame, AlertTriangle, RefreshCw, Clock3, ChevronDown, MessageSquare, Users, MapPin, ExternalLink, Ticket
+    CalendarDays, Loader2, Flame, AlertTriangle, RefreshCw, Clock3, ChevronDown, MessageSquare, Users, ExternalLink
 } from 'lucide-react';
 
 // UI Components
@@ -16,7 +16,8 @@ import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import GameCard from './GameCard';
 import ScheduledGameCard from './ScheduledGameCard';
 import WelcomeGuide from './WelcomeGuide';
-import { getApiBaseUrl } from '../api/apiBase';
+import AdSlot from './ads/AdSlot';
+import api from '../api/axios';
 import {
     partitionScheduledGames,
     shouldAutoSwitchToScheduled,
@@ -129,7 +130,6 @@ const ScheduledGameCardSkeleton = () => (
 );
 
 export default function Home({ onNavigate }: HomeProps) {
-    const API_BASE = getApiBaseUrl();
     const navigate = useNavigate();
 
     // State
@@ -476,25 +476,18 @@ export default function Home({ onNavigate }: HomeProps) {
         const requestId = ++navRequestIdRef.current;
         const apiDate = formatDateForAPI(date);
         try {
-            const response = await fetch(`${API_BASE}/kbo/schedule/navigation?date=${apiDate}`, {
-                credentials: 'include',
+            const { data } = await api.get<{ prevGameDate?: string | null; nextGameDate?: string | null }>('/kbo/schedule/navigation', {
+                params: { date: apiDate },
             });
-            if (response.ok) {
-                const data = await response.json();
-                if (requestId !== navRequestIdRef.current) return;
-                const prevGameDate = data.prevGameDate ?? null;
-                const nextGameDate = data.nextGameDate ?? null;
-                setNavInfo({
-                    prev: prevGameDate,
-                    next: nextGameDate,
-                    hasPrev: Boolean(prevGameDate),
-                    hasNext: Boolean(nextGameDate),
-                });
-            } else {
-                // If API fails (e.g. 500 or 404), keep buttons enabled for fallback
-                if (requestId !== navRequestIdRef.current) return;
-                setNavInfo(prev => ({ ...prev, hasPrev: true, hasNext: true }));
-            }
+            if (requestId !== navRequestIdRef.current) return;
+            const prevGameDate = data?.prevGameDate ?? null;
+            const nextGameDate = data?.nextGameDate ?? null;
+            setNavInfo({
+                prev: prevGameDate,
+                next: nextGameDate,
+                hasPrev: Boolean(prevGameDate),
+                hasNext: Boolean(nextGameDate),
+            });
         } catch (error) {
             console.error('[Nav] Error:', error);
             // Fallback: keep enabled
@@ -508,16 +501,9 @@ export default function Home({ onNavigate }: HomeProps) {
         const fallbackDates = getFallbackLeagueStartDates();
 
         try {
-            const response = await fetch(`${API_BASE}/kbo/league-start-dates`, {
-                credentials: 'include',
-            });
-            if (!response.ok) {
-                setLeagueStartDates(fallbackDates);
-            } else {
-                const data = await response.json() as LeagueStartDates;
-                cacheLeagueStartDates(data);
-                setLeagueStartDates(data);
-            }
+            const { data } = await api.get<LeagueStartDates>('/kbo/league-start-dates');
+            cacheLeagueStartDates(data);
+            setLeagueStartDates(data);
         } catch (error) {
             console.error('[System] Error loading league dates:', error);
             setLeagueStartDates(fallbackDates);
@@ -531,12 +517,9 @@ export default function Home({ onNavigate }: HomeProps) {
         matchLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
 
         try {
-            const response = await fetch(`${API_BASE}/kbo/schedule?date=${apiDate}`, {
-                credentials: 'include',
+            const { data: gamesData } = await api.get<Game[]>('/kbo/schedule', {
+                params: { date: apiDate },
             });
-            if (!response.ok) throw new Error('API Error');
-
-            const gamesData: Game[] = await response.json();
             setGames(gamesData);
 
             if (gamesData.length > 0 && !hasUserChangedTabRef.current) {
@@ -562,22 +545,22 @@ export default function Home({ onNavigate }: HomeProps) {
 
         try {
             const dates = getDateWindow(baseDate, 8);
-            const responses = await Promise.all(
-                dates.map(async (targetDate) => {
+            const responses = await Promise.all(dates.map(async (targetDate) => {
+                try {
                     const apiDate = formatDateForAPI(targetDate);
-                    const response = await fetch(`${API_BASE}/kbo/schedule?date=${apiDate}`, {
-                        credentials: 'include',
+                    const { data: dailyGames } = await api.get<Game[]>('/kbo/schedule', {
+                        params: { date: apiDate },
                     });
-                    if (!response.ok) return [] as Game[];
-
-                    const dailyGames: Game[] = await response.json();
                     return dailyGames.map((game) => ({
                         ...game,
                         sourceDate: apiDate,
                         leagueBadge: resolveLeagueBadge(game.leagueType),
                     }));
-                })
-            );
+                } catch (error) {
+                    console.error('[Scheduled] Error loading day schedule:', error);
+                    return [];
+                }
+            }));
 
             if (requestId !== scheduledRequestIdRef.current) return;
 
@@ -611,15 +594,8 @@ export default function Home({ onNavigate }: HomeProps) {
         setRankingSeasonYear(seasonYear);
 
         const requestRankings = async (targetSeasonYear: number): Promise<Ranking[]> => {
-            const response = await fetch(`${API_BASE}/kbo/rankings/${targetSeasonYear}`, {
-                credentials: 'include',
-            });
-
-            if (!response.ok) {
-                throw new Error('API Error');
-            }
-
-            return await response.json();
+            const response = await api.get<Ranking[]>(`/kbo/rankings/${targetSeasonYear}`);
+            return response.data;
         };
 
         try {
@@ -1144,6 +1120,14 @@ export default function Home({ onNavigate }: HomeProps) {
                     </Tabs>
                 </div>
 
+                <AdSlot
+                    slotId="home_mid_1"
+                    pageType="home"
+                    contentId={formatDateForAPI(selectedDate)}
+                    creativeType="sponsor_card"
+                    minHeight={164}
+                />
+
                 {/* Main Content & Sidebar Grid (Widgets & Rankings) */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4">
                     {/* Left Content Area (Widgets) */}
@@ -1153,48 +1137,48 @@ export default function Home({ onNavigate }: HomeProps) {
                             {/* Hot Cheer Posts Preview Section */}
                             <section className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-bold flex items-center gap-2 text-zinc-100">
+                                    <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-zinc-100">
                                         <Flame className="w-5 h-5 text-red-500" />
                                         실시간 인기 응원글
                                     </h3>
-                                    <Button variant="ghost" size="sm" onClick={() => navigate('/cheer')} className="text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/40">
+                                    <Button variant="ghost" size="sm" onClick={() => navigate('/cheer')} className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/40">
                                         더보기 <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>
-                                <Card className="p-4 bg-[#121316] border border-zinc-800 shadow-sm h-[260px] overflow-hidden relative">
+                                <Card className="p-4 bg-white dark:bg-[#121316] border border-zinc-200 dark:border-zinc-800 shadow-sm h-[260px] overflow-hidden relative">
                                     {isHotCheerLoading ? (
                                         <div className="space-y-4 flex flex-col justify-center h-full">
-                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
-                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
-                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
+                                            <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
+                                            <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
+                                            <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
                                         </div>
                                     ) : hotCheerPosts.length === 0 ? (
-                                        <div className="flex items-center justify-center h-full text-zinc-400">
+                                        <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400">
                                             인기 응원글이 없습니다.
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col divide-y divide-zinc-800/60">
+                                        <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800/60">
                                             {hotCheerPosts.map(post => (
                                                 <button
                                                     key={post.id}
                                                     onClick={() => navigate(`/cheer?postId=${post.id}`)}
-                                                    className="text-left w-full px-2.5 py-2.5 rounded-md transition-colors group hover:bg-zinc-800/45"
+                                                    className="text-left w-full px-2.5 py-2.5 rounded-md transition-colors group hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
                                                 >
                                                     <div className="flex gap-3">
                                                         <TeamLogo team={post.team} size={26} />
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex justify-between items-start mb-1">
                                                                 <div className="flex flex-col min-w-0">
-                                                                    <span className="text-[11px] text-zinc-500 font-medium">{post.author || '익명'}</span>
-                                                                    <p className="text-sm text-zinc-100 font-medium leading-snug mt-0.5 line-clamp-2">
+                                                                    <span className="text-[11px] text-zinc-700 dark:text-zinc-500 font-medium">{post.author || '익명'}</span>
+                                                                    <p className="text-sm text-gray-900 dark:text-zinc-100 font-medium leading-snug mt-0.5 line-clamp-2">
                                                                         {post.content}
                                                                     </p>
                                                                 </div>
-                                                                <span className="text-[10px] text-zinc-400 shrink-0">{formatTimeAgo(post.createdAt)}</span>
+                                                                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 shrink-0">{formatTimeAgo(post.createdAt)}</span>
                                                             </div>
                                                             <div className="flex gap-2.5 mt-1.5">
                                                                 <span className="text-[10px] font-semibold text-rose-300 flex items-center gap-1.5"><Flame className="w-3 h-3 text-rose-400" /> {post.likeCount}</span>
-                                                                <span className="text-[10px] text-zinc-400 flex items-center gap-1.5"><MessageSquare className="w-3 h-3 text-zinc-500" /> {post.commentCount}</span>
+                                                                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5"><MessageSquare className="w-3 h-3 text-zinc-500 dark:text-zinc-400" /> {post.commentCount}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1208,27 +1192,27 @@ export default function Home({ onNavigate }: HomeProps) {
                             {/* Mate Preview Section */}
                             <section className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-bold flex items-center gap-2 text-zinc-100">
+                                    <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-zinc-100">
                                         <Users className="w-5 h-5 text-blue-500" />
                                         직관 메이트 찾기
                                     </h3>
-                                    <Button variant="ghost" size="sm" onClick={() => navigate('/mate')} className="text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/40">
+                                    <Button variant="ghost" size="sm" onClick={() => navigate('/mate')} className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/40">
                                         더보기 <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>
-                                <Card className="p-4 bg-[#121316] border border-zinc-800 shadow-sm h-[260px] overflow-hidden relative">
+                                <Card className="p-4 bg-white dark:bg-[#121316] border border-zinc-200 dark:border-zinc-800 shadow-sm h-[260px] overflow-hidden relative">
                                     {isFeaturedMatesLoading ? (
                                         <div className="space-y-4 flex flex-col justify-center h-full">
-                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
-                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
-                                            <Skeleton className="h-16 w-full bg-zinc-800/50" />
+                                            <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
+                                            <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
+                                            <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
                                         </div>
                                     ) : featuredMates.length === 0 ? (
-                                        <div className="flex items-center justify-center h-full text-zinc-400">
+                                        <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400">
                                             모집 중인 팟이 없습니다.
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col divide-y divide-zinc-800/60">
+                                        <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800/60">
                                             {featuredMates.map(mate => {
                                                 const gameDate = new Date(`${mate.gameDate}T12:00:00`);
                                                 const gameDateLabel = Number.isNaN(gameDate.getTime())
@@ -1246,47 +1230,28 @@ export default function Home({ onNavigate }: HomeProps) {
                                                     <button
                                                         key={mate.id}
                                                         onClick={() => navigate(`/mate/${mate.id}`)}
-                                                        className="text-left w-full px-2.5 py-2.5 transition-colors hover:bg-zinc-800/35 last:pb-0 overflow-hidden"
+                                                        className="text-left w-full px-2 py-1.5 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/35 last:pb-0 overflow-hidden"
                                                     >
-                                                        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-                                                            <div className="flex flex-wrap items-center gap-2 min-w-0">
-                                                                <span className="inline-flex shrink-0 rounded-full border border-zinc-700 bg-zinc-800/65 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-semibold text-zinc-300 max-w-[9rem] sm:max-w-none truncate">
-                                                                    {mate.stadium}
-                                                                </span>
-                                                                {mate.section ? (
-                                                                    <span className="inline-flex shrink-0 rounded-full border border-zinc-700 bg-zinc-800/65 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-semibold text-zinc-300 max-w-[9rem] sm:max-w-none truncate">
-                                                                        {mate.section}구역
-                                                                    </span>
-                                                                ) : null}
-                                                                <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 min-w-0 max-w-full sm:max-w-none break-keep">
-                                                                    <MapPin className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
-                                                                    {gameDateLabel} {mate.gameTime}
-                                                                </span>
-                                                            </div>
-                                                            <span className="inline-flex shrink-0 rounded-full border border-emerald-500/45 bg-emerald-500/10 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-emerald-200 whitespace-nowrap">
-                                                                {mate.maxParticipants}명 모집
-                                                            </span>
+                                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                                        <p className="text-[9px] font-medium text-zinc-500 dark:text-zinc-500">
+                                                            {gameDateLabel} {mate.gameTime}
+                                                        </p>
+                                                            <p className="inline-flex items-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 px-1.5 py-0.5 text-[10px] leading-none text-zinc-500 dark:text-zinc-400">
+                                                                모집 <span className="ml-1 font-bold text-zinc-900 dark:text-zinc-100">{mate.currentParticipants || 0}/{mate.maxParticipants}명</span>
+                                                            </p>
                                                         </div>
-                                                        <div className="flex flex-wrap items-center justify-between w-full gap-2 text-[11px]">
-                                                            <span className="inline-flex items-center gap-1.5 text-zinc-300 min-w-0 flex-wrap">
-                                                                <span className="inline-flex shrink-0 rounded-full border border-zinc-700 bg-zinc-800/65 px-2.5 py-0.5 max-w-[8.2rem] sm:max-w-[9.8rem] truncate">
-                                                                    {homeTeamLabel}
-                                                                </span>
-                                                                <span className="text-zinc-500 font-semibold">vs</span>
-                                                                <span className="inline-flex shrink-0 rounded-full border border-zinc-700 bg-zinc-800/65 px-2.5 py-0.5 max-w-[8.2rem] sm:max-w-[9.8rem] truncate">
-                                                                    {awayTeamLabel}
-                                                                </span>
-                                                            </span>
-                                                            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold shrink-0 whitespace-nowrap ${mate.ticketPrice == null || mate.ticketPrice === undefined
-                                                                ? 'border-zinc-700 bg-zinc-800/50 text-zinc-300'
-                                                                : mate.ticketPrice === 0
-                                                                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
-                                                                    : 'border-amber-500/45 bg-zinc-800/80 text-amber-100'
-                                                            }`}
-                                                            >
-                                                                <Ticket className={`w-3 h-3 ${mate.ticketPrice == null || mate.ticketPrice === undefined ? 'text-zinc-400' : mate.ticketPrice === 0 ? 'text-emerald-200' : 'text-amber-200'}`} />
-                                                                {ticketLabel}
-                                                            </span>
+                                                        <div className="flex items-center justify-between gap-2">
+                                                        <p className="text-xs sm:text-sm font-black text-zinc-900 dark:text-zinc-100 leading-tight truncate">
+                                                            {homeTeamLabel} vs {awayTeamLabel}
+                                                        </p>
+                                                        <p className={`inline-flex w-fit items-baseline rounded-full px-1.5 py-0.75 text-[11px] sm:text-xs font-black ring-1 ${mate.ticketPrice == null || mate.ticketPrice === undefined
+                                                            ? 'text-zinc-700 dark:text-zinc-200 ring-zinc-200 dark:ring-zinc-600 bg-zinc-100/90 dark:bg-zinc-800/90'
+                                                            : mate.ticketPrice === 0
+                                                                ? 'text-emerald-700 dark:text-emerald-200 bg-gradient-to-r from-emerald-100/70 to-emerald-100/45 dark:from-emerald-500/15 dark:to-emerald-500/20 ring-emerald-300/70 dark:ring-emerald-400/35'
+                                                                : 'text-amber-800 dark:text-amber-100 bg-gradient-to-r from-amber-100/80 to-amber-100/55 dark:from-amber-500/20 dark:to-amber-500/15 ring-amber-300/70 dark:ring-amber-400/35'
+                                                        }`}>
+                                                            {mate.ticketPrice == null || mate.ticketPrice === undefined ? '협의' : ticketLabel}
+                                                        </p>
                                                         </div>
                                                     </button>
                                                 );
@@ -1304,18 +1269,18 @@ export default function Home({ onNavigate }: HomeProps) {
                             <div className="flex items-center justify-between px-1">
                                 <div className="flex items-center gap-2.5">
                                     <Trophy className="w-5 h-5 text-[#2ecc71]" />
-                                    <h2 className="text-lg font-bold text-white tracking-tight">팀 순위</h2>
+                                    <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">팀 순위</h2>
                                 </div>
-                                <div className="flex items-center bg-[#121316] border border-zinc-800 rounded-full p-0.5 shadow-sm">
+                                <div className="flex items-center bg-slate-100 dark:bg-[#121316] border border-zinc-200 dark:border-zinc-800 rounded-full p-0.5 shadow-sm">
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => loadRankingsData(rankingSeasonYear - 1)}
-                                        className="h-7 w-7 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                                        className="h-7 w-7 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800/60"
                                     >
                                         <ChevronLeft className="w-4 h-4" />
                                     </Button>
-                                    <span className="text-sm font-bold w-12 text-center text-zinc-200">
+                                    <span className="text-sm font-bold w-12 text-center text-zinc-900 dark:text-zinc-200">
                                         {rankingSeasonYear}
                                     </span>
                                     <Button
@@ -1323,23 +1288,23 @@ export default function Home({ onNavigate }: HomeProps) {
                                         size="icon"
                                         onClick={() => loadRankingsData(rankingSeasonYear + 1)}
                                         disabled={rankingSeasonYear >= new Date().getFullYear()}
-                                        className="h-7 w-7 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800/60 disabled:opacity-30 disabled:hover:bg-transparent"
+                                        className="h-7 w-7 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800/60 disabled:opacity-30 disabled:hover:bg-transparent"
                                     >
                                         <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>
                             </div>
 
-                            <Card className="overflow-hidden border border-zinc-800 bg-[#121316] rounded-2xl">
+                            <Card className="overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121316] rounded-2xl">
                                 {isRankingsLoading ? (
                                     <div className="p-8 space-y-4">
-                                        <Skeleton className="h-12 w-full bg-zinc-800/50 rounded-lg" />
-                                        <Skeleton className="h-12 w-full bg-zinc-800/50 rounded-lg" />
-                                        <Skeleton className="h-12 w-full bg-zinc-800/50 rounded-lg" />
+                                        <Skeleton className="h-12 w-full bg-zinc-200 dark:bg-zinc-800/50 rounded-lg" />
+                                        <Skeleton className="h-12 w-full bg-zinc-200 dark:bg-zinc-800/50 rounded-lg" />
+                                        <Skeleton className="h-12 w-full bg-zinc-200 dark:bg-zinc-800/50 rounded-lg" />
                                     </div>
                                 ) : rankingsError ? (
                                     <div className="flex flex-col items-center justify-center py-16 text-center">
-                                        <p className="text-zinc-300 font-medium mb-4">
+                                        <p className="text-zinc-700 dark:text-zinc-300 font-medium mb-4">
                                             팀 순위를 불러오는 중 문제가 발생했습니다.
                                         </p>
                                         <Button
@@ -1349,7 +1314,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                                 const seasonYear = resolveRankingSeasonYear(selectedDate, leagueStartDates);
                                                 loadRankingsData(seasonYear);
                                             }}
-                                            className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white bg-transparent"
+                                            className="border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-white bg-transparent"
                                         >
                                             <RefreshCw className="w-4 h-4 mr-2" />
                                             다시 시도
@@ -1357,10 +1322,10 @@ export default function Home({ onNavigate }: HomeProps) {
                                     </div>
                                 ) : displayableRankings.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                                        <p className="text-zinc-200 font-medium mb-2">
+                                        <p className="text-zinc-900 dark:text-zinc-200 font-medium mb-2">
                                             {rankingDataVisibilityMessage}
                                         </p>
-                                        <p className="text-zinc-500 text-sm">
+                                        <p className="text-zinc-500 dark:text-zinc-500 text-sm">
                                             {rankingStatusHintMessage}
                                         </p>
                                     </div>
@@ -1371,31 +1336,31 @@ export default function Home({ onNavigate }: HomeProps) {
                                                 return (
                                                     <div
                                                         key={team.teamId}
-                                                        className={`group flex items-center justify-between px-2.5 py-2 border-b border-zinc-800/80 last:border-b-0 hover:bg-zinc-800/40 transition-colors ${isTopThree ? 'border-l border-l-[#2ecc71]/40' : ''}`}
+                                                        className={`group grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2.5 py-2 border-b border-zinc-200/80 dark:border-zinc-800/80 last:border-b-0 hover:bg-slate-100 dark:hover:bg-zinc-800/40 transition-colors ${isTopThree ? 'border-l border-l-[#2ecc71]/40' : ''}`}
                                                     >
-                                                    <div className="flex items-center gap-1.5 sm:gap-2">
-                                                        <span className={`w-5 text-center text-[13px] sm:text-sm font-black flex-shrink-0 ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500'}`}>
+                                                    <div className="min-w-0 flex items-center gap-1.5 sm:gap-2">
+                                                        <span className={`w-5 text-center text-[13px] sm:text-sm font-black flex-shrink-0 ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500 dark:text-zinc-500'}`}>
                                                             {team.rank}
                                                         </span>
-                                                        <div className="flex items-center gap-1.5">
-                                                            <div className="w-9 h-9 flex items-center justify-center bg-white rounded-full p-1.25 shadow-sm">
+                                                        <div className="flex items-center gap-1.5 min-w-0">
+                                                            <div className="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-white rounded-full p-1.25 shadow-sm flex-shrink-0">
                                                                 <TeamLogo team={team.displayName} teamId={team.teamId} size={28} className="object-contain" />
                                                             </div>
-                                                            <span className="font-bold text-sm sm:text-base leading-tight truncate max-w-[6.5rem] sm:max-w-[7.5rem] text-zinc-100">
+                                                            <span className="font-bold text-sm sm:text-base leading-tight min-w-0 truncate text-gray-900 dark:text-zinc-100">
                                                                 {team.displayName}
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-2 sm:gap-3">
-                                                        <span className="font-bold text-white text-sm sm:text-base leading-none tracking-tight">
+                                                    <div className="shrink-0 flex items-center gap-2 sm:gap-3 whitespace-nowrap text-right">
+                                                        <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-none tracking-tight tabular-nums">
                                                             {team.winRate}
                                                         </span>
-                                                        <span className="flex items-center gap-1.5 text-[12px] sm:text-[13px] font-semibold text-zinc-300 whitespace-nowrap">
-                                                            <span className="text-zinc-200">{team.wins}승</span>
-                                                            <span className="text-zinc-500">·</span>
-                                                            <span className="text-zinc-300">{team.draws}무</span>
-                                                            <span className="text-zinc-500">·</span>
-                                                            <span className="text-zinc-300">{team.losses}패</span>
+                                                        <span className="flex items-center gap-1.5 text-[12px] sm:text-[13px] font-semibold text-zinc-700 dark:text-zinc-300 whitespace-nowrap tabular-nums">
+                                                            <span className="text-zinc-900 dark:text-zinc-200">{team.wins}승</span>
+                                                            <span className="text-zinc-500 dark:text-zinc-300">·</span>
+                                                            <span className="text-zinc-700 dark:text-zinc-300">{team.draws}무</span>
+                                                            <span className="text-zinc-500 dark:text-zinc-300">·</span>
+                                                            <span className="text-zinc-700 dark:text-zinc-300">{team.losses}패</span>
                                                         </span>
                                                     </div>
                                                 </div>

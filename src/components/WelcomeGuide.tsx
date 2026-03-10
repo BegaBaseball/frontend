@@ -168,7 +168,8 @@ const SlideIcon = ({ iconType, color, isIntro }: { iconType: string; color: stri
 };
 
 export default function WelcomeGuide() {
-  const { showWelcome, setShowWelcome } = useUIStore();
+  const showWelcome = useUIStore((state) => state.showWelcome);
+  const setShowWelcome = useUIStore((state) => state.setShowWelcome);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [imageError, setImageError] = useState(false);
 

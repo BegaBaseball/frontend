@@ -43,40 +43,38 @@ describe('Home to Prediction deep link', () => {
 
         cy.intercept('**/api/matches/day*', {
             statusCode: 200,
-            body: [
-                {
-                    date: today,
-                    games: [
-                        {
-                            gameId: `${todayCompact}HHLG0`,
-                            gameDate: today,
-                            time: '18:30',
-                            stadium: '대전',
-                            gameStatus: 'SCHEDULED',
-                            homeTeam: 'HH',
-                            awayTeam: 'LG'
-                        },
-                        {
-                            gameId: `${todayCompact}KTSS0`,
-                            gameDate: today,
-                            time: '18:30',
-                            stadium: '수원',
-                            gameStatus: 'SCHEDULED',
-                            homeTeam: 'SS',
-                            awayTeam: 'KT'
-                        }
-                    ],
-                    prevDate: null,
-                    nextDate: null,
-                    hasPrev: false,
-                    hasNext: false,
-                }
-            ][0]
+            body: {
+                date: today,
+                games: [
+                    {
+                        gameId: `${todayCompact}HHLG0`,
+                        gameDate: today,
+                        time: '18:30',
+                        stadium: '대전',
+                        gameStatus: 'SCHEDULED',
+                        homeTeam: 'HH',
+                        awayTeam: 'LG'
+                    },
+                    {
+                        gameId: `${todayCompact}KTSS0`,
+                        gameDate: today,
+                        time: '18:30',
+                        stadium: '수원',
+                        gameStatus: 'SCHEDULED',
+                        homeTeam: 'SS',
+                        awayTeam: 'KT'
+                    }
+                ],
+                prevDate: null,
+                nextDate: null,
+                hasPrev: false,
+                hasNext: false,
+            }
         }).as('getScheduleDay');
 
         // Use a more specific pattern for game details to avoid matching /matches/range
         // The actual URL is /api/matches/${gameId}
-        cy.intercept('GET', '**/api/matches/[0-9]*', {
+        cy.intercept('GET', /\/api\/matches\/(?!day$|range$|bounds$)[^/?#]+(?:\?.*)?$/, {
             statusCode: 200,
             body: {
                 gameId: `${todayCompact}HHLG0`,
@@ -103,7 +101,7 @@ describe('Home to Prediction deep link', () => {
 
         cy.intercept('**/api/predictions/status/*', {
             statusCode: 200,
-            body: { homeVotes: 0, awayVotes: 0 },
+            body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
         }).as('getVoteStatus');
     });
 
