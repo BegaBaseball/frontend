@@ -5,13 +5,14 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Skeleton } from './ui/skeleton';
 import { Input } from './ui/input';
+import AdSlot from './ads/AdSlot';
 import { MapPin, RefreshCw, AlertTriangle, Search, ArrowUpDown, Heart } from 'lucide-react';
 import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constants';
 import { openKakaoMapRoute } from '../utils/kakaoMap';
 import { getCategoryIconConfig } from '../utils/stadium';
 import { useStadiumGuide } from '../hooks/useStadiumGuide';
 import { useTheme } from '../hooks/useTheme';
-import { useAuthStore } from '../store/authStore';
+import { useAuthSession } from '../store/authStore';
 import { getMyFavoriteStadiumIds, addStadiumFavorite, removeStadiumFavorite } from '../api/stadium';
 import {
   filterAndSortPlaces,
@@ -50,7 +51,7 @@ export default function StadiumGuide() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<StadiumGuideSortOrder>('default');
 
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const { isLoggedIn } = useAuthSession();
   const queryClient = useQueryClient();
 
   const { data: favoriteIds = [] } = useQuery({
@@ -338,6 +339,17 @@ export default function StadiumGuide() {
                 })}
               </div>
             </div>
+
+            {selectedStadium && (
+              <AdSlot
+                slotId="stadium_partner_1"
+                pageType="stadium"
+                contentId={selectedStadiumId}
+                creativeType="sponsor_card"
+                loggedIn={isLoggedIn}
+                minHeight={176}
+              />
+            )}
 
             {/* Results List */}
             <div>
