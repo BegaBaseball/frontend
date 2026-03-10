@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { loginUser } from '../api/auth';
-import { useAuthStore } from '../store/authStore';
+import { useAuthAuthenticationActions } from '../store/authStore';
 import { validateLoginField, validateLoginForm } from '../utils/validation';
 import { LoginFormData } from '../types/auth';
 import { getApiErrorMessage } from '../utils/errorUtils';
@@ -14,8 +14,7 @@ export const useLoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const login = useAuthStore((state) => state.login);
-  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
+  const { login, fetchProfileAndAuthenticate } = useAuthAuthenticationActions();
 
   const getSavedEmail = () => {
     try {
