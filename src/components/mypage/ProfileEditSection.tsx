@@ -338,15 +338,15 @@ export default function ProfileEditSection({
           </Label>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                className="w-full border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/40 disabled:opacity-100 pr-9"
-                placeholder="이메일을 입력하세요"
-                disabled
-                readOnly
-              />
+	            <Input
+	              id="email"
+	              type="email"
+	              value={email}
+	              className="w-full border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/40 disabled:opacity-100 pr-9 auth-autofill-input"
+	              placeholder="이메일을 입력하세요"
+	              disabled
+	              readOnly
+	            />
               <Lock className="w-4 h-4 text-muted-foreground absolute right-2.5 top-1/2 -translate-y-1/2" />
             </div>
             <span className="text-xs text-muted-foreground whitespace-nowrap">

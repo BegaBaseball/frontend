@@ -8,8 +8,9 @@ import type {
 import type { UserProfileApiResponse } from '../types/profile';
 import type { NotificationData } from '../types/notification';
 import type { Stadium, Place } from '../types/stadium';
-import { getApiBaseUrl } from '../api/apiBase';
+import apiClient from '../api/axios';
 import { SERVER_BASE_URL } from '../constants/config';
+import { isAxiosError } from 'axios';
 
 export interface KboScheduleItem {
   gameId: string;
@@ -23,7 +24,7 @@ export interface KboScheduleItem {
   awayScore?: number | string | null;
 }
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = apiClient.defaults.baseURL || '/api';
 const FALLBACK_API_BASE_URL = `${SERVER_BASE_URL.replace(/\/$/, '')}/api`;
 
 export class ApiError extends Error {
@@ -56,6 +57,25 @@ let notificationUnreadCountEndpointAvailable = true;
 let notificationListEndpointAvailable = true;
 let notificationAuthFailure = false;
 
+const toRequestHeaders = (headers?: HeadersInit): Record<string, string> => {
+  if (!headers) {
+    return {};
+  }
+
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+
+  if (Array.isArray(headers)) {
+    return headers.reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+  }
+
+  return headers as Record<string, string>;
+};
+
 const isHttpErrorStatus = (error: unknown, statusCode: number): boolean =>
   typeof error === 'object' &&
   error !== null &&
@@ -78,35 +98,35 @@ export const isIgnorableNotificationError = (error: unknown): boolean => {
 
 export const api = {
   async request<T = unknown>(endpoint: string, options?: RequestInit, baseUrl = API_BASE_URL): Promise<T> {
-    const response = await fetch(`${baseUrl}${endpoint}`, {
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      ...options,
-    });
+    const method = (options?.method || 'GET').toLowerCase() || 'get';
+    const headers = toRequestHeaders(options?.headers);
+    const url = baseUrl === API_BASE_URL ? endpoint : `${baseUrl}${endpoint}`;
 
-    if (!response.ok) {
-      const apiError = new ApiError(`API Error: ${response.status}`, response.status);
-      try {
-        apiError.data = await response.json();
-      } catch {
-        apiError.data = null;
+    try {
+      const response = await apiClient.request<T>({
+        url,
+        method,
+        data: options?.body,
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        signal: options?.signal as any,
+      });
+
+      return response.status === 204 ? ({} as T) : (response.data as unknown as T);
+    } catch (error) {
+      if (isAxiosError(error) && error.response) {
+        const apiError = new ApiError(`API Error: ${error.response.status}`, error.response.status, error.response.data ?? null);
+        throw apiError;
       }
-      throw apiError;
-    }
 
-    if (response.status === 204) {
-      return {} as T;
-    }
+      if (error instanceof Error) {
+        throw error;
+      }
 
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return response.json() as Promise<T>;
+      throw new Error('API request failed');
     }
-
-    return {} as T;
   },
 
   // Stadium
@@ -125,10 +145,6 @@ export const api = {
   // User
   async getCurrentUser(): Promise<UserProfileApiResponse> {
     return this.request<UserProfileApiResponse>('/auth/mypage');
-  },
-
-  async getUserIdByEmail(email: string): Promise<ApiResponse<number>> {
-    return this.request<ApiResponse<number>>(`/users/email-to-id?email=${encodeURIComponent(email)}`);
   },
 
   async checkSocialVerified(userId: number): Promise<ApiResponse<boolean>> {
@@ -256,8 +272,6 @@ export const api = {
 
   async sendChatMessage(data: {
     partyId: number | string;
-    senderId: number | string;
-    senderName: string;
     message: string;
     imageUrl?: string;
   }): Promise<ChatMessage> {
@@ -452,8 +466,8 @@ export const api = {
     return this.request<PartyReview[]>(`/reviews/party/${partyId}`);
   },
 
-  async getUserAverageRating(userId: number): Promise<number> {
-    return this.request<number>(`/reviews/user/${userId}/average`);
+  async getUserAverageRatingByHandle(handle: string): Promise<number> {
+    return this.request<number>(`/reviews/profile/${encodeURIComponent(handle)}/average`);
   },
 
   // Payments

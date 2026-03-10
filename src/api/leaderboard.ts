@@ -6,9 +6,8 @@ import api from './axios';
 
 export interface LeaderboardEntry {
   rank: number;
-  userId: number;
+  handle?: string | null;
   userName: string;
-  handle?: string;
   profileImageUrl?: string;
   level: number;
   rankTitle: string;
@@ -20,7 +19,7 @@ export interface LeaderboardEntry {
 }
 
 export interface UserLeaderboardStats {
-  userId: number;
+  handle?: string | null;
   userName: string;
   profileImageUrl?: string;
   rank: number;
@@ -40,7 +39,7 @@ export interface UserLeaderboardStats {
 }
 
 export interface HotStreak {
-  userId: number;
+  handle?: string | null;
   userName: string;
   profileImageUrl?: string;
   streak: number;
@@ -49,7 +48,7 @@ export interface HotStreak {
 
 export interface RecentScore {
   id: number;
-  userId: number;
+  handle?: string | null;
   userName: string;
   eventType: string;
   score: number;
@@ -78,7 +77,7 @@ export interface PowerupUseResult {
 export type LeaderboardType = 'season' | 'monthly' | 'weekly';
 
 interface LeaderboardPageResponse {
-  content?: Array<Partial<LeaderboardEntry> & { rank?: number | string }>;
+  content?: Array<Partial<LeaderboardEntry> & { rank?: number | string; handle?: string | null }>;
   totalPages?: number;
   totalElements?: number;
 }
@@ -109,14 +108,16 @@ export async function fetchLeaderboard(
   const entries = Array.isArray(response.data?.content) ? response.data.content : [];
   const content = entries.map((entry, index) => ({
     ...entry,
+    userName: entry.userName || '',
     rank: normalizeNumber(entry.rank, page * size + index + 1),
-    userId: normalizeNumber(entry.userId, 0),
+    handle: typeof entry.handle === 'string' ? entry.handle : null,
     level: normalizeNumber(entry.level, 1),
     score: normalizeNumber(entry.score, 0),
     streak: normalizeNumber(entry.streak, 0),
     maxStreak: entry.maxStreak == null ? undefined : normalizeNumber(entry.maxStreak, 0),
     accuracy: entry.accuracy == null ? undefined : normalizeNumber(entry.accuracy, 0),
     rankChange: entry.rankChange == null ? undefined : normalizeNumber(entry.rankChange, 0),
+    rankTitle: entry.rankTitle || '',
   }));
 
   return {
@@ -133,7 +134,7 @@ export async function fetchMyRank(): Promise<UserLeaderboardStats> {
   const response = await api.get<Partial<UserLeaderboardStats>>('/leaderboard/me');
   const data = response.data ?? {};
   const fallback: UserLeaderboardStats = {
-    userId: 0,
+    handle: null,
     userName: '',
     rank: 0,
     totalScore: 0,
@@ -151,7 +152,7 @@ export async function fetchMyRank(): Promise<UserLeaderboardStats> {
   return {
     ...fallback,
     ...data,
-    userId: normalizeNumber(data.userId, fallback.userId),
+    handle: typeof data.handle === 'string' ? data.handle : fallback.handle,
     rank: normalizeNumber(data.rank, fallback.rank),
     totalScore: normalizeNumber(data.totalScore, fallback.totalScore),
     seasonScore: normalizeNumber(data.seasonScore, fallback.seasonScore),
@@ -223,12 +224,12 @@ export async function usePowerup(
 /**
  * Get leaderboard ranking for a specific user
  */
-export async function fetchUserRank(userId: number): Promise<{
+export async function fetchUserRank(handle: string): Promise<{
   rank: number;
   score: number;
   level: number;
 }> {
-  const response = await api.get<Partial<{ rank: number; score: number; level: number }>>(`/leaderboard/users/${userId}/rank`);
+  const response = await api.get<Partial<{ rank: number; score: number; level: number }>>(`/leaderboard/profile/${encodeURIComponent(handle)}/rank`);
   return {
     rank: normalizeNumber(response.data?.rank, 0),
     score: normalizeNumber(response.data?.score, 0),

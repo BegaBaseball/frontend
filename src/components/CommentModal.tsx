@@ -9,7 +9,7 @@ import {
     DialogTitle,
 } from './ui/dialog';
 import { Button } from './ui/button';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import { CheerPost, createComment } from '../api/cheerApi';
 import TeamLogo from './TeamLogo';
 import { ProfileAvatar } from './ui/ProfileAvatar';
@@ -26,8 +26,13 @@ interface CommentModalProps {
 }
 
 export default function CommentModal({ isOpen, onClose, post, targetPostId }: CommentModalProps) {
-    const { user } = useAuthStore();
-    const { theme } = useTheme();
+    const {
+        userName,
+        userProfileImageUrl,
+        userFavoriteTeam,
+    } = useAuthProfileSnapshot();
+    const { theme, resolvedTheme } = useTheme();
+    const isDarkMode = resolvedTheme === 'dark' || theme === 'dark';
     const queryClient = useQueryClient();
     const [content, setContent] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -38,9 +43,9 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
             ? null
             : post.authorProfileImageUrl
         : null;
-    const userProfileImageUrl = user?.profileImageUrl &&
-    !(user.profileImageUrl.includes('/assets/') || user.profileImageUrl.includes('/src/assets/'))
-        ? user.profileImageUrl
+    const resolvedUserProfileImageUrl = userProfileImageUrl &&
+    !(userProfileImageUrl.includes('/assets/') || userProfileImageUrl.includes('/src/assets/'))
+        ? userProfileImageUrl
         : null;
 
     const commentMutation = useMutation({
@@ -123,27 +128,27 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                     {/* Reply Area */}
                     <div className="flex gap-3 mt-4">
                         <div className="h-10 w-10 flex-shrink-0">
-                            {userProfileImageUrl ? (
+                            {resolvedUserProfileImageUrl ? (
                                 <ProfileAvatar
-                                    src={userProfileImageUrl}
-                                    alt={user?.name || '프로필'}
-                                    fallbackName={user?.name || '프로필'}
+                                    src={resolvedUserProfileImageUrl}
+                                    alt={userName}
+                                    fallbackName={userName}
                                     width={40}
                                     height={40}
                                     showRing
                                     ringClassName="p-px bg-black/5 dark:bg-white/10"
                                 />
                             ) : (
-                                user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
+                                userFavoriteTeam && userFavoriteTeam !== '없음' ? (
                                     <span className="inline-flex h-10 w-10 rounded-full bg-black/5 dark:bg-white/10 p-px items-center justify-center overflow-hidden">
                                         <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
-                                            <TeamLogo team={TEAM_DATA[user.favoriteTeam]?.name || user.favoriteTeam} size={40} />
+                                            <TeamLogo team={TEAM_DATA[userFavoriteTeam]?.name || userFavoriteTeam} size={40} />
                                         </span>
                                     </span>
                                 ) : (
                                     <ProfileAvatar
-                                        alt={user?.name || '프로필'}
-                                        fallbackName={user?.name || '프로필'}
+                                        alt={userName}
+                                        fallbackName={userName}
                                         width={40}
                                         height={40}
                                         showRing
@@ -177,7 +182,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                                             <div className="absolute top-full left-0 z-50 mt-2">
                                                 <EmojiPicker
                                                     onEmojiClick={handleEmojiClick}
-                                                    theme={theme === 'dark' ? EmojiTheme.DARK : EmojiTheme.LIGHT}
+                                                    theme={isDarkMode ? EmojiTheme.DARK : EmojiTheme.LIGHT}
                                                     lazyLoadEmojis={true}
                                                     skinTonesDisabled={true}
                                                     searchPlaceHolder="이모지 검색..."

@@ -86,6 +86,43 @@ export interface AdminApiResponse<T> {
   message?: string;
 }
 
+export interface AdminOffseasonMovement {
+  id: number;
+  movementDate: string;
+  section: string;
+  teamCode: string;
+  playerName: string;
+  summary?: string | null;
+  details?: string | null;
+  contractTerm?: string | null;
+  contractValue?: string | null;
+  optionDetails?: string | null;
+  counterpartyTeam?: string | null;
+  counterpartyDetails?: string | null;
+  sourceLabel?: string | null;
+  sourceUrl?: string | null;
+  announcedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface AdminOffseasonMovementPayload {
+  movementDate: string;
+  section: string;
+  teamCode: string;
+  playerName: string;
+  summary?: string;
+  details?: string;
+  contractTerm?: string;
+  contractValue?: string;
+  optionDetails?: string;
+  counterpartyTeam?: string;
+  counterpartyDetails?: string;
+  sourceLabel?: string;
+  sourceUrl?: string;
+  announcedAt?: string;
+}
+
 export interface ReleaseDecisionPreset {
   scenario: string;
   task_prompt: string;

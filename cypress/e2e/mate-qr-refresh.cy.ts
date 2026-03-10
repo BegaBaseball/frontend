@@ -59,7 +59,7 @@ describe('MateDetail QR refresh', () => {
       statusCode: 200,
       body: [],
     }).as('getPartyApplications');
-    cy.intercept('GET', '**/api/reviews/user/123/average', {
+    cy.intercept('GET', '**/api/reviews/profile/*/average', {
       statusCode: 200,
       body: 4.3,
     }).as('getHostRating');

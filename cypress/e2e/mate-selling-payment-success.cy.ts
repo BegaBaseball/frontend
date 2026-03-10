@@ -93,7 +93,7 @@ describe('Mate Selling Payment Success', () => {
       statusCode: 200,
       body: [],
     }).as('getPartyApplications');
-    cy.intercept('GET', '**/api/reviews/user/*/average', {
+    cy.intercept('GET', '**/api/reviews/profile/*/average', {
       statusCode: 200,
       body: 4.7,
     }).as('getHostRating');

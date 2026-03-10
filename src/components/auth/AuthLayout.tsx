@@ -19,7 +19,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden" style={darkPrimary}>
+    <div className="min-h-screen bg-background dark:bg-black flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-200" style={darkPrimary}>
       {/* Background decorative shapes */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div
@@ -77,7 +77,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
 
       {/* Content Card */}
       <div className="w-full max-w-5xl relative z-20">
-        <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden">
+        <div className="bg-white dark:bg-card rounded-[40px] shadow-2xl overflow-hidden border border-black/5 dark:border-white/10 transition-colors duration-200">
           <div className="grid md:grid-cols-2">
             {/* Left - Character */}
             <div className="p-12 flex flex-col items-center justify-center relative overflow-hidden bg-primary">
@@ -99,11 +99,11 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
               </div>
             </div>
 
-            <div className="p-12 bg-white relative">
+            <div className="p-12 bg-white dark:bg-card relative">
               {showHomeButton && (
                 <button
                   onClick={() => navigate('/home')}
-                  className="absolute flex items-center gap-2 bg-white rounded-full px-3 py-2 transition-all hover:scale-105 z-50 border-2 border-primary"
+                  className="absolute flex items-center gap-2 bg-white dark:bg-card rounded-full px-3 py-2 transition-all hover:scale-105 z-50 border-2 border-primary/30 text-primary"
                   style={{
                     top: '38px',
                     right: '48px',

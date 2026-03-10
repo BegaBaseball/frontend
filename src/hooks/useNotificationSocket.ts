@@ -1,19 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileActions, useAuthSession } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { NotificationData } from '../types/notification';
 import { SERVER_BASE_URL } from '../constants/config';
+import { NOTIFICATION_SOCKET_DESTINATION } from '../utils/socketDestinations';
 
 export const useNotificationSocket = () => {
-    const { user } = useAuthStore();
-    const { addNotification } = useNotificationStore();
+    const { isLoggedIn, userId } = useAuthSession();
+    const { fetchProfileAndAuthenticate } = useAuthProfileActions();
+    const addNotification = useNotificationStore((state) => state.addNotification);
     const clientRef = useRef<Client | null>(null);
 
     useEffect(() => {
         // 로그인이 안되어 있거나 유저 정보가 없으면 연결하지 않음
-        if (!user) {
+        if (!isLoggedIn) {
             if (clientRef.current) {
                 clientRef.current.deactivate();
                 clientRef.current = null;
@@ -49,12 +51,12 @@ export const useNotificationSocket = () => {
 
             onConnect: () => {
                 // 개인 알림 구독
-                client.subscribe(`/topic/notifications/${user.id}`, (message) => {
+                client.subscribe(NOTIFICATION_SOCKET_DESTINATION, (message) => {
                     try {
                         const notification: NotificationData = JSON.parse(message.body);
                         addNotification(notification);
                         // 알림 수신 시 사용자 정보(포인트 등) 최신화
-                        useAuthStore.getState().fetchProfileAndAuthenticate();
+                        fetchProfileAndAuthenticate();
                     } catch (error) {
                         console.error('Failed to parse notification:', error);
                     }
@@ -94,5 +96,5 @@ export const useNotificationSocket = () => {
                 clientRef.current = null;
             }
         };
-    }, [user?.id, addNotification]); // user.id가 변경될 때마다(로그인/로그아웃) 재실행
+    }, [isLoggedIn, userId, addNotification, fetchProfileAndAuthenticate]); // isLoggedIn/userId 변경 시(로그인/로그아웃) 재실행
 };

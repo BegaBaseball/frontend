@@ -3,7 +3,7 @@ import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-quer
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchPublicUserProfileByHandle } from '../../api/profile';
 import { fetchUserPostsByHandle } from '../../api/cheerApi';
-import { getFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
+import { getPublicFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -25,14 +25,15 @@ import { getTeamTheme } from '../../utils/teamColors';
 import CheerCard from '../CheerCard';
 import EndOfFeed from '../EndOfFeed';
 import FollowButton from './FollowButton';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthProfileSnapshot, useAuthSession } from '../../store/authStore';
 import UserListModal from './UserListModal';
 
 export default function UserProfile() {
     const { handle } = useParams<{ handle: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const currentUser = useAuthStore((state) => state.user);
+    const { isLoggedIn } = useAuthSession();
+    const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
 
     const [userListModal, setUserListModal] = useState<{
         isOpen: boolean;
@@ -60,9 +61,9 @@ export default function UserProfile() {
 
     // 팔로워/팔로잉 카운트 조회
     const { data: followCounts } = useQuery({
-        queryKey: ['followCounts', profile?.id],
-        queryFn: () => getFollowCounts(profile!.id),
-        enabled: !!profile?.id,
+        queryKey: ['followCounts', profile?.handle],
+        queryFn: () => getPublicFollowCounts(profile!.handle),
+        enabled: !!profile?.handle,
     });
 
     const {
@@ -77,7 +78,7 @@ export default function UserProfile() {
         queryKey: ['userPosts', normalizedHandle],
         queryFn: ({ pageParam = 0 }) => fetchUserPostsByHandle(normalizedHandle!, pageParam),
         getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
-        enabled: !!profile?.id, // Only fetch posts if user exists
+        enabled: !!profile?.handle, // Only fetch posts if user exists
         initialPageParam: 0,
     });
 
@@ -86,8 +87,8 @@ export default function UserProfile() {
 
     const handleFollowChange = useCallback(
         (response: FollowToggleResponse) => {
-            if (!profile?.id) return;
-            queryClient.setQueryData<FollowCountResponse>(['followCounts', profile.id], (prev) => ({
+            if (!profile?.handle) return;
+            queryClient.setQueryData<FollowCountResponse>(['followCounts', profile.handle], (prev) => ({
                 followerCount: response.followerCount,
                 followingCount: response.followingCount,
                 isFollowedByMe: response.following,
@@ -96,7 +97,7 @@ export default function UserProfile() {
                 blockingMe: prev?.blockingMe ?? false,
             }));
         },
-        [profile?.id, queryClient]
+        [profile?.handle, queryClient]
     );
 
     // Infinite scroll handler
@@ -212,7 +213,9 @@ export default function UserProfile() {
     );
     const totalPosts = postsData?.pages[0]?.totalElements || 0;
 
-    const isOwnProfile = currentUser && profile && Number(currentUser.id) === Number(profile.id);
+    const isOwnProfile = isLoggedIn && Boolean(currentUserHandle) && profile?.handle
+        ? currentUserHandle === profile.handle
+        : false;
 
     return (
         <div className="max-w-2xl mx-auto pb-8">
@@ -325,10 +328,10 @@ export default function UserProfile() {
                 </div>
 
                 {/* Action Buttons */}
-                {!isOwnProfile && currentUser && (
+                {!isOwnProfile && isLoggedIn && (
                     <div className="flex gap-3 mt-4 px-6 mb-6">
                         <FollowButton
-                            userId={profile.id}
+                            handle={profile.handle}
                             initialFollowing={followCounts?.isFollowedByMe ?? false}
                             initialNotify={followCounts?.notifyNewPosts ?? false}
                             initialBlocked={followCounts?.blockedByMe ?? false}
@@ -429,7 +432,7 @@ export default function UserProfile() {
                 <UserListModal
                     isOpen={userListModal.isOpen}
                     onClose={() => setUserListModal(prev => ({ ...prev, isOpen: false }))}
-                    userId={profile.id}
+                    userHandle={profile.handle}
                     type={userListModal.type}
                     title={userListModal.title}
                 />

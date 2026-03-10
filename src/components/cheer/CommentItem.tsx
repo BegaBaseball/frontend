@@ -24,9 +24,11 @@ interface CommentItemProps {
   onReplyChange: (commentId: number, value: string) => void;
   onReplySubmit: (commentId: number) => void;
   onReplyCancel: () => void;
-  onDelete?: (commentId: number) => void; // Added
-  userEmail?: string; // Added for ownership check
+  onDelete?: (commentId: number) => void;
+  userHandle?: string | null;
 }
+
+const normalizeHandle = (value?: string | null) => value?.trim().replace(/^@/, '').toLowerCase() || '';
 
 function CommentItemComponent({
   comment,
@@ -45,8 +47,8 @@ function CommentItemComponent({
   onReplyChange,
   onReplySubmit,
   onReplyCancel,
-  onDelete, // Added
-  userEmail, // Added
+  onDelete,
+  userHandle,
 }: CommentItemProps) {
   const navigate = useNavigate();
   const isReply = depth > 0;
@@ -55,6 +57,11 @@ function CommentItemComponent({
   const isCommentLiked = Boolean(comment.likedByMe);
   const isCommentLikeAnimating = Boolean(commentLikeAnimating[comment.id]);
   const showReplyAction = canInteract && repliesEnabled;
+  const canDeleteComment = Boolean(
+    onDelete &&
+    normalizeHandle(userHandle) &&
+    normalizeHandle(comment.authorHandle) === normalizeHandle(userHandle),
+  );
 
   return (
     <div
@@ -95,10 +102,9 @@ function CommentItemComponent({
                 {comment.isPending ? '전송 중...' : comment.timeAgo}
               </p>
             </div>
-            {/* Delete Button */}
-            {onDelete && userEmail && comment.authorEmail === userEmail && (
+            {canDeleteComment && (
               <button
-                onClick={() => onDelete(comment.id)}
+                onClick={() => onDelete?.(comment.id)}
                 className="text-gray-400 hover:text-red-500 transition-colors p-1"
                 title="삭제"
               >
@@ -131,8 +137,8 @@ function CommentItemComponent({
                 onClick={() => !repliesComingSoon && onReplyToggle(comment.id)}
                 disabled={!canInteract || repliesComingSoon}
                 className={`flex items-center gap-1.5 transition-colors ${repliesComingSoon
-                    ? 'cursor-not-allowed text-gray-400 dark:text-gray-300'
-                    : 'hover:text-gray-700 dark:hover:text-gray-300 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600'
+                  ? 'cursor-not-allowed text-gray-400 dark:text-gray-300'
+                  : 'hover:text-gray-700 dark:hover:text-gray-300 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600'
                   }`}
               >
                 답글 달기
@@ -196,8 +202,8 @@ function CommentItemComponent({
                   onReplyChange={onReplyChange}
                   onReplySubmit={onReplySubmit}
                   onReplyCancel={onReplyCancel}
-                  onDelete={onDelete} // Pass through
-                  userEmail={userEmail} // Pass through
+                  onDelete={onDelete}
+                  userHandle={userHandle}
                 />
               ))}
             </div>

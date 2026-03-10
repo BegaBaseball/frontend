@@ -1,9 +1,22 @@
 import { ChatRequest, VoiceResponse } from '../types/chatbot';
 import { getMockRateLimitSeconds } from '../mock/chatbotRateLimitMock';
-import { getApiBaseUrl } from './apiBase';
+import { isAxiosError } from 'axios';
+import api from './axios';
+import {
+  DEFAULT_STREAM_TIMEOUT_MS,
+  DEFAULT_STREAM_TIMEOUT_RETRY_ATTEMPTS,
+  CHATBOT_STATUS_RATE_LIMIT,
+  CHATBOT_STATUS_SERVICE_UNAVAILABLE,
+  CHATBOT_STREAM_TIMEOUT_ERROR,
+  CHATBOT_STREAM_INCOMPLETE_ERROR,
+  isStreamReadTimeoutError,
+  isStreamRequestTimeoutError,
+  readWithTimeout,
+  getStreamRetryDelayMs,
+  requestStream,
+} from './stream';
 
-const APP_API_URL = getApiBaseUrl();
-const buildAiProxyUrl = (path: string): string => `${APP_API_URL}/ai${path}`;
+const buildAiStreamPath = (path: string): string => `/ai${path.startsWith('/') ? path : `/${path}`}`;
 /**
  * FastAPI SSE 스트리밍 처리
  */
@@ -11,7 +24,7 @@ export class RateLimitError extends Error {
   retryAfterSeconds: number;
 
   constructor(retryAfterSeconds: number) {
-    super('STATUS_429');
+    super(CHATBOT_STATUS_RATE_LIMIT);
     this.name = 'RateLimitError';
     this.retryAfterSeconds = retryAfterSeconds;
   }
@@ -48,8 +61,8 @@ export async function sendChatMessageStream(
     toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
   }) => void
 ): Promise<void> {
-  const MAX_RETRIES = 3;
-  const READ_TIMEOUT_MS = 30000; // 30 seconds
+  const MAX_RETRIES = DEFAULT_STREAM_TIMEOUT_RETRY_ATTEMPTS;
+  const READ_TIMEOUT_MS = DEFAULT_STREAM_TIMEOUT_MS;
   const mockMode = import.meta.env.VITE_MOCK_CHATBOT_RATE_LIMIT;
   const mockSeconds = getMockRateLimitSeconds(mockMode);
 
@@ -63,13 +76,13 @@ export async function sendChatMessageStream(
   while (attempt < MAX_RETRIES) {
     try {
       attempt++;
-      response = await fetch(buildAiProxyUrl('/chat/stream'), {
+      response = await requestStream(buildAiStreamPath('/chat/stream'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
-        credentials: 'include'
+        timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
       });
 
       if (response.ok) {
@@ -90,13 +103,13 @@ export async function sendChatMessageStream(
 
       // If 5xx or 503, retry
       if (attempt >= MAX_RETRIES) {
-        if (response.status === 503) throw new Error('STATUS_503');
+        if (response.status === 503) throw new Error(CHATBOT_STATUS_SERVICE_UNAVAILABLE);
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
       // Backoff delay: 1s, 2s, 4s...
-      const delay = Math.pow(2, attempt - 1) * 1000;
+      const delay = getStreamRetryDelayMs(attempt);
       await new Promise(resolve => setTimeout(resolve, delay));
 
     } catch (error) {
@@ -104,12 +117,21 @@ export async function sendChatMessageStream(
         throw error;
       }
 
+      if (isStreamRequestTimeoutError(error)) {
+        if (attempt >= MAX_RETRIES) {
+          throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
+        }
+        const delay = getStreamRetryDelayMs(attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
       // Network errors or other fetch exceptions
       if (attempt >= MAX_RETRIES) {
         throw error;
       }
       // Backoff delay
-      const delay = Math.pow(2, attempt - 1) * 1000;
+      const delay = getStreamRetryDelayMs(attempt);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -123,25 +145,13 @@ export async function sendChatMessageStream(
   let buffer = '';
   let currentEvent = 'message';
 
-  // Read Timeout Management: reader.read()와 타임아웃을 race하여 응답 지연 감지.
+  // Read timeout is enforced by readWithTimeout() around each reader.read() call.
 
   let streamCompleted = false;
 
   while (true) {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
     try {
-      // Race: read vs timeout
-      const readPromise = reader.read();
-      const timeoutPromise = new Promise<{ done: boolean; value?: Uint8Array }>((_, reject) => {
-        timeoutId = setTimeout(() => {
-          reject(new Error('READ_TIMEOUT'));
-        }, READ_TIMEOUT_MS);
-      });
-
-      const { done, value } = await Promise.race([readPromise, timeoutPromise]);
-
-      if (timeoutId) clearTimeout(timeoutId);
+      const { done, value } = await readWithTimeout(() => reader.read(), READ_TIMEOUT_MS);
 
       if (done) break;
 
@@ -195,13 +205,11 @@ export async function sendChatMessageStream(
       }
       if (streamCompleted) break;
     } catch (error: unknown) {
-      if (timeoutId) clearTimeout(timeoutId);
-
       // Clean up reader
       await reader.cancel();
 
-      if (error instanceof Error && error.message === 'READ_TIMEOUT') {
-        throw new Error('STREAM_TIMEOUT');
+      if (isStreamReadTimeoutError(error)) {
+        throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
       }
       throw error;
     }
@@ -209,7 +217,7 @@ export async function sendChatMessageStream(
 
   // 스트림이 [DONE] 시그널 없이 종료된 경우 (서버 비정상 종료 등)
   if (!streamCompleted) {
-    throw new Error('INCOMPLETE_STREAM');
+    throw new Error(CHATBOT_STREAM_INCOMPLETE_ERROR);
   }
 }
 
@@ -221,26 +229,26 @@ export async function convertVoiceToText(audioBlob: Blob): Promise<string> {
   formData.append('file', audioBlob, 'audio.webm');
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_STREAM_TIMEOUT_MS);
 
   try {
-    const response = await fetch(buildAiProxyUrl('/chat/voice'), {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
+    const response = await api.post<VoiceResponse>('/ai/chat/voice', formData, {
       signal: controller.signal,
+      timeout: DEFAULT_STREAM_TIMEOUT_MS,
     });
 
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      throw new Error('음성 변환 실패');
-    }
-
-    const result: VoiceResponse = await response.json();
-    return result.text || '';
+    return response.data.text || '';
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (
+      error instanceof Error
+      && (
+        error.name === 'AbortError'
+        || error.name === 'CanceledError'
+        || (isAxiosError(error) && error.code === 'ECONNABORTED')
+      )
+    ) {
       throw new Error('변환 시간이 초과되었습니다.');
     }
     throw new Error('변환에 실패했습니다.');

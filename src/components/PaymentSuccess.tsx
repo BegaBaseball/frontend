@@ -104,10 +104,10 @@ export default function PaymentSuccess() {
 
   // --- 로딩 중 ---
   if (isProcessing) {
-    return (
+      return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-600 text-lg">결제를 처리하고 있습니다...</p>
+        <p className="text-gray-600 dark:text-gray-300 text-lg">결제를 처리하고 있습니다...</p>
       </div>
     );
   }
@@ -117,8 +117,8 @@ export default function PaymentSuccess() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
         <AlertCircle className="w-12 h-12 text-blue-500" />
-        <p className="text-lg font-medium text-gray-800">직거래 모드 안내</p>
-        <p className="text-gray-600 text-center">{errorMessage}</p>
+        <p className="text-lg font-medium text-gray-800 dark:text-gray-200">직거래 모드 안내</p>
+        <p className="text-gray-600 dark:text-gray-300 text-center">{errorMessage}</p>
         <div className="flex gap-3 mt-2">
           {directTradePartyId && (
             <Button onClick={() => navigate(`/mate/${directTradePartyId}`)}>
@@ -145,45 +145,45 @@ export default function PaymentSuccess() {
         : '환불 규칙은 취소 사유에 따라 전액 또는 부분 환불로 적용됩니다.';
 
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
-        <Card className="w-full max-w-lg">
-          <CardContent className="p-6 space-y-4">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-background">
+      <Card className="w-full max-w-lg">
+        <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-3">
               <CheckCircle className="w-8 h-8 text-green-500 shrink-0" />
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">결제가 완료되었습니다</h1>
-                <p className="text-sm text-gray-500">신청과 결제 상태가 서버에 반영되었습니다.</p>
+                <h1 className="text-xl font-semibold text-gray-900 dark:text-white">결제가 완료되었습니다</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-300">신청과 결제 상태가 서버에 반영되었습니다.</p>
               </div>
             </div>
 
-            <div className="rounded-lg border bg-gray-50 p-4 space-y-2 text-sm">
+            <div className="rounded-lg border border-border/80 dark:border-border bg-gray-50 dark:bg-secondary/60 p-4 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">결제금액</span>
+                <span className="text-gray-500 dark:text-gray-300">결제금액</span>
                 <span className="font-medium">{paidAmount.toLocaleString()}원</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">수수료</span>
+                <span className="text-gray-500 dark:text-gray-300">수수료</span>
                 <span className="font-medium">{feeAmount.toLocaleString()}원</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">순정산액</span>
+                <span className="text-gray-500 dark:text-gray-300">순정산액</span>
                 <span className="font-medium">{netAmount.toLocaleString()}원</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">결제상태</span>
+                <span className="text-gray-500 dark:text-gray-300">결제상태</span>
                 <span className="font-medium">
                   {getPaymentStatusLabel(application.paymentStatus)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">정산상태</span>
+                <span className="text-gray-500 dark:text-gray-300">정산상태</span>
                 <span className="font-medium">
                   {getSettlementStatusLabel(application.settlementStatus)}
                 </span>
               </div>
             </div>
 
-            <p className="text-xs text-gray-500">{policyGuide}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300">{policyGuide}</p>
 
             <div className="flex gap-2">
               <Button className="flex-1" onClick={() => navigate(`/mate/${partyId}`)}>
@@ -205,12 +205,12 @@ export default function PaymentSuccess() {
 
   // --- 에러 상태 ---
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-background">
       <Card className="w-full max-w-md">
         <CardContent className="p-6 flex flex-col items-center gap-4">
           <XCircle className="w-12 h-12 text-red-500" />
-          <p className="text-lg font-semibold text-gray-800">결제 처리 중 오류가 발생했습니다</p>
-          <p className="text-gray-600 text-center text-sm">{errorMessage}</p>
+          <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">결제 처리 중 오류가 발생했습니다</p>
+          <p className="text-gray-600 dark:text-gray-300 text-center text-sm">{errorMessage}</p>
           <Button variant="outline" onClick={() => navigate('/mate')}>
             메이트 목록으로
           </Button>

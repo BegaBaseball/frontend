@@ -189,7 +189,7 @@ describe('Home scheduled tab', () => {
 
     cy.intercept('GET', '**/api/predictions/status/*', {
       statusCode: 200,
-      body: { homeVotes: 0, awayVotes: 0 },
+      body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
     }).as('getPredictionVoteStatus');
   });
 

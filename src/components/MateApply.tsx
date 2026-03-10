@@ -11,7 +11,7 @@ import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
 import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
-import { useAuthStore } from '../store/authStore';
+import { useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -44,8 +44,8 @@ const sanitizeUserFacingMessage = (message: string, fallback: string): string =>
 };
 
 export default function MateApply() {
-  const { validateMessage } = useMateStore();
-  const user = useAuthStore((state) => state.user);
+  const validateMessage = useMateStore((state) => state.validateMessage);
+  const { userId: authUserId } = useAuthSession();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const {
@@ -65,8 +65,8 @@ export default function MateApply() {
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
-    if (user?.id) {
-      setCurrentUserId(user.id);
+    if (authUserId) {
+      setCurrentUserId(authUserId);
       return;
     }
 
@@ -81,7 +81,7 @@ export default function MateApply() {
     };
 
     void fetchUser();
-  }, [user?.id]);
+  }, [authUserId]);
 
   if (isPartyLoading && !selectedParty) {
     return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." fullScreen />;

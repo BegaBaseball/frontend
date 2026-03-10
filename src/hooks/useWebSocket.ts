@@ -2,16 +2,14 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { Client, IMessage } from '@stomp/stompjs';
 import { toast } from 'sonner';
 import { SERVER_BASE_URL } from '../constants/config';
+import type { ChatMessage } from '../types/mate';
+import { buildPartySocketDestination } from '../utils/socketDestinations';
 
-interface ChatMessage {
-  id: string | number;
+type OutboundChatMessage = {
   partyId: string | number;
-  senderId: string | number;
-  senderName: string;
   message: string;
   imageUrl?: string;
-  createdAt: string;
-}
+};
 
 interface UseWebSocketProps {
   partyId: string | number;
@@ -65,7 +63,7 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
       setIsConnected(true);
 
       // 해당 파티 채팅방 구독
-      client.subscribe(`/topic/party/${partyId}`, (message: IMessage) => {
+      client.subscribe(buildPartySocketDestination(partyId), (message: IMessage) => {
         const receivedMessage = JSON.parse(message.body) as ChatMessage;
         onMessageReceivedRef.current(receivedMessage);
       });
@@ -78,6 +76,7 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
         headerKeys,
         bodyLength: frame.body ? frame.body.length : 0,
       });
+      toast.error('채팅 채널에 접근할 수 없습니다. 파티 참여 상태를 확인해주세요.');
       setIsConnected(false);
     };
 
@@ -98,13 +97,7 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
 
   // 메시지 전송
   const sendMessage = useCallback(
-    (message: {
-      partyId: string | number;
-      senderId: string | number;
-      senderName: string;
-      message: string;
-      imageUrl?: string;
-    }): boolean => {
+    (message: OutboundChatMessage): boolean => {
       if (!clientRef.current || !isConnected) {
         console.error('WebSocket is not connected');
         toast.error('채팅 서버와 연결이 끊어졌습니다. 잠시 후 다시 시도해주세요.');

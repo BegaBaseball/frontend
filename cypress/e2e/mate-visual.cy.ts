@@ -239,7 +239,7 @@ describe('Mate Visual QA', () => {
       body: [],
     }).as('getMateApplications');
 
-    cy.intercept('GET', '**/api/reviews/user/999/average', {
+    cy.intercept('GET', '**/api/reviews/profile/*/average', {
       statusCode: 200,
       body: 4.7,
     }).as('getMateHostRating');
@@ -310,7 +310,10 @@ describe('Mate Visual QA', () => {
     visitWithTheme('/mate', 'light');
     cy.wait('@getMateParties');
     cy.contains('직관 메이트 찾기').should('be.visible');
-    cy.contains('호스트 평점').should('be.visible');
+    cy.contains('비주얼 호스트').should('be.visible');
+    cy.contains('티켓 인증').should('be.visible');
+    cy.contains('4.7').should('be.visible');
+    cy.contains(/2\s*\/\s*4명/).should('be.visible');
     cy.screenshot('mate-visual-list-desktop-light');
   });
 
@@ -319,7 +322,10 @@ describe('Mate Visual QA', () => {
     visitWithTheme('/mate', 'dark');
     cy.wait('@getMateParties');
     cy.contains('직관 메이트 찾기').should('be.visible');
-    cy.contains('진행 방식').should('be.visible');
+    cy.contains('판매 호스트').should('be.visible');
+    cy.contains('인증 전').should('be.visible');
+    cy.contains('판매 티켓').should('be.visible');
+    cy.contains('54,000').should('be.visible');
     cy.screenshot('mate-visual-list-desktop-dark');
   });
 

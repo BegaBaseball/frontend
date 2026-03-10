@@ -4,13 +4,11 @@ import { fetchMyParties } from '../api/mate';
 import { filterPartiesByTab } from '../utils/mate';
 import { MateHistoryTab, MateParty } from '../types/mate';
 import { toast } from 'sonner';
-import { useAuthStore } from '../store/authStore';
+import { useAuthSession } from '../store/authStore';
 import type { AxiosError } from 'axios';
 
 export const useMateHistory = (tab: MateHistoryTab) => {
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
-  const userId = useAuthStore((state) => state.user?.id) ?? 0;
+  const { isLoggedIn, isAuthLoading, userId } = useAuthSession();
   const canLoadMyParties = isLoggedIn && !isAuthLoading && userId > 0;
 
   // ========== Fetch My Parties ==========

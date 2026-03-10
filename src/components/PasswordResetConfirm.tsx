@@ -26,20 +26,23 @@ export default function PasswordResetConfirm() {
     toggleConfirmPasswordVisibility,
   } = usePasswordResetConfirm();
 
+  const passwordResetConfirmInputClass =
+    'auth-autofill-input bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary';
+
   return (
     <AuthLayout>
       {!isCompleted ? (
         <>
           <button 
             onClick={() => navigate('/login')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white mb-6"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>로그인으로 돌아가기</span>
           </button>
 
           <h2 className="text-center mb-4">새 비밀번호 설정</h2>
-          <p className="text-center text-gray-600 mb-8">
+          <p className="text-center text-gray-600 dark:text-gray-300 mb-8">
             새로운 비밀번호를 입력해주세요.
           </p>
 
@@ -53,10 +56,10 @@ export default function PasswordResetConfirm() {
 
             {/* 새 비밀번호 */}
             <div className="space-y-2">
-              <Label htmlFor="newPassword" className="flex items-center gap-2 text-gray-700">
-                <Lock className="w-4 h-4 text-primary" />
-                새 비밀번호
-              </Label>
+          <Label htmlFor="newPassword" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+            <Lock className="w-4 h-4 text-primary" />
+            새 비밀번호
+          </Label>
               <div className="relative">
                 <Input
                   id="newPassword"
@@ -64,14 +67,14 @@ export default function PasswordResetConfirm() {
                   value={formData.newPassword}
                   onChange={(e) => handleFieldChange('newPassword', e.target.value)}
                   onBlur={() => handleFieldBlur('newPassword')}
-                  className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary pr-10 ${fieldErrors.newPassword ? 'border-red-500' : ''}`}
+                  className={`${passwordResetConfirmInputClass} pr-10 ${fieldErrors.newPassword ? 'border-red-500' : ''}`}
                   placeholder="새 비밀번호를 입력하세요 (최소 8자)"
                   disabled={isLoading || !token}
                 />
                 <button
                   type="button"
                   onClick={toggleNewPasswordVisibility}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
                   disabled={isLoading || !token}
                   aria-label={showNewPassword ? "새 비밀번호 숨기기" : "새 비밀번호 보기"}
                 >
@@ -81,7 +84,7 @@ export default function PasswordResetConfirm() {
               {fieldErrors.newPassword ? (
                 <p className="text-sm text-red-500">* {fieldErrors.newPassword}</p>
               ) : (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-300">
                   • 8자 이상<br />
                   • 대문자, 소문자, 숫자, 특수문자(@$!%*?&#) 각 1개 이상 포함
                 </p>
@@ -90,10 +93,10 @@ export default function PasswordResetConfirm() {
 
             {/* 비밀번호 확인 */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-gray-700">
-                <Lock className="w-4 h-4 text-primary" />
-                비밀번호 확인
-              </Label>
+          <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+            <Lock className="w-4 h-4 text-primary" />
+            비밀번호 확인
+          </Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -101,14 +104,14 @@ export default function PasswordResetConfirm() {
                   value={formData.confirmPassword}
                   onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
                   onBlur={() => handleFieldBlur('confirmPassword')}
-                  className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
+                  className={`${passwordResetConfirmInputClass} pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
                   placeholder="비밀번호를 다시 입력하세요"
                   disabled={isLoading || !token}
                 />
                 <button
                   type="button"
                   onClick={toggleConfirmPasswordVisibility}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
                   disabled={isLoading || !token}
                   aria-label={showConfirmPassword ? "비밀번호 확인 숨기기" : "비밀번호 확인 보기"}
                 >
@@ -121,7 +124,7 @@ export default function PasswordResetConfirm() {
             </div>
 
             {/* 비밀번호 조건 표시 */}
-            <div className="text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-secondary/60 p-4 rounded-lg">
               <p className="mb-2">비밀번호 조건:</p>
               <ul className="list-disc list-inside space-y-1">
                 <li className={formData.newPassword.length >= 8 ? 'text-green-600' : ''}>
@@ -150,7 +153,7 @@ export default function PasswordResetConfirm() {
             <Check className="w-10 h-10 text-white" />
           </div>
           <h2 className="mb-4">비밀번호 변경 완료</h2>
-          <p className="text-gray-600 mb-8">
+          <p className="text-gray-600 dark:text-gray-300 mb-8">
             비밀번호가 성공적으로 변경되었습니다.<br />
             새로운 비밀번호로 로그인해주세요.
           </p>

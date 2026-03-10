@@ -3,18 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { Megaphone, MessageSquare, Heart, ChevronLeft, ChevronRight, RotateCw, PenSquare } from 'lucide-react';
 import { Button } from './ui/button';
 import { fetchPosts, CheerPost } from '../api/cheerApi';
-import { useCheerStore } from '../store/cheerStore';
 import { useNavigate } from 'react-router-dom';
-import TeamLogo from './TeamLogo';
-import { useAuthStore } from '../store/authStore';
+import { isAdminRole, useAuthProfileSnapshot } from '../store/authStore';
 
 const ITEMS_PER_PAGE = 15;
 
 export default function NoticePage() {
   const navigate = useNavigate();
-  // const { setSelectedPostId } = useCheerStore();
   const [currentPage, setCurrentPage] = useState(1);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const { userRole } = useAuthProfileSnapshot();
+  const isAdmin = isAdminRole(userRole);
 
   const {
     data: noticeData,
@@ -41,8 +39,6 @@ export default function NoticePage() {
   const totalPages = Math.ceil(posts.length / ITEMS_PER_PAGE);
 
   const handlePostClick = (postId: number) => {
-    // setSelectedPostId(postId); // Removed from store, just navigate
-    // useCheerStore.getState().fetchPostDetail(postId);
     navigate(`/cheer/${postId}`);
   };
 
@@ -64,7 +60,7 @@ export default function NoticePage() {
             <Button
               onClick={() => refetch()}
               variant="outline"
-              className="border-gray-300"
+              className="border-gray-300 dark:border-border dark:text-gray-200 dark:hover:bg-secondary"
               disabled={isLoading}
             >
               <RotateCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -85,26 +81,26 @@ export default function NoticePage() {
         {isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, idx) => (
-              <div key={idx} className="animate-pulse rounded-xl border bg-white p-4">
+              <div key={idx} className="animate-pulse rounded-xl border border-border/80 dark:border-border dark:bg-card p-4">
                 <div className="flex gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 dark:bg-zinc-700" />
                   <div className="flex-1 space-y-3">
-                    <div className="h-4 w-1/2 rounded bg-gray-200" />
-                    <div className="h-3 w-1/3 rounded bg-gray-100" />
-                    <div className="h-3 w-2/3 rounded bg-gray-100" />
+                    <div className="h-4 w-1/2 rounded bg-gray-200 dark:bg-secondary" />
+                    <div className="h-3 w-1/3 rounded bg-gray-100 dark:bg-secondary" />
+                    <div className="h-3 w-2/3 rounded bg-gray-100 dark:bg-secondary" />
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : isError ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center text-red-600">
+          <div className="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4 text-center text-red-600 dark:text-red-300">
             공지사항을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
           </div>
         ) : posts.length === 0 ? (
-          <div className="rounded-lg border-2 border-dashed border-gray-200 p-12 text-center text-gray-500">
-            <Megaphone className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-            <h3 className="text-lg font-semibold">등록된 공지사항이 없습니다.</h3>
+            <div className="rounded-lg border-2 border-dashed border-gray-200 dark:border-white/10 p-12 text-center text-gray-500 dark:text-gray-400">
+              <Megaphone className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-zinc-300" />
+              <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">등록된 공지사항이 없습니다.</h3>
           </div>
         ) : (
           <div className="space-y-4">
@@ -112,15 +108,17 @@ export default function NoticePage() {
               <div
                 key={post.id}
                 onClick={() => handlePostClick(post.id)}
-                className="cursor-pointer rounded-xl border bg-white p-4 transition-shadow hover:shadow-md"
+                className="cursor-pointer rounded-xl border border-border/80 dark:border-border bg-white dark:bg-card p-4 transition-shadow hover:shadow-md"
               >
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
                     <Megaphone className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-1 text-base">{post.content?.split('\n')[0]?.slice(0, 60) || '공지사항'}</h3>
-                    <div className="flex items-center gap-3 text-sm text-gray-500">
+                <h3 className="mb-1 text-base text-zinc-900 dark:text-zinc-100">
+                  {post.content?.split('\n')[0]?.slice(0, 60) || '공지사항'}
+                </h3>
+                    <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                       <span>{post.author}</span>
                       <span>•</span>
                       <span>{post.timeAgo}</span>
@@ -162,7 +160,7 @@ export default function NoticePage() {
                   const isActive = currentPage === page;
                   return (
                     <div key={page} className="flex items-center">
-                      {isGap && <span className="mx-1 text-gray-400">...</span>}
+                {isGap && <span className="mx-1 text-gray-400 dark:text-gray-300">...</span>}
                       <Button
                         variant={isActive ? 'default' : 'outline'}
                         size="sm"

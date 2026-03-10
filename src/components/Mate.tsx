@@ -22,7 +22,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import LoadingSpinner from './LoadingSpinner';
 import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { Input } from './ui/input';
@@ -55,9 +55,11 @@ const isLegacyHostAvatarUrl = (url?: string) => {
 
 export default function Mate() {
   const navigate = useNavigate();
-  const { setSelectedParty, searchQuery, setSearchQuery } = useMateStore();
-  const user = useAuthStore((state) => state.user);
-  const favoriteTeamId = user?.favoriteTeam && user.favoriteTeam !== '없음' ? user.favoriteTeam : null;
+  const setSelectedParty = useMateStore((state) => state.setSelectedParty);
+  const searchQuery = useMateStore((state) => state.searchQuery);
+  const setSearchQuery = useMateStore((state) => state.setSearchQuery);
+  const { userFavoriteTeam: favoriteTeam } = useAuthProfileSnapshot();
+  const favoriteTeamId = favoriteTeam && favoriteTeam !== '없음' ? favoriteTeam : null;
   const [myTeamOnly, setMyTeamOnly] = useState(false);
   const isDirectTrade = isDirectTradeMode();
 
@@ -515,7 +517,7 @@ export default function Mate() {
                     <span className="text-zinc-600">•</span> 티켓 인증 여부와 호스트 평점을 함께 확인하세요.
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-zinc-600">•</span> 승인 후에는 채팅에서 만날 시간과 장소를 먼저 확정하세요.
+                    <span className="text-zinc-600">•</span> 승인 후에는 채팅에서 만남 시간과 장소를 먼저 확정하세요.
                   </li>
                 </ul>
               </div>
@@ -549,6 +551,7 @@ export default function Mate() {
                   key={idx}
                   type="button"
                   onClick={() => { setSelectedDate(isSelected ? null : date); setCurrentPage(0); }}
+                  aria-label={`${date.getMonth() + 1}월 ${date.getDate()}일 ${getDayOfWeek(toDateString(date))}요일 필터`}
                   className={`flex flex-col items-center justify-center min-w-[56px] h-[68px] rounded-2xl border transition-all ${
                     isSelected
                       ? 'bg-primary text-primary-foreground border-transparent shadow-md'

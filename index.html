@@ -20,16 +20,77 @@
     <!-- 테마 초기화 스크립트 (FOUC 방지) -->
     <script>
       (function() {
-        // kbo-theme (신규) 또는 bega-theme (구형) 확인
-        const storedTheme = localStorage.getItem('kbo-theme') || localStorage.getItem('bega-theme');
+        const normalizeTheme = (value) => {
+          if (typeof value !== 'string') {
+            return null;
+          }
+
+          const stripQuotes = (raw) => {
+            const trimmed = raw.trim();
+            if (
+              (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+              (trimmed.startsWith("'") && trimmed.endsWith("'"))
+            ) {
+              return trimmed.slice(1, -1).trim();
+            }
+            return trimmed;
+          };
+
+          const getDirectTheme = (rawValue) => {
+            const normalized = stripQuotes(rawValue).toLowerCase();
+            if (normalized === 'dark' || normalized === 'light') {
+              return normalized;
+            }
+            return null;
+          };
+
+          let normalized = getDirectTheme(value);
+          if (normalized) {
+            return normalized;
+          }
+
+          let candidate = value;
+          for (let i = 0; i < 3; i += 1) {
+            try {
+              const parsed = JSON.parse(candidate);
+              if (typeof parsed === 'string') {
+                candidate = parsed;
+                normalized = getDirectTheme(candidate);
+                if (normalized) {
+                  return normalized;
+                }
+                continue;
+              }
+
+              if (
+                parsed &&
+                typeof parsed === 'object' &&
+                typeof parsed.theme === 'string'
+              ) {
+                candidate = parsed.theme;
+                normalized = getDirectTheme(candidate);
+                if (normalized) {
+                  return normalized;
+                }
+                continue;
+              }
+            } catch (error) {
+              break;
+            }
+            break;
+          }
+
+          return null;
+        };
+
+        const storedTheme = normalizeTheme(localStorage.getItem('kbo-theme'));
+        const legacyTheme = normalizeTheme(localStorage.getItem('bega-theme'));
+        const previousTheme = normalizeTheme(localStorage.getItem('theme'));
+        const migrationTheme = legacyTheme || previousTheme;
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        // next-themes는 시스템 모드일 때 실제 적용 클래스는 dark/light로 바인딩됨
-        const theme = storedTheme === 'dark'
-          ? 'dark'
-          : storedTheme === 'light'
-            ? 'light'
-            : systemPrefersDark ? 'dark' : 'light';
+        // kbo-theme(신규), bega-theme(구형), theme(구형) 값이 유효한 경우 우선 적용
+        const theme = storedTheme || migrationTheme || (systemPrefersDark ? 'dark' : 'light');
 
         const root = document.documentElement;
         root.classList.remove('light', 'dark');
@@ -37,15 +98,26 @@
 
         // 배경색 즉시 적용으로 깜빡임 최소화
         if (theme === 'dark') {
-          const body = document.body;
-          if (body) {
-            body.style.backgroundColor = '#020617';
-          } else {
-            root.style.backgroundColor = '#020617';
-          }
+          document.body && (document.body.style.backgroundColor = '#020617');
+          root.style.backgroundColor = '#020617';
         } else {
-          document.body && (document.body.style.backgroundColor = '#ffffff');
+          if (document.body) {
+            document.body.style.backgroundColor = '#ffffff';
+          }
           root.style.backgroundColor = '';
+        }
+
+        // 구형 키의 유효 값이 있으면 신규 키로 정합성 보정 후 정리
+        if (!storedTheme && migrationTheme) {
+          localStorage.setItem('kbo-theme', migrationTheme);
+          localStorage.removeItem('bega-theme');
+          localStorage.removeItem('theme');
+        } else if (storedTheme && localStorage.getItem('kbo-theme') !== storedTheme) {
+          localStorage.setItem('kbo-theme', storedTheme);
+        } else if (!storedTheme && !migrationTheme) {
+          localStorage.removeItem('kbo-theme');
+          localStorage.removeItem('bega-theme');
+          localStorage.removeItem('theme');
         }
       })();
     </script>

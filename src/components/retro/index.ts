@@ -3,7 +3,7 @@ export { default as RetroLeaderboard } from './RetroLeaderboard';
 export { default as LeaderboardRow } from './LeaderboardRow';
 export { default as UserStatsPanel } from './UserStatsPanel';
 export { default as PowerUpInventory } from './PowerUpInventory';
-export { default as ComboAnimation, triggerComboAnimation } from './ComboAnimation';
+export { default as ComboAnimation } from './ComboAnimation';
 
 // UI Primitives
 export { default as LevelBadge, getRankTier, getRankTitleKo } from './LevelBadge';

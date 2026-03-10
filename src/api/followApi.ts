@@ -19,7 +19,7 @@ export interface FollowCountResponse {
 }
 
 export interface UserFollowSummary {
-    id: number;
+    id?: number | null;
     handle: string;
     name: string;
     profileImageUrl: string | null;
@@ -46,7 +46,7 @@ interface RawFollowCountResponse {
 }
 
 interface RawUserFollowSummary {
-    id?: number | string;
+    id?: number | string | null;
     handle?: string;
     name?: string;
     profileImageUrl?: string | null;
@@ -88,7 +88,7 @@ const normalizeBoolean = (value: boolean | undefined, fallback = false): boolean
     typeof value === 'boolean' ? value : fallback;
 
 const normalizeUserFollowSummary = (payload: RawUserFollowSummary): UserFollowSummary => ({
-    id: normalizeNumber(payload.id, 0),
+    id: payload.id == null ? null : normalizeNumber(payload.id, 0),
     handle: typeof payload.handle === 'string' ? payload.handle : '',
     name: typeof payload.name === 'string' ? payload.name : '',
     profileImageUrl: typeof payload.profileImageUrl === 'string' ? payload.profileImageUrl : null,
@@ -107,6 +107,9 @@ const normalizeFollowCountResponse = (payload: unknown): FollowCountResponse => 
         blockingMe: normalizeBoolean(raw.blockingMe, false),
     };
 };
+
+const buildProfileHandlePath = (handle: string, suffix: string) =>
+    `/users/profile/${encodeURIComponent(handle)}/${suffix}`;
 
 export const normalizeUserFollowPageResponse = (payload: unknown): PageResponse<UserFollowSummary> => {
     const raw = (payload && typeof payload === 'object' ? payload : {}) as RawPageResponse;
@@ -135,43 +138,28 @@ export const normalizeUserFollowPageResponse = (payload: unknown): PageResponse<
 
 // === API 함수 ===
 
-/**
- * 팔로우 토글 (팔로우/언팔로우)
- */
-export async function toggleFollow(userId: number): Promise<FollowToggleResponse> {
-    const response = await api.post(`/users/${userId}/follow`);
+export async function toggleFollowByHandle(handle: string): Promise<FollowToggleResponse> {
+    const response = await api.post<FollowToggleResponse>(buildProfileHandlePath(handle, 'follow'));
     return response.data;
 }
 
-/**
- * 알림 설정 변경
- */
-export async function updateFollowNotify(userId: number, notify: boolean): Promise<FollowToggleResponse> {
-    const response = await api.put(`/users/${userId}/follow/notify?notify=${notify}`);
+export async function updateFollowNotifyByHandle(handle: string, notify: boolean): Promise<FollowToggleResponse> {
+    const response = await api.put<FollowToggleResponse>(buildProfileHandlePath(handle, `follow/notify?notify=${notify}`));
     return response.data;
 }
 
-/**
- * 팔로우 카운트 및 상태 조회
- */
-export async function getFollowCounts(userId: number): Promise<FollowCountResponse> {
-    const response = await api.get<RawFollowCountResponse>(`/users/${userId}/follow-counts`);
+export async function getPublicFollowCounts(handle: string): Promise<FollowCountResponse> {
+    const response = await api.get<RawFollowCountResponse>(buildProfileHandlePath(handle, 'follow-counts'));
     return normalizeFollowCountResponse(response.data);
 }
 
-/**
- * 팔로워 목록 조회
- */
-export async function getFollowers(userId: number, page = 0, size = 20): Promise<PageResponse<UserFollowSummary>> {
-    const response = await api.get<RawPageResponse>(`/users/${userId}/followers?page=${page}&size=${size}`);
+export async function getPublicFollowers(handle: string, page = 0, size = 20): Promise<PageResponse<UserFollowSummary>> {
+    const response = await api.get<RawPageResponse>(buildProfileHandlePath(handle, `followers?page=${page}&size=${size}`));
     return normalizeUserFollowPageResponse(response.data);
 }
 
-/**
- * 팔로잉 목록 조회
- */
-export async function getFollowing(userId: number, page = 0, size = 20): Promise<PageResponse<UserFollowSummary>> {
-    const response = await api.get<RawPageResponse>(`/users/${userId}/following?page=${page}&size=${size}`);
+export async function getPublicFollowing(handle: string, page = 0, size = 20): Promise<PageResponse<UserFollowSummary>> {
+    const response = await api.get<RawPageResponse>(buildProfileHandlePath(handle, `following?page=${page}&size=${size}`));
     return normalizeUserFollowPageResponse(response.data);
 }
 

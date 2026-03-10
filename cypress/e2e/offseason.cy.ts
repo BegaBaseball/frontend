@@ -9,7 +9,7 @@ describe('Offseason Mode', () => {
             team: 'KIA',
             player: '이정후',
             remarks: 'KIA 타이거즈와 200억 계약',
-            bigEvent: true,
+            isBigEvent: true,
             estimatedAmount: 200,
         },
         {
@@ -19,7 +19,7 @@ describe('Offseason Mode', () => {
             team: 'SSG',
             player: '김광현',
             remarks: 'SSG와 50억 계약',
-            bigEvent: false,
+            isBigEvent: false,
             estimatedAmount: 50,
         },
     ];

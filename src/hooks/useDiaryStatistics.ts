@@ -40,7 +40,6 @@ export const useDiaryStatistics = () => {
     queryFn: () => fetchDiaries(),
     staleTime: 1 * 60 * 1000,
   });
-  // const { diaryEntries, cheerPostCount, mateParticipationCount } = useDiaryStore();
 
   // ========== Fetch Statistics ==========
   // ========== Fetch Statistics ==========

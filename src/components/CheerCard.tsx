@@ -25,7 +25,7 @@ import {
 } from './ui/popover';
 import { toast } from 'sonner';
 import { getRepostPolicyDecision } from '../utils/repostPolicy';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 
 interface CheerCardProps {
     post: CheerPost;
@@ -36,7 +36,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const navigate = useNavigate();
     const { toggleLikeMutation, toggleBookmarkMutation, deletePostMutation, repostMutation, cancelRepostMutation } = useCheerMutations();
     const { confirm } = useConfirmDialog();
-    const user = useAuthStore((state) => state.user);
+    const {
+        userId: currentUserId,
+        userHandle: currentUserHandle,
+    } = useAuthProfileSnapshot();
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
     const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
     const [isPopoverOpen, setIsPopoverOpen] = useState(false); // New state for manually closing popover if needed
@@ -69,24 +72,22 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         if (post.originalPost?.id) return post.originalPost.id;
         return post.id;
     };
-    const commentCount = statsSource.commentCount;
-    const likeCount = statsSource.likeCount;
-    const repostCount = statsSource.repostCount ?? post.repostCount;
+    const commentCount = statsSource.commentCount ?? 0;
+    const likeCount = statsSource.likeCount ?? 0;
+    const repostCount = statsSource.repostCount ?? post.repostCount ?? 0;
     const bookmarkCount = post.bookmarkCount ?? 0;
     const actionPostId = resolveActionPostId();
     const isRepost = Boolean(post.repostType);
-  const repostTargetAuthorId = isRepost ? post.originalPost?.authorId : post.authorId;
-  const repostTargetAuthorHandle = isRepost ? post.originalPost?.authorHandle : post.authorHandle;
-  const avatarSource = isRepost && post.originalPost ? post.originalPost : post;
-  const avatarProfileImage = resolveProfileImage(avatarSource.authorProfileImageUrl);
-  const avatarAuthor = avatarSource.author || '프로필';
+    const repostTargetAuthorHandle = isRepost ? post.originalPost?.authorHandle : post.authorHandle;
+    const avatarSource = isRepost && post.originalPost ? post.originalPost : post;
+    const avatarProfileImage = resolveProfileImage(avatarSource.authorProfileImageUrl);
+    const avatarAuthor = avatarSource.author || '프로필';
     const repostPolicy = getRepostPolicyDecision({
         isPostOwner: post.isOwner,
         isRepostTarget: isRepost,
-        targetAuthorId: repostTargetAuthorId,
         targetAuthorHandle: repostTargetAuthorHandle,
-        currentUserId: user?.id,
-        currentUserHandle: user?.handle,
+        currentUserId,
+        currentUserHandle,
     });
     const canSimpleRepost = repostPolicy.canSimpleRepost;
     const canQuoteRepost = repostPolicy.canQuoteRepost;
@@ -309,7 +310,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     )}
                 </div>
 
-                    <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1.5 text-[13px]">
                         <div className="flex items-center gap-1.5 min-w-0">
                             <span
@@ -386,14 +387,14 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     </div>
 
                     {shouldShowMore && (
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIsExpanded(!isExpanded);
-                        }}
-                        className="mt-0.5 text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                    >
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsExpanded(!isExpanded);
+                            }}
+                            className="mt-0.5 text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                        >
                             {isExpanded ? '접기' : '더보기'}
                         </button>
                     )}
@@ -603,12 +604,12 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
                 {/* Portal Bubbling 방지를 위한 래퍼 */}
                 <div onClick={(e) => e.stopPropagation()}>
-                        <CommentModal
-                            isOpen={isCommentModalOpen}
-                            onClose={() => setIsCommentModalOpen(false)}
-                            post={post}
-                            targetPostId={actionPostId}
-                        />
+                    <CommentModal
+                        isOpen={isCommentModalOpen}
+                        onClose={() => setIsCommentModalOpen(false)}
+                        post={post}
+                        targetPostId={actionPostId}
+                    />
 
                     <QuoteRepostEditor
                         isOpen={isQuoteEditorOpen}
