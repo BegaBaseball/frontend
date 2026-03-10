@@ -6,10 +6,13 @@ import { formatDateString } from '../utils/diary';
 import { useDiaryForm } from './useDiaryForm';
 import { toast } from 'sonner';
 import { useConfirmDialog } from '../components/contexts/ConfirmDialogContext';
+import { useDiaryStore } from '../store/diaryStore';
 
 export const useDiaryView = () => {
   const queryClient = useQueryClient();
   const { confirm } = useConfirmDialog();
+  const pendingDraft = useDiaryStore((state) => state.pendingDraft);
+  const clearPendingDraft = useDiaryStore((state) => state.clearPendingDraft);
   // const { openErrorModal } = useErrorModal(); // Removed
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -39,6 +42,32 @@ export const useDiaryView = () => {
   const selectedDiary = useMemo(() => {
     return diaryEntries.find((e: DiaryEntry) => e.date === dateStr);
   }, [diaryEntries, dateStr]);
+
+  useEffect(() => {
+    if (!pendingDraft?.date) {
+      return;
+    }
+
+    const nextDate = new Date(`${pendingDraft.date}T12:00:00`);
+    if (Number.isNaN(nextDate.getTime())) {
+      clearPendingDraft();
+      return;
+    }
+
+    const existingEntry = diaryEntries.find((entry: DiaryEntry) => entry.date === pendingDraft.date);
+
+    setSelectedDate(nextDate);
+    setCurrentMonth(nextDate);
+    setIsEditMode(true);
+    resetForm(existingEntry);
+    updateForm({
+      gameId: pendingDraft.gameId ?? existingEntry?.gameId ?? 0,
+      section: pendingDraft.section ?? existingEntry?.section ?? '',
+      seatRow: pendingDraft.seatRow ?? existingEntry?.seatRow ?? '',
+      seatNumber: pendingDraft.seatNumber ?? existingEntry?.seatNumber ?? '',
+    });
+    clearPendingDraft();
+  }, [clearPendingDraft, diaryEntries, pendingDraft, resetForm, updateForm]);
 
   // ========== Fetch Games ==========
   const { data: availableGames = [], isLoading: gamesLoading } = useQuery({
