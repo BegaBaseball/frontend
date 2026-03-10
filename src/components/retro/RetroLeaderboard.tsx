@@ -365,7 +365,7 @@ interface RetroLeaderboardProps {
   powerups?: PowerupInventory;
   activePowerups?: string[];
   isLoading?: boolean;
-  currentUserId?: number;
+  currentUserHandle?: string;
   onTypeChange?: (type: LeaderboardType) => void;
   onPageChange?: (page: number) => void;
   onRefresh?: () => void;
@@ -387,7 +387,7 @@ export default function RetroLeaderboard({
   activePowerups = [],
   onUsePowerup,
   isLoading = false,
-  currentUserId,
+  currentUserHandle,
   onTypeChange,
   onPageChange,
   onRefresh,
@@ -521,10 +521,10 @@ export default function RetroLeaderboard({
                   <AnimatePresence mode="popLayout">
                     {displayLeaderboard.map((entry, index) => (
                       <LeaderboardRow
-                        key={entry.userId}
+                        key={entry.handle ?? `${entry.userName}-${entry.rank ?? index + 1}`}
                         rank={entry.rank ?? index + 1}
                         entry={entry}
-                        isCurrentUser={entry.userId === currentUserId}
+                        isCurrentUser={Boolean(currentUserHandle && entry.handle && entry.handle === currentUserHandle)}
                       />
                     ))}
                   </AnimatePresence>
@@ -577,7 +577,7 @@ export default function RetroLeaderboard({
               </div>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 {hotStreaks.map((entry) => (
-                  <div key={entry.userId} style={{
+                  <div key={entry.handle ?? entry.userName} style={{
                     background: 'rgba(255, 102, 0, 0.1)',
                     border: '2px solid #ff6600',
                     borderRadius: '6px',
@@ -602,7 +602,7 @@ export default function RetroLeaderboard({
 
         <div style={{ width: '90%', maxWidth: '800px', margin: '20px auto 40px' }}>
           <PowerUpInventory
-            powerups={powerups}
+            powerups={powerups as unknown as Record<string, number>}
             activePowerups={activePowerups}
             onUsePowerup={onUsePowerup}
           />

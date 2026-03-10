@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { cancelVote, submitVote } from '../api/prediction';
-import { useAuthStore } from '../store/authStore';
+import { useAuthCheerActions } from '../store/authStore';
 import { useLeaderboardStore } from '../store/leaderboardStore';
 import { getFullTeamName } from '../constants/teams';
 import { parseError } from '../utils/errorUtils';
+import { useUserLeaderboardStats } from './useLeaderboard';
 import {
   PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
   PREDICTION_RUN_SESSION_STORAGE_KEY,
@@ -77,6 +78,10 @@ export const usePredictionVoteFlow = ({
   const [isRunBannerDismissed, setIsRunBannerDismissed] = useState(false);
   const [runProgressMessage, setRunProgressMessage] = useState('예측을 준비 중입니다.');
   const [runStartAt, setRunStartAt] = useState<number | null>(null);
+  const { deductCheerPoints } = useAuthCheerActions();
+  const { stats: currentUserStats } = useUserLeaderboardStats({ enabled: isLoggedIn });
+  const currentStreak = currentUserStats?.currentStreak ?? 0;
+  const triggerCombo = useLeaderboardStore((state) => state.triggerCombo);
 
   const flowRunCounterRef = useRef(0);
   const runInProgressRef = useRef(false);
@@ -544,7 +549,6 @@ export const usePredictionVoteFlow = ({
 
       const hadExistingVote = userVote[gameId] != null;
       if (!hadExistingVote) {
-        const { deductCheerPoints } = useAuthStore.getState();
         deductCheerPoints(1);
       }
 
@@ -559,7 +563,6 @@ export const usePredictionVoteFlow = ({
         : getFullTeamName(game.awayTeam);
       toast.success(`${teamName} 승리 예측이 저장되었습니다! ⚾`);
 
-      const { currentStreak, triggerCombo } = useLeaderboardStore.getState();
       if (currentStreak > 0) {
         triggerCombo(currentStreak);
       }
@@ -609,6 +612,9 @@ export const usePredictionVoteFlow = ({
     showOfflineToastOnce,
     showPredictionErrorOverlay,
     userVote,
+    deductCheerPoints,
+    currentStreak,
+    triggerCombo,
   ]);
 
   const executeCancelVote = useCallback(async (gameId: string) => {

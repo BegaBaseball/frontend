@@ -103,11 +103,11 @@ export const parsePredictionRunSession = (rawValue: string | null): PredictionRu
     return {
       flowId: parsed.flowId,
       gameId: parsed.gameId,
-      action: parsed.action,
+      action: parsed.action as PredictionRunAction,
       startedAt: parsed.startedAt,
-      team: parsed.team,
+      team: parsed.team as 'home' | 'away' | undefined,
       bannerDismissed: parsed.bannerDismissed,
-      timeoutStage: parsed.timeoutStage,
+      timeoutStage: parsed.timeoutStage as PredictionRunTimeoutStage,
     };
   } catch {
     return null;

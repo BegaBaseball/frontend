@@ -5,8 +5,7 @@ describe('Prediction Date Boundary', () => {
     const gameId = '20260203HHSS0';
 
     const openPredictionPage = () => {
-        const cacheBuster = Date.now();
-        cy.visit(`/prediction?_cypress_bust=${cacheBuster}`);
+        cy.visit('/prediction');
         cy.tick(100);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.wait('@getScheduleRange');
@@ -34,6 +33,8 @@ describe('Prediction Date Boundary', () => {
                         homeTeam: 'HH',
                         awayTeam: 'SS',
                         stadium: '대전',
+                        gameStatus: 'SCHEDULED',
+                        gameStatusKr: '경기 예정',
                         homeScore: null,
                         awayScore: null,
                         winner: null,
@@ -47,7 +48,11 @@ describe('Prediction Date Boundary', () => {
         }).as('getScheduleRange');
 
         cy.intercept('GET', '**/api/matches/*', (req) => {
-            if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/day')) {
+            if (
+                req.url.includes('/api/matches/range') ||
+                req.url.includes('/api/matches/day') ||
+                req.url.includes('/api/matches/bounds')
+            ) {
                 return;
             }
 
@@ -60,6 +65,8 @@ describe('Prediction Date Boundary', () => {
                     awayTeam: 'SS',
                     stadium: '대전',
                     startTime: '18:30',
+                    gameStatus: 'SCHEDULED',
+                    gameStatusKr: '경기 예정',
                     homeScore: null,
                     awayScore: null,
                     winner: null,
@@ -78,7 +85,7 @@ describe('Prediction Date Boundary', () => {
 
         cy.intercept('**/api/predictions/status/*', {
             statusCode: 200,
-            body: { homeVotes: 0, awayVotes: 0 },
+            body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
         }).as('getVoteStatus');
 
         cy.intercept('**/api/kbo/rankings/*', {
@@ -100,9 +107,8 @@ describe('Prediction Date Boundary', () => {
         openPredictionPage();
 
         cy.wait('@getUserVotes');
-        cy.contains('경기 시작 전입니다').should('be.visible');
+        cy.get('[data-testid="coach-analysis-open"]').should('be.visible');
         cy.contains('요청 버튼을 눌러주세요').should('not.exist');
-        cy.contains('예정 경기에서는 자동 분석이 적용되지 않습니다. 필요하면 직접 AI 분석을 요청하세요.').should('be.visible');
         cy.get('@coachAnalyze.all').should('have.length', 0);
     });
 });
