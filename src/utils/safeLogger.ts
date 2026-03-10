@@ -148,8 +148,8 @@ const sanitizeValue = (value: LogValue, depth = 0, seen = new WeakSet<object>())
       name: value.name || 'Error',
       message: value.message,
     };
-    if (value.cause) {
-      safeError.code = value.cause as unknown;
+    if ((value as any).cause) {
+      safeError.code = (value as any).cause;
     }
     return safeError;
   }
@@ -223,11 +223,11 @@ const sanitizeValue = (value: LogValue, depth = 0, seen = new WeakSet<object>())
           if (typeof rawValue === 'string') {
             sanitized[key] = rawValue ? stripQueryString(rawValue) : rawValue;
           } else {
-            sanitized[key] = sanitizeValue(rawValue, depth + 1, seen);
+            sanitized[key] = sanitizeValue(rawValue as LogValue, depth + 1, seen);
           }
           return;
         }
-        sanitized[key] = sanitizeValue(rawValue, depth + 1, seen);
+        sanitized[key] = sanitizeValue(rawValue as LogValue, depth + 1, seen);
       });
 
       if (entries.length > MAX_OBJECT_KEYS) {
@@ -263,7 +263,7 @@ export const installSafeConsole = (): void => {
   const methods: ConsoleMethod[] = ['error', 'warn', 'info', 'log', 'debug'];
   const safeState = safeWindow.__safeLoggerState || ({} as ConsolePatchState);
   safeWindow.__safeLoggerState = safeState;
-  const consoleObject = window.console as Record<ConsoleMethod, ConsoleMethodFn> & {
+  const consoleObject = window.console as unknown as Record<ConsoleMethod, ConsoleMethodFn> & {
     [key: string]: ConsoleMethodFn | undefined;
   };
 

@@ -34,7 +34,7 @@ const setupSafeConsoleCapture = () => {
     __safeLoggerState: {},
     __safeLoggerPatched: false,
   };
-  (globalThis as { window?: WindowLike }).window = windowLike;
+  (globalThis as unknown as { window?: WindowLike }).window = windowLike;
   installSafeConsole();
   return { calls, console: windowLike.console };
 };

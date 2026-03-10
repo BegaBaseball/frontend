@@ -126,6 +126,8 @@
             "test:e2e:smoke:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts,cypress/e2e/stadium.cy.ts",
             "test:e2e:smoke:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts,cypress/e2e/stadium.cy.ts",
             "test:e2e:smoke:prodlike:docker": "node scripts/test-e2e.mjs --no-server --docker --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts,cypress/e2e/stadium.cy.ts",
+            "test:e2e:security:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/security-surface-real.cy.ts,cypress/e2e/websocket-real.cy.ts",
+            "test:e2e:security:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/security-surface-real.cy.ts,cypress/e2e/websocket-real.cy.ts",
             "test:e2e:prediction:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/prediction.cy.ts,cypress/e2e/prediction-lazy-load.cy.ts,cypress/e2e/prediction-range-recovery.cy.ts,cypress/e2e/prediction-date-boundary.cy.ts,cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/home-to-prediction.cy.ts",
             "test:e2e:prediction:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/prediction.cy.ts,cypress/e2e/prediction-lazy-load.cy.ts,cypress/e2e/prediction-range-recovery.cy.ts,cypress/e2e/prediction-date-boundary.cy.ts,cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/home-to-prediction.cy.ts",
             "test:integration:real": "node scripts/real-integration-smoke.mjs",

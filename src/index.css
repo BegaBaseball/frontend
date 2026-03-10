@@ -83,6 +83,32 @@
     color: rgb(243 244 246);
   }
 
+  .login-autofill-input:-webkit-autofill,
+  .login-autofill-input:-webkit-autofill:hover,
+  .login-autofill-input:-webkit-autofill:focus,
+  .login-autofill-input:-webkit-autofill:active,
+  .auth-autofill-input:-webkit-autofill,
+  .auth-autofill-input:-webkit-autofill:hover,
+  .auth-autofill-input:-webkit-autofill:focus,
+  .auth-autofill-input:-webkit-autofill:active {
+    -webkit-text-fill-color: rgb(17 24 39);
+    caret-color: rgb(17 24 39);
+  }
+
+  .dark .login-autofill-input:-webkit-autofill,
+  .dark .login-autofill-input:-webkit-autofill:hover,
+  .dark .login-autofill-input:-webkit-autofill:focus,
+  .dark .login-autofill-input:-webkit-autofill:active,
+  .dark .auth-autofill-input:-webkit-autofill,
+  .dark .auth-autofill-input:-webkit-autofill:hover,
+  .dark .auth-autofill-input:-webkit-autofill:focus,
+  .dark .auth-autofill-input:-webkit-autofill:active {
+    -webkit-text-fill-color: rgb(243 244 246) !important;
+    caret-color: rgb(243 244 246);
+    -webkit-box-shadow: 0 0 0 30px hsl(var(--card)) inset !important;
+    box-shadow: 0 0 0 30px hsl(var(--card)) inset !important;
+  }
+
   .kakao-map-container {
     color: #111827;
   }
