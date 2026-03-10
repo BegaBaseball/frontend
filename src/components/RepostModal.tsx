@@ -10,7 +10,7 @@ import {
 import {
     getRepostPolicyDecision,
 } from '../utils/repostPolicy';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 
 interface RepostModalProps {
     isOpen: boolean;
@@ -33,17 +33,15 @@ export default function RepostModal({
     onCancelRepost,
     isOwner = false,
 }: RepostModalProps) {
-    const user = useAuthStore((state) => state.user);
+    const { userId: authUserId, userHandle: authUserHandle } = useAuthProfileSnapshot();
     const isRepost = !!post.repostType;
-    const targetAuthorId = isRepost ? post.originalPost?.authorId : post.authorId;
     const targetAuthorHandle = isRepost ? post.originalPost?.authorHandle : post.authorHandle;
     const repostPolicy = getRepostPolicyDecision({
         isPostOwner: isOwner,
         isRepostTarget: isRepost,
-        targetAuthorId,
         targetAuthorHandle,
-        currentUserId: user?.id,
-        currentUserHandle: user?.handle,
+        currentUserId: authUserId,
+        currentUserHandle: authUserHandle,
     });
     const canSimpleRepost = repostPolicy.canSimpleRepost;
     const canQuoteRepost = repostPolicy.canQuoteRepost;

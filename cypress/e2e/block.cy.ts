@@ -76,7 +76,7 @@ describe('Block / Unblock Feature', () => {
     });
 
     it('hides block button on public profile and keeps other actions visible', () => {
-        cy.intercept('GET', `**/api/users/${targetUserId}/follow-counts`, {
+        cy.intercept('GET', /\/api\/users\/profile\/[^/?#]+\/follow-counts(\?.*)?$/, {
             statusCode: 200,
             body: {
                 followerCount: 10,
@@ -157,7 +157,7 @@ describe('Block / Unblock Feature', () => {
             },
         }).as('getBlockedUsers');
 
-        cy.intercept('POST', `**/api/users/${targetUserId}/block`, {
+        cy.intercept('POST', `**/api/users/profile/${encodeURIComponent(profileHandle)}/block`, {
             statusCode: 200,
             body: { blocked: false, blockedCount: 0 },
         }).as('unblockUser');
@@ -180,7 +180,7 @@ describe('Block / Unblock Feature', () => {
     });
 
     it('keeps profile route accessible while block state is managed in mypage', () => {
-        cy.intercept('GET', `**/api/users/${targetUserId}/follow-counts`, {
+        cy.intercept('GET', /\/api\/users\/profile\/[^/?#]+\/follow-counts(\?.*)?$/, {
             statusCode: 200,
             body: {
                 followerCount: 10,

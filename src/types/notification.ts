@@ -15,7 +15,8 @@ export type NotificationType =
   | 'POST_LIKE'
   | 'POST_REPOST'
   | 'NEW_FOLLOWER'
-  | 'FOLLOWING_NEW_POST';
+  | 'FOLLOWING_NEW_POST'
+  | 'NEW_DEVICE_LOGIN';
 
 export interface NotificationData {
   id: number;

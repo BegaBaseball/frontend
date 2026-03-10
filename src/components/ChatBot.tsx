@@ -4,7 +4,7 @@ import { X, Send, Check, Copy, BrainCircuit, ChevronRight, ChevronDown, Zap } fr
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChatBot } from '../hooks/useChatBot';
-import { useAuthStore } from '../store/authStore';
+import { useAuthSession } from '../store/authStore';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -37,15 +37,15 @@ const TOOL_NAME_KO: Record<string, string | null> = {
 
 const formatToolParams = (params: Record<string, unknown>): string => {
   const parts: string[] = [];
-  if (params.player_name)                    parts.push(String(params.player_name));
-  if (params.team_name)                      parts.push(String(params.team_name));
-  if (params.team1 && params.team2)          parts.push(`${params.team1} vs ${params.team2}`);
-  else if (params.team1)                     parts.push(String(params.team1));
-  if (params.stat_name)                      parts.push(String(params.stat_name));
-  if (params.year)                           parts.push(`${params.year}년`);
-  if (params.position === 'batting')         parts.push('타자');
-  else if (params.position === 'pitching')   parts.push('투수');
-  if (params.date)                           parts.push(String(params.date));
+  if (params.player_name) parts.push(String(params.player_name));
+  if (params.team_name) parts.push(String(params.team_name));
+  if (params.team1 && params.team2) parts.push(`${params.team1} vs ${params.team2}`);
+  else if (params.team1) parts.push(String(params.team1));
+  if (params.stat_name) parts.push(String(params.stat_name));
+  if (params.year) parts.push(`${params.year}년`);
+  if (params.position === 'batting') parts.push('타자');
+  else if (params.position === 'pitching') parts.push('투수');
+  if (params.date) parts.push(String(params.date));
   if (params.limit && Number(params.limit) !== 10) parts.push(`상위 ${params.limit}명`);
   return parts.join(' · ');
 };
@@ -130,7 +130,7 @@ const pickTypingHint = (phase: TypingPhase, recentHints: string[], previousCateg
 };
 
 export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
-  const { isLoggedIn } = useAuthStore();
+  const { isLoggedIn } = useAuthSession();
   // const isLoggedIn = true;
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -202,7 +202,7 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
     };
   })();
 
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
 
   const clearCloseTimer = () => {
     if (closeTimerRef.current) {
@@ -296,8 +296,8 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
       return;
     }
 
-    let typingInterval: ReturnType<typeof setInterval> | null = null;
-    let restartTimer: ReturnType<typeof setTimeout> | null = null;
+    let typingInterval: number | null = null;
+    let restartTimer: number | null = null;
 
     const clearTimers = () => {
       if (typingInterval) {
@@ -359,22 +359,22 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
             }
           `}
         >
-            {/* Header */}
-            <div className="p-3 md:p-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-primary">
-              <div className="flex items-center gap-3">
-                <span className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-primary grid place-items-center">
-                  <img
-                    src={chatBotIcon}
-                    alt="BEGA"
-                    className="pointer-events-none block h-8 w-8 sm:h-9 sm:w-9 md:h-9 md:w-9 object-cover object-center"
-                    loading="eager"
-                    aria-hidden="true"
-                    decoding="async"
-                  />
-                </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-white font-bold text-sm md:text-base m-0">야구 가이드 BEGA</h3>
+          {/* Header */}
+          <div className="p-3 md:p-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-primary">
+            <div className="flex items-center gap-3">
+              <span className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-primary grid place-items-center">
+                <img
+                  src={chatBotIcon}
+                  alt="BEGA"
+                  className="pointer-events-none block h-8 w-8 sm:h-9 sm:w-9 md:h-9 md:w-9 object-cover object-center"
+                  loading="eager"
+                  aria-hidden="true"
+                  decoding="async"
+                />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-white font-bold text-sm md:text-base m-0">야구 가이드 BEGA</h3>
                   <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30">Beta</Badge>
                 </div>
                 <p className="text-white/80 text-[11px] md:text-xs m-0">야구 정보 안내</p>
@@ -660,9 +660,9 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
 
       {/* Launcher Button - 챗봇이 닫혀있을 때만 표시 */}
       {!isOpen && !autoOpen && (
-          <button
-            onClick={() => setIsOpen(true)}
-            className="fixed w-11 h-11 sm:w-14 sm:h-14 sm:min-h-[56px] sm:min-w-[56px] md:w-16 md:h-16 rounded-full bg-primary border-none
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed w-11 h-11 sm:w-14 sm:h-14 sm:min-h-[56px] sm:min-w-[56px] md:w-16 md:h-16 rounded-full bg-primary border-none
                      shadow-[0_10px_25px_rgba(0,0,0,0.3)] cursor-pointer
                      flex items-center justify-center text-white
                      transition-all duration-200 active:bg-primary active:text-white
@@ -671,19 +671,19 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
                      bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))]
                      md:bottom-[calc(1.25rem+env(safe-area-inset-bottom))] md:right-[calc(1.25rem+env(safe-area-inset-right))]
                      focus:outline-none focus-visible:outline-none focus:ring-0"
-            aria-label="챗봇 열기"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <img
-              src={chatBotIcon}
-              alt=""
-              className="pointer-events-none block h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11 object-cover object-center"
-              aria-hidden="true"
-              decoding="async"
-              loading="eager"
-            />
-          </button>
-        )}
+          aria-label="챗봇 열기"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <img
+            src={chatBotIcon}
+            alt=""
+            className="pointer-events-none block h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11 object-cover object-center"
+            aria-hidden="true"
+            decoding="async"
+            loading="eager"
+          />
+        </button>
+      )}
     </div>
   );
 }

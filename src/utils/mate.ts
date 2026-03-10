@@ -4,7 +4,8 @@ import { MateParty, MateHistoryTab } from '../types/mate';
 
 interface BackendPartyDTO {
   id: number;
-  hostId: number;
+  hostId?: number;
+  hostHandle?: string;
   hostName: string;
   hostProfileImageUrl?: string;
   hostFavoriteTeam?: string;
@@ -39,6 +40,7 @@ const normalizeBadgeType = (badge: string): BadgeType => {
 export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party => ({
   id: backendParty.id,
   hostId: backendParty.hostId,
+  hostHandle: backendParty.hostHandle,
   hostName: backendParty.hostName,
   hostProfileImageUrl: backendParty.hostProfileImageUrl,
   hostFavoriteTeam: backendParty.hostFavoriteTeam,
@@ -61,6 +63,34 @@ export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party 
   ticketPrice: backendParty.ticketPrice || 0,
   createdAt: backendParty.createdAt,
 });
+
+type MateIdentity = {
+  id?: number | null;
+  handle?: string | null;
+};
+
+export const hasSameMateUserIdentity = (
+  left: MateIdentity | null | undefined,
+  right: MateIdentity | null | undefined,
+): boolean => {
+  const leftHandle = left?.handle?.trim();
+  const rightHandle = right?.handle?.trim();
+  if (leftHandle && rightHandle) {
+    return leftHandle === rightHandle;
+  }
+
+  const leftId = left?.id;
+  const rightId = right?.id;
+  return typeof leftId === 'number' && typeof rightId === 'number' && leftId === rightId;
+};
+
+export const isPartyHostedByUser = (
+  party: Pick<Party, 'hostId' | 'hostHandle'> | null | undefined,
+  user: MateIdentity | null | undefined,
+): boolean => hasSameMateUserIdentity(
+  { id: party?.hostId ?? null, handle: party?.hostHandle ?? null },
+  user,
+);
 
 export const filterActiveParties = (parties: Party[]): Party[] => {
   return parties.filter(party =>

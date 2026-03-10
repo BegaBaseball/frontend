@@ -46,6 +46,60 @@ const applyBaseUrlConfig = (args, url) => {
   return [...args, '--config', `baseUrl=${url}`];
 };
 
+const normalizeBackendBaseUrl = (value) => {
+  if (!value || typeof value !== 'string') {
+    return undefined;
+  }
+
+  const candidate = value.trim().replace(/\/+$/, '');
+  if (!candidate || !/^https?:\/\//i.test(candidate)) {
+    return undefined;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+    const normalizedPath = parsed.pathname.replace(/\/api\/?$/i, '');
+    const resolvedPath = normalizedPath === '/' ? '' : normalizedPath;
+    return `${parsed.origin}${resolvedPath}`;
+  } catch {
+    return undefined;
+  }
+};
+
+const getCypressEnvValue = (args, key) => args.some((arg, index) => {
+  if (arg === '--env' && args[index + 1]) {
+    return args[index + 1]
+      .split(',')
+      .some((entry) => entry.trim().startsWith(`${key}=`));
+  }
+
+  if (arg.startsWith('--env=')) {
+    return arg
+      .substring('--env='.length)
+      .split(',')
+      .some((entry) => entry.trim().startsWith(`${key}=`));
+  }
+
+  return false;
+});
+
+const resolveBackendBaseUrlFromEnv = () => {
+  const candidates = [
+    process.env.BACKEND_BASE_URL,
+    process.env.SMOKE_API_BASE_URL,
+    process.env.CYPRESS_BACKEND_BASE_URL,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeBackendBaseUrl(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return undefined;
+};
+
 const buildCypressCommandArgs = (script, scriptArgs) => {
   return ['npm', 'run', script, ...(scriptArgs.length ? ['--', ...scriptArgs] : [])];
 };
@@ -191,6 +245,14 @@ try {
   const baseCypressArgs = [...cypressArgs];
   if (skipVerify) {
     baseCypressArgs.push('--skip-verify');
+  }
+  const backendBaseUrl = resolveBackendBaseUrlFromEnv();
+  if (backendBaseUrl && !getCypressEnvValue(baseCypressArgs, 'BACKEND_BASE_URL')) {
+    baseCypressArgs.push('--env', `BACKEND_BASE_URL=${backendBaseUrl}`);
+  } else {
+    if (!backendBaseUrl) {
+      console.log('Running without BACKEND_BASE_URL. security-surface-real will be skipped unless provided.');
+    }
   }
 
   startCommand = `npm run dev -- --host ${host} --port ${port}`;

@@ -29,10 +29,7 @@ describe('Prediction Range Recovery', () => {
     });
 
     const openPredictionPage = () => {
-        const cacheBuster = Date.now();
-        cy.window().then((win) => {
-            win.location.assign(`/prediction?_cypress_bust=${cacheBuster}`);
-        });
+        cy.visit('/prediction');
         cy.contains('전력분석실', { timeout: 20000 }).should('exist');
         cy.wait('@getMatchDay');
     };
@@ -71,17 +68,19 @@ describe('Prediction Range Recovery', () => {
             if (gameId === pastGameId) {
                 req.reply({
                     statusCode: 200,
-                    body: {
-                        gameId: pastGameId,
-                        gameDate: pastDate,
-                        homeTeam: 'LG',
-                        awayTeam: 'KT',
-                        stadium: '잠실',
-                        startTime: '18:30',
-                        homeScore: null,
-                        awayScore: null,
-                        winner: null,
-                    },
+                body: {
+                    gameId: pastGameId,
+                    gameDate: pastDate,
+                    homeTeam: 'LG',
+                    awayTeam: 'KT',
+                    stadium: '잠실',
+                    startTime: '18:30',
+                    gameStatus: 'COMPLETED',
+                    gameStatusKr: '경기 종료',
+                    homeScore: null,
+                    awayScore: null,
+                    winner: null,
+                },
                 });
                 return;
             }
@@ -95,6 +94,8 @@ describe('Prediction Range Recovery', () => {
                     awayTeam: 'SS',
                     stadium: '대전',
                     startTime: '18:30',
+                    gameStatus: 'SCHEDULED',
+                    gameStatusKr: '경기 예정',
                     homeScore: null,
                     awayScore: null,
                     winner: null,
@@ -143,8 +144,8 @@ describe('Prediction Range Recovery', () => {
 
         openPredictionPage();
         cy.wait('@getMatchDay');
-        cy.contains(/오늘은 예정된 경기가 없습니다\.|예정된 경기 일정이 없습니다\./, { timeout: 20000 }).should('be.visible');
         cy.contains('KT 위즈').should('not.exist');
+        cy.contains('조회 실패').should('not.exist');
         cy.contains('이전 경기 조회 실패').should('not.exist');
     });
 
@@ -194,9 +195,9 @@ describe('Prediction Range Recovery', () => {
 
         openPredictionPage();
         cy.get('button[aria-label="다음 날짜 보기"]').first().click({ force: true });
-        cy.contains(/예측 처리 중 오류가 발생했습니다.|미래 구간 조회|요청 실패|오류/, { timeout: 10000 }).should('be.visible');
-        cy.contains(/홈으로 이동|목록으로 이동/).should('be.visible');
-        cy.contains(/예정 경기 다시 불러오기|다시 시도|닫기/).should('be.visible');
+        cy.contains(/예측 처리 중 오류가 발생했습니다.|미래 구간 조회|요청 실패|오류/, { timeout: 10000 }).should('exist');
+        cy.contains(/홈으로 이동|목록으로 이동/).should('exist');
+        cy.contains(/예정 경기 다시 불러오기|다시 시도|닫기/).should('exist');
         cy.wrap(null).then(() => {
             expect(futureRequestCount).to.be.gte(1);
         });

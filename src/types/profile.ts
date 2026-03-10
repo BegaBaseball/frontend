@@ -11,7 +11,6 @@ export interface UserProfile {
 }
 
 export interface PublicUserProfile {
-  id: number;
   name: string;
   handle: string;
   favoriteTeam: string | null;
@@ -82,4 +81,36 @@ export interface DeviceSessionItem {
   isCurrent?: boolean;
   isRevoked?: boolean;
   ip?: string;
+}
+
+export interface SecurityEventItem {
+  id: number;
+  eventType: string;
+  occurredAt: string;
+  deviceLabel?: string;
+  deviceType?: string;
+  browser?: string;
+  os?: string;
+  ip?: string;
+  message: string;
+}
+
+export interface TrustedDeviceItem {
+  id: number;
+  deviceLabel: string;
+  deviceType: string;
+  browser: string;
+  os: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  lastLoginAt?: string;
+  lastIp?: string;
+}
+
+export interface AccountDeletionScheduleResponse {
+  scheduledFor: string;
+}
+
+export interface AccountDeletionRecoveryInfo {
+  scheduledFor: string;
 }

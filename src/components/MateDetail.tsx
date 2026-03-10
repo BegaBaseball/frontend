@@ -8,6 +8,7 @@ import { KBO_STADIUMS, StadiumZone } from '../utils/stadiumData';
 import { OptimizedImage } from './common/OptimizedImage';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
+import AdSlot from './ads/AdSlot';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -49,14 +50,21 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import UserProfileModal from './profile/UserProfileModal';
 import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { api, getApiErrorStatus } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
 import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
-import { formatGameDate, extractHashtags, mapBackendPartyToFrontend, stripHashtags } from '../utils/mate';
+import {
+  extractHashtags,
+  formatGameDate,
+  hasSameMateUserIdentity,
+  isPartyHostedByUser,
+  mapBackendPartyToFrontend,
+  stripHashtags,
+} from '../utils/mate';
 import ReviewDialog from './ReviewDialog';
 import type { CancelReasonType, PartyReview, Application } from '../types/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
@@ -75,10 +83,10 @@ export default function MateDetail() {
     error: partyError,
   } = useMatePartyFromRoute(id);
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
-  const user = useAuthStore((state) => state.user);
-
-  // Use user from auth store directly
-  const currentUserId = user?.id || null;
+  const {
+    userId: currentUserId,
+    userHandle: currentUserHandle,
+  } = useAuthProfileSnapshot();
 
   const [myApplication, setMyApplication] = useState<Application | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -100,17 +108,20 @@ export default function MateDetail() {
   const [hostAvgRating, setHostAvgRating] = useState<number | null>(null);
   const [showHostProfile, setShowHostProfile] = useState(false);
   const [reviews, setReviews] = useState<PartyReview[]>([]);
-  const [reviewTarget, setReviewTarget] = useState<{ id: number; name: string } | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{ handle: string; name: string } | null>(null);
   const selectedPartyId = selectedParty?.id;
   const selectedPartyStatus = selectedParty?.status;
 
   // 호스트 평균 평점 가져오기 (리뷰 기반)
   useEffect(() => {
-    if (!selectedParty) return;
-    api.getUserAverageRating(selectedParty.hostId)
+    if (!selectedParty?.hostHandle) {
+      setHostAvgRating(null);
+      return;
+    }
+    api.getUserAverageRatingByHandle(selectedParty.hostHandle)
       .then((rating) => setHostAvgRating(rating))
       .catch(() => setHostAvgRating(null));
-  }, [selectedParty?.hostId]);
+  }, [selectedParty?.hostHandle]);
 
   // COMPLETED 파티의 리뷰 목록 가져오기
   useEffect(() => {
@@ -157,7 +168,7 @@ export default function MateDetail() {
   useEffect(() => {
     if (!selectedParty || !currentUserId) return;
 
-    const isHost = selectedParty.hostId === currentUserId;
+    const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
     if (!isHost) return;
 
     const fetchApplications = async () => {
@@ -170,7 +181,7 @@ export default function MateDetail() {
     };
 
     fetchApplications();
-  }, [selectedPartyId, selectedParty?.hostId, currentUserId]);
+  }, [selectedPartyId, selectedParty?.hostHandle, selectedParty?.hostId, currentUserHandle, currentUserId]);
 
   const isGameTomorrow = () => {
     if (!selectedParty) return false;
@@ -275,7 +286,7 @@ export default function MateDetail() {
       },
     ];
 
-  const isHost = selectedParty?.hostId === currentUserId;
+  const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
   const isDirectTrade = isDirectTradeMode();
   const isApproved = myApplication?.isApproved || false;
   const canAccessCheckIn = Boolean(selectedParty) &&
@@ -1162,24 +1173,37 @@ export default function MateDetail() {
                   <div className="space-y-2">
                     {(() => {
                       const targets = isHost
-                        ? approvedApplications.map((app) => ({
-                          id: app.applicantId,
-                          name: app.applicantName,
-                        }))
-                        : [{ id: selectedParty.hostId, name: selectedParty.hostName }];
+                        ? approvedApplications
+                          .filter((app): app is Application & { applicantHandle: string } => Boolean(app.applicantHandle))
+                          .map((app) => ({
+                            handle: app.applicantHandle,
+                            name: app.applicantName,
+                          }))
+                        : (selectedParty.hostHandle
+                          ? [{
+                            handle: selectedParty.hostHandle,
+                            name: selectedParty.hostName,
+                          }]
+                          : []);
 
                       if (targets.length === 0) {
                         return <p className="text-sm text-gray-400">리뷰 대상이 없습니다.</p>;
                       }
 
-                      return targets.map((target) => {
-                        const myReview = reviews.find(
-                          (r) => r.reviewerId === currentUserId && r.revieweeId === target.id
+                        return targets.map((target) => {
+                          const myReview = reviews.find(
+                          (r) => hasSameMateUserIdentity(
+                            { handle: r.reviewerHandle },
+                            { handle: currentUserHandle },
+                          ) && hasSameMateUserIdentity(
+                            { handle: r.revieweeHandle },
+                            target,
+                          )
                         );
 
                         return (
                           <div
-                            key={target.id}
+                            key={target.handle}
                             className={`flex items-center justify-between p-3 ${insetPanelClass}`}
                           >
                             <div className="flex flex-col gap-1">
@@ -1226,6 +1250,18 @@ export default function MateDetail() {
                   </div>
                 </Card>
               )}
+
+              <AdSlot
+                slotId="mate_detail_1"
+                pageType="mate_detail"
+                contentId={selectedParty?.id ? String(selectedParty.id) : (id ?? null)}
+                creativeType="sponsor_card"
+                loggedIn={Boolean(currentUserId)}
+                userId={currentUserId ? String(currentUserId) : null}
+                wave="ads_wave2"
+                minHeight={176}
+                className="mt-4"
+              />
             </div>
 
             <div className="space-y-4">
@@ -1298,7 +1334,7 @@ export default function MateDetail() {
           )}
         </div>
         <UserProfileModal
-          userId={selectedParty?.hostId ?? null}
+          handle={selectedParty?.hostHandle ?? null}
           isOpen={showHostProfile}
           onClose={() => setShowHostProfile(false)}
         />
@@ -1307,7 +1343,6 @@ export default function MateDetail() {
             isOpen={reviewTarget !== null}
             onClose={() => setReviewTarget(null)}
             partyId={selectedParty.id}
-            reviewerId={currentUserId}
             reviewee={reviewTarget}
             onSuccess={() => {
               api.getPartyReviews(selectedParty.id)

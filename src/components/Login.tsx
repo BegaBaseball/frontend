@@ -25,6 +25,9 @@ export default function Login() {
     togglePasswordVisibility,
   } = useLoginForm();
 
+  const loginInputClass =
+    '!bg-gray-50 dark:!bg-card !border-gray-200 dark:!border-border !text-gray-900 dark:!text-gray-100 placeholder:!text-gray-500 dark:placeholder:!text-gray-300 focus:ring-2 focus:ring-primary login-autofill-input';
+
   const handleSocialLogin = (provider: 'kakao' | 'google' | 'naver') => {
     if (!isLoading) {
       window.location.href = getSocialLoginUrl(provider);
@@ -33,9 +36,9 @@ export default function Login() {
 
   return (
     <AuthLayout showHomeButton={true}>
-      <h2 className="text-center mb-8 text-gray-900">SIGN IN</h2>
+      <h2 className="text-center mb-8 text-gray-900 dark:text-white">SIGN IN</h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6" style={{ colorScheme: 'light' }}>
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* 서버 에러 메시지 */}
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -44,8 +47,8 @@ export default function Login() {
         )}
 
         {/* 이메일 */}
-        <div className="space-y-2">
-          <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             <Mail className="w-4 h-4 text-primary" />
             E-mail
           </Label>
@@ -55,7 +58,7 @@ export default function Login() {
             value={formData.email}
             onChange={(e) => handleFieldChange('email', e.target.value)}
             onBlur={() => handleFieldBlur('email')}
-            className={`!bg-gray-50 !border-gray-200 !text-gray-900 placeholder:!text-gray-500 focus:ring-2 focus:ring-primary [&:-webkit-autofill]:!shadow-[0_0_0_30px_rgb(249,250,251)_inset] [&:-webkit-autofill]:!text-gray-900 [&:-webkit-autofill]:[-webkit-text-fill-color:#111827] ${fieldErrors.email ? '!border-red-500' : ''}`}
+            className={`${loginInputClass} ${fieldErrors.email ? '!border-red-500' : ''}`}
             placeholder="이메일을 입력하세요"
             disabled={isLoading}
           />
@@ -65,8 +68,8 @@ export default function Login() {
         </div>
 
         {/* 비밀번호 */}
-        <div className="space-y-2">
-          <Label htmlFor="password" className="flex items-center gap-2 text-gray-700">
+            <div className="space-y-2">
+          <Label htmlFor="password" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             <Lock className="w-4 h-4 text-primary" />
             Password
           </Label>
@@ -77,14 +80,14 @@ export default function Login() {
               value={formData.password}
               onChange={(e) => handleFieldChange('password', e.target.value)}
               onBlur={() => handleFieldBlur('password')}
-              className={`!bg-gray-50 !border-gray-200 !text-gray-900 placeholder:!text-gray-500 focus:ring-2 focus:ring-primary pr-10 [&:-webkit-autofill]:!shadow-[0_0_0_30px_rgb(249,250,251)_inset] [&:-webkit-autofill]:!text-gray-900 [&:-webkit-autofill]:[-webkit-text-fill-color:#111827] ${fieldErrors.password ? '!border-red-500' : ''}`}
+              className={`${loginInputClass} pr-10 ${fieldErrors.password ? '!border-red-500' : ''}`}
               placeholder="비밀번호를 입력하세요"
               disabled={isLoading}
             />
             <button
               type="button"
               onClick={togglePasswordVisibility}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               disabled={isLoading}
               aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
             >
@@ -105,7 +108,7 @@ export default function Login() {
                 onChange={(e) => handleRememberEmailChange(e.target.checked)}
                 disabled={isLoading}
               />
-              <label htmlFor="remember-email" className="text-sm text-gray-600 dark:!text-gray-600">
+              <label htmlFor="remember-email" className="text-sm text-gray-600 dark:text-gray-300">
                 이메일 저장
               </label>
             </div>
@@ -141,7 +144,7 @@ export default function Login() {
         </Button>
 
         {/* 회원가입 링크 */}
-        <p className="text-center text-sm text-gray-600">
+        <p className="text-center text-sm text-gray-600 dark:text-gray-300">
           계정이 없으신가요?{' '}
           <button
             type="button"
@@ -157,10 +160,10 @@ export default function Login() {
       {/* Divider */}
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300"></div>
+          <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
         </div>
         <div className="relative flex justify-center">
-          <span className="bg-white px-4 text-sm text-gray-500">또는</span>
+          <span className="bg-white dark:bg-card px-4 text-sm text-gray-500 dark:text-gray-300">또는</span>
         </div>
       </div>
 
@@ -183,7 +186,7 @@ export default function Login() {
           type="button"
           onClick={() => handleSocialLogin('google')}
           disabled={isLoading}
-          className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-white dark:bg-card border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-secondary hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M18.17 8.36h-8.04v3.45h4.62c-.39 2.11-2.26 3.45-4.62 3.45a5.26 5.26 0 1 1 3.42-9.25l2.58-2.58A8.76 8.76 0 1 0 10.13 18.7c4.35 0 8.23-3.02 8.04-10.34z" fill="#4285F4" />

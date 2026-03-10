@@ -18,8 +18,8 @@ interface BlockedUsersEnvelope {
 /**
  * 차단 토글 (차단/차단해제)
  */
-export async function toggleBlock(userId: number): Promise<BlockToggleResponse> {
-    const response = await api.post(`/users/${userId}/block`);
+export async function toggleBlockByHandle(handle: string): Promise<BlockToggleResponse> {
+    const response = await api.post(`/users/profile/${encodeURIComponent(handle)}/block`);
     return response.data;
 }
 

@@ -22,9 +22,7 @@ import {
     getCoachDataQualityLabel,
     getCoachGenerationModeLabel,
 } from '../api/coach';
-import { useAuthStore } from '../store/authStore';
 import { TEAM_LIST, TEAM_NAME_TO_ID, getRandomTeamName, TEAM_DATA } from '../constants/teams';
-import { useTheme } from '../hooks/useTheme';
 import TeamLogo from './TeamLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -260,9 +258,6 @@ export default function CoachAnalysisDialog({
     homePitcher,
     awayPitcher,
 }: CoachAnalysisDialogProps) {
-    const { user } = useAuthStore();
-    const { theme } = useTheme();
-
     const getInitialTeamName = (teamId?: string) => {
         if (!teamId) return getRandomTeamName();
         // Try to match ID to full name from TEAM_DATA
@@ -376,12 +371,12 @@ export default function CoachAnalysisDialog({
             const seasonYear = resolveSeasonYear();
             const leagueTypeCode = resolveLeagueTypeCode(leagueType, round);
             // Streaming Implementation
-                await analyzeTeam({
-                    home_team_id: TEAM_NAME_TO_ID[selectedTeam] || selectedTeam,
-                    request_mode: 'manual_detail',
-                    focus: focus,
-                    game_id: gameId,
-                    league_context: {
+            await analyzeTeam({
+                home_team_id: TEAM_NAME_TO_ID[selectedTeam] || selectedTeam,
+                request_mode: 'manual_detail',
+                focus: focus,
+                game_id: gameId,
+                league_context: {
                     season: seasonId,
                     season_year: seasonYear,
                     game_date: gameDate,
@@ -509,14 +504,14 @@ export default function CoachAnalysisDialog({
                         is_critical: m.is_critical,
                     })) || [],
                 },
-                metrics: structured.key_metrics?.map((m) => ({
+                metrics: (structured.key_metrics?.map((m) => ({
                     category: '핵심지표',
                     name: m.label,
                     value: m.value,
                     description: '',
-                    risk_level: m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2,
-                    trend: m.trend,
-                })) || [],
+                    risk_level: (m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2) as 0 | 1 | 2,
+                    trend: m.trend as "up" | "down" | "neutral",
+                })) || []) as CoachMetric[],
                 detailed_analysis: normalizeText(structured.detailed_markdown || ''),
                 coach_note: normalizeText(
                     structured.coach_note || '',
@@ -569,14 +564,14 @@ export default function CoachAnalysisDialog({
                                     is_critical: false,
                                 })) || [],
                             },
-                            metrics: parsedPayload.key_metrics?.map((m) => ({
+                            metrics: (parsedPayload.key_metrics?.map((m) => ({
                                 category: '핵심지표',
                                 name: m.label,
                                 value: m.value,
                                 description: '',
-                                risk_level: m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2,
-                                trend: m.trend,
-                            })) || [],
+                                risk_level: (m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2) as 0 | 1 | 2,
+                                trend: m.trend as "up" | "down" | "neutral",
+                            })) || []) as CoachMetric[],
                             detailed_analysis: normalizeText(parsedPayload.detailed_markdown || ''),
                             coach_note: normalizeText(
                                 parsedPayload.coach_note || '',

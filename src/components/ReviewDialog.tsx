@@ -11,15 +11,14 @@ interface ReviewDialogProps {
   isOpen: boolean;
   onClose: () => void;
   partyId: number;
-  reviewerId: number;
   reviewee: {
-    id: number;
+    handle: string;
     name: string;
   };
   onSuccess: () => void;
 }
 
-export default function ReviewDialog({ isOpen, onClose, partyId, reviewerId, reviewee, onSuccess }: ReviewDialogProps) {
+export default function ReviewDialog({ isOpen, onClose, partyId, reviewee, onSuccess }: ReviewDialogProps) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -38,8 +37,7 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewerId, rev
     try {
       await api.createReview({
         partyId,
-        reviewerId,
-        revieweeId: reviewee.id,
+        revieweeHandle: reviewee.handle,
         rating,
         comment: comment.trim() || undefined,
       });

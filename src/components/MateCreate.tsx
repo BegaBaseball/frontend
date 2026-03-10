@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Progress } from './ui/progress';
 import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Ticket, Loader2 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
-import { useAuthStore } from '../store/authStore';
+import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
@@ -55,25 +55,21 @@ export default function MateCreate() {
     reset,
     retry,
   } = useMateCreateMachine();
-  const {
-    formData,
-    formErrors,
-    updateFormData,
-    setFormError,
-  } = useMateStore();
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
-  const setShowLoginRequiredDialog = useAuthStore((state) => state.setShowLoginRequiredDialog);
+  const formData = useMateStore((state) => state.formData);
+  const formErrors = useMateStore((state) => state.formErrors);
+  const updateFormData = useMateStore((state) => state.updateFormData);
+  const setFormError = useMateStore((state) => state.setFormError);
+  const { userId: authUserId } = useAuthSession();
+  const { logout, requireLogin } = useAuthAccessActions();
 
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserName, setCurrentUserName] = useState('');
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const lastSubmitErrorRef = useRef('');
   const loadedMatchDateRef = useRef('');
 
   useEffect(() => {
     void fetchCurrentUser();
-  }, [user?.id, user?.name]);
+  }, [authUserId]);
 
   // Price Automation
   useEffect(() => {
@@ -92,20 +88,17 @@ export default function MateCreate() {
 
   const fetchCurrentUser = async () => {
     try {
-      let id = user?.id ?? null;
-      let name = user?.name ?? '';
+      let id = authUserId ?? null;
 
       if (!id) {
         const userData = await api.getCurrentUser();
         id = userData.data.id;
-        name = userData.data.name;
       }
 
       if (!id) {
         throw new Error('사용자 ID를 확인할 수 없습니다.');
       }
 
-      setCurrentUserName(name);
       setCurrentUserId(id);
 
       // 소셜 연동 여부 확인 - 미연동 시 알림
@@ -124,7 +117,7 @@ export default function MateCreate() {
       if ((error instanceof AxiosError && error.response?.status === 401) ||
         (error instanceof ApiError && error.status === 401)) {
         logout(true);
-        setShowLoginRequiredDialog(true);
+        requireLogin();
       }
     }
   };
@@ -158,12 +151,7 @@ export default function MateCreate() {
       return;
     }
 
-    if (!currentUserName) {
-      toast.error('사용자 정보를 가져오지 못했습니다.');
-      return;
-    }
-
-    submit(currentUserId, currentUserName);
+    submit();
   };
 
   const selectMatch = (match: MatchInfo) => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { useAuthSession } from '../store/authStore';
 import { useOptionalConfirmDialog } from '../components/contexts/ConfirmDialogContext';
 import { emitPredictionFlowEvent } from '../utils/predictionFlowTelemetry';
 import type {
@@ -30,9 +30,7 @@ import { usePredictionVoteFlow } from './usePredictionVoteFlow';
 export const usePrediction = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
-  const user = useAuthStore((state) => state.user);
+  const { isLoggedIn, isAuthLoading, userId } = useAuthSession();
   const optionalConfirmDialog = useOptionalConfirmDialog();
   const fallbackConfirm = (
     options: Parameters<NonNullable<typeof optionalConfirmDialog>['confirm']>[0]
@@ -210,7 +208,7 @@ export const usePrediction = () => {
   }, [emitFlowEvent, predictionErrorOverlay]);
 
   const { userVote, setUserVote, fetchAndCacheUserVotes } = usePredictionUserVotes({
-    userId: user?.id,
+    userId,
   });
 
   const queuePrimeGameDetail = useCallback((gameId: string, detail: GameDetail) => {

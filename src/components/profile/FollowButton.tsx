@@ -2,8 +2,12 @@ import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Bell, BellOff, UserPlus, UserMinus, Loader2 } from 'lucide-react';
-import { toggleFollow, updateFollowNotify, FollowToggleResponse } from '../../api/followApi';
-import { useAuthStore } from '../../store/authStore';
+import {
+    toggleFollowByHandle,
+    updateFollowNotifyByHandle,
+    FollowToggleResponse,
+} from '../../api/followApi';
+import { useAuthProfileSnapshot } from '../../store/authStore';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,7 +16,7 @@ import {
 } from '../ui/dropdown-menu';
 
 interface FollowButtonProps {
-    userId: number;
+    handle: string;
     initialFollowing?: boolean;
     initialNotify?: boolean;
     initialBlocked?: boolean;
@@ -25,7 +29,7 @@ interface FollowButtonProps {
 }
 
 export default function FollowButton({
-    userId,
+    handle,
     initialFollowing = false,
     initialNotify = false,
     initialBlocked = false,
@@ -36,7 +40,7 @@ export default function FollowButton({
     className,
     style,
 }: FollowButtonProps) {
-    const { user } = useAuthStore();
+    const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
     const [isFollowing, setIsFollowing] = useState(initialFollowing);
     const [notifyNewPosts, setNotifyNewPosts] = useState(initialNotify);
     const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +54,7 @@ export default function FollowButton({
     }, [initialNotify]);
 
     // Don't show follow button for own profile or if blocked
-    if (user && userId && Number(user.id) === Number(userId)) {
+    if (currentUserHandle && currentUserHandle === handle) {
         return null;
     }
 
@@ -63,7 +67,7 @@ export default function FollowButton({
 
         setIsLoading(true);
         try {
-            const response = await toggleFollow(userId);
+            const response = await toggleFollowByHandle(handle);
             setIsFollowing(response.following);
             setNotifyNewPosts(response.notifyNewPosts);
             onFollowChange?.(response);
@@ -73,14 +77,14 @@ export default function FollowButton({
         } finally {
             setIsLoading(false);
         }
-    }, [userId, isLoading, onFollowChange]);
+    }, [handle, isLoading, onFollowChange]);
 
     const handleToggleNotify = useCallback(async () => {
         if (isLoading || !isFollowing) return;
 
         setIsLoading(true);
         try {
-            const response = await updateFollowNotify(userId, !notifyNewPosts);
+            const response = await updateFollowNotifyByHandle(handle, !notifyNewPosts);
             setNotifyNewPosts(response.notifyNewPosts);
             onFollowChange?.(response);
         } catch (error) {
@@ -89,7 +93,7 @@ export default function FollowButton({
         } finally {
             setIsLoading(false);
         }
-    }, [userId, isLoading, isFollowing, notifyNewPosts, onFollowChange]);
+    }, [handle, isLoading, isFollowing, notifyNewPosts, onFollowChange]);
 
     const buttonSize = size === 'sm' ? 'h-8 px-3 text-xs' : size === 'lg' ? 'h-11 px-6' : 'h-9 px-4';
 

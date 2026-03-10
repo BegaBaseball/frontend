@@ -34,7 +34,7 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Textarea } from './ui/textarea';
 import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { useAuthStore } from '../store/authStore';
+import { useAuthAccessActions, useAuthProfileSnapshot } from '../store/authStore';
 import { useMateStore } from '../store/mateStore';
 import { Application, BadgeType } from '../types/mate';
 import { cn } from '../lib/utils';
@@ -51,7 +51,7 @@ import {
   mateSectionCardClass,
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
-import { formatGameDate } from '../utils/mate';
+import { formatGameDate, isPartyHostedByUser } from '../utils/mate';
 import { getMatePaymentMode } from '../utils/paymentMode';
 import { getPaymentStatusLabel, getSettlementStatusLabel } from '../utils/paymentStatus';
 
@@ -111,16 +111,17 @@ export default function MateManage() {
     isRevalidating: isPartyRevalidating,
     error: partyError,
   } = useMatePartyFromRoute(id);
-  const { validateDescription } = useMateStore();
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
-  const setShowLoginRequiredDialog = useAuthStore((state) => state.setShowLoginRequiredDialog);
+  const validateDescription = useMateStore((state) => state.validateDescription);
+  const updateParty = useMateStore((state) => state.updateParty);
+  const { userId: authUserId, userHandle: authUserHandle } = useAuthProfileSnapshot();
+  const { logout, requireLogin } = useAuthAccessActions();
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [currentUserHandle, setCurrentUserHandle] = useState<string | null>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [userLoadError, setUserLoadError] = useState<string | null>(null);
   const [userRetryCount, setUserRetryCount] = useState(0);
@@ -137,8 +138,9 @@ export default function MateManage() {
   const [applicationActionError, setApplicationActionError] = useState('');
 
   useEffect(() => {
-    if (user?.id) {
-      setCurrentUserId(user.id);
+    if (authUserId) {
+      setCurrentUserId(authUserId);
+      setCurrentUserHandle(authUserHandle ?? null);
       setUserLoadError(null);
       setUserLoading(false);
       return;
@@ -150,11 +152,12 @@ export default function MateManage() {
         setUserLoadError(null);
         const userData = await api.getCurrentUser();
         setCurrentUserId(userData.data.id);
+        setCurrentUserHandle(userData.data.handle ?? null);
       } catch (error: unknown) {
         console.error('사용자 정보 가져오기 실패:', error);
         if (getApiErrorStatus(error) === 401) {
           logout(true);
-          setShowLoginRequiredDialog(true);
+          requireLogin();
         }
         setUserLoadError('사용자 정보를 불러오지 못했습니다.');
       } finally {
@@ -163,14 +166,14 @@ export default function MateManage() {
     };
 
     void fetchCurrentUser();
-  }, [logout, setShowLoginRequiredDialog, user?.id, userRetryCount]);
+  }, [authUserHandle, authUserId, logout, requireLogin, userRetryCount]);
 
   useEffect(() => {
     if (!selectedParty || !currentUserId) {
       return;
     }
 
-    if (selectedParty.hostId !== currentUserId) {
+    if (!isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle })) {
       return;
     }
 
@@ -196,7 +199,7 @@ export default function MateManage() {
     };
 
     void fetchApplications();
-  }, [currentUserId, retryCount, selectedParty]);
+  }, [currentUserHandle, currentUserId, retryCount, selectedParty]);
 
   const refetchApplications = async () => {
     if (!selectedParty) {
@@ -315,7 +318,7 @@ export default function MateManage() {
 
     try {
       await api.updateParty(selectedParty.id, editForm);
-      useMateStore.getState().updateParty(selectedParty.id, editForm);
+      updateParty(selectedParty.id, editForm);
       toast.success('파티 정보가 수정되었습니다.');
       setDescriptionError('');
       setIsEditing(false);
@@ -447,7 +450,7 @@ export default function MateManage() {
     );
   }
 
-  const isHost = selectedParty.hostId === currentUserId;
+  const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
 
   if (!isHost || isHostAccessDenied) {
     return (

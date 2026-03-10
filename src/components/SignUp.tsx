@@ -29,10 +29,12 @@ export default function SignUp() {
     handleSubmit,
   } = useSignUpForm();
 
+  const signupInputClass =
+    'bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-300 focus:ring-primary ring-primary auth-autofill-input';
 
   return (
     <AuthLayout>
-      <h2 className="text-center mb-8">SIGN UP</h2>
+      <h2 className="text-center mb-8 text-zinc-900 dark:text-zinc-100">SIGN UP</h2>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         {/* ✅ 성공 Alert */}
@@ -59,7 +61,7 @@ export default function SignUp() {
 
         {/* 닉네임 */}
         <div className="space-y-2">
-          <Label htmlFor="name" className="flex items-center gap-2 text-gray-700">
+          <Label htmlFor="name" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             <User className="w-4 h-4 text-primary" />
             닉네임
           </Label>
@@ -69,7 +71,7 @@ export default function SignUp() {
             value={formData.name}
             onChange={(e) => handleFieldChange('name', e.target.value)}
             onBlur={() => handleFieldBlur('name')}
-            className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary ${fieldErrors.name ? 'border-red-500' : ''}`}
+            className={`${signupInputClass} ${fieldErrors.name ? 'border-red-500' : ''}`}
             placeholder="홍길동"
             disabled={isLoading || isSuccess}  // ✅ 수정
           />
@@ -80,7 +82,7 @@ export default function SignUp() {
 
         {/* 핸들 (사용자 아이디) */}
         <div className="space-y-2">
-          <Label htmlFor="handle" className="flex items-center gap-2 text-gray-700">
+          <Label htmlFor="handle" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             <User className="w-4 h-4 text-primary" />
             사용자 핸들 (@)
           </Label>
@@ -100,14 +102,14 @@ export default function SignUp() {
               }
             }}
             onBlur={() => handleFieldBlur('handle')}
-            className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary ${fieldErrors.handle ? 'border-red-500' : ''}`}
+            className={`${signupInputClass} ${fieldErrors.handle ? 'border-red-500' : ''}`}
             placeholder="@username"
             disabled={isLoading || isSuccess}
           />
           {fieldErrors.handle ? (
             <p className="text-sm text-red-500">* {fieldErrors.handle}</p>
           ) : (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-300">
               핸들은 내 프로필 주소로 사용됩니다. (기호는 _만 가능)
             </p>
           )}
@@ -115,7 +117,7 @@ export default function SignUp() {
 
         {/* 이메일 */}
         <div className="space-y-2">
-          <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
+          <Label htmlFor="email" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             <Mail className="w-4 h-4 text-primary" />
             이메일
           </Label>
@@ -125,7 +127,7 @@ export default function SignUp() {
             value={formData.email}
             onChange={(e) => handleFieldChange('email', e.target.value)}
             onBlur={() => handleFieldBlur('email')}
-            className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary ${fieldErrors.email ? 'border-red-500' : ''}`}
+            className={`${signupInputClass} ${fieldErrors.email ? 'border-red-500' : ''}`}
             placeholder="example@email.com"
             disabled={isLoading || isSuccess}  // ✅ 수정
           />
@@ -136,7 +138,7 @@ export default function SignUp() {
 
         {/* 비밀번호 */}
         <div className="space-y-2">
-          <Label htmlFor="password" className="flex items-center gap-2 text-gray-700">
+          <Label htmlFor="password" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             <Lock className="w-4 h-4 text-primary" />
             비밀번호
           </Label>
@@ -147,14 +149,14 @@ export default function SignUp() {
               value={formData.password}
               onChange={(e) => handleFieldChange('password', e.target.value)}
               onBlur={() => handleFieldBlur('password')}
-              className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
+              className={`${signupInputClass} pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
               placeholder="8자 이상 입력"
               disabled={isLoading || isSuccess}  // ✅ 수정
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
               disabled={isLoading || isSuccess}
               aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
             >
@@ -164,7 +166,7 @@ export default function SignUp() {
           {fieldErrors.password ? (
             <p className="text-sm text-red-500">* {fieldErrors.password}</p>
           ) : (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-300">
               • 8자 이상<br />
               • 대문자, 소문자, 숫자, 특수문자(@$!%*?&#) 각 1개 이상 포함
             </p>
@@ -173,7 +175,7 @@ export default function SignUp() {
 
         {/* 비밀번호 확인 */}
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-gray-700">
+          <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             <Lock className="w-4 h-4 text-primary" />
             비밀번호 확인
           </Label>
@@ -184,14 +186,14 @@ export default function SignUp() {
               value={formData.confirmPassword}
               onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
               onBlur={() => handleFieldBlur('confirmPassword')}
-              className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
+              className={`${signupInputClass} pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
               placeholder="비밀번호 재입력"
               disabled={isLoading || isSuccess}  // ✅ 수정
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
               disabled={isLoading || isSuccess}
               aria-label={showConfirmPassword ? "비밀번호 확인 숨기기" : "비밀번호 확인 보기"}
             >
@@ -205,7 +207,7 @@ export default function SignUp() {
 
         {/* 응원팀 선택 */}
         <div className="space-y-2">
-          <Label id="favoriteTeam-label" className="text-gray-700">
+          <Label id="favoriteTeam-label" className="text-gray-700 dark:text-gray-300">
             응원팀 선택
           </Label>
           <Select
@@ -234,16 +236,16 @@ export default function SignUp() {
 
           {/* "없음" 선택 시 경고 메시지 */}
           {formData.favoriteTeam === '없음' && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
                 ⚠️ 응원구단을 선택하지 않으면 <strong>응원석을 이용할 수 없습니다.</strong><br />
-                <span className="text-xs">나중에 마이페이지 &gt; 내 정보 수정에서 변경 가능합니다.</span>
+                <span className="text-xs dark:text-yellow-200/90">나중에 마이페이지 &gt; 내 정보 수정에서 변경 가능합니다.</span>
               </p>
             </div>
           )}
 
           <div className="flex items-center justify-between mt-2">
-            <p className="text-sm text-gray-500">응원구단은 응원석에서 사용됩니다</p>
+            <p className="text-sm text-gray-500 dark:text-gray-300">응원구단은 응원석에서 사용됩니다</p>
             <Button
               type="button"
               variant="ghost"
@@ -305,7 +307,7 @@ export default function SignUp() {
           )}
         </Button>
 
-        <p className="text-center text-sm text-gray-600">
+        <p className="text-center text-sm text-gray-600 dark:text-gray-300">
           이미 계정이 있으신가요?{' '}
           <button
             type="button"

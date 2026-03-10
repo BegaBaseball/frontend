@@ -127,7 +127,7 @@ describe('MateDetail state coverage', () => {
       body: applications,
     }).as('getPartyApplications');
 
-    cy.intercept('GET', `**/api/reviews/user/${party.hostId}/average`, {
+    cy.intercept('GET', '**/api/reviews/profile/*/average', {
       statusCode: 200,
       body: 4.8,
     }).as('getHostRating');

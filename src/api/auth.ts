@@ -34,6 +34,41 @@ interface RawLoginResponse {
   } | null;
 }
 
+interface RawAuthProfileResponse {
+  data?: {
+    id?: number | string;
+    email?: string;
+    name?: string;
+    handle?: string | null;
+    favoriteTeam?: string;
+    favoriteTeamColor?: string;
+    role?: string;
+    profileImageUrl?: string | null;
+    provider?: string;
+    providerId?: string;
+    bio?: string | null;
+    cheerPoints?: number | string;
+    cheer_points?: number | string;
+    hasPassword?: boolean;
+  };
+}
+
+interface AuthProfile {
+  id: number;
+  email: string;
+  name?: string;
+  handle?: string;
+  favoriteTeam?: string;
+  favoriteTeamColor?: string;
+  role?: string;
+  profileImageUrl: string | null;
+  provider?: string;
+  providerId?: string;
+  bio?: string | null;
+  cheerPoints: number;
+  hasPassword?: boolean;
+}
+
 const normalizeOptionalNumber = (value: number | string | undefined): number | undefined => {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -63,6 +98,60 @@ const normalizeLoginResponse = (payload: RawLoginResponse): LoginResponse => ({
     cheerPoints: normalizeOptionalNumber(payload.data?.cheerPoints),
   },
 });
+
+export const normalizeProfileImageUrl = (value?: string | null): string | null => {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  if (
+    trimmedValue.startsWith('/assets/') ||
+    trimmedValue.startsWith('/src/assets/') ||
+    trimmedValue.startsWith('blob:') ||
+    trimmedValue.startsWith('data:')
+  ) {
+    return null;
+  }
+
+  return trimmedValue.length > 0 ? trimmedValue : null;
+};
+
+const normalizeAuthProfile = (payload: RawAuthProfileResponse): AuthProfile => {
+  const profile = payload?.data;
+  if (!profile || typeof profile.email !== 'string') {
+    throw new Error('유효하지 않은 사용자 정보를 받았습니다.');
+  }
+
+  const cheerPoints = normalizeOptionalNumber(profile.cheerPoints)
+    ?? normalizeOptionalNumber(profile.cheer_points)
+    ?? 0;
+
+  const rawId = normalizeOptionalNumber(profile.id);
+
+  return {
+    id: rawId ?? 0,
+    email: profile.email,
+    name: typeof profile.name === 'string' ? profile.name : undefined,
+    handle: typeof profile.handle === 'string' ? profile.handle : undefined,
+    favoriteTeam: typeof profile.favoriteTeam === 'string' ? profile.favoriteTeam : undefined,
+    favoriteTeamColor: typeof profile.favoriteTeamColor === 'string' ? profile.favoriteTeamColor : undefined,
+    role: typeof profile.role === 'string' ? profile.role : undefined,
+    profileImageUrl: normalizeProfileImageUrl(profile.profileImageUrl),
+    provider: typeof profile.provider === 'string' ? profile.provider : undefined,
+    providerId: typeof profile.providerId === 'string' ? profile.providerId : undefined,
+    bio: typeof profile.bio === 'string' ? profile.bio : null,
+    cheerPoints,
+    hasPassword: typeof profile.hasPassword === 'boolean' ? profile.hasPassword : undefined,
+  };
+};
+
+export const fetchCurrentUserProfile = async (): Promise<AuthProfile> => {
+  const response = await api.get<RawAuthProfileResponse>('/auth/mypage', {
+    skipGlobalErrorHandler: true,
+  });
+  return normalizeAuthProfile(response.data);
+};
 
 export interface SignUpRequest {
   name: string;

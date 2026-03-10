@@ -1,5 +1,4 @@
 import { AxiosError } from 'axios';
-import { ApiError } from './api';
 
 export type ErrorType = 'AUTH' | 'PERMISSION' | 'NOT_FOUND' | 'RATE_LIMIT' | 'CONFLICT' | 'SERVER' | 'NETWORK' | 'UNKNOWN';
 
@@ -10,6 +9,23 @@ export interface ParsedError {
     statusCode: number | null;
 }
 
+type ApiErrorLike = {
+    status: number;
+    data?: {
+        message?: string;
+        error?: string;
+        timestamp?: string;
+        code?: string;
+    } | null;
+    message: string;
+};
+
+const isApiError = (error: unknown): error is ApiErrorLike =>
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    typeof (error as { status?: unknown }).status === 'number';
+
 export const isNetworkError = (error: unknown): boolean => {
     return (
         error instanceof AxiosError &&
@@ -19,7 +35,7 @@ export const isNetworkError = (error: unknown): boolean => {
 
 export const parseError = (error: unknown): ParsedError => {
     // Handle Custom ApiError (fetch wrapper)
-    if (error instanceof ApiError) {
+    if (isApiError(error)) {
         const code = error.status;
         const data = error.data || {};
         const serverMessage = data.message || data.error || error.message;
@@ -186,7 +202,7 @@ export const parseError = (error: unknown): ParsedError => {
 
 /** API 에러에서 메시지 추출 (catch(error: unknown) 패턴용) */
 export function getApiErrorMessage(error: unknown, fallback: string): string {
-    if (error instanceof ApiError) {
+    if (isApiError(error)) {
         return error.data?.message || error.data?.error || error.message || fallback;
     }
     if (error instanceof AxiosError) {

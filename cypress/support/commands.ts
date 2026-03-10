@@ -244,20 +244,23 @@ Cypress.Commands.add('mockAPI', () => {
     }).as('getRankings');
 
     // Navbar Mocks
-    cy.intercept('**/api/users/email-to-id*', {
-        statusCode: 200,
-        body: { success: true, data: 123 }
-    }).as('getEmailToId');
-
-    cy.intercept('**/api/notifications/user/*/unread-count', {
-        statusCode: 200,
-        body: 5
-    }).as('getUnreadCountByUser');
-
     cy.intercept('**/api/notifications/my', {
         statusCode: 200,
         body: []
     }).as('getMyNotifications');
+
+    cy.intercept('**/api/users/email-to-id*', {
+        statusCode: 200,
+        body: {
+            success: true,
+            data: 123,
+        },
+    }).as('getEmailToId');
+
+    cy.intercept('**/api/notifications/user/*/unread-count', {
+        statusCode: 200,
+        body: 5,
+    }).as('getUnreadCountByUser');
 
     cy.intercept('**/api/notifications/my/unread-count', {
         statusCode: 200,
@@ -272,15 +275,17 @@ Cypress.Commands.add('mockAPI', () => {
         },
     }).as('getChatUnreadCounts');
 
-    // Follow Counts - NOT wrapped in { success: true, data: ... }
-    cy.intercept('**/api/users/*/follow-counts', {
+    // Follow counts: support both id-based and profile-handle routes with one alias.
+    const followCountDefaults = {
+        followerCount: 10,
+        followingCount: 20,
+        isFollowedByMe: false,
+        notifyNewPosts: false
+    };
+
+    cy.intercept('GET', /\/api\/users\/(?:\d+|profile\/[^/?#]+|[^/?#]+)\/follow-counts(\?.*)?$/, {
         statusCode: 200,
-        body: {
-            followerCount: 10,
-            followingCount: 20,
-            isFollowedByMe: false,
-            notifyNewPosts: false
-        }
+        body: followCountDefaults,
     }).as('getFollowCounts');
 
     // User Profile (Public) - URL is /users/profile/${handle}

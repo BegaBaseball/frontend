@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import { toast } from 'sonner';
-import { getApiBaseUrl } from '../api/apiBase';
+import api from '../api/axios';
 import { getCheerBattleStatus, CheerBattleStatus } from '../api/cheerApi';
-import { useAuthStore } from '../store/authStore';
+import { useAuthCheerActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 
 interface UseCheerBattleOptions {
     gameId: string | null | undefined;
@@ -54,7 +54,9 @@ export function useCheerBattle({
     awayTeamId,
     enabled = true,
 }: UseCheerBattleOptions): UseCheerBattleReturn {
-    const { user, deductCheerPoints } = useAuthStore();
+    const { isLoggedIn } = useAuthSession();
+    const { userCheerPoints = 0 } = useAuthProfileSnapshot();
+    const { deductCheerPoints } = useAuthCheerActions();
 
     const [state, setState] = useState<CheerBattleState>({
         stats: {},
@@ -201,7 +203,7 @@ export function useCheerBattle({
             error: online ? null : '네트워크가 오프라인 상태입니다.',
         }));
 
-        const apiBaseUrl = getApiBaseUrl();
+        const apiBaseUrl = api.defaults.baseURL || '/api';
         let wsBaseUrl: string;
 
         if (apiBaseUrl.startsWith('http')) {
@@ -352,7 +354,7 @@ export function useCheerBattle({
         (teamId: string) => {
             if (!gameId) return;
 
-            if (!user) {
+            if (!isLoggedIn) {
                 toast.error('로그인이 필요한 서비스입니다.');
                 return;
             }
@@ -362,7 +364,7 @@ export function useCheerBattle({
                 return;
             }
 
-            const currentPoints = user.cheerPoints ?? 0;
+            const currentPoints = userCheerPoints;
             if (currentPoints < 1) {
                 toast.error('응원 포인트가 부족합니다. (1포인트 필요)');
                 return;
@@ -415,7 +417,7 @@ export function useCheerBattle({
 
             setState((prev) => ({ ...prev, isVoting: false }));
         },
-        [gameId, user, state.myVote, state.isVoting, deductCheerPoints]
+        [gameId, isLoggedIn, state.myVote, state.isVoting, deductCheerPoints, userCheerPoints]
     );
 
     // -----------------------------------------------------------------------

@@ -1,6 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { useAuthStore } from './store/authStore';
+import {
+  isAdminRole,
+  useAuthAccessActions,
+  useAuthDialogState,
+  useAuthProfileActions,
+  useAuthProfileSnapshot,
+  useAuthSession,
+} from './store/authStore';
 import { KAKAO_API_KEY } from './utils/constants';
 import Layout from './components/Layout';
 import ScrollToTop from './components/ScrollToTop';
@@ -11,15 +18,17 @@ import GlobalErrorDialog from './components/GlobalErrorDialog';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import chatBotIcon from './assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import LeaderboardPage from './pages/LeaderboardPage';
 
 // 페이지 컴포넌트를 lazy loading
 const Home = lazy(() => import('./components/Home'));
 const OffSeasonHome = lazy(() => import('./components/OffSeasonHome'));
-const OffSeasonList = lazy(() => import('./components/OffSeasonList'));
+const OffSeasonList = lazy(() => import('./components/OffSeasonList.tsx'));
 const Login = lazy(() => import('./components/Login'));
 const SignUp = lazy(() => import('./components/SignUp'));
 const PasswordReset = lazy(() => import('./components/PasswordReset'));
 const PasswordResetConfirm = lazy(() => import('./components/PasswordResetConfirm'));
+const AccountDeletionRecovery = lazy(() => import('./components/AccountDeletionRecovery'));
 const StadiumGuide = lazy(() => import('./components/StadiumGuide'));
 const Prediction = lazy(() => import('./components/Prediction'));
 const Cheer = lazy(() => import('./components/Cheer'));
@@ -43,7 +52,6 @@ const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./components/OAuthCallback'));
 const TestError = lazy(() => import('./components/TestError')); // Test Purpose Only
-const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const ChatBot = lazy(() => import('./components/ChatBot'));
 const PaymentSuccess = lazy(() => import('./components/PaymentSuccess'));
 const PaymentFail = lazy(() => import('./components/PaymentFail'));
@@ -107,13 +115,14 @@ const PredictionQueryGuard = () => {
 };
 
 function ProtectedRoute() {
-  const { isLoggedIn, isAuthLoading, setShowLoginRequiredDialog } = useAuthStore();
+  const { isLoggedIn, isAuthLoading } = useAuthSession();
+  const { requireLogin } = useAuthAccessActions();
 
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
-      setShowLoginRequiredDialog(true);
+      requireLogin();
     }
-  }, [isAuthLoading, isLoggedIn, setShowLoginRequiredDialog]);
+  }, [isAuthLoading, isLoggedIn, requireLogin]);
 
   if (isAuthLoading) {
     return (
@@ -135,8 +144,9 @@ function ProtectedRoute() {
 }
 
 function AdminRoute() {
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const { isLoggedIn } = useAuthSession();
+  const { userRole } = useAuthProfileSnapshot();
+  const isAdmin = isAdminRole(userRole);
 
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
@@ -150,8 +160,10 @@ function AdminRoute() {
 }
 
 export default function App() {
-  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const { fetchProfileAndAuthenticate } = useAuthProfileActions();
+  const { isLoggedIn } = useAuthSession();
+  const { logout, requireLogin } = useAuthAccessActions();
+  const { showLoginRequiredDialog, setShowLoginRequiredDialog } = useAuthDialogState();
   const [isChatBotRequested, setIsChatBotRequested] = useState(false);
 
   useEffect(() => {
@@ -159,34 +171,45 @@ export default function App() {
   }, [fetchProfileAndAuthenticate]);
 
   useEffect(() => {
-    const handleSessionExpired = () => {
-      useAuthStore.getState().logout(true);
-      useAuthStore.getState().setShowLoginRequiredDialog(true);
+      const handleSessionExpired = () => {
+      logout(true);
+      requireLogin();
       // Optional: Show a toast or dialog saying "Session expired"
     };
 
     window.addEventListener('auth-session-expired', handleSessionExpired);
     return () => window.removeEventListener('auth-session-expired', handleSessionExpired);
-  }, []);
+  }, [logout, requireLogin]);
 
   useEffect(() => {
-    const handleInvalidAuthor = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const detail = customEvent.detail as { responseCode?: string } | undefined;
-      if (detail?.responseCode === 'INVALID_AUTHOR') {
-        useAuthStore.getState().setShowLoginRequiredDialog(true);
-      }
-    };
+      const handleInvalidAuthor = (event: Event) => {
+        const customEvent = event as CustomEvent;
+        const detail = customEvent.detail as { responseCode?: string } | undefined;
+        if (detail?.responseCode === 'INVALID_AUTHOR') {
+          requireLogin();
+        }
+      };
 
     window.addEventListener('global-api-error', handleInvalidAuthor);
     return () => window.removeEventListener('global-api-error', handleInvalidAuthor);
-  }, []);
+  }, [requireLogin]);
 
   useEffect(() => {
     if (isLoggedIn && 'Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (!showLoginRequiredDialog || typeof document === 'undefined') {
+      return;
+    }
+
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur();
+    }
+  }, [showLoginRequiredDialog]);
 
   useEffect(() => {
     if (window.Kakao && KAKAO_API_KEY) {
@@ -219,6 +242,7 @@ export default function App() {
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/password/reset" element={<PasswordReset />} />
                 <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
+                <Route path="/account/deletion/recovery" element={<AccountDeletionRecovery />} />
                 <Route path="/oauth/callback" element={<OAuthCallback />} />
 
                 {/* Landing & ServiceInfo - Layout 없이 독립 페이지 */}
@@ -233,7 +257,7 @@ export default function App() {
                   <Route path="/cheer/write" element={<Cheer openComposerOnMount />} />
                   <Route path="/cheer/:postId" element={<CheerDetail />} />
                   <Route path="/profile/:handle" element={<UserProfile />} />
-                  <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
+                  <Route path="/predictions/ranking/share/:shareId/:seasonYear" element={<RankingPredictionShare />} />
                   <Route path="/notice" element={<NoticePage />} />
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -307,8 +331,8 @@ export default function App() {
             )}
             <GlobalErrorDialog />
             <LoginRequiredDialog
-              open={useAuthStore((state) => state.showLoginRequiredDialog)}
-              onOpenChange={useAuthStore((state) => state.setShowLoginRequiredDialog)}
+              open={showLoginRequiredDialog}
+              onOpenChange={setShowLoginRequiredDialog}
             />
           </BrowserRouter>
         </ConfirmDialogProvider>
