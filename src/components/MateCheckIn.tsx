@@ -12,6 +12,8 @@ import {
   LucideIcon,
   MapPin,
   QrCode,
+  Shield,
+  Ticket,
   Users,
 } from 'lucide-react';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
@@ -23,7 +25,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Progress } from './ui/progress';
 import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import { CheckIn } from '../types/mate';
 import { cn } from '../lib/utils';
 import { api } from '../utils/api';
@@ -38,7 +40,7 @@ import {
   mateSectionCardClass,
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
-import { formatGameDate } from '../utils/mate';
+import { formatGameDate, hasSameMateUserIdentity, isPartyHostedByUser } from '../utils/mate';
 import { getMatePaymentMode } from '../utils/paymentMode';
 
 type SummaryItemProps = {
@@ -97,11 +99,15 @@ export default function MateCheckIn() {
     isRevalidating: isPartyRevalidating,
     error: partyError,
   } = useMatePartyFromRoute(id);
-  const authUserId = useAuthStore((state) => state.user?.id ?? null);
+  const {
+    userId: authUserId,
+    userHandle: authUserHandle,
+  } = useAuthProfileSnapshot();
 
   const [isChecking, setIsChecking] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState<CheckIn[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [currentUserHandle, setCurrentUserHandle] = useState<string | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [userLoadError, setUserLoadError] = useState<string | null>(null);
   const [userRetryCount, setUserRetryCount] = useState(0);
@@ -119,6 +125,7 @@ export default function MateCheckIn() {
       if (authUserId && authUserId > 0) {
         if (isMounted) {
           setCurrentUserId(authUserId);
+          setCurrentUserHandle(authUserHandle);
           setIsLoadingUser(false);
         }
         return;
@@ -130,6 +137,7 @@ export default function MateCheckIn() {
         if (Number.isFinite(profileId) && profileId > 0) {
           if (isMounted) {
             setCurrentUserId(profileId);
+            setCurrentUserHandle(userData?.data?.handle ?? null);
           }
           return;
         }
@@ -138,6 +146,7 @@ export default function MateCheckIn() {
         console.error('사용자 정보 가져오기 실패:', error);
         if (isMounted) {
           setCurrentUserId(null);
+          setCurrentUserHandle(null);
           setUserLoadError(getApiErrorMessage(error, '사용자 정보를 확인하지 못했습니다. 다시 시도해주세요.'));
         }
       } finally {
@@ -152,7 +161,7 @@ export default function MateCheckIn() {
     return () => {
       isMounted = false;
     };
-  }, [authUserId, userRetryCount]);
+  }, [authUserHandle, authUserId, userRetryCount]);
 
   useEffect(() => {
     if (!selectedParty) {
@@ -231,15 +240,23 @@ export default function MateCheckIn() {
     );
   }
 
-  const isHost = selectedParty.hostId === currentUserId;
-  const myCheckIn = checkInStatus.find((checkIn) => checkIn.userId === currentUserId);
+  const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
+  const myCheckIn = checkInStatus.find((checkIn) => hasSameMateUserIdentity(
+    { handle: checkIn.userHandle },
+    { handle: currentUserHandle },
+  ));
   const isCheckedIn = Boolean(myCheckIn);
-  const hostCheckedIn = checkInStatus.some((checkIn) => checkIn.userId === selectedParty.hostId);
+  const hostCheckedIn = checkInStatus.some((checkIn) => hasSameMateUserIdentity(
+    { handle: checkIn.userHandle },
+    { handle: selectedParty.hostHandle },
+  ));
   const totalParticipants = Math.max(selectedParty.currentParticipants, 1);
   const checkedInCount = checkInStatus.length;
   const remainingCount = Math.max(totalParticipants - checkedInCount, 0);
   const allCheckedIn = checkedInCount >= totalParticipants;
   const progressValue = Math.min(100, Math.round((checkedInCount / totalParticipants) * 100));
+  const safeShieldIcon = Shield;
+  const safeTicketIcon = Ticket;
   const paymentMode = getMatePaymentMode();
   const statusMeta = getPartyStatusMeta(selectedParty.status);
   const flowLabel = getPartyFlowLabel(selectedParty.status, paymentMode);
@@ -269,7 +286,7 @@ export default function MateCheckIn() {
       detail: remainingCount > 0 ? `아직 ${remainingCount}명 도착 대기 중` : '전원 체크인 완료',
     },
     {
-      icon: isCheckedIn ? Shield : Clock,
+      icon: isCheckedIn ? safeShieldIcon : Clock,
       label: '내 상태',
       value: isCheckedIn ? '체크인 완료' : '아직 미완료',
       detail: isCheckedIn && myCheckIn
@@ -277,7 +294,7 @@ export default function MateCheckIn() {
         : '경기장 근처에서만 체크인이 가능합니다.',
     },
     {
-      icon: qrSessionId ? QrCode : Ticket,
+      icon: qrSessionId ? QrCode : safeTicketIcon,
       label: '진입 방식',
       value: sessionLabel,
       detail: qrSessionId ? '상세페이지 QR 링크를 통해 연결되었습니다.' : '직접 진입한 체크인 화면입니다.',
@@ -691,7 +708,13 @@ export default function MateCheckIn() {
                 )}
 
                 {checkInStatus
-                  .filter((checkIn) => checkIn.userId !== currentUserId && checkIn.userId !== selectedParty.hostId)
+                  .filter((checkIn) => !hasSameMateUserIdentity(
+                    { handle: checkIn.userHandle },
+                    { handle: currentUserHandle },
+                  ) && !hasSameMateUserIdentity(
+                    { handle: checkIn.userHandle },
+                    { handle: selectedParty.hostHandle },
+                  ))
                   .map((checkIn) => (
                     <div
                       key={checkIn.id}

@@ -280,7 +280,7 @@ describe('Mate Page Accuracy', () => {
       statusCode: 200,
       body: null,
     }).as('getMyApplicationByParty');
-    cy.intercept('GET', '**/api/reviews/user/123/average', {
+    cy.intercept('GET', '**/api/reviews/profile/*/average', {
       statusCode: 200,
       body: 4.3,
     }).as('getHostRating');
@@ -291,11 +291,11 @@ describe('Mate Page Accuracy', () => {
 
     cy.visit('/mate');
     cy.wait('@getPartiesPage0');
-    cy.contains('거래 기준 금액').should('be.visible');
-    cy.contains('신뢰').should('be.visible');
-    cy.contains('호스트 평점').should('be.visible');
-    cy.contains('참여 현황').should('be.visible');
-    cy.contains('진행 방식').should('be.visible');
+    cy.contains('테스트 호스트').should('be.visible');
+    cy.contains('인증 전').should('be.visible');
+    cy.contains('4.5').should('be.visible');
+    cy.contains(/1\s*\/\s*4명/).should('be.visible');
+    cy.contains(/직거래 베타|보증금 결제/).should('be.visible');
 
     cy.visit('/mate/777');
     cy.wait('@getPartyById');
@@ -348,7 +348,7 @@ describe('Mate Page Accuracy', () => {
       statusCode: 200,
       body: null,
     }).as('getMyApplicationByParty');
-    cy.intercept('GET', '**/api/reviews/user/123/average', {
+    cy.intercept('GET', '**/api/reviews/profile/*/average', {
       statusCode: 200,
       body: 4.3,
     }).as('getHostRating');

@@ -1,7 +1,8 @@
 // src/types/mate.ts
 export interface Party {
   id: number;
-  hostId: number;
+  hostId?: number;
+  hostHandle?: string;
   hostName: string;
   hostProfileImageUrl?: string;
   hostFavoriteTeam?: string;
@@ -37,7 +38,7 @@ export type PartyStatus =
 export interface Application {
   id: number;
   partyId: number;
-  applicantId: number;
+  applicantHandle?: string;
   applicantName: string;
   applicantBadge: BadgeType;
   applicantRating: number;
@@ -60,7 +61,7 @@ export interface Application {
 export interface CheckIn {
   id: number;
   partyId: number;
-  userId: number;
+  userHandle?: string;
   userName: string;
   location: string;
   checkedInAt: string;
@@ -69,8 +70,8 @@ export interface CheckIn {
 export interface PartyReview {
   id: number;
   partyId: number;
-  reviewerId: number;
-  revieweeId: number;
+  reviewerHandle?: string;
+  revieweeHandle?: string;
   rating: number;
   comment?: string;
   createdAt: string;
@@ -91,7 +92,8 @@ export type BadgeType = 'NEW' | 'VERIFIED' | 'TRUSTED';
 // MateParty: 히스토리/목록용 간소화 타입 (Party의 서브셋)
 export interface MateParty {
   id: number;
-  hostId: number;
+  hostId?: number;
+  hostHandle?: string;
   teamId: string;
   stadium: string;
   gameDate: string;
@@ -108,7 +110,6 @@ export interface MateParty {
 export interface MateApplication {
   id: number;
   partyId: number;
-  applicantId: number;
   status: string;
 }
 
@@ -117,10 +118,6 @@ export type MateHistoryTab = 'all' | 'completed' | 'ongoing';
 // --- Request Types (matching backend DTOs) ---
 
 export interface CreatePartyRequest {
-  hostId: number;
-  hostName: string;
-  hostBadge?: BadgeType;
-  hostRating?: number;
   teamId: string;
   gameDate: string;
   gameTime: string;
@@ -146,10 +143,6 @@ export interface UpdatePartyRequest {
 
 export interface CreateApplicationRequest {
   partyId: number;
-  applicantId?: number;
-  applicantName?: string;
-  applicantBadge?: BadgeType;
-  applicantRating?: number;
   message?: string;
   // DIRECT_TRADE: 거래 기준 금액 스냅샷, TOSS_TEST: 보증금/결제 금액
   depositAmount: number;
@@ -180,8 +173,7 @@ export interface CreateCheckInQrSessionResponse {
 
 export interface CreateReviewRequest {
   partyId: number;
-  reviewerId: number;
-  revieweeId: number;
+  revieweeHandle: string;
   rating: number;
   comment?: string;
 }
