@@ -1,8 +1,17 @@
 
-import { getApiBaseUrl } from './apiBase';
+import api from './axios';
+import {
+  COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS,
+  DEFAULT_STREAM_TIMEOUT_MS,
+  getStreamRetryDelayMs,
+  CHATBOT_STREAM_TIMEOUT_ERROR,
+  isStreamReadTimeoutError,
+  isStreamRequestTimeoutError,
+  readWithTimeout,
+  requestStream,
+} from './stream';
 
-const APP_API_URL = getApiBaseUrl();
-const COACH_ANALYZE_ENDPOINT = `${APP_API_URL}/ai/coach/analyze`;
+const COACH_ANALYZE_ENDPOINT = '/ai/coach/analyze';
 
 export interface AnalyzeLeagueContext {
     season?: number | string;
@@ -243,24 +252,70 @@ export async function analyzeTeam(
         headers: {
             'Content-Type': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify(requestPayload),
         signal: options?.signal,
     };
 
-    let response = await fetch(COACH_ANALYZE_ENDPOINT, requestInit);
+    const MAX_RETRIES = COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS;
+    let attempt = 0;
+    let response: Response | null = null;
 
-    if (response.status === 401) {
-        const refreshResponse = await fetch(`${APP_API_URL}/auth/reissue`, {
-            method: 'POST',
-            credentials: 'include',
-        });
-        if (refreshResponse.ok) {
-            response = await fetch(COACH_ANALYZE_ENDPOINT, requestInit);
+    while (true) {
+        attempt++;
+
+        try {
+            const request = await requestStream(COACH_ANALYZE_ENDPOINT, {
+                ...requestInit,
+                timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+            });
+
+            if (request.status === 401) {
+                const refreshResponse = await api.post('/auth/reissue', undefined, {
+                    skipGlobalErrorHandler: true,
+                });
+                if (refreshResponse.status >= 200 && refreshResponse.status < 300) {
+                    if (attempt < MAX_RETRIES) {
+                        continue;
+                    }
+                }
+            }
+
+            if (request.status >= 500 && request.status < 600) {
+                if (attempt < MAX_RETRIES) {
+                    const delay = getStreamRetryDelayMs(attempt);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+            }
+
+            response = request;
+            break;
+        } catch (error) {
+            if (isAbortLikeError(error)) {
+                throw error instanceof Error ? error : new DOMException('aborted', 'AbortError');
+            }
+
+            if (attempt >= MAX_RETRIES) {
+                if (isStreamRequestTimeoutError(error)) {
+                    throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
+                }
+                throw error instanceof Error ? error : new Error(String(error));
+            }
+
+            if (isStreamRequestTimeoutError(error) || error instanceof TypeError) {
+                const delay = getStreamRetryDelayMs(attempt);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+
+            throw error instanceof Error ? error : new Error(String(error));
         }
     }
 
-    if (!response.ok) {
+    if (!response || !response.ok) {
+        if (!response) {
+            throw new Error('Failed to connect to coach stream');
+        }
         const errorText = await response.text();
         let errorDetail = 'coach_internal_error';
         if (response.status < 500) {
@@ -305,7 +360,7 @@ export async function analyzeTeam(
             let buffer = '';  // Buffer for incomplete SSE lines
 
             while (true) {
-                const { done, value } = await reader.read();
+                const { done, value } = await readWithTimeout(() => reader.read(), DEFAULT_STREAM_TIMEOUT_MS);
                 if (done) break;
 
                 buffer += decoder.decode(value, { stream: true });
@@ -383,6 +438,9 @@ export async function analyzeTeam(
                 }
             }
         } catch (error) {
+            if (isStreamReadTimeoutError(error)) {
+                    throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
+            }
             if (isAbortLikeError(error)) {
                 throw error instanceof Error ? error : new DOMException('aborted', 'AbortError');
             }

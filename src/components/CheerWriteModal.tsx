@@ -13,7 +13,7 @@ import {
 } from './ui/dialog';
 import { Button } from './ui/button';
 import TeamLogo from './TeamLogo';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { ShareMode } from '../api/cheerApi';
 
@@ -48,10 +48,15 @@ export default function CheerWriteModal({
     teamColor,
     teamAccent,
     teamContrastText,
-    teamLabel,
-    teamId
+  teamLabel,
+  teamId
 }: CheerWriteModalProps) {
-    const { user } = useAuthStore();
+    const {
+        userName,
+        userProfileImageUrl,
+        userFavoriteTeam,
+    } = useAuthProfileSnapshot();
+    const userDisplayName = userName || '프로필';
     const [content, setContent] = useState('');
     const [files, setFiles] = useState<File[]>([]);
     const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
@@ -65,7 +70,8 @@ export default function CheerWriteModal({
     const [sourceLicenseUrl, setSourceLicenseUrl] = useState('');
     const [sourceChangedNote, setSourceChangedNote] = useState('');
     const [sourceSnapshotType, setSourceSnapshotType] = useState('');
-    const { theme } = useTheme();
+    const { theme, resolvedTheme } = useTheme();
+    const isDarkMode = resolvedTheme === 'dark' || theme === 'dark';
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
     const previewsRef = useRef(previews);
@@ -199,17 +205,17 @@ export default function CheerWriteModal({
 
                 <div className="p-4 sm:p-6 lg:p-8">
                     <div className="flex gap-3 sm:gap-4">
-                        {user?.profileImageUrl ? (
+                        {userProfileImageUrl ? (
                             <ProfileAvatar
-                                src={resolveProfileImage(user.profileImageUrl) || undefined}
-                                alt={user?.name || '프로필'}
-                                fallbackName={user?.name || '프로필'}
+                                src={resolveProfileImage(userProfileImageUrl) || undefined}
+                                alt={userDisplayName}
+                                fallbackName={userDisplayName}
                                 width={40}
                                 height={40}
                                 showRing
                                 ringClassName="p-px bg-slate-100 dark:bg-secondary"
                             />
-                        ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
+                        ) : userFavoriteTeam && userFavoriteTeam !== '없음' ? (
                             <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-secondary p-px flex-shrink-0 overflow-hidden">
                                 <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
                                     <TeamLogo teamId={teamId} team={teamLabel} size={40} />
@@ -217,8 +223,8 @@ export default function CheerWriteModal({
                             </span>
                         ) : (
                             <ProfileAvatar
-                                alt={user?.name || '프로필'}
-                                fallbackName={user?.name || '프로필'}
+                                alt={userDisplayName}
+                                fallbackName={userDisplayName}
                                 width={40}
                                 height={40}
                                 showRing
@@ -329,7 +335,7 @@ export default function CheerWriteModal({
                                             <div className="absolute top-0 left-full z-50 ml-2 sm:left-auto sm:right-0 sm:top-full sm:mt-2">
                                                 <EmojiPicker
                                                     onEmojiClick={handleEmojiClick}
-                                                    theme={theme === 'dark' ? EmojiTheme.DARK : EmojiTheme.LIGHT}
+                                                    theme={isDarkMode ? EmojiTheme.DARK : EmojiTheme.LIGHT}
                                                     lazyLoadEmojis={true}
                                                     skinTonesDisabled={true}
                                                     searchPlaceHolder="이모지 검색..."

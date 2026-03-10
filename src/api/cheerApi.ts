@@ -13,7 +13,7 @@ export function getTeamNameById(teamId: string | null): string {
 
 // API 인터페이스 정의 (프론트엔드 사용용)
 export interface CheerAuthor {
-    id: number;
+    id?: number;
     handle: string;
     profileImageUrl?: string;
     teamId?: string;
@@ -25,7 +25,7 @@ export interface CheerPost {
     team: string; // compatibility
     postType: 'NORMAL' | 'NOTICE';
     author: string; // Changed from CheerAuthor to string (display name)
-    authorId: number;
+    authorId?: number;
     authorHandle: string;
     authorProfileImageUrl?: string;
     authorTeamId?: string;
@@ -118,7 +118,6 @@ export interface EmbeddedPost {
     teamId: string;
     teamColor: string;
     content: string;  // 100자 미리보기
-    authorId?: number;
     author: string;
     authorHandle: string;
     authorProfileImageUrl?: string;
@@ -163,7 +162,6 @@ export interface Comment {
     authorHandle?: string;
     authorTeamId?: string;
     replies?: Comment[];
-    authorEmail?: string; // Added for ownership check
 }
 
 // === API 함수들 ===
@@ -243,7 +241,7 @@ interface PostDTO {
     teamColor?: string;
     content: string;
     author: string;
-    authorId: number;
+    authorId?: number;
     authorHandle: string;
     authorProfileImageUrl?: string;
     authorTeamId?: string;
@@ -286,7 +284,6 @@ const normalizeCreatePostType = (postType?: string): 'NORMAL' | 'NOTICE' => {
 interface CommentDTO {
     id: number;
     author: string;
-    authorEmail?: string;
     authorTeamId?: string;
     authorProfileImageUrl?: string;
     authorHandle?: string;
@@ -306,7 +303,6 @@ function transformPost(post: PostDTO): CheerPost {
         teamColor: getTeamColorByAnyKey(post.teamId),
         content: post.content || '',
         author: post.author, // Assuming post.author is string from backend PostSummaryRes
-        authorId: post.authorId,
         authorHandle: post.authorHandle || '',
         authorProfileImageUrl: post.authorProfileImageUrl,
         authorTeamId: post.authorTeamId,
@@ -343,7 +339,6 @@ function transformEmbeddedPost(post: PostDTO): EmbeddedPost {
         teamId: post.teamId,
         teamColor: post.teamColor || getTeamColorByAnyKey(post.teamId),
         content: post.content || '',
-        authorId: post.authorId,
         author: post.author,
         authorHandle: post.authorHandle,
         authorProfileImageUrl: post.authorProfileImageUrl,
@@ -436,7 +431,6 @@ export async function fetchComments(postId: number, page = 0, size = 20) {
         authorProfileImageUrl: c.authorProfileImageUrl,
         authorHandle: c.authorHandle,
         authorTeamId: c.authorTeamId,
-        authorEmail: c.authorEmail,
         replies: c.replies ? c.replies.map(transformComment) : []
     });
 

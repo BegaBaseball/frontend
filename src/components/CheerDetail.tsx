@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, Variants } from 'framer-motion';
 import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -40,6 +41,7 @@ import { ProfileAvatar } from './ui/ProfileAvatar';
 import * as cheatApi from '../api/cheerApi';
 import { Comment } from '../api/cheerApi';
 import { CommentItem } from './cheer/CommentItem';
+import AdSlot from './ads/AdSlot';
 import EmbeddedPost from './EmbeddedPost';
 import ImageGrid from './ImageGrid';
 import TeamLogo from './TeamLogo';
@@ -48,7 +50,6 @@ import { formatTimeAgo } from '../utils/time';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
-import UserProfileModal from './profile/UserProfileModal';
 import ReportModal from './ReportModal';
 import QuoteRepostEditor from './QuoteRepostEditor';
 import {
@@ -65,6 +66,35 @@ const detailDateFormatter = new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'long',
     timeStyle: 'short',
 });
+const commentListVariants: Variants = {
+    hidden: { opacity: 0.95 },
+    show: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.04,
+            delayChildren: 0.02,
+        },
+    },
+};
+const commentItemVariants: Variants = {
+    hidden: { opacity: 0, y: 8 },
+    show: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
+    },
+};
+const detailMotion = {
+    articleEnter: {
+        initial: { opacity: 0, y: 10 },
+        animate: { opacity: 1, y: 0 },
+    },
+    shortEnter: {
+        initial: { opacity: 0, y: 6 },
+        animate: { opacity: 1, y: 0 },
+    },
+};
+const actionButtonTransition = { type: 'spring' as const, stiffness: 360, damping: 22 };
 
 const blendHexColors = (baseHex: string, mixHex: string, mixWeight: number) => {
     const base = hexToRgb(normalizeHexColor(baseHex));
@@ -87,7 +117,15 @@ const createMutedTeamAccent = (teamHex: string) => {
 export default function CheerDetail() {
     const { postId } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuthStore();
+    const {
+        userId: authUserId,
+        userEmail: authUserEmail,
+        userName: authUserName,
+        userHandle: authUserHandle,
+        userProfileImageUrl: authUserProfileImageUrl,
+    } = useAuthProfileSnapshot();
+    const { isLoggedIn } = useAuthSession();
+    const authUserDisplayName = authUserName || authUserEmail || '나';
     const { confirm } = useConfirmDialog();
 
     const parsedPostId = postId ? parseInt(postId) : 0;
@@ -105,15 +143,12 @@ export default function CheerDetail() {
     const [isReplyPending, setIsReplyPending] = useState(false);
     const [commentLikeAnimating, setCommentLikeAnimating] = useState<Record<number, boolean>>({});
     const commentLikeTimersRef = useRef<Record<number, number>>({});
-    const commentsSectionRef = useRef<HTMLElement | null>(null);
+    const commentsSectionRef = useRef<HTMLDivElement | null>(null);
     const [isRepostPopoverOpen, setIsRepostPopoverOpen] = useState(false);
     const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
 
-    // Profile Modal State
-    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     // Report Modal State
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-    const [viewingUserId, setViewingUserId] = useState<number | null>(null);
 
     const resolvedPostId = useMemo(() => {
         if (!selectedPost) return parsedPostId;
@@ -185,7 +220,7 @@ export default function CheerDetail() {
     };
 
     const toggleLike = () => {
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
@@ -197,7 +232,7 @@ export default function CheerDetail() {
     };
 
     const toggleBookmark = () => {
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
@@ -216,7 +251,7 @@ export default function CheerDetail() {
 
     const handleSimpleRepost = () => {
         if (!selectedPost) return;
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
@@ -228,7 +263,7 @@ export default function CheerDetail() {
     };
 
     const handleQuoteRepost = () => {
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
@@ -238,7 +273,7 @@ export default function CheerDetail() {
 
     const handleCancelRepost = () => {
         if (!selectedPost) return;
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
@@ -248,7 +283,7 @@ export default function CheerDetail() {
 
     const handleCommentSubmit = async () => {
         if (!selectedPost || !commentText.trim()) return;
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
@@ -258,13 +293,13 @@ export default function CheerDetail() {
         const targetPostId = resolvedPostId ?? selectedPost.id;
         const optimisticComment = {
             id: optimisticId,
-            author: user.name || user.email || '나',
+            author: authUserDisplayName,
             content: trimmed,
             timeAgo: '방금 전',
             likes: 0,
             likeCount: 0,
             likedByMe: false,
-            authorProfileImageUrl: user.profileImageUrl ?? undefined,
+            authorProfileImageUrl: authUserProfileImageUrl ?? undefined,
             isPending: true,
         };
 
@@ -319,7 +354,7 @@ export default function CheerDetail() {
     };
 
     const handleCommentLike = async (commentId: number) => {
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
@@ -346,7 +381,7 @@ export default function CheerDetail() {
     };
 
     const handleReplyToggle = (commentId: number) => {
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
@@ -462,15 +497,13 @@ export default function CheerDetail() {
     const isRepost = Boolean(selectedPost.repostType);
     const isSimpleRepost = selectedPost.repostType === 'SIMPLE' && Boolean(selectedPost.originalPost);
     const isQuoteRepost = selectedPost.repostType === 'QUOTE' && Boolean(selectedPost.originalPost);
-    const repostTargetAuthorId = isRepost ? selectedPost.originalPost?.authorId : selectedPost.authorId;
     const repostTargetAuthorHandle = isRepost ? selectedPost.originalPost?.authorHandle : selectedPost.authorHandle;
     const repostPolicy = getRepostPolicyDecision({
         isPostOwner: selectedPost.isOwner,
         isRepostTarget: isRepost,
-        targetAuthorId: repostTargetAuthorId,
         targetAuthorHandle: repostTargetAuthorHandle,
-        currentUserId: user?.id,
-        currentUserHandle: user?.handle,
+        currentUserId: authUserId,
+        currentUserHandle: authUserHandle,
     });
     const canSimpleRepost = repostPolicy.canSimpleRepost;
     const canQuoteRepost = repostPolicy.canQuoteRepost;
@@ -521,70 +554,86 @@ export default function CheerDetail() {
     return (
         <div className="min-h-screen bg-slate-50 pb-24 sm:pb-20 dark:bg-background">
             <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6 lg:px-8">
-                <article
+                <motion.article
+                    initial={detailMotion.articleEnter.initial}
+                    animate={detailMotion.articleEnter.animate}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                     className="relative mt-4 overflow-hidden rounded-[24px] border bg-white shadow-[0_20px_60px_-44px_rgba(15,23,42,0.42)] dark:bg-slate-950"
                     style={primaryBorderStyle}
                 >
                     <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: detailAccent }} />
 
                     <div className="relative px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-start justify-between gap-4">
+                        <motion.div
+                            initial={detailMotion.shortEnter.initial}
+                            animate={detailMotion.shortEnter.animate}
+                            transition={{ duration: 0.3, delay: 0.02, ease: [0.22, 1, 0.36, 1] }}
+                            className="flex flex-col gap-4"
+                        >
+                            <motion.div
+                                initial={detailMotion.shortEnter.initial}
+                                animate={detailMotion.shortEnter.animate}
+                                transition={{ duration: 0.26, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
+                                className="flex items-start justify-between gap-4"
+                            >
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-1.5">
                                         <button
                                             onClick={() => navigate(-1)}
-                                            className="rounded-full p-2 -ml-2 text-slate-700 transition-colors hover:bg-black/5 dark:text-slate-200 dark:hover:bg-white/10"
+                                            className="rounded-full p-1.5 -ml-2 text-slate-700 transition-colors hover:bg-black/5 sm:p-2 dark:text-slate-200 dark:hover:bg-white/10"
                                             aria-label="이전으로"
                                         >
                                             <ArrowLeft className="w-5 h-5" />
                                         </button>
-                                        <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm" style={softBadgeStyle}>
+                                        <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm sm:px-2.5 sm:py-1 sm:text-[11px]" style={softBadgeStyle}>
                                             <Megaphone className="h-3 w-3" />
                                             {teamName}
                                         </span>
                                         {selectedPost.postType === 'NOTICE' && (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-slate-900/10 bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white dark:border-white/10 dark:bg-white dark:text-slate-950">
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-slate-900/10 bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white sm:px-2.5 sm:py-1 sm:text-[11px] dark:border-white/10 dark:bg-white dark:text-slate-950">
                                                 공지
                                             </span>
                                         )}
                                         {selectedPost.isHot && (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-600 dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300">
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-600 sm:px-2.5 sm:py-1 sm:text-[11px] dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300">
                                                 <Flame className="h-3 w-3" />
                                                 HOT
                                             </span>
                                         )}
                                         {isSimpleRepost && (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 sm:px-2.5 sm:py-1 sm:text-[11px] dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
                                                 <Repeat2 className="h-3 w-3" />
-                                                리포스트
+                                                <span className="max-sm:hidden">리포스트</span>
+                                                <span className="sm:hidden">리포</span>
                                             </span>
                                         )}
                                         {isQuoteRepost && (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-600 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300">
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-600 sm:px-2.5 sm:py-1 sm:text-[11px] dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300">
                                                 <Quote className="h-3 w-3" />
-                                                인용 응원
+                                                <span className="max-sm:hidden">인용 응원</span>
+                                                <span className="sm:hidden">인용</span>
                                             </span>
                                         )}
                                         {selectedPost.shareMode?.startsWith('EXTERNAL_') && (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300">
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 sm:px-2.5 sm:py-1 sm:text-[11px] dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300">
                                                 <ExternalLink className="h-3 w-3" />
-                                                외부 출처
+                                                <span className="max-sm:hidden">외부 출처</span>
+                                                <span className="sm:hidden">외부</span>
                                             </span>
                                         )}
                                     </div>
 
-                                    <div className="mt-3 flex items-start gap-3">
+                                    <div className="mt-2.5 flex items-start gap-2.5 sm:mt-3 sm:gap-3">
                                         <div
-                                            className="relative h-10 w-10 flex-shrink-0 cursor-pointer rounded-full transition-transform hover:scale-[1.02] sm:h-11 sm:w-11"
+                                            className="relative h-9 w-9 flex-shrink-0 cursor-pointer rounded-full transition-transform hover:scale-[1.02] sm:h-10 sm:w-10"
                                             onClick={() => navigateToProfile(displayAuthorHandle)}
                                         >
                                             <ProfileAvatar
-                                                src={resolveProfileImage(displayAuthorProfileImageUrl)}
+                                                src={resolveProfileImage(displayAuthorProfileImageUrl) || undefined}
                                                 alt={displayAuthor}
                                                 fallbackName={displayAuthor}
-                                                width={44}
-                                                height={44}
+                                                width={48}
+                                                height={48}
                                                 showRing
                                                 ringClassName="p-px bg-black/5 dark:bg-white/10"
                                                 className="!h-full !w-full object-cover block image-render-quality"
@@ -610,11 +659,11 @@ export default function CheerDetail() {
                                             <button
                                                 type="button"
                                                 onClick={() => navigateToProfile(displayAuthorHandle)}
-                                                className="truncate text-left text-[16px] font-bold text-slate-950 transition-colors hover:underline dark:text-slate-50 sm:text-[18px]"
+                                                className="truncate text-left text-[15px] font-bold text-slate-950 transition-colors hover:underline dark:text-slate-50 sm:text-[18px]"
                                             >
                                                 {displayAuthor}
                                             </button>
-                                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-slate-500 dark:text-slate-400">
+                                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400 sm:text-[12px]">
                                                 <span>{displayAuthorHandleLabel}</span>
                                                 <span className="flex items-center gap-1">
                                                     <Clock3 className="h-3 w-3" />
@@ -633,7 +682,7 @@ export default function CheerDetail() {
                                     {selectedPost.isOwner ? (
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <button className="rounded-full p-2 text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-slate-100">
+                                                <button className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-700 sm:p-2 dark:hover:bg-white/10 dark:hover:text-slate-100">
                                                     <MoreVertical className="w-5 h-5" />
                                                 </button>
                                             </DropdownMenuTrigger>
@@ -648,44 +697,51 @@ export default function CheerDetail() {
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
-                                    ) : user ? (
+                                    ) : isLoggedIn ? (
                                         <button
                                             onClick={() => setIsReportModalOpen(true)}
-                                            className="rounded-full p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+                                            className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 sm:p-2 dark:hover:bg-red-500/10 dark:hover:text-red-300"
                                             title="신고하기"
                                         >
                                             <Flag className="w-5 h-5" />
                                         </button>
                                     ) : null}
                                 </div>
-                            </div>
+                            </motion.div>
 
-                            {isRepost && originalEmbeddedPost && (
-                                <div
-                                    className="rounded-[20px] border p-3.5 backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4"
-                                    style={{
-                                        ...primaryBorderStyle,
-                                        ...surfaceTintStyle,
-                                    }}
-                                >
-                                    <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: detailAccent }}>
-                                        {isQuoteRepost ? <Quote className="h-3.5 w-3.5" /> : <Repeat2 className="h-3.5 w-3.5" />}
-                                        <span>
-                                            {isSimpleRepost
-                                                ? '원본 글의 반응과 댓글이 그대로 연결됩니다.'
-                                                : '인용된 원문을 함께 확인할 수 있습니다.'}
-                                        </span>
-                                    </div>
-                                    {isQuoteRepost ? (
-                                        <EmbeddedPost
-                                            post={originalEmbeddedPost}
-                                            className="mt-4 bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-900"
-                                        />
-                                    ) : null}
-                                </div>
-                            )}
+                            <AnimatePresence>
+                                {isRepost && originalEmbeddedPost && (
+                                    <motion.div
+                                        key="repost-context"
+                                        initial={{ opacity: 0, y: -4, height: 0 }}
+                                        animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                        exit={{ opacity: 0, y: -4, height: 0 }}
+                                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                                        className="rounded-[20px] border p-3.5 backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4"
+                                        style={{
+                                            ...primaryBorderStyle,
+                                            ...surfaceTintStyle,
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: detailAccent }}>
+                                            {isQuoteRepost ? <Quote className="h-3.5 w-3.5" /> : <Repeat2 className="h-3.5 w-3.5" />}
+                                            <span>
+                                                {isSimpleRepost
+                                                    ? '원본 글의 반응과 댓글이 그대로 연결됩니다.'
+                                                    : '인용된 원문을 함께 확인할 수 있습니다.'}
+                                            </span>
+                                        </div>
+                                        {isQuoteRepost ? (
+                                            <EmbeddedPost
+                                                post={originalEmbeddedPost}
+                                                className="mt-4 bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-900"
+                                            />
+                                        ) : null}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
-                            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_196px]">
                                 <div className="min-w-0">
                                     <div
                                         className="rounded-[22px] border bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-5"
@@ -729,38 +785,41 @@ export default function CheerDetail() {
                                             </>
                                         )}
 
-                                        <div className="mt-4 grid grid-cols-4 gap-2">
-                                            <button
+                                        <div className="mt-4 grid grid-cols-4 gap-1.5">
+                                            <motion.button
+                                                whileHover={{ y: -1 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                transition={actionButtonTransition}
                                                 onClick={toggleLike}
+                                                aria-label={`좋아요 ${interactionLikeCount.toLocaleString()}`}
                                                 className={cn(
-                                                    'flex h-11 items-center justify-center gap-1 rounded-full border px-2 text-center transition-all sm:h-12 sm:gap-1.5',
+                                                    'flex h-9 items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all sm:h-10 sm:gap-1',
                                                     interactionLikedByMe
                                                         ? 'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300'
                                                         : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:bg-slate-950'
                                                 )}
                                             >
                                                 <Heart className={cn('h-3.5 w-3.5 flex-shrink-0 sm:h-4 sm:w-4', interactionLikedByMe && 'fill-current')} />
-                                                <span className="hidden text-[11px] font-semibold leading-none sm:inline">
-                                                    좋아요
-                                                </span>
-                                                <span className="text-xs font-bold leading-none sm:text-[13px]">{interactionLikeCount.toLocaleString()}</span>
-                                            </button>
+                                                <span className="text-[11px] font-bold leading-none sm:text-[13px]">{interactionLikeCount.toLocaleString()}</span>
+                                            </motion.button>
 
-                                            <button
+                                            <motion.button
+                                                whileHover={{ y: -1 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                transition={actionButtonTransition}
                                                 onClick={scrollToComments}
-                                                className="flex h-11 items-center justify-center gap-1 rounded-full border border-slate-200 bg-white px-2 text-center text-slate-700 transition-all hover:border-sky-200 hover:bg-sky-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-12 sm:gap-1.5"
+                                                aria-label={`댓글 ${commentCount.toLocaleString()}`}
+                                                className="flex h-9 items-center justify-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 text-center text-slate-700 transition-all hover:border-sky-200 hover:bg-sky-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-10 sm:gap-1"
+                                                type="button"
                                             >
                                                 <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 sm:h-4 sm:w-4" />
-                                                <span className="hidden text-[11px] font-semibold leading-none sm:inline">
-                                                    댓글
-                                                </span>
-                                                <span className="text-xs font-bold leading-none sm:text-[13px]">{commentCount.toLocaleString()}</span>
-                                            </button>
+                                                <span className="text-[11px] font-bold leading-none sm:text-[13px]">{commentCount.toLocaleString()}</span>
+                                            </motion.button>
 
                                             <Popover
                                                 open={isRepostPopoverOpen}
                                                 onOpenChange={(open: boolean) => {
-                                                    if (open && !user) {
+                                                    if (open && !isLoggedIn) {
                                                         toast.error('로그인이 필요한 서비스입니다.');
                                                         return;
                                                     }
@@ -768,9 +827,12 @@ export default function CheerDetail() {
                                                 }}
                                             >
                                                 <PopoverTrigger asChild>
-                                                    <button
+                                                    <motion.button
+                                                        whileHover={{ y: -1 }}
+                                                        whileTap={{ scale: 0.98 }}
+                                                        transition={actionButtonTransition}
                                                         className={cn(
-                                                            'flex h-11 items-center justify-center gap-1 rounded-full border px-2 text-center transition-all sm:h-12 sm:gap-1.5',
+                                                            'flex h-9 items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all sm:h-10 sm:gap-1',
                                                             repostButtonActive
                                                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300'
                                                                 : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-emerald-500/20 dark:hover:bg-emerald-500/10'
@@ -779,11 +841,8 @@ export default function CheerDetail() {
                                                         aria-pressed={repostButtonActive}
                                                     >
                                                         <Repeat2 className="h-3.5 w-3.5 flex-shrink-0 sm:h-4 sm:w-4" />
-                                                        <span className="hidden text-[11px] font-semibold leading-none sm:inline">
-                                                            {repostButtonActive ? '공유중' : '리포스트'}
-                                                        </span>
-                                                        <span className="text-xs font-bold leading-none sm:text-[13px]">{repostCount.toLocaleString()}</span>
-                                                    </button>
+                                                        <span className="text-[11px] font-bold leading-none sm:text-[13px]">{repostCount.toLocaleString()}</span>
+                                                    </motion.button>
                                                 </PopoverTrigger>
                                                 <PopoverContent
                                                     className="w-56 p-0"
@@ -856,245 +915,287 @@ export default function CheerDetail() {
                                                 </PopoverContent>
                                             </Popover>
 
-                                            <button
+                                            <motion.button
+                                                whileHover={{ y: -1 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                transition={actionButtonTransition}
                                                 onClick={toggleBookmark}
+                                                aria-label={`북마크 ${interactionBookmarkCount.toLocaleString()}`}
                                                 className={cn(
-                                                    'flex h-11 items-center justify-center gap-1 rounded-full border px-2 text-center transition-all sm:h-12 sm:gap-1.5',
+                                                    'flex h-9 items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all sm:h-10 sm:gap-1',
                                                     interactionBookmarked
                                                         ? 'border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300'
                                                         : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-amber-500/20 dark:hover:bg-amber-500/10'
                                                 )}
                                             >
                                                 <Bookmark className={cn('h-3.5 w-3.5 flex-shrink-0 sm:h-4 sm:w-4', interactionBookmarked && 'fill-current')} />
-                                                <span className="hidden text-[11px] font-semibold leading-none sm:inline">
-                                                    북마크
-                                                </span>
-                                                <span className="text-xs font-bold leading-none sm:text-[13px]">
+                                                <span className="text-[11px] font-bold leading-none sm:text-[13px]">
                                                     {interactionBookmarkCount.toLocaleString()}
                                                 </span>
-                                            </button>
+                                            </motion.button>
                                         </div>
                                     </div>
                                 </div>
 
-                                <aside className="space-y-3">
+                                <aside>
                                     <div
-                                        className="overflow-hidden rounded-[20px] border bg-slate-950 text-white shadow-lg"
-                                        style={{ borderColor: toRgba(detailAccent, 0.28) }}
+                                        className="rounded-[18px] border bg-white/85 p-3 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80"
+                                        style={primaryBorderStyle}
                                     >
-                                        <div className="border-b border-white/10 px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/70">
+                                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: detailAccent }}>
                                             응원 현황
-                                        </div>
-                                        <div className="space-y-3 px-3.5 py-3.5">
-                                            <div className="flex items-start gap-3">
-                                                <div className="mt-0.5 rounded-full p-1.5" style={{ backgroundColor: toRgba(detailAccent, 0.18) }}>
+                                        </p>
+                                        <div
+                                            className="mt-2.5 rounded-[14px] border px-2.5 py-2"
+                                            style={{
+                                                ...primaryBorderStyle,
+                                                ...surfaceTintStyle,
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span
+                                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full"
+                                                    style={{ backgroundColor: toRgba(detailAccent, 0.12), color: detailAccent }}
+                                                >
                                                     <Megaphone className="h-3.5 w-3.5" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[11px] text-white/60">응원 구단</p>
-                                                    <p className="text-[13px] font-semibold">{teamName}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-start gap-3">
-                                                <div className="mt-0.5 rounded-full bg-white/10 p-1.5">
-                                                    <Clock3 className="h-3.5 w-3.5" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[11px] text-white/60">원문 작성 시각</p>
-                                                    <p className="text-[13px] font-semibold">{createdAtLabel}</p>
+                                                </span>
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">응원 구단</p>
+                                                    <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-slate-100">{teamName}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-start gap-3">
-                                                <div className="mt-0.5 rounded-full bg-white/10 p-1.5">
-                                                    <Eye className="h-3.5 w-3.5" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[11px] text-white/60">조회수</p>
-                                                    <p className="text-[13px] font-semibold">{selectedPost.views.toLocaleString()}회</p>
-                                                </div>
+                                        </div>
+                                        <div className="mt-2 space-y-1.5">
+                                            <div className="flex items-center justify-between rounded-[14px] bg-slate-50 px-2.5 py-2 dark:bg-slate-950/70">
+                                                <span className="text-[11px] text-slate-500 dark:text-slate-400">원문 작성</span>
+                                                <span className="max-w-[108px] text-right text-[12px] font-semibold text-slate-800 dark:text-slate-100">{createdAtLabel}</span>
                                             </div>
-                                            <div className="flex items-start gap-3">
-                                                <div className="mt-0.5 rounded-full bg-white/10 p-1.5">
-                                                    <MessageSquare className="h-3.5 w-3.5" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[11px] text-white/60">대화 수</p>
-                                                    <p className="text-[13px] font-semibold">{commentCount.toLocaleString()}개</p>
-                                                </div>
+                                            <div className="flex items-center justify-between rounded-[14px] bg-slate-50 px-2.5 py-2 dark:bg-slate-950/70">
+                                                <span className="text-[11px] text-slate-500 dark:text-slate-400">조회수</span>
+                                                <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-100">{selectedPost.views.toLocaleString()}회</span>
+                                            </div>
+                                            <div className="flex items-center justify-between rounded-[14px] bg-slate-50 px-2.5 py-2 dark:bg-slate-950/70">
+                                                <span className="text-[11px] text-slate-500 dark:text-slate-400">대화 수</span>
+                                                <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-100">{commentCount.toLocaleString()}개</span>
                                             </div>
                                             {repostedAtLabel && (
-                                                <div className="rounded-[16px] border border-white/10 bg-white/[0.04] px-3 py-2">
-                                                    <p className="text-[11px] text-white/60">공유된 시각</p>
-                                                    <p className="mt-1 text-[13px] font-semibold">{repostedAtLabel}</p>
+                                                <div className="flex items-center justify-between rounded-[14px] bg-slate-50 px-2.5 py-2 dark:bg-slate-950/70">
+                                                    <span className="text-[11px] text-slate-500 dark:text-slate-400">공유 시각</span>
+                                                    <span className="max-w-[108px] text-right text-[12px] font-semibold text-slate-800 dark:text-slate-100">{repostedAtLabel}</span>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-
                                 </aside>
                             </div>
-                        </div>
-                    </div>
-                </article>
+                        </motion.div>
 
-                <section
-                    ref={commentsSectionRef}
-                    className="relative mt-6 overflow-hidden rounded-[24px] border bg-white shadow-sm dark:border-white/10 dark:bg-slate-950"
-                    style={primaryBorderStyle}
-                >
-                    <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: detailAccent }} />
-                    <div className="relative px-4 py-5 sm:px-5 lg:px-6">
-                        <div className="mb-4">
-                            <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: detailAccent }}>
-                                    댓글
-                                </p>
-                                <h3 className="mt-1.5 text-lg font-bold text-slate-900 dark:text-slate-100">댓글 {commentCount}개</h3>
-                                <p className="mt-0.5 text-[13px] text-slate-500 dark:text-slate-400">
-                                    응원은 댓글에서 더 뜨거워집니다.
-                                </p>
+                        <motion.div
+                            ref={commentsSectionRef}
+                            initial={detailMotion.shortEnter.initial}
+                            animate={detailMotion.shortEnter.animate}
+                            transition={{ duration: 0.26, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+                            className="mt-4 border-t border-slate-200/70 pt-4 dark:border-white/10"
+                        >
+                            <div className="mb-3">
+                                <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: detailAccent }}>
+                                        댓글
+                                    </p>
+                                    <h3 className="mt-1.5 text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">댓글 {commentCount}개</h3>
+                                    <p className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400 sm:text-[13px]">
+                                        응원은 댓글에서 더 뜨거워집니다.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
 
-                        {user ? (
-                            <div
-                                className="mb-6 rounded-[20px] border bg-white/85 p-3.5 shadow-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-4"
-                                style={primaryBorderStyle}
-                            >
-                                <div className="flex gap-3">
-                                    <ProfileAvatar
-                                        src={user.profileImageUrl ? resolveProfileImage(user.profileImageUrl) : undefined}
-                                        alt={user.name || user.email || '나'}
-                                        fallbackName={user.name || user.email || '나'}
-                                        width={36}
-                                        height={36}
-                                        showRing
-                                        ringClassName="p-px bg-black/5 dark:bg-white/10"
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                        <Textarea
-                                            value={commentText}
-                                            onChange={(e) => setCommentText(e.target.value)}
-                                            placeholder="오늘의 응원 한마디를 남겨보세요."
-                                            disabled={sendingComment}
-                                            aria-label="댓글 입력"
-                                            className="min-h-[84px] rounded-[16px] border-slate-200 bg-slate-50/90 px-3.5 py-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/70"
+                            {isLoggedIn ? (
+                                <div
+                                    className="mb-4 rounded-[20px] border bg-white/85 p-3 shadow-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-3.5"
+                                    style={primaryBorderStyle}
+                                >
+                                    <div className="flex gap-3">
+                                        <ProfileAvatar
+                                            src={authUserProfileImageUrl ? resolveProfileImage(authUserProfileImageUrl) : undefined}
+                                            alt={authUserDisplayName}
+                                            fallbackName={authUserDisplayName}
+                                            width={40}
+                                            height={40}
+                                            showRing
+                                            ringClassName="p-px bg-black/5 dark:bg-white/10"
                                         />
-                                        <div className="mt-2.5 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                                                서로를 존중하는 응원 문화를 지켜주세요.
-                                            </p>
-                                            <Button
-                                                onClick={handleCommentSubmit}
-                                                disabled={!commentText.trim() || sendingComment}
-                                                aria-label="댓글 등록"
-                                                className="h-9 rounded-full px-4 text-[13px] text-white"
-                                                style={{ backgroundColor: detailAccent }}
-                                            >
-                                                등록
-                                            </Button>
+                                        <div className="min-w-0 flex-1">
+                                            <Textarea
+                                                value={commentText}
+                                                onChange={(e) => setCommentText(e.target.value)}
+                                                placeholder="오늘의 응원 한마디를 남겨보세요."
+                                                disabled={sendingComment}
+                                                aria-label="댓글 입력"
+                                                className="min-h-[64px] rounded-[16px] border-slate-200 bg-slate-50/90 px-3.5 py-2.5 text-sm leading-5 dark:border-white/10 dark:bg-slate-950/70"
+                                            />
+                                            <div className="mt-2.5 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                    서로를 존중하는 응원 문화를 지켜주세요.
+                                                </p>
+                                                <Button
+                                                    onClick={handleCommentSubmit}
+                                                    disabled={!commentText.trim() || sendingComment}
+                                                    aria-label="댓글 등록"
+                                                    className="h-8 rounded-full px-4 text-[12px] text-white sm:h-9 sm:text-[13px]"
+                                                    style={{ backgroundColor: detailAccent }}
+                                                >
+                                                    등록
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <div
-                                className="mb-6 rounded-[20px] border p-5 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/80"
-                                style={{
-                                    ...primaryBorderStyle,
-                                    ...surfaceTintStyle,
-                                }}
-                            >
-                                <p className="text-sm text-slate-600 dark:text-slate-300">
-                                    댓글을 작성하려면 로그인이 필요합니다.
-                                </p>
-                                <Button
-                                    onClick={() => navigate('/login')}
-                                    className="mt-4 h-9 rounded-full px-4 text-[13px] text-white"
-                                    style={{ backgroundColor: detailAccent }}
+                            ) : (
+                                <div
+                                    className="mb-4 rounded-[20px] border p-4 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/80"
+                                    style={{
+                                        ...primaryBorderStyle,
+                                        ...surfaceTintStyle,
+                                    }}
                                 >
-                                    로그인하기
-                                </Button>
-                            </div>
-                        )}
-
-                        {commentsError ? (
-                            <div className="rounded-[20px] border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300">
-                                <p>{commentsError}</p>
-                                <Button
-                                    variant="outline"
-                                    className="mt-3 rounded-full"
-                                    onClick={() => resolvedPostId && loadComments(resolvedPostId)}
-                                    disabled={!resolvedPostId}
-                                >
-                                    다시 시도
-                                </Button>
-                            </div>
-                        ) : commentsLoading ? (
-                            <div aria-busy="true" aria-label="댓글 불러오는 중" className="space-y-4">
-                                {[1, 2, 3].map((item) => (
-                                    <div
-                                        key={item}
-                                        className="flex gap-4 rounded-[20px] border border-slate-200 bg-white/80 p-4 animate-pulse dark:border-white/10 dark:bg-slate-900/70"
+                                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                                        댓글을 작성하려면 로그인이 필요합니다.
+                                    </p>
+                                    <Button
+                                        onClick={() => navigate('/login')}
+                                        className="mt-4 h-9 rounded-full px-4 text-[13px] text-white"
+                                        style={{ backgroundColor: detailAccent }}
                                     >
-                                        <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800" />
-                                        <div className="flex-1 space-y-2">
-                                            <div className="h-3 w-24 rounded bg-slate-200 dark:bg-slate-800" />
-                                            <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-800" />
-                                            <div className="h-4 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
+                                        로그인하기
+                                    </Button>
+                                </div>
+                            )}
+
+                            {commentsError ? (
+                                <div className="rounded-[20px] border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300">
+                                    <p>{commentsError}</p>
+                                    <Button
+                                        variant="outline"
+                                        className="mt-3 rounded-full"
+                                        onClick={() => resolvedPostId && loadComments(resolvedPostId)}
+                                        disabled={!resolvedPostId}
+                                    >
+                                        다시 시도
+                                    </Button>
+                                </div>
+                            ) : commentsLoading ? (
+                                <div aria-busy="true" aria-label="댓글 불러오는 중" className="space-y-2">
+                                    {[1, 2, 3].map((item) => (
+                                        <div
+                                            key={item}
+                                            className="flex gap-3 rounded-[20px] border border-slate-200 bg-white/80 p-3 animate-pulse dark:border-white/10 dark:bg-slate-900/70"
+                                        >
+                                            <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800" />
+                                            <div className="flex-1 space-y-2">
+                                                <div className="h-3 w-24 rounded bg-slate-200 dark:bg-slate-800" />
+                                                <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-800" />
+                                                <div className="h-4 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : comments.length === 0 ? (
-                            <div
-                                className="rounded-[18px] border p-5 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-400"
-                                style={{
-                                    ...primaryBorderStyle,
-                                    ...surfaceTintStyle,
-                                }}
-                            >
-                                아직 댓글이 없습니다. 첫 댓글로 응원의 흐름을 시작해보세요.
-                            </div>
-                        ) : (
-                            <div role="list" aria-label="댓글 목록" className="space-y-4">
-                                {comments.map((comment) => (
+                                    ))}
+                                </div>
+                            ) : comments.length === 0 ? (
+                                <>
+                                    <AdSlot
+                                        slotId="cheer_detail_1"
+                                        pageType="cheer_detail"
+                                        contentId={resolvedPostId ? String(resolvedPostId) : null}
+                                        listIndex={3}
+                                        creativeType="native_card"
+                                        loggedIn={isLoggedIn}
+                                        userId={authUserId ? String(authUserId) : null}
+                                        wave="ads_wave2"
+                                        minHeight={152}
+                                        className="mb-4"
+                                    />
                                     <div
-                                        key={comment.id}
-                                        role="listitem"
-                                        className="rounded-[18px] border border-slate-200 bg-white/85 px-3.5 py-4 shadow-sm dark:border-white/10 dark:bg-slate-900/80"
+                                        className="rounded-[18px] border p-3 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-400"
+                                        style={{
+                                            ...primaryBorderStyle,
+                                            ...surfaceTintStyle,
+                                        }}
                                     >
-                                        <CommentItem
-                                            comment={comment}
-                                            canInteract={Boolean(user)}
-                                            canLike={Boolean(user)}
-                                            repliesEnabled={false}
-                                            repliesComingSoon={true}
-                                            activeReplyId={activeReplyId}
-                                            replyDraft={replyDraft}
-                                            isReplyPending={isReplyPending}
-                                            isCommentLikePending={false}
-                                            commentLikeAnimating={commentLikeAnimating}
-                                            onCommentLike={handleCommentLike}
-                                            onReplyToggle={handleReplyToggle}
-                                            onReplyChange={handleReplyChange}
-                                            onReplySubmit={handleReplySubmit}
-                                            onReplyCancel={handleReplyCancel}
-                                            onDelete={handleCommentDelete}
-                                            userEmail={user?.email}
-                                        />
+                                        아직 댓글이 없습니다. 첫 댓글로 응원의 흐름을 시작해보세요.
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                </>
+                            ) : (
+                                <>
+                                    {comments.length < 3 ? (
+                                        <AdSlot
+                                            slotId="cheer_detail_1"
+                                            pageType="cheer_detail"
+                                            contentId={resolvedPostId ? String(resolvedPostId) : null}
+                                            listIndex={3}
+                                            creativeType="native_card"
+                                            loggedIn={isLoggedIn}
+                                            userId={authUserId ? String(authUserId) : null}
+                                            wave="ads_wave2"
+                                            minHeight={152}
+                                            className="mb-4"
+                                        />
+                                    ) : null}
+                                    <motion.div
+                                        role="list"
+                                        aria-label="댓글 목록"
+                                        className="space-y-2"
+                                        variants={commentListVariants}
+                                        initial="hidden"
+                                        animate="show"
+                                    >
+                                        {comments.flatMap((comment, index) => [
+                                            <motion.div
+                                                key={comment.id}
+                                                variants={commentItemVariants}
+                                                layout
+                                                role="listitem"
+                                                className="rounded-[18px] border border-slate-200 bg-white/85 px-3 py-2.5 shadow-sm dark:border-white/10 dark:bg-slate-900/80"
+                                            >
+                                                <CommentItem
+                                                    comment={comment}
+                                                    canInteract={isLoggedIn}
+                                                    canLike={isLoggedIn}
+                                                    repliesEnabled={false}
+                                                    repliesComingSoon={true}
+                                                    activeReplyId={activeReplyId}
+                                                    replyDraft={replyDraft}
+                                                    isReplyPending={isReplyPending}
+                                                    isCommentLikePending={false}
+                                                    commentLikeAnimating={commentLikeAnimating}
+                                                    onCommentLike={handleCommentLike}
+                                                    onReplyToggle={handleReplyToggle}
+                                                    onReplyChange={handleReplyChange}
+                                                    onReplySubmit={handleReplySubmit}
+                                                    onReplyCancel={handleReplyCancel}
+                                                    onDelete={handleCommentDelete}
+                                                    userHandle={authUserHandle}
+                                                />
+                                            </motion.div>,
+                                            index === 2 ? (
+                                                <AdSlot
+                                                    key="cheer-detail-1"
+                                                    slotId="cheer_detail_1"
+                                                    pageType="cheer_detail"
+                                                    contentId={resolvedPostId ? String(resolvedPostId) : null}
+                                                    listIndex={3}
+                                                    creativeType="native_card"
+                                                    loggedIn={isLoggedIn}
+                                                    userId={authUserId ? String(authUserId) : null}
+                                                    wave="ads_wave2"
+                                                    minHeight={152}
+                                                />
+                                            ) : null,
+                                        ])}
+                                    </motion.div>
+                                </>
+                            )}
+                        </motion.div>
                     </div>
-                </section>
-
-                <UserProfileModal
-                    userId={viewingUserId}
-                    isOpen={isProfileModalOpen}
-                    onClose={() => setIsProfileModalOpen(false)}
-                />
+                </motion.article>
                 <ReportModal
                     postId={parsedPostId}
                     isOpen={isReportModalOpen}

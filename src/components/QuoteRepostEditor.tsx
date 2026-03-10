@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { CheerPost, EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import { useCheerMutations } from '../hooks/useCheerQueries';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import EmbeddedPost from './EmbeddedPost';
 import {
     Dialog,
@@ -24,7 +24,13 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
     const [content, setContent] = useState('');
     const { confirm } = useConfirmDialog();
     const { quoteRepostMutation } = useCheerMutations();
-    const user = useAuthStore((state) => state.user);
+  const {
+    userName: authUserName,
+    userHandle: authUserHandle,
+    userProfileImageUrl,
+  } = useAuthProfileSnapshot();
+  const userName = authUserName || '프로필';
+  const userHandle = authUserHandle || 'user';
     const resolveProfileImage = (imageUrl?: string | null) => {
         if (!imageUrl) return undefined;
         if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return undefined;
@@ -112,9 +118,9 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                     <div className="flex gap-3">
                         <div className="h-10 w-10 flex-shrink-0">
                             <ProfileAvatar
-                                src={resolveProfileImage(user?.profileImageUrl) || undefined}
-                                alt={user?.name || '프로필'}
-                                fallbackName={user?.name || '프로필'}
+                                src={resolveProfileImage(userProfileImageUrl) || undefined}
+                                alt={userName}
+                                fallbackName={userName}
                                 width={40}
                                 height={40}
                                 showRing
@@ -122,13 +128,13 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                             />
                         </div>
 
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 text-sm mb-2">
-                                <span className="font-semibold text-gray-900 dark:text-white">
-                                    {user?.name || '사용자'}
-                                </span>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 text-sm mb-2">
+                                    <span className="font-semibold text-gray-900 dark:text-white">
+                                    {userName}
+                                    </span>
                                 <span className="text-gray-500 dark:text-gray-300">
-                                    {user?.handle || '@user'}
+                                    @{userHandle}
                                 </span>
                             </div>
 
