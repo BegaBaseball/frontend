@@ -34,17 +34,18 @@ export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPre
 /**
  * 순위 예측 저장
  */
-export const saveRankingPrediction = async (data: SaveRankingRequest): Promise<void> => {
-  await api.post('/predictions/ranking', data);
+export const saveRankingPrediction = async (data: SaveRankingRequest): Promise<SavedPredictionResponse> => {
+  const response = await api.post('/predictions/ranking', data);
+  return response.data;
 };
 
 /**
  * 공유된 순위 예측 조회
  */
 export const fetchSharedPrediction = async (
-  userId: string,
+  shareId: string,
   seasonYear: string
 ): Promise<SavedPredictionResponse> => {
-  const response = await api.get(`/predictions/ranking/share/${userId}/${seasonYear}`);
+  const response = await api.get(`/predictions/ranking/share/${shareId}/${seasonYear}`);
   return response.data;
 };

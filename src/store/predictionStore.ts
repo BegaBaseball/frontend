@@ -23,13 +23,13 @@ const initialTeams: Team[] = [
 ];
 
 interface PredictionState {
-  // 순위 예측 관련
   rankings: (Team | null)[];
   availableTeams: Team[];
   allTeams: Team[];
   isPredictionSaved: boolean;
+}
 
-  // 순위 예측 함수들
+interface PredictionActions {
   addTeamToRanking: (team: Team) => void;
   removeTeamFromRanking: (index: number) => void;
   moveTeam: (fromIndex: number, toIndex: number) => void;
@@ -37,16 +37,23 @@ interface PredictionState {
   completePrediction: () => void;
   setIsPredictionSaved: (saved: boolean) => void;
   setRankings: (rankings: (Team | null)[]) => void;
+  reset: () => void;
 }
 
-export const usePredictionStore = create<PredictionState>()(
+type PredictionStore = PredictionState & PredictionActions;
+
+const getInitialState = (): PredictionState => ({
+  rankings: Array(10).fill(null),
+  availableTeams: [...initialTeams],
+  allTeams: [...initialTeams],
+  isPredictionSaved: false,
+});
+
+export const usePredictionStore = create<PredictionStore>()(
   persist(
     (set, get) => ({
       // 순위 예측 초기 상태
-      rankings: Array(10).fill(null),
-      availableTeams: [...initialTeams],
-      allTeams: [...initialTeams],
-      isPredictionSaved: false,
+      ...getInitialState(),
 
       setRankings: (newRankings: (Team | null)[]) => {
         const usedTeamIds = newRankings.filter(team => team !== null).map(team => team!.id);
@@ -95,11 +102,7 @@ export const usePredictionStore = create<PredictionState>()(
       },
 
       resetRankings: () => {
-        set({
-          rankings: Array(10).fill(null),
-          availableTeams: [...initialTeams],
-          isPredictionSaved: false,
-        });
+        set(getInitialState());
       },
 
       completePrediction: () => {
@@ -109,6 +112,9 @@ export const usePredictionStore = create<PredictionState>()(
       setIsPredictionSaved: (saved) => {
         set({ isPredictionSaved: saved });
       },
+
+      reset: () =>
+        set(getInitialState()),
     }),
     {
       name: 'prediction-storage',

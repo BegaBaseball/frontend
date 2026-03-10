@@ -13,7 +13,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { usePrediction } from '../hooks/usePrediction';
 import { useRankingsData } from '../api/home';
 import { fetchMyPredictionStats } from '../api/prediction';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import {
   formatDate,
   calculateVotePercentages,
@@ -75,7 +75,7 @@ export default function Prediction() {
     retryLoadMorePastMatches,
   } = usePrediction();
 
-  const user = useAuthStore((state) => state.user);
+  const { userCheerPoints = 0 } = useAuthProfileSnapshot();
 
   const { data: predictionStats } = useQuery({
     queryKey: ['prediction-stats-me'],
@@ -668,7 +668,7 @@ export default function Prediction() {
               <div className="flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full shadow-sm dark:bg-emerald-900/40 dark:border-emerald-800/40 dark:shadow-md">
                 <Coins className="w-4 h-4 text-emerald-700 fill-emerald-700 dark:text-emerald-200 dark:fill-emerald-200" />
                 <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-100 tabular-nums">
-                  {user?.cheerPoints?.toLocaleString() || 0} P
+                  {userCheerPoints.toLocaleString()} P
                 </span>
               </div>
             )}

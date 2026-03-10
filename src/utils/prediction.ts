@@ -552,6 +552,7 @@ export const getGameStatus = (
   currentDate: Date,
   options?: {
     gameStatus?: string | null;
+    status?: string | null;
     gameDate?: string | null;
     startTime?: string | null;
   }
@@ -576,7 +577,7 @@ export const getGameStatus = (
   const month = String(currentDate.getMonth() + 1).padStart(2, '0');
   const day = String(currentDate.getDate()).padStart(2, '0');
   const todayKey = `${year}-${month}-${day}`;
-  const normalizedStatus = options?.gameStatus?.toUpperCase() || '';
+  const normalizedStatus = (options?.gameStatus || options?.status || '').toUpperCase();
   const rawStatusCode = resolveGameStatusCode(normalizedStatus);
 
   const matchDate = options?.gameDate || game.gameDate || null;

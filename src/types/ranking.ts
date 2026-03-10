@@ -9,7 +9,7 @@ export interface SeasonResponse {
 
 export interface SavedPredictionResponse {
   id: number;
-  userId: string;
+  shareId: string | null;
   seasonYear: number;
   teamIdsInOrder: string[];
   teamDetails?: Array<{
