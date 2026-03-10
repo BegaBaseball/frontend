@@ -59,9 +59,9 @@ export default function BlockedUsersSection() {
                         <Loader2 className="h-8 w-8 animate-spin text-red-500" />
                     </div>
                 ) : users.length > 0 ? (
-            <div className="divide-y divide-border">
+                    <div className="divide-y divide-border">
                         {users.map((user) => (
-                            <div key={user.id} className="flex items-center justify-between p-4 hover:bg-muted/60 transition-colors">
+                            <div key={user.handle} className="flex items-center justify-between p-4 hover:bg-muted/60 transition-colors">
                                 <div
                                     className="flex items-center gap-3 flex-1 min-w-0 mr-4"
                                 >
@@ -85,7 +85,7 @@ export default function BlockedUsersSection() {
                                 </div>
 
                                 <BlockButton
-                                    userId={user.id}
+                                    handle={user.handle}
                                     userName={user.name}
                                     initialBlocked={true}
                                     size="sm"

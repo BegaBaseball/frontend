@@ -3,22 +3,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Button } from '../ui/button';
 import { AlertCircle, Loader2, User, X } from 'lucide-react';
-import { getFollowers, getFollowing } from '../../api/followApi';
+import { getPublicFollowers, getPublicFollowing } from '../../api/followApi';
 import FollowButton from './FollowButton';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthProfileSnapshot } from '../../store/authStore';
 
 interface UserListModalProps {
     isOpen: boolean;
     onClose: () => void;
-    userId: number;
+    userHandle: string;
     type: 'followers' | 'following';
     title: string;
 }
 
-export default function UserListModal({ isOpen, onClose, userId, type, title }: UserListModalProps) {
+export default function UserListModal({ isOpen, onClose, userHandle, type, title }: UserListModalProps) {
     const navigate = useNavigate();
-    const { user: currentUser } = useAuthStore();
+    const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
 
     const {
         data,
@@ -29,17 +29,17 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
         isError,
         refetch,
     } = useInfiniteQuery({
-        queryKey: ['userList', userId, type],
+        queryKey: ['userList', userHandle, type],
         queryFn: ({ pageParam = 0 }) => {
             if (type === 'followers') {
-                return getFollowers(userId, pageParam);
+                return getPublicFollowers(userHandle, pageParam);
             } else {
-                return getFollowing(userId, pageParam);
+                return getPublicFollowing(userHandle, pageParam);
             }
         },
         getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
         initialPageParam: 0,
-        enabled: isOpen && !!userId,
+        enabled: isOpen && !!userHandle,
     });
 
     // Infinite scroll handler
@@ -95,7 +95,7 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                     ) : users.length > 0 ? (
                         <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
                             {users.map((user) => (
-                                <div key={user.id} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                <div key={user.handle} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                                 <div
                                     className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 mr-4"
                                     onClick={() => handleUserClick(user.handle)}
@@ -120,9 +120,9 @@ export default function UserListModal({ isOpen, onClose, userId, type, title }: 
                                     </div>
 
                                     {/* 본인이 아닐 경우에만 팔로우 버튼 표시 */}
-                                    {String(currentUser?.id) !== String(user.id) && (
+                                    {currentUserHandle !== user.handle && (
                                         <FollowButton
-                                            userId={user.id}
+                                            handle={user.handle}
                                             initialFollowing={user.isFollowedByMe}
                                             size="sm"
                                             showNotifyOption={false}
