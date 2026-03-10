@@ -3,6 +3,9 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Camera, X, Ticket, Loader2 } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Checkbox } from '../ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { EMOJI_STATS, WINNING_OPTIONS, MAX_PHOTOS } from '../../constants/diary';
 import { getEmojiByName, getFullImageUrl, formatDateString, getWinningLabel } from '../../utils/diary';
 import { useDiaryView } from '../../hooks/useDiaryView';
@@ -11,7 +14,7 @@ import { useMonthCalendar } from '../../hooks/useMonthCalendar';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useQuery } from '@tanstack/react-query';
 import { analyzeTicket } from '../../api/ticket';
-import { DiaryFormData, DiaryEntry, Game } from '../../types/diary';
+import { DiaryFormData, DiaryEntry, DiaryPhotoFile, Game, SaveDiaryRequest, SeatViewCandidate, SeatViewSourceType } from '../../types/diary';
 import { UseMutationResult } from '@tanstack/react-query';
 
 interface DiaryReadModeProps {
@@ -25,7 +28,7 @@ interface DiaryReadModeProps {
 interface DiaryEditModeProps {
   diaryForm: DiaryFormData;
   updateForm: (updates: Partial<DiaryFormData>) => void;
-  handlePhotoUpload: (files: FileList | null) => Promise<void> | void;
+  handlePhotoUpload: (files: FileList | null, sourceType?: SeatViewSourceType) => Promise<void> | void;
   removePhoto: (index: number) => void;
   availableGames: Game[];
   selectedDiary: DiaryEntry | undefined;
@@ -33,8 +36,18 @@ interface DiaryEditModeProps {
   handleDateSelect: (date: Date) => void;
   selectedDate: Date;
   handleSaveDiary: () => void;
-  saveMutation: UseMutationResult<unknown, Error, Omit<DiaryEntry, 'id'>>;
-  updateMutation: UseMutationResult<unknown, Error, { id: number; data: DiaryEntry }>;
+  saveMutation: UseMutationResult<unknown, Error, SaveDiaryRequest>;
+  updateMutation: UseMutationResult<unknown, Error, { id: number; data: SaveDiaryRequest }>;
+  seatViewSelectionState: {
+    open: boolean;
+    diaryId: number | null;
+    candidates: SeatViewCandidate[];
+    selectedIds: number[];
+    submitting: boolean;
+  };
+  toggleSeatViewCandidate: (candidateId: number, checked: boolean) => void;
+  handleSeatViewSelectionConfirm: () => Promise<void> | void;
+  handleSeatViewSelectionSkip: () => Promise<void> | void;
 }
 
 export default function DiaryViewSection() {
@@ -57,6 +70,10 @@ export default function DiaryViewSection() {
     handleDeleteDiary,
     saveMutation,
     updateMutation,
+    seatViewSelectionState,
+    toggleSeatViewCandidate,
+    handleSeatViewSelectionConfirm,
+    handleSeatViewSelectionSkip,
     deleteMutation,
     diaryEntries,
     entriesLoading,
@@ -213,6 +230,10 @@ export default function DiaryViewSection() {
                 handleSaveDiary={handleSaveDiary}
                 saveMutation={saveMutation}
                 updateMutation={updateMutation}
+                seatViewSelectionState={seatViewSelectionState}
+                toggleSeatViewCandidate={toggleSeatViewCandidate}
+                handleSeatViewSelectionConfirm={handleSeatViewSelectionConfirm}
+                handleSeatViewSelectionSkip={handleSeatViewSelectionSkip}
               />
             )}
           </Card>
@@ -325,6 +346,10 @@ export default function DiaryViewSection() {
                 handleSaveDiary={handleSaveDiary}
                 saveMutation={saveMutation}
                 updateMutation={updateMutation}
+                seatViewSelectionState={seatViewSelectionState}
+                toggleSeatViewCandidate={toggleSeatViewCandidate}
+                handleSeatViewSelectionConfirm={handleSeatViewSelectionConfirm}
+                handleSeatViewSelectionSkip={handleSeatViewSelectionSkip}
               />
             )}
           </Card>
@@ -451,12 +476,10 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
   );
 }
 
-const getPhotoPreviewUrl = (photo: string | File): string => {
-  if (photo instanceof File) {
-    // File 객체면 임시 미리보기 URL 생성
-    return URL.createObjectURL(photo);
+const getPhotoPreviewUrl = (photo: string | DiaryPhotoFile): string => {
+  if (typeof photo !== 'string') {
+    return URL.createObjectURL(photo.file);
   }
-  // 문자열이면 기존 storage URL
   return getFullImageUrl(photo);
 };
 
@@ -473,6 +496,10 @@ function DiaryEditMode({
   handleSaveDiary,
   saveMutation,
   updateMutation,
+  seatViewSelectionState,
+  toggleSeatViewCandidate,
+  handleSeatViewSelectionConfirm,
+  handleSeatViewSelectionSkip,
 }: DiaryEditModeProps) {
   const [isScanning, setIsScanning] = useState(false);
 
@@ -513,10 +540,15 @@ function DiaryEditMode({
         updateForm(seatUpdates);
       }
 
-      // 스캔한 티켓 이미지도 사진으로 추가
-      await handlePhotoUpload(files);
+      if (ticketInfo.verificationToken) {
+        updateForm({ ticketVerificationToken: ticketInfo.verificationToken || undefined });
+      }
 
-      toast.success('티켓 분석 완료!', { description: `경기장: ${ticketInfo.stadium || '미확인'} / 날짜: ${ticketInfo.date || '미확인'} / 좌석: ${ticketInfo.section || ''} ${ticketInfo.row || ''} ${ticketInfo.seat || ''}` });
+      await handlePhotoUpload(files, 'TICKET_SCAN');
+
+      toast.success('티켓 분석 완료!', {
+        description: `경기장: ${ticketInfo.stadium || '미확인'} / 날짜: ${ticketInfo.date || '미확인'} / 좌석: ${ticketInfo.section || ''} ${ticketInfo.row || ''} ${ticketInfo.seat || ''}`,
+      });
 
     } catch (error) {
       console.error('Ticket scan error:', error);
@@ -526,10 +558,7 @@ function DiaryEditMode({
     }
   };
 
-  const allPhotos = [
-    ...diaryForm.photos,      // DB에 저장된 URL들
-    ...diaryForm.photoFiles,  // 새로 추가한 File 객체들
-  ];
+  const allPhotos = [...diaryForm.photos, ...diaryForm.photoFiles];
 
   return (
     <div className="space-y-4">
@@ -561,6 +590,13 @@ function DiaryEditMode({
           />
         </label>
         <p className="text-xs text-muted-foreground text-center mt-1">티켓 사진을 올리면 AI가 자동으로 정보를 채워줍니다</p>
+        {(diaryForm.ticketVerified || diaryForm.ticketVerificationToken) && (
+          <div className="mt-2 flex justify-center">
+            <Badge className="border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+              {diaryForm.ticketVerified ? '티켓 인증 완료' : '티켓 인증 준비됨'}
+            </Badge>
+          </div>
+        )}
       </div>
 
       {/* 직관 유형 선택 */}
@@ -634,13 +670,23 @@ function DiaryEditMode({
         <div>
           <label className="text-sm text-muted-foreground mb-3 block">사진 추가</label>
           <div className="grid grid-cols-3 gap-3">
-            {allPhotos.map((photo: string | File, index: number) => (
+            {allPhotos.map((photo: string | DiaryPhotoFile, index: number) => (
               <div key={index} className="relative aspect-square">
                 <img
                   src={getPhotoPreviewUrl(photo)}
                   alt={`업로드 ${index + 1}`}
                   className="w-full h-full object-cover rounded-lg"
                 />
+                {typeof photo !== 'string' && (
+                  <div className="absolute left-2 top-2">
+                    <Badge className={`border-0 ${photo.sourceType === 'TICKET_SCAN'
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                      : 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'
+                      }`}>
+                      {photo.sourceType === 'TICKET_SCAN' ? '티켓' : '일반'}
+                    </Badge>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => removePhoto(index)}
@@ -658,7 +704,7 @@ function DiaryEditMode({
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={(e) => handlePhotoUpload(e.target.files)}
+                  onChange={(e) => handlePhotoUpload(e.target.files, 'DIARY_UPLOAD')}
                   className="hidden"
                 />
               </label>
@@ -698,7 +744,7 @@ function DiaryEditMode({
           <div className="flex items-center justify-between">
             <label className="text-sm font-bold text-primary">좌석 정보</label>
             <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
-              📸 사진 + 좌석 정보 = +50 포인트
+              티켓 인증 + 승인 시야뷰 = 리워드 대상
             </span>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -810,6 +856,96 @@ function DiaryEditMode({
               : '작성하기'}
         </Button>
       </div>
+
+      <Dialog
+        open={seatViewSelectionState.open}
+        onOpenChange={(open) => {
+          if (!open && seatViewSelectionState.open && !seatViewSelectionState.submitting) {
+            handleSeatViewSelectionSkip();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>AI 추천 시야뷰 확인</DialogTitle>
+            <DialogDescription>
+              공개할 시야뷰 사진을 선택하세요. 티켓 스캔 이미지는 개인 다이어리에는 남지만 공개 갤러리에는 자동 제외됩니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3 max-h-[60vh] overflow-y-auto">
+            {seatViewSelectionState.candidates.map((candidate) => {
+              const checked = seatViewSelectionState.selectedIds.includes(candidate.id);
+              const confidenceLabel = candidate.aiConfidence != null
+                ? `${Math.round(candidate.aiConfidence * 100)}%`
+                : '미분류';
+
+              return (
+                <label
+                  key={candidate.id}
+                  className={`flex gap-3 rounded-xl border p-3 transition-colors ${candidate.shareEligible
+                    ? 'cursor-pointer border-border hover:border-primary'
+                    : 'cursor-not-allowed border-dashed border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/20'
+                    }`}
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(value) => toggleSeatViewCandidate(candidate.id, Boolean(value))}
+                    disabled={!candidate.shareEligible || seatViewSelectionState.submitting}
+                    className="mt-1"
+                  />
+                  <img
+                    src={candidate.previewUrl}
+                    alt="시야뷰 후보"
+                    className="h-24 w-24 rounded-lg object-cover"
+                  />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge className="border-0 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        {candidate.sourceType === 'TICKET_SCAN' ? '티켓 스캔' : '일반 업로드'}
+                      </Badge>
+                      {candidate.aiSuggestedLabel && (
+                        <Badge className={`border-0 ${candidate.aiSuggestedLabel === 'SEAT_VIEW'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                          : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
+                          }`}>
+                          AI: {candidate.aiSuggestedLabel}
+                        </Badge>
+                      )}
+                      <Badge className="border-0 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+                        신뢰도 {confidenceLabel}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {candidate.shareEligible
+                        ? '선택한 사진만 검토 대기 상태로 올라갑니다.'
+                        : '이 사진은 공개 시야뷰 후보로 제출할 수 없습니다.'}
+                    </p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleSeatViewSelectionSkip()}
+              disabled={seatViewSelectionState.submitting}
+            >
+              이번엔 공유 안 함
+            </Button>
+            <Button
+              type="button"
+              onClick={() => handleSeatViewSelectionConfirm()}
+              disabled={seatViewSelectionState.submitting}
+            >
+              {seatViewSelectionState.submitting ? '제출 중...' : '선택한 사진 제출'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -80,6 +80,41 @@ export interface AdminReportFilters {
   toDate: string;
 }
 
+export interface AdminSeatView {
+  id: number;
+  diaryId: number;
+  userId: number;
+  photoUrl: string;
+  storagePath: string;
+  sourceType: string;
+  aiSuggestedLabel: string | null;
+  aiConfidence: number | null;
+  aiReason: string | null;
+  userSelected: boolean;
+  moderationStatus: string | null;
+  adminLabel: string | null;
+  adminMemo: string | null;
+  reviewedBy: number | null;
+  reviewedAt: string | null;
+  rewardGranted: boolean;
+  stadium: string;
+  section: string | null;
+  block: string | null;
+  seatRow: string | null;
+  seatNumber: string | null;
+  diaryDate: string | null;
+  ticketVerified: boolean;
+  ticketVerifiedAt: string | null;
+}
+
+export interface AdminSeatViewFilters {
+  moderationStatus: string;
+  stadium: string;
+  aiSuggestedLabel: string;
+  adminLabel: string;
+  ticketVerified: string;
+}
+
 export interface AdminApiResponse<T> {
   success: boolean;
   data: T;

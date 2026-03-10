@@ -1,5 +1,22 @@
 export type DiaryType = 'attended' | 'scheduled';
 export type WinningType = 'WIN' | 'DRAW' | 'LOSE' | '';
+export type SeatViewSourceType = 'DIARY_UPLOAD' | 'TICKET_SCAN';
+export type SeatViewLabel = 'SEAT_VIEW' | 'TICKET' | 'OTHER' | 'INAPPROPRIATE';
+
+export interface DiaryPhotoFile {
+  file: File;
+  sourceType: SeatViewSourceType;
+}
+
+export interface SeatViewCandidate {
+  id: number;
+  storagePath: string;
+  previewUrl: string;
+  sourceType: SeatViewSourceType;
+  aiSuggestedLabel: SeatViewLabel | null;
+  aiConfidence: number | null;
+  shareEligible: boolean;
+}
 
 export interface Game {
   id: number;
@@ -26,6 +43,7 @@ export interface DiaryEntry {
   block?: string;
   seatRow?: string;
   seatNumber?: string;
+  ticketVerified?: boolean;
 }
 
 export interface DiaryFormData {
@@ -36,11 +54,13 @@ export interface DiaryFormData {
   gameId: number;
   memo: string;
   photos: string[];
-  photoFiles: File[];
+  photoFiles: DiaryPhotoFile[];
   section?: string;
   block?: string;
   seatRow?: string;
   seatNumber?: string;
+  ticketVerificationToken?: string;
+  ticketVerified?: boolean;
 }
 
 export interface SaveDiaryRequest {
@@ -58,6 +78,7 @@ export interface SaveDiaryRequest {
   block?: string;
   seatRow?: string;
   seatNumber?: string;
+  ticketVerificationToken?: string;
 }
 
 export interface DiaryStatistics {

@@ -1,5 +1,5 @@
 import api from './axios';
-import { Game, SaveDiaryRequest, DiaryStatistics, DiaryEntry, SeatViewReward } from '../types/diary';
+import { Game, SaveDiaryRequest, DiaryStatistics, DiaryEntry, SeatViewCandidate, DiaryPhotoFile } from '../types/diary';
 
 /**
  * 특정 날짜의 경기 목록 조회
@@ -19,7 +19,7 @@ export async function fetchDiaries(): Promise<DiaryEntry[]> {
 
 export interface SaveDiaryResponse {
   id: number;
-  seatViewReward?: SeatViewReward;
+  ticketVerified?: boolean;
   [key: string]: unknown;
 }
 
@@ -51,16 +51,17 @@ export async function deleteDiary(id: number): Promise<void> {
  */
 export interface UploadDiaryImagesResponse {
   photos: string[];
-  seatViewReward?: SeatViewReward;
+  candidates: SeatViewCandidate[];
 }
 
 export async function uploadDiaryImages(
   diaryId: number,
-  files: File[]
+  files: DiaryPhotoFile[]
 ): Promise<UploadDiaryImagesResponse> {
   const formData = new FormData();
-  files.forEach((file) => {
+  files.forEach(({ file, sourceType }) => {
     formData.append('images', file);
+    formData.append('sourceTypes', sourceType);
   });
 
   const response = await api.post(`/diary/${diaryId}/images`, formData, {
@@ -72,8 +73,13 @@ export async function uploadDiaryImages(
   const result = response.data;
   return {
     photos: result.photos || result.data?.photos || [],
-    seatViewReward: result.seatViewReward,
+    candidates: result.candidates || result.data?.candidates || [],
   };
+}
+
+export async function submitSeatViewSelections(diaryId: number, candidateIds: number[]): Promise<SeatViewCandidate[]> {
+  const response = await api.post(`/diary/${diaryId}/seat-view-selections`, { candidateIds });
+  return response.data?.candidates || response.data?.data?.candidates || [];
 }
 
 /**
