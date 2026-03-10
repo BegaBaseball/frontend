@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { parseError } from '../utils/errorUtils';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { useAuthAccessActions, useAuthProfileActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Smile, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -18,6 +18,7 @@ import CheerCard from './CheerCard';
 import CheerBattleBanner from './CheerBattleBanner';
 import CheerHot from './CheerHot';
 import CheerWriteModal, { CheerWritePayload } from './CheerWriteModal';
+import AdSlot from './ads/AdSlot';
 import EndOfFeed from './EndOfFeed';
 import ErrorBoundary from './common/ErrorBoundary';
 import { ProfileAvatar } from './ui/ProfileAvatar';
@@ -48,7 +49,18 @@ interface CheerProps {
 
 export default function Cheer({ openComposerOnMount = false }: CheerProps) {
     const navigate = useNavigate();
-    const { user, isAuthLoading, fetchProfileAndAuthenticate } = useAuthStore();
+    const {
+        userId: authUserId,
+        userEmail: authUserEmail,
+        userHandle: authUserHandle,
+        userName: authUserName,
+        userFavoriteTeam: authUserFavoriteTeam,
+        userFavoriteTeamColor: authUserFavoriteTeamColor,
+        userProfileImageUrl: authUserProfileImageUrl,
+    } = useAuthProfileSnapshot();
+    const { isLoggedIn, isAuthLoading } = useAuthSession();
+    const { fetchProfileAndAuthenticate } = useAuthProfileActions();
+    const { requireLogin } = useAuthAccessActions();
     const queryClient = useQueryClient();
     const today = useMemo(() => new Date(), []);
     const feedTabs = useMemo<FeedTabConfig[]>(
@@ -63,23 +75,28 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
     const hasFetchedProfile = useRef(false);
     const didOpenComposerFromRoute = useRef(false);
     const didNotifyLoginRequiredFromWriteRoute = useRef(false);
+    const hasFavoriteTeam = authUserFavoriteTeam && authUserFavoriteTeam !== '없음';
+    const userDisplayName = authUserName || authUserEmail || '나';
+    const userProfilePath = authUserHandle
+        ? `/profile/${authUserHandle.startsWith('@') ? authUserHandle : `@${authUserHandle}`}`
+        : '/mypage';
 
     useEffect(() => {
         if (isAuthLoading) return;
-        if (!user) return;
-        if (user.favoriteTeam && user.favoriteTeam !== '없음') return;
+        if (!isLoggedIn) return;
+        if (hasFavoriteTeam) return;
         if (hasFetchedProfile.current) return;
 
         hasFetchedProfile.current = true;
         fetchProfileAndAuthenticate();
-    }, [fetchProfileAndAuthenticate, isAuthLoading, user?.favoriteTeam]);
+    }, [fetchProfileAndAuthenticate, hasFavoriteTeam, isAuthLoading, isLoggedIn]);
 
     useEffect(() => {
         if (!openComposerOnMount) return;
         if (didOpenComposerFromRoute.current) return;
         if (isAuthLoading) return;
 
-        if (!user) {
+        if (!isLoggedIn) {
             if (!didNotifyLoginRequiredFromWriteRoute.current) {
                 didNotifyLoginRequiredFromWriteRoute.current = true;
                 toast.error('로그인이 필요한 서비스입니다.');
@@ -89,17 +106,17 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
 
         didOpenComposerFromRoute.current = true;
         setIsWriteModalOpen(true);
-    }, [openComposerOnMount, isAuthLoading, user]);
+    }, [openComposerOnMount, isAuthLoading, isLoggedIn]);
 
     const handleWriteClick = () => {
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
         navigate('/cheer/write');
     };
 
-    const teamColor = normalizeHexColor(user?.favoriteTeamColor || DEFAULT_BRAND_COLOR);
+    const teamColor = normalizeHexColor(authUserFavoriteTeamColor || DEFAULT_BRAND_COLOR);
     const teamAccent = getReadableAccent(teamColor);
     const teamContrastText = getContrastText(teamColor);
     const teamSoftBg = toRgba(teamColor, 0.12);
@@ -109,7 +126,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
         if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
         return imageUrl;
     };
-    const favoriteTeamId = user?.favoriteTeam && user.favoriteTeam !== '없음' ? user.favoriteTeam : null;
+    const favoriteTeamId = hasFavoriteTeam ? authUserFavoriteTeam : null;
     const favoriteTeamLabel = favoriteTeamId ? TEAM_DATA[favoriteTeamId]?.name ?? favoriteTeamId : null;
     const favoriteTeamFull = favoriteTeamId ? TEAM_DATA[favoriteTeamId]?.fullName ?? favoriteTeamId : null;
     const { data: todaysGames = [], isLoading: isGamesLoading, isError: isGamesError, refetch: refetchGames } = useGamesData(today);
@@ -143,7 +160,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
         if (liveGames.length) return liveGames[0];
         return todaysGames[0];
     }, [favoriteTeamFull, favoriteTeamId, favoriteTeamLabel, todaysGames]);
-    const teamId = user?.favoriteTeam && user.favoriteTeam !== '없음' ? user.favoriteTeam : 'all';
+    const teamId = hasFavoriteTeam ? authUserFavoriteTeam : 'all';
     const teamLogoId = teamId !== 'all' ? teamId : undefined;
     const rawTeamName = teamId !== 'all' ? getTeamNameById(teamId) : 'KBO 리그';
     const teamLabel = TEAM_DATA[teamId]?.name || rawTeamName.split(' ')[0];
@@ -276,11 +293,11 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
             sourceChangedNote?: string;
             sourceSnapshotType?: string;
         }) => {
-            if (!user?.favoriteTeam) {
+            if (!hasFavoriteTeam) {
                 throw new Error('favoriteTeam-required');
             }
             const created = await createCheerPost({
-                teamId: user.favoriteTeam,
+                teamId: authUserFavoriteTeam,
                 content: payload.content,
                 postType: payload.postType ?? 'NORMAL',
                 shareMode: payload.shareMode,
@@ -338,18 +355,15 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
             const optimisticId = Date.now() * -1;
             const optimisticPost: CheerPost = {
                 id: optimisticId,
-                teamId: user?.favoriteTeam || 'ALL',
-                team: user?.favoriteTeam || 'ALL',
+                teamId: authUserFavoriteTeam || 'ALL',
+                team: authUserFavoriteTeam || 'ALL',
                 teamColor,
                 content: payload.content,
-                author: user?.name || user?.email || '나',
-                authorId: user?.id || 0,
-                authorHandle: user?.handle || '',
-                authorProfileImageUrl: user?.profileImageUrl ?? undefined,
-                authorTeamId: user?.favoriteTeam || undefined,
+                author: userDisplayName,
+                authorHandle: authUserHandle || '',
+                authorProfileImageUrl: authUserProfileImageUrl ?? undefined,
+                authorTeamId: authUserFavoriteTeam || undefined,
                 timeAgo: '방금 전',
-                comments: 0,
-                likes: 0,
                 likeCount: 0,
                 commentCount: 0,
                 bookmarkCount: 0,
@@ -357,10 +371,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                 views: 0,
                 isHot: false,
                 liked: false,
-                likedByUser: false,
                 bookmarked: false,
-                isBookmarked: false,
-                images: composerPreviews.map((preview) => preview.url),
                 imageUrls: composerPreviews.map((preview) => preview.url),
                 imageUploadFailed: false,
                 postType: payload.postType ?? 'NORMAL',
@@ -414,7 +425,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
             }
             const parsedError = parseError(_error);
             if (parsedError.responseCode === 'INVALID_AUTHOR') {
-                useAuthStore.getState().setShowLoginRequiredDialog(true);
+                requireLogin();
                 toast.error(parsedError.message || '인증된 사용자 정보를 확인할 수 없어 다시 로그인해 주세요.');
             } else {
                 toast.error(parsedError.message || '게시글 등록에 실패했습니다.');
@@ -452,11 +463,11 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
     });
 
     const handleComposerSubmit = async () => {
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
-        if (!user.favoriteTeam || user.favoriteTeam === '없음') {
+        if (!hasFavoriteTeam) {
             toast.warning('마이페이지에서 응원팀을 설정해주세요!');
             return;
         }
@@ -531,7 +542,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
         staleTime: 60 * 1000, // 1 minute
         gcTime: 5 * 60 * 1000, // 5 minutes
         // 팔로우 탭은 로그인 필수
-        enabled: activeFeedTab !== 'following' || !!user,
+        enabled: activeFeedTab !== 'following' || isLoggedIn,
     });
 
     const currentPosts = useMemo(() => {
@@ -650,7 +661,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                 { id: 'home', label: '홈', icon: Home, path: '/home' },
                                 { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
                                 { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-                                { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage' },
+                                { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
                                 { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
                             ].map((item) => {
                                 const Icon = item.icon;
@@ -677,7 +688,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    if (!user) {
+                                    if (!isLoggedIn) {
                                         toast.error('로그인이 필요한 서비스입니다.');
                                         return;
                                     }
@@ -727,14 +738,14 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                             </nav>
 
                             {newPostCount > 0 && (
-                            <button
-                                onClick={handleNewPostsClick}
-                                className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
-                                style={{
-                                    backgroundColor: teamSoftBg,
-                                    borderColor: teamSoftBorder,
-                                    color: teamAccent,
-                                }}
+                                <button
+                                    onClick={handleNewPostsClick}
+                                    className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
+                                    style={{
+                                        backgroundColor: teamSoftBg,
+                                        borderColor: teamSoftBorder,
+                                        color: teamAccent,
+                                    }}
                                 >
                                     <ArrowUp className="w-4 h-4" />
                                     새 글 {newPostCount}개 보기
@@ -779,17 +790,17 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                 )}
                                 <div className="flex gap-3">
                                     <div className="h-10 w-10 shrink-0">
-                                        {user?.profileImageUrl ? (
+                                        {authUserProfileImageUrl ? (
                                             <ProfileAvatar
-                                                src={resolveProfileImage(user.profileImageUrl) || undefined}
-                                                alt={user.name || '프로필'}
-                                                fallbackName={user.name || '프로필'}
+                                                src={resolveProfileImage(authUserProfileImageUrl) || undefined}
+                                                alt={authUserName || '프로필'}
+                                                fallbackName={authUserName || '프로필'}
                                                 width={40}
                                                 height={40}
                                                 showRing
                                                 ringClassName="p-px bg-black/5 dark:bg-white/10"
                                             />
-                                        ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
+                                        ) : hasFavoriteTeam ? (
                                             <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/5 dark:bg-white/10 p-px overflow-hidden">
                                                 <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
                                                     <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
@@ -797,8 +808,8 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                             </span>
                                         ) : (
                                             <ProfileAvatar
-                                                alt={user?.name || '프로필'}
-                                                fallbackName={user?.name || '프로필'}
+                                                alt={authUserName || '프로필'}
+                                                fallbackName={authUserName || '프로필'}
                                                 width={40}
                                                 height={40}
                                                 showRing
@@ -946,7 +957,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                             다시 시도
                                         </button>
                                     </div>
-                                ) : activeFeedTab === 'following' && !user ? (
+                                ) : activeFeedTab === 'following' && !isLoggedIn ? (
                                     <div className="border-b border-border/70 dark:border-border px-4 sm:px-6 py-8 sm:py-10 text-center">
                                         <p className="text-[#64748B] dark:text-gray-300">로그인이 필요합니다</p>
                                         <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">팔로우한 유저의 글을 보려면 로그인해주세요.</p>
@@ -975,7 +986,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                     </div>
                                 ) : (
                                     <div className="px-4 py-4 space-y-4">
-                                        {currentPosts.map((post) => (
+                                        {currentPosts.flatMap((post, index) => [
                                             <ErrorBoundary
                                                 key={post.id}
                                                 fallback={(
@@ -985,8 +996,20 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                                 )}
                                             >
                                                 <CheerCard post={post} />
-                                            </ErrorBoundary>
-                                        ))}
+                                            </ErrorBoundary>,
+                                            index === 3 ? (
+                                                <AdSlot
+                                                    key="cheer-feed-1"
+                                                    slotId="cheer_feed_1"
+                                                    pageType="cheer_feed"
+                                                    listIndex={4}
+                                                    creativeType="native_card"
+                                                    loggedIn={Boolean(authUserId)}
+                                                    userId={authUserId ? String(authUserId) : null}
+                                                    minHeight={156}
+                                                />
+                                            ) : null,
+                                        ])}
                                     </div>
                                 )}
                                 <div ref={sentinelRef} className="flex min-h-[120px] items-center justify-center">
@@ -1147,7 +1170,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                         { id: 'home', label: '홈', icon: Home, path: '/home' },
                         { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
                         { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-                        { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage' },
+                        { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
                     ].map((item) => {
                         const Icon = item.icon;
                         const isActive = item.id === 'team';

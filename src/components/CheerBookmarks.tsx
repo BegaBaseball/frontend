@@ -4,12 +4,13 @@ import { Bookmark, Home, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { fetchBookmarks } from '../api/cheerApi';
 import CheerCard from './CheerCard';
 import { cn } from '../lib/utils';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 
 export default function CheerBookmarks() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuthStore();
+  const { userHandle } = useAuthProfileSnapshot();
+  const userProfilePath = userHandle ? `/profile/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}` : '/mypage';
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['cheer-bookmarks'],
@@ -24,7 +25,7 @@ export default function CheerBookmarks() {
     { id: 'home', label: '홈', icon: Home, path: '/home' },
     { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
     { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-    { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage' },
+    { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
     { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
   ];
 
@@ -147,7 +148,7 @@ export default function CheerBookmarks() {
             { id: 'home', label: '홈', icon: Home, path: '/home' },
             { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
             { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-            { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle}` : '/mypage' },
+            { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
             { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
           ].map((item) => {
             const Icon = item.icon;
