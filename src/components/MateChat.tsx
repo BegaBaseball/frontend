@@ -32,7 +32,7 @@ import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import { useMateStore } from '../store/mateStore';
 import { uploadChatImage, updateChatReadTimestamp } from '../api/mate';
 import { Application, ChatMessage } from '../types/mate';
@@ -47,7 +47,7 @@ import {
   mateSectionCardClass,
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
-import { formatGameDate } from '../utils/mate';
+import { formatGameDate, isPartyHostedByUser } from '../utils/mate';
 import { getMatePaymentMode } from '../utils/paymentMode';
 
 const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
@@ -109,7 +109,12 @@ export default function MateChat() {
     error: partyError,
   } = useMatePartyFromRoute(id);
   const validateChatMessage = useMateStore((state) => state.validateChatMessage);
-  const authUser = useAuthStore((state) => state.user);
+  const {
+    userId: authUserId,
+    userEmail: authUserEmail,
+    userName: authUserName,
+    userHandle: authUserHandle,
+  } = useAuthProfileSnapshot();
 
   const [messageText, setMessageText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -117,6 +122,7 @@ export default function MateChat() {
     id: number;
     email: string;
     name: string;
+    handle?: string | null;
   } | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [myApplication, setMyApplication] = useState<Application | null>(null);
@@ -135,8 +141,6 @@ export default function MateChat() {
   const pendingWsSendsRef = useRef<Array<{
     payload: {
       partyId: number;
-      senderId: number;
-      senderName: string;
       message: string;
       imageUrl?: string;
     };
@@ -208,11 +212,12 @@ export default function MateChat() {
   }, [imagePreviewUrl]);
 
   useEffect(() => {
-    if (authUser?.id) {
+    if (authUserId) {
       setCurrentUser({
-        id: authUser.id,
-        email: authUser.email,
-        name: authUser.name ?? '',
+        id: authUserId,
+        email: authUserEmail ?? '',
+        name: authUserName ?? '',
+        handle: authUserHandle ?? null,
       });
       setIsLoadingUser(false);
       return;
@@ -226,6 +231,7 @@ export default function MateChat() {
             id: result.data.id,
             email: result.data.email,
             name: result.data.name,
+            handle: result.data.handle ?? null,
           });
         }
       } catch (error) {
@@ -237,7 +243,7 @@ export default function MateChat() {
     };
 
     void fetchUserInfo();
-  }, [authUser?.email, authUser?.id, authUser?.name]);
+  }, [authUserEmail, authUserHandle, authUserId, authUserName]);
 
   const { sendMessage: sendWebSocketMessage, isConnected } = useWebSocket({
     partyId: selectedParty?.id || '',
@@ -309,7 +315,7 @@ export default function MateChat() {
   }, [currentUser, messages, notifyChatUnreadCount, selectedParty?.id]);
 
   const isHost = currentUser && selectedParty
-    ? selectedParty.hostId === currentUser.id
+    ? isPartyHostedByUser(selectedParty, { id: currentUser.id, handle: currentUser.handle ?? null })
     : false;
 
   useEffect(() => {

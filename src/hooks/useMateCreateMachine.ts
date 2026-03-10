@@ -51,7 +51,7 @@ export interface UseMateCreateMachineReturn {
   goNext: () => void;
   goPrev: () => void;
   loadMatches: () => void;
-  submit: (hostId: number, hostName: string) => void;
+  submit: () => void;
   confirmSubmit: () => void;
   cancelSubmit: () => void;
   retry: () => void;
@@ -195,22 +195,17 @@ const sanitizeUserFacingMessage = (message: string, fallback: string): string =>
   return trimmed;
 };
 
-type SubmitHost = {
-  hostId: number;
-  hostName: string;
-};
-
 export function useMateCreateMachine(): UseMateCreateMachineReturn {
   const formData = useMateStore((storeState) => storeState.formData);
   const setFormError = useMateStore((storeState) => storeState.setFormError);
   const updateFormData = useMateStore((storeState) => storeState.updateFormData);
-  const addParty = useMateStore((storeState) => storeState.addParty);
   const setSelectedParty = useMateStore((storeState) => storeState.setSelectedParty);
   const resetForm = useMateStore((storeState) => storeState.resetForm);
   const setCreateStep = useMateStore((storeState) => storeState.setCreateStep);
+  const persistedCreateStep = useMateStore((storeState) => storeState.createStep);
 
   const [createStep, setCreateStepState] = useState<1 | 2 | 3 | 4>(() =>
-    normalizeInitialStep(useMateStore.getState().createStep)
+    normalizeInitialStep(persistedCreateStep)
   );
   const [availableMatches, setAvailableMatches] = useState<MatchInfo[]>([]);
   const [errorType, setErrorType] = useState<MateCreateErrorType>(null);
@@ -221,7 +216,6 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
-  const pendingSubmitHostRef = useRef<SubmitHost | null>(null);
   const errorTypeRef = useRef<MateCreateErrorType>(null);
 
   const setStep = (step: 1 | 2 | 3 | 4) => {
@@ -336,23 +330,13 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
     }
   };
 
-  const submit = (hostId: number, hostName: string) => {
-    pendingSubmitHostRef.current = { hostId, hostName };
+  const submit = () => {
     clearSubmitError();
     setStep(4);
     setIsConfirming(true);
   };
 
   const confirmSubmit = async () => {
-    const pendingSubmitHost = pendingSubmitHostRef.current;
-    if (!pendingSubmitHost) {
-      setErrorType('submit');
-      setSubmitErrorStatus(500);
-      setErrorMessage('로그인 정보가 없습니다.');
-      setIsConfirming(false);
-      return;
-    }
-
     if (!formData.ticketFile) {
       setErrorType('submit');
       setSubmitErrorStatus(400);
@@ -375,9 +359,6 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
 
     try {
       const partyData = {
-        hostId: pendingSubmitHost.hostId,
-        hostName: pendingSubmitHost.hostName,
-        hostRating: 5.0,
         teamId: formData.homeTeam,
         gameDate: formData.gameDate,
         gameTime: formData.gameTime || '18:30',
@@ -394,13 +375,11 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
 
       const createdParty = await api.createParty(partyData);
       const frontendParty = mapBackendPartyToFrontend(createdParty);
-      addParty(frontendParty);
       setSelectedParty(frontendParty);
       resetForm();
 
       setCreatedPartyId(frontendParty.id ?? null);
       clearError();
-      pendingSubmitHostRef.current = null;
     } catch (error) {
       setErrorType('submit');
       setSubmitErrorStatus(getApiErrorStatus(error) ?? 500);
@@ -426,13 +405,12 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
       void loadMatches();
       return;
     }
-    if (errorType === 'submit' && pendingSubmitHostRef.current) {
+    if (errorType === 'submit') {
       void confirmSubmit();
     }
   };
 
   const reset = () => {
-    pendingSubmitHostRef.current = null;
     setIsScanning(false);
     setIsSubmitting(false);
     setIsLoadingMatches(false);

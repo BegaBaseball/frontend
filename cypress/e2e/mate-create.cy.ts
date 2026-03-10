@@ -74,7 +74,8 @@ describe('Mate Create Flow', () => {
 
     uploadTicketImage();
     cy.wait('@analyzeTicket');
-    cy.contains('이미지 분석에 실패했습니다. 다른 파일로 다시 시도해주세요. (티켓 업로드는 필수)').should('be.visible');
+    cy.contains('파일 업로드 완료, AI 분석 실패').should('be.visible');
+    cy.contains('OCR이 실패하면 같은 파일 또는 다른 파일로 다시 시도해주세요.').should('be.visible');
 
     cy.contains('button', '다시 시도').click();
     cy.wait('@analyzeTicket');
@@ -222,7 +223,7 @@ describe('Mate Create Flow', () => {
       body: null,
     }).as('getMyApplicationByParty');
 
-    cy.intercept('GET', '**/api/reviews/user/*/average', {
+    cy.intercept('GET', '**/api/reviews/profile/*/average', {
       statusCode: 200,
       body: 4.7,
     }).as('getHostAverage');

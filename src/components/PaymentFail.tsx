@@ -72,7 +72,7 @@ export default function PaymentFail() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-background">
       <Card className="w-full max-w-md">
         <CardContent className="p-6 flex flex-col items-center gap-4">
           {directTradeMode ? (
@@ -81,14 +81,14 @@ export default function PaymentFail() {
             <XCircle className="w-12 h-12 text-red-500" />
           )}
 
-          <h2 className="text-xl font-bold text-gray-800">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
             {directTradeMode ? '직거래 모드 안내' : '결제에 실패했습니다'}
           </h2>
 
-          <p className="text-gray-600 text-center text-sm">{displayMessage}</p>
+          <p className="text-gray-600 dark:text-gray-300 text-center text-sm">{displayMessage}</p>
 
           {code && !directTradeMode && (
-            <p className="text-xs text-gray-400 bg-gray-100 rounded px-2 py-1 font-mono">
+            <p className="text-xs text-gray-400 dark:text-gray-300 bg-gray-100 dark:bg-secondary/80 rounded px-2 py-1 font-mono">
               오류 코드: {code}
             </p>
           )}

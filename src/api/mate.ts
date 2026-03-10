@@ -49,20 +49,6 @@ export async function fetchCurrentUser() {
 }
 
 /**
- * 이메일로 사용자 ID 조회
- */
-export async function fetchUserIdByEmail(email: string): Promise<number> {
-  const response = await api.get<ApiEnvelope<number>>(`/users/email-to-id?email=${encodeURIComponent(email)}`);
-
-  const data = response.data;
-  if (!data?.success || (data.data == null && data.data !== 0)) {
-    throw new Error('사용자 ID 조회 실패');
-  }
-
-  return typeof data.data === 'number' ? data.data : Number(data.data);
-}
-
-/**
  * 전체 파티 목록 조회 (페이징 - 최대 1000개)
  */
 export async function fetchAllParties(): Promise<Party[]> {
@@ -154,13 +140,14 @@ export async function updateChatReadTimestamp(partyId: number | string): Promise
  */
 export async function getChatUnreadCounts(): Promise<number> {
   try {
-    const response = await api.get<{ success: boolean; data: number }>('/chat/my/unread-counts');
-    if (response.data.success && typeof response.data.data === 'number') {
-      return response.data.data;
+    const response = await api.get<{ success?: boolean; data?: number }>('/chat/my/unread-counts');
+
+    const payload = response.data;
+    if (payload.success && typeof payload.data === 'number') {
+      return payload.data;
     }
     return 0;
-  } catch (error) {
-    console.error('안 읽은 메시지 수 조회 실패:', error);
+  } catch {
     return 0;
   }
 }
