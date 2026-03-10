@@ -6,7 +6,7 @@ import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
-import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X, UserCog, MapPin, Pencil, Plus, Bot, Sparkles, ClipboardCopy, RefreshCw, FileSearch, Save, Download, FolderOpen, Newspaper } from 'lucide-react';
+import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X, UserCog, MapPin, Pencil, Plus, Bot, Sparkles, ClipboardCopy, RefreshCw, FileSearch, Save, Download, FolderOpen, Newspaper, Camera } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -261,23 +261,34 @@ export default function AdminPage() {
     posts,
     mates,
     reports,
+    seatViews,
     reportsLoading,
+    seatViewsLoading,
     reportFilters,
+    seatViewFilters,
     selectedReportId,
     selectedReportDetail,
     reportDetailLoading,
+    selectedSeatViewId,
+    selectedSeatViewDetail,
+    seatViewDetailLoading,
     stats,
     loading,
     error,
     successMessage,
     updateReportFilters,
     resetReportFilters,
+    updateSeatViewFilters,
+    resetSeatViewFilters,
     openReportDetail,
     closeReportDetail,
+    openSeatViewDetail,
+    closeSeatViewDetail,
     handleDeleteUser,
     handleDeletePost,
     handleDeleteMate,
     handleReportAction,
+    handleSeatViewAction,
     handleRoleChange,
   } = useAdminData();
 
@@ -670,6 +681,12 @@ export default function AdminPage() {
     setAdminMemo(selectedReportDetail?.adminMemo || '');
   }, [selectedReportDetail?.id]);
 
+  useEffect(() => {
+    if (selectedSeatViewDetail) {
+      setAdminMemo(selectedSeatViewDetail.adminMemo || '');
+    }
+  }, [selectedSeatViewDetail]);
+
   const reportStatusLabel: Record<string, string> = {
     PENDING: '대기',
     IN_REVIEW: '검토중',
@@ -764,7 +781,7 @@ export default function AdminPage() {
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="border-b border-slate-800 px-6 pt-6">
-              <TabsList className="grid w-full grid-cols-3 gap-1 rounded-xl bg-slate-800/50 p-1 sm:grid-cols-4 xl:grid-cols-7">
+              <TabsList className="grid w-full grid-cols-3 gap-1 rounded-xl bg-slate-800/50 p-1 sm:grid-cols-4 xl:grid-cols-8">
                 <TabsTrigger
                   value="users"
                   className="rounded-lg data-[state=active]:bg-amber-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/25 transition-all duration-300"
@@ -792,6 +809,13 @@ export default function AdminPage() {
                 >
                   <Search className="w-4 h-4 mr-2" />
                   신고
+                </TabsTrigger>
+                <TabsTrigger
+                  value="seatViews"
+                  className="rounded-lg data-[state=active]:bg-teal-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-teal-500/25 transition-all duration-300"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  시야뷰
                 </TabsTrigger>
                 <TabsTrigger
                   value="offseason"
@@ -1209,7 +1233,7 @@ export default function AdminPage() {
             </TabsContent>
 
             <TabsContent value="reports" className="p-6">
-              <div className="mb-4 grid grid-cols-1 md:grid-cols-5 gap-2">
+              <div className="mb-4 grid grid-cols-1 md:grid-cols-6 gap-2">
                 <select
                   value={reportFilters.status}
                   onChange={(e) => updateReportFilters({ status: e.target.value })}
@@ -1333,6 +1357,169 @@ export default function AdminPage() {
                                 }}
                               >
                                 기각
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="seatViews" className="p-6">
+              <div className="mb-4 grid grid-cols-1 md:grid-cols-5 gap-2">
+                <select
+                  value={seatViewFilters.moderationStatus}
+                  onChange={(e) => updateSeatViewFilters({ moderationStatus: e.target.value })}
+                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
+                >
+                  <option value="all">상태 전체</option>
+                  <option value="PENDING">PENDING</option>
+                  <option value="APPROVED">APPROVED</option>
+                  <option value="REJECTED">REJECTED</option>
+                </select>
+                <Input
+                  value={seatViewFilters.stadium}
+                  onChange={(e) => updateSeatViewFilters({ stadium: e.target.value })}
+                  placeholder="구장명 필터"
+                  className="bg-slate-800/50 border-slate-700 text-slate-200"
+                />
+                <select
+                  value={seatViewFilters.aiSuggestedLabel}
+                  onChange={(e) => updateSeatViewFilters({ aiSuggestedLabel: e.target.value })}
+                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
+                >
+                  <option value="all">AI 라벨 전체</option>
+                  <option value="SEAT_VIEW">SEAT_VIEW</option>
+                  <option value="TICKET">TICKET</option>
+                  <option value="OTHER">OTHER</option>
+                  <option value="INAPPROPRIATE">INAPPROPRIATE</option>
+                </select>
+                <select
+                  value={seatViewFilters.adminLabel}
+                  onChange={(e) => updateSeatViewFilters({ adminLabel: e.target.value })}
+                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
+                >
+                  <option value="all">관리자 라벨 전체</option>
+                  <option value="SEAT_VIEW">SEAT_VIEW</option>
+                  <option value="TICKET">TICKET</option>
+                  <option value="OTHER">OTHER</option>
+                  <option value="INAPPROPRIATE">INAPPROPRIATE</option>
+                </select>
+                <select
+                  value={seatViewFilters.ticketVerified}
+                  onChange={(e) => updateSeatViewFilters({ ticketVerified: e.target.value })}
+                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
+                >
+                  <option value="all">티켓 인증 전체</option>
+                  <option value="verified">인증 완료</option>
+                  <option value="unverified">미인증</option>
+                </select>
+                <Button
+                  variant="outline"
+                  className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+                  onClick={resetSeatViewFilters}
+                >
+                  필터 초기화
+                </Button>
+              </div>
+
+              <div className="rounded-xl border border-slate-800 overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/50">
+                      <TableHead className="text-slate-400 font-semibold">ID</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">사진</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">구장/좌석</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">AI</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">인증</TableHead>
+                      <TableHead className="text-slate-400 font-semibold">상태</TableHead>
+                      <TableHead className="text-slate-400 font-semibold text-right">상세/조치</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {seatViewsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-16 text-slate-500">
+                          시야뷰 후보 로딩 중...
+                        </TableCell>
+                      </TableRow>
+                    ) : seatViews.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-16 text-slate-500">
+                          시야뷰 후보가 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      seatViews.map((seatView) => (
+                        <TableRow
+                          key={seatView.id}
+                          className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 cursor-pointer"
+                          onClick={() => openSeatViewDetail(seatView.id)}
+                        >
+                          <TableCell className="text-slate-300 font-mono text-sm">{seatView.id}</TableCell>
+                          <TableCell>
+                            <img
+                              src={seatView.photoUrl}
+                              alt="시야뷰 후보"
+                              className="h-14 w-14 rounded-lg object-cover border border-slate-800"
+                            />
+                          </TableCell>
+                          <TableCell className="text-slate-300 text-sm">
+                            <div>{seatView.stadium}</div>
+                            <div className="text-slate-500">
+                              {[seatView.section, seatView.block, seatView.seatRow, seatView.seatNumber].filter(Boolean).join(' / ') || '-'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-slate-300 text-sm">
+                            <div>{seatView.aiSuggestedLabel || '-'}</div>
+                            <div className="text-slate-500">
+                              {seatView.aiConfidence != null ? `${Math.round(seatView.aiConfidence * 100)}%` : '미분류'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={seatView.ticketVerified ? 'bg-emerald-500/20 text-emerald-300 border-0' : 'bg-slate-700 text-slate-300 border-0'}>
+                              {seatView.ticketVerified ? '인증 완료' : '미인증'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={seatView.moderationStatus === 'APPROVED'
+                              ? 'bg-emerald-500/20 text-emerald-300 border-0'
+                              : seatView.moderationStatus === 'REJECTED'
+                                ? 'bg-red-500/20 text-red-300 border-0'
+                                : 'bg-amber-500/20 text-amber-300 border-0'}>
+                              {seatView.moderationStatus || '미제출'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-slate-300 hover:text-white hover:bg-slate-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openSeatViewDetail(seatView.id);
+                                }}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSeatViewAction(seatView.id, {
+                                    adminLabel: 'SEAT_VIEW',
+                                    moderationStatus: 'APPROVED',
+                                    adminMemo: '관리자 승인',
+                                  });
+                                }}
+                              >
+                                승인
                               </Button>
                             </div>
                           </TableCell>
@@ -2304,6 +2491,125 @@ export default function AdminPage() {
                       </Button>
                       <Button onClick={() => handleReportAction(selectedReportDetail.id, 'WARNING', adminMemo)} className="col-span-2 bg-sky-600 hover:bg-sky-700 text-white">
                         WARNING
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </aside>
+          </div>
+        )}
+
+        {selectedSeatViewId && (
+          <div className="fixed inset-0 z-50">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/50"
+              onClick={closeSeatViewDetail}
+              aria-label="시야뷰 상세 패널 닫기"
+            />
+            <aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
+              <div className="sticky top-0 z-10 px-5 py-4 border-b border-slate-700 bg-slate-900/95 backdrop-blur flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-400">시야뷰 후보 상세</p>
+                  <h2 className="text-lg font-bold text-white">Seat View #{selectedSeatViewId}</h2>
+                </div>
+                <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white" onClick={closeSeatViewDetail}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <div className="p-5 space-y-5">
+                {seatViewDetailLoading || !selectedSeatViewDetail ? (
+                  <div className="text-slate-400">상세 정보를 불러오는 중...</div>
+                ) : (
+                  <>
+                    <img
+                      src={selectedSeatViewDetail.photoUrl}
+                      alt="시야뷰 상세"
+                      className="w-full rounded-2xl border border-slate-800 object-cover max-h-[320px]"
+                    />
+
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-lg border border-slate-800 p-3">
+                        <p className="text-slate-500">상태</p>
+                        <p className="text-slate-200 mt-1">{selectedSeatViewDetail.moderationStatus || '미제출'}</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-800 p-3">
+                        <p className="text-slate-500">관리자 라벨</p>
+                        <p className="text-slate-200 mt-1">{selectedSeatViewDetail.adminLabel || '-'}</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-800 p-3">
+                        <p className="text-slate-500">AI 추천</p>
+                        <p className="text-slate-200 mt-1">
+                          {selectedSeatViewDetail.aiSuggestedLabel || '-'}
+                          {selectedSeatViewDetail.aiConfidence != null && ` (${Math.round(selectedSeatViewDetail.aiConfidence * 100)}%)`}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-slate-800 p-3">
+                        <p className="text-slate-500">티켓 인증</p>
+                        <p className="text-slate-200 mt-1">{selectedSeatViewDetail.ticketVerified ? '완료' : '미인증'}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-800 p-3 text-sm space-y-2">
+                      <p><span className="text-slate-500">구장:</span> <span className="text-slate-200">{selectedSeatViewDetail.stadium}</span></p>
+                      <p><span className="text-slate-500">좌석:</span> <span className="text-slate-200">{[selectedSeatViewDetail.section, selectedSeatViewDetail.block, selectedSeatViewDetail.seatRow, selectedSeatViewDetail.seatNumber].filter(Boolean).join(' / ') || '-'}</span></p>
+                      <p><span className="text-slate-500">업로드 타입:</span> <span className="text-slate-200">{selectedSeatViewDetail.sourceType}</span></p>
+                      <p><span className="text-slate-500">리워드 지급:</span> <span className="text-slate-200">{selectedSeatViewDetail.rewardGranted ? '완료' : '미지급'}</span></p>
+                      <p><span className="text-slate-500">AI 사유:</span> <span className="text-slate-200 whitespace-pre-wrap">{selectedSeatViewDetail.aiReason || '-'}</span></p>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-800 p-3">
+                      <p className="text-sm text-slate-500 mb-2">관리자 메모</p>
+                      <textarea
+                        value={adminMemo}
+                        onChange={(e) => setAdminMemo(e.target.value)}
+                        className="w-full min-h-24 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-100"
+                        placeholder="분류 근거를 입력하세요."
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => handleSeatViewAction(selectedSeatViewDetail.id, {
+                          adminLabel: 'SEAT_VIEW',
+                          moderationStatus: 'APPROVED',
+                          adminMemo,
+                        })}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        승인
+                      </Button>
+                      <Button
+                        onClick={() => handleSeatViewAction(selectedSeatViewDetail.id, {
+                          adminLabel: 'TICKET',
+                          moderationStatus: 'REJECTED',
+                          adminMemo,
+                        })}
+                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                      >
+                        TICKET
+                      </Button>
+                      <Button
+                        onClick={() => handleSeatViewAction(selectedSeatViewDetail.id, {
+                          adminLabel: 'OTHER',
+                          moderationStatus: 'REJECTED',
+                          adminMemo,
+                        })}
+                        className="bg-slate-700 hover:bg-slate-600 text-white"
+                      >
+                        OTHER
+                      </Button>
+                      <Button
+                        onClick={() => handleSeatViewAction(selectedSeatViewDetail.id, {
+                          adminLabel: 'INAPPROPRIATE',
+                          moderationStatus: 'REJECTED',
+                          adminMemo,
+                        })}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        INAPPROPRIATE
                       </Button>
                     </div>
                   </>
