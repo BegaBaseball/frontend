@@ -1,14 +1,14 @@
 // src/components/OAuthCallback.tsx
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileActions } from '../store/authStore';
 import { consumeOAuth2State } from '../api/auth';
 import LoadingSpinner from './LoadingSpinner';
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
+  const { fetchProfileAndAuthenticate } = useAuthProfileActions();
   const [error, setError] = useState(false);
 
   const hasCalled = useRef(false);
@@ -26,18 +26,12 @@ export default function OAuthCallback() {
 
     (async () => {
       try {
-        const data = await consumeOAuth2State(state);
-        const { email, name, handle } = data;
+          const data = await consumeOAuth2State(state);
+          const { email, name, handle } = data;
 
         if (email && name) {
           await fetchProfileAndAuthenticate();
-          const { isLoggedIn, user } = useAuthStore.getState();
-
-          if (!isLoggedIn || !user) {
-            throw new Error('로그인 상태 동기화 실패');
-          }
-
-          const normalizedHandle = (handle || user.handle || '').trim();
+          const normalizedHandle = (handle || '').trim();
           const redirectPath = normalizedHandle
             ? `/mypage/${normalizedHandle.startsWith('@') ? normalizedHandle : `@${normalizedHandle}`}`
             : '/mypage';
