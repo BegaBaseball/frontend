@@ -6,7 +6,8 @@ describe('Mate execution flow UI', () => {
     hostId: 123,
     hostName: '호스트',
     hostBadge: 'VERIFIED',
-    hostRating: 4.8,
+    hostAverageRating: 4.8,
+    hostReviewCount: 11,
     teamId: 'LG',
     gameDate: '2026-03-21',
     gameTime: '18:30',
@@ -212,7 +213,7 @@ describe('Mate execution flow UI', () => {
 
     cy.contains('호스트 모드').should('be.visible');
     cy.contains('전원 도착 완료').should('be.visible');
-    cy.contains('button', '완료 확인').should('be.visible');
+    cy.contains('지금 해야 할 일').should('be.visible');
     cy.contains('동행 참여자').should('be.visible');
   });
 });

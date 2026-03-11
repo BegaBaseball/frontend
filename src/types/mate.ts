@@ -7,7 +7,8 @@ export interface Party {
   hostProfileImageUrl?: string;
   hostFavoriteTeam?: string;
   hostBadge: BadgeType;
-  hostRating: number;
+  hostAverageRating: number | null;
+  hostReviewCount: number;
   teamId: string;
   gameDate: string;
   gameTime: string;
@@ -43,9 +44,8 @@ export interface Application {
   applicantBadge: BadgeType;
   applicantRating: number;
   message: string;
-  // DIRECT_TRADE: 거래 기준 금액 스냅샷, TOSS_TEST: 보증금/결제 금액
-  depositAmount: number;
-  paymentType: 'DEPOSIT' | 'FULL';
+  depositAmount?: number;
+  paymentType?: 'DEPOSIT' | 'FULL';
   feeAmount?: number;
   netSettlementAmount?: number;
   paymentStatus?: 'PAID' | 'REFUND_REQUESTED' | 'CANCELED' | 'REFUND_FAILED';
@@ -144,9 +144,6 @@ export interface UpdatePartyRequest {
 export interface CreateApplicationRequest {
   partyId: number;
   message?: string;
-  // DIRECT_TRADE: 거래 기준 금액 스냅샷, TOSS_TEST: 보증금/결제 금액
-  depositAmount: number;
-  paymentType: 'DEPOSIT' | 'FULL';
   verificationToken?: string | null;
   ticketVerified?: boolean;
   ticketImageUrl?: string | null;
@@ -177,8 +174,6 @@ export interface CreateReviewRequest {
   rating: number;
   comment?: string;
 }
-
-export type PaymentFlowType = 'DEPOSIT' | 'SELLING_FULL';
 
 export type CancelReasonType =
   | 'BUYER_CHANGED_MIND'

@@ -1,5 +1,4 @@
 import type { BadgeType, PartyStatus } from '../types/mate';
-import type { MatePaymentMode } from './paymentMode';
 
 export const matePageShellClass =
   'relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background transition-colors duration-200';
@@ -95,10 +94,10 @@ export const getBadgeMeta = (badge?: BadgeType): { label: string; className: str
   }
 };
 
-export const getPartyFlowLabel = (status: PartyStatus, paymentMode: MatePaymentMode): string => {
+export const getPartyFlowLabel = (status: PartyStatus): string => {
   if (status === 'SELLING') {
-    return paymentMode === 'TOSS_TEST' ? '판매 티켓 구매' : '판매 티켓 직거래';
+    return '판매 티켓 직거래';
   }
 
-  return paymentMode === 'TOSS_TEST' ? '안전결제/보증금 모드' : '직거래 베타';
+  return '직거래 베타';
 };

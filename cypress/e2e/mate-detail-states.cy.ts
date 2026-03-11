@@ -1,6 +1,8 @@
 /// <reference types="cypress" />
 
 describe('MateDetail state coverage', () => {
+  const checkinBaseUrl = (Cypress.config('baseUrl') || window.location.origin || 'http://localhost:5176').replace(/\/$/, '');
+
   const fakeToken = 'mate-detail-state-token';
   const testUser = {
     id: 1,
@@ -18,7 +20,8 @@ describe('MateDetail state coverage', () => {
     hostId: 999,
     hostName: '상태 호스트',
     hostBadge: 'VERIFIED',
-    hostRating: 4.8,
+    hostAverageRating: 4.8,
+    hostReviewCount: 15,
     hostProfileImageUrl: 'https://cdn.example.com/profile.png',
     hostFavoriteTeam: 'SS',
     status: 'PENDING',
@@ -127,11 +130,6 @@ describe('MateDetail state coverage', () => {
       body: applications,
     }).as('getPartyApplications');
 
-    cy.intercept('GET', '**/api/reviews/profile/*/average', {
-      statusCode: 200,
-      body: 4.8,
-    }).as('getHostRating');
-
     cy.intercept('GET', '**/api/diary/seat-views*', {
       statusCode: 200,
       body: seatViews,
@@ -143,7 +141,7 @@ describe('MateDetail state coverage', () => {
         sessionId: `session-${party.id}`,
         partyId: party.id,
         expiresAt: '2026-03-28T08:00:00Z',
-        checkinUrl: `http://127.0.0.1:5176/mate/${party.id}/checkin?sessionId=session-${party.id}`,
+        checkinUrl: `${checkinBaseUrl}/mate/${party.id}/checkin?sessionId=session-${party.id}`,
       },
     }).as('createCheckinQrSession');
   };

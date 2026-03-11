@@ -1,11 +1,13 @@
 /// <reference types="cypress" />
 
 describe('Mate Page Accuracy', () => {
+  const checkinBaseUrl = (Cypress.config('baseUrl') || window.location.origin || 'http://localhost:5176').replace(/\/$/, '');
   const baseParty = {
     hostProfileImageUrl: 'https://cdn.example.com/profile.png',
     hostFavoriteTeam: 'KT',
     hostBadge: 'NEW',
-    hostRating: 4.5,
+    hostAverageRating: 4.5,
+    hostReviewCount: 12,
     ticketVerified: false,
     createdAt: '2026-02-01T00:00:00',
   };
@@ -248,7 +250,7 @@ describe('Mate Page Accuracy', () => {
           sessionId: `session-${partyId || 'test'}`,
           partyId,
           expiresAt: '2026-02-28T12:00:00Z',
-          checkinUrl: `http://localhost:5173/mate/${partyId}/checkin?sessionId=session-${partyId || 'test'}`,
+          checkinUrl: `${checkinBaseUrl}/mate/${partyId}/checkin?sessionId=session-${partyId || 'test'}`,
         },
       });
     }).as('createCheckinQrSession');
@@ -280,10 +282,6 @@ describe('Mate Page Accuracy', () => {
       statusCode: 200,
       body: null,
     }).as('getMyApplicationByParty');
-    cy.intercept('GET', '**/api/reviews/profile/*/average', {
-      statusCode: 200,
-      body: 4.3,
-    }).as('getHostRating');
     cy.intercept('GET', '**/api/applications/party/777*', {
       statusCode: 200,
       body: [],
@@ -348,10 +346,6 @@ describe('Mate Page Accuracy', () => {
       statusCode: 200,
       body: null,
     }).as('getMyApplicationByParty');
-    cy.intercept('GET', '**/api/reviews/profile/*/average', {
-      statusCode: 200,
-      body: 4.3,
-    }).as('getHostRating');
     cy.intercept('GET', '**/api/applications/party/777*', {
       statusCode: 200,
       body: [],
