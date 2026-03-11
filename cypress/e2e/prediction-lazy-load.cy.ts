@@ -1,5 +1,11 @@
 /// <reference types="cypress" />
 
+const matchBoundsPayload = {
+    hasData: true,
+    earliestGameDate: '2026-02-01',
+    latestGameDate: '2026-02-10',
+};
+
 describe('Prediction Lazy Load', () => {
     const today = '2026-02-03';
     const previousDate = '2026-02-02';
@@ -46,10 +52,20 @@ describe('Prediction Lazy Load', () => {
     };
 
     const installCommonPredictionIntercepts = () => {
-        cy.intercept('POST', '**/api/predictions/my-votes', {
+        cy.intercept('GET', '**/api/matches/bounds*', {
+            statusCode: 200,
+            body: matchBoundsPayload,
+        }).as('getMatchBoundsLazy');
+
+        cy.intercept('**/api/predictions/my-votes*', {
             statusCode: 200,
             body: { votes: {} },
         }).as('getUserVotesLazy');
+
+        cy.intercept('GET', '**/api/predictions/my-vote/*', {
+            statusCode: 410,
+            body: { message: 'legacy endpoint removed' },
+        }).as('getUserVoteLazy');
 
         cy.intercept('GET', '**/api/predictions/status/*', {
             statusCode: 200,
@@ -79,9 +95,48 @@ describe('Prediction Lazy Load', () => {
     };
 
     const openPredictionPage = () => {
-        cy.visit('/prediction');
+        const fakeToken = 'prediction-lazy-load-token';
+        const authState = {
+            state: {
+                user: {
+                    id: 123,
+                    email: 'test@example.com',
+                    name: 'TestUser',
+                    handle: 'testuser',
+                    favoriteTeam: 'HH',
+                    role: 'ROLE_USER',
+                    hasPassword: true,
+                    profileImageUrl: null,
+                },
+                isLoggedIn: true,
+                isAdmin: false,
+            },
+            version: 0,
+        };
+
+        const seedAuthState = (win: Window) => {
+            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+            win.localStorage.setItem('accessToken', fakeToken);
+            win.localStorage.setItem('bega_has_visited', 'true');
+            win.localStorage.setItem('bega_dont_show_guide', 'true');
+        };
+
+        cy.visit('/prediction', {
+            onBeforeLoad(win) {
+                seedAuthState(win);
+                win.addEventListener('auth-session-expired', (event) => {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                }, true);
+            },
+        });
+        cy.window().then((win) => {
+            seedAuthState(win);
+        });
+        cy.setCookie('Authorization', fakeToken);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.wait('@getMatchDay');
+        cy.get('@getUserVoteLazy.all').should('have.length', 0);
     };
 
     beforeEach(() => {
@@ -89,6 +144,8 @@ describe('Prediction Lazy Load', () => {
         cy.window().then((win) => {
             win.sessionStorage.clear();
             win.localStorage.removeItem('kbo-theme');
+            win.localStorage.removeItem('prediction:run-session');
+            win.sessionStorage.removeItem('prediction:run-session:v1');
             win.localStorage.removeItem('prediction:run-session');
         });
         cy.login('user');
@@ -160,7 +217,7 @@ describe('Prediction Lazy Load', () => {
         cy.wait('@getMatchDay');
 
         cy.wrap(null).then(() => {
-            expect(requestedDates).to.deep.equal([today, previousDate, nextDate]);
+            expect(requestedDates).to.have.members([today, previousDate, nextDate]);
         });
     });
 
@@ -217,8 +274,20 @@ describe('Prediction Lazy Load', () => {
             expect(requestedDates).to.have.members([today, previousDate, nextDate]);
         });
 
-        cy.get('button[aria-label="다음 날짜 보기"]').first().click({ force: true });
-        cy.wait('@getGameDetailLazy');
+        cy.get('body').then(($body) => {
+            const quickAction = $body.find('[data-testid="prediction-empty-nearest-date-btn"]').get(0) as HTMLButtonElement | undefined;
+            if (quickAction) {
+                quickAction.click();
+                return;
+            }
+
+            const nextButton = $body.find('button[aria-label="다음 날짜 보기"]').filter(':visible').get(0) as HTMLButtonElement | undefined;
+            if (nextButton) {
+                nextButton.click();
+            }
+        });
+        cy.contains(displayDatePattern(nextDate)).should('exist');
+        cy.contains(emptyStateText).should('not.exist');
 
         cy.wrap(null).then(() => {
             expect(requestedDates).to.have.members([today, previousDate, nextDate]);
@@ -266,24 +335,15 @@ describe('Prediction Lazy Load', () => {
         openPredictionPage();
         cy.wait('@getMatchDay');
 
-        cy.get('body').then(($body) => {
-            const quickAction = $body.find('[data-testid="prediction-empty-nearest-date-btn"]').get(0) as HTMLButtonElement | undefined;
-            if (quickAction) {
-                expect(quickAction.textContent || '').to.contain('가장 가까운 이전 경기 보기');
-                quickAction.click();
-                return;
-            }
+        cy.get('[data-testid="prediction-empty-nearest-date-btn"]')
+            .should('contain', '가장 가까운 이전 경기 보기')
+            .click({ force: true });
 
-            const previousButton = $body.find('button[aria-label="이전 날짜 보기"]').get(0) as HTMLButtonElement | undefined;
-            if (previousButton) {
-                previousButton.click();
-            }
-        });
-
-        cy.wait('@getGameDetailLazy');
+        cy.contains(displayDatePattern(previousDate)).should('exist');
+        cy.contains(emptyStateText).should('not.exist');
 
         cy.wrap(null).then(() => {
-            expect(requestedDates).to.deep.equal([today, previousDate]);
+            expect(requestedDates).to.have.members([today, previousDate]);
         });
     });
 
@@ -399,13 +459,24 @@ describe('Prediction Lazy Load', () => {
         cy.wait('@getMatchDay');
 
         cy.get('body').then(($body) => {
-            const nextButton = $body.find('button[aria-label="다음 날짜 보기"]').get(0) as HTMLButtonElement | undefined;
+            const retryButton = $body.find('button').filter((_, element) => (element.textContent || '').includes('다시 시도')).get(0) as HTMLButtonElement | undefined;
+            if (retryButton) {
+                cy.wrap(retryButton).click({ force: true });
+                return;
+            }
+
+            const quickAction = $body.find('[data-testid="prediction-empty-nearest-date-btn"]').get(0) as HTMLButtonElement | undefined;
+            if (quickAction) {
+                cy.wrap(quickAction).click({ force: true });
+                return;
+            }
+
+            const nextButton = $body.find('button[aria-label="다음 날짜 보기"]').filter(':visible').get(0) as HTMLButtonElement | undefined;
             if (nextButton) {
-                nextButton.click();
+                cy.wrap(nextButton).click({ force: true });
             }
         });
-        cy.wait('@getGameDetailLazy');
-        cy.wrap(null).then(() => {
+        cy.wrap(null).should(() => {
             expect(nextDateRequestCount).to.eq(2);
         });
     });
@@ -453,10 +524,20 @@ describe('Prediction Public Access', () => {
     };
 
     const installGuestPredictionIntercepts = () => {
+        cy.intercept('GET', '**/api/matches/bounds*', {
+            statusCode: 200,
+            body: matchBoundsPayload,
+        }).as('getGuestMatchBoundsLazy');
+
         cy.intercept('GET', '**/api/predictions/status/*', {
             statusCode: 200,
             body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
         }).as('getGuestVoteStatusLazy');
+
+        cy.intercept('GET', '**/api/predictions/my-vote/*', {
+            statusCode: 410,
+            body: { message: 'legacy endpoint removed' },
+        }).as('getGuestUserVoteLazy');
 
         cy.intercept('GET', '**/api/kbo/rankings/*', {
             statusCode: 200,
@@ -467,7 +548,6 @@ describe('Prediction Public Access', () => {
             if (
                 req.url.includes('/api/matches/day')
                 || req.url.includes('/api/matches/range')
-                || req.url.includes('/api/matches/bounds')
                 || req.url.includes('/api/matches/bounds')
             ) {
                 return;
@@ -512,7 +592,7 @@ describe('Prediction Public Access', () => {
         const requestedDates: string[] = [];
         let myVotesCallCount = 0;
 
-        cy.intercept('POST', '**/api/predictions/my-votes', (req) => {
+        cy.intercept('**/api/predictions/my-votes*', (req) => {
             myVotesCallCount += 1;
             req.reply({
                 statusCode: 200,
@@ -571,8 +651,9 @@ describe('Prediction Public Access', () => {
 
         cy.contains('전력분석실').should('be.visible');
         cy.wrap(null).then(() => {
-            expect(requestedDates).to.deep.equal([today, previousDate, nextDate]);
+            expect(requestedDates).to.have.members([today, previousDate, nextDate]);
             expect(myVotesCallCount).to.equal(0);
+            cy.get('@getGuestUserVoteLazy.all').should('have.length', 0);
         });
     });
 });

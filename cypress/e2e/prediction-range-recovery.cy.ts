@@ -6,6 +6,11 @@ describe('Prediction Range Recovery', () => {
     const pastDate = '2026-02-18';
     const pastGameId = '20260218LGKT0';
     const futureDate = '2026-02-23';
+    const matchBoundsPayload = {
+        hasData: true,
+        earliestGameDate: '2026-02-18',
+        latestGameDate: '2026-02-23',
+    };
 
     const baseRankings = [
         { teamId: 'HH', teamName: '한화 이글스', rank: 7, wins: 30, losses: 50, draws: 0, winRate: '0.375', games: 80, gamesBehind: 6.0 },
@@ -29,13 +34,51 @@ describe('Prediction Range Recovery', () => {
     });
 
     const openPredictionPage = () => {
-        cy.visit('/prediction');
+        const fakeToken = 'prediction-range-recovery-token';
+        const authState = {
+            state: {
+                user: {
+                    id: 123,
+                    email: 'test@example.com',
+                    name: 'TestUser',
+                    handle: 'testuser',
+                    favoriteTeam: 'HH',
+                    role: 'ROLE_USER',
+                    hasPassword: true,
+                    profileImageUrl: null,
+                },
+                isLoggedIn: true,
+                isAdmin: false,
+            },
+            version: 0,
+        };
+
+        const seedAuthState = (win: Window) => {
+            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+            win.localStorage.setItem('accessToken', fakeToken);
+            win.localStorage.setItem('bega_has_visited', 'true');
+            win.localStorage.setItem('bega_dont_show_guide', 'true');
+        };
+
+        cy.visit('/prediction', {
+            onBeforeLoad(win) {
+                seedAuthState(win);
+                win.addEventListener('auth-session-expired', (event) => {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                }, true);
+            },
+        });
+        cy.window().then((win) => {
+            seedAuthState(win);
+        });
+        cy.setCookie('Authorization', fakeToken);
         cy.contains('전력분석실', { timeout: 20000 }).should('exist');
         cy.wait('@getMatchDay');
     };
 
     const interceptPredictionCommon = () => {
-        cy.intercept('POST', '**/api/predictions/my-votes', {
+        cy.intercept('**/api/predictions/my-votes*', {
             statusCode: 200,
             body: {
                 votes: {
@@ -44,6 +87,11 @@ describe('Prediction Range Recovery', () => {
                 },
             },
         }).as('getUserVotesRecovery');
+
+        cy.intercept('GET', '**/api/predictions/my-vote/*', {
+            statusCode: 410,
+            body: { message: 'legacy endpoint removed' },
+        }).as('getUserVote');
 
         cy.intercept('**/api/predictions/status/*', {
             statusCode: 200,
@@ -54,6 +102,11 @@ describe('Prediction Range Recovery', () => {
             statusCode: 200,
             body: baseRankings,
         }).as('getRankingsRecovery');
+
+        cy.intercept('GET', '**/api/matches/bounds*', {
+            statusCode: 200,
+            body: matchBoundsPayload,
+        }).as('getMatchBoundsRecovery');
 
         cy.intercept('GET', '**/api/matches/*', (req) => {
             if (
@@ -106,6 +159,14 @@ describe('Prediction Range Recovery', () => {
 
     beforeEach(() => {
         cy.visit('about:blank');
+        cy.window().then((win) => {
+            win.sessionStorage.clear();
+            win.sessionStorage.removeItem('prediction:run-session:v1');
+            win.sessionStorage.removeItem('prediction:run-session');
+            win.localStorage.removeItem('kbo-theme');
+            win.localStorage.removeItem('prediction:run-session');
+            win.localStorage.removeItem('prediction:run-session:v1');
+        });
         cy.clock(new Date('2026-02-22T12:00:00').getTime(), ['Date']);
         cy.login('user');
         cy.mockAPI();
@@ -143,6 +204,7 @@ describe('Prediction Range Recovery', () => {
         }).as('getMatchDay');
 
         openPredictionPage();
+        cy.get('@getUserVote.all').should('have.length', 0);
         cy.wait('@getMatchDay');
         cy.contains('KT 위즈').should('not.exist');
         cy.contains('조회 실패').should('not.exist');
@@ -156,6 +218,7 @@ describe('Prediction Range Recovery', () => {
         }).as('getMatchDay');
 
         openPredictionPage();
+        cy.get('@getUserVote.all').should('have.length', 0);
         cy.contains(/예정된 경기 일정이 없습니다.|현재 표시할 예측 경기가 없습니다.|더 이상 (이전|예정) 경기가 없습니다\./, { timeout: 10000 }).should('be.visible');
         cy.contains('조회 실패').should('not.exist');
     });
@@ -194,6 +257,7 @@ describe('Prediction Range Recovery', () => {
         }).as('getMatchDay');
 
         openPredictionPage();
+        cy.get('@getUserVote.all').should('have.length', 0);
         cy.get('button[aria-label="다음 날짜 보기"]').first().click({ force: true });
         cy.contains(/예측 처리 중 오류가 발생했습니다.|미래 구간 조회|요청 실패|오류/, { timeout: 10000 }).should('exist');
         cy.contains(/홈으로 이동|목록으로 이동/).should('exist');
@@ -234,6 +298,7 @@ describe('Prediction Range Recovery', () => {
         }).as('getMatchDay');
 
         openPredictionPage();
+        cy.get('@getUserVote.all').should('have.length', 0);
         cy.contains('예측 처리 중 오류가 발생했습니다.', { timeout: 10000 }).should('be.visible');
         cy.contains('실행 세션이 만료되었습니다.').should('be.visible');
         cy.contains('button', '다시 시도').should('be.visible');

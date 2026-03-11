@@ -1077,6 +1077,7 @@ export default function AdvancedMatchCard({
               <button
                 onClick={onPrevDate}
                 disabled={!hasPrevDate}
+                aria-label="이전 날짜 보기"
                 className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-10"
               >
                 <ChevronLeft size={32} />
@@ -1084,6 +1085,7 @@ export default function AdvancedMatchCard({
               <button
                 onClick={onNextDate}
                 disabled={!hasNextDate}
+                aria-label="다음 날짜 보기"
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-10"
               >
                 <ChevronRight size={32} />

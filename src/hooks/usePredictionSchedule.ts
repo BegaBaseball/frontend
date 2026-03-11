@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchMatchesByDay,
   fetchMatchesByRangeWithMeta,
+  fetchMatchBounds,
   type MatchDayResult,
 } from '../api/prediction';
 import { getTodayString, getTomorrowString, formatDate } from '../utils/prediction';
@@ -214,9 +215,39 @@ export const usePredictionSchedule = ({
     setCanLoadMorePast(next);
   }, []);
 
-  const getEarliestBoundDate = useCallback(() => null, []);
+  const normalizeMatchBoundsDate = useCallback((value: string | null | undefined): string | null => {
+    if (!value) {
+      return null;
+    }
 
-  const getLatestBoundDate = useCallback(() => null, []);
+    return normalizePredictionDate(value);
+  }, []);
+
+  const getEarliestBoundDate = useCallback(() => normalizeMatchBoundsDate(
+    matchBoundsRef.current?.earliestGameDate
+  ), [normalizeMatchBoundsDate]);
+
+  const getLatestBoundDate = useCallback(() => normalizeMatchBoundsDate(
+    matchBoundsRef.current?.latestGameDate
+  ), [normalizeMatchBoundsDate]);
+
+  const hydrateMatchBounds = useCallback(async () => {
+    const currentBounds = matchBoundsRef.current;
+    if (currentBounds !== null) {
+      return;
+    }
+
+    const result = await fetchMatchBounds();
+    if (!result.ok) {
+      return;
+    }
+
+    matchBoundsRef.current = {
+      hasData: Boolean(result.data?.hasData),
+      earliestGameDate: normalizeMatchBoundsDate(result.data?.earliestGameDate),
+      latestGameDate: normalizeMatchBoundsDate(result.data?.latestGameDate),
+    };
+  }, [normalizeMatchBoundsDate]);
 
   const setPastRangeEnd = useCallback((message: string = '더 이상 이전 경기가 없습니다.') => {
     setCanLoadMorePastState(false);
@@ -306,7 +337,12 @@ export const usePredictionSchedule = ({
     const currentVisibleDate = options.replaceExistingDates
       ? dayData.date
       : (allDatesDataRef.current[currentDateIndexRef.current]?.date || dayData.date);
-    const normalizedDates = mergePredictionDateBuckets(baseDates, dayData.games, mergeMatchLists, dayData.date);
+    const normalizedDates = mergePredictionDateBuckets(
+      baseDates,
+      Array.isArray(dayData.games) ? dayData.games : [],
+      mergeMatchLists,
+      dayData.date
+    );
 
     setAllDatesData(normalizedDates);
     allDatesDataRef.current = normalizedDates;
@@ -395,7 +431,8 @@ export const usePredictionSchedule = ({
       preserveVisibleDate: options.preserveVisibleDate,
       replaceExistingDates: options.replaceExistingDates,
     });
-    const interactiveGames = result.data.games.filter((game) => game.homeScore === null && game.awayScore === null);
+    const resultGames = Array.isArray(result.data.games) ? result.data.games : [];
+    const interactiveGames = resultGames.filter((game) => game.homeScore === null && game.awayScore === null);
     if (isLoggedIn && interactiveGames.length > 0) {
       await fetchAndCacheUserVotes(
         interactiveGames.map((game) => game.gameId).filter(Boolean),
@@ -1087,6 +1124,7 @@ export const usePredictionSchedule = ({
       const today = getTodayString();
       const hasDeepLinkSeed = Boolean(deepLinkGameId || deepLinkDate);
       const initialAnchorDate = deepLinkDate || today;
+      await hydrateMatchBounds();
 
       const firstDayResult = await loadPredictionDay(initialAnchorDate, {
         moveToLoadedDate: true,
@@ -1202,6 +1240,7 @@ export const usePredictionSchedule = ({
     deepLinkDate,
     deepLinkGameId,
     emitFlowEvent,
+    hydrateMatchBounds,
     loadPredictionDay,
     prefetchAdjacentDays,
     setCanLoadMoreFutureState,

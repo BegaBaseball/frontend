@@ -4,6 +4,30 @@ describe('Home to Prediction deep link', () => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const todayCompact = today.replace(/-/g, '');
+    const fakeToken = 'home-to-prediction-token';
+
+    const seedAuthState = (win: Window) => {
+        win.localStorage.setItem('auth-storage', JSON.stringify({
+            state: {
+                user: {
+                    id: 123,
+                    email: 'test@example.com',
+                    name: 'TestUser',
+                    handle: 'testuser',
+                    favoriteTeam: 'HH',
+                    role: 'ROLE_USER',
+                    hasPassword: true,
+                    profileImageUrl: null,
+                },
+                isLoggedIn: true,
+                isAdmin: false,
+            },
+            version: 0,
+        }));
+        win.localStorage.setItem('accessToken', fakeToken);
+        win.localStorage.setItem('bega_has_visited', 'true');
+        win.localStorage.setItem('bega_dont_show_guide', 'true');
+    };
 
     beforeEach(() => {
         (cy as any).login('user');
@@ -89,7 +113,7 @@ describe('Home to Prediction deep link', () => {
             }
         }).as('getGameDetail');
 
-        cy.intercept('POST', '**/api/predictions/my-votes', {
+        cy.intercept('**/api/predictions/my-votes*', {
             statusCode: 200,
             body: {
                 votes: {
@@ -99,6 +123,11 @@ describe('Home to Prediction deep link', () => {
             },
         }).as('getUserVotes');
 
+        cy.intercept('GET', '**/api/predictions/my-vote/*', {
+            statusCode: 410,
+            body: { message: 'legacy endpoint removed' },
+        }).as('getUserVote');
+
         cy.intercept('**/api/predictions/status/*', {
             statusCode: 200,
             body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
@@ -107,7 +136,15 @@ describe('Home to Prediction deep link', () => {
 
     it('moves to prediction with gameId/date query and preselects clicked game', () => {
         cy.viewport(1280, 720); // Desktop view forcing
-        cy.visit('/home');
+        cy.visit('/home', {
+            onBeforeLoad: (win) => {
+                seedAuthState(win);
+            },
+        });
+        cy.window().then((win) => {
+            seedAuthState(win);
+        });
+        cy.setCookie('Authorization', fakeToken);
         // Wait for the auth check to occur
         cy.wait('@getMe');
         cy.wait('@getHomeScheduleCustom');
@@ -124,6 +161,9 @@ describe('Home to Prediction deep link', () => {
         cy.url().should('include', '/prediction');
 
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
-        cy.contains('button[aria-pressed="true"]', /(LG\s*-\s*한화|LG vs 한화|한화 vs LG|한화\s*-\s*LG)/).should('be.visible');
+        cy.get('@getUserVote.all').should('have.length', 0);
+        cy.contains('로그인 필요').should('not.exist');
+        cy.contains(/LG(\s*트윈스)?/).should('be.visible');
+        cy.contains(/한화(\s*이글스)?/).should('be.visible');
     });
 });

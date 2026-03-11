@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { Button } from './ui/button';
 import {
     Dialog,
@@ -10,17 +10,15 @@ import {
 } from './ui/dialog';
 import { Label } from './ui/label';
 import {
-    Loader2, Zap, TrendingUp, TrendingDown, Users, Shield, Bot, Sparkles,
-    BarChart2, BarChart3, AlertTriangle, CheckCircle, ArrowUpRight, ArrowDownRight, Minus, Trophy
+    Loader2, Zap, TrendingUp, Users, Shield, BarChart2
 } from 'lucide-react';
 import {
     analyzeTeam,
     CoachAnalyzeResponse,
-    CoachDataQuality,
+    CoachAnalysisData,
     CoachMetric,
+    CoachRiskItem,
     DashboardStat,
-    getCoachDataQualityLabel,
-    getCoachGenerationModeLabel,
 } from '../api/coach';
 import { TEAM_LIST, TEAM_NAME_TO_ID, getRandomTeamName, TEAM_DATA } from '../constants/teams';
 import TeamLogo from './TeamLogo';
@@ -30,29 +28,7 @@ import {
     COACH_BRIEFING_MANUAL_HINT,
     normalizeCoachBriefing,
 } from '../utils/prediction';
-
-// --- Animation Variants ---
-const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.1
-        }
-    }
-} as const;
-
-const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            duration: 0.5,
-            ease: "easeOut"
-        }
-    }
-} as const;
+import CoachAnalysisResultView from './prediction/CoachAnalysisResultView';
 
 const isAbortError = (error: unknown): boolean => {
     if (error instanceof DOMException && error.name === 'AbortError') {
@@ -85,157 +61,148 @@ const resolveLeagueTypeCode = (
     return undefined;
 };
 
-const getCoachQualityBadgeClassName = (dataQuality?: CoachDataQuality): string => {
-    if (dataQuality === 'grounded') {
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-200 dark:border-emerald-800/30';
-    }
-    if (dataQuality === 'partial') {
-        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-200 dark:border-amber-800/30';
-    }
-    if (dataQuality === 'insufficient') {
-        return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-200 dark:border-rose-800/30';
-    }
-    return 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-secondary dark:text-gray-200 dark:border-border';
+const normalizeTextBlock = (
+    value: string,
+    fallbackMessage = COACH_BRIEFING_DISPLAY_MESSAGE,
+) => normalizeCoachBriefing(
+    { message: value || '' },
+    {
+        fallbackTitle: 'AI 코치 상세 분석',
+        fallbackMessage,
+        fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
+    },
+).displayText;
+
+const normalizeInsightList = (values?: unknown[]): string[] => (
+    Array.isArray(values)
+        ? values
+            .map((value) => (typeof value === 'string' ? normalizeTextBlock(value, '') : ''))
+            .filter((value) => Boolean(value))
+        : []
+);
+
+type ParsedCoachAnalysisData = {
+    dashboard?: {
+        headline?: string;
+        context?: string;
+        sentiment?: unknown;
+        stats?: unknown[];
+    };
+    metrics?: unknown[];
+    detailed_analysis?: unknown;
+    coach_note?: unknown;
+    analysis_summary?: unknown;
+    verdict?: unknown;
+    strengths?: unknown[];
+    weaknesses?: unknown[];
+    risks?: CoachRiskItem[];
+    why_it_matters?: unknown[];
+    swing_factors?: unknown[];
+    watch_points?: unknown[];
+    uncertainty?: unknown[];
 };
 
-// --- Metric Card Component ---
-const MetricCard = ({ data }: { data: CoachMetric }) => {
-    const { category, name, value, description, risk_level, trend } = data;
+const deriveMetricCategory = (label: string): string => {
+    if (label.includes('선발')) return '선발';
+    if (label.includes('불펜')) return '불펜';
+    if (label.includes('OPS') || label.includes('타격')) return '타격';
+    if (label.includes('최근')) return '흐름';
+    if (label.includes('시리즈') || label.includes('전적')) return '매치업';
+    return '핵심지표';
+};
 
-    // Color Styles based on Risk Level
-    const styles = {
-        0: {
-            bg: 'bg-red-50/80 dark:bg-red-950/20',
-            border: 'border-red-200/50 dark:border-red-900/30',
-            text: 'text-red-700 dark:text-red-400',
-            bar: 'bg-red-500',
-            shadow: 'rgba(239, 68, 68, 0.4)',
-            icon: AlertTriangle
-        },
-        1: {
-            bg: 'bg-amber-50/80 dark:bg-amber-950/20',
-            border: 'border-amber-200/50 dark:border-amber-900/30',
-            text: 'text-amber-700 dark:text-amber-400',
-            bar: 'bg-amber-500',
-            shadow: 'rgba(245, 158, 11, 0.4)',
-            icon: Minus
-        },
-        2: {
-            bg: 'bg-emerald-50/80 dark:bg-emerald-950/20',
-            border: 'border-emerald-200/50 dark:border-emerald-900/30',
-            text: 'text-emerald-700 dark:text-emerald-400',
-            bar: 'bg-emerald-500',
-            shadow: 'rgba(16, 185, 129, 0.4)',
-            icon: CheckCircle
+const extractMetricNumbers = (value: string): number[] => {
+    const matches = value.match(/-?\d+(?:\.\d+)?/g);
+    if (!matches) {
+        return [];
+    }
+    return matches
+        .map((token) => Number(token))
+        .filter((token) => Number.isFinite(token));
+};
+
+const describeMetric = (label: string, value: string): string => {
+    if (!value) {
+        return '';
+    }
+
+    const numbers = extractMetricNumbers(value);
+    if (label.includes('OPS') && numbers.length >= 2) {
+        return `두 팀 OPS 차이 ${Math.abs(numbers[0] - numbers[1]).toFixed(3)}. 장타 생산성 차이를 먼저 봐야 합니다.`;
+    }
+    if (label.includes('불펜') && numbers.length >= 2) {
+        return `두 팀 불펜 비중 차이 ${Math.abs(numbers[0] - numbers[1]).toFixed(1)}%p. 후반 운영 여력 차이로 이어질 수 있습니다.`;
+    }
+    if (label.includes('최근 흐름')) {
+        return '최근 승패와 득실 흐름을 함께 보는 비교 항목입니다.';
+    }
+    if (label.includes('발표 선발')) {
+        return '공식 발표된 선발 매치업 기준입니다. 초반 3이닝 흐름 해석에 직접 연결됩니다.';
+    }
+    if (label.includes('시리즈') || label.includes('전적')) {
+        return '누적 맞대결 또는 시리즈 흐름 기준의 비교 항목입니다.';
+    }
+    return '확인된 수치를 경기 운영 의미로 연결한 핵심 비교 지표입니다.';
+};
+
+const normalizeMetricRisk = (riskLevel?: number): CoachMetric['risk_level'] => {
+    if (riskLevel === 0 || riskLevel === 1 || riskLevel === 2) {
+        return riskLevel;
+    }
+    return 2;
+};
+
+const normalizeMetricTrend = (trend?: string): CoachMetric['trend'] => {
+    if (trend === 'up' || trend === 'down') {
+        return trend;
+    }
+    return 'neutral';
+};
+
+const normalizeRiskItems = (risks?: Array<unknown> | null): CoachRiskItem[] => {
+    if (!Array.isArray(risks)) {
+        return [];
+    }
+
+    const resolved: CoachRiskItem[] = [];
+
+    risks.forEach((risk) => {
+        if (!risk || typeof risk !== 'object') {
+            return;
         }
-    }[risk_level];
 
-    const progressWidth = risk_level === 0 ? '85%' : risk_level === 1 ? '50%' : '90%';
+        const source = risk as Record<string, unknown>;
+        const area = typeof source.area === 'string' ? source.area.trim() : '';
+        const description = typeof source.description === 'string' ? source.description.trim() : '';
+        const candidate = Number(source.level);
+        const level = (Number.isInteger(candidate) && candidate >= 0 && candidate <= 2)
+            ? (candidate as 0 | 1 | 2)
+            : 1;
 
-    return (
-        <motion.div
-            variants={itemVariants}
-            whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
-            className={`relative p-5 rounded-2xl border ${styles.border} ${styles.bg} backdrop-blur-sm flex flex-col h-full transition-all group overflow-hidden`}
-        >
-            <div className={`absolute top-0 right-0 w-24 h-24 ${styles.bar} opacity-[0.03] rounded-full blur-2xl -translate-y-1/2 translate-x-1/2`} />
+        if (!area || !description) {
+            return;
+        }
 
-            {/* Header */}
-            <div className="flex justify-between items-start mb-2 relative z-10">
-                <div className="flex items-center gap-1.5">
-                    <span className={`text-[10px] font-black ${styles.text} uppercase tracking-widest border border-current px-1.5 py-0.5 rounded`}>
-                        {category}
-                    </span>
-                </div>
-                {trend !== 'neutral' && (
-                    <div className={`flex items-center gap-0.5 text-[10px] font-black px-2.5 py-1 rounded-full bg-white/80 dark:bg-black/40 shadow-sm ${styles.text}`}>
-                        {trend === 'up' ? '▲ 상승' : '▼ 하락'}
-                    </div>
-                )}
-            </div>
+        resolved.push({
+            area,
+            description,
+            level,
+        });
+    });
 
-            {/* Main Content */}
-            <div className="flex-1 relative z-10">
-                {value ? (
-                    <>
-                        <p className="text-sm font-bold text-gray-500 dark:text-gray-300 truncate tracking-tight">{name}</p>
-                        <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter mt-1">{value}</p>
-                    </>
-                ) : (
-                    <p className="text-lg font-black text-gray-900 dark:text-white mt-2 tracking-tight">{name}</p>
-                )}
-            </div>
-
-            {/* Progress Bar */}
-            <div className="space-y-2 mt-5 relative z-10">
-                <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest opacity-70">
-                    <span>리그 평균 대비 지표</span>
-                    <span className={styles.text}>{risk_level === 0 ? '주의' : risk_level === 2 ? '최상' : '안정'}</span>
-                </div>
-                <div className="h-1.5 w-full bg-gray-200/50 dark:bg-card/50 rounded-full overflow-hidden">
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: progressWidth }}
-                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
-                        className={`h-full ${styles.bar} rounded-full`}
-                        style={{ boxShadow: `0 0 8px ${styles.shadow}` }}
-                    />
-                </div>
-            </div>
-
-            {/* Description */}
-            {description && description.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-gray-200/30 dark:border-border/30 relative z-10">
-                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed font-medium break-keep">
-                        {description}
-                    </p>
-                </div>
-            )}
-        </motion.div>
-    );
+    return resolved;
 };
 
-// --- Dashboard Stat Card ---
-const StatCard = ({ stat }: { stat: DashboardStat }) => {
-    return (
-        <motion.div
-            variants={itemVariants}
-            whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.12)" }}
-            className="bg-white/5 rounded-2xl p-5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all group relative overflow-hidden"
-        >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+const ANALYSIS_LOADING_FALLBACK_MESSAGE = 'AI 코치 분석을 시작합니다.';
 
-            <div className="flex items-center justify-between mb-3 relative z-10">
-                <span className="text-[10px] font-black text-emerald-200/50 uppercase tracking-[0.2em]">{stat.label}</span>
-                {stat.is_critical && (
-                    <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 1, repeat: Infinity }}
-                        className="p-1.5 rounded-full bg-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.3)]"
-                    >
-                        <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-                    </motion.div>
-                )}
-            </div>
-            <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                <span className="text-3xl font-black text-white tracking-tighter group-hover:text-emerald-300 transition-colors">{stat.value}</span>
-            </div>
-            <div className={`text-[11px] font-extrabold mt-4 py-1.5 px-3 rounded-xl w-fit flex items-center gap-2 border relative z-10 ${stat.trend === 'up' ? 'bg-red-500/10 border-red-500/20 text-red-300' :
-                stat.trend === 'down' ? 'bg-blue-500/10 border-blue-500/20 text-blue-300' :
-                    'bg-white/5 border-white/10 text-gray-300'
-                }`}>
-                {stat.trend === 'up' && <ArrowUpRight className="w-3.5 h-3.5" />}
-                {stat.trend === 'down' && <ArrowDownRight className="w-3.5 h-3.5" />}
-                {stat.status}
-            </div>
-        </motion.div>
-    );
-};
+// Subcomponents transferred to separate files.
 
 // --- Main Component ---
 interface CoachAnalysisDialogProps {
-    trigger?: React.ReactNode;
+    trigger?: ReactNode;
     initialTeam?: string;
+    homeTeamId?: string;
+    awayTeamId?: string;
     gameId?: string;
     gameDate?: string;
     seasonId?: number | string;
@@ -249,6 +216,8 @@ interface CoachAnalysisDialogProps {
 export default function CoachAnalysisDialog({
     trigger,
     initialTeam,
+    homeTeamId,
+    awayTeamId,
     gameId,
     gameDate,
     seasonId,
@@ -267,9 +236,30 @@ export default function CoachAnalysisDialog({
         return TEAM_LIST.find(t => t.includes(teamId)) || teamId;
     };
 
+    const selectableTeamNames = useMemo(() => {
+        if (homeTeamId && awayTeamId) {
+            return Array.from(new Set([
+                getInitialTeamName(homeTeamId),
+                getInitialTeamName(awayTeamId),
+            ]));
+        }
+        return TEAM_LIST.slice(1);
+    }, [awayTeamId, homeTeamId]);
+
+    const buildDefaultFocus = () => {
+        const defaults = ['recent_form', 'bullpen', 'batting'];
+        if (gameId && homeTeamId && awayTeamId) {
+            defaults.push('matchup');
+        }
+        if (homePitcher || awayPitcher) {
+            defaults.push('starter');
+        }
+        return Array.from(new Set(defaults));
+    };
+
     const [isOpen, setIsOpen] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState<string>(getInitialTeamName(initialTeam));
-    const [focus, setFocus] = useState<string[]>(['recent_form']);
+    const [focus, setFocus] = useState<string[]>(buildDefaultFocus());
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<CoachAnalyzeResponse | null>(null);
     const [analysisStep, setAnalysisStep] = useState<string>('');
@@ -277,8 +267,9 @@ export default function CoachAnalysisDialog({
     useEffect(() => {
         if (isOpen) {
             setSelectedTeam(getInitialTeamName(initialTeam));
+            setFocus(normalizeFocusLocal(buildDefaultFocus()));
         }
-    }, [isOpen, initialTeam]);
+    }, [isOpen, initialTeam, homeTeamId, awayTeamId, gameId, homePitcher, awayPitcher]);
 
     const focusOptions = [
         { id: 'recent_form', label: '최근 전력', icon: TrendingUp, desc: '최근 5경기 승률 및 타격감' },
@@ -370,11 +361,18 @@ export default function CoachAnalysisDialog({
         try {
             const seasonYear = resolveSeasonYear();
             const leagueTypeCode = resolveLeagueTypeCode(leagueType, round);
-            // Streaming Implementation
+            const selectedTeamId = TEAM_NAME_TO_ID[selectedTeam] || selectedTeam;
+            const opponentTeamId = selectedTeamId === homeTeamId
+                ? awayTeamId
+                : selectedTeamId === awayTeamId
+                    ? homeTeamId
+                    : undefined;
+
             await analyzeTeam({
-                home_team_id: TEAM_NAME_TO_ID[selectedTeam] || selectedTeam,
+                home_team_id: selectedTeamId,
+                away_team_id: opponentTeamId,
                 request_mode: 'manual_detail',
-                focus: focus,
+                focus: normalizeFocusLocal(focus),
                 game_id: gameId,
                 league_context: {
                     season: seasonId,
@@ -426,16 +424,19 @@ export default function CoachAnalysisDialog({
         );
     };
 
-    const getAnalysisData = () => {
-        const normalizeText = (value: string, fallbackMessage = COACH_BRIEFING_DISPLAY_MESSAGE) =>
-            normalizeCoachBriefing(
-                { message: value || '' },
-                {
-                    fallbackTitle: 'AI 분석 리포트',
-                    fallbackMessage,
-                    fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
-                },
-            ).displayText;
+    const getAnalysisData = (): CoachAnalysisData | null => {
+        const isReviewMode = result?.game_status_bucket === 'COMPLETED';
+        const defaultAnalysisTitle = isReviewMode ? 'AI 코치 경기 리뷰' : 'AI 코치 상세 분석';
+        const defaultAnalysisMessage = isReviewMode
+            ? '실데이터를 바탕으로 경기 결과를 복기한 리포트입니다.'
+            : '실데이터를 바탕으로 승부처를 해석한 리포트입니다.';
+
+        const normalizeSentiment = (value?: string): CoachAnalysisData['dashboard']['sentiment'] => {
+            if (value === 'positive' || value === 'negative' || value === 'neutral') {
+                return value;
+            }
+            return 'neutral';
+        };
 
         const normalizeDashboardContext = (headline: string, context: string) => normalizeCoachBriefing(
             {
@@ -443,41 +444,202 @@ export default function CoachAnalysisDialog({
                 message: context || '',
             },
             {
-                fallbackTitle: 'AI 분석 리포트',
-                fallbackMessage: '데이터를 기반으로 분석된 팀 상태입니다.',
+                fallbackTitle: defaultAnalysisTitle,
+                fallbackMessage: defaultAnalysisMessage,
                 fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
             },
         );
 
-        const normalizeCoachAnalysisData = (data: CoachAnalyzeResponse['data']) => ({
-            dashboard: {
-                headline: normalizeCoachBriefing(
-                    {
-                        title: data?.dashboard?.headline,
-                        message: data?.dashboard?.context || '',
-                    },
-                    {
-                        fallbackTitle: 'AI 분석 리포트',
-                        fallbackMessage: '데이터를 기반으로 분석된 팀 상태입니다.',
-                        fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
-                    },
-                ).title,
-                context: normalizeText(
-                    data?.dashboard?.context || '',
-                    '데이터를 기반으로 분석된 팀 상태입니다.',
+        const normalizeAnalysisSection = (analysis?: {
+            summary?: string;
+            verdict?: string;
+            strengths?: string[];
+            weaknesses?: string[];
+            risks?: CoachRiskItem[];
+            why_it_matters?: string[];
+            swing_factors?: string[];
+            watch_points?: string[];
+            uncertainty?: string[];
+        }) => ({
+            summary: normalizeTextBlock(analysis?.summary || '', ''),
+            verdict: normalizeTextBlock(analysis?.verdict || '', ''),
+            strengths: normalizeInsightList(analysis?.strengths),
+            weaknesses: normalizeInsightList(analysis?.weaknesses),
+            risks: normalizeRiskItems(Array.isArray(analysis?.risks) ? analysis.risks : null),
+            why_it_matters: normalizeInsightList(analysis?.why_it_matters),
+            swing_factors: normalizeInsightList(analysis?.swing_factors),
+            watch_points: normalizeInsightList(analysis?.watch_points),
+            uncertainty: normalizeInsightList(analysis?.uncertainty),
+        });
+
+        const mapStructuredMetrics = (metrics?: Array<{
+            label: string;
+            value: string;
+            status: 'good' | 'warning' | 'danger';
+            trend: 'up' | 'down' | 'neutral';
+            is_critical: boolean;
+        }>) => ({
+            stats: (metrics?.map((metric) => ({
+                label: metric.label,
+                value: metric.value,
+                status: metric.status,
+                trend: metric.trend,
+                is_critical: metric.is_critical,
+            })) || []) as DashboardStat[],
+            metricCards: (metrics?.map((metric) => ({
+                category: deriveMetricCategory(metric.label),
+                name: metric.label,
+                value: metric.value,
+                description: describeMetric(metric.label, metric.value),
+                risk_level: (metric.status === 'danger' ? 0 : metric.status === 'warning' ? 1 : 2) as 0 | 1 | 2,
+                trend: metric.trend,
+            })) || []) as CoachMetric[],
+        });
+
+        const buildAnalysisData = ({
+            headline,
+            sentiment,
+            keyMetrics,
+            analysis,
+            detailedMarkdown,
+            coachNote,
+        }: {
+            headline: string;
+            sentiment?: 'positive' | 'negative' | 'neutral';
+            keyMetrics?: Array<{
+                label: string;
+                value: string;
+                status: 'good' | 'warning' | 'danger';
+                trend: 'up' | 'down' | 'neutral';
+                is_critical: boolean;
+            }>;
+            analysis?: {
+                summary?: string;
+                verdict?: string;
+                strengths?: string[];
+                weaknesses?: string[];
+                risks?: CoachRiskItem[];
+                why_it_matters?: string[];
+                swing_factors?: string[];
+                watch_points?: string[];
+                uncertainty?: string[];
+            };
+            detailedMarkdown?: string;
+            coachNote?: string;
+        }): CoachAnalysisData => {
+            const normalizedAnalysis = normalizeAnalysisSection(analysis);
+            const mappedMetrics = mapStructuredMetrics(keyMetrics);
+            const normalizedContext = normalizeDashboardContext(
+                headline || defaultAnalysisTitle,
+                normalizedAnalysis.summary
+                    || normalizedAnalysis.verdict
+                    || normalizeTextBlock(detailedMarkdown || coachNote || ''),
+            );
+
+            return {
+                dashboard: {
+                    headline: normalizedContext.title,
+                    context: normalizedContext.displayText,
+                    sentiment: normalizeSentiment(sentiment),
+                    stats: mappedMetrics.stats,
+                },
+                metrics: mappedMetrics.metricCards,
+                detailed_analysis: normalizeTextBlock(detailedMarkdown || ''),
+                coach_note: normalizeTextBlock(
+                    coachNote || '',
+                    '코치 노트가 제공되지 않았습니다.',
                 ),
-                sentiment: data?.dashboard?.sentiment || 'neutral',
-                stats: data?.dashboard?.stats || [],
-            },
-            metrics: data?.metrics || [],
-            detailed_analysis: normalizeText(
-                data?.detailed_analysis || '',
+                analysis_summary: normalizedAnalysis.summary,
+                verdict: normalizedAnalysis.verdict,
+                strengths: normalizedAnalysis.strengths,
+                weaknesses: normalizedAnalysis.weaknesses,
+                risks: normalizedAnalysis.risks,
+                why_it_matters: normalizedAnalysis.why_it_matters,
+                swing_factors: normalizedAnalysis.swing_factors,
+                watch_points: normalizedAnalysis.watch_points,
+                uncertainty: normalizedAnalysis.uncertainty,
+                game_status_bucket: result?.game_status_bucket,
+            };
+        };
+
+    const normalizeCoachAnalysisData = (data?: ParsedCoachAnalysisData): CoachAnalysisData => ({
+        dashboard: {
+            headline: typeof data?.dashboard?.headline === 'string' ? data.dashboard.headline : defaultAnalysisTitle,
+            context: normalizeTextBlock(
+                typeof data?.dashboard?.context === 'string' ? data.dashboard.context : '',
+                defaultAnalysisMessage,
+            ),
+            sentiment: normalizeSentiment(
+                typeof data?.dashboard?.sentiment === 'string'
+                    ? data.dashboard.sentiment
+                    : undefined,
+            ),
+            stats: (Array.isArray(data?.dashboard?.stats)
+                ? data.dashboard.stats
+                    .map((stat) => {
+                        const value = stat as {
+                            label?: string;
+                            value?: string;
+                            status?: string;
+                            trend?: 'up' | 'down' | 'neutral';
+                            is_critical?: boolean;
+                        };
+                        return {
+                            label: typeof value?.label === 'string' ? value.label : '',
+                            value: typeof value?.value === 'string' ? value.value : '',
+                            status: value?.status ?? 'neutral',
+                            trend: value?.trend === 'up' || value?.trend === 'down' || value?.trend === 'neutral'
+                                ? value.trend
+                                : 'neutral',
+                            is_critical: Boolean(value?.is_critical),
+                        } as DashboardStat;
+                    })
+                : []
+            ),
+        },
+        metrics: (Array.isArray(data?.metrics) ? data.metrics : []).map((metric) => {
+            const safeMetric = metric as {
+                category?: string;
+                name?: string;
+                value?: string;
+                description?: string;
+                risk_level?: number;
+                trend?: string;
+            };
+            return ({
+                category: typeof safeMetric.category === 'string'
+                    ? safeMetric.category
+                    : deriveMetricCategory(typeof safeMetric.name === 'string' ? safeMetric.name : ''),
+                description: typeof safeMetric.description === 'string'
+                ? safeMetric.description
+                : describeMetric(
+                    typeof safeMetric.name === 'string' ? safeMetric.name : '',
+                    typeof safeMetric.value === 'string' ? safeMetric.value : '',
+                ),
+                name: typeof safeMetric.name === 'string' ? safeMetric.name : '',
+                value: typeof safeMetric.value === 'string' ? safeMetric.value : '',
+                risk_level: normalizeMetricRisk(typeof safeMetric.risk_level === 'number' ? safeMetric.risk_level : undefined),
+                trend: normalizeMetricTrend(typeof safeMetric.trend === 'string' ? safeMetric.trend : undefined),
+            });
+        }),
+            analysis_summary: normalizeTextBlock(typeof data?.analysis_summary === 'string' ? data.analysis_summary : '', ''),
+            verdict: normalizeTextBlock(typeof data?.verdict === 'string' ? data.verdict : '', ''),
+            strengths: normalizeInsightList(data?.strengths),
+            weaknesses: normalizeInsightList(data?.weaknesses),
+            risks: normalizeRiskItems(Array.isArray(data?.risks) ? data.risks : null),
+            why_it_matters: normalizeInsightList(data?.why_it_matters),
+            swing_factors: normalizeInsightList(data?.swing_factors),
+            watch_points: normalizeInsightList(data?.watch_points),
+            uncertainty: normalizeInsightList(data?.uncertainty),
+            detailed_analysis: normalizeTextBlock(
+                typeof data?.detailed_analysis === 'string' ? data.detailed_analysis : '',
                 COACH_BRIEFING_DISPLAY_MESSAGE,
             ),
-            coach_note: normalizeText(
-                data?.coach_note || '',
+            coach_note: normalizeTextBlock(
+                typeof data?.coach_note === 'string' ? data.coach_note : '',
                 '기존 형식의 코치 노트가 없습니다.',
             ),
+            game_status_bucket: result?.game_status_bucket,
         });
 
         if (result?.data) {
@@ -486,38 +648,14 @@ export default function CoachAnalysisDialog({
 
         if (result?.structuredData) {
             const structured = result.structuredData;
-            const normalizedContext = normalizeDashboardContext(
-                structured.headline || 'AI 분석 리포트',
-                normalizeText(structured.detailed_markdown || structured.coach_note || ''),
-            );
-
-            return {
-                dashboard: {
-                    headline: normalizedContext.title,
-                    context: normalizedContext.displayText,
-                    sentiment: structured.sentiment || 'neutral',
-                    stats: structured.key_metrics?.map((m) => ({
-                        label: m.label,
-                        value: m.value,
-                        status: m.status,
-                        trend: m.trend,
-                        is_critical: m.is_critical,
-                    })) || [],
-                },
-                metrics: (structured.key_metrics?.map((m) => ({
-                    category: '핵심지표',
-                    name: m.label,
-                    value: m.value,
-                    description: '',
-                    risk_level: (m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2) as 0 | 1 | 2,
-                    trend: m.trend as "up" | "down" | "neutral",
-                })) || []) as CoachMetric[],
-                detailed_analysis: normalizeText(structured.detailed_markdown || ''),
-                coach_note: normalizeText(
-                    structured.coach_note || '',
-                    '기존 형식의 코치 노트가 없습니다.',
-                ),
-            };
+            return buildAnalysisData({
+                headline: structured.headline || defaultAnalysisTitle,
+                sentiment: normalizeSentiment(structured.sentiment),
+                keyMetrics: structured.key_metrics,
+                analysis: structured.analysis,
+                detailedMarkdown: structured.detailed_markdown,
+                coachNote: structured.coach_note,
+            });
         }
 
         if (!result?.raw_answer && !result?.answer) return null;
@@ -530,7 +668,7 @@ export default function CoachAnalysisDialog({
                 const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
                 if (parsed && typeof parsed === 'object') {
                     if (parsed.dashboard) {
-                        return normalizeCoachAnalysisData(parsed as CoachAnalyzeResponse['data']);
+                        return normalizeCoachAnalysisData(parsed as ParsedCoachAnalysisData);
                     }
 
                     if (parsed.headline) {
@@ -539,45 +677,36 @@ export default function CoachAnalysisDialog({
                             sentiment?: 'positive' | 'negative' | 'neutral';
                             detailed_markdown?: string;
                             coach_note?: string;
+                            analysis?: {
+                                summary?: string;
+                                verdict?: string;
+                                strengths?: string[];
+                                weaknesses?: string[];
+                                risks?: CoachRiskItem[];
+                                why_it_matters?: string[];
+                                swing_factors?: string[];
+                                watch_points?: string[];
+                                uncertainty?: string[];
+                            };
                             key_metrics?: Array<{
                                 label: string;
                                 value: string;
                                 status: 'good' | 'warning' | 'danger';
                                 trend: 'up' | 'down' | 'neutral';
+                                is_critical?: boolean;
                             }>;
                         };
-                        const normalizedContext = normalizeDashboardContext(
-                            parsedPayload.headline || 'AI 분석 리포트',
-                            parsedPayload.detailed_markdown || '',
-                        );
-
-                        return {
-                            dashboard: {
-                                headline: normalizedContext.title,
-                                context: normalizedContext.displayText,
-                                sentiment: parsedPayload.sentiment || 'neutral',
-                                stats: parsedPayload.key_metrics?.map((m) => ({
-                                    label: m.label,
-                                    value: m.value,
-                                    status: m.status,
-                                    trend: m.trend,
-                                    is_critical: false,
-                                })) || [],
-                            },
-                            metrics: (parsedPayload.key_metrics?.map((m) => ({
-                                category: '핵심지표',
-                                name: m.label,
-                                value: m.value,
-                                description: '',
-                                risk_level: (m.status === 'danger' ? 0 : m.status === 'warning' ? 1 : 2) as 0 | 1 | 2,
-                                trend: m.trend as "up" | "down" | "neutral",
-                            })) || []) as CoachMetric[],
-                            detailed_analysis: normalizeText(parsedPayload.detailed_markdown || ''),
-                            coach_note: normalizeText(
-                                parsedPayload.coach_note || '',
-                                '기존 형식의 코치 노트가 없습니다.',
-                            ),
-                        };
+                        return buildAnalysisData({
+                            headline: parsedPayload.headline || defaultAnalysisTitle,
+                            sentiment: normalizeSentiment(parsedPayload.sentiment),
+                            keyMetrics: parsedPayload.key_metrics?.map((metric) => ({
+                                ...metric,
+                                is_critical: Boolean(metric.is_critical),
+                            })),
+                            analysis: parsedPayload.analysis,
+                            detailedMarkdown: parsedPayload.detailed_markdown,
+                            coachNote: parsedPayload.coach_note,
+                        });
                     }
                 }
             }
@@ -585,68 +714,65 @@ export default function CoachAnalysisDialog({
             console.warn('Fallback JSON parse failed', error);
         }
 
-        const rawHeadline = raw.match(/### (.*)/)?.[1] || 'AI 분석 리포트';
-        const contextFallback = raw.match(/## 🔍 AI 시즌 요약\n([\s\S]*?)\n\n/)?.[1]?.trim() ||
-            '데이터를 기반으로 분석된 팀 상태입니다.';
-        const normalizedContext = normalizeDashboardContext(rawHeadline, contextFallback);
+            const rawHeadline = raw.match(/### (.*)/)?.[1] || 'AI 분석 리포트';
+            const contextFallback = raw.match(/## 🔍 AI 시즌 요약\n([\s\S]*?)\n\n/)?.[1]?.trim() ||
+                '데이터를 기반으로 분석된 팀 상태입니다.';
+            const normalizedContext = normalizeDashboardContext(rawHeadline, contextFallback);
 
-        return {
-            dashboard: {
-                headline: normalizedContext.title,
-                context: normalizedContext.displayText,
-                sentiment: (raw.includes('🚨') || raw.includes('▼')) ? 'negative' : 'positive' as const,
-                stats: [],
-            },
-            metrics: [],
-            detailed_analysis: normalizeText(raw),
-            coach_note: normalizeText(
-                '기존 형식의 데이터가 감지되었습니다. 상세 리포트를 참고해주세요.',
-                '기존 형식의 데이터가 감지되었습니다. 상세 리포트를 참고해주세요.',
-            ),
-        };
+            return {
+                dashboard: {
+                    headline: normalizedContext.title,
+                    context: normalizedContext.displayText,
+                    sentiment: normalizeSentiment((raw.includes('🚨') || raw.includes('▼')) ? 'negative' : 'positive'),
+                    stats: [] as DashboardStat[],
+                },
+                metrics: [] as CoachMetric[],
+                detailed_analysis: normalizeTextBlock(raw),
+                coach_note: normalizeTextBlock(
+                    '기존 형식의 데이터가 감지되었습니다. 상세 리포트를 참고해주세요.',
+                    '기존 형식의 데이터가 감지되었습니다. 상세 리포트를 참고해주세요.',
+                ),
+                analysis_summary: '',
+                verdict: '',
+                strengths: [],
+                weaknesses: [],
+                risks: [],
+                why_it_matters: [],
+                swing_factors: [],
+                watch_points: [],
+                uncertainty: [],
+            };
     };
 
-    const analysisData = getAnalysisData();
+    const analysisData = useMemo(() => getAnalysisData(), [result]);
     const selectedFocusNormalized = normalizeFocusLocal(focus);
     const resolvedFocus = normalizeFocusLocal(result?.resolved_focus || []);
     const hasFocusMeta = typeof result?.focus_signature === 'string';
     const focusMismatch = hasFocusMeta
         && selectedFocusNormalized.join('+') !== resolvedFocus.join('+');
-    const hasGroundingMeta = Boolean(
-        result?.data_quality || result?.generation_mode || result?.used_evidence?.length
-    );
-
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 {trigger ? trigger : (
-                    <Button variant="outline" className="gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-0 hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/20 px-8 h-12 rounded-full font-bold tracking-tight">
+                    <Button variant="outline" className="gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-0 hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/20 px-8 h-12 rounded-full font-bold">
                         <Zap className="w-4 h-4 fill-white" />
                         AI 코치 상세 분석
                     </Button>
                 )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-white dark:bg-secondary border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-0">
-                {/* Custom Header with Team Color Accent */}
-                <DialogHeader className="p-8 pb-12 bg-primary text-white shrink-0 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
-
-                    <DialogTitle className="flex items-center gap-3 text-2xl font-black text-white relative z-10 tracking-tight">
-                        <motion.div
-                            animate={{ rotate: [0, 15, 0, -15, 0] }}
-                            transition={{ duration: 4, repeat: Infinity }}
-                        >
-                            <Sparkles className="w-7 h-7 text-yellow-300 fill-yellow-300/20" />
-                        </motion.div>
-                        AI 코치 · 딥 스카우팅
+            <DialogHeader className="p-4 sm:p-6 shrink-0 bg-white dark:bg-black/30 border-b border-gray-100 dark:border-gray-800">
+                    <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                        AI 코치 상세 분석
                     </DialogTitle>
-                    <DialogDescription className="text-emerald-100/70 font-bold uppercase tracking-[0.2em] text-[11px] relative z-10 mt-2 ml-1">
-                        {selectedTeam} 전략 및 지표 분석 중
+                    <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                        {homeTeamId && awayTeamId
+                            ? `${getInitialTeamName(homeTeamId)} vs ${getInitialTeamName(awayTeamId)} 승부처를 실데이터 기반으로 해석합니다.`
+                            : `${selectedTeam} 전략 및 지표를 실데이터와 함께 해석합니다.`}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto px-8 py-8 space-y-10 bg-gray-50/50 dark:bg-black/40 -mt-6 rounded-t-3xl relative z-20">
+                <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 space-y-7 sm:space-y-8 bg-gray-50/60 dark:bg-black/40 relative">
                     {/* Team Selection Section */}
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
@@ -654,33 +780,37 @@ export default function CoachAnalysisDialog({
                         className="space-y-6"
                     >
                         <div className="flex items-center justify-between px-1">
-                            <Label className="text-xs font-black text-gray-400 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                            <Label className="text-sm font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                                분석 대상 팀 선택
+                                {homeTeamId && awayTeamId ? '분석 기준 팀 선택' : '분석 대상 팀 선택'}
                             </Label>
                         </div>
-                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                            {TEAM_LIST.slice(1).map((teamName) => {
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-1">
+                            {selectableTeamNames.map((teamName) => {
                                 const isSelected = selectedTeam === teamName;
                                 return (
                                     <motion.button
                                         key={teamName}
                                         type="button"
-                                        whileHover={{ y: -2 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => setSelectedTeam(teamName)}
+                                        whileTap={{ scale: 0.98 }}
+                                        disabled={loading}
+                                        onClick={() => {
+                                            if (loading) return;
+                                            setSelectedTeam(teamName);
+                                        }}
                                         className={`
                                             relative flex flex-col items-center justify-center p-4 rounded-2xl transition-all duration-300 border
-                                            ${isSelected
-                                                ? 'bg-white dark:bg-card border-primary/30 shadow-xl shadow-primary/10 scale-105 ring-2 ring-primary'
+                                                ${isSelected
+                                                ? 'bg-white dark:bg-card border-primary/30 shadow-sm ring-2 ring-primary'
                                                 : 'bg-white dark:bg-card/50 border-gray-100 dark:border-border hover:border-gray-200 dark:hover:border-gray-700'
                                             }
+                                            ${loading ? 'opacity-60 cursor-not-allowed' : ''}
                                         `}
                                     >
-                                        <div className="w-12 h-12 mb-3 relative flex items-center justify-center">
+                                        <div className="w-10 h-10 sm:w-12 sm:h-12 mb-2 sm:mb-3 relative flex items-center justify-center">
                                             <TeamLogo team={teamName} size={48} className={`w-full h-full transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md' : 'opacity-60 grayscale-[0.5]'}`} />
                                         </div>
-                                        <span className={`text-[11px] font-black tracking-tight ${isSelected ? 'text-primary' : 'text-gray-500'}`}>
+                                        <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-gray-500'}`}>
                                             {teamName}
                                         </span>
                                     </motion.button>
@@ -696,7 +826,7 @@ export default function CoachAnalysisDialog({
                         transition={{ delay: 0.1 }}
                         className="space-y-6"
                     >
-                        <Label className="text-xs font-black text-gray-400 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2 px-1">
+                        <Label className="text-sm font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2 px-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
                             분석 집중 항목
                         </Label>
@@ -704,79 +834,75 @@ export default function CoachAnalysisDialog({
                             {focusOptions.map((opt) => {
                                 const isActive = focus.includes(opt.id);
                                 return (
-                                    <motion.div
+                                    <motion.button
                                         key={opt.id}
-                                        whileHover={{ x: 3 }}
-                                        onClick={() => toggleFocus(opt.id)}
+                                        type="button"
+                                        disabled={loading}
+                                        onClick={() => {
+                                            if (loading) return;
+                                            toggleFocus(opt.id);
+                                        }}
                                         className={`
-                                            flex items-start gap-4 p-5 rounded-2xl cursor-pointer transition-all border
+                                            flex items-start gap-4 p-4 sm:p-5 rounded-2xl transition-all border
                                             ${isActive
-                                                ? 'bg-white dark:bg-emerald-950/10 border-primary/30 shadow-lg shadow-primary/5 ring-1 ring-primary'
+                                                ? 'bg-white dark:bg-emerald-950/10 border-primary/30 shadow-sm ring-1 ring-primary'
                                                 : 'bg-white dark:bg-card/50 border-gray-100 dark:border-border hover:border-gray-200 dark:hover:border-gray-700'
                                             }
+                                            ${loading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
                                         `}
                                     >
-                                        <div className={`p-3 rounded-xl transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-secondary text-gray-400'}`}>
+                                        <div className={`p-2.5 sm:p-3 rounded-xl transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-secondary text-gray-500'}`}>
                                             <opt.icon className="w-5 h-5" />
                                         </div>
                                         <div className="flex-1">
-                                            <p className={`font-black text-sm mb-1 tracking-tight ${isActive ? 'text-primary' : 'text-gray-700 dark:text-gray-300'}`}>
+                                            <p className={`font-semibold text-sm mb-1 ${isActive ? 'text-primary' : 'text-gray-700 dark:text-gray-300'}`}>
                                                 {opt.label}
                                             </p>
-                                            <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                                                 {opt.desc}
                                             </p>
                                         </div>
-                                    </motion.div>
+                                    </motion.button>
                                 );
                             })}
                         </div>
                     </motion.div>
 
-                    {/* Action Button Section with Matrix Scanning Effect */}
-                    <div className="relative group p-1">
-                        <AnimatePresence>
-                            {loading && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="absolute inset-0 z-10 rounded-2xl bg-primary/20 pointer-events-none overflow-hidden"
-                                >
-                                    <motion.div
-                                        animate={{ top: ['-10%', '110%'] }}
-                                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                                        className="absolute left-0 right-0 h-[20%] bg-gradient-to-b from-transparent via-emerald-400/40 to-transparent"
-                                    />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
+                    {/* Action Button Section */}
+                    <div className="p-1">
                         <Button
                             onClick={handleAnalyze}
                             disabled={loading}
                             data-testid="coach-analysis-run-button"
-                            className="w-full bg-primary hover:bg-primary-dark text-white h-16 text-xl font-black rounded-2xl shadow-2xl shadow-primary/30 transition-all active:scale-[0.98] group overflow-hidden relative"
+                            className="w-full bg-primary hover:bg-primary-dark text-white h-12 sm:h-14 text-sm sm:text-base font-semibold rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-[0.99]"
                         >
-                            <span className="absolute inset-0 bg-white/5 translate-y-16 group-hover:translate-y-0 transition-transform duration-500 ease-out" />
                             {loading ? (
-                                <div className="flex items-center gap-4 relative z-10">
-                                    <motion.div
-                                        animate={{ rotate: 360 }}
-                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                    >
-                                        <Loader2 className="h-6 w-6 text-yellow-300" />
-                                    </motion.div>
-                                    <span className="text-lg font-bold tracking-tight animate-pulse">{analysisStep}</span>
+                                <div className="flex min-w-0 items-center gap-4">
+                                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                                    <span className="min-w-0 text-sm font-medium">
+                                        {analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}
+                                    </span>
+                                    <span className="ml-auto flex min-w-[34px] justify-end gap-1 text-white/85" aria-hidden="true">
+                                        <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0 }} className="h-1.5 w-1.5 rounded-full bg-white" />
+                                        <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }} className="h-1.5 w-1.5 rounded-full bg-white" />
+                                        <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }} className="h-1.5 w-1.5 rounded-full bg-white" />
+                                    </span>
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-3 relative z-10 px-4">
-                                    <Zap className="w-6 h-6 text-yellow-300 fill-yellow-300 transition-transform group-hover:scale-125 group-hover:rotate-12" />
-                                    <span className="uppercase tracking-widest">AI 시뮬레이션 실행</span>
+                                <div className="flex items-center gap-3 px-4">
+                                    <Zap className="w-5 h-5 text-white" />
+                                    <span>AI 코치 상세 분석 시작</span>
                                 </div>
                             )}
                         </Button>
                     </div>
+
+                    {loading && !analysisData && (
+                        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin shrink-0 text-primary" />
+                            <span>{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>
+                        </div>
+                    )}
 
                     {/* Results Presentation (AnimatePresence for smooth swap) */}
                     {hasFocusMeta && (
@@ -785,7 +911,7 @@ export default function CoachAnalysisDialog({
                             animate={{ opacity: 1, y: 0 }}
                             className="rounded-2xl border border-emerald-200/50 dark:border-emerald-900/30 bg-emerald-50/70 dark:bg-emerald-950/10 p-4 space-y-2"
                         >
-                            <p className="text-xs font-black tracking-widest uppercase text-emerald-700 dark:text-emerald-300">
+                            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                                 이번 분석 기준 focus
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -793,215 +919,32 @@ export default function CoachAnalysisDialog({
                                     resolvedFocus.map((focusId) => (
                                         <span
                                             key={focusId}
-                                            className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-200"
+                                            className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-200"
                                         >
                                             {focusLabelMap[focusId] || focusId}
                                         </span>
                                     ))
                                 ) : (
-                                    <span className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-200">
+                                    <span className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-200">
                                         종합 분석
                                     </span>
                                 )}
                             </div>
                             {focusMismatch && (
-                                <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                                <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
                                     선택한 focus와 실제 적용된 focus가 달라 일부 항목이 자동으로 제외되었습니다.
                                 </p>
                             )}
                             {result?.focus_section_missing && (
-                                <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                                <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
                                     일부 focus 섹션이 누락되어 다음 재생성에서 보강될 수 있습니다.
                                 </p>
                             )}
                         </motion.div>
                     )}
-                    {hasGroundingMeta && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="rounded-2xl border border-sky-200/60 dark:border-sky-900/30 bg-sky-50/70 dark:bg-sky-950/10 p-4 space-y-3"
-                        >
-                            <p className="text-xs font-black tracking-widest uppercase text-sky-700 dark:text-sky-300">
-                                근거 데이터 상태
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                {result?.data_quality && (
-                                    <span
-                                        data-testid="coach-analysis-quality-badge"
-                                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getCoachQualityBadgeClassName(result.data_quality)}`}
-                                    >
-                                        {getCoachDataQualityLabel(result.data_quality)}
-                                    </span>
-                                )}
-                                {result?.generation_mode && (
-                                    <span className="inline-flex items-center rounded-full border border-sky-300/60 dark:border-sky-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:text-sky-200">
-                                        {getCoachGenerationModeLabel(result.generation_mode)}
-                                    </span>
-                                )}
-                                {result?.used_evidence?.length ? (
-                                    <span className="inline-flex items-center rounded-full border border-sky-300/60 dark:border-sky-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:text-sky-200">
-                                        근거 {result.used_evidence.length}개
-                                    </span>
-                                ) : null}
-                            </div>
-                            {result?.used_evidence?.length ? (
-                                <p className="text-xs text-sky-800 dark:text-sky-100 font-medium break-keep">
-                                    사용 근거: {result.used_evidence.join(', ')}
-                                </p>
-                            ) : null}
-                        </motion.div>
-                    )}
                     <AnimatePresence mode="wait">
                         {analysisData && (
-                            <motion.div
-                                key="analysis-results"
-                                variants={containerVariants}
-                                initial="hidden"
-                                animate="visible"
-                                className="space-y-8 pb-10"
-                            >
-                                {/* A. Diagnosis Dashboard - Visual Masterpiece */}
-                                {(() => {
-                                    const isPositive = analysisData.dashboard.sentiment === 'positive';
-                                    return (
-                                        <motion.div
-                                            variants={itemVariants}
-                                            className="bg-gradient-to-br from-[#1a3c32] to-[#0a0f0d] p-10 rounded-3xl shadow-2xl text-white relative overflow-hidden border border-white/5"
-                                        >
-                                            {/* Immersive background effects */}
-                                            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none opacity-40" />
-                                            <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-                                            <div className="relative z-10">
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
-                                                    <div className="flex items-center gap-3 text-yellow-400 font-black uppercase tracking-[0.3em] text-[10px]">
-                                                        <Sparkles className="w-5 h-5 animate-pulse" />
-                                                        STRATEGIC ANALYSIS ALPHA-VER 3.0
-                                                    </div>
-                                                    <motion.div
-                                                        animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
-                                                        transition={{ duration: 2, repeat: Infinity }}
-                                                        className={`self-start sm:self-auto px-4 py-2 rounded-full ${isPositive ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-red-500/20 border-red-500/40 text-red-300'} border text-[10px] font-black tracking-widest uppercase flex items-center gap-2`}
-                                                    >
-                                                        <div className={`w-2 h-2 rounded-full ${isPositive ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'}`} />
-                                                        {isPositive ? '최상 상태' : '위기 예보'}
-                                                    </motion.div>
-                                                </div>
-
-                                                <div className="mb-12">
-                                                    <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight tracking-tighter mb-6 flex items-center gap-4">
-                                                        {isPositive ? <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)] shrink-0" /> : <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-red-500 shrink-0" />}
-                                                        <span className="truncate">{analysisData.dashboard.headline}</span>
-                                                    </h3>
-                                                    <div className="w-20 h-1.5 bg-yellow-400 rounded-full mb-6 shadow-[0_0_12px_#facc15]" />
-                                                    <p className="text-emerald-50/80 text-lg sm:text-xl leading-relaxed max-w-2xl font-bold tracking-tight">
-                                                        {analysisData.dashboard.context}
-                                                    </p>
-                                                </div>
-
-                                                {analysisData.dashboard.stats.length > 0 && (
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                        {analysisData.dashboard.stats.map((stat: DashboardStat, idx: number) => (
-                                                            <StatCard key={idx} stat={stat} />
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    );
-                                })()}
-
-                                {/* B. Metrics Grid with Sections */}
-                                <div className="space-y-12">
-                                    {/* Critical Factors Section */}
-                                    {analysisData.metrics.filter((m: CoachMetric) => m.risk_level === 0).length > 0 && (
-                                        <div className="space-y-6">
-                                            <div className="flex items-center gap-3 px-2">
-                                                <div className="w-10 h-10 rounded-2xl bg-red-100/80 dark:bg-red-950/30 flex items-center justify-center border border-red-200/50 dark:border-red-800/20">
-                                                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-sm font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest">
-                                                        주요 핵심 변수
-                                                    </h4>
-                                                    <p className="text-[10px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider -mt-0.5">즉각적인 확인이 필요한 주요 지표</p>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                                {analysisData.metrics.filter((m: CoachMetric) => m.risk_level === 0).map((item: CoachMetric, idx: number) => (
-                                                    <MetricCard key={`risk-${idx}`} data={item} />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Positive/Strategic Factors Section */}
-                                    {analysisData.metrics.filter((m: CoachMetric) => m.risk_level !== 0).length > 0 && (
-                                        <div className="space-y-6">
-                                            <div className="flex items-center gap-3 px-2">
-                                                <div className="w-10 h-10 rounded-2xl bg-emerald-100/80 dark:bg-emerald-950/30 flex items-center justify-center border border-emerald-200/50 dark:border-emerald-800/20">
-                                                    <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-sm font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest">
-                                                        전략적 강점 자산
-                                                    </h4>
-                                                    <p className="text-[10px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider -mt-0.5">성리를 위해 활용해야 할 핵심 강점</p>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                                {analysisData.metrics.filter((m: CoachMetric) => m.risk_level !== 0).map((item: CoachMetric, idx: number) => (
-                                                    <MetricCard key={`norm-${idx}`} data={item} />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* C. Detailed Report & Coach Note - Glassmorphic Panels */}
-                                <motion.div variants={itemVariants} className="space-y-6 pt-6">
-                                    <div className="flex items-center gap-3 px-2">
-                                        <BarChart3 className="w-5 h-5 text-primary" />
-                                        <span className="font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest text-sm">인공지능 심층 분석 리포트</span>
-                                    </div>
-
-                                    {analysisData.detailed_analysis && (
-                                        <div className="bg-white/80 dark:bg-secondary rounded-3xl p-8 border border-gray-100 dark:border-white/5 shadow-xl shadow-black/5">
-                                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4 font-medium whitespace-pre-line">
-                                                {analysisData.detailed_analysis}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {analysisData.coach_note && (
-                                        <motion.div
-                                            whileHover={{ scale: 1.01 }}
-                                            className="relative pl-6 py-8 pr-10 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-3xl border-l-8 border-emerald-500 mt-8 group"
-                                        >
-                                            <div className="absolute -top-4 left-6 bg-emerald-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full flex items-center gap-2 shadow-lg tracking-widest uppercase">
-                                                <Bot className="w-3.5 h-3.5" /> 코치의 한마디
-                                            </div>
-                                            <p className="text-emerald-900/90 dark:text-emerald-100/90 text-sm font-bold leading-relaxed italic whitespace-pre-line">
-                                                {analysisData.coach_note}
-                                            </p>
-                                        </motion.div>
-                                    )}
-                                </motion.div>
-
-                                {/* D. Footer - Technical Signature */}
-                                {result?.tool_calls && (
-                                    <motion.div variants={itemVariants} className="pt-10 flex flex-col items-center gap-3">
-                                        <div className="h-px w-24 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-700 to-transparent" />
-                                        <div className="text-[9px] font-black text-gray-400 uppercase tracking-[0.4em] opacity-50">
-                                            THE COACH AI CORE ENGINE v2.5.8-STABLE
-                                        </div>
-                                        <div className="text-[8px] text-gray-300 dark:text-gray-300 uppercase font-bold tracking-widest">
-                                            데이터 상호 참조: {result.tool_calls.length}개 노드 · 연산 검증: 완료
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </motion.div>
+                            <CoachAnalysisResultView analysisData={analysisData} />
                         )}
                     </AnimatePresence>
 

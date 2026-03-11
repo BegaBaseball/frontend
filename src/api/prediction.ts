@@ -18,6 +18,162 @@ export interface VoteStatus {
   totalVotes?: number;
 }
 
+const normalizeCount = (value: unknown): number => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+};
+
+const unwrapPredictionEnvelope = (source: unknown): unknown => {
+  let current = source;
+  let depth = 0;
+
+  while (depth < 5 && current && typeof current === 'object') {
+    const candidate = current as Record<string, unknown>;
+
+    const next =
+      ('data' in candidate && candidate.data && typeof candidate.data === 'object') ? candidate.data
+      : ('result' in candidate && candidate.result && typeof candidate.result === 'object') ? candidate.result
+      : ('payload' in candidate && candidate.payload && typeof candidate.payload === 'object') ? candidate.payload
+      : undefined;
+
+    if (!next) {
+      break;
+    }
+
+    current = next;
+    depth += 1;
+  }
+
+  return current;
+};
+
+const extractVoteStatusPayload = (payload: unknown): VoteStatus => {
+  if (!payload || typeof payload !== 'object') {
+    return {
+      homeVotes: 0,
+      awayVotes: 0,
+      totalVotes: undefined,
+    };
+  }
+
+  const data = unwrapPredictionEnvelope(payload);
+  if (!data || typeof data !== 'object') {
+    return {
+      homeVotes: 0,
+      awayVotes: 0,
+      totalVotes: undefined,
+    };
+  }
+
+  const votePayload = data as Record<string, unknown>;
+  const candidateCounts = (() => {
+    if (votePayload.counts && typeof votePayload.counts === 'object' && !Array.isArray(votePayload.counts)) {
+      return votePayload.counts as Record<string, unknown>;
+    }
+    if (votePayload.vote && typeof votePayload.vote === 'object' && !Array.isArray(votePayload.vote)) {
+      return votePayload.vote as Record<string, unknown>;
+    }
+    return votePayload;
+  })();
+
+  const readHome = (obj: Record<string, unknown>) => (
+    obj.homeVotes
+    ?? obj.home_votes
+    ?? obj.homeVote
+    ?? obj.home_vote
+    ?? obj.home
+    ?? obj.HOME
+    ?? obj.homeVoteCount
+    ?? obj.home_count
+    ?? obj.homeTotal
+  );
+  const readAway = (obj: Record<string, unknown>) => (
+    obj.awayVotes
+    ?? obj.away_votes
+    ?? obj.awayVote
+    ?? obj.away_vote
+    ?? obj.away
+    ?? obj.AWAY
+    ?? obj.awayVoteCount
+    ?? obj.away_count
+    ?? obj.awayTotal
+  );
+  const readTotal = (obj: Record<string, unknown>) => (
+    obj.totalVotes
+    ?? obj.total_votes
+    ?? obj.total
+    ?? obj.totalVote
+    ?? obj.total_vote
+    ?? obj.voteTotal
+    ?? obj.vote_total
+    ?? obj.total_count
+    ?? obj.vote_total_count
+  );
+
+  const homeVotes = normalizeCount(readHome(votePayload) ?? readHome(candidateCounts));
+  const awayVotes = normalizeCount(readAway(votePayload) ?? readAway(candidateCounts));
+  const rawTotal = readTotal(votePayload) ?? readTotal(candidateCounts);
+  const totalVotes = rawTotal === undefined || rawTotal === null ? undefined : normalizeCount(rawTotal);
+
+  return {
+    homeVotes,
+    awayVotes,
+    totalVotes,
+  };
+};
+
+const normalizeVoteValue = (value: unknown): 'home' | 'away' | null => {
+  if (value == null) {
+    return null;
+  }
+  if (value === 'home' || value === 'away') {
+    return value;
+  }
+  if (value === 'HOME' || value === 'AWAY') {
+    return value === 'HOME' ? 'home' : 'away';
+  }
+  return value === 1 ? 'home' : value === 2 ? 'away' : null;
+};
+
+const normalizeVoteRecord = (candidate: Record<string, unknown>): MyVotesResponse['votes'] => {
+  return Object.entries(candidate).reduce<MyVotesResponse['votes']>((acc, [gameId, value]) => {
+    if (!gameId || typeof gameId !== 'string') {
+      return acc;
+    }
+
+    const normalized = normalizeVoteValue(value);
+    if (normalized === null) {
+      return acc;
+    }
+
+    acc[gameId] = normalized;
+    return acc;
+  }, {});
+};
+
+const extractVotesById = (payload: unknown): MyVotesResponse['votes'] => {
+  const data = unwrapPredictionEnvelope(payload);
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return {};
+  }
+
+  const current = data as Record<string, unknown>;
+  const direct = current.votes;
+  if (direct && typeof direct === 'object' && !Array.isArray(direct)) {
+    return normalizeVoteRecord(direct as Record<string, unknown>);
+  }
+
+  const directKeys = Object.keys(current);
+  if (directKeys.length > 0) {
+    const maybeVoteRecord = normalizeVoteRecord(current);
+    if (Object.keys(maybeVoteRecord).length > 0) {
+      return maybeVoteRecord;
+    }
+  }
+
+  return {};
+};
+
 export interface VoteStatusSuccess {
   ok: true;
   data: VoteStatus;
@@ -343,7 +499,7 @@ export const fetchAllUserVotesBulk = async (
     } as MyVotesRequest, {
       skipGlobalErrorHandler: true,
     });
-    return response.data?.votes || {};
+    return extractVotesById(response.data);
   } catch (error) {
     const parsedError = parseError(error);
     if (!error || typeof error !== 'object' || !('status' in error)) {
@@ -365,14 +521,11 @@ export const fetchVoteStatus = async (
       signal: options?.signal,
       skipGlobalErrorHandler: true,
     });
+    const normalizedData = extractVoteStatusPayload(response.data);
 
     return {
       ok: true,
-      data: {
-        homeVotes: response.data.homeVotes,
-        awayVotes: response.data.awayVotes,
-        totalVotes: response.data.totalVotes,
-      },
+      data: normalizedData,
     };
   } catch (error) {
     const parsed = parseError(error);

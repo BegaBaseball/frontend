@@ -36,8 +36,8 @@ interface CoachBriefingProps {
     forceManual?: boolean;
 }
 
-const COACH_BRIEFING_SESSION_STORAGE_KEY = 'prediction:coachBriefing:v1';
-const COACH_BRIEFING_LOCAL_STORAGE_KEY = 'prediction:coachBriefing:local:v1';
+const COACH_BRIEFING_SESSION_STORAGE_KEY = 'prediction:coachBriefing:v2';
+const COACH_BRIEFING_LOCAL_STORAGE_KEY = 'prediction:coachBriefing:local:v2';
 // Cache priority: UI state cache (in-memory) -> localStorage -> sessionStorage
 const COACH_BRIEFING_CACHE_TTL_MS = 5 * 60 * 1000;
 const COACH_BRIEFING_FALLBACK_MESSAGES = {
@@ -54,12 +54,18 @@ interface CoachBriefingCachePayload {
   generationMode?: CoachGenerationMode;
   dataQuality?: CoachDataQuality;
   usedEvidence?: string[];
+  groundingWarnings?: string[];
+  groundingReasons?: string[];
+  supportedFactCount?: number;
 }
 
 interface CoachBriefingMetaState {
   generationMode?: CoachGenerationMode;
   dataQuality?: CoachDataQuality;
   usedEvidence: string[];
+  groundingWarnings: string[];
+  groundingReasons: string[];
+  supportedFactCount?: number;
 }
 
 const resolvePitcherName = (
@@ -101,13 +107,34 @@ const normalizeCoachBriefingMeta = (
   const usedEvidence = Array.isArray(payload.usedEvidence)
     ? payload.usedEvidence.filter((value): value is string => typeof value === 'string' && value.length > 0)
     : [];
-  if (!payload.generationMode && !payload.dataQuality && usedEvidence.length === 0) {
+  const groundingWarnings = Array.isArray(payload.groundingWarnings)
+    ? payload.groundingWarnings.filter((value): value is string => typeof value === 'string' && value.length > 0)
+    : [];
+  const groundingReasons = Array.isArray(payload.groundingReasons)
+    ? payload.groundingReasons.filter((value): value is string => typeof value === 'string' && value.length > 0)
+    : [];
+  const supportedFactCount = (
+    typeof payload.supportedFactCount === 'number'
+    && Number.isFinite(payload.supportedFactCount)
+    && payload.supportedFactCount >= 0
+  ) ? payload.supportedFactCount : undefined;
+  if (
+    !payload.generationMode
+    && !payload.dataQuality
+    && usedEvidence.length === 0
+    && groundingWarnings.length === 0
+    && groundingReasons.length === 0
+    && supportedFactCount === undefined
+  ) {
     return null;
   }
   return {
     generationMode: payload.generationMode,
     dataQuality: payload.dataQuality,
     usedEvidence,
+    groundingWarnings,
+    groundingReasons,
+    supportedFactCount,
   };
 };
 
@@ -267,9 +294,9 @@ export default function CoachBriefing({
     const MAX_COACH_RETRIES = 3;
     const RETRY_DELAYS_MS = [4000, 6000, 9000] as const;
     const MAX_BACKOFF_MS = 16000;
-    const briefingLabel = 'AI 분석 내용';
     const effectiveRequestMode: CoachRequestMode = forceManual ? 'manual_detail' : requestMode;
     const effectiveAutoEnabled = autoEnabled && effectiveRequestMode === 'auto_brief';
+    const briefingLabel = effectiveAutoEnabled ? '실데이터 브리핑' : 'AI 코치 분석';
     const normalizeBriefing = (
         source: string | RawAiBriefing | null | undefined,
         fallbackMessage = COACH_BRIEFING_DISPLAY_MESSAGE,
@@ -287,7 +314,9 @@ export default function CoachBriefing({
         );
     };
 
-    const fallbackMessage = COACH_BRIEFING_DISPLAY_MESSAGE;
+    const fallbackMessage = effectiveAutoEnabled
+        ? '실데이터 브리핑을 준비하지 못했습니다.'
+        : COACH_BRIEFING_DISPLAY_MESSAGE;
     const fallbackRetryMessage = COACH_BRIEFING_FALLBACK_MESSAGES.retry;
     const fallbackYearMessage = COACH_BRIEFING_FALLBACK_MESSAGES.year;
     const fallbackErrorMessage = COACH_BRIEFING_FALLBACK_MESSAGES.error;
@@ -407,6 +436,9 @@ export default function CoachBriefing({
             generationMode: meta?.generationMode,
             dataQuality: meta?.dataQuality,
             usedEvidence: meta?.usedEvidence,
+            groundingWarnings: meta?.groundingWarnings,
+            groundingReasons: meta?.groundingReasons,
+            supportedFactCount: meta?.supportedFactCount,
         };
 
         cacheRef.current.set(requestCacheKey, payload);
@@ -427,6 +459,9 @@ export default function CoachBriefing({
           generationMode: payload.generationMode,
           dataQuality: payload.dataQuality,
           usedEvidence: payload.usedEvidence,
+          groundingWarnings: payload.groundingWarnings,
+          groundingReasons: payload.groundingReasons,
+          supportedFactCount: payload.supportedFactCount,
         });
 
         cacheRef.current.set(requestCacheKey, {
@@ -437,6 +472,9 @@ export default function CoachBriefing({
             generationMode: cachedMeta?.generationMode,
             dataQuality: cachedMeta?.dataQuality,
             usedEvidence: cachedMeta?.usedEvidence,
+            groundingWarnings: cachedMeta?.groundingWarnings,
+            groundingReasons: cachedMeta?.groundingReasons,
+            supportedFactCount: cachedMeta?.supportedFactCount,
         });
         setBriefingMeta(cachedMeta);
         return cachedValue;
@@ -448,6 +486,8 @@ export default function CoachBriefing({
           generationMode: 'evidence_fallback',
           dataQuality: 'insufficient',
           usedEvidence: [],
+          groundingWarnings: [],
+          groundingReasons: [],
         });
         retryCountRef.current = 0;
         setRetryCount(0);
@@ -534,6 +574,9 @@ export default function CoachBriefing({
               generationMode: cached.generationMode,
               dataQuality: cached.dataQuality,
               usedEvidence: cached.usedEvidence,
+              groundingWarnings: cached.groundingWarnings,
+              groundingReasons: cached.groundingReasons,
+              supportedFactCount: cached.supportedFactCount,
             }));
             setAiLoading(false);
             retryCountRef.current = 0;
@@ -631,6 +674,7 @@ export default function CoachBriefing({
                         structuredData: response.structuredData
                             ? {
                                 headline: response.structuredData.headline,
+                                summary: response.structuredData.analysis?.summary,
                                 detailed_markdown: response.structuredData.detailed_markdown,
                                 coach_note: response.structuredData.coach_note,
                                 analysis: response.structuredData.analysis,
@@ -641,6 +685,9 @@ export default function CoachBriefing({
                       generationMode: response.generation_mode,
                       dataQuality: response.data_quality,
                       usedEvidence: response.used_evidence,
+                      groundingWarnings: response.grounding_warnings,
+                      groundingReasons: response.grounding_reasons,
+                      supportedFactCount: response.supported_fact_count,
                     });
 
                     const scheduleRetryIfNeeded = (inProgress: boolean) => {
@@ -771,17 +818,17 @@ export default function CoachBriefing({
     ]);
 
     const activeTitle = effectiveAutoEnabled
-        ? (aiBriefing?.title ?? briefingLabel)
-        : 'AI 분석 요청';
+        ? (aiBriefing?.title ?? '실데이터 브리핑')
+        : 'AI 코치 상세 분석';
     const activeMessage = effectiveAutoEnabled
         ? (aiLoading
-            ? 'AI 코치가 작전판에 낙서 중입니다. 잠시만요!'
+            ? '실데이터를 모아 경기 맥락 브리핑을 정리하는 중입니다.'
             : ((aiBriefing?.displayText ?? aiBriefing?.message) || fallbackMessage))
         : (forceManual
-            ? '예정 경기에서는 자동 분석이 적용되지 않습니다. 필요하면 직접 AI 분석을 요청하세요.'
+            ? '예정 경기에서는 자동 브리핑이 없습니다. 현재 매치업의 승부처는 AI 코치 상세 분석에서 확인할 수 있습니다.'
             : isFutureGame
-                ? '예정 경기에서는 자동 분석이 적용되지 않습니다. 필요하면 직접 AI 분석을 요청하세요.'
-                : '핵심 경기만 자동 분석을 제공합니다. 필요한 경기에서는 직접 AI 분석을 요청하세요.');
+                ? '예정 경기에서는 자동 브리핑이 없습니다. 현재 매치업의 승부처는 AI 코치 상세 분석에서 확인할 수 있습니다.'
+                : '자동 브리핑은 핵심 경기만 제공합니다. 현재 매치업의 해석은 AI 코치 상세 분석에서 확인할 수 있습니다.');
 
     // Typewriter effect
     useEffect(() => {
@@ -842,13 +889,18 @@ export default function CoachBriefing({
                                         근거 {briefingMeta.usedEvidence.length}개
                                     </span>
                                 ) : null}
+                                {briefingMeta?.supportedFactCount && briefingMeta.supportedFactCount > 0 ? (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-white/70 dark:bg-black/20 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-border text-[11px] font-medium">
+                                        확인 사실 {briefingMeta.supportedFactCount}개
+                                    </span>
+                                ) : null}
                                 {game && (
                                     <span className="text-[11px] text-gray-500 dark:text-gray-300 font-medium">
                                         {effectiveAutoEnabled
-                                            ? (aiLoading ? '작전 구상 중...' : (isPastGame ? '맥락 분석 중' : '실시간 분석 중'))
+                                            ? (aiLoading ? '실데이터 정리 중...' : (isPastGame ? '경기 맥락 브리핑' : '실시간 브리핑'))
                                             : (forceManual || isFutureGame)
-                                                ? '경기 시작 전입니다'
-                                                : '요청 버튼을 눌러주세요'}
+                                                ? '상세 분석으로 이동'
+                                                : '상세 분석으로 이동'}
                                     </span>
                                 )}
                             </div>
@@ -878,6 +930,11 @@ export default function CoachBriefing({
                                         className="inline-block w-1 h-3 bg-emerald-200/80 ml-1 align-middle"
                                     />
                                 </p>
+                                {briefingMeta?.groundingWarnings.length ? (
+                                    <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 font-medium break-keep">
+                                        {briefingMeta.groundingWarnings[0]}
+                                    </p>
+                                ) : null}
                             </div>
                         </div>
                     </div>
@@ -885,6 +942,8 @@ export default function CoachBriefing({
                     <div className="mt-4 flex justify-end">
                         <CoachAnalysisDialog
                             initialTeam={game?.homeTeam}
+                            homeTeamId={game?.homeTeam}
+                            awayTeamId={game?.awayTeam}
                             gameId={game?.gameId}
                             gameDate={game?.gameDate}
                             seasonId={game?.seasonId}
@@ -899,7 +958,7 @@ export default function CoachBriefing({
                                     className="w-full md:w-auto h-10 bg-emerald-950 hover:bg-emerald-900 text-emerald-50 border border-emerald-700/60 rounded-xl shadow-sm">
                                     <Zap className="w-4 h-4 mr-2 text-emerald-50" />
                                     <span className="text-xs font-semibold">
-                                        {game ? (effectiveAutoEnabled ? '상세 분석' : 'AI 분석 요청') : '전력 분석'}
+                                        {game ? 'AI 코치 상세 분석' : '전력 분석'}
                                     </span>
                                 </Button>
                             }
