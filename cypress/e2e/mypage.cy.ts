@@ -303,8 +303,8 @@ describe('My Page (User Profile)', () => {
 
         it('should validate password change', () => {
             cy.intercept('PUT', '**/api/auth/password', {
-                statusCode: 400,
-                body: { message: '현재 비밀번호가 일치하지 않습니다.' }
+                statusCode: 401,
+                body: { success: false, message: '현재 비밀번호가 일치하지 않습니다.' }
             }).as('updatePassword');
 
             cy.get('input#currentPassword').type('wrongpassword');
