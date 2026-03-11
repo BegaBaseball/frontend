@@ -55,11 +55,12 @@ import UserProfileModal from './profile/UserProfileModal';
 import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { api, getApiErrorStatus } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
-import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import {
   extractHashtags,
+  formatHostAverageRating,
   formatGameDate,
+  getHostAverageRating,
   hasSameMateUserIdentity,
   isPartyHostedByUser,
   mapBackendPartyToFrontend,
@@ -70,7 +71,6 @@ import type { CancelReasonType, PartyReview, Application } from '../types/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { resolveQrRefreshDelayMs } from '../utils/qrRefresh';
 import { getRefundPolicyMessage } from '../utils/paymentStatus';
-import { isDirectTradeMode } from '../utils/paymentMode';
 
 export default function MateDetail() {
   const navigate = useNavigate();
@@ -81,6 +81,7 @@ export default function MateDetail() {
     isLoading: isPartyLoading,
     isRevalidating: isPartyRevalidating,
     error: partyError,
+    statusCode: partyStatusCode,
   } = useMatePartyFromRoute(id);
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
   const {
@@ -105,23 +106,30 @@ export default function MateDetail() {
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false); // For Seat View toggle
   const [showZoneDetails, setShowZoneDetails] = useState(false);
-  const [hostAvgRating, setHostAvgRating] = useState<number | null>(null);
   const [showHostProfile, setShowHostProfile] = useState(false);
   const [reviews, setReviews] = useState<PartyReview[]>([]);
   const [reviewTarget, setReviewTarget] = useState<{ handle: string; name: string } | null>(null);
+  const missingPartyRedirectRef = useRef<string | null>(null);
   const selectedPartyId = selectedParty?.id;
   const selectedPartyStatus = selectedParty?.status;
 
-  // 호스트 평균 평점 가져오기 (리뷰 기반)
   useEffect(() => {
-    if (!selectedParty?.hostHandle) {
-      setHostAvgRating(null);
+    if (partyStatusCode !== 404 || !id || selectedParty) {
+      missingPartyRedirectRef.current = null;
       return;
     }
-    api.getUserAverageRatingByHandle(selectedParty.hostHandle)
-      .then((rating) => setHostAvgRating(rating))
-      .catch(() => setHostAvgRating(null));
-  }, [selectedParty?.hostHandle]);
+    if (missingPartyRedirectRef.current === id) {
+      return;
+    }
+
+    missingPartyRedirectRef.current = id;
+    toast.info('존재하지 않는 파티입니다. 목록으로 이동합니다.');
+    const redirectTimer = window.setTimeout(() => {
+      navigate('/mate', { replace: true });
+    }, 1600);
+
+    return () => window.clearTimeout(redirectTimer);
+  }, [id, navigate, partyStatusCode, selectedParty]);
 
   // COMPLETED 파티의 리뷰 목록 가져오기
   useEffect(() => {
@@ -205,14 +213,9 @@ export default function MateDetail() {
   const handleCancelApplication = async () => {
     if (!selectedParty || !myApplication || !currentUserId) return;
     const isApproved = myApplication.isApproved;
-    const directTrade = isDirectTradeMode();
-    const confirmMessage = directTrade
-      ? (isApproved
-        ? '참여를 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.\n취소는 경기 하루 전까지만 가능합니다.'
-        : '신청을 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.')
-      : (isApproved
-        ? '참여를 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.\n취소는 경기 하루 전까지만 가능합니다.'
-        : '신청을 취소하시겠습니까?\n\n취소 사유에 따라 전액/부분 환불 정책이 적용됩니다.');
+    const confirmMessage = isApproved
+      ? '참여를 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.\n취소는 경기 하루 전까지만 가능합니다.'
+      : '신청을 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.';
 
     const confirmed = await confirm({ title: isApproved ? '참여 취소' : '신청 취소', description: confirmMessage, confirmLabel: '취소하기', variant: 'destructive' });
     if (!confirmed) return;
@@ -250,44 +253,25 @@ export default function MateDetail() {
     }
   };
 
-  const cancelReasonOptions = isDirectTradeMode()
-    ? [
-      {
-        value: 'BUYER_CHANGED_MIND' as const,
-        label: '단순변심(구매자)',
-        description: '직거래 신청 취소(플랫폼 결제/환불 없음)',
-      },
-      {
-        value: 'SELLER_CHANGED_MIND' as const,
-        label: '단순변심(판매자)',
-        description: '직거래 신청 취소(플랫폼 결제/환불 없음)',
-      },
-      {
-        value: 'OTHER' as const,
-        label: '기타 사유',
-        description: '사유 확인 후 신청 취소(플랫폼 결제/환불 없음)',
-      },
-    ]
-    : [
-      {
-        value: 'BUYER_CHANGED_MIND' as const,
-        label: '단순변심(구매자)',
-        description: '부분환불(수수료 차감)',
-      },
-      {
-        value: 'SELLER_CHANGED_MIND' as const,
-        label: '단순변심(판매자)',
-        description: '부분환불(수수료 차감)',
-      },
-      {
-        value: 'OTHER' as const,
-        label: '기타 사유',
-        description: '전액환불',
-      },
-    ];
+  const cancelReasonOptions = [
+    {
+      value: 'BUYER_CHANGED_MIND' as const,
+      label: '단순변심(구매자)',
+      description: '직거래 신청 취소(플랫폼 결제/환불 없음)',
+    },
+    {
+      value: 'SELLER_CHANGED_MIND' as const,
+      label: '단순변심(판매자)',
+      description: '직거래 신청 취소(플랫폼 결제/환불 없음)',
+    },
+    {
+      value: 'OTHER' as const,
+      label: '기타 사유',
+      description: '사유 확인 후 신청 취소(플랫폼 결제/환불 없음)',
+    },
+  ];
 
   const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
-  const isDirectTrade = isDirectTradeMode();
   const isApproved = myApplication?.isApproved || false;
   const canAccessCheckIn = Boolean(selectedParty) &&
     (isHost || isApproved) &&
@@ -568,8 +552,8 @@ export default function MateDetail() {
 
   // description에서 해시태그 추출 (생성 Step 4에서 추가된 스타일 태그)
   const hostTags = extractHashtags(selectedParty.description);
-  // 리뷰 기반 평균 평점 우선, 없으면 hostRating 사용 (1-5 스케일)
-  const mannerScore = hostAvgRating !== null && hostAvgRating !== undefined ? hostAvgRating : (selectedParty.hostRating ?? 5.0);
+  const mannerScore = getHostAverageRating(selectedParty);
+  const mannerScoreLabel = formatHostAverageRating(selectedParty);
 
 
   // Helper: Find matching zone in stadium data
@@ -591,13 +575,13 @@ export default function MateDetail() {
   const insetPanelClass = 'rounded-xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
   const summaryTradeLabel = selectedParty.status === 'SELLING'
     ? '판매 티켓'
-    : (isDirectTrade ? '직거래' : '보증금 결제');
+    : '직거래';
   const summaryAmountLabel = selectedParty.status === 'SELLING'
     ? '판매가'
-    : (isDirectTrade ? '거래 기준 금액' : '총 결제 금액');
+    : '거래 기준 금액';
   const summaryAmount = selectedParty.status === 'SELLING'
     ? (selectedParty.price || 0)
-    : (isDirectTrade ? (selectedParty.ticketPrice || 0) : ((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT));
+    : (selectedParty.ticketPrice || 0);
   const summaryPolicyText = isHost
     ? (canConvertToSale ? '경기 임박 시 판매 전환 가능' : '파티 상태를 관리할 수 있습니다')
     : canCancel()
@@ -640,17 +624,13 @@ export default function MateDetail() {
       return {
         eyebrow: '지금 구매 가능',
         title: '티켓 정보와 정책을 확인하고 신청하세요.',
-        detail: isDirectTrade
-          ? '승인 후 채팅에서 전달 시간과 장소를 조율합니다.'
-          : '결제 후 승인 상태를 상세페이지에서 확인할 수 있습니다.',
+        detail: '승인 후 채팅에서 전달 시간과 장소를 조율합니다.',
       };
     }
     return {
       eyebrow: '지금 참여 가능',
       title: '핵심 정보 확인 후 바로 참여할 수 있습니다.',
-      detail: isDirectTrade
-        ? '승인 후 채팅에서 거래 시간과 장소를 조율합니다.'
-        : '비용 안내에서 보증금과 환불 정책을 다시 확인할 수 있습니다.',
+      detail: '승인 후 채팅에서 거래 시간과 장소를 조율합니다.',
     };
   })();
   const actionButtons: Array<{
@@ -1023,23 +1003,6 @@ export default function MateDetail() {
                           {selectedParty.price?.toLocaleString()}원
                         </span>
                       </div>
-                      {isDirectTrade && (
-                        <>
-                          <Separator className="my-2 bg-gray-200 dark:bg-border" />
-                          <p className="text-sm text-blue-700 dark:text-blue-300">
-                            직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  ) : isDirectTrade ? (
-                    <div className="space-y-3">
-                      <div className="mt-2 flex items-center justify-between text-lg">
-                        <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
-                        <span className="font-semibold text-gray-900 dark:text-gray-200">
-                          {(selectedParty.ticketPrice || 0).toLocaleString()}원
-                        </span>
-                      </div>
                       <Separator className="my-2 bg-gray-200 dark:bg-border" />
                       <p className="text-sm text-blue-700 dark:text-blue-300">
                         직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
@@ -1053,19 +1016,10 @@ export default function MateDetail() {
                           {(selectedParty.ticketPrice || 0).toLocaleString()}원
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-300">보증금</span>
-                        <span className="font-semibold text-gray-900 dark:text-gray-200">
-                          {DEPOSIT_AMOUNT.toLocaleString()}원
-                        </span>
-                      </div>
                       <Separator className="my-2 bg-gray-200 dark:bg-border" />
-                      <div className="mt-2 flex items-center justify-between text-lg">
-                        <span className="font-bold text-primary dark:text-[#5abba6]">총 결제 금액</span>
-                        <span className="font-black text-primary dark:text-[#5abba6]">
-                          {((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT).toLocaleString()}원
-                        </span>
-                      </div>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1073,9 +1027,7 @@ export default function MateDetail() {
                   <div className={`${insetPanelClass} p-4`}>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">정책 안내</p>
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                      {isDirectTrade
-                        ? '플랫폼 결제/환불 없이 승인 후 채팅으로 직거래를 조율합니다.'
-                        : '취소 사유에 따라 전액 또는 부분 환불 정책이 적용됩니다.'}
+                      플랫폼 결제/환불 없이 승인 후 채팅으로 직거래를 조율합니다.
                     </p>
                   </div>
                   <div className={`${insetPanelClass} p-4`}>
@@ -1087,11 +1039,6 @@ export default function MateDetail() {
                     </p>
                   </div>
                 </div>
-                {selectedParty.status !== 'SELLING' && !isDirectTrade && (
-                  <p className="mt-3 text-right text-xs text-gray-400 dark:text-gray-500">
-                    * 단순변심 취소 시 수수료가 차감될 수 있습니다
-                  </p>
-                )}
               </Card>
 
               <Card className={`p-6 ${sectionCardClass}`}>
@@ -1117,8 +1064,8 @@ export default function MateDetail() {
                       </button>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <Badge variant="outline" className="dark:border-border dark:text-gray-200">
-                          <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                          평점 {mannerScore.toFixed(1)}
+                          <Star className={`w-3 h-3 ${mannerScore === null ? 'text-gray-400' : 'text-yellow-500 fill-yellow-500'}`} />
+                          {mannerScore === null ? mannerScoreLabel : `평점 ${mannerScoreLabel}`}
                         </Badge>
                         <Badge variant="outline" className={`${selectedParty.ticketVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200' : 'dark:border-border dark:text-gray-200'}`}>
                           <Shield className="w-3 h-3" />
@@ -1359,9 +1306,7 @@ export default function MateDetail() {
             </DialogHeader>
             <div className="py-2">
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                {isDirectTrade
-                  ? '직거래 파티는 취소 시 플랫폼 결제/환불이 적용되지 않습니다.'
-                  : '취소 사유를 선택하면 환불 규칙이 자동 적용됩니다.'}
+                직거래 파티는 취소 시 플랫폼 결제/환불이 적용되지 않습니다.
               </p>
               <div className="space-y-2">
                 {cancelReasonOptions.map((option) => (

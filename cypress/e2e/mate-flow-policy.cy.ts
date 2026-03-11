@@ -12,7 +12,8 @@ describe('Mate Flow Policy', () => {
         hostId: 1,
         hostName: 'HOST',
         hostBadge: 'NEW',
-        hostRating: 5,
+        hostAverageRating: 5,
+        hostReviewCount: 3,
         teamId: 'LG',
         gameDate: '2026-03-05',
         gameTime: '18:30:00',
@@ -52,11 +53,7 @@ describe('Mate Flow Policy', () => {
       });
     }).as('createDirectTradePendingApplication');
 
-    cy.visit('/mate/666/apply', {
-      onBeforeLoad(win) {
-        (win as unknown as { __MATE_PAYMENT_MODE__?: string }).__MATE_PAYMENT_MODE__ = 'DIRECT_TRADE';
-      },
-    });
+    cy.visit('/mate/666/apply');
 
     cy.wait('@getDirectTradePendingParty');
     cy.contains('직거래 베타').should('be.visible');
@@ -75,7 +72,8 @@ describe('Mate Flow Policy', () => {
         hostId: 1,
         hostName: 'SELLER',
         hostBadge: 'VERIFIED',
-        hostRating: 5,
+        hostAverageRating: 5,
+        hostReviewCount: 3,
         teamId: 'LG',
         gameDate: '2026-03-06',
         gameTime: '18:30:00',
@@ -116,11 +114,7 @@ describe('Mate Flow Policy', () => {
       });
     }).as('createDirectTradeSellingApplication');
 
-    cy.visit('/mate/667/apply', {
-      onBeforeLoad(win) {
-        (win as unknown as { __MATE_PAYMENT_MODE__?: string }).__MATE_PAYMENT_MODE__ = 'DIRECT_TRADE';
-      },
-    });
+    cy.visit('/mate/667/apply');
 
     cy.wait('@getDirectTradeSellingParty');
     cy.contains('직거래 베타').should('be.visible');
@@ -129,9 +123,7 @@ describe('Mate Flow Policy', () => {
     cy.wait('@createDirectTradeSellingApplication');
   });
 
-  it('SELLING 파티는 결제 준비 API를 반드시 호출하고 직접 신청 생성을 우회하지 않는다', () => {
-    let createApplicationCalled = false;
-
+  it('SELLING 파티는 결제 없이 참여 신청 API를 호출한다', () => {
     cy.intercept('GET', '**/api/parties/777', {
       statusCode: 200,
       body: {
@@ -139,7 +131,8 @@ describe('Mate Flow Policy', () => {
         hostId: 1,
         hostName: 'SELLER',
         hostBadge: 'VERIFIED',
-        hostRating: 5,
+        hostAverageRating: 5,
+        hostReviewCount: 3,
         teamId: 'LG',
         gameDate: '2026-03-01',
         gameTime: '18:30:00',
@@ -157,37 +150,18 @@ describe('Mate Flow Policy', () => {
       },
     }).as('getSellingParty');
 
-    cy.intercept('POST', '**/api/payments/toss/prepare', {
-      statusCode: 200,
-      body: {
-        intentId: 1,
-        orderId: 'MATE-777-11-1735123456789',
-        amount: 50000,
-        currency: 'KRW',
-        orderName: 'KBO 메이트 티켓 구매 - 잠실',
-        flowType: 'SELLING_FULL',
-        paymentType: 'FULL',
-      },
-    }).as('preparePayment');
-
     cy.intercept('POST', '**/api/applications', (req) => {
-      createApplicationCalled = true;
+      expect(req.body.depositAmount).to.eq(50000);
+      expect(req.body.paymentType).to.eq('FULL');
       req.reply({ statusCode: 201, body: {} });
     }).as('createApplication');
 
-    cy.visit('/mate/777/apply', {
-      onBeforeLoad(win) {
-        (win as unknown as { __MATE_PAYMENT_MODE__?: string }).__MATE_PAYMENT_MODE__ = 'TOSS_TEST';
-      },
-    });
+    cy.visit('/mate/777/apply');
     cy.wait('@getSellingParty');
-    cy.contains('판매 티켓 구매').should('be.visible');
+    cy.contains('직거래 신청하기').should('be.visible');
     cy.contains('정책 안내').should('be.visible');
-    cy.contains('결제하기').click();
-    cy.wait('@preparePayment');
-    cy.wrap(null).then(() => {
-      expect(createApplicationCalled).to.eq(false);
-    });
+    cy.contains('직거래 신청하기').click();
+    cy.wait('@createApplication');
   });
 
   it('승인 전에는 채팅 조회 접근이 차단된다', () => {
@@ -198,7 +172,8 @@ describe('Mate Flow Policy', () => {
         hostId: 1,
         hostName: 'HOST',
         hostBadge: 'NEW',
-        hostRating: 5,
+        hostAverageRating: 5,
+        hostReviewCount: 3,
         teamId: 'LG',
         gameDate: '2026-03-02',
         gameTime: '18:30:00',
@@ -240,7 +215,8 @@ describe('Mate Flow Policy', () => {
         hostId: 123,
         hostName: 'HOST',
         hostBadge: 'NEW',
-        hostRating: 5,
+        hostAverageRating: 5,
+        hostReviewCount: 3,
         teamId: 'LG',
         gameDate: '2026-03-03',
         gameTime: '18:30:00',

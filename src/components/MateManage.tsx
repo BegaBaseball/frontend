@@ -52,8 +52,6 @@ import {
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
 import { formatGameDate, isPartyHostedByUser } from '../utils/mate';
-import { getMatePaymentMode } from '../utils/paymentMode';
-import { getPaymentStatusLabel, getSettlementStatusLabel } from '../utils/paymentStatus';
 
 type SummaryItemProps = {
   icon: LucideIcon;
@@ -478,7 +476,6 @@ export default function MateManage() {
     );
   }
 
-  const paymentMode = getMatePaymentMode();
   const statusMeta = getPartyStatusMeta(selectedParty.status);
   const hostBadgeMeta = getBadgeMeta(selectedParty.hostBadge);
   const pendingApplications = applications.filter((app) => !app.isApproved && !app.isRejected);
@@ -486,7 +483,7 @@ export default function MateManage() {
   const rejectedApplications = applications.filter((app) => app.isRejected);
   const canEdit = selectedParty.status === 'PENDING' && approvedApplications.length === 0;
   const canReviewCheckIn = approvedApplications.length > 0 || ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(selectedParty.status);
-  const flowLabel = getPartyFlowLabel(selectedParty.status, paymentMode);
+  const flowLabel = getPartyFlowLabel(selectedParty.status);
   const responseSummary = pendingApplications.length > 0 ? `${pendingApplications.length}건` : '없음';
   const nextStepSummary = pendingApplications.length > 0
     ? '대기 신청 검토'
@@ -524,7 +521,7 @@ export default function MateManage() {
       icon: Wallet,
       label: '거래 방식',
       value: flowLabel,
-      detail: paymentMode === 'TOSS_TEST' ? '결제/정산 상태를 함께 추적합니다.' : '승인 후 채팅으로 전달을 조율합니다.',
+      detail: '승인 후 채팅으로 전달을 조율합니다.',
     },
     {
       icon: Ticket,
@@ -549,8 +546,6 @@ export default function MateManage() {
   const renderApplicationCard = (app: Application, tabKey: 'pending' | 'approved' | 'rejected') => {
     const badgeMeta = getBadgeMeta(app.applicantBadge);
     const responseDeadline = getDeadlineText(app.responseDeadline);
-    const hasPaymentTracking = Boolean(app.paymentStatus || app.settlementStatus);
-    const amountLabel = hasPaymentTracking ? '결제 기준 금액' : '거래 기준 금액';
     const createdAt = new Date(app.createdAt).toLocaleString('ko-KR');
     const tabTone = tabKey === 'pending'
       ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300'
@@ -617,43 +612,12 @@ export default function MateManage() {
         </div>
 
         <div className="grid gap-4 px-5 py-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className={`${mateInsetPanelClass} p-4`}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-                {amountLabel}
-              </p>
-              <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">
-                {app.depositAmount.toLocaleString()}원
-              </p>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                {app.paymentType === 'FULL' ? '전액 결제/구매 흐름' : '보증금/일반 모집 흐름'}
-              </p>
-            </div>
-
-            <div className={`${mateInsetPanelClass} p-4`}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-                결제 / 정산
-              </p>
-              <div className="mt-2 space-y-2 text-sm text-gray-700 dark:text-gray-200">
-                <div className="flex items-center justify-between gap-3">
-                  <span>결제 상태</span>
-                  <span className="font-medium">
-                    {app.paymentStatus ? getPaymentStatusLabel(app.paymentStatus) : '직거래 기준'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span>정산 상태</span>
-                  <span className="font-medium">
-                    {app.settlementStatus ? getSettlementStatusLabel(app.settlementStatus) : '추적 없음'}
-                  </span>
-                </div>
-                {typeof app.netSettlementAmount === 'number' && (
-                  <div className="flex items-center justify-between gap-3">
-                    <span>순정산</span>
-                    <span className="font-medium">{app.netSettlementAmount.toLocaleString()}원</span>
-                  </div>
-                )}
-              </div>
+          <div className={`${mateInsetPanelClass} p-4`}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+              진행 안내
+            </p>
+            <div className="mt-2 space-y-2 text-sm text-gray-700 dark:text-gray-200">
+              <p>채팅에서 전달 일정/장소를 확정하고 체크인 단계로 이어집니다.</p>
             </div>
           </div>
 
@@ -965,7 +929,7 @@ export default function MateManage() {
                   </p>
                   <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">신청 검토와 후속 진행</h2>
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                    카드마다 신뢰 신호, 금액 기준, 결제/정산 상태, 응답 기한을 먼저 보여주고 그 뒤에 액션을 둡니다.
+                    카드마다 신뢰 신호, 금액 기준, 채팅 진행 방식, 응답 기한을 확인한 뒤 바로 액션을 진행합니다.
                   </p>
                 </div>
                 <div className={`${mateInsetPanelClass} p-4 text-sm text-gray-600 dark:text-gray-300`}>
