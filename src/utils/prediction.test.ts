@@ -118,6 +118,25 @@ test('parseAiBriefing: structuredData.summary는 message보다 우선한다', ()
   assert.equal(normalized.message, '구조화 요약이 message보다 우선합니다.');
 });
 
+test('parseAiBriefing: analysis.verdict와 why_it_matters도 브리핑 후보로 사용한다', () => {
+  const normalized = parseAiBriefing({
+    structuredData: {
+      analysis: {
+        verdict: 'LG가 OPS 우위로 먼저 앞서지만 후반 불펜 변수는 남아 있습니다.',
+        why_it_matters: ['OPS 차이가 선취점 확률에 직접 연결됩니다.'],
+      },
+    },
+  }, {
+    fallbackMessage: COACH_BRIEFING_DISPLAY_MESSAGE,
+    fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
+  });
+
+  assert.equal(
+    normalized.message,
+    'LG가 OPS 우위로 먼저 앞서지만 후반 불펜 변수는 남아 있습니다.',
+  );
+});
+
 test('parseAiBriefing: 빈 응답은 fallback 텍스트를 반환한다', () => {
   const normalized = parseAiBriefing({
     answer: '',

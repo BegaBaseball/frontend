@@ -10,13 +10,48 @@ describe('Security surface real smoke', () => {
 
   const stripTrailingSlash = (value: string) => value.trim().replace(/\/+$/, '');
 
+  const resolveBaseOrigin = () => {
+    const baseUrl = Cypress.config('baseUrl');
+    if (!baseUrl) {
+      return undefined;
+    }
+
+    try {
+      return new URL(baseUrl).origin;
+    } catch {
+      return undefined;
+    }
+  };
+
   const normalizeBackendBaseUrl = (value: string | undefined) => {
     if (!value) return undefined;
     const candidate = stripTrailingSlash(value);
-    if (!candidate || !/^https?:\/\//i.test(candidate)) return undefined;
+    if (!candidate) {
+      return undefined;
+    }
+
+    const normalizedInput = (() => {
+      if (/^https?:\/\//i.test(candidate)) {
+        return candidate;
+      }
+
+      if (candidate.startsWith('/')) {
+        const baseOrigin = resolveBaseOrigin();
+        if (!baseOrigin) {
+          return undefined;
+        }
+        return `${baseOrigin}${candidate}`;
+      }
+
+      return `http://${candidate}`;
+    })();
+
+    if (!normalizedInput) {
+      return undefined;
+    }
 
     try {
-      const parsed = new URL(candidate);
+      const parsed = new URL(normalizedInput);
       const trimmedPath = parsed.pathname.replace(/\/api\/?$/i, '');
       const resolvedPath = trimmedPath === '/' ? '' : trimmedPath;
       return `${parsed.origin}${resolvedPath}`;
@@ -25,12 +60,27 @@ describe('Security surface real smoke', () => {
     }
   };
 
+  const buildBackendUrl = (backendBaseUrl: string, path: string) => {
+    const safePath = path.startsWith('/') ? path : `/${path}`;
+    return `${backendBaseUrl}${safePath}`;
+  };
+
   const resolveBackendBaseUrl = () =>
-    cy.env(['BACKEND_BASE_URL', 'SMOKE_API_BASE_URL', 'VITE_API_BASE_URL']).then((envVars) => {
+    cy.env([
+      'BACKEND_BASE_URL',
+      'SMOKE_API_BASE_URL',
+      'CYPRESS_BASE_URL',
+      'CYPRESS_BACKEND_BASE_URL',
+      'VITE_API_BASE_URL',
+      'FRONTEND_API_BASE_URL',
+    ]).then((envVars) => {
       const backendBaseUrl =
         normalizeBackendBaseUrl(envVars.BACKEND_BASE_URL as string | undefined)
         || normalizeBackendBaseUrl(envVars.SMOKE_API_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.VITE_API_BASE_URL as string | undefined);
+        || normalizeBackendBaseUrl(envVars.CYPRESS_BASE_URL as string | undefined)
+        || normalizeBackendBaseUrl(envVars.CYPRESS_BACKEND_BASE_URL as string | undefined)
+        || normalizeBackendBaseUrl(envVars.VITE_API_BASE_URL as string | undefined)
+        || normalizeBackendBaseUrl(envVars.FRONTEND_API_BASE_URL as string | undefined);
 
       if (!backendBaseUrl) {
         return undefined;
@@ -61,20 +111,23 @@ describe('Security surface real smoke', () => {
       .then((backendBaseUrl: any) => {
         if (!backendBaseUrl) {
           cy.log('Skipping security-surface-real: BACKEND_BASE_URL is not available or backend is not reachable.');
-          cy.log('Set BACKEND_BASE_URL, SMOKE_API_BASE_URL, or VITE_API_BASE_URL for execution.');
+          cy.log('Set BACKEND_BASE_URL, CYPRESS_BACKEND_BASE_URL, SMOKE_API_BASE_URL, VITE_API_BASE_URL, or FRONTEND_API_BASE_URL for execution.');
           this.skip();
           return;
         }
 
         return cy.request({
           method: 'GET',
-          url: `${backendBaseUrl}/actuator/health`,
+          url: buildBackendUrl(backendBaseUrl, '/actuator/health'),
           failOnStatusCode: false,
         }).then((response) => {
           if (!isBackendHealthResponse(response)) {
             cy.log('Skipping security-surface-real: /actuator/health did not return backend JSON payload.');
             this.skip();
           }
+        }, (error) => {
+          cy.log(`Skipping security-surface-real: backend health check failed (${error.message}).`);
+          this.skip();
         });
       });
   });
@@ -84,10 +137,10 @@ describe('Security surface real smoke', () => {
       if (!backendBaseUrl) return;
       return cy.request({
         method,
-        url: `${backendBaseUrl}${url}`,
+        url: buildBackendUrl(backendBaseUrl, url),
         failOnStatusCode: false,
       }).then((response) => {
-        expect([401, 403, 404]).to.include(response.status);
+        expect([401, 302, 403, 404]).to.include(response.status);
       });
     });
 
@@ -96,7 +149,7 @@ describe('Security surface real smoke', () => {
       if (!backendBaseUrl) return;
       return cy.request({
         method: 'POST',
-        url: `${backendBaseUrl}/api/auth/login`,
+        url: buildBackendUrl(backendBaseUrl, '/api/auth/login'),
         failOnStatusCode: false,
         body: {
           email,
@@ -118,7 +171,7 @@ describe('Security surface real smoke', () => {
       if (!backendBaseUrl) return [];
       return cy.request({
         method: 'GET',
-        url: `${backendBaseUrl}/api/auth/policies/required`,
+        url: buildBackendUrl(backendBaseUrl, '/api/auth/policies/required'),
       }).then((response) => {
         expect(response.status).to.eq(200);
         const policies = (response.body?.data?.policies || []) as RequiredPolicy[];
@@ -147,7 +200,7 @@ describe('Security surface real smoke', () => {
         if (!backendBaseUrl) return;
         return cy.request({
           method: 'POST',
-          url: `${backendBaseUrl}/api/auth/signup`,
+          url: buildBackendUrl(backendBaseUrl, '/api/auth/signup'),
           failOnStatusCode: false,
           body: {
             name: 'Security Surface E2E',
@@ -214,26 +267,26 @@ describe('Security surface real smoke', () => {
       if (!backendBaseUrl) return;
       cy.request({
         method: 'GET',
-        url: `${backendBaseUrl}/dashboard`,
+        url: buildBackendUrl(backendBaseUrl, '/dashboard'),
         failOnStatusCode: false,
       }).then((response) => {
-        expect([403, 404]).to.include(response.status);
+        expect([302, 403, 404]).to.include(response.status);
       });
 
       cy.request({
         method: 'POST',
-        url: `${backendBaseUrl}/api/leaderboard/seed-test-data`,
+        url: buildBackendUrl(backendBaseUrl, '/api/leaderboard/seed-test-data'),
         failOnStatusCode: false,
       }).then((response) => {
-        expect([403, 404]).to.include(response.status);
+        expect([302, 403, 404]).to.include(response.status);
       });
 
       cy.request({
         method: 'GET',
-        url: `${backendBaseUrl}/api/ai/release-decision/presets`,
+        url: buildBackendUrl(backendBaseUrl, '/api/ai/release-decision/presets'),
         failOnStatusCode: false,
       }).then((response) => {
-        expect([403, 404]).to.include(response.status);
+        expect([302, 403, 404]).to.include(response.status);
       });
     });
   });

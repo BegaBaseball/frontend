@@ -12,8 +12,6 @@ import {
   LucideIcon,
   MapPin,
   QrCode,
-  Shield,
-  Ticket,
   Users,
 } from 'lucide-react';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
@@ -41,7 +39,6 @@ import {
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
 import { formatGameDate, hasSameMateUserIdentity, isPartyHostedByUser } from '../utils/mate';
-import { getMatePaymentMode } from '../utils/paymentMode';
 
 type SummaryItemProps = {
   icon: LucideIcon;
@@ -255,11 +252,8 @@ export default function MateCheckIn() {
   const remainingCount = Math.max(totalParticipants - checkedInCount, 0);
   const allCheckedIn = checkedInCount >= totalParticipants;
   const progressValue = Math.min(100, Math.round((checkedInCount / totalParticipants) * 100));
-  const safeShieldIcon = Shield;
-  const safeTicketIcon = Ticket;
-  const paymentMode = getMatePaymentMode();
   const statusMeta = getPartyStatusMeta(selectedParty.status);
-  const flowLabel = getPartyFlowLabel(selectedParty.status, paymentMode);
+  const flowLabel = getPartyFlowLabel(selectedParty.status);
   const roleLabel = isHost ? '호스트 모드' : '참여자 모드';
   const sessionLabel = qrSessionId ? 'QR 세션 진입' : '일반 진입';
   const currentStateLabel = allCheckedIn
@@ -272,6 +266,8 @@ export default function MateCheckIn() {
     : isCheckedIn
       ? '다른 참여자의 도착 상태를 기다리는 중입니다.'
       : '경기장 도착 후 체크인을 진행해주세요.';
+  const safeShieldIcon = CheckCircle;
+  const safeTicketIcon = QrCode;
   const summaryItems = [
     {
       icon: CheckCircle,

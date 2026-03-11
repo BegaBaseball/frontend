@@ -1069,7 +1069,7 @@ export default function MateCreate() {
                 <span className="font-medium">{formData.ticketPrice.toLocaleString()}원</span>
               </div>
               <p className="text-xs text-gray-500">
-                앱 내 결제/보증금 없이 승인 후 채팅으로 직거래를 진행합니다.
+                앱 내 결제 없이 승인 후 채팅으로 직거래를 진행합니다.
               </p>
             </div>
 

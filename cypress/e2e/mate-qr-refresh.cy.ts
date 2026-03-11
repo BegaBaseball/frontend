@@ -1,6 +1,8 @@
 /// <reference types="cypress" />
 
 describe('MateDetail QR refresh', () => {
+  const checkinBaseUrl = (Cypress.config('baseUrl') || window.location.origin || 'http://localhost:5176').replace(/\/$/, '');
+
   beforeEach(() => {
     cy.login('user');
     cy.mockAPI();
@@ -15,7 +17,8 @@ describe('MateDetail QR refresh', () => {
       hostId: 123,
       hostName: '상세호스트',
       hostBadge: 'NEW',
-      hostRating: 4.5,
+      hostAverageRating: 4.5,
+      hostReviewCount: 10,
       hostProfileImageUrl: 'https://cdn.example.com/profile.png',
       hostFavoriteTeam: 'KT',
       status: 'PENDING',
@@ -59,10 +62,6 @@ describe('MateDetail QR refresh', () => {
       statusCode: 200,
       body: [],
     }).as('getPartyApplications');
-    cy.intercept('GET', '**/api/reviews/profile/*/average', {
-      statusCode: 200,
-      body: 4.3,
-    }).as('getHostRating');
     cy.intercept('POST', '**/api/checkin/qr-session', (req) => {
       qrSessionCallCount += 1;
       req.reply({
@@ -71,7 +70,7 @@ describe('MateDetail QR refresh', () => {
           sessionId: `session-${qrSessionCallCount}`,
           partyId: 777,
           expiresAt: '2026-03-01T11:59:00Z',
-          checkinUrl: `http://localhost:5176/mate/777/checkin?sessionId=session-${qrSessionCallCount}`,
+          checkinUrl: `${checkinBaseUrl}/mate/777/checkin?sessionId=session-${qrSessionCallCount}`,
         },
       });
     }).as('createCheckinQrSession');

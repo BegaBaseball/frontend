@@ -3,7 +3,7 @@ import type {
   Party, Application, CheckIn, PartyReview, ChatMessage, PartyStatus,
   CreatePartyRequest, UpdatePartyRequest, CreateApplicationRequest,
   CreateCheckInRequest, CreateCheckInQrSessionRequest, CreateCheckInQrSessionResponse, CreateReviewRequest,
-  CancelApplicationRequest, CancelApplicationResponse, PaymentFlowType,
+  CancelApplicationRequest, CancelApplicationResponse,
 } from '../types/mate';
 import type { UserProfileApiResponse } from '../types/profile';
 import type { NotificationData } from '../types/notification';
@@ -53,6 +53,10 @@ export interface PaginatedResponse<T> {
   size: number;
 }
 
+interface ApiRequestOptions extends RequestInit {
+  skipGlobalErrorHandler?: boolean;
+}
+
 let notificationUnreadCountEndpointAvailable = true;
 let notificationListEndpointAvailable = true;
 let notificationAuthFailure = false;
@@ -97,7 +101,7 @@ export const isIgnorableNotificationError = (error: unknown): boolean => {
 };
 
 export const api = {
-  async request<T = unknown>(endpoint: string, options?: RequestInit, baseUrl = API_BASE_URL): Promise<T> {
+  async request<T = unknown>(endpoint: string, options?: ApiRequestOptions, baseUrl = API_BASE_URL): Promise<T> {
     const method = (options?.method || 'GET').toLowerCase() || 'get';
     const headers = toRequestHeaders(options?.headers);
     const url = baseUrl === API_BASE_URL ? endpoint : `${baseUrl}${endpoint}`;
@@ -112,6 +116,7 @@ export const api = {
           ...headers,
         },
         signal: options?.signal as any,
+        skipGlobalErrorHandler: options?.skipGlobalErrorHandler,
       });
 
       return response.status === 204 ? ({} as T) : (response.data as unknown as T);
@@ -181,8 +186,8 @@ export const api = {
     });
   },
 
-  async getPartyById(partyId: string | number): Promise<Party> {
-    return this.request<Party>(`/parties/${partyId}`);
+  async getPartyById(partyId: string | number, options?: ApiRequestOptions): Promise<Party> {
+    return this.request<Party>(`/parties/${partyId}`, options);
   },
 
   async updateParty(partyId: number, data: UpdatePartyRequest): Promise<Party> {
@@ -466,77 +471,4 @@ export const api = {
     return this.request<PartyReview[]>(`/reviews/party/${partyId}`);
   },
 
-  async getUserAverageRatingByHandle(handle: string): Promise<number> {
-    return this.request<number>(`/reviews/profile/${encodeURIComponent(handle)}/average`);
-  },
-
-  // Payments
-  async prepareTossPayment(data: {
-    partyId: number;
-    flowType?: PaymentFlowType;
-    cancelPolicyVersion?: string;
-  }): Promise<{
-    intentId: number;
-    orderId: string;
-    amount: number;
-    currency: 'KRW';
-    orderName: string;
-    flowType: PaymentFlowType;
-    cancelPolicyVersion?: string;
-    paymentType: 'DEPOSIT' | 'FULL';
-  }> {
-    return this.request<{
-      intentId: number;
-      orderId: string;
-      amount: number;
-      currency: 'KRW';
-      orderName: string;
-      flowType: PaymentFlowType;
-      cancelPolicyVersion?: string;
-      paymentType: 'DEPOSIT' | 'FULL';
-    }>('/payments/toss/prepare', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  async confirmTossPayment(data: {
-    paymentKey: string;
-    orderId: string;
-    intentId?: number;
-    flowType?: PaymentFlowType;
-    cancelPolicyVersion?: string;
-    partyId: number;
-    message?: string;
-    verificationToken?: string | null;
-    ticketVerified?: boolean;
-    ticketImageUrl?: string | null;
-    paymentType?: 'DEPOSIT' | 'FULL';
-  }): Promise<Application> {
-    return this.request<Application>('/payments/toss/confirm', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  /**
-   * POST /api/payments/toss/{intentId}/cancel
-   * 결제 Intent를 취소합니다.
-   *
-   * PREPARED 상태: Toss API 호출 없이 DB 취소 처리
-   * CONFIRMED 상태: Toss API 취소 후 DB 취소 처리
-   * CANCELED 상태: 멱등 처리 (200 반환)
-   */
-  async cancelTossPayment(
-    intentId: number,
-    cancelReason?: string,
-  ): Promise<{ intentId: number; status: string; message: string }> {
-    return this.request<{ intentId: number; status: string; message: string }>(
-      `/payments/toss/${intentId}/cancel`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ cancelReason: cancelReason ?? null }),
-      },
-    );
-  },
 };

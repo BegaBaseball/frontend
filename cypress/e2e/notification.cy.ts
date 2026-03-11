@@ -1,6 +1,17 @@
 /// <reference types="cypress" />
 
 describe('Notification Panel', () => {
+    const normalizeNotifications = (payload: unknown): Array<{ isRead: boolean }> => {
+        if (!Array.isArray(payload)) {
+            const wrapped = (payload as { data?: unknown })?.data;
+            return Array.isArray(wrapped) ? wrapped as Array<{ isRead: boolean }> : [];
+        }
+        return payload as Array<{ isRead: boolean }>;
+    };
+
+    const getUnreadCountFromNotifications = (notifications: unknown) =>
+        normalizeNotifications(notifications).reduce((count, item) => (item.isRead ? count : count + 1), 0);
+
     const createNotifications = () => ({
         notifications: [
             {
@@ -61,35 +72,29 @@ describe('Notification Panel', () => {
 
     it('shows unread badge count on bell icon', () => {
         const { notifications } = createNotifications();
-        const unreadCount = notifications.reduce((count, item) => (item.isRead ? count : count + 1), 0);
 
         cy.intercept('GET', '**/api/notifications/my', {
             statusCode: 200,
             body: notifications,
         }).as('getNotifications');
-        cy.intercept('GET', '**/api/notifications/my/unread-count', {
-            statusCode: 200,
-            body: unreadCount,
-        }).as('getUnreadCount');
 
         cy.visit('/home');
         cy.get('button[aria-label^="알림"]').click();
-        cy.wait('@getNotifications');
-        cy.get('button[aria-label^="알림"]').find('span').contains(`${unreadCount}`).should('be.visible');
+        cy.wait('@getNotifications').then((interception) => {
+            const unreadNotifications = interception.response?.body;
+            const unreadCount = getUnreadCountFromNotifications(unreadNotifications);
+
+            cy.get('button[aria-label^="알림"]').find('span').contains(`${unreadCount}`).should('be.visible');
+        });
     });
 
     it('opens notification panel and renders notification list', () => {
         const notifications = createNotificationFixture();
-        const unreadCount = notifications.reduce((count, item) => (item.isRead ? count : count + 1), 0);
 
         cy.intercept('GET', '**/api/notifications/my', {
             statusCode: 200,
             body: notifications,
         }).as('getNotifications');
-        cy.intercept('GET', '**/api/notifications/my/unread-count', {
-            statusCode: 200,
-            body: unreadCount,
-        }).as('getUnreadCount');
 
         cy.visit('/home');
         cy.get('button[aria-label^="알림"]').click();
@@ -109,16 +114,11 @@ describe('Notification Panel', () => {
             createdAt: string;
             relatedId: number | null;
         }> = [];
-        const unreadCount = notifications.reduce((count, item) => (item.isRead ? count : count + 1), 0);
 
         cy.intercept('GET', '**/api/notifications/my', {
             statusCode: 200,
             body: notifications,
         }).as('getNotifications');
-        cy.intercept('GET', '**/api/notifications/my/unread-count', {
-            statusCode: 200,
-            body: unreadCount,
-        }).as('getUnreadCount');
 
         cy.visit('/home');
         cy.get('button[aria-label^="알림"]').click();
@@ -139,16 +139,11 @@ describe('Notification Panel', () => {
                 relatedId: null,
             },
         ];
-        const unreadCount = notifications.reduce((count, item) => (item.isRead ? count : count + 1), 0);
 
         cy.intercept('GET', '**/api/notifications/my', {
             statusCode: 200,
             body: notifications,
         }).as('getNotifications');
-        cy.intercept('GET', '**/api/notifications/my/unread-count', {
-            statusCode: 200,
-            body: unreadCount,
-        }).as('getUnreadCount');
 
         cy.intercept('POST', '**/api/notifications/*/read', {
             statusCode: 200,

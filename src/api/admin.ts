@@ -9,6 +9,7 @@ import {
   AdminOffseasonMovementPayload,
   AdminReport,
   AdminReportPage,
+  AdminSeatView,
   ReleaseDecisionArtifactRecord,
   ReleaseDecisionArtifactSummary,
   ReleaseDecisionDraftResponse,
@@ -226,6 +227,48 @@ export const appealAdminReport = async (reportId: number, appealReason: string):
     return unwrapAdminResponse(response.data, '이의제기 등록 실패');
   } catch (error) {
     throw new Error(readErrorMessage(error, '이의제기 등록 실패'));
+  }
+};
+
+export const fetchAdminSeatViews = async (params?: {
+  moderationStatus?: string;
+  stadium?: string;
+  aiSuggestedLabel?: string;
+  adminLabel?: string;
+  ticketVerified?: boolean;
+}): Promise<AdminSeatView[]> => {
+  try {
+    const response = await api.get<AdminApiResponse<AdminSeatView[]>>('/admin/seat-views', {
+      params,
+    });
+    return unwrapAdminResponse(response.data, '시야뷰 후보 조회 실패');
+  } catch (error) {
+    throw new Error(readErrorMessage(error, '시야뷰 후보 조회 실패'));
+  }
+};
+
+export const fetchAdminSeatViewDetail = async (seatViewId: number): Promise<AdminSeatView> => {
+  try {
+    const response = await api.get<AdminApiResponse<AdminSeatView>>(`/admin/seat-views/${seatViewId}`);
+    return unwrapAdminResponse(response.data, '시야뷰 후보 상세 조회 실패');
+  } catch (error) {
+    throw new Error(readErrorMessage(error, '시야뷰 후보 상세 조회 실패'));
+  }
+};
+
+export const handleAdminSeatView = async (
+  seatViewId: number,
+  payload: {
+    adminLabel: 'SEAT_VIEW' | 'TICKET' | 'OTHER' | 'INAPPROPRIATE';
+    moderationStatus: 'APPROVED' | 'REJECTED';
+    adminMemo?: string;
+  }
+): Promise<AdminSeatView> => {
+  try {
+    const response = await api.patch<AdminApiResponse<AdminSeatView>>(`/admin/seat-views/${seatViewId}`, payload);
+    return unwrapAdminResponse(response.data, '시야뷰 후보 처리 실패');
+  } catch (error) {
+    throw new Error(readErrorMessage(error, '시야뷰 후보 처리 실패'));
   }
 };
 

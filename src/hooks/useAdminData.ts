@@ -11,6 +11,9 @@ import {
   deleteAdminMate,
   fetchAdminReportDetail,
   fetchAdminReports,
+  fetchAdminSeatViewDetail,
+  fetchAdminSeatViews,
+  handleAdminSeatView,
   handleAdminReport,
   promoteToAdmin,
   demoteToUser,
@@ -22,6 +25,8 @@ import {
   AdminMate,
   AdminReport,
   AdminReportFilters,
+  AdminSeatView,
+  AdminSeatViewFilters,
 } from '../types/admin';
 
 type AdminReportAction = 'TAKE_DOWN' | 'REQUIRE_MODIFICATION' | 'WARNING' | 'DISMISS' | 'RESTORE';
@@ -31,6 +36,14 @@ const DEFAULT_REPORT_FILTERS: AdminReportFilters = {
   reason: 'all',
   fromDate: '',
   toDate: '',
+};
+
+const DEFAULT_SEAT_VIEW_FILTERS: AdminSeatViewFilters = {
+  moderationStatus: 'all',
+  stadium: '',
+  aiSuggestedLabel: 'all',
+  adminLabel: 'all',
+  ticketVerified: 'all',
 };
 
 export const useAdminData = () => {
@@ -43,6 +56,7 @@ export const useAdminData = () => {
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [mates, setMates] = useState<AdminMate[]>([]);
   const [reports, setReports] = useState<AdminReport[]>([]);
+  const [seatViews, setSeatViews] = useState<AdminSeatView[]>([]);
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     totalPosts: 0,
@@ -54,6 +68,11 @@ export const useAdminData = () => {
   const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
   const [selectedReportDetail, setSelectedReportDetail] = useState<AdminReport | null>(null);
   const [reportDetailLoading, setReportDetailLoading] = useState(false);
+  const [seatViewFilters, setSeatViewFilters] = useState<AdminSeatViewFilters>(DEFAULT_SEAT_VIEW_FILTERS);
+  const [seatViewsLoading, setSeatViewsLoading] = useState(false);
+  const [selectedSeatViewId, setSelectedSeatViewId] = useState<number | null>(null);
+  const [selectedSeatViewDetail, setSelectedSeatViewDetail] = useState<AdminSeatView | null>(null);
+  const [seatViewDetailLoading, setSeatViewDetailLoading] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +84,14 @@ export const useAdminData = () => {
 
   const resetReportFilters = () => {
     setReportFilters(DEFAULT_REPORT_FILTERS);
+  };
+
+  const updateSeatViewFilters = (next: Partial<AdminSeatViewFilters>) => {
+    setSeatViewFilters((prev) => ({ ...prev, ...next }));
+  };
+
+  const resetSeatViewFilters = () => {
+    setSeatViewFilters(DEFAULT_SEAT_VIEW_FILTERS);
   };
 
   // 통계 조회
@@ -252,6 +279,83 @@ export const useAdminData = () => {
     }
   };
 
+  const loadSeatViews = useCallback(async () => {
+    setSeatViewsLoading(true);
+    setError(null);
+    try {
+      const data = await fetchAdminSeatViews({
+        moderationStatus: seatViewFilters.moderationStatus !== 'all' ? seatViewFilters.moderationStatus : undefined,
+        stadium: seatViewFilters.stadium || undefined,
+        aiSuggestedLabel: seatViewFilters.aiSuggestedLabel !== 'all' ? seatViewFilters.aiSuggestedLabel : undefined,
+        adminLabel: seatViewFilters.adminLabel !== 'all' ? seatViewFilters.adminLabel : undefined,
+        ticketVerified: seatViewFilters.ticketVerified === 'all'
+          ? undefined
+          : seatViewFilters.ticketVerified === 'verified',
+      });
+      setSeatViews(data);
+    } catch (err) {
+      console.error('시야뷰 후보 조회 오류:', err);
+      setError('시야뷰 후보를 불러오는데 실패했습니다.');
+    } finally {
+      setSeatViewsLoading(false);
+    }
+  }, [seatViewFilters]);
+
+  const openSeatViewDetail = async (seatViewId: number) => {
+    setSelectedSeatViewId(seatViewId);
+    setSeatViewDetailLoading(true);
+    try {
+      const detail = await fetchAdminSeatViewDetail(seatViewId);
+      setSelectedSeatViewDetail(detail);
+    } catch (err) {
+      console.error('시야뷰 후보 상세 조회 오류:', err);
+      setError('시야뷰 후보 상세를 불러오는데 실패했습니다.');
+    } finally {
+      setSeatViewDetailLoading(false);
+    }
+  };
+
+  const closeSeatViewDetail = () => {
+    setSelectedSeatViewId(null);
+    setSelectedSeatViewDetail(null);
+  };
+
+  const refreshSelectedSeatViewDetail = useCallback(async () => {
+    if (!selectedSeatViewId) return;
+    setSeatViewDetailLoading(true);
+    try {
+      const detail = await fetchAdminSeatViewDetail(selectedSeatViewId);
+      setSelectedSeatViewDetail(detail);
+    } catch (err) {
+      console.error('시야뷰 후보 상세 재조회 오류:', err);
+      setError('시야뷰 후보 상세를 갱신하지 못했습니다.');
+    } finally {
+      setSeatViewDetailLoading(false);
+    }
+  }, [selectedSeatViewId]);
+
+  const handleSeatViewAction = async (
+    seatViewId: number,
+    payload: {
+      adminLabel: 'SEAT_VIEW' | 'TICKET' | 'OTHER' | 'INAPPROPRIATE';
+      moderationStatus: 'APPROVED' | 'REJECTED';
+      adminMemo?: string;
+    }
+  ) => {
+    try {
+      await handleAdminSeatView(seatViewId, payload);
+      setSuccessMessage('시야뷰 후보가 처리되었습니다.');
+      await loadSeatViews();
+      if (selectedSeatViewId === seatViewId) {
+        await refreshSelectedSeatViewDetail();
+      }
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('시야뷰 후보 처리 오류:', err);
+      setError('시야뷰 후보 처리에 실패했습니다.');
+    }
+  };
+
   // 검색어 디바운싱
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -278,6 +382,12 @@ export const useAdminData = () => {
     }
   }, [activeTab, loadReports]);
 
+  useEffect(() => {
+    if (activeTab === 'seatViews') {
+      loadSeatViews();
+    }
+  }, [activeTab, loadSeatViews]);
+
   return {
     // 상태
     searchTerm,
@@ -288,11 +398,17 @@ export const useAdminData = () => {
     posts,
     mates,
     reports,
+    seatViews,
     reportsLoading,
+    seatViewsLoading,
     reportFilters,
+    seatViewFilters,
     selectedReportId,
     selectedReportDetail,
     reportDetailLoading,
+    selectedSeatViewId,
+    selectedSeatViewDetail,
+    seatViewDetailLoading,
     stats,
     loading,
     error,
@@ -301,12 +417,17 @@ export const useAdminData = () => {
     // 액션
     updateReportFilters,
     resetReportFilters,
+    updateSeatViewFilters,
+    resetSeatViewFilters,
     openReportDetail,
     closeReportDetail,
+    openSeatViewDetail,
+    closeSeatViewDetail,
     handleDeleteUser,
     handleDeletePost,
     handleDeleteMate,
     handleReportAction,
+    handleSeatViewAction,
     handleRoleChange,
   };
 };

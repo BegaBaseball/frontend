@@ -10,7 +10,8 @@ interface BackendPartyDTO {
   hostProfileImageUrl?: string;
   hostFavoriteTeam?: string;
   hostBadge: string;
-  hostRating: number;
+  hostAverageRating?: number | null;
+  hostReviewCount?: number;
   teamId: string;
   gameDate: string;
   gameTime: string;
@@ -45,7 +46,8 @@ export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party 
   hostProfileImageUrl: backendParty.hostProfileImageUrl,
   hostFavoriteTeam: backendParty.hostFavoriteTeam,
   hostBadge: normalizeBadgeType(backendParty.hostBadge),
-  hostRating: backendParty.hostRating,
+  hostAverageRating: backendParty.hostAverageRating ?? null,
+  hostReviewCount: backendParty.hostReviewCount ?? 0,
   teamId: backendParty.teamId,
   gameDate: backendParty.gameDate,
   gameTime: backendParty.gameTime,
@@ -63,6 +65,20 @@ export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party 
   ticketPrice: backendParty.ticketPrice || 0,
   createdAt: backendParty.createdAt,
 });
+
+type HostReviewSummary = Pick<Party, 'hostAverageRating' | 'hostReviewCount'>;
+
+export const getHostAverageRating = (party: HostReviewSummary): number | null => {
+  if ((party.hostReviewCount ?? 0) < 1) {
+    return null;
+  }
+  return typeof party.hostAverageRating === 'number' ? party.hostAverageRating : null;
+};
+
+export const formatHostAverageRating = (party: HostReviewSummary): string => {
+  const averageRating = getHostAverageRating(party);
+  return averageRating === null ? '리뷰 없음' : averageRating.toFixed(1);
+};
 
 type MateIdentity = {
   id?: number | null;

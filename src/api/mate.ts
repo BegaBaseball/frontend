@@ -140,7 +140,9 @@ export async function updateChatReadTimestamp(partyId: number | string): Promise
  */
 export async function getChatUnreadCounts(): Promise<number> {
   try {
-    const response = await api.get<{ success?: boolean; data?: number }>('/chat/my/unread-counts');
+    const response = await api.get<{ success?: boolean; data?: number }>('/chat/my/unread-counts', {
+      skipGlobalErrorHandler: true,
+    });
 
     const payload = response.data;
     if (payload.success && typeof payload.data === 'number') {

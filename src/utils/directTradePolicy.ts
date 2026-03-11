@@ -32,9 +32,3 @@ export const resolveDirectTradeApplicationSnapshot = (
     paymentType: 'DEPOSIT',
   };
 };
-
-export const getMateApplyAmountSectionTitle = (tossTestMode: boolean): string =>
-  tossTestMode ? '결제 금액' : '거래 기준 금액';
-
-export const getMateApplySummaryAmountLabel = (tossTestMode: boolean): string =>
-  tossTestMode ? '총 결제 금액' : '거래 기준 금액';

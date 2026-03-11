@@ -48,7 +48,6 @@ import {
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
 import { formatGameDate, isPartyHostedByUser } from '../utils/mate';
-import { getMatePaymentMode } from '../utils/paymentMode';
 
 const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
 
@@ -691,9 +690,8 @@ export default function MateChat() {
     }
   });
 
-  const paymentMode = getMatePaymentMode();
   const statusMeta = getPartyStatusMeta(selectedParty.status);
-  const flowLabel = getPartyFlowLabel(selectedParty.status, paymentMode);
+  const flowLabel = getPartyFlowLabel(selectedParty.status);
   const canAccessCheckIn = ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(selectedParty.status);
   const headerTitle = isHost ? '호스트 채팅' : '메이트 채팅';
   const headerDescription = isHost
@@ -713,7 +711,7 @@ export default function MateChat() {
       icon: Ticket,
       label: '거래 흐름',
       value: flowLabel,
-      detail: paymentMode === 'TOSS_TEST' ? '결제/정산 상태를 병행 확인합니다.' : '채팅 중심으로 전달 일정을 조율합니다.',
+      detail: '채팅 중심으로 전달 일정을 조율합니다.',
     },
     {
       icon: Shield,

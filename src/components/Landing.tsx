@@ -3,8 +3,9 @@ import { OptimizedImage } from './common/OptimizedImage';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Button } from './ui/button';
 import { ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthSession } from '../store/authStore';
 import { useLandingScroll } from '../hooks/useLandingScroll';
 import { LANDING_FEATURES } from '../constants/landing';
 import FeatureCard from './FeatureCard';
@@ -14,6 +15,13 @@ export default function Landing() {
   const [activeFeature, setActiveFeature] = useState(0);
   const [expandedFeature, setExpandedFeature] = useState<number | null>(null);
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuthSession();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate('/home', { replace: true });
+    }
+  }, [isLoggedIn, navigate]);
 
   const {
     scrollProgress,
@@ -28,10 +36,10 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-200">
+    <div className="min-h-screen bg-white transition-colors duration-200">
       {/* Fixed Header */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 border-b border-gray-100 dark:border-white/10 bg-white/85 dark:bg-black/80 transition-all duration-300"
+        className="fixed top-0 left-0 right-0 z-50 border-b border-gray-100 bg-white/85 transition-all duration-300"
         style={{ backdropFilter: 'blur(12px)' }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,7 +52,7 @@ export default function Landing() {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/login')}
-                className="text-gray-600 dark:text-gray-200 text-sm sm:text-base px-2 sm:px-4 hover:bg-gray-100 dark:hover:bg-white/10"
+                className="text-gray-600 text-sm sm:text-base px-2 sm:px-4 hover:bg-gray-100"
               >
                 로그인
               </Button>
@@ -62,7 +70,7 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16 sm:pt-20">
         <div
-          className="absolute inset-0 bg-gradient-to-br from-[#ecfdf5] via-white to-[#f0fdfa] dark:from-[#0b1711] dark:via-[#05080a] dark:to-[#0b1612]"
+          className="absolute inset-0 bg-gradient-to-br from-[#ecfdf5] via-white to-[#f0fdfa]"
         />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 lg:py-32 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -72,12 +80,12 @@ export default function Landing() {
               <span className="text-2xl sm:text-3xl font-black text-primary">BEGA</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-[#1a1a1a] dark:text-zinc-100 leading-tight mb-4 sm:mb-6">
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-[#1a1a1a] leading-tight mb-4 sm:mb-6">
               야구를 더<br />
               <span className="text-primary">스마트</span>하게
             </h1>
 
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300 mb-8 sm:mb-10 leading-relaxed">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-8 sm:mb-10 leading-relaxed">
               KBO 야구 팬들을 위한 올인원 플랫폼<br className="hidden sm:block" />
               BEGA와 함께 모든 순간을 특별하게
             </p>
@@ -98,7 +106,7 @@ export default function Landing() {
                   });
                 }}
                 variant="outline"
-                className="border-2 border-primary text-primary dark:border-primary/70 dark:text-primary-light dark:hover:bg-primary/20 bg-transparent py-6 px-8 rounded-full text-lg w-full sm:w-auto hover:bg-primary/10"
+                className="border-2 border-primary text-primary bg-transparent py-6 px-8 rounded-full text-lg w-full sm:w-auto hover:bg-primary/10"
               >
                 더 알아보기
               </Button>
@@ -137,17 +145,17 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-16 sm:py-24 lg:py-32 bg-white dark:bg-[#030608]">
+      <section id="features" className="py-16 sm:py-24 lg:py-32 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Title */}
           <div className="text-center mb-12 sm:mb-24">
-            <div className="inline-block px-4 py-2 mb-4 sm:mb-6 bg-[#ecfdf5] dark:bg-[#143329] rounded-full">
+            <div className="inline-block px-4 py-2 mb-4 sm:mb-6 bg-[#ecfdf5] rounded-full">
               <span className="text-sm font-semibold text-primary">주요 기능</span>
             </div>
-            <h2 className="text-3xl sm:text-5xl font-black text-[#1a1a1a] dark:text-zinc-100 mb-4 sm:mb-6 leading-tight">
+            <h2 className="text-3xl sm:text-5xl font-black text-[#1a1a1a] mb-4 sm:mb-6 leading-tight">
               BEGA에서 사용 가능한<br className="sm:hidden" /> 기능들
             </h2>
-            <p className="text-lg sm:text-xl text-gray-500 dark:text-gray-300">
+            <p className="text-lg sm:text-xl text-gray-500">
               야구 팬들을 위한 모든 기능이 한곳에
             </p>
           </div>
@@ -212,7 +220,7 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-50 dark:bg-black/60 border-t border-gray-100 dark:border-white/10 py-8">
+      <footer className="bg-gray-50 border-t border-gray-100 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="col-span-2 lg:col-span-1">
@@ -220,41 +228,41 @@ export default function Landing() {
                 <img src={baseballLogo} alt="BEGA" className="w-7 h-7" />
                 <div className="flex items-baseline gap-2">
                   <span className="text-lg font-black text-primary">BEGA</span>
-                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-tight">BASEBALL GUIDE</span>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">BASEBALL GUIDE</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-300 mb-4 leading-relaxed max-w-xs">
+              <p className="text-xs text-gray-500 mb-4 leading-relaxed max-w-xs">
                 KBO 야구 팬들을 위한 올인원 플랫폼
               </p>
-              <div className="text-[10px] text-gray-400 dark:text-gray-500">
+              <div className="text-[10px] text-gray-400">
                 © 2025 BEGA. All rights reserved.
               </div>
             </div>
 
             <div>
-              <h4 className="text-sm font-bold text-gray-900 dark:text-zinc-100 mb-4">제품</h4>
-              <ul className="space-y-3 text-sm text-gray-500 dark:text-gray-300">
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">기능</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">가격</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">FAQ</a></li>
+              <h4 className="text-sm font-bold text-gray-900 mb-4">제품</h4>
+              <ul className="space-y-3 text-sm text-gray-500">
+                <li><a href="#" className="hover:text-gray-900 transition-colors">기능</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">가격</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">FAQ</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-sm font-bold text-gray-900 dark:text-zinc-100 mb-4">회사</h4>
-              <ul className="space-y-3 text-sm text-gray-500 dark:text-gray-300">
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">소개</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">블로그</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">채용</a></li>
+              <h4 className="text-sm font-bold text-gray-900 mb-4">회사</h4>
+              <ul className="space-y-3 text-sm text-gray-500">
+                <li><a href="#" className="hover:text-gray-900 transition-colors">소개</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">블로그</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">채용</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-sm font-bold text-gray-900 dark:text-zinc-100 mb-4">지원</h4>
-              <ul className="space-y-3 text-sm text-gray-500 dark:text-gray-300">
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">고객센터</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">이용약관</a></li>
-                <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">개인정보처리방침</a></li>
+              <h4 className="text-sm font-bold text-gray-900 mb-4">지원</h4>
+              <ul className="space-y-3 text-sm text-gray-500">
+                <li><a href="#" className="hover:text-gray-900 transition-colors">고객센터</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">이용약관</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">개인정보처리방침</a></li>
               </ul>
             </div>
           </div>

@@ -9,7 +9,8 @@ test('mapBackendPartyToFrontend tolerates public party payload without hostId', 
     hostHandle: '@host',
     hostName: 'Host',
     hostBadge: 'VERIFIED',
-    hostRating: 4.8,
+    hostAverageRating: 4.8,
+    hostReviewCount: 12,
     teamId: 'LG',
     gameDate: '2026-03-09',
     gameTime: '18:30:00',
@@ -27,6 +28,8 @@ test('mapBackendPartyToFrontend tolerates public party payload without hostId', 
 
   assert.equal(party.hostId, undefined);
   assert.equal(party.hostHandle, '@host');
+  assert.equal(party.hostAverageRating, 4.8);
+  assert.equal(party.hostReviewCount, 12);
 });
 
 test('hasSameMateUserIdentity prefers handle matching over numeric ids', () => {

@@ -1,23 +1,69 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchGames, fetchDiaries, saveDiary, updateDiary, deleteDiary, uploadDiaryImages } from '../api/diary';
-import { DiaryEntry, Game } from '../types/diary';
+import {
+  fetchGames,
+  fetchDiaries,
+  saveDiary,
+  updateDiary,
+  deleteDiary,
+  uploadDiaryImages,
+  submitSeatViewSelections,
+  type UploadDiaryImagesResponse,
+} from '../api/diary';
+import { DiaryEntry, Game, SaveDiaryRequest, SeatViewCandidate } from '../types/diary';
 import { formatDateString } from '../utils/diary';
 import { useDiaryForm } from './useDiaryForm';
 import { toast } from 'sonner';
 import { useConfirmDialog } from '../components/contexts/ConfirmDialogContext';
 import { useDiaryStore } from '../store/diaryStore';
 
+const DEFAULT_IMAGE_UPLOAD_RESULT: UploadDiaryImagesResponse = {
+  photos: [],
+  candidates: [],
+};
+
+const AUTO_SELECT_CONFIDENCE = 0.7;
+
+interface SeatViewSelectionState {
+  open: boolean;
+  diaryId: number | null;
+  candidates: SeatViewCandidate[];
+  selectedIds: number[];
+  submitting: boolean;
+}
+
+const createEmptySeatViewSelectionState = (): SeatViewSelectionState => ({
+  open: false,
+  diaryId: null,
+  candidates: [],
+  selectedIds: [],
+  submitting: false,
+});
+
+const getAutoSelectedCandidateIds = (candidates: SeatViewCandidate[]): number[] =>
+  candidates
+    .filter(
+      (candidate) =>
+        candidate.shareEligible &&
+        candidate.sourceType === 'DIARY_UPLOAD' &&
+        candidate.aiSuggestedLabel === 'SEAT_VIEW' &&
+        (candidate.aiConfidence ?? 0) >= AUTO_SELECT_CONFIDENCE
+    )
+    .map((candidate) => candidate.id);
+
 export const useDiaryView = () => {
   const queryClient = useQueryClient();
   const { confirm } = useConfirmDialog();
   const pendingDraft = useDiaryStore((state) => state.pendingDraft);
   const clearPendingDraft = useDiaryStore((state) => state.clearPendingDraft);
-  // const { openErrorModal } = useErrorModal(); // Removed
+  const seatViewDialogResolverRef = useRef<(() => void) | null>(null);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isEditMode, setIsEditMode] = useState(false);
+  const [seatViewSelectionState, setSeatViewSelectionState] = useState<SeatViewSelectionState>(
+    createEmptySeatViewSelectionState()
+  );
 
   const {
     diaryForm,
@@ -25,18 +71,15 @@ export const useDiaryView = () => {
     updateForm,
     handlePhotoUpload,
     removePhoto,
-    validateForm,
   } = useDiaryForm();
 
-  // ========== Computed Values ==========
   const dateStr = useMemo(() => formatDateString(selectedDate), [selectedDate]);
 
-  // ========== Fetch Diaries from DB ==========
   const { data: diaryEntries = [], isLoading: entriesLoading } = useQuery({
     queryKey: ['diaries'],
     queryFn: () => fetchDiaries(),
-    staleTime: 1 * 60 * 1000, // 1분
-    gcTime: 5 * 60 * 1000, // 5분
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const selectedDiary = useMemo(() => {
@@ -69,7 +112,6 @@ export const useDiaryView = () => {
     clearPendingDraft();
   }, [clearPendingDraft, diaryEntries, pendingDraft, resetForm, updateForm]);
 
-  // ========== Fetch Games ==========
   const { data: availableGames = [], isLoading: gamesLoading } = useQuery({
     queryKey: ['games', dateStr],
     queryFn: () => fetchGames(dateStr),
@@ -77,7 +119,6 @@ export const useDiaryView = () => {
     gcTime: 30 * 60 * 1000,
   });
 
-  // ========== 날짜 선택 ==========
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setIsEditMode(false);
@@ -93,129 +134,111 @@ export const useDiaryView = () => {
     }
   };
 
-  // ========== 이미지 업로드 처리 ==========
-  const handleImageUpload = async (diaryId: number, photoFiles: File[]) => {
-    if (photoFiles.length === 0) return [];
+  const resetSeatViewSelectionDialog = () => {
+    setSeatViewSelectionState(createEmptySeatViewSelectionState());
+  };
+
+  const finishSeatViewSelectionDialog = () => {
+    seatViewDialogResolverRef.current?.();
+    seatViewDialogResolverRef.current = null;
+    resetSeatViewSelectionDialog();
+  };
+
+  const openSeatViewSelectionDialog = async (diaryId: number, candidates: SeatViewCandidate[]) => {
+    const shareEligibleCandidates = candidates.filter((candidate) => candidate.shareEligible);
+    if (shareEligibleCandidates.length === 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      seatViewDialogResolverRef.current = resolve;
+      setSeatViewSelectionState({
+        open: true,
+        diaryId,
+        candidates,
+        selectedIds: getAutoSelectedCandidateIds(candidates),
+        submitting: false,
+      });
+    });
+  };
+
+  const handleImageUpload = async (
+    diaryId: number,
+    photoFiles: typeof diaryForm.photoFiles
+  ): Promise<UploadDiaryImagesResponse> => {
+    if (photoFiles.length === 0) {
+      return DEFAULT_IMAGE_UPLOAD_RESULT;
+    }
 
     try {
       const result = await uploadDiaryImages(diaryId, photoFiles);
       toast.success(`${result.photos.length}장의 사진이 저장되었습니다.`);
-
-      // 이미지 업로드 후 리워드 처리
-      if (result.seatViewReward) {
-        showSeatViewRewardToast(result.seatViewReward);
-      }
-
-      return result.photos;
+      return result;
     } catch (error) {
-      // Global modal handles server errors. Toast provides quick feedback.
       toast.error('일부 사진 업로드에 실패했습니다.');
-      return [];
+      return DEFAULT_IMAGE_UPLOAD_RESULT;
     }
   };
 
-  // ========== 시야 사진 리워드 토스트 ==========
-  const showSeatViewRewardToast = (reward: import('../types/diary').SeatViewReward) => {
-    const message = reward.firstContribution
-      ? `첫 시야 사진 기여! +${reward.pointsEarned} 포인트 획득!`
-      : `시야 사진 기여! +${reward.pointsEarned} 포인트 획득!`;
-    toast.success(message, { duration: 4000 });
-
-    if (reward.unlockedAchievements?.length > 0) {
-      reward.unlockedAchievements.forEach((ach) => {
-        setTimeout(() => {
-          toast.success(`업적 달성: ${ach.nameKo}!`, { duration: 5000 });
-        }, 1000);
-      });
-    }
+  const refreshDiaryQueries = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await queryClient.invalidateQueries({ queryKey: ['diaries'], refetchType: 'all' });
+    await queryClient.refetchQueries({ queryKey: ['diaries'], type: 'active' });
+    await queryClient.invalidateQueries({ queryKey: ['statistics'] });
   };
 
-  // ========== Save Mutation ==========
   const saveMutation = useMutation({
-    mutationFn: (data: Omit<DiaryEntry, 'id'>) => saveDiary(data),
-    onSuccess: async (result) => {
-      const diaryId = result.id || (result as Record<string, unknown>)['data'] as number;
+    mutationFn: (data: SaveDiaryRequest) => saveDiary(data),
+    onSuccess: async (result, variables) => {
+      const diaryId = Number(result.id || (result as Record<string, unknown>)['data']);
+      const uploadResult = await handleImageUpload(diaryId, diaryForm.photoFiles);
 
-      // 다이어리 저장 시 리워드 (사진이 요청에 포함된 경우)
-      if (result.seatViewReward) {
-        showSeatViewRewardToast(result.seatViewReward);
-      }
-
-      // 이미지 업로드
-      const uploadedPhotos = await handleImageUpload(diaryId, diaryForm.photoFiles);
-
-      // 업로드된 사진이 있으면 다이어리 레코드 업데이트
-      if (uploadedPhotos.length > 0) {
-        const game = availableGames.find((g: Game) => g.id === diaryForm.gameId);
-
+      if (uploadResult.photos.length > 0) {
         await updateDiary({
           id: diaryId,
           data: {
-            date: dateStr,
-            type: diaryForm.type,
-            emoji: diaryForm.emoji,
-            emojiName: diaryForm.emojiName,
-            winningName: diaryForm.winningName,
-            gameId: diaryForm.gameId,
-            memo: diaryForm.memo,
-            photos: uploadedPhotos,
-            team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
-            stadium: game?.stadium || '',
-            section: diaryForm.section,
-            block: diaryForm.block,
-            seatRow: diaryForm.seatRow,
-            seatNumber: diaryForm.seatNumber,
+            ...variables,
+            photos: uploadResult.photos,
+            ticketVerificationToken: undefined,
           },
         });
       }
 
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // DB 데이터 다시 조회 (강제 리프레시)
-      await queryClient.invalidateQueries({ queryKey: ['diaries'], refetchType: 'all' });
-      await queryClient.refetchQueries({ queryKey: ['diaries'], type: 'active' });
-      await queryClient.invalidateQueries({ queryKey: ['statistics'] });
+      await openSeatViewSelectionDialog(diaryId, uploadResult.candidates);
+      await refreshDiaryQueries();
 
       toast.success('다이어리가 작성되었습니다!');
       setIsEditMode(false);
     },
-    onError: (error) => {
-      // Global error modal handles the details. Toast is optional but good for quick feedback.
+    onError: () => {
       toast.error('다이어리 저장에 실패했습니다.');
     },
   });
 
-  // ========== Update Mutation ==========
   const updateMutation = useMutation({
-    mutationFn: (params: { id: number; data: DiaryEntry }) => updateDiary(params),
-    onSuccess: async (result, variables) => {
+    mutationFn: (params: { id: number; data: SaveDiaryRequest }) => updateDiary(params),
+    onSuccess: async (_result, variables) => {
       const diaryId = variables.id;
 
-      // 새 사진이 있으면 업로드
       if (diaryForm.photoFiles.length > 0) {
-        const uploadedPhotos = await handleImageUpload(diaryId, diaryForm.photoFiles);
+        const uploadResult = await handleImageUpload(diaryId, diaryForm.photoFiles);
 
-        // 업로드 성공 시 기존 사진과 합쳐서 다시 업데이트
-        if (uploadedPhotos.length > 0) {
-          const allPhotos = [...(diaryForm.photos || []), ...uploadedPhotos];
-          const game = availableGames.find((g: Game) => g.id === diaryForm.gameId);
-
+        if (uploadResult.photos.length > 0) {
+          const allPhotos = [...(diaryForm.photos || []), ...uploadResult.photos];
           await updateDiary({
             id: diaryId,
             data: {
               ...variables.data,
               photos: allPhotos,
+              ticketVerificationToken: undefined,
             },
           });
         }
+
+        await openSeatViewSelectionDialog(diaryId, uploadResult.candidates);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // DB 데이터 다시 조회 (강제 리프레시)
-      await queryClient.invalidateQueries({ queryKey: ['diaries'], refetchType: 'all' });
-      await queryClient.refetchQueries({ queryKey: ['diaries'], type: 'active' });
-      await queryClient.invalidateQueries({ queryKey: ['statistics'] });
+      await refreshDiaryQueries();
 
       toast.success('다이어리가 수정되었습니다!');
       setIsEditMode(false);
@@ -225,11 +248,9 @@ export const useDiaryView = () => {
     },
   });
 
-  // ========== Delete Mutation ==========
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteDiary(id),
     onSuccess: async () => {
-      // DB 데이터 다시 조회 (강제 리프레시)
       await queryClient.invalidateQueries({ queryKey: ['diaries'], refetchType: 'active' });
       await queryClient.refetchQueries({ queryKey: ['diaries'] });
       await queryClient.invalidateQueries({ queryKey: ['statistics'] });
@@ -243,17 +264,49 @@ export const useDiaryView = () => {
     },
   });
 
-  // ========== Handlers ==========
-  const handleSaveDiary = async () => {
-    // const validation = validateForm();
-    // if (!validation.valid) {
-    //   toast.error(validation.error);
-    //   return;
-    // }
+  const handleSeatViewSelectionSubmit = async (candidateIds: number[]) => {
+    if (!seatViewSelectionState.diaryId) {
+      finishSeatViewSelectionDialog();
+      return;
+    }
 
+    setSeatViewSelectionState((prev) => ({ ...prev, submitting: true }));
+    try {
+      await submitSeatViewSelections(seatViewSelectionState.diaryId, candidateIds);
+      toast.success(
+        candidateIds.length > 0
+          ? '시야뷰가 검토 대기 상태로 제출되었습니다.'
+          : '공개 시야뷰 제출을 건너뛰었습니다.'
+      );
+      finishSeatViewSelectionDialog();
+    } catch (error) {
+      toast.error('시야뷰 제출 처리에 실패했습니다.');
+      setSeatViewSelectionState((prev) => ({ ...prev, submitting: false }));
+    }
+  };
+
+  const toggleSeatViewCandidate = (candidateId: number, checked: boolean) => {
+    setSeatViewSelectionState((prev) => {
+      const candidate = prev.candidates.find((item) => item.id === candidateId);
+      if (!candidate || !candidate.shareEligible || prev.submitting) {
+        return prev;
+      }
+
+      const nextSelectedIds = checked
+        ? [...prev.selectedIds, candidateId]
+        : prev.selectedIds.filter((id) => id !== candidateId);
+
+      return {
+        ...prev,
+        selectedIds: Array.from(new Set(nextSelectedIds)),
+      };
+    });
+  };
+
+  const handleSaveDiary = async () => {
     const game = availableGames.find((g: Game) => g.id === diaryForm.gameId);
 
-    const entry = {
+    const entry: SaveDiaryRequest = {
       date: dateStr,
       type: diaryForm.type,
       emoji: diaryForm.emoji,
@@ -261,19 +314,20 @@ export const useDiaryView = () => {
       winningName: diaryForm.winningName,
       gameId: diaryForm.gameId,
       memo: diaryForm.memo,
-      photos: diaryForm.photos, // 기존 사진 URL 유지
+      photos: diaryForm.photos,
       team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
       stadium: game?.stadium || '',
       section: diaryForm.section,
       block: diaryForm.block,
       seatRow: diaryForm.seatRow,
       seatNumber: diaryForm.seatNumber,
+      ticketVerificationToken: diaryForm.ticketVerificationToken,
     };
 
     if (selectedDiary) {
       updateMutation.mutate({
         id: selectedDiary.id,
-        data: { ...entry, id: selectedDiary.id },
+        data: entry,
       });
     } else {
       saveMutation.mutate(entry);
@@ -282,14 +336,18 @@ export const useDiaryView = () => {
 
   const handleDeleteDiary = async () => {
     if (!selectedDiary) return;
-    const confirmed = await confirm({ title: '다이어리 삭제', description: '정말로 이 다이어리를 삭제하시겠습니까?', confirmLabel: '삭제', variant: 'destructive' });
+    const confirmed = await confirm({
+      title: '다이어리 삭제',
+      description: '정말로 이 다이어리를 삭제하시겠습니까?',
+      confirmLabel: '삭제',
+      variant: 'destructive',
+    });
     if (confirmed) {
       deleteMutation.mutate(selectedDiary.id);
     }
   };
 
   return {
-    // State
     selectedDate,
     currentMonth,
     setCurrentMonth,
@@ -297,29 +355,24 @@ export const useDiaryView = () => {
     setIsEditMode,
     dateStr,
     selectedDiary,
-
-    // Games
     availableGames,
     gamesLoading,
-
-    // Form
     diaryForm,
     updateForm,
     handlePhotoUpload,
     removePhoto,
-
-    // Handlers
     handleDateSelect,
     handleSaveDiary,
     handleDeleteDiary,
-
-    // Mutations
     saveMutation,
     updateMutation,
     deleteMutation,
-
-    // Diary Entries (DB에서 조회)
     diaryEntries,
     entriesLoading,
+    seatViewSelectionState,
+    toggleSeatViewCandidate,
+    handleSeatViewSelectionConfirm: () =>
+      handleSeatViewSelectionSubmit(seatViewSelectionState.selectedIds),
+    handleSeatViewSelectionSkip: () => handleSeatViewSelectionSubmit([]),
   };
 };

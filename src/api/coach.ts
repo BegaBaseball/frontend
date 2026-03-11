@@ -84,12 +84,40 @@ export interface CoachMetric {
     trend: 'up' | 'down' | 'neutral';
 }
 
+export interface CoachRiskItem {
+    area: string;
+    level: 0 | 1 | 2;
+    description: string;
+}
+
+export interface CoachStructuredAnalysis {
+    summary?: string;
+    verdict?: string;
+    strengths: string[];
+    weaknesses: string[];
+    risks: CoachRiskItem[];
+    why_it_matters?: string[];
+    swing_factors?: string[];
+    watch_points?: string[];
+    uncertainty?: string[];
+}
+
 // Structured response data from LLM
 export interface CoachAnalysisData {
     dashboard: CoachDashboard;
     metrics: CoachMetric[];
     detailed_analysis: string;
     coach_note: string;
+    analysis_summary: string;
+    verdict: string;
+    strengths: string[];
+    weaknesses: string[];
+    risks: CoachRiskItem[];
+    why_it_matters: string[];
+    swing_factors: string[];
+    watch_points: string[];
+    uncertainty: string[];
+    game_status_bucket?: string;
 }
 
 // Backend structured_response from meta event (CoachResponse schema)
@@ -104,9 +132,15 @@ export interface CoachStructuredResponse {
         is_critical: boolean;
     }>;
     analysis: {
+        summary?: string;
+        verdict?: string;
         strengths: string[];
         weaknesses: string[];
-        risks: Array<{ area: string; level: number; description: string }>;
+        risks: CoachRiskItem[];
+        why_it_matters?: string[];
+        swing_factors?: string[];
+        watch_points?: string[];
+        uncertainty?: string[];
     };
     detailed_markdown: string;
     coach_note: string;
@@ -135,6 +169,10 @@ export interface CoachAnalyzeResponse {
     generation_mode?: CoachGenerationMode;
     data_quality?: CoachDataQuality;
     used_evidence?: string[];
+    grounding_warnings?: string[];
+    grounding_reasons?: string[];
+    supported_fact_count?: number;
+    game_status_bucket?: string;
 }
 
 export const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
@@ -353,6 +391,10 @@ export async function analyzeTeam(
     let generationMode: CoachGenerationMode | undefined = undefined;
     let dataQuality: CoachDataQuality | undefined = undefined;
     let usedEvidence: string[] | undefined = undefined;
+    let groundingWarnings: string[] | undefined = undefined;
+    let groundingReasons: string[] | undefined = undefined;
+    let supportedFactCount: number | undefined = undefined;
+    let gameStatusBucket: string | undefined = undefined;
 
     if (reader) {
         try {
@@ -426,7 +468,32 @@ export async function analyzeTeam(
                                 ) {
                                     dataQuality = parsed.data_quality;
                                 }
-                                if (Array.isArray(parsed.used_evidence)) usedEvidence = parsed.used_evidence.map(String);
+                                if (Array.isArray(parsed.used_evidence)) {
+                                    usedEvidence = parsed.used_evidence
+                                        .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+                                        .map((value) => value.trim());
+                                }
+                                if (Array.isArray(parsed.grounding_warnings)) {
+                                    groundingWarnings = parsed.grounding_warnings
+                                        .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+                                        .map((value) => value.trim());
+                                }
+                                if (Array.isArray(parsed.grounding_reasons)) {
+                                    groundingReasons = parsed.grounding_reasons
+                                        .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+                                        .map((value) => value.trim());
+                                }
+                                if (typeof parsed.supported_fact_count === 'number' && Number.isFinite(parsed.supported_fact_count)) {
+                                    supportedFactCount = parsed.supported_fact_count;
+                                } else if (typeof parsed.supported_fact_count === 'string' && parsed.supported_fact_count.trim() !== '') {
+                                    const normalizedCount = Number(parsed.supported_fact_count);
+                                    if (Number.isFinite(normalizedCount) && normalizedCount >= 0) {
+                                        supportedFactCount = normalizedCount;
+                                    }
+                                }
+                                if (typeof parsed.game_status_bucket === 'string') {
+                                    gameStatusBucket = parsed.game_status_bucket;
+                                }
                             }
 
                             // Reset event type after processing data
@@ -475,5 +542,9 @@ export async function analyzeTeam(
         generation_mode: generationMode,
         data_quality: dataQuality,
         used_evidence: usedEvidence,
+        grounding_warnings: groundingWarnings,
+        grounding_reasons: groundingReasons,
+        supported_fact_count: supportedFactCount,
+        game_status_bucket: gameStatusBucket,
     };
 }
