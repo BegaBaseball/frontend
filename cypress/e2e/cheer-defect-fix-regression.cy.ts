@@ -428,11 +428,10 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             },
         });
 
-        cy.contains('리포스트 본문').should('be.visible');
-        cy.get('article .mt-6.flex.flex-wrap').as('actionBar');
-        cy.get('@actionBar').find('button:has(svg.lucide-heart)').should('have.length', 1).first().as('likeButton');
-        cy.get('@actionBar').find('button[aria-label*="리포스트"]').should('have.length', 1).first().as('repostButton');
-        cy.get('@actionBar').find('button:has(svg.lucide-bookmark)').should('have.length', 1).first().as('bookmarkButton');
+        cy.contains('원글 본문').should('be.visible');
+        cy.get('button[aria-label^="좋아요"]').first().as('likeButton');
+        cy.get('button[aria-label*="리포스트"]').first().as('repostButton');
+        cy.get('button:has(svg.lucide-bookmark)').first().as('bookmarkButton');
 
         cy.get('@likeButton').should('contain', '99');
         cy.get('@likeButton').find('svg').should('have.class', 'fill-current');

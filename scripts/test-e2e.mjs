@@ -2,11 +2,62 @@
 import { spawnSync } from 'node:child_process';
 
 const projectRoot = process.cwd();
-const defaultHost = process.env.CYPRESS_TEST_HOST || '127.0.0.1';
-const defaultPort = process.env.CYPRESS_TEST_PORT || '5176';
+const normalizeFrontendBaseUrl = (value) => {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim().replace(/\/+$/, '');
+  if (!trimmed) {
+    return null;
+  }
+
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+
+  try {
+    const parsed = new URL(candidate);
+    const normalizedPath = parsed.pathname
+      .replace(/\/api\/?$/i, '')
+      .replace(/\/+$/, '');
+
+    return {
+      host: parsed.hostname,
+      port: parsed.port || null,
+      baseUrl: `${parsed.protocol}//${parsed.host}${normalizedPath || ''}`,
+      protocol: parsed.protocol.replace(':', ''),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const resolveFrontendTargetFromEnv = () => {
+  const candidates = [
+    process.env.CYPRESS_TEST_HOST,
+    process.env.CYPRESS_FRONTEND_BASE_URL,
+    process.env.CYPRESS_BASE_URL,
+    process.env.FRONTEND_BASE_URL,
+    process.env.FRONTEND_ORIGIN,
+    process.env.VITE_BASE_URL,
+    process.env.VITE_APP_BASE_URL,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeFrontendBaseUrl(candidate);
+    if (normalized?.host) {
+      return normalized;
+    }
+  }
+
+  return null;
+};
+
+const resolvedFrontendTarget = resolveFrontendTargetFromEnv();
+const defaultHost = process.env.CYPRESS_TEST_HOST || resolvedFrontendTarget?.host || 'localhost';
+const defaultPort = process.env.CYPRESS_TEST_PORT || resolvedFrontendTarget?.port || '5176';
 
 let startCommand = `npm run dev -- --host ${defaultHost} --port ${defaultPort}`;
-let targetUrl = `http://${defaultHost}:${defaultPort}`;
+let targetUrl = resolvedFrontendTarget?.baseUrl || `http://${defaultHost}:${defaultPort}`;
 
 const runCypressCommand = (commandArgs) => {
   return spawnSync(commandArgs[0], commandArgs.slice(1), {
@@ -51,10 +102,14 @@ const normalizeBackendBaseUrl = (value) => {
     return undefined;
   }
 
-  const candidate = value.trim().replace(/\/+$/, '');
-  if (!candidate || !/^https?:\/\//i.test(candidate)) {
+  const trimmed = value.trim().replace(/\/+$/, '');
+  if (!trimmed) {
     return undefined;
   }
+
+  const candidate = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `http://${trimmed}`;
 
   try {
     const parsed = new URL(candidate);
@@ -87,7 +142,10 @@ const resolveBackendBaseUrlFromEnv = () => {
   const candidates = [
     process.env.BACKEND_BASE_URL,
     process.env.SMOKE_API_BASE_URL,
+    process.env.CYPRESS_BASE_URL,
     process.env.CYPRESS_BACKEND_BASE_URL,
+    process.env.FRONTEND_API_BASE_URL,
+    process.env.VITE_API_BASE_URL,
   ];
 
   for (const candidate of candidates) {
