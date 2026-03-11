@@ -3,6 +3,7 @@ import { Client } from '@stomp/stompjs';
 describe('WebSocket real integration smoke', () => {
   const fallbackLoginPassword = 'Test1234!';
   const fallbackFavoriteTeam = 'LG';
+  let backendBaseUrl: string | undefined;
 
   type RequiredPolicy = {
     policyType?: string;
@@ -10,10 +11,137 @@ describe('WebSocket real integration smoke', () => {
     required?: boolean;
   };
 
+  const stripTrailingSlash = (value: string) => value.trim().replace(/\/+$/, '');
+
+  const resolveBaseOrigin = () => {
+    const baseUrl = Cypress.config('baseUrl');
+    if (!baseUrl) {
+      return undefined;
+    }
+
+    try {
+      return new URL(baseUrl).origin;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const normalizeBackendBaseUrl = (value: string | undefined) => {
+    if (!value) {
+      return undefined;
+    }
+
+    const candidate = stripTrailingSlash(value);
+    if (!candidate) {
+      return undefined;
+    }
+
+    const normalizedInput = (() => {
+      if (/^https?:\/\//i.test(candidate)) {
+        return candidate;
+      }
+
+      if (candidate.startsWith('/')) {
+        const baseOrigin = resolveBaseOrigin();
+        if (!baseOrigin) {
+          return undefined;
+        }
+        return `${baseOrigin}${candidate}`;
+      }
+
+      return `http://${candidate}`;
+    })();
+
+    if (!normalizedInput) {
+      return undefined;
+    }
+
+    try {
+      const parsed = new URL(normalizedInput);
+      const trimmedPath = parsed.pathname.replace(/\/api\/?$/i, '');
+      const resolvedPath = trimmedPath === '/' ? '' : trimmedPath;
+      return `${parsed.origin}${resolvedPath}`;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const resolveBackendBaseUrl = () =>
+    cy.env([
+      'BACKEND_BASE_URL',
+      'SMOKE_API_BASE_URL',
+      'CYPRESS_BASE_URL',
+      'CYPRESS_BACKEND_BASE_URL',
+      'VITE_API_BASE_URL',
+      'FRONTEND_API_BASE_URL',
+    ]).then((envVars) => {
+      return (
+        normalizeBackendBaseUrl(envVars.BACKEND_BASE_URL as string | undefined)
+        || normalizeBackendBaseUrl(envVars.SMOKE_API_BASE_URL as string | undefined)
+        || normalizeBackendBaseUrl(envVars.CYPRESS_BASE_URL as string | undefined)
+        || normalizeBackendBaseUrl(envVars.CYPRESS_BACKEND_BASE_URL as string | undefined)
+        || normalizeBackendBaseUrl(envVars.VITE_API_BASE_URL as string | undefined)
+        || normalizeBackendBaseUrl(envVars.FRONTEND_API_BASE_URL as string | undefined)
+      );
+    });
+
+  const buildApiUrl = (path: string) => {
+    const safePath = path.startsWith('/') ? path : `/${path}`;
+    if (!backendBaseUrl) {
+      return path;
+    }
+    return `${backendBaseUrl}${safePath}`;
+  };
+
+  const isBackendHealthResponse = (response: Cypress.Response<unknown>) => {
+    if (![200, 503].includes(response.status)) {
+      return false;
+    }
+
+    const contentType = String(response.headers['content-type'] || '').toLowerCase();
+    if (contentType.includes('text/html')) {
+      return false;
+    }
+
+    const body = response.body;
+    if (!body || typeof body !== 'object') {
+      return false;
+    }
+
+    return typeof (body as { status?: unknown }).status === 'string';
+  };
+
+  before(function () {
+    return resolveBackendBaseUrl()
+      .then((resolvedBackendBaseUrl) => {
+        backendBaseUrl = resolvedBackendBaseUrl;
+
+        if (!backendBaseUrl) {
+          cy.log('Skipping websocket-real: BACKEND_BASE_URL is not available.');
+          this.skip();
+          return;
+        }
+
+        return cy.request({
+          method: 'GET',
+          url: `${backendBaseUrl}/actuator/health`,
+          failOnStatusCode: false,
+        }).then((response) => {
+          if (!isBackendHealthResponse(response)) {
+            cy.log('Skipping websocket-real: /actuator/health did not return backend JSON payload.');
+            this.skip();
+          }
+        }, (error) => {
+          cy.log(`Skipping websocket-real: backend health check failed (${error.message}).`);
+          this.skip();
+        });
+      });
+  });
+
   const loginWithCredentials = (email: string, password: string) => {
     return cy.request({
       method: 'POST',
-      url: '/api/auth/login',
+      url: buildApiUrl('/api/auth/login'),
       body: {
         email,
         password,
@@ -28,7 +156,7 @@ describe('WebSocket real integration smoke', () => {
   const resolveRequiredPolicyConsents = () => {
     return cy.request({
       method: 'GET',
-      url: '/api/auth/policies/required',
+      url: buildApiUrl('/api/auth/policies/required'),
     }).then((response) => {
       expect(response.status).to.eq(200);
       const policies = (response.body?.data?.policies || []) as RequiredPolicy[];
@@ -56,7 +184,7 @@ describe('WebSocket real integration smoke', () => {
     return resolveRequiredPolicyConsents()
       .then((policyConsents) => cy.request({
         method: 'POST',
-        url: '/api/auth/signup',
+        url: buildApiUrl('/api/auth/signup'),
         failOnStatusCode: false,
         body: {
           name: 'WebSocket E2E',
@@ -89,9 +217,22 @@ describe('WebSocket real integration smoke', () => {
 
   const resolveCandidateBrokerURLs = (win: Window, requestedBrokerURL?: string) => {
     const protocol = win.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const brokerHostFromBackend = (() => {
+      if (!backendBaseUrl) {
+        return undefined;
+      }
+
+      try {
+        return new URL(backendBaseUrl).host;
+      } catch {
+        return undefined;
+      }
+    })();
+
     return [
       requestedBrokerURL,
       `${protocol}//${win.location.host}/ws`,
+      brokerHostFromBackend ? `${protocol}//${brokerHostFromBackend}/ws` : undefined,
       `${protocol}//host.docker.internal:8080/ws`,
     ].filter(
       (value, index, list): value is string =>

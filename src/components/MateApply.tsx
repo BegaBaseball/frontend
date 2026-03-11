@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
@@ -18,14 +17,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import { api, ApiError } from '../utils/api';
 import { formatGameDate } from '../utils/mate';
-import { DEPOSIT_AMOUNT } from '../utils/constants';
-import { isCompatibleFlowAndPaymentType, savePendingPayment } from '../utils/payment';
-import { isTossTestMode } from '../utils/paymentMode';
-import {
-  getMateApplyAmountSectionTitle,
-  getMateApplySummaryAmountLabel,
-  resolveDirectTradeApplicationSnapshot,
-} from '../utils/directTradePolicy';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
 import { analyzeTicket, TicketInfo } from '../api/ticket';
 import { getApiErrorMessage } from '../utils/errorUtils';
@@ -106,58 +97,36 @@ export default function MateApply() {
   }
 
   const isSelling = selectedParty.status === 'SELLING';
-  const tossTestMode = isTossTestMode();
   const ticketAmount = selectedParty.ticketPrice || 0;
-  const totalAmount = ticketAmount + DEPOSIT_AMOUNT;
   const sellingPrice = selectedParty.price || 0;
   const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
   const insetPanelClass = 'rounded-2xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
-  const primaryAmount = tossTestMode
-    ? (isSelling ? sellingPrice : totalAmount)
-    : (isSelling ? sellingPrice : ticketAmount);
+  const primaryAmount = isSelling ? sellingPrice : ticketAmount;
   const submitLabel = isSubmitting
     ? '신청 중...'
-    : tossTestMode
-      ? (isSelling
-        ? `${sellingPrice.toLocaleString()}원 결제하기`
-        : `${totalAmount.toLocaleString()}원 결제하기`)
-      : (isSelling ? '직거래 신청하기' : '참여 신청하기');
-  const flowBadgeLabel = tossTestMode
-    ? (isSelling ? '판매 티켓 구매' : '안전결제/보증금 모드')
-    : '직거래 베타';
+    : (isSelling ? '직거래 신청하기' : '참여 신청하기');
+  const flowBadgeLabel = '직거래 베타';
   const flowDescription = isSelling
-    ? (tossTestMode
-      ? '결제 후 호스트 승인 대기 상태로 전환되며, 이후 진행 상황은 상세페이지에서 확인할 수 있습니다.'
-      : '구매 신청 후 호스트 승인 시 채팅으로 직거래 시간과 장소를 조율합니다.')
-    : (tossTestMode
-      ? '메시지와 인증 정보를 확인한 뒤 결제를 진행하면, 호스트 승인 후 참여가 확정됩니다.'
-      : '호스트에게 메시지를 보내고, 승인 후 채팅으로 직거래 및 관람 일정을 조율합니다.');
-  const policyHighlights = tossTestMode
-    ? [
-      '승인 즉시 정산 요청이 생성됩니다.',
-      '단순변심 취소에는 10% 수수료가 적용됩니다.',
-      '승인되지 않으면 전액 환불됩니다.',
-    ]
-    : [
-      '현재 베타에서는 앱 내 결제를 제공하지 않습니다.',
-      '승인 후 채팅에서 거래 시간과 장소를 조율합니다.',
-      '플랫폼 결제/환불 없이 신청 취소만 처리됩니다.',
-    ];
+    ? '구매 신청 후 호스트 승인 시 채팅으로 직거래 시간과 장소를 조율합니다.'
+    : '호스트에게 메시지를 보내고, 승인 후 채팅으로 직거래 및 관람 일정을 조율합니다.';
+  const policyHighlights = [
+    '현재 베타에서는 앱 내 결제를 제공하지 않습니다.',
+    '승인 후 채팅에서 거래 시간과 장소를 조율합니다.',
+    '플랫폼 결제/환불 없이 신청 취소만 처리됩니다.',
+  ];
   const nextSteps = isSelling
     ? [
-      tossTestMode ? '결제 후 호스트 승인 여부를 기다립니다.' : '구매 신청 후 호스트 승인 여부를 기다립니다.',
+      '구매 신청 후 호스트 승인 여부를 기다립니다.',
       '승인되면 상세페이지 또는 채팅방에서 거래 일정을 조율합니다.',
       '경기 당일에는 체크인 또는 전달 상태를 다시 확인하세요.',
     ]
     : [
       '메시지와 티켓 인증(선택)을 제출합니다.',
       '호스트 승인 후 채팅방이 열리고 일정 조율이 시작됩니다.',
-      tossTestMode ? '보증금/결제 정책은 승인 이후 상태에 맞춰 적용됩니다.' : '직거래 베타에서는 채팅에서 직접 만남 장소를 확정합니다.',
+      '직거래 베타에서는 채팅에서 직접 만남 장소를 확정합니다.',
     ];
   const isSubmitReady = isSelling || message.length >= 10;
-  const summaryAmountLabel = tossTestMode
-    ? getMateApplySummaryAmountLabel(true)
-    : (isSelling ? '구매 신청 금액' : '거래 기준 금액');
+  const summaryAmountLabel = isSelling ? '구매 신청 금액' : '거래 기준 금액';
   const summaryTrustLabel = selectedParty.ticketVerified ? '호스트 티켓 인증' : '티켓 인증 확인 전';
 
   // 티켓 인증 핸들러
@@ -221,80 +190,31 @@ export default function MateApply() {
     setIsSubmitting(true);
 
     const applyMessage = message || (isSelling ? '티켓 구매 신청합니다.' : '함께 즐거운 관람 부탁드립니다!');
-    const directTradeSnapshot = resolveDirectTradeApplicationSnapshot({
-      isSelling,
-      sellingPrice,
-      ticketPrice: ticketAmount,
-    });
 
     try {
-      if (!tossTestMode) {
-        if (isSelling && directTradeSnapshot.amount <= 0) {
-          throw new Error('판매 가격 정보가 올바르지 않습니다.');
-        }
-
-        await api.createApplication({
-          partyId: selectedParty.id,
-          message: applyMessage,
-          depositAmount: directTradeSnapshot.amount,
-          paymentType: directTradeSnapshot.paymentType,
-          verificationToken: isSelling ? null : ticketInfo?.verificationToken ?? null,
-          ticketVerified: isSelling ? false : ticketVerified,
-          ticketImageUrl: null,
-        });
-
-        toast.success(isSelling
-          ? '구매 신청이 접수되었습니다. 호스트 승인 후 직거래로 진행됩니다.'
-          : '참여 신청이 접수되었습니다.');
-        navigate(`/mate/${selectedParty.id}`);
-        return;
+      if (isSelling && primaryAmount <= 0) {
+        throw new Error('판매 가격 정보가 올바르지 않습니다.');
       }
 
-      const preparedPayment = await api.prepareTossPayment({
+      await api.createApplication({
         partyId: selectedParty.id,
-        flowType: isSelling ? 'SELLING_FULL' : 'DEPOSIT',
-        cancelPolicyVersion: 'v1',
-      });
-      if (!isCompatibleFlowAndPaymentType(preparedPayment.flowType, preparedPayment.paymentType)) {
-        throw new Error('결제 흐름과 결제 타입이 일치하지 않습니다.');
-      }
-
-      savePendingPayment({
-        intentId: preparedPayment.intentId,
-        partyId: selectedParty.id,
-        flowType: preparedPayment.flowType,
-        policyVersion: preparedPayment.cancelPolicyVersion,
-        priceSnapshot: preparedPayment.amount,
         message: applyMessage,
         verificationToken: isSelling ? null : ticketInfo?.verificationToken ?? null,
         ticketVerified: isSelling ? false : ticketVerified,
         ticketImageUrl: null,
-        paymentType: preparedPayment.paymentType,
-        amount: preparedPayment.amount,
-        orderId: preparedPayment.orderId,
-        orderName: preparedPayment.orderName,
       });
 
-      const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY as string;
-      const tossPayments = await loadTossPayments(clientKey);
-      const payment = tossPayments.payment({ customerKey: String(currentUserId) });
-
-      await payment.requestPayment({
-        method: 'CARD',
-        amount: { currency: preparedPayment.currency, value: preparedPayment.amount },
-        orderId: preparedPayment.orderId,
-        orderName: preparedPayment.orderName,
-        successUrl: `${window.location.origin}/payment/success`,
-        failUrl: `${window.location.origin}/payment/fail`,
-      });
-      // Toss가 브라우저를 리다이렉트 — 이후 코드는 실행되지 않음
+      toast.success(isSelling
+        ? '구매 신청이 접수되었습니다. 호스트 승인 후 직거래로 진행됩니다.'
+        : '참여 신청이 접수되었습니다.');
+      navigate(`/mate/${selectedParty.id}`);
     } catch (error: unknown) {
       if ((error instanceof AxiosError && error.response?.status === 403) ||
         (error instanceof ApiError && error.status === 403)) {
         setShowVerificationDialog(true);
       } else {
-        console.error('결제 초기화 오류:', error);
-        toast.error(getApiErrorMessage(error, '결제 중 오류가 발생했습니다.'));
+        console.error('신청 처리 오류:', error);
+        toast.error(getApiErrorMessage(error, '신청 처리 중 오류가 발생했습니다.'));
       }
       setIsSubmitting(false);
     }
@@ -489,7 +409,7 @@ export default function MateApply() {
         <Card className={`p-6 mb-6 ${sectionCardClass}`}>
           <div className="flex items-center gap-2 mb-4">
             <CreditCard className="w-5 h-5 text-primary" />
-            <h3 className="font-bold text-primary">{getMateApplyAmountSectionTitle(tossTestMode)}</h3>
+            <h3 className="font-bold text-primary">거래 기준 금액</h3>
           </div>
 
           <div className={`${insetPanelClass} p-4`}>
@@ -501,21 +421,13 @@ export default function MateApply() {
                     {ticketAmount.toLocaleString()}원
                   </span>
                 </div>
-                {tossTestMode && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">노쇼 방지 보증금</span>
-                    <span className="text-gray-900 dark:text-white">
-                      {DEPOSIT_AMOUNT.toLocaleString()}원
-                    </span>
-                  </div>
-                )}
                 <Separator className="bg-gray-200 dark:bg-border" />
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-gray-900 dark:text-white">
-                    {getMateApplySummaryAmountLabel(tossTestMode)}
+                    거래 기준 금액
                   </span>
                   <span className="text-lg font-bold text-primary">
-                    {(tossTestMode ? totalAmount : ticketAmount).toLocaleString()}원
+                    {ticketAmount.toLocaleString()}원
                   </span>
                 </div>
               </div>

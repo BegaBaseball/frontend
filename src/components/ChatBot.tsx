@@ -362,11 +362,11 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
           {/* Header */}
           <div className="p-3 md:p-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-primary">
             <div className="flex items-center gap-3">
-              <span className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-primary grid place-items-center">
+              <span className="h-14 w-14 rounded-full bg-primary grid place-items-center p-0.5">
                 <img
                   src={chatBotIcon}
                   alt="BEGA"
-                  className="pointer-events-none block h-8 w-8 sm:h-9 sm:w-9 md:h-9 md:w-9 object-cover object-center"
+                  className="pointer-events-none block h-13 w-13 rounded-full object-contain object-center"
                   loading="eager"
                   aria-hidden="true"
                   decoding="async"
@@ -660,10 +660,11 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
 
       {/* Launcher Button - 챗봇이 닫혀있을 때만 표시 */}
       {!isOpen && !autoOpen && (
-        <button
+          <button
           onClick={() => setIsOpen(true)}
-          className="fixed w-11 h-11 sm:w-14 sm:h-14 sm:min-h-[56px] sm:min-w-[56px] md:w-16 md:h-16 rounded-full bg-primary border-none
+          className="fixed w-14 h-14 sm:w-16 sm:h-16 sm:min-h-[64px] sm:min-w-[64px] md:w-18 md:h-18 rounded-full bg-primary border-none
                      shadow-[0_10px_25px_rgba(0,0,0,0.3)] cursor-pointer
+                     p-0.5
                      flex items-center justify-center text-white
                      transition-all duration-200 active:bg-primary active:text-white
                      touch-action-manipulation
@@ -674,14 +675,16 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
           aria-label="챗봇 열기"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          <img
-            src={chatBotIcon}
-            alt=""
-            className="pointer-events-none block h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11 object-cover object-center"
-            aria-hidden="true"
-            decoding="async"
-            loading="eager"
-          />
+          <span className="h-14 w-14 rounded-full bg-primary grid place-items-center p-0.5">
+            <img
+              src={chatBotIcon}
+              alt=""
+              className="pointer-events-none block h-13 w-13 rounded-full object-contain object-center"
+              aria-hidden="true"
+              decoding="async"
+              loading="eager"
+            />
+          </span>
         </button>
       )}
     </div>

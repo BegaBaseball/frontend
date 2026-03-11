@@ -28,11 +28,10 @@ import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { Input } from './ui/input';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { api } from '../utils/api';
-import { mapBackendPartyToFrontend, formatGameDate, getDayOfWeek } from '../utils/mate';
+import { mapBackendPartyToFrontend, formatGameDate, formatHostAverageRating, getDayOfWeek, getHostAverageRating } from '../utils/mate';
 import { Party, PartyStatus, BadgeType } from '../types/mate';
 import { useDebounce } from '../hooks/useDebounce';
 import { MATE_SEARCH_DEBOUNCE_MS } from '../utils/constants';
-import { isDirectTradeMode } from '../utils/paymentMode';
 
 const toDateString = (date: Date) => {
   const d = new Date(date);
@@ -61,7 +60,6 @@ export default function Mate() {
   const { userFavoriteTeam: favoriteTeam } = useAuthProfileSnapshot();
   const favoriteTeamId = favoriteTeam && favoriteTeam !== '없음' ? favoriteTeam : null;
   const [myTeamOnly, setMyTeamOnly] = useState(false);
-  const isDirectTrade = isDirectTradeMode();
 
   const [inputValue, setInputValue] = useState(searchQuery || '');
   const debouncedInput = useDebounce(inputValue, MATE_SEARCH_DEBOUNCE_MS);
@@ -108,7 +106,7 @@ export default function Mate() {
     const hash = dateStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const weatherTypes = [
       <Sun className="w-3.5 h-3.5 text-amber-400" />,
-      <Cloud className="w-3.5 h-3.5 text-zinc-400" />,
+      <Cloud className="w-3.5 h-3.5 text-gray-400 dark:text-zinc-400" />,
       <Sun className="w-3.5 h-3.5 text-amber-400" />,
       <CloudRain className="w-3.5 h-3.5 text-blue-400" />,
     ];
@@ -242,14 +240,14 @@ export default function Mate() {
     const messages = emptyMessagesByTab[tabKey];
     const isSearchEmpty = hasActiveFilters;
     return (
-      <div className="text-center py-20 bg-[#16181c] rounded-2xl border border-white/5">
-        <Users className="w-12 h-12 mx-auto mb-4 text-zinc-600" />
-        <p className="text-zinc-200 font-medium mb-2">
+      <div className="text-center py-20 bg-white dark:bg-[#16181c] rounded-2xl border border-gray-200/70 dark:border-white/5">
+        <Users className="w-12 h-12 mx-auto mb-4 text-gray-500 dark:text-zinc-600" />
+        <p className="text-gray-900 dark:text-zinc-200 font-medium mb-2">
           {isSearchEmpty ? messages.withFilter : messages.withoutFilter}
         </p>
         {isSearchEmpty ? (
           <>
-            <p className="text-zinc-500 text-sm mb-6">검색어나 날짜 필터를 변경해보세요</p>
+            <p className="text-gray-500 dark:text-zinc-500 text-sm mb-6">검색어나 날짜 필터를 변경해보세요</p>
             <Button
               variant="outline"
               size="sm"
@@ -265,7 +263,7 @@ export default function Mate() {
           </>
         ) : (
           <>
-            <p className="text-zinc-500 text-sm mb-6">첫 번째 파티를 만들어보세요!</p>
+            <p className="text-gray-500 dark:text-zinc-500 text-sm mb-6">첫 번째 파티를 만들어보세요!</p>
             <Button
               size="sm"
               className="bg-primary text-primary-foreground font-bold hover:bg-primary-hover"
@@ -289,19 +287,19 @@ export default function Mate() {
     <div className="flex items-center justify-center gap-4 mt-10 mb-8">
       <Button
         variant="outline"
-        className="border-white/10 bg-[#16181c] text-zinc-300 hover:bg-primary/15 hover:text-primary-foreground"
+        className="border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] text-gray-700 dark:text-zinc-300 hover:bg-primary/15 hover:text-primary-foreground"
         onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
         disabled={currentPage === 0}
         size="sm"
       >
         <ChevronLeft className="w-4 h-4 mr-1" />이전
       </Button>
-      <span className="text-sm font-medium text-zinc-400">
-        {currentPage + 1} <span className="text-zinc-600 mx-1">/</span> {totalPages}
+      <span className="text-sm font-medium text-gray-500 dark:text-zinc-400">
+        {currentPage + 1} <span className="text-gray-600 dark:text-zinc-600 mx-1">/</span> {totalPages}
       </span>
       <Button
         variant="outline"
-        className="border-white/10 bg-[#16181c] text-zinc-300 hover:bg-primary/15 hover:text-primary-foreground"
+        className="border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] text-gray-700 dark:text-zinc-300 hover:bg-primary/15 hover:text-primary-foreground"
         onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
         disabled={currentPage === totalPages - 1}
         size="sm"
@@ -331,10 +329,12 @@ export default function Mate() {
     const zoneName = getZoneName(party.stadium, party.section);
 
     const amount = party.status === 'SELLING' && party.price ? party.price : (party.ticketPrice || 0);
-    const flowLabel = party.status === 'SELLING' ? '판매 티켓' : (isDirectTrade ? '직거래 베타' : '보증금 결제');
+    const flowLabel = party.status === 'SELLING' ? '판매 티켓' : '직거래 베타';
 
     const ticketTrustLabel = party.ticketVerified ? '티켓 인증' : '인증 전';
     const hostBadgeIcon = getBadgeIcon(party.hostBadge);
+    const hostAverageRating = getHostAverageRating(party);
+    const hostReviewLabel = formatHostAverageRating(party);
 
     const getCombinedStatusBadge = () => {
       const today = new Date();
@@ -366,18 +366,18 @@ export default function Mate() {
     return (
       <Card
         key={party.id}
-        className="group relative cursor-pointer overflow-hidden rounded-[24px] border border-white/10 bg-[#16181c] transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] flex flex-col"
+        className="group relative cursor-pointer overflow-hidden rounded-[24px] border border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 dark:hover:border-white/20 hover:shadow-[0_8px_30px_rgba(15,23,42,0.12)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] flex flex-col"
         onClick={() => handlePartyClick(party)}
       >
         <div className="p-4 flex-1 flex flex-col">
           {/* Header Badges */}
           <div className="flex items-start justify-between gap-3 mb-4">
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="flex items-center gap-1.5 border-white/10 bg-primary/5 text-zinc-300 px-2.5 py-1">
+              <Badge variant="outline" className="flex items-center gap-1.5 border-gray-200/80 bg-primary/5 dark:border-white/10 text-gray-700 dark:text-zinc-300 px-2.5 py-1">
                 <span className="font-mono text-[11px]">{formatGameDate(party.gameDate)}</span>
                 {getWeatherIcon(party.gameDate)}
               </Badge>
-              <Badge variant="outline" className="border-white/10 bg-primary/5 text-zinc-300 px-2.5 py-1 text-[11px]">
+              <Badge variant="outline" className="border-gray-200/80 bg-primary/5 dark:border-white/10 text-gray-700 dark:text-zinc-300 px-2.5 py-1 text-[11px]">
                 {party.stadium}
               </Badge>
             </div>
@@ -387,27 +387,27 @@ export default function Mate() {
           {/* Main Title & Price */}
           <div className="mb-5">
             <div className="flex justify-between items-start gap-4 mb-1">
-              <h3 className="text-[22px] font-black text-white tracking-tight line-clamp-1">{zoneName}</h3>
-              <span className="text-xl font-bold text-white shrink-0">
+              <h3 className="text-[22px] font-black text-gray-900 dark:text-white tracking-tight line-clamp-1">{zoneName}</h3>
+              <span className="text-xl font-bold text-gray-900 dark:text-white shrink-0">
                 {amount.toLocaleString()}
-                <span className="text-sm font-medium text-zinc-500 ml-0.5">원</span>
+                <span className="text-sm font-medium text-gray-500 dark:text-zinc-500 ml-0.5">원</span>
               </span>
             </div>
-            <p className="text-[13px] text-zinc-400 line-clamp-1">{party.section}</p>
+            <p className="text-[13px] text-gray-500 dark:text-zinc-400 line-clamp-1">{party.section}</p>
           </div>
 
           {/* VS Block (간결하게 변경) */}
-          <div className="flex items-center justify-between bg-black/30 rounded-2xl p-3.5 mb-5 border border-white/5">
+          <div className="flex items-center justify-between bg-gray-100 dark:bg-black/30 rounded-2xl p-3.5 mb-5 border border-gray-200 dark:border-white/5">
             <div className="flex flex-col items-center gap-2 w-[40%]">
               <TeamLogo teamId={party.homeTeam} size={44} className="drop-shadow-md" />
-              <span className="text-[12px] font-bold text-zinc-300 truncate w-full text-center">
+              <span className="text-[12px] font-bold text-gray-700 dark:text-zinc-300 truncate w-full text-center">
                 {resolveTeamDisplayName(party.homeTeam)}
               </span>
             </div>
             <div className="text-sm font-black italic text-primary bg-primary/5 px-2 py-1 rounded">VS</div>
             <div className="flex flex-col items-center gap-2 w-[40%]">
               <TeamLogo teamId={party.awayTeam} size={44} className="drop-shadow-md" />
-              <span className="text-[12px] font-bold text-zinc-300 truncate w-full text-center">
+              <span className="text-[12px] font-bold text-gray-700 dark:text-zinc-300 truncate w-full text-center">
                 {resolveTeamDisplayName(party.awayTeam)}
               </span>
             </div>
@@ -416,16 +416,16 @@ export default function Mate() {
           {/* Info Rows (아이콘 기반) */}
           <div className="grid grid-cols-2 gap-y-2.5 gap-x-2 px-1 mb-4">
             <div className="flex items-center gap-2 text-[13px]">
-              <Shield className={`w-4 h-4 ${party.ticketVerified ? 'text-primary' : 'text-zinc-500'}`} />
-              <span className={party.ticketVerified ? 'text-primary' : 'text-zinc-500'}>{ticketTrustLabel}</span>
+              <Shield className={`w-4 h-4 ${party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'}`} />
+              <span className={party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'}>{ticketTrustLabel}</span>
             </div>
             <div className="flex items-center gap-2 text-[13px]">
-              <Star className="w-4 h-4 text-primary" />
-              <span className="text-zinc-300">{party.hostRating.toFixed(1)}</span>
+              <Star className={`w-4 h-4 ${hostAverageRating === null ? 'text-gray-400 dark:text-zinc-500' : 'text-primary'}`} />
+              <span className={hostAverageRating === null ? 'text-gray-500 dark:text-zinc-500' : 'text-gray-700 dark:text-zinc-300'}>{hostReviewLabel}</span>
             </div>
             <div className="flex items-center gap-2 text-[13px]">
               <Users className="w-4 h-4 text-primary" />
-              <span className="text-zinc-300">{party.currentParticipants} <span className="text-zinc-500 mx-0.5">/</span> {party.maxParticipants}명</span>
+              <span className="text-gray-700 dark:text-zinc-300">{party.currentParticipants} <span className="text-gray-500 dark:text-zinc-500 mx-0.5">/</span> {party.maxParticipants}명</span>
             </div>
             <div className="flex items-center gap-2 text-[13px]">
               <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary h-5 px-1.5 text-[10px] font-normal">
@@ -435,7 +435,7 @@ export default function Mate() {
           </div>
 
           {/* Bottom Host Area */}
-          <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
+          <div className="mt-auto pt-3 border-t border-gray-200 dark:border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <ProfileAvatar
                 src={hostAvatarSrc}
@@ -443,13 +443,13 @@ export default function Mate() {
                 fallbackName={party.hostName}
                 width={32}
                 height={32}
-                className="ring-1 ring-white/10"
+                className="ring-1 ring-gray-200 dark:ring-white/10"
               />
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-zinc-200 flex items-center gap-1.5">
+                <span className="text-sm font-bold text-gray-900 dark:text-zinc-200 flex items-center gap-1.5">
                   {party.hostName} {hostBadgeIcon}
                 </span>
-                <span className="text-[11px] text-zinc-500">상세 정보 확인</span>
+                <span className="text-[11px] text-gray-500 dark:text-zinc-500">상세 정보 확인</span>
               </div>
             </div>
 
@@ -458,7 +458,7 @@ export default function Mate() {
               <div className="mb-1.5 flex justify-end text-[11px] font-bold text-primary">
                 {progressPercent}%
               </div>
-              <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-gray-200 dark:bg-black/50 rounded-full overflow-hidden">
                 <div className="h-full bg-primary rounded-full" style={{ width: `${progressPercent}%` }} />
               </div>
             </div>
@@ -469,16 +469,16 @@ export default function Mate() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#0a0a0a] transition-colors duration-200">
+    <div className="relative min-h-screen bg-gray-50 dark:bg-[#0a0a0a] transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
         
         {/* 헤더 영역 */}
         <div className="mb-7 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-1">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-zinc-500 mb-1">
               Mate Flow
             </p>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
               직관 메이트 찾기
             </h1>
           </div>
@@ -487,7 +487,7 @@ export default function Mate() {
               variant="ghost"
               size="sm"
               onClick={() => setIsGuideOpen(!isGuideOpen)}
-              className="text-zinc-400 hover:text-primary-foreground hover:bg-primary/15 rounded-full px-4"
+              className="text-gray-500 dark:text-zinc-400 hover:text-primary-foreground hover:bg-primary/15 rounded-full px-4"
             >
               {isGuideOpen ? '가이드 닫기' : '이용 가이드'}
             </Button>
@@ -503,25 +503,25 @@ export default function Mate() {
 
         {/* 이용 가이드 (Toggle) */}
         {isGuideOpen && (
-            <Card className="mb-7 animate-in slide-in-from-top-2 border border-white/10 bg-[#16181c] p-5 shadow-lg">
+            <Card className="mb-7 animate-in slide-in-from-top-2 border border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] p-5 shadow-lg">
             <div className="flex justify-between items-start">
               <div>
-              <h3 className="mb-3 text-sm font-bold text-white flex items-center gap-2">
+              <h3 className="mb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-primary" /> 안전한 직관을 위한 체크포인트
                 </h3>
-                <ul className="space-y-2 text-sm text-zinc-400">
+                <ul className="space-y-2 text-sm text-gray-500 dark:text-zinc-400">
                   <li className="flex items-start gap-2">
-                    <span className="text-zinc-600">•</span> 거래 방식과 취소 규칙을 먼저 확인하세요.
+                    <span className="text-gray-600 dark:text-zinc-600">•</span> 거래 방식과 취소 규칙을 먼저 확인하세요.
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-zinc-600">•</span> 티켓 인증 여부와 호스트 평점을 함께 확인하세요.
+                    <span className="text-gray-600 dark:text-zinc-600">•</span> 티켓 인증 여부와 호스트 평점을 함께 확인하세요.
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-zinc-600">•</span> 승인 후에는 채팅에서 만남 시간과 장소를 먼저 확정하세요.
+                    <span className="text-gray-600 dark:text-zinc-600">•</span> 승인 후에는 채팅에서 만남 시간과 장소를 먼저 확정하세요.
                   </li>
                 </ul>
               </div>
-              <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-white hover:bg-primary/15" onClick={() => setIsGuideOpen(false)}>
+              <Button variant="ghost" size="icon" className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white hover:bg-primary/15" onClick={() => setIsGuideOpen(false)}>
                 <X className="w-5 h-5" />
               </Button>
             </div>
@@ -537,7 +537,7 @@ export default function Mate() {
                   className={`rounded-2xl h-[68px] px-6 font-bold transition-all ${
                     selectedDate === null
                   ? 'bg-primary text-primary-foreground border-transparent shadow-md'
-                  : 'bg-[#16181c] border-white/10 text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
+                  : 'bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 text-gray-500 dark:text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
                   }`}
                 >
               전체
@@ -555,13 +555,13 @@ export default function Mate() {
                   className={`flex flex-col items-center justify-center min-w-[56px] h-[68px] rounded-2xl border transition-all ${
                     isSelected
                       ? 'bg-primary text-primary-foreground border-transparent shadow-md'
-                      : 'bg-[#16181c] border-white/10 hover:border-primary/30'
+                      : 'bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 hover:border-primary/30'
                   }`}
                 >
-                <span className={`text-[11px] font-medium mb-1 ${isSelected ? 'text-primary-foreground' : isWeekend ? 'text-primary/80' : 'text-zinc-500'}`}>
+                <span className={`text-[11px] font-medium mb-1 ${isSelected ? 'text-primary-foreground' : isWeekend ? 'text-primary/80' : 'text-gray-500 dark:text-zinc-500'}`}>
                     {getDayOfWeek(toDateString(date))}
                   </span>
-                  <span className={`text-lg font-bold ${isSelected ? 'text-primary-foreground' : 'text-zinc-300'}`}>
+                  <span className={`text-lg font-bold ${isSelected ? 'text-primary-foreground' : 'text-gray-700 dark:text-zinc-300'}`}>
                     {date.getDate()}
                   </span>
                 </button>
@@ -573,13 +573,13 @@ export default function Mate() {
         {/* 검색 및 퀵 필터 */}
         <div className="flex flex-col md:flex-row gap-3 mb-7">
           <div className="relative flex-1 md:max-w-md">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-zinc-500" />
             <Input
               type="text"
               placeholder="팀명, 구장, 좌석으로 검색 (예: 삼성 블루존)"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="pl-11 h-12 bg-[#16181c] border-white/10 text-white placeholder-zinc-500 rounded-2xl focus:ring-1 focus:ring-primary/40 focus:border-primary/50 transition-all"
+              className="pl-11 h-12 bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder-zinc-500 rounded-2xl focus:ring-1 focus:ring-primary/40 focus:border-primary/50 transition-all"
             />
           </div>
 
@@ -589,7 +589,7 @@ export default function Mate() {
                 <Button
                   variant="outline"
                   className={`rounded-full h-10 px-4 text-sm font-medium transition-colors ${
-                    myTeamOnly ? 'bg-primary text-primary-foreground border-transparent' : 'bg-[#16181c] border-white/10 text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
+                    myTeamOnly ? 'bg-primary text-primary-foreground border-transparent' : 'bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 text-gray-500 dark:text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
                   }`}
                   onClick={() => { setMyTeamOnly(!myTeamOnly); setCurrentPage(0); }}
                 >
@@ -609,7 +609,7 @@ export default function Mate() {
                     key={zone.id}
                     variant="outline"
                     className={`rounded-full h-10 px-4 text-sm font-medium transition-colors ${
-                      inputValue?.includes(zone.name) ? 'bg-primary text-primary-foreground border-transparent' : 'bg-[#16181c] border-white/10 text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
+                      inputValue?.includes(zone.name) ? 'bg-primary text-primary-foreground border-transparent' : 'bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 text-gray-500 dark:text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
                     }`}
                     onClick={() => toggleSearchQuery(zone.name)}
                   >
@@ -624,7 +624,7 @@ export default function Mate() {
                     key={key}
                     variant="outline"
                     className={`rounded-full h-10 px-4 text-sm font-medium transition-colors ${
-                      inputValue?.includes(info.label) ? 'bg-primary text-primary-foreground border-transparent' : 'bg-[#16181c] border-white/10 text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
+                      inputValue?.includes(info.label) ? 'bg-primary text-primary-foreground border-transparent' : 'bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 text-gray-500 dark:text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
                     }`}
                     onClick={() => toggleSearchQuery(info.label)}
                   >
@@ -637,12 +637,12 @@ export default function Mate() {
 
         {/* 탭 네비게이션 */}
         <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setCurrentPage(0); }} className="mb-6">
-          <TabsList className="bg-[#16181c] border border-white/5 p-1.5 rounded-2xl mb-6 inline-flex relative h-auto">
+          <TabsList className="bg-white dark:bg-[#16181c] border border-gray-200/70 dark:border-white/5 p-1.5 rounded-2xl mb-6 inline-flex relative h-auto">
             {['all', 'recruiting', 'matched', 'selling'].map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab}
-            className="relative rounded-xl px-5 py-2.5 text-sm font-medium transition-colors duration-300 data-[state=active]:text-primary-foreground text-zinc-400 bg-transparent"
+            className="relative rounded-xl px-5 py-2.5 text-sm font-medium transition-colors duration-300 data-[state=active]:text-primary-foreground text-gray-500 dark:text-zinc-400 bg-transparent"
               >
                 {activeTab === tab && (
                   <motion.span
@@ -668,10 +668,10 @@ export default function Mate() {
               <LoadingSpinner size="md" fullScreen={false} />
             </div>
           ) : fetchError ? (
-            <div className="text-center py-16 bg-[#16181c] rounded-2xl border border-dashed border-primary/30">
+            <div className="text-center py-16 bg-white dark:bg-[#16181c] rounded-2xl border border-dashed border-primary/30">
               <AlertCircle className="w-10 h-10 mx-auto mb-3 text-primary" />
-              <p className="text-zinc-200 font-medium">파티 목록을 불러오지 못했습니다</p>
-              <p className="text-zinc-500 text-sm mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
+              <p className="text-gray-900 dark:text-zinc-200 font-medium">파티 목록을 불러오지 못했습니다</p>
+              <p className="text-gray-500 dark:text-zinc-500 text-sm mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
               <Button variant="outline" className="mt-5 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15" onClick={() => setRetryCount((c) => c + 1)}>
                 <RefreshCw className="w-4 h-4 mr-2" /> 다시 시도
               </Button>

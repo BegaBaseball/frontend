@@ -3,9 +3,52 @@
 describe('Prediction Date Boundary', () => {
     const gameDate = '2026-02-03';
     const gameId = '20260203HHSS0';
+    const matchBoundsPayload = {
+        hasData: true,
+        earliestGameDate: '2026-02-01',
+        latestGameDate: '2026-03-01',
+    };
 
     const openPredictionPage = () => {
-        cy.visit('/prediction');
+        const fakeToken = 'prediction-date-boundary-token';
+        const authState = {
+            state: {
+                user: {
+                    id: 123,
+                    email: 'test@example.com',
+                    name: 'TestUser',
+                    handle: 'testuser',
+                    favoriteTeam: 'HH',
+                    role: 'ROLE_USER',
+                    hasPassword: true,
+                    profileImageUrl: null,
+                },
+                isLoggedIn: true,
+                isAdmin: false,
+            },
+            version: 0,
+        };
+
+        const seedAuthState = (win: Window) => {
+            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+            win.localStorage.setItem('accessToken', fakeToken);
+            win.localStorage.setItem('bega_has_visited', 'true');
+            win.localStorage.setItem('bega_dont_show_guide', 'true');
+        };
+
+        cy.visit('/prediction', {
+            onBeforeLoad(win) {
+                seedAuthState(win);
+                win.addEventListener('auth-session-expired', (event) => {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                }, true);
+            },
+        });
+        cy.window().then((win) => {
+            seedAuthState(win);
+        });
+        cy.setCookie('Authorization', fakeToken);
         cy.tick(100);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.wait('@getScheduleRange');
@@ -19,6 +62,15 @@ describe('Prediction Date Boundary', () => {
         const now = new Date('2026-02-03T00:30:00+09:00').getTime();
         cy.clock(now, ['Date']);
 
+        cy.visit('about:blank');
+        cy.window().then((win) => {
+            win.sessionStorage.clear();
+            win.sessionStorage.removeItem('prediction:run-session:v1');
+            win.sessionStorage.removeItem('prediction:run-session');
+            win.localStorage.removeItem('kbo-theme');
+            win.localStorage.removeItem('prediction:run-session');
+            win.localStorage.removeItem('prediction:run-session:v1');
+        });
         cy.login('user');
         cy.mockAPI();
 
@@ -47,6 +99,11 @@ describe('Prediction Date Boundary', () => {
             },
         }).as('getScheduleRange');
 
+        cy.intercept('GET', '**/api/matches/bounds*', {
+            statusCode: 200,
+            body: matchBoundsPayload,
+        }).as('getMatchBoundsBoundary');
+
         cy.intercept('GET', '**/api/matches/*', (req) => {
             if (
                 req.url.includes('/api/matches/range') ||
@@ -74,7 +131,7 @@ describe('Prediction Date Boundary', () => {
             });
         }).as('getGameDetail');
 
-        cy.intercept('POST', '**/api/predictions/my-votes', {
+        cy.intercept('**/api/predictions/my-votes*', {
             statusCode: 200,
             body: {
                 votes: {
@@ -82,6 +139,11 @@ describe('Prediction Date Boundary', () => {
                 },
             },
         }).as('getUserVotes');
+
+        cy.intercept('GET', '**/api/predictions/my-vote/*', {
+            statusCode: 410,
+            body: { message: 'legacy endpoint removed' },
+        }).as('getUserVote');
 
         cy.intercept('**/api/predictions/status/*', {
             statusCode: 200,
@@ -107,6 +169,7 @@ describe('Prediction Date Boundary', () => {
         openPredictionPage();
 
         cy.wait('@getUserVotes');
+        cy.get('@getUserVote.all').should('have.length', 0);
         cy.get('[data-testid="coach-analysis-open"]').should('be.visible');
         cy.contains('요청 버튼을 눌러주세요').should('not.exist');
         cy.get('@coachAnalyze.all').should('have.length', 0);

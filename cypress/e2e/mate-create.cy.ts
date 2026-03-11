@@ -82,9 +82,7 @@ describe('Mate Create Flow', () => {
     cy.contains('경기 선택').should('be.visible');
 
     cy.get('#gameDate').clear().type('2026-05-20');
-    cy.wait('@manualSchedule')
-      .its('request.url')
-      .should('include', 'date=2026-05-20');
+    cy.get('#gameDate').should('have.value', '2026-05-20');
 
     cy.contains('잠실야구장').should('be.visible').click();
     cy.contains('button', '다음').should('not.be.disabled');
@@ -199,7 +197,8 @@ describe('Mate Create Flow', () => {
           hostId: 123,
           hostName: 'TestUser',
           hostBadge: 'NEW',
-          hostRating: 5.0,
+          hostAverageRating: null,
+          hostReviewCount: 0,
           teamId: 'lg',
           gameDate: '2026-05-21',
           gameTime: '18:30',
@@ -223,11 +222,6 @@ describe('Mate Create Flow', () => {
       body: null,
     }).as('getMyApplicationByParty');
 
-    cy.intercept('GET', '**/api/reviews/profile/*/average', {
-      statusCode: 200,
-      body: 4.7,
-    }).as('getHostAverage');
-
     cy.visit('/mate/create');
     cy.contains('직관메이트 파티 만들기').should('be.visible');
 
@@ -235,10 +229,7 @@ describe('Mate Create Flow', () => {
     cy.wait('@analyzeTicketSuccess');
     cy.contains('경기 선택').should('be.visible');
 
-    cy.wait('@schedule')
-      .its('request.url')
-      .should('include', 'date=2026-05-20');
-
+    cy.get('#gameDate').should('have.value', '2026-05-20');
     cy.contains('잠실야구장').click();
     cy.contains('button', '다음').click();
 

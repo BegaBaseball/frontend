@@ -102,8 +102,6 @@ export const PARTY_STATUS_CONFIG: Record<string, { label: string; color: string 
   COMPLETED: { label: '관람 완료', color: '#4b5563' },
 };
 
-export const DEPOSIT_AMOUNT = 10000; // 보증금
-
 // Mate 관련
 export const MATE_PAGE_SIZE = 9;
 export const MATE_SEARCH_DEBOUNCE_MS = 300;

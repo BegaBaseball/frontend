@@ -18,7 +18,8 @@ describe('Mate Visual QA', () => {
     hostId: 999,
     hostName: '비주얼 호스트',
     hostBadge: 'VERIFIED',
-    hostRating: 4.7,
+    hostAverageRating: 4.7,
+    hostReviewCount: 21,
     hostProfileImageUrl: 'https://cdn.example.com/profile.png',
     hostFavoriteTeam: 'SS',
     status: 'PENDING',
@@ -42,7 +43,8 @@ describe('Mate Visual QA', () => {
     hostId: 998,
     hostName: '판매 호스트',
     hostBadge: 'NEW',
-    hostRating: 4.2,
+    hostAverageRating: 4.2,
+    hostReviewCount: 8,
     hostProfileImageUrl: null,
     hostFavoriteTeam: 'LG',
     status: 'SELLING',
@@ -238,11 +240,6 @@ describe('Mate Visual QA', () => {
       statusCode: 200,
       body: [],
     }).as('getMateApplications');
-
-    cy.intercept('GET', '**/api/reviews/profile/*/average', {
-      statusCode: 200,
-      body: 4.7,
-    }).as('getMateHostRating');
 
     cy.intercept('GET', '**/api/parties/779*', {
       statusCode: 200,

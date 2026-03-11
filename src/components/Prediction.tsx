@@ -1,8 +1,8 @@
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { TrendingUp, ChevronLeft, ChevronRight, Coins, LineChart, Gamepad2, Loader2, ShieldAlert, Target } from 'lucide-react';
+import { TrendingUp, ChevronLeft, ChevronRight, Coins, LineChart, Gamepad2, Loader2, ShieldAlert, Target, Flame, CheckCircle2, Hash } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RankingPrediction from './RankingPrediction';
 import ComboAnimation from './retro/ComboAnimation';
@@ -18,11 +18,11 @@ import {
   formatDate,
   calculateVotePercentages,
   getGameStatus,
-  getShortTeamName,
   resolveCoachBriefingPolicy,
 } from '../utils/prediction';
 
 const TOTAL_SEASON_GAMES = 144;
+const ACCURACY_GAUGE_CIRCUMFERENCE = 2 * Math.PI * 56;
 
 export default function Prediction() {
   const {
@@ -84,6 +84,18 @@ export default function Prediction() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const accuracyPercent = useMemo(() => {
+    if (!predictionStats || !Number.isFinite(predictionStats.accuracy)) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, predictionStats.accuracy));
+  }, [predictionStats]);
+  const [animatedAccuracyPercent, setAnimatedAccuracyPercent] = useState(0);
+
+  useEffect(() => {
+    setAnimatedAccuracyPercent(accuracyPercent);
+  }, [accuracyPercent]);
+
   const seasonYear = useMemo(() => {
     const parsed = new Date(currentDate);
     return Number.isNaN(parsed.getTime()) ? new Date().getFullYear() : parsed.getFullYear();
@@ -144,31 +156,6 @@ export default function Prediction() {
       minRemainingGames,
     };
   }, [currentGame?.homeTeam, currentGame?.awayTeam, currentGame?.leagueType, currentGame?.gameId, rankingByTeamId]);
-
-  const formatSelectionLabel = (game: (typeof currentDateGames)[number]) => {
-    const awayTeamLabel = getShortTeamName(game.awayTeam);
-    const homeTeamLabel = getShortTeamName(game.homeTeam);
-    const awayScore = game.awayScore;
-    const homeScore = game.homeScore;
-
-    if (awayScore === null || awayScore === undefined || homeScore === null || homeScore === undefined) {
-      return {
-        summary: `${awayTeamLabel} - ${homeTeamLabel}`,
-        detail: '경기 예정',
-      };
-    }
-
-    const result = awayScore > homeScore
-      ? `${awayTeamLabel} 승`
-      : homeScore > awayScore
-        ? `${homeTeamLabel} 승`
-        : '무승부';
-
-    return {
-      summary: `${awayTeamLabel} ${awayScore} : ${homeScore} ${homeTeamLabel}`,
-      detail: `${result}`,
-    };
-  };
 
   // 투표 현황 계산
   const currentVotes = currentGameId ? votes[currentGameId] || { home: 0, away: 0 } : { home: 0, away: 0 };
@@ -548,15 +535,15 @@ export default function Prediction() {
   if (isAuthLoading || loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           {/* Title skeleton */}
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-4">
             <div className="bg-slate-200 dark:bg-card p-2 rounded-lg w-10 h-10 animate-pulse" />
             <div className="h-8 w-32 bg-slate-200 dark:bg-card rounded animate-pulse" />
           </div>
 
           {/* Tab skeleton */}
-          <div className="flex p-1 bg-slate-200 dark:bg-card rounded-xl md:rounded-2xl mb-6 md:mb-8 w-fit animate-pulse">
+          <div className="flex p-1 bg-slate-200 dark:bg-card rounded-xl md:rounded-2xl mb-4 w-fit animate-pulse">
             <div className="w-20 h-10 bg-slate-300 dark:bg-card rounded-lg" />
             <div className="w-20 h-10 bg-slate-300 dark:bg-card rounded-lg ml-1" />
           </div>
@@ -568,7 +555,7 @@ export default function Prediction() {
           )}
 
           {/* Match card skeleton */}
-          <Card className="p-4 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md animate-pulse">
+          <Card className="p-4 mb-4 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md animate-pulse">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 bg-slate-200 dark:bg-card rounded-full" />
               <div className="flex-1 text-center space-y-2 px-4">
@@ -580,8 +567,8 @@ export default function Prediction() {
           </Card>
 
           <Card className="overflow-hidden border border-slate-200/70 shadow-sm bg-white/90 dark:border-border dark:bg-card dark:shadow-md animate-pulse">
-            <div className="h-12 bg-slate-200 dark:bg-card" />
-            <div className="p-6 space-y-6">
+            <div className="h-11 bg-slate-200 dark:bg-card" />
+            <div className="p-5 space-y-4">
               <div className="flex justify-between">
                 <div className="flex flex-col items-center w-1/3 space-y-2">
                   <div className="w-16 h-16 bg-slate-200 dark:bg-card rounded-full" />
@@ -608,8 +595,8 @@ export default function Prediction() {
   if (matchesLoadState === 'error') {
     return (
       <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="relative p-4 sm:p-6 md:p-8 text-center bg-white/90 border border-rose-200/70 shadow-sm dark:bg-card dark:border-rose-900/40 dark:shadow-md flex flex-col items-center justify-center min-h-[120px] sm:min-h-[180px] md:min-h-[200px] rounded-2xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+          <Card className="relative p-4 sm:p-5 text-center bg-white/90 border border-rose-200/70 shadow-sm dark:bg-card dark:border-rose-900/40 dark:shadow-md flex flex-col items-center justify-center min-h-[120px] sm:min-h-[170px] md:min-h-[190px] rounded-2xl">
             <div className="bg-rose-100 dark:bg-card p-4 rounded-full mb-4">
               <TrendingUp className="w-8 h-8 text-rose-500 dark:text-rose-300" />
             </div>
@@ -646,9 +633,9 @@ export default function Prediction() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
         {/* Title */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <div className="bg-emerald-100/70 p-2.5 rounded-xl border border-emerald-200/70 shadow-[0_0_12px_rgba(16,185,129,0.2)] dark:bg-emerald-400/15 dark:border-emerald-400/30 dark:shadow-[0_0_20px_rgba(16,185,129,0.2)]">
             <LineChart className="w-5 h-5 text-emerald-700 dark:text-emerald-300" />
           </div>
@@ -679,7 +666,7 @@ export default function Prediction() {
 
         {/* Seat View CTA */}
         {isLoggedIn && (
-          <div className="flex justify-end mb-2">
+          <div className="flex justify-end mb-1">
             <Link
               to="/mypage"
               className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
@@ -690,9 +677,9 @@ export default function Prediction() {
         )}
 
         {/* Tabs and Game Selection Container */}
-        <div className="flex flex-col gap-3 mb-6 md:mb-8 md:flex-row md:items-center">
+        <div className="flex flex-col gap-2.5 mb-4 md:mb-5 md:flex-row md:items-center">
           {/* Mode Tabs (Left) */}
-          <div className="relative flex w-fit p-1 bg-white/80 border border-slate-200/70 rounded-xl shadow-sm dark:bg-card dark:border-border dark:shadow-md">
+          <div className="relative flex w-full max-w-sm overflow-hidden p-1 bg-white/80 border border-slate-200/70 rounded-xl shadow-sm dark:bg-card dark:border-border dark:shadow-md md:w-fit">
             <motion.span
               className="pointer-events-none absolute left-1 top-1 bottom-1 w-[calc(50%-0.25rem)] rounded-lg bg-emerald-900 shadow-sm dark:bg-emerald-700 z-0"
               initial={false}
@@ -701,7 +688,7 @@ export default function Prediction() {
             />
             <button
               onClick={() => setActiveTab('match')}
-              className={`relative z-10 w-24 px-4 min-h-11 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'match'
+              className={`relative z-10 w-1/2 px-3 min-h-10 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'match'
                 ? 'text-white'
                 : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
                 }`}
@@ -710,7 +697,7 @@ export default function Prediction() {
             </button>
             <button
               onClick={() => setActiveTab('ranking')}
-              className={`relative z-10 w-24 px-4 min-h-11 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'ranking'
+              className={`relative z-10 w-1/2 px-3 min-h-10 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'ranking'
                 ? 'text-white'
                 : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
                 }`}
@@ -719,33 +706,7 @@ export default function Prediction() {
             </button>
           </div>
 
-          {/* Game Selection Filter (Right) */}
-          {activeTab === 'match' && currentDateGames.length > 0 && (
-            <div className="w-full md:ml-auto md:w-auto">
-              <div className="flex justify-end gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-                    {currentDateGames.map((game, index) => {
-                      const selectionLabel = formatSelectionLabel(game);
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => setSelectedGame(index)}
-                          aria-pressed={selectedGame === index}
-                          aria-label={`${selectionLabel.summary} ${selectionLabel.detail} 선택`}
-                          className={`flex-shrink-0 px-3 py-2 min-h-11 rounded-lg text-xs sm:text-sm font-bold transition-all text-left whitespace-nowrap ${selectedGame === index
-                            ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 shadow-sm dark:bg-emerald-900/30 dark:border-emerald-700/50 dark:text-emerald-100'
-                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 dark:bg-card dark:border-border dark:text-gray-300 dark:hover:bg-primary/10'
-                            }`}
-                        >
-                          <p className="leading-tight text-[11px] sm:text-[12px]">{selectionLabel.summary}</p>
-                          <p className="mt-1 text-[11px] text-slate-500 dark:text-gray-300">
-                            {selectionLabel.detail}
-                          </p>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
-            )}
+
         </div>
 
         <div className="relative">
@@ -782,14 +743,14 @@ export default function Prediction() {
                         currentGameDetailError ? (
                           <Card
                             data-testid="prediction-render-fallback-card"
-                            className="overflow-hidden border border-amber-200/70 shadow-lg bg-amber-50/80 dark:border-amber-700/40 dark:bg-amber-900/20 dark:shadow-xl transition-colors duration-300 mb-6 rounded-2xl"
+                            className="overflow-hidden border border-amber-200/70 shadow-lg bg-amber-50/80 dark:border-amber-700/40 dark:bg-amber-900/20 dark:shadow-xl transition-colors duration-300 mb-4 rounded-2xl"
                           >
-                            <div className="p-5 md:p-6 space-y-4">
+                            <div className="p-4 md:p-5 space-y-4">
                               <div>
                                 <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">경기 상세를 불러오지 못했습니다.</h3>
                                 <p className="text-sm text-amber-800/90 dark:text-amber-100/80 mt-1">
-                                {currentGame.awayTeam} - {currentGame.homeTeam} · {formatDate(currentDate)} · {gameStatus.statusLabel}
-                              </p>
+                                  {currentGame.awayTeam} - {currentGame.homeTeam} · {formatDate(currentDate)} · {gameStatus.statusLabel}
+                                </p>
                                 <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-2">오류: {currentGameDetailError}</p>
                               </div>
 
@@ -797,14 +758,14 @@ export default function Prediction() {
                                 <Button
                                   onClick={() => handleVote('away', currentGame, gameStatus.isVoteOpen)}
                                   disabled={!gameStatus.isVoteOpen}
-                                  className="min-h-11"
+                                  className="min-h-10"
                                 >
                                   {currentGame.awayTeam} 승
                                 </Button>
                                 <Button
                                   onClick={() => handleVote('home', currentGame, gameStatus.isVoteOpen)}
                                   disabled={!gameStatus.isVoteOpen}
-                                  className="min-h-11"
+                                  className="min-h-10"
                                 >
                                   {currentGame.homeTeam} 승
                                 </Button>
@@ -816,14 +777,14 @@ export default function Prediction() {
                                   variant="outline"
                                   disabled={isDetailRetryLoading}
                                   data-testid="prediction-render-fallback-retry-btn"
-                                  className="min-h-11 border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-400/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
+                                  className="min-h-10 border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-400/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
                                   onClick={() => reloadCurrentGameDetail({ emitRetryEvent: true })}
                                 >
                                   {renderRetryLabel(isDetailRetryLoading, '다시 시도')}
                                 </Button>
                                 <Link
                                   to="/"
-                                  className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
+                                  className="min-h-10 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
                                 >
                                   목록으로 이동
                                 </Link>
@@ -847,16 +808,16 @@ export default function Prediction() {
                             hasPrevDate={canMovePrevDate}
                             hasNextDate={canMoveNextDate}
                             coachBriefing={(
-                            <CoachBriefing
-                              game={currentGame}
-                              gameDetail={currentGameDetail}
-                              seasonContext={seasonContext}
-                              isPastGame={isPastGame}
-                              isFutureGame={isFutureGame}
-                              requestMode={coachBriefingPolicy.requestMode}
-                              autoEnabled={shouldAutoRequestCoachBriefing}
-                              forceManual={coachBriefingPolicy.forceManual}
-                            />
+                              <CoachBriefing
+                                game={currentGame}
+                                gameDetail={currentGameDetail}
+                                seasonContext={seasonContext}
+                                isPastGame={isPastGame}
+                                isFutureGame={isFutureGame}
+                                requestMode={coachBriefingPolicy.requestMode}
+                                autoEnabled={shouldAutoRequestCoachBriefing}
+                                forceManual={coachBriefingPolicy.forceManual}
+                              />
 
                             )}
                           />
@@ -864,7 +825,7 @@ export default function Prediction() {
                       )}
                     </>
                   ) : (
-                    <Card className="relative p-5 sm:p-7 md:p-10 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[180px] sm:min-h-[230px] md:min-h-[280px] rounded-2xl">
+                    <Card className="relative p-4 sm:p-6 md:p-7 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[170px] sm:min-h-[210px] md:min-h-[250px] rounded-2xl">
                       {/* Navigation Buttons for Empty State */}
                       <div className="hidden md:block">
                         <button
@@ -906,7 +867,7 @@ export default function Prediction() {
                           type="button"
                           variant="outline"
                           data-testid="prediction-empty-nearest-date-btn"
-                          className="mt-4 min-h-11 border-emerald-200 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-200 dark:hover:bg-emerald-500/10"
+                          className="mt-3 min-h-10 border-emerald-200 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-200 dark:hover:bg-emerald-500/10"
                           onClick={handleNearestNavigation}
                         >
                           {nearestNavigationDate.isPast ? '가장 가까운 이전 경기 보기' : '가장 가까운 다음 경기 보기'}
@@ -918,7 +879,7 @@ export default function Prediction() {
 
 
                 {/* Mobile Navigation (Bottom) */}
-                <div className="flex md:hidden items-center justify-between mt-4 px-4">
+                <div className="flex md:hidden items-center justify-between mt-3 px-4">
                   <button
                     onClick={goToPreviousDate}
                     disabled={!canMovePrevDate}
@@ -948,7 +909,7 @@ export default function Prediction() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
               >
-                <Card className="p-6 mb-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
+                <Card className="p-4 mb-4 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
                   <h3 className="text-xl font-semibold text-slate-900 dark:text-gray-100 mb-2">
                     {new Date().getFullYear()} 시즌 순위 예측
                   </h3>
@@ -963,40 +924,105 @@ export default function Prediction() {
         </div>
       </div>
 
-      {/* 내 예측 통계 패널 */}
+      {/* 내 예측 통계 패널 (컴팩트 위젯 버전) */}
       {isLoggedIn && predictionStats && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-          <Card className="p-4 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="bg-emerald-100/70 p-1.5 rounded-lg border border-emerald-200/70 dark:bg-emerald-400/15 dark:border-emerald-400/30">
-                <Target className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
+          <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+            {/* 콤팩트해진 헤더 */}
+            <div className="bg-slate-50/50 dark:bg-slate-950/50 px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Target className="w-4 h-4 text-indigo-500" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">나의 예측 퍼포먼스</h3>
               </div>
-              <h4 className="text-sm font-semibold text-slate-700 dark:text-gray-200">내 예측 통계</h4>
             </div>
-            <div className="grid grid-cols-4 gap-3 text-center">
-              <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-2">
-                <p className="text-[11px] text-slate-500 dark:text-gray-400 mb-0.5">총 예측</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-gray-100 tabular-nums">
-                  {predictionStats.totalPredictions}
-                </p>
+
+            {/* 메인 콘텐츠 (flex 기반으로 콘텐츠 묶기) */}
+            <div className="p-5 sm:p-6 flex flex-row items-center justify-start sm:justify-center gap-6 sm:gap-12 overflow-x-auto">
+
+              {/* 왼쪽: 미니 원형 게이지 */}
+              <div className="flex flex-col items-center justify-center shrink-0">
+                <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-1.5">
+                  <svg
+                    className="w-full h-full transform -rotate-90 absolute top-0 left-0"
+                    viewBox="0 0 128 128"
+                    preserveAspectRatio="xMidYMid meet"
+                  >
+                    <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="14" fill="transparent" className="text-slate-100 dark:text-slate-800" />
+                    <circle
+                      cx="64"
+                      cy="64"
+                      r="56"
+                      stroke="currentColor"
+                      strokeWidth="14"
+                      fill="transparent"
+                      strokeDasharray={ACCURACY_GAUGE_CIRCUMFERENCE}
+                      strokeDashoffset={
+                        ACCURACY_GAUGE_CIRCUMFERENCE - (animatedAccuracyPercent / 100) * ACCURACY_GAUGE_CIRCUMFERENCE
+                      }
+                      strokeLinecap="round"
+                      className="text-indigo-500 dark:text-indigo-400 transition-all duration-1200 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                    />
+                  </svg>
+
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[52%] flex items-baseline gap-0.5">
+                    <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none">
+                      {animatedAccuracyPercent.toFixed(1)}
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-bold text-slate-400 leading-none">%</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 leading-none">전체 적중률</p>
               </div>
-              <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-2">
-                <p className="text-[11px] text-slate-500 dark:text-gray-400 mb-0.5">적중</p>
-                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                  {predictionStats.correctPredictions}
-                </p>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-2">
-                <p className="text-[11px] text-slate-500 dark:text-gray-400 mb-0.5">적중률</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-gray-100 tabular-nums">
-                  {predictionStats.accuracy.toFixed(1)}%
-                </p>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-2">
-                <p className="text-[11px] text-slate-500 dark:text-gray-400 mb-0.5">연속 적중</p>
-                <p className="text-xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-                  {predictionStats.streak}연
-                </p>
+
+              {/* 중앙 구분선 (모바일에서도 항상 표시되도록 변경) */}
+              <div className="hidden sm:block w-px h-16 bg-slate-200 dark:bg-slate-700/50 shrink-0" />
+
+              {/* 오른쪽: 스탯 그룹 */}
+              <div className="flex items-center gap-6 sm:gap-10 shrink-0">
+
+                {/* 총 예측 */}
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-0.5 min-w-0">
+                  <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                    <Hash className="w-3.5 h-3.5" />
+                    <span className="text-[11px] sm:text-xs font-semibold">총 예측</span>
+                  </div>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">
+                      {predictionStats.totalPredictions}
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-medium text-slate-400">회</span>
+                  </div>
+                </div>
+
+                {/* 적중 */}
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-0.5 min-w-0">
+                  <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span className="text-[11px] sm:text-xs font-semibold">적중</span>
+                  </div>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">
+                      {predictionStats.correctPredictions}
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-medium text-slate-400">회</span>
+                  </div>
+                </div>
+
+                {/* 연속 적중 */}
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-0.5 min-w-0">
+                  <div className="flex items-center gap-1 text-orange-600 dark:text-orange-500">
+                    <Flame className="w-3.5 h-3.5" />
+                    <span className="text-[11px] sm:text-xs font-semibold">연속 적중</span>
+                  </div>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums leading-none">
+                      {predictionStats.streak}
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-bold text-orange-500/70">연</span>
+                  </div>
+                </div>
+
               </div>
             </div>
           </Card>
