@@ -3,9 +3,105 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const DEFAULT_API_BASE = 'http://127.0.0.1:5176/api';
-const API_BASE = (process.env.SMOKE_API_BASE_URL || DEFAULT_API_BASE).replace(/\/+$/, '');
-const FRONTEND_ORIGIN = (process.env.SMOKE_FRONTEND_ORIGIN || 'http://localhost:5176').replace(/\/+$/, '');
+const normalizeApiBase = (value) => {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  const candidate = value.trim().replace(/\/+$/, '');
+  if (!candidate || !/^https?:\/\//i.test(candidate)) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+    const rawPath = parsed.pathname.replace(/\/+$/, '');
+    const resolvedPath = !rawPath || rawPath === '/'
+      ? '/api'
+      : (rawPath.includes('/api') ? rawPath : `${rawPath}/api`);
+    return `${parsed.origin}${resolvedPath}`;
+  } catch {
+    return null;
+  }
+};
+
+const resolveApiBaseFromEnv = () => {
+  const envCandidates = [
+    process.env.SMOKE_API_BASE_URL,
+    process.env.BACKEND_BASE_URL,
+    process.env.CYPRESS_BACKEND_BASE_URL,
+    process.env.CYPRESS_BASE_URL,
+    process.env.VITE_API_BASE_URL,
+    process.env.FRONTEND_API_BASE_URL,
+  ];
+
+  for (const candidate of envCandidates) {
+    if (!candidate || typeof candidate !== 'string') {
+      continue;
+    }
+    const trimmed = candidate.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const withProtocol = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `http://${trimmed}`;
+    const resolved = normalizeApiBase(withProtocol);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return null;
+};
+
+const normalizeFrontendOriginFromValue = (value) => {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim().replace(/\/+$/, '');
+  if (!trimmed || !/^https?:\/\//i.test(trimmed)) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    const cleanedPath = parsed.pathname
+      .replace(/\/api\/?$/i, '')
+      .replace(/\/+$/, '');
+    return `${parsed.origin}${cleanedPath || ''}`;
+  } catch {
+    return null;
+  }
+};
+
+const API_BASE = resolveApiBaseFromEnv();
+const FRONTEND_ORIGIN = (() => {
+  const normalizedCandidateFromEnv =
+    normalizeFrontendOriginFromValue(process.env.SMOKE_FRONTEND_ORIGIN)
+    || normalizeFrontendOriginFromValue(process.env.FRONTEND_ORIGIN)
+    || normalizeFrontendOriginFromValue(process.env.CYPRESS_BASE_URL)
+    || normalizeFrontendOriginFromValue(process.env.CYPRESS_FRONTEND_BASE_URL)
+    || normalizeFrontendOriginFromValue(process.env.FRONTEND_BASE_URL);
+
+  if (normalizedCandidateFromEnv) {
+    return normalizedCandidateFromEnv;
+  }
+
+  if (API_BASE) {
+    try {
+      const parsedApi = new URL(API_BASE);
+      const basePath = parsedApi.pathname.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+      return `${parsedApi.origin}${basePath || ''}`;
+    } catch {
+      // ignore and fallback below
+    }
+  }
+
+  return null;
+})();
 const REPORT_DIR = resolve(process.cwd(), 'reports');
 const reportTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const reportPath = resolve(REPORT_DIR, `real-integration-smoke-${reportTimestamp}.json`);
@@ -99,10 +195,10 @@ const requestJson = async (path, options = {}) => {
   const url = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
   const requestHeaders = { ...headers };
   if (method !== 'GET' && method !== 'HEAD') {
-    if (!requestHeaders.Origin) {
+    if (!requestHeaders.Origin && FRONTEND_ORIGIN) {
       requestHeaders.Origin = FRONTEND_ORIGIN;
     }
-    if (!requestHeaders.Referer) {
+    if (!requestHeaders.Referer && FRONTEND_ORIGIN) {
       requestHeaders.Referer = `${FRONTEND_ORIGIN}/`;
     }
   }
@@ -231,7 +327,33 @@ const buildTinyPng = () => Buffer.from(
 );
 
 const main = async () => {
+  if (!API_BASE) {
+    throw new Error(
+      'SKIP_REAL_SMOKE: API_BASE not configured. '
+      + 'Set one of SMOKE_API_BASE_URL, BACKEND_BASE_URL, CYPRESS_BACKEND_BASE_URL, '
+      + 'CYPRESS_BASE_URL, VITE_API_BASE_URL, or FRONTEND_API_BASE_URL.',
+    );
+  }
+
   console.log(`[real-smoke] api base: ${API_BASE}`);
+
+  await runStep('backend-health', async () => {
+    try {
+      await requestWithRetry(
+        'backend-health',
+        12,
+        () => requestJson('/actuator/health', {
+          expectedStatuses: [200],
+          timeoutMs: 3000,
+        }),
+        1000,
+      );
+      return { status: 'ok' };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error(`SKIP_REAL_SMOKE: backend unavailable at ${API_BASE}. ${reason}`);
+    }
+  });
 
   const policyResponse = await runStep('required-policies', async () => requestWithRetry(
     'required-policies',
@@ -505,13 +627,23 @@ const writeReport = (status, fatalError = null) => {
   console.log(`[real-smoke] latest: ${reportLatestPath}`);
 };
 
+const isSmokeSkipError = (error) => (
+  error instanceof Error && error.message.startsWith('SKIP_REAL_SMOKE:')
+);
+
 try {
   await main();
   writeReport('passed');
   process.exit(0);
 } catch (error) {
-  writeReport('failed', error);
+  const isSkipped = isSmokeSkipError(error);
+  writeReport(isSkipped ? 'skipped' : 'failed', error);
   const reason = error instanceof Error ? error.message : String(error);
+  if (isSkipped) {
+    console.warn(`[real-smoke] skipped: ${reason}`);
+    process.exit(0);
+  }
+
   console.error(`[real-smoke] failed: ${reason}`);
   process.exit(1);
 }

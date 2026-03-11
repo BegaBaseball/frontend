@@ -18,9 +18,67 @@ declare global {
              * Custom command to select by data-testid.
              */
             getBySel(selector: string): Chainable<JQuery<HTMLElement>>;
+
+            /**
+             * Custom command to mock follow counts API for public profile.
+             */
+            mockPublicFollowCounts(
+                handle: string,
+                body?: {
+                    followerCount: number;
+                    followingCount: number;
+                    isFollowedByMe: boolean;
+                    notifyNewPosts: boolean;
+                    blockedByMe?: boolean;
+                    blockingMe?: boolean;
+                }
+            ): Chainable<void>;
         }
     }
 }
+
+const defaultFollowCounts = {
+    followerCount: 10,
+    followingCount: 20,
+    isFollowedByMe: false,
+    notifyNewPosts: false,
+    blockedByMe: false,
+    blockingMe: false,
+};
+
+Cypress.Commands.add('mockPublicFollowCounts', (handle: string, body = defaultFollowCounts) => {
+    const normalizedHandle = handle.trim();
+    const normalizedHandleWithAt = normalizedHandle.startsWith('@')
+        ? normalizedHandle
+        : `@${normalizedHandle}`;
+    const normalizedHandleWithoutAt = normalizedHandleWithAt.replace(/^@/, '');
+
+    const encodedWithAt = encodeURIComponent(normalizedHandleWithAt);
+    const encodedWithoutAt = encodeURIComponent(normalizedHandleWithoutAt);
+
+    const followCountBody = {
+        statusCode: 200,
+        body: {
+            ...defaultFollowCounts,
+            ...(body || {}),
+        },
+    };
+
+    const followCountPatterns = [
+        `**/api/users/profile/${normalizedHandleWithAt}/follow-counts*`,
+        `**/api/users/profile/${encodedWithAt}/follow-counts*`,
+        `**/api/users/profile/${normalizedHandleWithoutAt}/follow-counts*`,
+        `**/api/users/profile/${encodedWithoutAt}/follow-counts*`,
+        `**/api/users/${normalizedHandleWithAt}/follow-counts*`,
+        `**/api/users/${encodedWithAt}/follow-counts*`,
+        `**/api/users/${normalizedHandleWithoutAt}/follow-counts*`,
+        `**/api/users/${encodedWithoutAt}/follow-counts*`,
+    ];
+
+    followCountPatterns.forEach((pattern) => {
+        cy.intercept('GET', pattern, followCountBody).as('getFollowCounts');
+    });
+});
 
 Cypress.Commands.add('login', (userType = 'user') => {
     cy.fixture('user').then((users) => {
@@ -280,16 +338,18 @@ Cypress.Commands.add('mockAPI', () => {
         followerCount: 10,
         followingCount: 20,
         isFollowedByMe: false,
-        notifyNewPosts: false
+        notifyNewPosts: false,
+        blockedByMe: false,
+        blockingMe: false,
     };
 
-    cy.intercept('GET', /\/api\/users\/(?:\d+|profile\/[^/?#]+|[^/?#]+)\/follow-counts(\?.*)?$/, {
+    cy.intercept('GET', /\/api\/users\/(?:\d+|profile\/[^/?#]+|[^/?#]+)\/follow-counts\/?(?:\?.*)?$/, {
         statusCode: 200,
         body: followCountDefaults,
-    }).as('getFollowCounts');
+    }).as('getFollowCountsDefault');
 
-    // User Profile (Public) - URL is /users/profile/${handle}
-    cy.intercept('**/api/users/profile/*', {
+    // User Profile (Public) - supports both /api/users/profile/${handle} and /api/users/${handleOrId}
+    cy.intercept('GET', /\/api\/users\/(?:profile\/[^/?#]+|[^/?#]+)\/?(?:\?.*)?$/, {
         statusCode: 200,
         body: {
             success: true,
