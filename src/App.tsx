@@ -8,6 +8,7 @@ import {
   useAuthProfileSnapshot,
   useAuthSession,
 } from './store/authStore';
+import { useTheme } from './hooks/useTheme';
 import { KAKAO_API_KEY } from './utils/constants';
 import Layout from './components/Layout';
 import ScrollToTop from './components/ScrollToTop';
@@ -53,8 +54,6 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./components/OAuthCallback'));
 const TestError = lazy(() => import('./components/TestError')); // Test Purpose Only
 const ChatBot = lazy(() => import('./components/ChatBot'));
-const PaymentSuccess = lazy(() => import('./components/PaymentSuccess'));
-const PaymentFail = lazy(() => import('./components/PaymentFail'));
 
 const PREDICTION_GAME_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
@@ -159,6 +158,21 @@ function AdminRoute() {
   return <Outlet />;
 }
 
+function ThemeBodySync() {
+  const { theme, resolvedTheme } = useTheme();
+
+  useEffect(() => {
+    const effectiveTheme = resolvedTheme || theme;
+    const isDark = effectiveTheme === 'dark';
+
+    const appBg = isDark ? '#020617' : '#ffffff';
+    document.documentElement.style.backgroundColor = isDark ? '#020617' : '';
+    document.body.style.backgroundColor = appBg;
+  }, [theme, resolvedTheme]);
+
+  return null;
+}
+
 export default function App() {
   const { fetchProfileAndAuthenticate } = useAuthProfileActions();
   const { isLoggedIn } = useAuthSession();
@@ -220,10 +234,11 @@ export default function App() {
   }, []);
 
   return (
-    <ErrorBoundary>
+        <ErrorBoundary>
         <ErrorModalProvider>
         <ConfirmDialogProvider>
           <BrowserRouter>
+            <ThemeBodySync />
             <ScrollToTop />
             <PredictionQueryGuard />
             <Suspense
@@ -277,8 +292,6 @@ export default function App() {
                     <Route path="/mate/:id/manage" element={<MateManage />} />
                     <Route path="/mypage" element={<MyPage />} />
                     <Route path="/mypage/:handle" element={<MyPage />} />
-                    <Route path="/payment/success" element={<PaymentSuccess />} />
-                    <Route path="/payment/fail" element={<PaymentFail />} />
                   </Route>
 
                   {/* 관리자 전용 라우트 */}
@@ -305,10 +318,11 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsChatBotRequested(true)}
-                className="fixed z-[9999] h-11 w-11
-                           sm:h-14 sm:w-14 sm:min-h-[56px] sm:min-w-[56px]
-                           md:h-16 md:w-16
+                className="fixed z-[9999] h-14 w-14
+                           sm:h-16 sm:w-16 sm:min-h-[64px] sm:min-w-[64px]
+                           md:h-18 md:w-18
                            rounded-full bg-primary text-white shadow-lg
+                           p-0.5
                            border-none
                            inline-flex items-center justify-center overflow-hidden transition-all duration-200
                            focus:outline-none focus-visible:outline-none focus:ring-0
@@ -319,14 +333,16 @@ export default function App() {
                 aria-label="챗봇 열기"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                <img
-                  src={chatBotIcon}
-                  alt=""
-                  className="pointer-events-none block h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11 object-cover object-center"
-                  aria-hidden="true"
-                  loading="eager"
-                  decoding="async"
-                />
+                <span className="h-14 w-14 rounded-full bg-primary grid place-items-center p-0.5">
+                  <img
+                    src={chatBotIcon}
+                    alt=""
+                    className="pointer-events-none block h-13 w-13 rounded-full object-contain object-center"
+                    aria-hidden="true"
+                    loading="eager"
+                    decoding="async"
+                  />
+                </span>
               </button>
             )}
             <GlobalErrorDialog />

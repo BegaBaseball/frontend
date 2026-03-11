@@ -106,12 +106,13 @@ export const findAdjacentLoadedDateIndex = (
 };
 
 export const buildPredictionDateBuckets = (
-  games: Game[],
+  games: Game[] = [],
   ensuredDate?: string
 ): DateGames[] => {
+  const safeGames = Array.isArray(games) ? games : [];
   const grouped: Record<string, Game[]> = {};
 
-  games.forEach((game) => {
+  safeGames.forEach((game) => {
     const gameDate = game.gameDate || 'unknown';
     if (!grouped[gameDate]) {
       grouped[gameDate] = [];
@@ -133,13 +134,14 @@ export const buildPredictionDateBuckets = (
 
 export const mergePredictionDateBuckets = (
   existingDates: DateGames[],
-  incomingGames: Game[],
+  incomingGames: Game[] = [],
   mergeGames: (base: Game[], incoming: Game[]) => Game[],
   ensuredDate?: string
 ): DateGames[] => {
+  const safeIncomingGames = Array.isArray(incomingGames) ? incomingGames : [];
   const mergedGames = mergeGames(
     existingDates.flatMap((entry) => entry.games),
-    incomingGames
+    safeIncomingGames
   );
   const normalized = buildPredictionDateBuckets(mergedGames, ensuredDate);
   existingDates.forEach((entry) => {

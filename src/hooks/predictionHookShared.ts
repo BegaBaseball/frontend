@@ -133,7 +133,10 @@ export const addDays = (base: string, dayOffset: number): string => {
   return toDateString(date);
 };
 
-export const normalizeDateKey = (value: string): string | null => {
+export const normalizeDateKey = (value?: string | null): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
   const trimmed = value.trim();
   if (!trimmed) {
     return null;
@@ -196,11 +199,13 @@ export const isDateAfter = (
   return comparison > 0;
 };
 
-export const mergeMatchLists = (base: Game[], incoming: Game[]): Game[] => {
-  const seen = new Set(base.map((game) => game.gameId));
-  const merged = [...base];
+export const mergeMatchLists = (base: Game[] = [], incoming?: Game[] | null): Game[] => {
+  const safeBase = Array.isArray(base) ? base : [];
+  const safeIncoming = Array.isArray(incoming) ? incoming : [];
+  const seen = new Set(safeBase.map((game) => game.gameId));
+  const merged = [...safeBase];
 
-  incoming.forEach((game) => {
+  safeIncoming.forEach((game) => {
     if (!game?.gameId || seen.has(game.gameId)) {
       return;
     }

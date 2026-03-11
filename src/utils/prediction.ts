@@ -21,7 +21,17 @@ export interface RawAiBriefing {
     summary?: string;
     detailed_markdown?: string;
     coach_note?: string;
-    analysis?: unknown;
+    analysis?: {
+      summary?: string;
+      verdict?: string;
+      strengths?: string[];
+      weaknesses?: string[];
+      risks?: Array<{ area?: string; description?: string }>;
+      why_it_matters?: string[];
+      swing_factors?: string[];
+      watch_points?: string[];
+      uncertainty?: string[];
+    };
   };
 }
 
@@ -224,6 +234,9 @@ const collectCandidatesFromText = (text: string): string[] => {
       const analysisSummary = normalizeParsedPayloadText(analysisRecord.summary);
       if (analysisSummary) candidates.push(analysisSummary);
 
+      const analysisVerdict = normalizeParsedPayloadText(analysisRecord.verdict);
+      if (analysisVerdict) candidates.push(analysisVerdict);
+
       const analysisStrengths = analysisRecord.strengths;
       if (Array.isArray(analysisStrengths)) {
         analysisStrengths.forEach((item) => {
@@ -237,6 +250,46 @@ const collectCandidatesFromText = (text: string): string[] => {
       const analysisWeaknesses = analysisRecord.weaknesses;
       if (Array.isArray(analysisWeaknesses)) {
         analysisWeaknesses.forEach((item) => {
+          const raw = toPlainText(item);
+          if (raw) {
+            candidates.push(normalizeParsedPayloadText(raw));
+          }
+        });
+      }
+
+      const whyItMatters = analysisRecord.why_it_matters;
+      if (Array.isArray(whyItMatters)) {
+        whyItMatters.forEach((item) => {
+          const raw = toPlainText(item);
+          if (raw) {
+            candidates.push(normalizeParsedPayloadText(raw));
+          }
+        });
+      }
+
+      const swingFactors = analysisRecord.swing_factors;
+      if (Array.isArray(swingFactors)) {
+        swingFactors.forEach((item) => {
+          const raw = toPlainText(item);
+          if (raw) {
+            candidates.push(normalizeParsedPayloadText(raw));
+          }
+        });
+      }
+
+      const watchPoints = analysisRecord.watch_points;
+      if (Array.isArray(watchPoints)) {
+        watchPoints.forEach((item) => {
+          const raw = toPlainText(item);
+          if (raw) {
+            candidates.push(normalizeParsedPayloadText(raw));
+          }
+        });
+      }
+
+      const uncertainty = analysisRecord.uncertainty;
+      if (Array.isArray(uncertainty)) {
+        uncertainty.forEach((item) => {
           const raw = toPlainText(item);
           if (raw) {
             candidates.push(normalizeParsedPayloadText(raw));
@@ -284,6 +337,9 @@ const collectStructuredDataCandidates = (payload: RawAiBriefing['structuredData'
     const analysisSummary = normalizeParsedPayloadText(structuredAnalysis.summary);
     if (analysisSummary) candidates.push(analysisSummary);
 
+    const verdict = normalizeParsedPayloadText(structuredAnalysis.verdict);
+    if (verdict) candidates.push(verdict);
+
     const strengths = structuredAnalysis.strengths;
     if (Array.isArray(strengths)) {
       strengths.forEach((value) => {
@@ -308,6 +364,38 @@ const collectStructuredDataCandidates = (payload: RawAiBriefing['structuredData'
             ? normalizeLineForBrief(JSON.stringify(value))
             : value,
         );
+        if (normalized) candidates.push(normalized);
+      });
+    }
+
+    const whyItMatters = structuredAnalysis.why_it_matters;
+    if (Array.isArray(whyItMatters)) {
+      whyItMatters.forEach((value) => {
+        const normalized = normalizeParsedPayloadText(value);
+        if (normalized) candidates.push(normalized);
+      });
+    }
+
+    const swingFactors = structuredAnalysis.swing_factors;
+    if (Array.isArray(swingFactors)) {
+      swingFactors.forEach((value) => {
+        const normalized = normalizeParsedPayloadText(value);
+        if (normalized) candidates.push(normalized);
+      });
+    }
+
+    const watchPoints = structuredAnalysis.watch_points;
+    if (Array.isArray(watchPoints)) {
+      watchPoints.forEach((value) => {
+        const normalized = normalizeParsedPayloadText(value);
+        if (normalized) candidates.push(normalized);
+      });
+    }
+
+    const uncertainty = structuredAnalysis.uncertainty;
+    if (Array.isArray(uncertainty)) {
+      uncertainty.forEach((value) => {
+        const normalized = normalizeParsedPayloadText(value);
         if (normalized) candidates.push(normalized);
       });
     }
