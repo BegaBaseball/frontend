@@ -18,27 +18,50 @@ describe('Follow / Unfollow Feature', () => {
     };
 
     const setupProfile = (isFollowedByMe: boolean) => {
-        cy.intercept('GET', '**/api/users/profile/*', {
-            statusCode: 200,
-            body: { success: true, data: mockProfile },
-        }).as('getProfile');
+        const normalizedHandle = profileHandle.trim();
+        const normalizedHandleWithAt = normalizedHandle.startsWith('@')
+            ? normalizedHandle
+            : `@${normalizedHandle}`;
+        const normalizedHandleWithoutAt = normalizedHandleWithAt.replace(/^@/, '');
+        const encodedWithAt = encodeURIComponent(normalizedHandleWithAt);
+        const encodedWithoutAt = encodeURIComponent(normalizedHandleWithoutAt);
 
-        cy.intercept('GET', /\/api\/users\/profile\/[^/?#]+\/follow-counts(\?.*)?$/, {
-            statusCode: 200,
-            body: {
-                followerCount: isFollowedByMe ? 11 : 10,
-                followingCount: 5,
-                isFollowedByMe,
-                notifyNewPosts: false,
-                blockedByMe: false,
-                blockingMe: false,
-            },
-        }).as('getFollowCounts');
+        const profilePatterns = [
+            `**/api/users/profile/${normalizedHandleWithAt}*`,
+            `**/api/users/profile/${encodedWithAt}*`,
+            `**/api/users/profile/${normalizedHandleWithoutAt}*`,
+            `**/api/users/profile/${encodedWithoutAt}*`,
+        ];
 
-        cy.intercept('GET', `**/api/cheer/user/${profileHandle}/posts*`, {
-            statusCode: 200,
-            body: { content: [], last: true, totalElements: 0, number: 0 },
-        }).as('getUserPosts');
+        profilePatterns.forEach((pattern) => {
+            cy.intercept('GET', pattern, {
+                statusCode: 200,
+                body: { success: true, data: mockProfile },
+            }).as('getProfile');
+        });
+
+        cy.mockPublicFollowCounts(profileHandle, {
+            followerCount: isFollowedByMe ? 11 : 10,
+            followingCount: 5,
+            isFollowedByMe,
+            notifyNewPosts: false,
+            blockedByMe: false,
+            blockingMe: false,
+        });
+
+        const cheerPostPatterns = [
+            `**/api/cheer/user/${normalizedHandleWithAt}/posts*`,
+            `**/api/cheer/user/${normalizedHandleWithoutAt}/posts*`,
+            `**/api/cheer/user/${encodeURIComponent(normalizedHandleWithAt)}/posts*`,
+            `**/api/cheer/user/${encodeURIComponent(normalizedHandleWithoutAt)}/posts*`,
+        ];
+
+        cheerPostPatterns.forEach((pattern) => {
+            cy.intercept('GET', pattern, {
+                statusCode: 200,
+                body: { content: [], last: true, totalElements: 0, number: 0 },
+            }).as('getUserPosts');
+        });
     };
 
     beforeEach(() => {
@@ -49,7 +72,7 @@ describe('Follow / Unfollow Feature', () => {
     it('shows Follow button when not following and toggles to following', () => {
         setupProfile(false);
 
-        cy.intercept('POST', /\/api\/users\/profile\/[^/?#]+\/follow(\?.*)?$/, {
+        cy.intercept('POST', /\/api\/users\/(?:profile\/)?[^/?#]+\/follow(\?.*)?$/, {
             statusCode: 200,
             body: {
                 following: true,
@@ -72,7 +95,7 @@ describe('Follow / Unfollow Feature', () => {
     it('shows Unfollow option when already following', () => {
         setupProfile(true);
 
-        cy.intercept('POST', /\/api\/users\/profile\/[^/?#]+\/follow(\?.*)?$/, {
+        cy.intercept('POST', /\/api\/users\/(?:profile\/)?[^/?#]+\/follow(\?.*)?$/, {
             statusCode: 200,
             body: {
                 following: false,
@@ -92,7 +115,7 @@ describe('Follow / Unfollow Feature', () => {
     it('updates follower count after follow action', () => {
         setupProfile(false);
 
-        cy.intercept('POST', /\/api\/users\/profile\/[^/?#]+\/follow(\?.*)?$/, {
+        cy.intercept('POST', /\/api\/users\/(?:profile\/)?[^/?#]+\/follow(\?.*)?$/, {
             statusCode: 200,
             body: {
                 following: true,
@@ -116,7 +139,7 @@ describe('Follow / Unfollow Feature', () => {
     it('opens notification settings dropdown for followed user', () => {
         setupProfile(true);
 
-        cy.intercept('PUT', /\/api\/users\/profile\/[^/?#]+\/follow\/notify(\?.*)?$/, {
+        cy.intercept('PUT', /\/api\/users\/(?:profile\/)?[^/?#]+\/follow\/notify(\?.*)?$/, {
             statusCode: 200,
             body: { success: true },
         }).as('updateNotify');

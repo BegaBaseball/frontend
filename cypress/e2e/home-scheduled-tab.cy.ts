@@ -178,7 +178,7 @@ describe('Home scheduled tab', () => {
       });
     }).as('getPredictionDetail');
 
-    cy.intercept('POST', '**/api/predictions/my-votes', {
+    cy.intercept('**/api/predictions/my-votes*', {
       statusCode: 200,
       body: {
         votes: {
@@ -186,6 +186,11 @@ describe('Home scheduled tab', () => {
         },
       },
     }).as('getPredictionVotes');
+
+    cy.intercept('GET', '**/api/predictions/my-vote/*', {
+      statusCode: 410,
+      body: { message: 'legacy endpoint removed' },
+    }).as('getUserVote');
 
     cy.intercept('GET', '**/api/predictions/status/*', {
       statusCode: 200,
@@ -255,6 +260,7 @@ describe('Home scheduled tab', () => {
 
     cy.location('pathname').should('eq', '/prediction');
     cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
+    cy.get('@getUserVote.all').should('have.length', 0);
 
     cy.contains('전력분석실', { timeout: 15000 }).should('exist');
   });

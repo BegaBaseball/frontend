@@ -64,29 +64,50 @@ describe('Block / Unblock Feature', () => {
     beforeEach(() => {
         cy.mockAPI();
 
-        cy.intercept('GET', '**/api/users/profile/*', {
-            statusCode: 200,
-            body: { success: true, data: mockProfile },
-        }).as('getProfile');
+        const normalizedHandle = profileHandle.trim();
+        const normalizedHandleWithAt = normalizedHandle.startsWith('@')
+            ? normalizedHandle
+            : `@${normalizedHandle}`;
+        const normalizedHandleWithoutAt = normalizedHandleWithAt.replace(/^@/, '');
+        const encodedWithAt = encodeURIComponent(normalizedHandleWithAt);
+        const encodedWithoutAt = encodeURIComponent(normalizedHandleWithoutAt);
+        const profilePatterns = [
+            `**/api/users/profile/${normalizedHandleWithAt}*`,
+            `**/api/users/profile/${encodedWithAt}*`,
+            `**/api/users/profile/${normalizedHandleWithoutAt}*`,
+            `**/api/users/profile/${encodedWithoutAt}*`,
+        ];
+        const cheerPostPatterns = [
+            `**/api/cheer/user/${normalizedHandleWithAt}/posts*`,
+            `**/api/cheer/user/${normalizedHandleWithoutAt}/posts*`,
+            `**/api/cheer/user/${encodedWithAt}/posts*`,
+            `**/api/cheer/user/${encodedWithoutAt}/posts*`,
+        ];
 
-        cy.intercept('GET', `**/api/cheer/user/${profileHandle}/posts*`, {
-            statusCode: 200,
-            body: { content: [], last: true, totalElements: 0, number: 0 },
-        }).as('getUserPosts');
+        profilePatterns.forEach((pattern) => {
+            cy.intercept('GET', pattern, {
+                statusCode: 200,
+                body: { success: true, data: mockProfile },
+            }).as('getProfile');
+        });
+
+        cheerPostPatterns.forEach((pattern) => {
+            cy.intercept('GET', pattern, {
+                statusCode: 200,
+                body: { content: [], last: true, totalElements: 0, number: 0 },
+            }).as('getUserPosts');
+        });
     });
 
     it('hides block button on public profile and keeps other actions visible', () => {
-        cy.intercept('GET', /\/api\/users\/profile\/[^/?#]+\/follow-counts(\?.*)?$/, {
-            statusCode: 200,
-            body: {
-                followerCount: 10,
-                followingCount: 5,
-                isFollowedByMe: false,
-                notifyNewPosts: false,
-                blockedByMe: false,
-                blockingMe: false,
-            },
-        }).as('getFollowCounts');
+        cy.mockPublicFollowCounts(profileHandle, {
+            followerCount: 10,
+            followingCount: 5,
+            isFollowedByMe: false,
+            notifyNewPosts: false,
+            blockedByMe: false,
+            blockingMe: false,
+        });
 
         visitAsLoggedIn(profileRoute);
         cy.wait('@getProfile');
@@ -157,7 +178,7 @@ describe('Block / Unblock Feature', () => {
             },
         }).as('getBlockedUsers');
 
-        cy.intercept('POST', `**/api/users/profile/${encodeURIComponent(profileHandle)}/block`, {
+        cy.intercept('POST', /\/api\/users\/(?:profile\/)?[^/?#]+\/block(\?.*)?$/, {
             statusCode: 200,
             body: { blocked: false, blockedCount: 0 },
         }).as('unblockUser');
@@ -180,17 +201,14 @@ describe('Block / Unblock Feature', () => {
     });
 
     it('keeps profile route accessible while block state is managed in mypage', () => {
-        cy.intercept('GET', /\/api\/users\/profile\/[^/?#]+\/follow-counts(\?.*)?$/, {
-            statusCode: 200,
-            body: {
-                followerCount: 10,
-                followingCount: 5,
-                isFollowedByMe: false,
-                notifyNewPosts: false,
-                blockedByMe: false,
-                blockingMe: false,
-            },
-        }).as('getFollowCounts');
+        cy.mockPublicFollowCounts(profileHandle, {
+            followerCount: 10,
+            followingCount: 5,
+            isFollowedByMe: false,
+            notifyNewPosts: false,
+            blockedByMe: false,
+            blockingMe: false,
+        });
 
         visitAsLoggedIn(profileRoute);
         cy.wait('@getProfile');
