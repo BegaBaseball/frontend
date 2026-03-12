@@ -283,14 +283,18 @@ class CDPClient {
 
 const getPageWebSocketUrl = async (port, baseUrl) => {
   const startedAt = Date.now();
+  let lastPageUrls = [];
   while (Date.now() - startedAt < 10000) {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/json/list`, {
         signal: AbortSignal.timeout(1500),
       });
       const pages = await response.json();
-      const page = pages.find((item) => item.type === 'page' && item.url.startsWith(baseUrl))
-        || pages.find((item) => item.type === 'page');
+      lastPageUrls = pages
+        .filter((item) => item.type === 'page')
+        .map((item) => item.url);
+
+      const page = pages.find((item) => item.type === 'page' && item.url.startsWith(baseUrl));
       if (page?.webSocketDebuggerUrl) {
         return page.webSocketDebuggerUrl;
       }
@@ -301,7 +305,8 @@ const getPageWebSocketUrl = async (port, baseUrl) => {
     await delay(250);
   }
 
-  throw new Error('Failed to resolve a Chrome DevTools target.');
+  const knownPages = lastPageUrls.length > 0 ? lastPageUrls.join(', ') : 'none';
+  throw new Error(`Failed to resolve a Chrome DevTools target for ${baseUrl}. Visible pages: ${knownPages}`);
 };
 
 const captureScreenshot = async (client, filepath) => {
