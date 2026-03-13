@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLeaderboardStore } from '../../store/leaderboardStore';
 
 const shake = keyframes`
   0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
@@ -134,12 +135,6 @@ const Particle = styled.div<{ $delay: number; $x: number; $y: number }>`
 
 const PARTICLES = ['⭐', '✨', '💫', '🔥', '💥', '🎯', '🏆'];
 
-interface ComboData {
-  streak: number;
-  score?: number;
-  visible: boolean;
-}
-
 interface ComboAnimationProps {
   // Allow external control
   streak?: number;
@@ -154,46 +149,30 @@ export default function ComboAnimation({
   show: externalShow,
   onComplete,
 }: ComboAnimationProps = {}) {
-  const [combo, setCombo] = useState<ComboData>({
-    streak: 0,
-    visible: false,
-  });
+  const storeComboState = useLeaderboardStore((state) => state.showComboAnimation);
+  const storeComboStreak = useLeaderboardStore((state) => state.comboStreak);
+  const storeComboScore = useLeaderboardStore((state) => state.comboScore);
+  const hideCombo = useLeaderboardStore((state) => state.hideCombo);
 
-  // Listen for custom events (for global triggering)
+  const streak = externalStreak ?? storeComboStreak;
+  const score = externalScore ?? storeComboScore;
+  const visible = externalShow ?? storeComboState;
+  const shouldShow = visible && streak > 0;
+
   useEffect(() => {
-    const handler = (e: CustomEvent<{ streak: number; score?: number }>) => {
-      setCombo({
-        streak: e.detail.streak,
-        score: e.detail.score,
-        visible: true,
-      });
+    if (!shouldShow) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      hideCombo();
+      onComplete?.();
+    }, 2500);
+
+    return () => {
+      clearTimeout(timer);
     };
-
-    window.addEventListener('combo-animation', handler as EventListener);
-    return () => window.removeEventListener('combo-animation', handler as EventListener);
-  }, []);
-
-  // Handle external prop control
-  useEffect(() => {
-    if (externalShow !== undefined && externalStreak !== undefined) {
-      setCombo({
-        streak: externalStreak,
-        score: externalScore,
-        visible: externalShow,
-      });
-    }
-  }, [externalShow, externalStreak, externalScore]);
-
-  // Auto-hide after delay
-  useEffect(() => {
-    if (combo.visible) {
-      const timer = setTimeout(() => {
-        setCombo(c => ({ ...c, visible: false }));
-        onComplete?.();
-      }, 2500);
-      return () => clearTimeout(timer);
-    }
-  }, [combo.visible, onComplete]);
+  }, [hideCombo, onComplete, shouldShow]);
 
   const getComboMessage = (streak: number): string => {
     if (streak >= 10) return 'LEGENDARY!';
@@ -218,22 +197,22 @@ export default function ComboAnimation({
   }, []);
 
   const particles = useMemo(() => {
-    if (!combo.visible || combo.streak < 3) {
+    if (!shouldShow || streak < 3) {
       return [];
     }
-    return generateParticles(combo.streak);
-  }, [combo.visible, combo.streak, generateParticles]);
+    return generateParticles(streak);
+  }, [shouldShow, streak, generateParticles]);
 
   return (
     <AnimatePresence>
-      {combo.visible && combo.streak > 0 && (
+      {shouldShow && (
         <Overlay
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <ComboContainer $streak={combo.streak}>
+          <ComboContainer $streak={streak}>
             {/* Particles */}
             {particles.map((p, i) => (
               <Particle key={i} $delay={p.delay} $x={p.x} $y={p.y}>
@@ -251,20 +230,18 @@ export default function ComboAnimation({
                 damping: 15,
               }}
             >
-              <ComboNumber $streak={combo.streak}>
-                {combo.streak}
-              </ComboNumber>
-              <ComboText $streak={combo.streak}>
-                {combo.streak}연승!
+              <ComboNumber $streak={streak}>{streak}</ComboNumber>
+              <ComboText $streak={streak}>
+                {streak}연승!
               </ComboText>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <BonusText $streak={combo.streak}>
-                  {getComboMessage(combo.streak)}
-                  {combo.score && ` +${combo.score.toLocaleString()} PTS`}
+                <BonusText $streak={streak}>
+                  {getComboMessage(streak)}
+                  {score && ` +${score.toLocaleString()} PTS`}
                 </BonusText>
               </motion.div>
             </motion.div>
@@ -272,14 +249,5 @@ export default function ComboAnimation({
         </Overlay>
       )}
     </AnimatePresence>
-  );
-}
-
-// Utility function to trigger combo animation globally
-export function triggerComboAnimation(streak: number, score?: number) {
-  window.dispatchEvent(
-    new CustomEvent('combo-animation', {
-      detail: { streak, score },
-    })
   );
 }

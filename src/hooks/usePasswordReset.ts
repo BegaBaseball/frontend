@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { requestPasswordReset } from '../api/auth';
 import { validateLoginField } from '../utils/validation';
 
-export const usePasswordReset = () => {
+export const usePasswordReset = (redirectPath?: string | null) => {
+  const defaultSuccessMessage = '입력한 이메일로 가입된 계정이 있다면 비밀번호 재설정 안내를 발송했습니다.';
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState(defaultSuccessMessage);
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
@@ -41,9 +43,10 @@ export const usePasswordReset = () => {
     setIsLoading(true);
 
     try {
-      const data = await requestPasswordReset(email);
+      const data = await requestPasswordReset(email, redirectPath);
       
       if (data.success) {
+        setSuccessMessage(data.message || defaultSuccessMessage);
         setIsSubmitted(true);
       } else {
         setError(data.message || '이메일 발송에 실패했습니다.');
@@ -62,6 +65,7 @@ export const usePasswordReset = () => {
     isSubmitted,
     isLoading,
     error,
+    successMessage,
     handleEmailChange,
     handleEmailBlur,
     handleSubmit,

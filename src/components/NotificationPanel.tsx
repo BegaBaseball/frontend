@@ -1,31 +1,33 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText, Repeat2, Trash2, CheckCheck, Clock, Calendar, AlertTriangle, Star } from 'lucide-react';
+import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText, Repeat2, Trash2, CheckCheck, Clock, Calendar, AlertTriangle, Star, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore } from '../store/notificationStore';
-import { useAuthStore } from '../store/authStore';
-import { api, isIgnorableNotificationError } from '../utils/api';
+import { useAuthSession } from '../store/authStore';
+import { notificationApi, isIgnorableNotificationError } from '../utils/notificationApi';
 import { NotificationData as Notification, NotificationType } from '../types/notification';
 
 type TabType = 'ALL' | 'MATE' | 'CHEER';
 
 export default function NotificationPanel() {
   const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
-  const { notifications, unreadCount, setNotifications, setUnreadCount, markAsRead, markAllAsRead, removeNotification } = useNotificationStore();
+  const { isLoggedIn } = useAuthSession();
+  const notifications = useNotificationStore((state) => state.notifications);
+  const setNotifications = useNotificationStore((state) => state.setNotifications);
+  const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
+  const removeNotification = useNotificationStore((state) => state.removeNotification);
   const [activeTab, setActiveTab] = useState<TabType>('ALL');
+  const unreadCount = notifications.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0);
 
   useEffect(() => {
-    if (!user) return;
+    if (!isLoggedIn) return;
 
     const fetchNotifications = async () => {
       try {
-        const notifs = await api.getNotifications();
-        const unreadCount = notifs.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0);
-
+        const notifs = await notificationApi.getNotifications();
         setNotifications(notifs);
-        setUnreadCount(unreadCount);
       } catch (error) {
         if (!isIgnorableNotificationError(error)) {
           console.error('알림 불러오기 오류:', error);
@@ -36,12 +38,12 @@ export default function NotificationPanel() {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [user, setNotifications, setUnreadCount]);
+  }, [isLoggedIn, setNotifications]);
 
   const handleNotificationClick = async (notification: Notification) => {
     try {
       if (!notification.isRead) {
-        await api.markAsRead(notification.id);
+        await notificationApi.markAsRead(notification.id);
         markAsRead(notification.id);
       }
 
@@ -55,6 +57,8 @@ export default function NotificationPanel() {
         navigate(`/cheer`);
       } else if (notification.type === 'FOLLOWING_NEW_POST') {
         navigate(`/cheer/${notification.relatedId}`);
+      } else if (notification.type === 'NEW_DEVICE_LOGIN') {
+        navigate('/mypage?view=accountSettings');
       }
     } catch (error) {
       console.error('알림 처리 오류:', error);
@@ -65,7 +69,7 @@ export default function NotificationPanel() {
   const handleDelete = async (notificationId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await api.deleteNotification(notificationId);
+      await notificationApi.deleteNotification(notificationId);
       removeNotification(notificationId);
     } catch (error) {
       console.error('알림 삭제 오류:', error);
@@ -77,7 +81,7 @@ export default function NotificationPanel() {
     try {
       // Backend bulk read endpoint is missing, so we loop through unread notifications
       const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
-      await Promise.all(unreadIds.map(id => api.markAsRead(id)));
+      await Promise.all(unreadIds.map(id => notificationApi.markAsRead(id)));
       markAllAsRead();
     } catch (error) {
       console.error('일괄 읽음 처리 오류:', error);
@@ -102,6 +106,7 @@ export default function NotificationPanel() {
       case 'POST_REPOST': return <Repeat2 className="w-5 h-5 text-emerald-500" />;
       case 'NEW_FOLLOWER': return <UserPlus className="w-5 h-5 text-green-500" />;
       case 'FOLLOWING_NEW_POST': return <FileText className="w-5 h-5 text-blue-500" />;
+      case 'NEW_DEVICE_LOGIN': return <ShieldAlert className="w-5 h-5 text-red-500" />;
       default: return <Bell className="w-5 h-5 text-gray-500" />;
     }
   };
@@ -237,7 +242,7 @@ export default function NotificationPanel() {
                         <div className="flex gap-3 pr-6">
                           {/* Icon/Avatar Area */}
                           <div className="flex-shrink-0 mt-0.5">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${notification.isRead ? 'bg-gray-100 dark:bg-secondary' : 'bg-white dark:bg-card ring-2 ring-blue-100 dark:ring-blue-900'
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${notification.isRead ? 'bg-gray-100 dark:bg-secondary' : 'bg-white dark:bg-card border-2 border-blue-100 dark:border-blue-900'
                               }`}>
                               {getNotificationIcon(notification.type)}
                             </div>
@@ -260,7 +265,7 @@ export default function NotificationPanel() {
 
                           {/* Read Indicator Dot */}
                           {!notification.isRead && (
-                            <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-gray-800" />
+                            <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500 border-2 border-white dark:border-gray-800" />
                           )}
 
                           {/* Delete Button (Hover Only on Desktop) */}

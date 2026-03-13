@@ -1,7 +1,10 @@
 // src/hooks/useKakaoMap.ts
-import { useRef, useState, useEffect } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { MAP_CONFIG } from '../utils/constants';
-import { Stadium, Place } from '../types/stadium';
+import { Stadium } from '../types/stadium';
+
+const hasValidCoordinate = (value: number | null | undefined): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
 
 export const useKakaoMap = (selectedStadium: Stadium | null) => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -10,17 +13,21 @@ export const useKakaoMap = (selectedStadium: Stadium | null) => {
   const stadiumMarkerRef = useRef<any>(null);
   const infowindowsRef = useRef<any[]>([]);
 
-  const clearMarkers = () => {
+  const clearMarkers = useCallback(() => {
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
     infowindowsRef.current.forEach(iw => iw.close());
     infowindowsRef.current = [];
-  };
+  }, []);
 
-  const initializeMap = () => {
+  const initializeMap = useCallback(() => {
     if (!mapContainer.current || !selectedStadium) {
       console.error('지도 초기화 실패: 컨테이너 또는 구장 정보 없음');
       return;
+    }
+
+    if (!hasValidCoordinate(selectedStadium.lat) || !hasValidCoordinate(selectedStadium.lng)) {
+      throw new Error('구장 좌표 정보가 없어 지도를 초기화할 수 없습니다.');
     }
 
     if (!window.kakao || !window.kakao.maps) {
@@ -59,7 +66,7 @@ export const useKakaoMap = (selectedStadium: Stadium | null) => {
       console.error('지도 초기화 중 오류:', error);
       throw new Error('지도를 초기화하는데 실패했습니다.');
     }
-  };
+  }, [selectedStadium]);
 
   return {
     mapContainer,

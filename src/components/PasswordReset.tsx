@@ -1,14 +1,23 @@
-// PasswordReset.tsx
-import { ArrowLeft, Mail, Check } from 'lucide-react';
+import { ArrowLeft, Check, Mail } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+import { usePasswordReset } from '../hooks/usePasswordReset';
+import { buildLoginPath, getStoredLoginRedirect } from '../utils/loginRedirect';
+import AuthLayout from './auth/AuthLayout';
+import {
+  AuthActionGroup,
+  AuthFieldGroup,
+  AuthHeader,
+  AuthStatusPanel,
+} from './ui/auth-primitives';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { useNavigate } from 'react-router-dom';
-import { usePasswordReset } from '../hooks/usePasswordReset';
-import AuthLayout from './auth/AuthLayout';
 
 export default function PasswordReset() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectPath = new URLSearchParams(location.search).get('redirect') || getStoredLoginRedirect();
 
   const {
     email,
@@ -16,87 +25,110 @@ export default function PasswordReset() {
     isSubmitted,
     isLoading,
     error,
+    successMessage,
     handleEmailChange,
     handleEmailBlur,
     handleSubmit,
-  } = usePasswordReset();
+  } = usePasswordReset(redirectPath);
+
+  const loginPath = buildLoginPath(redirectPath);
 
   return (
     <AuthLayout>
-      <button 
-        onClick={() => navigate('/login')}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span>로그인으로 돌아가기</span>
-      </button>
-
       {!isSubmitted ? (
         <>
-          <h2 className="text-center mb-4">비밀번호 재설정</h2>
-          <p className="text-center text-gray-600 mb-8">
-            가입하신 이메일 주소를 입력해주세요.<br />
-            비밀번호 재설정 링크를 보내드립니다.
-          </p>
+          <button
+            type="button"
+            onClick={() => navigate(loginPath)}
+            className="auth-back-link"
+            data-testid="password-reset-back-link"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span>로그인으로 돌아가기</span>
+          </button>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 서버 에러 메시지 */}
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700 text-center">{error}</p>
+          <AuthHeader
+            eyebrow="Password Recovery"
+            title="비밀번호 재설정"
+            description="가입하신 이메일 주소를 입력하면 비밀번호 재설정 링크를 보내드립니다."
+            data-testid="password-reset-header"
+          />
+
+          <form onSubmit={handleSubmit} className="space-y-6" data-testid="password-reset-form">
+            {error ? (
+              <AuthStatusPanel tone="error" data-testid="password-reset-status-panel" role="alert">
+                <p className="text-sm font-medium">{error}</p>
+              </AuthStatusPanel>
+            ) : null}
+
+            <AuthFieldGroup>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-2 text-foreground">
+                  <Mail className="h-4 w-4 text-primary" />
+                  E-mail
+                </Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  value={email}
+                  onChange={(event) => handleEmailChange(event.target.value)}
+                  onBlur={handleEmailBlur}
+                  className={`auth-input auth-autofill-input ${emailError ? 'auth-input-error' : ''}`}
+                  placeholder="이메일을 입력하세요"
+                  disabled={isLoading}
+                  data-testid="password-reset-email"
+                />
+                {emailError ? <p className="auth-error-text">* {emailError}</p> : null}
               </div>
-            )}
+            </AuthFieldGroup>
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
-                <Mail className="w-4 h-4 text-primary" />
-                E-mail
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => handleEmailChange(e.target.value)}
-                onBlur={handleEmailBlur}
-                className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ring-primary ${emailError ? 'border-red-500' : ''}`}
-                placeholder="이메일을 입력하세요"
+            <AuthActionGroup>
+              <Button
+                type="submit"
+                variant="brand"
+                size="touchLg"
+                className="w-full"
                 disabled={isLoading}
-              />
-              {emailError && (
-                <p className="text-sm text-red-500">* {emailError}</p>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed bg-primary"
-              disabled={isLoading}
-            >
-              {isLoading ? '전송 중...' : '재설정 링크 보내기'}
-            </Button>
+                data-testid="password-reset-submit"
+              >
+                {isLoading ? '전송 중...' : '재설정 링크 보내기'}
+              </Button>
+            </AuthActionGroup>
           </form>
         </>
       ) : (
-        <div className="text-center py-8">
-          <div
-            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 bg-primary"
-          >
-            <Check className="w-10 h-10 text-white" />
-          </div>
-          <h2 className="mb-4">이메일을 확인해주세요</h2>
-          <p className="text-gray-600 mb-8">
-            <span className="text-primary">{email}</span> 로<br />
-            비밀번호 재설정 링크를 보냈습니다.<br />
-            이메일을 확인하고 링크를 클릭해주세요.
-          </p>
+        <>
+          <AuthHeader
+            eyebrow="Check Your Inbox"
+            title="이메일을 확인해주세요"
+            description={`${successMessage} 메일을 받지 못했다면 잠시 후 다시 시도해주세요.`}
+            data-testid="password-reset-header"
+          />
 
-          <Button
-            onClick={() => navigate('/login')}
-            className="w-full py-6 rounded-full hover:bg-gray-50 border-2 border-primary text-primary bg-white"
-          >
-            로그인으로 돌아가기
-          </Button>
-        </div>
+          <div className="space-y-6 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white">
+              <Check className="h-10 w-10" />
+            </div>
+
+            <AuthActionGroup>
+              <Button
+                type="button"
+                variant="brandOutline"
+                size="touchLg"
+                className="w-full"
+                onClick={() => navigate(loginPath)}
+                data-testid="password-reset-return-login"
+              >
+                로그인으로 돌아가기
+              </Button>
+            </AuthActionGroup>
+          </div>
+        </>
       )}
     </AuthLayout>
   );

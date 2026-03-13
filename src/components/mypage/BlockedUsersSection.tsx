@@ -1,8 +1,8 @@
 import { type UIEvent } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { getBlockedUsers } from '../../api/blockApi';
-import { Loader2, Ban, User, Info } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Loader2, Ban, Info } from 'lucide-react';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 import BlockButton from '../profile/BlockButton';
 
 export default function BlockedUsersSection() {
@@ -35,23 +35,23 @@ export default function BlockedUsersSection() {
     };
 
     return (
-        <div className="bg-white dark:bg-card rounded-2xl shadow-lg border-2 border-gray-100 dark:border-border p-8 mb-6">
+        <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-4 sm:p-6 md:p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
                 <Ban className="w-6 h-6 text-red-500" />
                 <h2 className="text-xl font-bold text-red-500">차단 관리</h2>
             </div>
 
             <div className="mb-4">
-                <p className="text-sm text-gray-500 dark:text-gray-300">
+                <p className="text-sm text-muted-foreground">
                     차단한 사용자는 내 게시글을 볼 수 없으며, 나에게 메시지를 보낼 수 없습니다.
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                <p className="text-sm text-muted-foreground mt-2">
                     상대방 프로필에서 <span className="font-medium text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
                 </p>
             </div>
 
             <div
-                className="max-h-[400px] overflow-y-auto custom-scrollbar border border-gray-200 dark:border-border rounded-lg"
+                className="max-h-[400px] overflow-y-auto custom-scrollbar border border-border rounded-lg"
                 onScroll={handleScroll}
             >
                 {isLoading ? (
@@ -59,30 +59,33 @@ export default function BlockedUsersSection() {
                         <Loader2 className="h-8 w-8 animate-spin text-red-500" />
                     </div>
                 ) : users.length > 0 ? (
-            <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                    <div className="divide-y divide-border">
                         {users.map((user) => (
-                            <div key={user.id} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            <div key={user.handle} className="flex items-center justify-between p-4 hover:bg-muted/60 transition-colors">
                                 <div
                                     className="flex items-center gap-3 flex-1 min-w-0 mr-4"
                                 >
-                                    <Avatar className="h-10 w-10 border border-gray-200 dark:border-border">
-                                        <AvatarImage src={user.profileImageUrl} />
-                                        <AvatarFallback className="bg-gray-100 text-gray-400">
-                                            <User className="h-5 w-5" />
-                                        </AvatarFallback>
-                                    </Avatar>
+                                    <ProfileAvatar
+                                        src={user.profileImageUrl ?? undefined}
+                                        alt={user.name}
+                                        fallbackName={user.name}
+                                        width={40}
+                                        height={40}
+                                        showRing
+                                        ringClassName="p-0.5 bg-muted"
+                                    />
                                     <div className="flex flex-col truncate">
-                                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
+                                        <span className="text-sm font-bold text-foreground truncate">
                                             {user.name}
                                         </span>
-                                        <span className="text-xs text-gray-500 dark:text-gray-300 truncate">
+                                        <span className="text-xs text-muted-foreground truncate">
                                             {user.handle}
                                         </span>
                                     </div>
                                 </div>
 
                                 <BlockButton
-                                    userId={user.id}
+                                    handle={user.handle}
                                     userName={user.name}
                                     initialBlocked={true}
                                     size="sm"
@@ -94,19 +97,19 @@ export default function BlockedUsersSection() {
 
                         {isFetchingNextPage && (
                             <div className="flex justify-center p-4">
-                                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                             </div>
                         )}
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                    <div className="flex flex-col items-center justify-center py-8 sm:py-10 text-center px-4">
                         <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-3">
                             <Ban className="h-6 w-6 text-red-500" />
                         </div>
-                        <p className="text-gray-900 dark:text-gray-100 font-medium mb-1">
+                        <p className="text-foreground font-medium mb-1">
                             차단한 사용자가 없습니다.
                         </p>
-                        <p className="mt-2 text-xs text-primary dark:text-primary font-medium inline-flex items-center gap-1 justify-center">
+                        <p className="mt-2 text-xs text-muted-foreground font-medium inline-flex items-center gap-1 justify-center">
                             <Info className="w-3.5 h-3.5" />
                             상대방 프로필에서 <span className="text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
                         </p>

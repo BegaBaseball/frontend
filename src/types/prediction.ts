@@ -13,12 +13,57 @@ export interface GameSummary {
   detail?: string | null;
 }
 
+export interface RawGameInningScore {
+  inning?: number | string | null;
+  inningNo?: number | string | null;
+  inning_no?: number | string | null;
+  inningNum?: number | string | null;
+  inning_num?: number | string | null;
+  inningNumber?: number | string | null;
+  inning_number?: number | string | null;
+  order?: number | string | null;
+  orderNo?: number | string | null;
+  order_no?: number | string | null;
+  teamSide?: string | null;
+  team_side?: string | null;
+  side?: string | null;
+  teamSideCode?: string | null;
+  team_side_code?: string | null;
+  sideCode?: string | null;
+  side_code?: string | null;
+  teamCode?: string | null;
+  team_code?: string | null;
+  team?: string | null;
+  teamName?: string | null;
+  team_name?: string | null;
+  teamNm?: string | null;
+  team_nm?: string | null;
+  teamSideName?: string | null;
+  team_side_name?: string | null;
+  sideName?: string | null;
+  side_name?: string | null;
+  home?: number | string | null;
+  away?: number | string | null;
+  runs?: number | string | null;
+  run?: number | string | null;
+  score?: number | string | null;
+  r?: number | string | null;
+  isExtra?: boolean | number | string | null;
+  is_extra?: boolean | number | string | null;
+  extra?: boolean | number | string | null;
+}
+
 export interface GameInningScore {
   inning: number;
   teamSide: string;
   teamCode?: string | null;
-  runs?: number | null;
+  runs?: number | string | null;
   isExtra?: boolean | null;
+  team?: string | null;
+  home?: number | string | null;
+  away?: number | string | null;
+  run?: number | string | null;
+  [key: string]: unknown;
 }
 
 export interface GameDetail {
@@ -37,7 +82,12 @@ export interface GameDetail {
   homePitcher?: string | null;
   awayPitcher?: string | null;
   gameStatus?: string | null;
-  inningScores?: GameInningScore[];
+  inningScores?: Array<GameInningScore | RawGameInningScore>;
+  inning_scores?: RawGameInningScore[];
+  inning_score?: RawGameInningScore[];
+  lineScore?: unknown;
+  line_score?: unknown;
+  innings?: RawGameInningScore[];
   summary?: GameSummary[];
 }
 
@@ -67,6 +117,21 @@ export interface Game {
 export interface DateGames {
   date: string;
   games: Game[];
+}
+
+export interface MatchBounds {
+  hasData: boolean;
+  earliestGameDate: string | null;
+  latestGameDate: string | null;
+}
+
+export interface MatchDayNavigation {
+  date: string;
+  games: Game[];
+  prevDate: string | null;
+  nextDate: string | null;
+  hasPrev: boolean;
+  hasNext: boolean;
 }
 
 export interface VoteStatus {

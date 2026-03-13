@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { DiaryFormData, DiaryEntry } from '../types/diary';
+import { DiaryFormData, DiaryEntry, SeatViewSourceType } from '../types/diary';
 import { DEFAULT_EMOJI, DEFAULT_EMOJI_NAME } from '../constants/diary';
-import { validateFileSize, convertFilesToBase64 } from '../utils/diary';
+import { validateFileSize } from '../utils/diary';
 import { toast } from 'sonner';
 
 const getInitialFormData = (): DiaryFormData => ({
@@ -9,14 +9,16 @@ const getInitialFormData = (): DiaryFormData => ({
   emoji: DEFAULT_EMOJI,
   emojiName: DEFAULT_EMOJI_NAME,
   winningName: '',
-  gameId: '',
+  gameId: 0,
   memo: '',
   photos: [],
   photoFiles: [],
   section: '',
   block: '',
-  row: '',
-  seat: '',
+  seatRow: '',
+  seatNumber: '',
+  ticketVerificationToken: undefined,
+  ticketVerified: false,
 });
 
 export const useDiaryForm = () => {
@@ -30,15 +32,17 @@ export const useDiaryForm = () => {
         emoji: entry.emoji,
         emojiName: entry.emojiName,
         winningName: entry.winningName || '',
-        gameId: entry.gameId ? String(entry.gameId) : '',
+        gameId: entry.gameId || 0,
         memo: entry.memo || '',
         photos: entry.photos || [],
         // file: ... (existing code)
         photoFiles: [],
         section: entry.section || '',
         block: entry.block || '',
-        row: entry.row || '',
-        seat: entry.seat || '',
+        seatRow: entry.seatRow || '',
+        seatNumber: entry.seatNumber || '',
+        ticketVerificationToken: undefined,
+        ticketVerified: entry.ticketVerified || false,
       });
     } else {
       setDiaryForm(getInitialFormData());
@@ -51,7 +55,10 @@ export const useDiaryForm = () => {
   };
 
   // ========== 사진 업로드 ==========
-  const handlePhotoUpload = async (files: FileList | null) => {
+  const handlePhotoUpload = async (
+    files: FileList | null,
+    sourceType: SeatViewSourceType = 'DIARY_UPLOAD'
+  ) => {
 
     if (!files) {
       return;
@@ -68,7 +75,10 @@ export const useDiaryForm = () => {
 
 
     setDiaryForm((prev) => {
-      const newPhotoFiles = [...prev.photoFiles, ...fileArray];
+      const newPhotoFiles = [
+        ...prev.photoFiles,
+        ...fileArray.map((file) => ({ file, sourceType })),
+      ];
       return {
         ...prev,
         photoFiles: newPhotoFiles,

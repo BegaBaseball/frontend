@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { OptimizedImage } from './common/OptimizedImage';
@@ -12,57 +12,64 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Progress } from './ui/progress';
 import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Ticket, Loader2 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
-import { useAuthStore } from '../store/authStore';
+import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { api, ApiError } from '../utils/api';
-import { STADIUMS, TEAMS } from '../utils/constants';
+import { TEAMS } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
-import { mapBackendPartyToFrontend } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
-import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
-import { analyzeTicket } from '../api/ticket';
-export interface MatchInfo {
-  id: string;
-  gameTime: string;
-  homeTeam: string;
-  awayTeam: string;
-  stadium: string;
-}
+import { useMateCreateMachine, type MatchInfo } from '../hooks/useMateCreateMachine';
 import { SEAT_CATEGORIES, SeatCategory, KBO_STADIUMS } from '../utils/stadiumData';
 import { SEAT_ICONS } from '../utils/seatIcons';
 import { getEstimatedPrice } from '../utils/priceHelper';
-import { format } from 'date-fns';
+import { validateMateDescription } from '../utils/mateValidation';
 
 export default function MateCreate() {
   const navigate = useNavigate();
+  const requireSocialVerification = import.meta.env.VITE_MATE_REQUIRE_SOCIAL_VERIFICATION !== 'false';
   const {
     createStep,
-    formData,
-    formErrors,
-    setCreateStep,
-    updateFormData,
-    setFormError,
-    resetForm,
-    validateDescription,
-    addParty,
-    setSelectedParty,
-  } = useMateStore();
+    canGoNext,
+    canGoPrev,
+    isScanning,
+    isSubmitting,
+    isLoadingMatches,
+    isConfirming,
+    isSubmittingError,
+    isMatchLoadError,
+    availableMatches,
+    errorMessage,
+    submitErrorStatus,
+    errorType,
+    createdPartyId,
+    uploadTicket,
+    goNext,
+    goPrev,
+    loadMatches,
+    submit,
+    confirmSubmit,
+    cancelSubmit,
+    reset,
+    retry,
+  } = useMateCreateMachine();
+  const formData = useMateStore((state) => state.formData);
+  const formErrors = useMateStore((state) => state.formErrors);
+  const updateFormData = useMateStore((state) => state.updateFormData);
+  const setFormError = useMateStore((state) => state.setFormError);
+  const { userId: authUserId } = useAuthSession();
+  const { logout, requireLogin } = useAuthAccessActions();
 
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserName, setCurrentUserName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [availableMatches, setAvailableMatches] = useState<MatchInfo[]>([]);
-  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
+  const lastSubmitErrorRef = useRef('');
+  const loadedMatchDateRef = useRef('');
 
   useEffect(() => {
-    fetchCurrentUser();
-  }, []);
+    void fetchCurrentUser();
+  }, [authUserId]);
 
   // Price Automation
   useEffect(() => {
@@ -74,233 +81,77 @@ export default function MateCreate() {
     }
   }, [createStep, formData.stadium, formData.seatCategory, formData.gameDate]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 });
+  }, [createStep]);
+
 
   const fetchCurrentUser = async () => {
     try {
-      const userData = await api.getCurrentUser();
-      setCurrentUserName(userData.data.name);
+      let id = authUserId ?? null;
 
-      const userIdResponse = await api.getUserIdByEmail(userData.data.email);
-      const id = userIdResponse.data;
+      if (!id) {
+        const userData = await api.getCurrentUser();
+        id = userData.data.id;
+      }
+
+      if (!id) {
+        throw new Error('사용자 ID를 확인할 수 없습니다.');
+      }
+
       setCurrentUserId(id);
 
       // 소셜 연동 여부 확인 - 미연동 시 알림
-      try {
-        const socialResult = await api.checkSocialVerified(id);
-        if (socialResult.data === false) {
-          setShowVerificationDialog(true);
+      if (requireSocialVerification) {
+        try {
+          const socialResult = await api.checkSocialVerified(id);
+          if (socialResult.data === false) {
+            setShowVerificationDialog(true);
+          }
+        } catch {
+          // 확인 실패 시 무시 (나중에 제출 시 다시 체크됨)
         }
-      } catch {
-        // 확인 실패 시 무시 (나중에 제출 시 다시 체크됨)
       }
     } catch (error: unknown) {
       console.error('사용자 정보 가져오기 실패:', error);
       if ((error instanceof AxiosError && error.response?.status === 401) ||
         (error instanceof ApiError && error.status === 401)) {
-        useAuthStore.getState().logout(true);
-        useAuthStore.getState().setShowLoginRequiredDialog(true);
+        logout(true);
+        requireLogin();
       }
     }
   };
 
   const handleDescriptionChange = (text: string) => {
     updateFormData({ description: text });
-    const error = validateDescription(text);
+    const error = validateMateDescription(text);
     setFormError('description', error);
   };
 
   // Step 1: 티켓 업로드 + OCR
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    uploadTicket(file);
+  };
 
-    if (file.size > 10 * 1024 * 1024) {
-      setFormError('ticketFile', '파일 크기는 10MB 이하여야 합니다.');
-      return;
-    }
-    if (!file.type.startsWith('image/')) {
-      setFormError('ticketFile', '이미지 파일만 업로드 가능합니다.');
-      return;
-    }
-
-    updateFormData({ ticketFile: file });
-    setFormError('ticketFile', '');
-    setIsScanning(true);
-
-    try {
-      const ticketInfo = await analyzeTicket(file);
-
-      if (ticketInfo) {
-        const updates: Record<string, string | number | boolean> = {};
-
-        if (ticketInfo.date) {
-          updates.gameDate = ticketInfo.date;
-        }
-        if (ticketInfo.time) {
-          // HH:MM 형식으로 변환 (HH:MM:SS 제거)
-          updates.gameTime = ticketInfo.time.substring(0, 5);
-        }
-        if (ticketInfo.stadium) {
-          const stadiumName = ticketInfo.stadium;
-          const matchedStadium = STADIUMS.find(s =>
-            s.includes(stadiumName) || stadiumName.includes(s)
-          );
-          if (matchedStadium) {
-            updates.stadium = matchedStadium;
-          } else {
-            updates.stadium = stadiumName;
-          }
-        }
-        if (ticketInfo.homeTeam) {
-          const homeTeamName = ticketInfo.homeTeam;
-          const matchedTeam = TEAMS.find(t =>
-            t.name.includes(homeTeamName) || homeTeamName.includes(t.name)
-          );
-          if (matchedTeam) {
-            updates.homeTeam = matchedTeam.id;
-          }
-        }
-        if (ticketInfo.awayTeam) {
-          const awayTeamName = ticketInfo.awayTeam;
-          const matchedTeam = TEAMS.find(t =>
-            t.name.includes(awayTeamName) || awayTeamName.includes(t.name)
-          );
-          if (matchedTeam) {
-            updates.awayTeam = matchedTeam.id;
-          }
-        }
-        if (ticketInfo.section || ticketInfo.row || ticketInfo.seat) {
-          const ocrSeat = [ticketInfo.section, ticketInfo.row, ticketInfo.seat]
-            .filter(Boolean)
-            .join(' ');
-          updates.section = ocrSeat;
-          updates.seatDetail = ocrSeat;
-        }
-        if (ticketInfo.peopleCount) {
-          updates.maxParticipants = ticketInfo.peopleCount;
-        }
-        if (ticketInfo.price) {
-          updates.ticketPrice = ticketInfo.price;
-        }
-        if (ticketInfo.reservationNumber) {
-          updates.reservationNumber = ticketInfo.reservationNumber;
-        }
-
-        updateFormData(updates);
-
-        // 자동으로 다음 단계로 이동
-        setTimeout(() => {
-          setCreateStep(2);
-        }, 500);
-      }
-    } catch (error) {
-      console.error('Ticket OCR error:', error);
-      setFormError('ticketFile', '이미지 분석에 실패했습니다. 직접 입력해주세요.');
-      // 실패해도 isScanning이 false가 되면 수동으로 다음 단계로 이동 가능
-    } finally {
-      setIsScanning(false);
+  const handleBack = () => {
+    if (createStep === 1) {
+      reset();
+      setCurrentUserId(null);
+      navigate('/mate');
+    } else {
+      goPrev();
     }
   };
 
-  const canProceedToStep = (targetStep: number) => {
-    // 스캔 중이면 이동 불가
-    if (isScanning) return false;
-
-    if (targetStep === 2) {
-      return formData.ticketFile !== null;
-    }
-    if (targetStep === 3) {
-      return formData.gameDate && formData.homeTeam && formData.awayTeam && formData.stadium;
-    }
-    if (targetStep === 4) {
-      return (formData.seatDetail || formData.section) && formData.maxParticipants > 0 && formData.ticketPrice > 0;
-    }
-    return true;
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.ticketFile) {
-      setFormError('ticketFile', '예매내역 인증이 필요합니다.');
-      return;
-    }
-
+  const handleSubmit = () => {
     if (!currentUserId) {
       toast.error('로그인이 필요합니다.');
       return;
     }
 
-    if (!formData.description || formData.description.length < 10) {
-      setFormError('description', '소개글을 10자 이상 입력해주세요.');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Compose section from structured fields
-      const composedSection = formData.seatDetail
-        ? [
-          formData.cheeringSide === 'HOME' ? '[홈응원]' : formData.cheeringSide === 'AWAY' ? '[원정응원]' : formData.cheeringSide === 'NEUTRAL' ? '[중립]' : '',
-          formData.seatCategory,
-          formData.seatDetail,
-        ].filter(Boolean).join(' ')
-        : formData.section; // Fallback to raw section (from OCR)
-
-      const partyData = {
-        hostId: currentUserId,
-        hostName: currentUserName,
-        // hostBadge는 백엔드에서 기본값 처리
-        hostRating: 5.0,
-        teamId: formData.homeTeam,
-        gameDate: formData.gameDate, // "YYYY-MM-DD" 형식
-        gameTime: formData.gameTime || '18:30', // "HH:MM" 형식 (LocalTime으로 변환됨)
-        stadium: formData.stadium,
-        homeTeam: formData.homeTeam,
-        awayTeam: formData.awayTeam,
-        section: composedSection,
-        maxParticipants: formData.maxParticipants,
-        description: formData.description,
-        ticketImageUrl: null, // Never send blob: URLs to backend
-        ticketPrice: formData.ticketPrice,
-        reservationNumber: formData.reservationNumber,
-      };
-
-      const createdParty = await api.createParty(partyData);
-      const mappedParty = mapBackendPartyToFrontend(createdParty);
-
-      addParty(mappedParty);
-      setSelectedParty(mappedParty);
-      resetForm();
-      toast.success('파티가 생성되었습니다!');
-      navigate(`/mate/${mappedParty.id}`);
-    } catch (error: unknown) {
-      const errorMsg = getApiErrorMessage(error, '파티 생성 중 오류가 발생했습니다.');
-      if ((error instanceof AxiosError && error.response?.status === 403) ||
-        (error instanceof ApiError && error.status === 403)) {
-        console.warn('Verification required (403)');
-        setShowVerificationDialog(true);
-      } else {
-        console.error('파티 생성 중 오류:', error);
-        toast.error(errorMsg);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleBack = () => {
-    if (createStep === 1) {
-      resetForm();
-      navigate('/mate');
-    } else {
-      setCreateStep(createStep - 1);
-    }
-  };
-
-  const handleSkipTicket = () => {
-    // Clear ticket file but proceed
-    updateFormData({ ticketFile: null });
-    setCreateStep(2);
+    submit();
   };
 
   const selectMatch = (match: MatchInfo) => {
@@ -338,32 +189,67 @@ export default function MateCreate() {
     return mapping[code] || backendId.toLowerCase();
   };
 
-  useEffect(() => {
-    const fetchMatches = async () => {
-      if (createStep === 2 && formData.gameDate) {
-        setIsLoadingMatches(true);
-        try {
-          const response = await api.getKboSchedule(formData.gameDate);
-          // HomePageGameDto를 MatchInfo 형식으로 변환
-          const matches: MatchInfo[] = (response || []).map((game) => ({
-            id: game.gameId,
-            gameTime: game.time,
-            stadium: game.stadium,
-            homeTeam: mapTeamId(game.homeTeam),
-            awayTeam: mapTeamId(game.awayTeam)
-          }));
-          setAvailableMatches(matches);
-        } catch (error) {
-          console.error('Failed to fetch matches:', error);
-          setAvailableMatches([]);
-        } finally {
-          setIsLoadingMatches(false);
-        }
-      }
-    };
+  const fileErrorMessage = errorType === 'scan' ? errorMessage : formErrors.ticketFile;
+  const isScanFailed = errorType === 'scan' && Boolean(formData.ticketFile);
+  const matchLoadErrorMessage = isMatchLoadError ? errorMessage : '';
+  const knownStadiumNames = Array.from(new Set(Object.values(KBO_STADIUMS).map((stadium) => stadium.name)));
+  const shouldShowManualMatchInput = createStep === 2
+    && Boolean(formData.gameDate)
+    && !isLoadingMatches
+    && (isMatchLoadError || availableMatches.length === 0);
 
-    fetchMatches();
+  useEffect(() => {
+    if (createStep !== 2 || !formData.gameDate) {
+      if (createStep !== 2) {
+        loadedMatchDateRef.current = '';
+      } else if (!formData.gameDate) {
+        loadedMatchDateRef.current = '';
+      }
+      return;
+    }
+
+    if (loadedMatchDateRef.current === formData.gameDate) {
+      return;
+    }
+
+    loadedMatchDateRef.current = formData.gameDate;
+    loadMatches();
   }, [createStep, formData.gameDate]);
+
+  useEffect(() => {
+    if (createdPartyId) {
+      toast.success('파티가 생성되었습니다!');
+      navigate(`/mate/${createdPartyId}`);
+      return;
+    }
+
+    if (!isSubmittingError) {
+      if (lastSubmitErrorRef.current) {
+        lastSubmitErrorRef.current = '';
+      }
+      return;
+    }
+
+    if (submitErrorStatus === 403) {
+      setShowVerificationDialog(true);
+      return;
+    }
+
+    if (submitErrorStatus && submitErrorStatus !== 403) {
+      const errorKey = `${submitErrorStatus}:${errorMessage}`;
+      if (lastSubmitErrorRef.current !== errorKey) {
+        lastSubmitErrorRef.current = errorKey;
+        console.error('파티 생성 중 오류:', errorMessage || 'unknown');
+        toast.error(errorMessage || '파티 생성 중 오류가 발생했습니다.');
+      }
+      return;
+    }
+
+    if (errorMessage && lastSubmitErrorRef.current !== errorMessage) {
+      lastSubmitErrorRef.current = errorMessage;
+      toast.error(errorMessage);
+    }
+  }, [createdPartyId, isSubmittingError, errorMessage, submitErrorStatus, navigate]);
 
 
   const getAvailableCategoryKeys = (): SeatCategory[] => {
@@ -381,6 +267,46 @@ export default function MateCreate() {
   const availableCategoryKeys = getAvailableCategoryKeys();
 
   const progressValue = (createStep / 4) * 100;
+  const isSubmitDisabled = isSubmitting || !formData.description || formData.description.length < 10 || !formData.ticketFile;
+
+  const blockedStepMessage = (() => {
+    if (createStep === 1 && !formData.ticketFile) {
+      return '티켓 이미지를 업로드해야 다음 단계로 진행할 수 있습니다.';
+    }
+    if (createStep === 2 && !canGoNext) {
+      if (!formData.gameDate) {
+        return '경기 날짜를 선택해주세요.';
+      }
+      if (shouldShowManualMatchInput) {
+        return '경기 정보(시간/팀/구장)를 수동 입력해주세요.';
+      }
+      return '경기 목록에서 관람할 경기를 선택해주세요.';
+    }
+    if (createStep === 3 && !canGoNext) {
+      if (!(formData.seatDetail || formData.section)) {
+        return '좌석 상세 정보를 입력해주세요.';
+      }
+      if (formData.maxParticipants <= 0) {
+        return '모집 인원을 선택해주세요.';
+      }
+      if (formData.ticketPrice <= 0) {
+        return '티켓 가격을 입력해주세요.';
+      }
+      return '필수 항목을 모두 입력해주세요.';
+    }
+    if (createStep === 4 && isSubmitDisabled) {
+      if (!formData.ticketFile) {
+        return '티켓 이미지를 업로드해야 파티를 만들 수 있습니다.';
+      }
+      if (!formData.description || formData.description.length < 10) {
+        return '소개글을 10자 이상 입력해주세요.';
+      }
+      if (formErrors.description) {
+        return formErrors.description;
+      }
+    }
+    return '';
+  })();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-200">
@@ -429,7 +355,9 @@ export default function MateCreate() {
                 <div
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isScanning
                     ? 'border-primary bg-slate-50 dark:bg-card/60'
-                    : formData.ticketFile
+                    : isScanFailed
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                      : formData.ticketFile
                       ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                       : 'border-slate-300 dark:border-border bg-slate-50 dark:bg-card/60 hover:bg-slate-100 dark:hover:bg-slate-900'
                     }`}
@@ -461,6 +389,17 @@ export default function MateCreate() {
                         <p className="text-primary font-bold text-lg">AI가 티켓을 분석 중...</p>
                         <p className="text-muted-foreground">경기 정보를 자동으로 추출합니다</p>
                       </div>
+                    ) : isScanFailed ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <AlertCircle className="w-16 h-16 text-red-500" />
+                        <p className="text-red-700 dark:text-red-300 font-bold text-lg break-all">
+                          {formData.ticketFile?.name}
+                        </p>
+                        <p className="text-red-600 dark:text-red-400 font-semibold">
+                          파일 업로드 완료, AI 분석 실패
+                        </p>
+                        <p className="text-gray-500">클릭 또는 Enter로 다른 파일 선택</p>
+                      </div>
                     ) : formData.ticketFile ? (
                       <div className="flex flex-col items-center gap-3">
                         <CheckCircle className="w-16 h-16 text-green-500" />
@@ -478,8 +417,27 @@ export default function MateCreate() {
                     )}
                   </label>
                 </div>
-                {formErrors.ticketFile && (
-                  <p className="text-sm text-red-500">{formErrors.ticketFile}</p>
+                {fileErrorMessage && (
+                  <div
+                    className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950/30"
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+                      {fileErrorMessage}
+                    </p>
+                  </div>
+                )}
+                {errorType === 'scan' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={retry}
+                    disabled={isScanning}
+                  >
+                    다시 시도
+                  </Button>
                 )}
               </div>
 
@@ -490,21 +448,14 @@ export default function MateCreate() {
                     <li>티켓 사진을 올리면 AI가 경기 정보를 자동으로 입력합니다</li>
                     <li>예매번호와 좌석 정보가 명확히 보여야 합니다</li>
                     <li>개인정보는 가려서 업로드해주세요</li>
+                    <li className="font-semibold text-primary">티켓 업로드는 파티 생성 필수 조건입니다</li>
                   </ul>
                 </AlertDescription>
               </Alert>
 
-              {/* Skip Button */}
+              {/* Dev Helper */}
               <div className="flex flex-col items-center gap-3 mt-4 border-t pt-4 border-dashed border-gray-200">
-                <Button
-                  variant="ghost"
-                  className="text-gray-500 hover:text-primary font-medium text-sm"
-                  onClick={handleSkipTicket}
-                >
-                  티켓이 아직 없으신가요? <span className="underline ml-1">직접 입력하기</span>
-                </Button>
-
-                {/* Dev Only: Test Data Button */}
+                <p className="text-xs text-gray-500">OCR이 실패하면 같은 파일 또는 다른 파일로 다시 시도해주세요.</p>
                 {import.meta.env.DEV && (
                   <button
                     onClick={() => {
@@ -524,7 +475,7 @@ export default function MateCreate() {
                         ticketFile: new File([""], "test-ticket.jpg", { type: "image/jpeg" })
                       };
                       updateFormData(testData);
-                      setCreateStep(2);
+                      goNext();
                     }}
                     className="text-[10px] text-gray-300 hover:text-gray-500 transition-colors"
                   >
@@ -560,6 +511,14 @@ export default function MateCreate() {
                 {/* Match List */}
                 {formData.gameDate && (
                   <div className="grid gap-3 pt-2">
+                    {matchLoadErrorMessage && (
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm text-red-500">{matchLoadErrorMessage}</p>
+                        <Button variant="outline" size="sm" onClick={retry}>
+                          다시 시도
+                        </Button>
+                      </div>
+                    )}
                     {isLoadingMatches ? (
                       <div className="text-center py-12">
                         <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-2" />
@@ -568,8 +527,6 @@ export default function MateCreate() {
                     ) : availableMatches.length > 0 ? (
                       availableMatches.map((match) => {
                         const isSelected = formData.homeTeam === match.homeTeam && formData.awayTeam === match.awayTeam;
-                        const homeColor = getTeamColorByAnyKey(match.homeTeam);
-                        const awayColor = getTeamColorByAnyKey(match.awayTeam);
 
                         return <div
                           key={match.id}
@@ -608,9 +565,75 @@ export default function MateCreate() {
 
                       })
                     ) : (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-300 bg-gray-50 dark:bg-card rounded-lg">
-                        경기가 없는 날입니다 😴 <br />
-                        <span className="text-xs">다른 날짜를 선택해주세요</span>
+                      <div className="space-y-4 rounded-lg border border-dashed border-amber-300 bg-amber-50/70 p-4 dark:border-amber-700/40 dark:bg-amber-900/20">
+                        <div className="text-center py-2 text-gray-600 dark:text-gray-200">
+                          경기 목록 조회 결과가 없습니다. 수동 입력으로 계속 진행할 수 있습니다.
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label htmlFor="manualGameTime">경기 시간</Label>
+                            <Input
+                              id="manualGameTime"
+                              type="time"
+                              value={formData.gameTime}
+                              onChange={(e) => updateFormData({ gameTime: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="manualStadium">구장</Label>
+                            <Input
+                              id="manualStadium"
+                              list="manual-stadium-options"
+                              value={formData.stadium}
+                              onChange={(e) => updateFormData({ stadium: e.target.value })}
+                              placeholder="예: 잠실야구장"
+                            />
+                            <datalist id="manual-stadium-options">
+                              {knownStadiumNames.map((stadiumName) => (
+                                <option key={stadiumName} value={stadiumName} />
+                              ))}
+                            </datalist>
+                          </div>
+                          <div className="space-y-1">
+                            <Label>원정 팀</Label>
+                            <Select
+                              value={formData.awayTeam || undefined}
+                              onValueChange={(value: string) => updateFormData({ awayTeam: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="원정 팀 선택" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {TEAMS.map((team) => (
+                                  <SelectItem key={`away-${team.id}`} value={team.id}>
+                                    {team.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label>홈 팀</Label>
+                            <Select
+                              value={formData.homeTeam || undefined}
+                              onValueChange={(value: string) => updateFormData({ homeTeam: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="홈 팀 선택" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {TEAMS.map((team) => (
+                                  <SelectItem key={`home-${team.id}`} value={team.id}>
+                                    {team.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          팀/구장까지 입력하면 다음 단계로 진행할 수 있습니다.
+                        </p>
                       </div>
                     )}
                   </div>
@@ -853,7 +876,7 @@ export default function MateCreate() {
                   <Alert>
                     <AlertCircle className="w-4 h-4" />
                     <AlertDescription className="text-sm">
-                      참여자는 티켓 가격 <span className="text-primary">{formData.ticketPrice.toLocaleString()}원</span> + 보증금 10,000원을 결제합니다.
+                      참여자는 호스트 승인 후 채팅에서 티켓 가격 <span className="text-primary">{formData.ticketPrice.toLocaleString()}원</span> 기준으로 직거래를 조율합니다.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -875,7 +898,7 @@ export default function MateCreate() {
                   value={formData.description}
                   onChange={(e) => handleDescriptionChange(e.target.value)}
                   onBlur={() => {
-                    const error = validateDescription(formData.description);
+                    const error = validateMateDescription(formData.description);
                     setFormError('description', error);
                   }}
                   placeholder="함께 야구를 즐길 메이트에게 하고 싶은 말을 작성해주세요..."
@@ -940,7 +963,8 @@ export default function MateCreate() {
             {createStep > 1 && (
               <Button
                 variant="outline"
-                onClick={() => setCreateStep(createStep - 1)}
+                onClick={goPrev}
+                disabled={!canGoPrev}
                 className="flex-1"
               >
                 이전
@@ -948,8 +972,8 @@ export default function MateCreate() {
             )}
             {createStep < 4 ? (
               <Button
-                onClick={() => setCreateStep(createStep + 1)}
-                disabled={!canProceedToStep(createStep + 1)}
+                onClick={goNext}
+                disabled={!canGoNext}
                 className="flex-1 text-white bg-primary"
               >
                 다음
@@ -957,19 +981,31 @@ export default function MateCreate() {
               </Button>
             ) : (
               <Button
-                onClick={() => setShowConfirmationModal(true)}
-                disabled={!formData.description || formData.description.length < 10 || isSubmitting}
+                onClick={handleSubmit}
+                disabled={isSubmitDisabled}
                 className="flex-1 text-white bg-primary"
               >
                 파티 만들기
               </Button>
             )}
           </div>
+          {blockedStepMessage && (
+            <p className={`mt-3 text-sm text-center ${createStep === 4 ? 'text-red-500' : 'text-amber-600'}`}>
+              {blockedStepMessage}
+            </p>
+          )}
         </Card>
       </div >
 
       {/* Confirmation Modal */}
-      <Dialog open={showConfirmationModal} onOpenChange={setShowConfirmationModal}>
+      <Dialog
+        open={isConfirming}
+        onOpenChange={(open) => {
+          if (!open) {
+            cancelSubmit();
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-primary">파티 생성 확인</DialogTitle>
@@ -1029,17 +1065,12 @@ export default function MateCreate() {
             {/* Price Info */}
             <div className="border-t pt-3 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">티켓 가격</span>
+                <span className="text-gray-500">거래 기준 금액</span>
                 <span className="font-medium">{formData.ticketPrice.toLocaleString()}원</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">보증금</span>
-                <span className="font-medium">10,000원</span>
-              </div>
-              <div className="flex justify-between font-bold text-primary">
-                <span>총 결제 금액</span>
-                <span>{(formData.ticketPrice + 10000).toLocaleString()}원</span>
-              </div>
+              <p className="text-xs text-gray-500">
+                앱 내 결제 없이 승인 후 채팅으로 직거래를 진행합니다.
+              </p>
             </div>
 
             {/* Description Preview */}
@@ -1054,13 +1085,13 @@ export default function MateCreate() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setShowConfirmationModal(false)}
+              onClick={cancelSubmit}
               disabled={isSubmitting}
             >
               수정하기
             </Button>
             <Button
-              onClick={handleSubmit}
+              onClick={confirmSubmit}
               disabled={isSubmitting}
               className="text-white bg-primary"
             >

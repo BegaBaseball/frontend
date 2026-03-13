@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useLeaderboard, usePowerups } from '../hooks/useLeaderboard';
-import { useAuthStore } from '../store/authStore';
+import { isLoggedInUser, useAuthStore } from '../store/authStore';
 import RetroLeaderboard from '../components/retro/RetroLeaderboard';
 import type { LeaderboardType } from '../api/leaderboard';
 
@@ -15,8 +15,8 @@ export default function LeaderboardPage() {
   const [type, setType] = useState<LeaderboardType>('season');
   const [page, setPage] = useState(0);
 
-  const user = useAuthStore((state) => state.user);
-  const currentUserId = user?.id;
+  const isLoggedIn = useAuthStore((state) => isLoggedInUser(state.user));
+  const currentUserHandle = useAuthStore((state) => state.user?.handle);
 
   const {
     leaderboard,
@@ -26,7 +26,7 @@ export default function LeaderboardPage() {
     isLoading,
     totalPages,
     refetch,
-  } = useLeaderboard(type, page, 10);
+  } = useLeaderboard(type, page, 10, { includeMyRank: isLoggedIn });
 
   const {
     powerups,
@@ -66,7 +66,7 @@ export default function LeaderboardPage() {
   }, [usePowerup]);
 
   const hotStreakEntries = hotStreaks.map((hs) => ({
-    userId: hs.userId,
+    handle: hs.handle,
     userName: hs.userName,
     profileImageUrl: hs.profileImageUrl,
     level: hs.level,
@@ -81,10 +81,10 @@ export default function LeaderboardPage() {
       userStats={myRank}
       tickerMessages={tickerMessages}
       hotStreaks={hotStreakEntries}
-      powerups={powerups as unknown as Record<string, number>}
+      powerups={powerups}
       activePowerups={activePowerups}
       isLoading={isLoading}
-      currentUserId={currentUserId}
+      currentUserHandle={currentUserHandle}
       onTypeChange={handleTypeChange}
       onPageChange={handlePageChange}
       onRefresh={handleRefresh}

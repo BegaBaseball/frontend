@@ -2,9 +2,41 @@ import { useState, useEffect, useRef } from 'react';
 import { Message } from '../types/chatbot';
 import { buildHistoryPayload } from '../utils/chatbot';
 import { sendChatMessageStream, convertVoiceToText, RateLimitError } from '../api/chatbot';
+import {
+  CHATBOT_STATUS_RATE_LIMIT,
+  CHATBOT_STATUS_SERVICE_UNAVAILABLE,
+  CHATBOT_STREAM_TIMEOUT_ERROR,
+  CHATBOT_STREAM_INCOMPLETE_ERROR,
+  isChatStreamStatusError,
+} from '../api/stream';
+import { useAuthSession } from '../store/authStore';
 import { toast } from 'sonner';
 
 const GREETING_TEXT = '안녕하세요! 야구 가이드 BEGA입니다. 무엇을 도와드릴까요?';
+
+const CHAT_STORAGE_KEY = 'chatbot_messages';
+
+const saveMessages = (msgs: Message[]): void => {
+  try {
+    const toSave = msgs.filter(m => !m.isSystem && m.text.trim().length > 0);
+    if (toSave.length > 0) {
+      sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(toSave));
+    } else {
+      sessionStorage.removeItem(CHAT_STORAGE_KEY);
+    }
+  } catch { /* storage 접근 실패 시 무시 */ }
+};
+
+const loadMessages = (): Message[] => {
+  try {
+    const raw = sessionStorage.getItem(CHAT_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed: Array<Message & { timestamp: string }> = JSON.parse(raw);
+    return parsed.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
+  } catch {
+    return [];
+  }
+};
 
 const USE_EDGE_FUNCTION = false; // Edge Function 사용 여부
 const DEFAULT_RETRY_SECONDS = 10;
@@ -12,9 +44,19 @@ const MAX_BACKOFF_SECONDS = 40;
 const JITTER_MIN_SECONDS = 1;
 const JITTER_MAX_SECONDS = 2;
 
-export const useChatBot = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+const createMessageId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+export const useChatBot = (initialOpen = false) => {
+  const { isLoggedIn } = useAuthSession();
+  const prevLoggedInRef = useRef(isLoggedIn);
+
+  const [isOpen, setIsOpen] = useState(initialOpen);
+  const [messages, setMessages] = useState<Message[]>(() => loadMessages());
   const [inputMessage, setInputMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -30,7 +72,10 @@ export const useChatBot = () => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
-  const [position, setPosition] = useState({ x: window.innerWidth - 540, y: window.innerHeight - 900 });
+  const [position, setPosition] = useState({
+    x: Math.max(0, window.innerWidth - 540),
+    y: Math.max(0, window.innerHeight - 900),
+  });
   const [size, setSize] = useState({ width: 500, height: 750 });
 
   // ========== Typing Effect Logic ==========
@@ -73,14 +118,29 @@ export const useChatBot = () => {
     if (isOpen && messages.length === 0) {
       // 빈 봇 메시지 껍데기만 먼저 추가
       setMessages([{
+        id: createMessageId(),
         text: '',
         sender: 'bot',
         timestamp: new Date(),
+        isSystem: true,
       }]);
       // 인사말을 버퍼에 밀어넣음
       streamingBuffer.current += GREETING_TEXT;
     }
   }, [isOpen]);
+
+  // ========== Chat History Persistence ==========
+  useEffect(() => {
+    saveMessages(messages);
+  }, [messages]);
+
+  useEffect(() => {
+    if (prevLoggedInRef.current && !isLoggedIn) {
+      setMessages([]);
+      sessionStorage.removeItem(CHAT_STORAGE_KEY);
+    }
+    prevLoggedInRef.current = isLoggedIn;
+  }, [isLoggedIn]);
 
   useEffect(() => {
     const storedMessage = sessionStorage.getItem('last_pending_msg');
@@ -128,12 +188,14 @@ export const useChatBot = () => {
   const processMessage = async (messageToProcess: Message) => {
     setIsTyping(true);
 
-    const conversationForHistory = [...messages];
+    // 현재 전송 중인 질문(마지막 유저 메시지)은 history가 아닌 question 파라미터로 전달됨.
+    // slice(0, -1)로 제외하여 첫 번째 질문 시 history=null → 캐시 저장 가능 조건 충족.
+    const conversationForHistory = messages.slice(0, -1);
     const historyPayload = buildHistoryPayload(conversationForHistory);
 
     try {
       // 봇 응답을 위한 빈 메시지 추가
-      setMessages((prev) => [...prev, { text: '', sender: 'bot', timestamp: new Date() }]);
+      setMessages((prev) => [...prev, { id: createMessageId(), text: '', sender: 'bot', timestamp: new Date() }]);
 
       await sendChatMessageStream(
         { question: messageToProcess.text, history: historyPayload },
@@ -142,6 +204,7 @@ export const useChatBot = () => {
           streamingBuffer.current += delta;
         },
         (_error: string) => {
+          setIsTyping(false);
           // 스트림 오류 발생 시 마지막 봇 메시지에 isError 플래그 설정
           setMessages((prev) => {
             if (prev.length === 0) return prev;
@@ -165,6 +228,8 @@ export const useChatBot = () => {
                   ? {
                     ...msg,
                     verified: meta.verified,
+                    cached: meta.cached,
+                    intent: meta.intent,
                     citations: meta.dataSources,
                     toolCalls: meta.toolCalls,
                   }
@@ -186,7 +251,7 @@ export const useChatBot = () => {
 
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
 
-      if (error instanceof RateLimitError || errorMessage === 'STATUS_429') {
+      if (error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
         const nextFailureCount = Math.min(failureCount + 1, 3);
         const backoffSeconds = Math.min(DEFAULT_RETRY_SECONDS * Math.pow(2, nextFailureCount - 1), MAX_BACKOFF_SECONDS);
         const retryAfterSeconds = error instanceof RateLimitError ? error.retryAfterSeconds : DEFAULT_RETRY_SECONDS;
@@ -196,7 +261,7 @@ export const useChatBot = () => {
         setFailureCount(nextFailureCount);
         setRateLimitActive(true);
         setRateLimitUntil(Date.now() + waitSeconds * 1000);
-      } else if (errorMessage === 'STATUS_503') {
+      } else if (isChatStreamStatusError(error, CHATBOT_STATUS_SERVICE_UNAVAILABLE)) {
         toast.error('서비스 점검 중이거나 일시적인 오류입니다.');
         setMessages((prev) => {
           if (prev.length === 0) return prev;
@@ -208,8 +273,20 @@ export const useChatBot = () => {
           }
           return prev;
         });
-      } else if (errorMessage === 'STREAM_TIMEOUT') {
+      } else if (isChatStreamStatusError(error, CHATBOT_STREAM_TIMEOUT_ERROR)) {
         toast.error('응답 시간이 초과되었습니다.');
+        setMessages((prev) => {
+          if (prev.length === 0) return prev;
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg.sender === 'bot') {
+            return prev.map((msg, index) =>
+              index === prev.length - 1 ? { ...msg, isError: true } : msg
+            );
+          }
+          return prev;
+        });
+      } else if (isChatStreamStatusError(error, CHATBOT_STREAM_INCOMPLETE_ERROR)) {
+        toast.error('응답이 중단되었습니다. 다시 시도해주세요.');
         setMessages((prev) => {
           if (prev.length === 0) return prev;
           const lastMsg = prev[prev.length - 1];
@@ -233,14 +310,14 @@ export const useChatBot = () => {
         });
       }
 
-      if (!(error instanceof RateLimitError || errorMessage === 'STATUS_429')) {
+      if (!(error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT))) {
         setInputMessage(pendingMessage);
       }
     } finally {
       // 스트리밍 연결이 끊어지면 처리 상태 해제
       setIsProcessing(false);
-      // 안전장치: 혹시라도 스트리밍이 공백으로 끝날 경우를 대비해 일정 시간 후 타이핑 상태 해제
-      setTimeout(() => setIsTyping(false), 100);
+      // 안전장치: 스트리밍 종료 시 즉시 로딩 상태 해제
+      setIsTyping(false);
     }
   };
 
@@ -265,6 +342,7 @@ export const useChatBot = () => {
     sessionStorage.setItem('last_pending_msg', trimmedInput);
 
     const userMessage: Message = {
+      id: createMessageId(),
       text: trimmedInput,
       sender: 'user',
       timestamp: new Date(),
@@ -284,6 +362,7 @@ export const useChatBot = () => {
     sessionStorage.setItem('last_pending_msg', retryText);
 
     const userMessage: Message = {
+      id: createMessageId(),
       text: retryText,
       sender: 'user',
       timestamp: new Date(),

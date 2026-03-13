@@ -8,7 +8,7 @@ import { Team } from '../types/ranking';
 import { getApiErrorMessage } from '../utils/errorUtils';
 
 export const useRankingPredictionShare = () => {
-  const { userId, seasonYear } = useParams();
+  const { shareId, seasonYear } = useParams();
   const allTeams = usePredictionStore((state) => state.allTeams);
 
   const [rankings, setRankings] = useState<(Team | null)[]>([]);
@@ -16,14 +16,14 @@ export const useRankingPredictionShare = () => {
 
   useEffect(() => {
     const loadSharedPrediction = async () => {
-      if (!userId || !seasonYear) {
+      if (!shareId || !seasonYear) {
         toast.error('잘못된 접근입니다.');
         setIsLoading(false);
         return;
       }
 
       try {
-        const data = await fetchSharedPrediction(userId, seasonYear);
+        const data = await fetchSharedPrediction(shareId, seasonYear);
         const restoredRankings = restoreTeamsFromIds(data.teamIdsInOrder, allTeams);
         setRankings(restoredRankings);
       } catch (error: unknown) {
@@ -34,10 +34,10 @@ export const useRankingPredictionShare = () => {
     };
 
     loadSharedPrediction();
-  }, [userId, seasonYear, allTeams]);
+  }, [shareId, seasonYear, allTeams]);
 
   return {
-    userId,
+    shareId,
     seasonYear,
     rankings,
     isLoading,

@@ -2,21 +2,25 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { parseError } from '../utils/errorUtils';
 import TextareaAutosize from 'react-textarea-autosize';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuthAccessActions, useAuthProfileActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
-import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Radio, Smile, UserRound, Users, Megaphone, LineChart } from 'lucide-react';
+import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Smile, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { getTeamDescription, TEAM_DATA } from '../constants/teams';
-import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost } from '../api/cheerApi';
+import { TEAM_DATA } from '../constants/teams';
+import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPostChanges, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost, ShareMode } from '../api/cheerApi';
+import { fetchTeamFranchiseMetadata } from '../api/teamFranchiseApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
 import { motion } from 'framer-motion';
 import TeamLogo from './TeamLogo';
 import CheerCard from './CheerCard';
+import CheerBattleBanner from './CheerBattleBanner';
 import CheerHot from './CheerHot';
-import CheerWriteModal from './CheerWriteModal';
+import CheerWriteModal, { CheerWritePayload } from './CheerWriteModal';
+import AdSlot from './ads/AdSlot';
 import EndOfFeed from './EndOfFeed';
+import ErrorBoundary from './common/ErrorBoundary';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import {
     normalizeHexColor,
@@ -25,15 +29,43 @@ import {
     getContrastText,
     DEFAULT_BRAND_COLOR,
 } from '../utils/teamColors';
+import { compressImages } from '../utils/imageCompression';
+import { resolveLatestVisiblePostId } from '../utils/cheerPolling';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
+type FeedTabKey = 'all' | 'popular' | 'following';
+type CheerPostType = CheerPost['postType'];
+type FeedTabConfig = {
+    key: FeedTabKey;
+    label: string;
+    postType?: 'NORMAL' | 'NOTICE';
+    requireAuth?: boolean;
+    sort?: string;
+};
 
-export default function Cheer() {
+interface CheerProps {
+    openComposerOnMount?: boolean;
+}
+
+export default function Cheer({ openComposerOnMount = false }: CheerProps) {
     const navigate = useNavigate();
-    const { user, isAuthLoading, fetchProfileAndAuthenticate } = useAuthStore();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const {
+        userId: authUserId,
+        userEmail: authUserEmail,
+        userHandle: authUserHandle,
+        userName: authUserName,
+        userFavoriteTeam: authUserFavoriteTeam,
+        userFavoriteTeamColor: authUserFavoriteTeamColor,
+        userProfileImageUrl: authUserProfileImageUrl,
+    } = useAuthProfileSnapshot();
+    const { isLoggedIn, isAuthLoading } = useAuthSession();
+    const { fetchProfileAndAuthenticate } = useAuthProfileActions();
+    const { requireLogin } = useAuthAccessActions();
     const queryClient = useQueryClient();
     const today = useMemo(() => new Date(), []);
-    const feedTabs = useMemo(
+    const feedTabs = useMemo<FeedTabConfig[]>(
         () => [
             { key: 'all', label: '전체', postType: undefined },
             { key: 'popular', label: '인기', postType: undefined },
@@ -41,28 +73,100 @@ export default function Cheer() {
         ],
         []
     );
-    const [activeFeedTab, setActiveFeedTab] = useState(feedTabs[0].key);
+    const [activeFeedTab, setActiveFeedTab] = useState<FeedTabKey>(() => {
+        const tabParam = searchParams.get('tab');
+        return feedTabs.some((tab) => tab.key === tabParam)
+            ? (tabParam as FeedTabKey)
+            : feedTabs[0].key;
+    });
     const hasFetchedProfile = useRef(false);
+    const didOpenComposerFromRoute = useRef(false);
+    const didNotifyLoginRequiredFromWriteRoute = useRef(false);
+    const hasFavoriteTeam = authUserFavoriteTeam && authUserFavoriteTeam !== '없음';
+    const userDisplayName = authUserName || authUserEmail || '나';
+    const userProfilePath = authUserHandle
+        ? `/profile/${authUserHandle.startsWith('@') ? authUserHandle : `@${authUserHandle}`}`
+        : '/mypage';
 
     useEffect(() => {
         if (isAuthLoading) return;
-        if (!user) return;
-        if (user.favoriteTeam && user.favoriteTeam !== '없음') return;
+        if (!isLoggedIn) return;
+        if (hasFavoriteTeam) return;
         if (hasFetchedProfile.current) return;
 
         hasFetchedProfile.current = true;
         fetchProfileAndAuthenticate();
-    }, [fetchProfileAndAuthenticate, isAuthLoading, user?.favoriteTeam]);
+    }, [fetchProfileAndAuthenticate, hasFavoriteTeam, isAuthLoading, isLoggedIn]);
 
-    const handleWriteClick = () => {
-        if (!user) {
-            toast.error('로그인이 필요한 서비스입니다.');
+    useEffect(() => {
+        if (!openComposerOnMount) return;
+        if (didOpenComposerFromRoute.current) return;
+        if (isAuthLoading) return;
+
+        if (!isLoggedIn) {
+            if (!didNotifyLoginRequiredFromWriteRoute.current) {
+                didNotifyLoginRequiredFromWriteRoute.current = true;
+                toast.error('로그인이 필요한 서비스입니다.');
+                navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
+            }
             return;
         }
-        navigate('/cheer/write');
+
+        didOpenComposerFromRoute.current = true;
+        setIsWriteModalOpen(true);
+    }, [isAuthLoading, isLoggedIn, navigate, openComposerOnMount]);
+
+    useEffect(() => {
+        const tabParam = searchParams.get('tab');
+        const nextTab = feedTabs.some((tab) => tab.key === tabParam)
+            ? (tabParam as FeedTabKey)
+            : feedTabs[0].key;
+
+        setActiveFeedTab((currentTab) => (currentTab === nextTab ? currentTab : nextTab));
+    }, [feedTabs, searchParams]);
+
+    useEffect(() => {
+        const currentTab = searchParams.get('tab');
+        const normalizedCurrentTab = feedTabs.some((tab) => tab.key === currentTab)
+            ? currentTab
+            : null;
+        const expectedTab = activeFeedTab === feedTabs[0].key ? null : activeFeedTab;
+
+        if (normalizedCurrentTab === expectedTab) {
+            return;
+        }
+
+        const nextSearchParams = new URLSearchParams(searchParams);
+        if (expectedTab) {
+            nextSearchParams.set('tab', expectedTab);
+        } else {
+            nextSearchParams.delete('tab');
+        }
+        setSearchParams(nextSearchParams, { replace: true });
+    }, [activeFeedTab, feedTabs, searchParams, setSearchParams]);
+
+    const buildCheerWritePath = () => {
+        const nextSearchParams = new URLSearchParams();
+        const currentTab = searchParams.get('tab');
+
+        if (feedTabs.some((tab) => tab.key === currentTab)) {
+            nextSearchParams.set('tab', currentTab as FeedTabKey);
+        }
+
+        const nextSearch = nextSearchParams.toString();
+        return `/cheer/write${nextSearch ? `?${nextSearch}` : ''}`;
     };
 
-    const teamColor = normalizeHexColor(user?.favoriteTeamColor || DEFAULT_BRAND_COLOR);
+    const handleWriteClick = () => {
+        if (!isLoggedIn) {
+            toast.error('로그인이 필요한 서비스입니다.');
+            navigate(buildLoginPath(buildCheerWritePath()));
+            return;
+        }
+        navigate(buildCheerWritePath());
+    };
+
+    const teamColor = normalizeHexColor(authUserFavoriteTeamColor || DEFAULT_BRAND_COLOR);
     const teamAccent = getReadableAccent(teamColor);
     const teamContrastText = getContrastText(teamColor);
     const teamSoftBg = toRgba(teamColor, 0.12);
@@ -72,7 +176,7 @@ export default function Cheer() {
         if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
         return imageUrl;
     };
-    const favoriteTeamId = user?.favoriteTeam && user.favoriteTeam !== '없음' ? user.favoriteTeam : null;
+    const favoriteTeamId = hasFavoriteTeam ? authUserFavoriteTeam : null;
     const favoriteTeamLabel = favoriteTeamId ? TEAM_DATA[favoriteTeamId]?.name ?? favoriteTeamId : null;
     const favoriteTeamFull = favoriteTeamId ? TEAM_DATA[favoriteTeamId]?.fullName ?? favoriteTeamId : null;
     const { data: todaysGames = [], isLoading: isGamesLoading, isError: isGamesError, refetch: refetchGames } = useGamesData(today);
@@ -106,14 +210,39 @@ export default function Cheer() {
         if (liveGames.length) return liveGames[0];
         return todaysGames[0];
     }, [favoriteTeamFull, favoriteTeamId, favoriteTeamLabel, todaysGames]);
-    const teamId = user?.favoriteTeam && user.favoriteTeam !== '없음' ? user.favoriteTeam : 'all';
+    const teamId = hasFavoriteTeam ? authUserFavoriteTeam : 'all';
     const teamLogoId = teamId !== 'all' ? teamId : undefined;
     const rawTeamName = teamId !== 'all' ? getTeamNameById(teamId) : 'KBO 리그';
     const teamLabel = TEAM_DATA[teamId]?.name || rawTeamName.split(' ')[0];
     const teamName = TEAM_DATA[teamId]?.fullName || rawTeamName;
-    const teamDescription = teamId !== 'all'
-        ? getTeamDescription(teamLabel)
-        : '모든 팀의 흐름을 한 번에 확인하세요.';
+    const {
+        data: teamMetadata,
+        isLoading: isTeamMetadataLoading,
+        isError: isTeamMetadataError,
+        refetch: refetchTeamMetadata,
+    } = useQuery({
+        queryKey: ['cheer-team-metadata', teamId],
+        queryFn: () => fetchTeamFranchiseMetadata(teamId),
+        enabled: teamId !== 'all',
+        staleTime: 5 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
+    });
+    const teamDescription = useMemo(() => {
+        if (!teamMetadata) return '멋진 선택이에요! 함께 응원하며 즐거운 야구 생활을 시작해보세요.';
+        if (teamMetadata.summary) return teamMetadata.summary;
+        if (teamMetadata.description) return teamMetadata.description;
+
+        const metadataFields = [
+            teamMetadata.homeStadium ? `홈구장: ${teamMetadata.homeStadium}` : '',
+            teamMetadata.foundedYear ? `창단: ${teamMetadata.foundedYear}` : '',
+            teamMetadata.owner ? `구단주: ${teamMetadata.owner}` : '',
+            teamMetadata.homepage ? `홈페이지: ${teamMetadata.homepage}` : '',
+        ].filter(Boolean);
+
+        return metadataFields.length > 0
+            ? metadataFields.join(' · ')
+            : '멋진 선택이에요! 함께 응원하며 즐거운 야구 생활을 시작해보세요.';
+    }, [teamMetadata]);
     const activeTabConfig = feedTabs.find((item) => item.key === activeFeedTab);
     const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
     const [composerContent, setComposerContent] = useState('');
@@ -201,20 +330,53 @@ export default function Cheer() {
     };
 
     const createMutation = useMutation({
-        mutationFn: async (payload: { content: string; files: File[]; postType?: string }) => {
-            if (!user?.favoriteTeam) {
+        mutationFn: async (payload: {
+            content: string;
+            files: File[];
+            postType?: CheerPostType;
+            shareMode?: ShareMode;
+            sourceUrl?: string;
+            sourceTitle?: string;
+            sourceAuthor?: string;
+            sourceLicense?: string;
+            sourceLicenseUrl?: string;
+            sourceChangedNote?: string;
+            sourceSnapshotType?: string;
+        }) => {
+            if (!hasFavoriteTeam) {
                 throw new Error('favoriteTeam-required');
             }
             const created = await createCheerPost({
-                teamId: user.favoriteTeam,
+                teamId: authUserFavoriteTeam,
                 content: payload.content,
-                postType: payload.postType ?? 'CHEER',
+                postType: payload.postType ?? 'NORMAL',
+                shareMode: payload.shareMode,
+                sourceUrl: payload.sourceUrl,
+                sourceTitle: payload.sourceTitle,
+                sourceAuthor: payload.sourceAuthor,
+                sourceLicense: payload.sourceLicense,
+                sourceLicenseUrl: payload.sourceLicenseUrl,
+                sourceChangedNote: payload.sourceChangedNote,
+                sourceSnapshotType: payload.sourceSnapshotType,
             });
             let uploadedUrls: string[] = [];
             let uploadFailed = false;
             if (created?.id && payload.files.length > 0) {
+                let filesToUpload = payload.files;
                 try {
-                    uploadedUrls = await uploadPostImages(created.id, payload.files);
+                    filesToUpload = await compressImages(payload.files, {
+                        maxSizeMB: 1,
+                        maxWidthOrHeight: 1920,
+                        initialQuality: 0.82,
+                        useWebWorker: true,
+                    });
+                } catch (compressionError) {
+                    console.warn('이미지 선압축에 실패하여 원본 업로드를 진행합니다.', compressionError);
+                    filesToUpload = payload.files;
+                }
+
+                try {
+                    uploadedUrls = await uploadPostImages(created.id, filesToUpload);
                 } catch (error) {
                     // 이미지 업로드 실패 시 게시글 삭제 (Atomic 처럼 동작하게)
                     console.error('Image upload failed, deleting post...', error);
@@ -241,38 +403,45 @@ export default function Cheer() {
         },
         onMutate: async (payload) => {
             const optimisticId = Date.now() * -1;
-            const optimisticPost = {
+            const optimisticPost: CheerPost = {
                 id: optimisticId,
-                teamId: user?.favoriteTeam || 'ALL',
-                team: user?.favoriteTeam || 'ALL',
+                teamId: authUserFavoriteTeam || 'ALL',
+                team: authUserFavoriteTeam || 'ALL',
                 teamColor,
                 content: payload.content,
-                author: user?.name || user?.email || '나',
-                authorId: user?.id || 0,
-                authorHandle: user?.handle || '',
-                authorProfileImageUrl: user?.profileImageUrl,
-                authorTeamId: user?.favoriteTeam || undefined,
+                author: userDisplayName,
+                authorHandle: authUserHandle || '',
+                authorProfileImageUrl: authUserProfileImageUrl ?? undefined,
+                authorTeamId: authUserFavoriteTeam || undefined,
                 timeAgo: '방금 전',
-                comments: 0,
-                likes: 0,
                 likeCount: 0,
                 commentCount: 0,
+                bookmarkCount: 0,
                 repostCount: 0,
                 views: 0,
                 isHot: false,
                 liked: false,
-                likedByUser: false,
                 bookmarked: false,
-                isBookmarked: false,
-                images: composerPreviews.map((preview) => preview.url),
                 imageUrls: composerPreviews.map((preview) => preview.url),
                 imageUploadFailed: false,
-                postType: payload.postType ?? 'CHEER',
+                postType: payload.postType ?? 'NORMAL',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 isOwner: true,
                 repostedByMe: false,
                 originalDeleted: false,
+                shareMode: payload.shareMode,
+                sourceInfo: payload.sourceUrl
+                    ? {
+                        url: payload.sourceUrl,
+                        title: payload.sourceTitle,
+                        author: payload.sourceAuthor,
+                        license: payload.sourceLicense,
+                        licenseUrl: payload.sourceLicenseUrl,
+                        changedNote: payload.sourceChangedNote,
+                        snapshotType: payload.sourceSnapshotType,
+                    }
+                    : undefined,
             };
 
             const updateCache = (key: (string | undefined)[]) => {
@@ -304,6 +473,13 @@ export default function Cheer() {
             if (activeFeedTab !== 'all') {
                 queryClient.setQueryData(['cheer-posts', 'all'], context.previousAll);
             }
+            const parsedError = parseError(_error);
+            if (parsedError.responseCode === 'INVALID_AUTHOR') {
+                requireLogin();
+                toast.error(parsedError.message || '인증된 사용자 정보를 확인할 수 없어 다시 로그인해 주세요.');
+            } else {
+                toast.error(parsedError.message || '게시글 등록에 실패했습니다.');
+            }
 
         },
         onSuccess: (result, _payload, context) => {
@@ -322,7 +498,6 @@ export default function Cheer() {
                                     ...post,
                                     ...createdPost,
                                     authorProfileImageUrl: createdPost.authorProfileImageUrl ?? post.authorProfileImageUrl,
-                                    images: uploadedUrls.length > 0 ? uploadedUrls : post.images ?? createdPost.images,
                                     imageUrls: uploadedUrls.length > 0 ? uploadedUrls : post.imageUrls ?? createdPost.imageUrls,
                                     imageUploadFailed: uploadFailed,
                                 }
@@ -338,11 +513,11 @@ export default function Cheer() {
     });
 
     const handleComposerSubmit = async () => {
-        if (!user) {
+        if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
             return;
         }
-        if (!user.favoriteTeam || user.favoriteTeam === '없음') {
+        if (!hasFavoriteTeam) {
             toast.warning('마이페이지에서 응원팀을 설정해주세요!');
             return;
         }
@@ -392,9 +567,6 @@ export default function Cheer() {
                 });
             }
             return fetchPosts({
-                // Force 'all' to allow viewing/commenting on all posts regardless of user's favorite team.
-                // Previously: teamId: favoriteTeamId || 'all' (Restricted view)
-                teamId: 'all',
                 page: pageParam as number,
                 size: 20,
                 postType: activeTabConfig?.postType,
@@ -420,7 +592,7 @@ export default function Cheer() {
         staleTime: 60 * 1000, // 1 minute
         gcTime: 5 * 60 * 1000, // 5 minutes
         // 팔로우 탭은 로그인 필수
-        enabled: activeFeedTab !== 'following' || !!user,
+        enabled: activeFeedTab !== 'following' || isLoggedIn,
     });
 
     const currentPosts = useMemo(() => {
@@ -435,32 +607,27 @@ export default function Cheer() {
         });
     }, [data]);
 
+    const latestVisiblePostId = useMemo(
+        () => resolveLatestVisiblePostId(currentPosts),
+        [currentPosts]
+    );
+
     // Polling for new posts
-    const { data: polledData } = useQuery({
-        queryKey: ['cheer-polling', activeFeedTab],
-        queryFn: () => fetchPosts({
-            teamId: 'all',
-            page: 0,
-            size: 10,
-            postType: activeTabConfig?.postType
+    const { data: polledChanges } = useQuery({
+        queryKey: ['cheer-polling-changes', activeFeedTab, latestVisiblePostId],
+        queryFn: () => fetchPostChanges({
+            sinceId: latestVisiblePostId,
         }),
         refetchInterval: 15000,
-        enabled: !isLoading && activeFeedTab === 'all',
+        enabled: !isLoading && activeFeedTab === 'all' && latestVisiblePostId !== null,
     });
 
     useEffect(() => {
-        if (!polledData?.content || !currentPosts.length) return;
-
-        // Find the maximum ID in current posts to handle pinned/notice posts correctly
-        const maxCurrentId = Math.max(...currentPosts.map((p) => p.id));
-
-        // Count how many polled posts have ID > maxCurrentId
-        const newCount = polledData.content.filter((p: CheerPost) => p.id > maxCurrentId).length;
-
-        if (newCount > 0) {
-            setNewPostCount(newCount);
+        if (!polledChanges) return;
+        if (polledChanges.newCount > 0) {
+            setNewPostCount(polledChanges.newCount);
         }
-    }, [polledData, currentPosts]);
+    }, [polledChanges]);
 
     // Smart Retry for Infinite Scroll (Fix for Duplicate/Offset Loop)
     useEffect(() => {
@@ -536,7 +703,7 @@ export default function Cheer() {
 
     return (
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-background">
-            <div className="px-6 py-8">
+            <div className="px-4 sm:px-6 py-6 sm:py-8">
                 <div className="mx-auto w-full max-w-[1008px] xl:max-w-[1136px] lg:-translate-x-4">
                     <div className="grid grid-cols-1 gap-0 lg:gap-x-4 lg:grid-cols-[72px_1fr_280px] xl:grid-cols-[200px_1fr_320px]">
                         <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
@@ -544,7 +711,7 @@ export default function Cheer() {
                                 { id: 'home', label: '홈', icon: Home, path: '/home' },
                                 { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
                                 { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-                                { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage' },
+                                { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
                                 { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
                             ].map((item) => {
                                 const Icon = item.icon;
@@ -570,13 +737,7 @@ export default function Cheer() {
 
                             <button
                                 type="button"
-                                onClick={() => {
-                                    if (!user) {
-                                        toast.error('로그인이 필요한 서비스입니다.');
-                                        return;
-                                    }
-                                    setIsWriteModalOpen(true);
-                                }}
+                                onClick={handleWriteClick}
                                 className="mt-4 flex w-full items-center justify-center xl:justify-start gap-3 h-12 px-4 rounded-full xl:rounded-xl text-[18px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
                                 style={{ backgroundColor: teamAccent }}
                             >
@@ -599,7 +760,7 @@ export default function Cheer() {
                                                 whileTap={{ scale: 0.98 }}
                                                 transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                                                 className={cn(
-                                                    'relative px-4 py-2 text-[14px] font-semibold rounded-full transition-all duration-200',
+                                                    'relative px-4 py-2 min-h-11 flex items-center text-[14px] font-semibold rounded-full transition-all duration-200',
                                                     isActive
                                                         ? 'text-[#0F172A] dark:text-gray-100'
                                                         : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-gray-300 dark:hover:bg-secondary dark:hover:text-white'
@@ -609,7 +770,7 @@ export default function Cheer() {
                                                 {isActive && (
                                                     <motion.span
                                                         layoutId="cheer-feed-tab-indicator"
-                                                        className="absolute inset-0 rounded-full bg-white dark:bg-card shadow-sm ring-1 ring-black/5 dark:ring-border"
+                                                        className="absolute inset-0 rounded-full bg-white dark:bg-card shadow-sm border border-black/5 dark:border-border"
                                                         transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                                                     />
                                                 )}
@@ -623,7 +784,7 @@ export default function Cheer() {
                             {newPostCount > 0 && (
                                 <button
                                     onClick={handleNewPostsClick}
-                                    className="sticky top-12 z-20 w-full backdrop-blur-sm py-2 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
+                                    className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
                                     style={{
                                         backgroundColor: teamSoftBg,
                                         borderColor: teamSoftBorder,
@@ -635,9 +796,25 @@ export default function Cheer() {
                                 </button>
                             )}
 
-                            <div className="mx-4 mt-4">
-
-                            </div>
+                            {/* CheerBattle Banner - only shown when a valid game with gameId exists */}
+                            {featuredGame?.gameId &&
+                                featuredGame.gameStatus !== 'OFFSEASON' &&
+                                featuredGame.homeTeam &&
+                                featuredGame.awayTeam && (
+                                    <ErrorBoundary
+                                        fallback={(
+                                            <div className="mx-4 mt-4 mb-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                                                실시간 응원 배틀을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+                                            </div>
+                                        )}
+                                    >
+                                        <CheerBattleBanner
+                                            gameId={featuredGame.gameId}
+                                            homeTeamId={featuredGame.homeTeam}
+                                            awayTeamId={featuredGame.awayTeam}
+                                        />
+                                    </ErrorBoundary>
+                                )}
 
                             <section
                                 className={cn(
@@ -656,22 +833,32 @@ export default function Cheer() {
                                     </div>
                                 )}
                                 <div className="flex gap-3">
-                                    <div className="h-11 w-11 shrink-0 rounded-full border border-slate-200 dark:border-border bg-slate-100 dark:bg-card flex items-center justify-center overflow-hidden">
-                                        {user?.profileImageUrl ? (
-                                    <ProfileAvatar
-                                        src={resolveProfileImage(user.profileImageUrl) || undefined}
-                                        alt={user.name || '프로필'}
-                                        fallbackName={user.name || '프로필'}
-                                        width={40}
-                                        height={40}
-                                        className="rounded-full"
-                                    />
-                                        ) : user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
-                                            <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
-                                        ) : (
-                                            <span className="text-sm font-semibold text-slate-600 dark:text-gray-300">
-                                                {user?.name?.slice(0, 1) || '?'}
+                                    <div className="h-10 w-10 shrink-0">
+                                        {authUserProfileImageUrl ? (
+                                            <ProfileAvatar
+                                                src={resolveProfileImage(authUserProfileImageUrl) || undefined}
+                                                alt={authUserName || '프로필'}
+                                                fallbackName={authUserName || '프로필'}
+                                                width={40}
+                                                height={40}
+                                                showRing
+                                                ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                            />
+                                        ) : hasFavoriteTeam ? (
+                                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/5 dark:bg-white/10 p-px overflow-hidden">
+                                                <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
+                                                    <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
+                                                </div>
                                             </span>
+                                        ) : (
+                                            <ProfileAvatar
+                                                alt={authUserName || '프로필'}
+                                                fallbackName={authUserName || '프로필'}
+                                                width={40}
+                                                height={40}
+                                                showRing
+                                                ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                            />
                                         )}
                                     </div>
                                     <div className="flex-1">
@@ -737,7 +924,7 @@ export default function Cheer() {
                                                 {composerPreviews.map((preview, index) => (
                                                     <div
                                                         key={preview.url}
-                                                        className="relative h-20 overflow-hidden rounded-lg ring-1 ring-black/10 dark:ring-white/10"
+                                                        className="relative h-20 overflow-hidden rounded-lg border border-black/10 dark:border-white/10"
                                                     >
                                                         <img
                                                             src={preview.url}
@@ -766,7 +953,7 @@ export default function Cheer() {
                                             <div key={index} className="px-4 py-4 animate-pulse">
                                                 <div className="flex gap-3">
                                                     {/* Profile skeleton */}
-                                                    <div className="h-11 w-11 rounded-full bg-slate-200 dark:bg-secondary flex-shrink-0" />
+                                                    <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-secondary flex-shrink-0" />
 
                                                     <div className="flex-1 space-y-3">
                                                         {/* Author and time skeleton */}
@@ -794,15 +981,15 @@ export default function Cheer() {
                                         ))}
                                     </div>
                                 ) : queryError ? (
-                                    <div className="py-16 px-6 flex flex-col items-center justify-center gap-4">
+                                    <div className="py-8 sm:py-10 px-4 sm:px-6 flex flex-col items-center justify-center gap-4">
                                         <div className="flex flex-col items-center gap-3">
                                             <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
                                             <div className="text-center">
                                                 <p className="text-[16px] font-semibold text-red-500 dark:text-red-400">
-                                                    게시글을 불러오는데 실패했습니다
+                                                    데이터를 불러오지 못했습니다
                                                 </p>
                                                 <p className="mt-1 text-sm text-slate-500 dark:text-gray-300">
-                                                    네트워크 연결을 확인해주세요
+                                                    네트워크 상태를 확인하고 다시 시도해 주세요
                                                 </p>
                                             </div>
                                         </div>
@@ -814,13 +1001,13 @@ export default function Cheer() {
                                             다시 시도
                                         </button>
                                     </div>
-                                ) : activeFeedTab === 'following' && !user ? (
-                                    <div className="border-b border-border/70 dark:border-border px-6 py-12 text-center">
+                                ) : activeFeedTab === 'following' && !isLoggedIn ? (
+                                    <div className="border-b border-border/70 dark:border-border px-4 sm:px-6 py-8 sm:py-10 text-center">
                                         <p className="text-[#64748B] dark:text-gray-300">로그인이 필요합니다</p>
                                         <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">팔로우한 유저의 글을 보려면 로그인해주세요.</p>
                                         <button
                                             type="button"
-                                            onClick={() => navigate('/login')}
+                                            onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
                                             className="mt-4 rounded-full px-6 py-2 text-sm font-semibold text-white"
                                             style={{ backgroundColor: teamColor }}
                                         >
@@ -828,7 +1015,7 @@ export default function Cheer() {
                                         </button>
                                     </div>
                                 ) : currentPosts.length === 0 ? (
-                                    <div className="border-b border-border/70 dark:border-border px-6 py-12 text-center">
+                                    <div className="border-b border-border/70 dark:border-border px-4 sm:px-6 py-8 sm:py-10 text-center">
                                         {activeFeedTab === 'following' ? (
                                             <>
                                                 <p className="text-[#64748B] dark:text-gray-300">팔로우한 유저가 없습니다</p>
@@ -842,16 +1029,40 @@ export default function Cheer() {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="px-4 py-4 space-y-3">
-                                        {currentPosts.map((post) => (
-                                            <CheerCard key={post.id} post={post} />
-                                        ))}
+                                    <div className="px-4 py-4 space-y-4">
+                                        {currentPosts.flatMap((post, index) => [
+                                            <ErrorBoundary
+                                                key={post.id}
+                                                fallback={(
+                                                    <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                                                        일부 게시글을 표시하는 중 오류가 발생했습니다. 다음 게시글부터 계속 볼 수 있습니다.
+                                                    </article>
+                                                )}
+                                            >
+                                                <CheerCard post={post} />
+                                            </ErrorBoundary>,
+                                            index === 3 ? (
+                                                <AdSlot
+                                                    key="cheer-feed-1"
+                                                    slotId="cheer_feed_1"
+                                                    pageType="cheer_feed"
+                                                    listIndex={4}
+                                                    creativeType="native_card"
+                                                    loggedIn={Boolean(authUserId)}
+                                                    userId={authUserId ? String(authUserId) : null}
+                                                    minHeight={156}
+                                                />
+                                            ) : null,
+                                        ])}
                                     </div>
                                 )}
                                 <div ref={sentinelRef} className="flex min-h-[120px] items-center justify-center">
                                     {queryError && currentPosts.length > 0 ? (
                                         <div className="flex flex-col items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-                                            <span>추가 게시글을 불러오지 못했습니다.</span>
+                                            <span>데이터를 불러오지 못했습니다.</span>
+                                            <p className="text-xs text-slate-400 dark:text-slate-300">
+                                                네트워크 상태를 확인하고 다시 시도해 주세요
+                                            </p>
                                             <button
                                                 type="button"
                                                 onClick={() => fetchNextPage()}
@@ -884,7 +1095,31 @@ export default function Cheer() {
                                         <p className="text-xs text-[#64748B] dark:text-gray-300">{teamName}</p>
                                     </div>
                                 </div>
-                                <p className="mt-3 text-sm text-[#64748B] dark:text-gray-300 leading-relaxed">{teamDescription}</p>
+                                {teamId === 'all' ? (
+                                    <p className="mt-3 text-sm text-[#64748B] dark:text-gray-300 leading-relaxed">모든 팀의 흐름을 한 번에 확인하세요.</p>
+                                ) : isTeamMetadataLoading ? (
+                                    <div className="mt-3 space-y-2">
+                                        <div className="h-4 w-full rounded bg-slate-100 dark:bg-secondary" />
+                                        <div className="h-4 w-4/5 rounded bg-slate-100 dark:bg-secondary" />
+                                        <div className="h-4 w-3/5 rounded bg-slate-100 dark:bg-secondary" />
+                                    </div>
+                                ) : isTeamMetadataError ? (
+                                    <div className="mt-3 rounded-xl bg-red-50 dark:bg-secondary/70 px-3 py-3 text-sm text-[#64748B] dark:text-gray-300">
+                                        <p>팀 요약 정보를 불러오지 못했습니다.</p>
+                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
+                                            네트워크 상태를 확인하고 다시 시도해 주세요
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => refetchTeamMetadata()}
+                                            className="mt-3 w-full rounded-full border border-red-200 dark:border-border px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-secondary"
+                                        >
+                                            다시 시도
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <p className="mt-3 text-sm text-[#64748B] dark:text-gray-300 leading-relaxed">{teamDescription}</p>
+                                )}
                             </div>
 
                             <div className="rounded-2xl border border-border/70 dark:border-border p-4 bg-white dark:bg-card">
@@ -979,7 +1214,7 @@ export default function Cheer() {
                         { id: 'home', label: '홈', icon: Home, path: '/home' },
                         { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
                         { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-                        { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage' },
+                        { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
                     ].map((item) => {
                         const Icon = item.icon;
                         const isActive = item.id === 'team';
@@ -1018,11 +1253,19 @@ export default function Cheer() {
             <CheerWriteModal
                 isOpen={isWriteModalOpen}
                 onClose={() => setIsWriteModalOpen(false)}
-                onSubmit={async (content: string, files: File[]) => {
+                onSubmit={async (payload: CheerWritePayload) => {
                     await createMutation.mutateAsync({
-                        content,
-                        files,
+                        content: payload.content,
+                        files: payload.files,
                         postType: activeTabConfig?.postType,
+                        shareMode: payload.shareMode,
+                        sourceUrl: payload.sourceUrl,
+                        sourceTitle: payload.sourceTitle,
+                        sourceAuthor: payload.sourceAuthor,
+                        sourceLicense: payload.sourceLicense,
+                        sourceLicenseUrl: payload.sourceLicenseUrl,
+                        sourceChangedNote: payload.sourceChangedNote,
+                        sourceSnapshotType: payload.sourceSnapshotType,
                     });
                 }}
                 teamColor={teamColor}

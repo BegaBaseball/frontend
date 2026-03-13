@@ -1,25 +1,41 @@
 // src/components/OAuthCallback.tsx
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileActions } from '../store/authStore';
+import { useAuthRedirectState } from '../store/authStore';
 import { consumeOAuth2State } from '../api/auth';
 import LoadingSpinner from './LoadingSpinner';
+import { Button } from './ui/button';
+import {
+  buildLoginPathWithError,
+  getStoredLoginRedirect,
+  resolvePostLoginRedirect,
+} from '../utils/loginRedirect';
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const login = useAuthStore((state) => state.login);
-  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
-  const [error, setError] = useState(false);
+  const { fetchProfileAndAuthenticate } = useAuthProfileActions();
+  const { pendingLoginRedirect, clearPendingLoginRedirect } = useAuthRedirectState();
+  const [errorCode, setErrorCode] = useState<string | null>(null);
 
   const hasCalled = useRef(false);
 
   useEffect(() => {
+    let redirectTimer: number | null = null;
     const state = searchParams.get('state');
+    const getRetryLoginPath = (nextErrorCode?: string | null) =>
+      buildLoginPathWithError(nextErrorCode, pendingLoginRedirect || getStoredLoginRedirect());
+    const scheduleRetryRedirect = (nextErrorCode: string) => {
+      setErrorCode(nextErrorCode);
+      redirectTimer = window.setTimeout(() => {
+        navigate(getRetryLoginPath(nextErrorCode), { replace: true });
+      }, 2000);
+    };
 
     if (!state) {
-      navigate('/login', { replace: true });
-      return;
+      navigate(getRetryLoginPath('invalid_oauth2_request'), { replace: true });
+      return undefined;
     }
 
     if (hasCalled.current) return;
@@ -27,49 +43,48 @@ export default function OAuthCallback() {
 
     (async () => {
       try {
-        const data = await consumeOAuth2State(state);
-        const { email, name, role, profileImageUrl, favoriteTeam, handle } = data;
+          const data = await consumeOAuth2State(state);
+          const { email, name, handle } = data;
 
         if (email && name) {
-          login(
-            email,
-            name,
-            profileImageUrl ?? null,
-            role || undefined,
-            favoriteTeam || undefined,
-            undefined,
-            undefined,
-            handle || undefined,
-            undefined
-          );
-
-          setTimeout(() => {
-            fetchProfileAndAuthenticate();
-            const redirectPath = handle
-              ? `/mypage/${handle.startsWith('@') ? handle : `@${handle}`}`
-              : '/home';
-            navigate(redirectPath, { replace: true });
-          }, 100);
+          await fetchProfileAndAuthenticate();
+          const normalizedHandle = (handle || '').trim();
+          const fallbackPath = normalizedHandle
+            ? `/mypage/${normalizedHandle.startsWith('@') ? normalizedHandle : `@${normalizedHandle}`}`
+            : '/mypage';
+          const redirectPath = resolvePostLoginRedirect(null, pendingLoginRedirect, fallbackPath);
+          clearPendingLoginRedirect();
+          navigate(redirectPath, { replace: true });
         } else {
-          navigate('/login', { replace: true });
+          scheduleRetryRedirect('oauth2_provider_payload_invalid');
         }
       } catch {
-        setError(true);
-        setTimeout(() => navigate('/login', { replace: true }), 2000);
+        scheduleRetryRedirect('oauth2_auth_failed');
       }
     })();
-  }, [searchParams, login, navigate, fetchProfileAndAuthenticate]);
 
-  if (error) {
+    return () => {
+      if (redirectTimer !== null) {
+        window.clearTimeout(redirectTimer);
+      }
+    };
+  }, [clearPendingLoginRedirect, fetchProfileAndAuthenticate, navigate, pendingLoginRedirect, searchParams]);
+
+  if (errorCode) {
+    const retryLoginPath = buildLoginPathWithError(errorCode, pendingLoginRedirect || getStoredLoginRedirect());
+
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 font-semibold mb-2">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center transition-colors duration-200">
+        <div className="text-center px-6">
+          <p className="font-semibold mb-2 text-red-600 dark:text-red-400">
             로그인 처리에 실패했습니다.
           </p>
-          <p className="text-gray-500 text-sm">
-            로그인 페이지로 이동합니다...
+          <p className="text-muted-foreground text-sm mb-4">
+            로그인 페이지로 돌아가 다시 시도해주세요.
           </p>
+          <Button onClick={() => navigate(retryLoginPath, { replace: true })} variant="outline">
+            로그인으로 돌아가기
+          </Button>
         </div>
       </div>
     );

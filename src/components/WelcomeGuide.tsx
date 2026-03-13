@@ -109,7 +109,7 @@ const SLIDES_DATA: readonly Slide[] = [
     features: [
       '내가 호스트인 파티: 신청 관리 → 승인/거절 → 채팅방 소통',
       '참여 신청한 파티: 승인 대기 → 승인 후 채팅 가능',
-      '경기 당일 체크인으로 보증금 환불 받기'
+      '승인 후 채팅으로 만날 시간/장소를 조율하기'
     ]
   },
   {
@@ -168,7 +168,8 @@ const SlideIcon = ({ iconType, color, isIntro }: { iconType: string; color: stri
 };
 
 export default function WelcomeGuide() {
-  const { showWelcome, setShowWelcome } = useUIStore();
+  const showWelcome = useUIStore((state) => state.showWelcome);
+  const setShowWelcome = useUIStore((state) => state.setShowWelcome);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [imageError, setImageError] = useState(false);
 

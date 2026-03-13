@@ -4,22 +4,21 @@ import { Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { api } from '../utils/api';
+import { api, getApiErrorStatus } from '../utils/api';
 import { getApiErrorMessage } from '../utils/errorUtils';
 
 interface ReviewDialogProps {
   isOpen: boolean;
   onClose: () => void;
   partyId: number;
-  reviewerId: number;
   reviewee: {
-    id: number;
+    handle: string;
     name: string;
   };
   onSuccess: () => void;
 }
 
-export default function ReviewDialog({ isOpen, onClose, partyId, reviewerId, reviewee, onSuccess }: ReviewDialogProps) {
+export default function ReviewDialog({ isOpen, onClose, partyId, reviewee, onSuccess }: ReviewDialogProps) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -38,20 +37,18 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewerId, rev
     try {
       await api.createReview({
         partyId,
-        reviewerId,
-        revieweeId: reviewee.id,
+        revieweeHandle: reviewee.handle,
         rating,
         comment: comment.trim() || undefined,
       });
       onSuccess();
       handleClose();
     } catch (error: unknown) {
-      const msg = getApiErrorMessage(error, '리뷰 작성에 실패했습니다. 다시 시도해주세요.');
-
-      if (msg.includes('duplicate') || msg.includes('이미') || msg.includes('Duplicate') || msg.includes('409')) {
+      const status = getApiErrorStatus(error);
+      if (status === 409) {
         toast.warning('이미 이 참여자에 대한 리뷰를 작성했습니다.');
       } else {
-        toast.error(msg);
+        toast.error(getApiErrorMessage(error, '리뷰 작성에 실패했습니다. 다시 시도해주세요.'));
       }
     } finally {
       setIsSubmitting(false);
@@ -75,10 +72,11 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewerId, rev
                 <button
                   key={num}
                   type="button"
+                  disabled={isSubmitting}
                   onClick={() => setRating(num)}
                   onMouseEnter={() => setHoverRating(num)}
                   onMouseLeave={() => setHoverRating(0)}
-                  className="p-1 transition-transform hover:scale-110"
+                  className="p-1 transition-transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Star
                     className={`w-8 h-8 transition-colors ${num <= (hoverRating || rating)

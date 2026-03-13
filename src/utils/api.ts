@@ -2,13 +2,15 @@
 import type {
   Party, Application, CheckIn, PartyReview, ChatMessage, PartyStatus,
   CreatePartyRequest, UpdatePartyRequest, CreateApplicationRequest,
-  CreateCheckInRequest, CreateReviewRequest,
+  CreateCheckInRequest, CreateCheckInQrSessionRequest, CreateCheckInQrSessionResponse, CreateReviewRequest,
+  CancelApplicationRequest, CancelApplicationResponse,
 } from '../types/mate';
 import type { UserProfileApiResponse } from '../types/profile';
 import type { NotificationData } from '../types/notification';
 import type { Stadium, Place } from '../types/stadium';
-import { getApiBaseUrl } from '../api/apiBase';
+import apiClient from '../api/axios';
 import { SERVER_BASE_URL } from '../constants/config';
+import { isAxiosError } from 'axios';
 
 export interface KboScheduleItem {
   gameId: string;
@@ -16,14 +18,18 @@ export interface KboScheduleItem {
   stadium: string;
   homeTeam: string;
   awayTeam: string;
+  gameStatus?: string | null;
+  gameStatusKr?: string | null;
+  homeScore?: number | string | null;
+  awayScore?: number | string | null;
 }
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = apiClient.defaults.baseURL || '/api';
 const FALLBACK_API_BASE_URL = `${SERVER_BASE_URL.replace(/\/$/, '')}/api`;
 
 export class ApiError extends Error {
   status: number;
-  data: { message?: string; error?: string; timestamp?: string } | null;
+  data: { message?: string; error?: string; timestamp?: string; code?: string } | null;
 
   constructor(message: string, status: number, data: ApiError['data'] = null) {
     super(message);
@@ -47,9 +53,34 @@ export interface PaginatedResponse<T> {
   size: number;
 }
 
+interface ApiRequestOptions extends RequestInit {
+  skipGlobalErrorHandler?: boolean;
+  skipErrorReporting?: boolean;
+  allowManualRetry?: boolean;
+}
+
 let notificationUnreadCountEndpointAvailable = true;
 let notificationListEndpointAvailable = true;
 let notificationAuthFailure = false;
+
+const toRequestHeaders = (headers?: HeadersInit): Record<string, string> => {
+  if (!headers) {
+    return {};
+  }
+
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+
+  if (Array.isArray(headers)) {
+    return headers.reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+  }
+
+  return headers as Record<string, string>;
+};
 
 const isHttpErrorStatus = (error: unknown, statusCode: number): boolean =>
   typeof error === 'object' &&
@@ -72,45 +103,48 @@ export const isIgnorableNotificationError = (error: unknown): boolean => {
 };
 
 export const api = {
-  async request<T = unknown>(endpoint: string, options?: RequestInit, baseUrl = API_BASE_URL): Promise<T> {
-    const response = await fetch(`${baseUrl}${endpoint}`, {
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      ...options,
-    });
+  async request<T = unknown>(endpoint: string, options?: ApiRequestOptions, baseUrl = API_BASE_URL): Promise<T> {
+    const method = (options?.method || 'GET').toLowerCase() || 'get';
+    const headers = toRequestHeaders(options?.headers);
+    const url = baseUrl === API_BASE_URL ? endpoint : `${baseUrl}${endpoint}`;
 
-    if (!response.ok) {
-      const apiError = new ApiError(`API Error: ${response.status}`, response.status);
-      try {
-        apiError.data = await response.json();
-      } catch {
-        apiError.data = null;
+    try {
+      const response = await apiClient.request<T>({
+        url,
+        method,
+        data: options?.body,
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        signal: options?.signal as any,
+        skipGlobalErrorHandler: options?.skipGlobalErrorHandler,
+        skipErrorReporting: options?.skipErrorReporting,
+        allowManualRetry: options?.allowManualRetry,
+      });
+
+      return response.status === 204 ? ({} as T) : (response.data as unknown as T);
+    } catch (error) {
+      if (isAxiosError(error) && error.response) {
+        const apiError = new ApiError(`API Error: ${error.response.status}`, error.response.status, error.response.data ?? null);
+        throw apiError;
       }
-      throw apiError;
-    }
 
-    if (response.status === 204) {
-      return {} as T;
-    }
+      if (error instanceof Error) {
+        throw error;
+      }
 
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return response.json() as Promise<T>;
+      throw new Error('API request failed');
     }
-
-    return {} as T;
   },
 
   // Stadium
-  async getStadiums(): Promise<Stadium[]> {
-    return this.request<Stadium[]>('/stadiums');
+  async getStadiums(options?: ApiRequestOptions): Promise<Stadium[]> {
+    return this.request<Stadium[]>('/stadiums', options);
   },
 
-  async getStadiumPlaces(stadiumId: string, category: string): Promise<Place[]> {
-    return this.request<Place[]>(`/stadiums/${stadiumId}/places?category=${category}`);
+  async getStadiumPlaces(stadiumId: string, category: string, options?: ApiRequestOptions): Promise<Place[]> {
+    return this.request<Place[]>(`/stadiums/${stadiumId}/places?category=${category}`, options);
   },
 
   async getKboSchedule(date: string): Promise<KboScheduleItem[]> {
@@ -122,16 +156,21 @@ export const api = {
     return this.request<UserProfileApiResponse>('/auth/mypage');
   },
 
-  async getUserIdByEmail(email: string): Promise<ApiResponse<number>> {
-    return this.request<ApiResponse<number>>(`/users/email-to-id?email=${encodeURIComponent(email)}`);
-  },
-
   async checkSocialVerified(userId: number): Promise<ApiResponse<boolean>> {
     return this.request<ApiResponse<boolean>>(`/users/${userId}/social-verified`);
   },
 
   // Party
-  async getParties(teamId?: string, stadium?: string, page = 0, size = 9, status?: PartyStatus, searchQuery?: string, gameDate?: string): Promise<PaginatedResponse<Party>> {
+  async getParties(
+    teamId?: string,
+    stadium?: string,
+    page = 0,
+    size = 9,
+    status?: PartyStatus,
+    searchQuery?: string,
+    gameDate?: string,
+    signal?: AbortSignal,
+  ): Promise<PaginatedResponse<Party>> {
     const params = new URLSearchParams();
     if (teamId) params.append('teamId', teamId);
     if (stadium) params.append('stadium', stadium);
@@ -141,7 +180,7 @@ export const api = {
     params.append('page', page.toString());
     params.append('size', size.toString());
 
-    return this.request<PaginatedResponse<Party>>(`/parties?${params}`);
+    return this.request<PaginatedResponse<Party>>(`/parties?${params}`, { signal });
   },
 
   async createParty(data: CreatePartyRequest): Promise<Party> {
@@ -151,8 +190,8 @@ export const api = {
     });
   },
 
-  async getPartyById(partyId: string | number): Promise<Party> {
-    return this.request<Party>(`/parties/${partyId}`);
+  async getPartyById(partyId: string | number, options?: ApiRequestOptions): Promise<Party> {
+    return this.request<Party>(`/parties/${partyId}`, options);
   },
 
   async updateParty(partyId: number, data: UpdatePartyRequest): Promise<Party> {
@@ -184,6 +223,10 @@ export const api = {
     return this.request<Application[]>('/applications/my');
   },
 
+  async getMyApplicationByParty(partyId: string | number): Promise<Application | null> {
+    return this.request<Application | null>(`/applications/party/${partyId}/mine`);
+  },
+
   async approveApplication(applicationId: string | number): Promise<Application> {
     return this.request<Application>(`/applications/${applicationId}/approve`, {
       method: 'POST',
@@ -202,6 +245,16 @@ export const api = {
     });
   },
 
+  async cancelApplicationWithReason(
+    applicationId: string | number,
+    data: CancelApplicationRequest,
+  ): Promise<CancelApplicationResponse> {
+    return this.request<CancelApplicationResponse>(`/applications/${applicationId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // CheckIn
   async getCheckInsByParty(partyId: string | number): Promise<CheckIn[]> {
     return this.request<CheckIn[]>(`/checkin/party/${partyId}`);
@@ -214,19 +267,37 @@ export const api = {
     });
   },
 
+  async createCheckInQrSession(data: CreateCheckInQrSessionRequest): Promise<CreateCheckInQrSessionResponse> {
+    return this.request<CreateCheckInQrSessionResponse>('/checkin/qr-session', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Chat
   async getChatMessages(partyId: string | number): Promise<ChatMessage[]> {
     return this.request<ChatMessage[]>(`/chat/party/${partyId}`);
   },
 
-  // Post (cheerboard 타입은 별도 도메인 — 향후 타입 추가)
+  async sendChatMessage(data: {
+    partyId: number | string;
+    message: string;
+    imageUrl?: string;
+  }): Promise<ChatMessage> {
+    return this.request<ChatMessage>('/chat/messages', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Post (cheerboard - cheerApi.ts 사용 권장)
   async getPosts(teamId?: string) {
     const query = teamId ? `?teamId=${teamId}` : '';
-    return this.request(`/posts${query}`);
+    return this.request(`/cheer/posts${query}`);
   },
 
   async createPost(data: unknown) {
-    return this.request('/posts', {
+    return this.request('/cheer/posts', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -404,7 +475,4 @@ export const api = {
     return this.request<PartyReview[]>(`/reviews/party/${partyId}`);
   },
 
-  async getUserAverageRating(userId: number): Promise<number> {
-    return this.request<number>(`/reviews/user/${userId}/average`);
-  },
 };

@@ -1,15 +1,14 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchPublicUserProfileByHandle } from '../../api/profile';
 import { fetchUserPostsByHandle } from '../../api/cheerApi';
-import { getFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { getPublicFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
     Loader2,
-    User,
     Trophy,
     Quote,
     ArrowLeft,
@@ -26,14 +25,16 @@ import { getTeamTheme } from '../../utils/teamColors';
 import CheerCard from '../CheerCard';
 import EndOfFeed from '../EndOfFeed';
 import FollowButton from './FollowButton';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthProfileSnapshot, useAuthSession } from '../../store/authStore';
 import UserListModal from './UserListModal';
 
 export default function UserProfile() {
     const { handle } = useParams<{ handle: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const currentUser = useAuthStore((state) => state.user);
+    const { isLoggedIn } = useAuthSession();
+    const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
+    const postsSectionRef = useRef<HTMLDivElement | null>(null);
 
     const [userListModal, setUserListModal] = useState<{
         isOpen: boolean;
@@ -61,9 +62,9 @@ export default function UserProfile() {
 
     // 팔로워/팔로잉 카운트 조회
     const { data: followCounts } = useQuery({
-        queryKey: ['followCounts', profile?.id],
-        queryFn: () => getFollowCounts(profile!.id),
-        enabled: !!profile?.id,
+        queryKey: ['followCounts', profile?.handle],
+        queryFn: () => getPublicFollowCounts(profile!.handle),
+        enabled: !!profile?.handle,
     });
 
     const {
@@ -78,7 +79,7 @@ export default function UserProfile() {
         queryKey: ['userPosts', normalizedHandle],
         queryFn: ({ pageParam = 0 }) => fetchUserPostsByHandle(normalizedHandle!, pageParam),
         getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
-        enabled: !!profile?.id, // Only fetch posts if user exists
+        enabled: !!profile?.handle, // Only fetch posts if user exists
         initialPageParam: 0,
     });
 
@@ -87,8 +88,8 @@ export default function UserProfile() {
 
     const handleFollowChange = useCallback(
         (response: FollowToggleResponse) => {
-            if (!profile?.id) return;
-            queryClient.setQueryData<FollowCountResponse>(['followCounts', profile.id], (prev) => ({
+            if (!profile?.handle) return;
+            queryClient.setQueryData<FollowCountResponse>(['followCounts', profile.handle], (prev) => ({
                 followerCount: response.followerCount,
                 followingCount: response.followingCount,
                 isFollowedByMe: response.following,
@@ -97,7 +98,7 @@ export default function UserProfile() {
                 blockingMe: prev?.blockingMe ?? false,
             }));
         },
-        [profile?.id, queryClient]
+        [profile?.handle, queryClient]
     );
 
     // Infinite scroll handler
@@ -125,6 +126,13 @@ export default function UserProfile() {
         return count.toString();
     };
 
+    const scrollToPostsSection = () => {
+        postsSectionRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        });
+    };
+
     if (isProfileLoading) {
         return (
             <div className="max-w-2xl mx-auto pb-8">
@@ -137,7 +145,9 @@ export default function UserProfile() {
                     <Skeleton className="h-[150px] w-full" />
                     {/* 아바타 */}
                     <div className="px-6 -mt-[50px] relative z-10">
-                        <Skeleton className="w-[100px] h-[100px] rounded-full border-4 border-white dark:border-border" />
+                        <div className="w-20 h-20 sm:w-[100px] sm:h-[100px] rounded-full p-1 bg-white dark:bg-border shadow-sm">
+                            <Skeleton className="h-full w-full rounded-full" />
+                        </div>
                     </div>
                     {/* 이름 & 핸들 */}
                     <div className="px-6 pt-4 pb-6 space-y-3">
@@ -211,7 +221,9 @@ export default function UserProfile() {
     );
     const totalPosts = postsData?.pages[0]?.totalElements || 0;
 
-    const isOwnProfile = currentUser && profile && Number(currentUser.id) === Number(profile.id);
+    const isOwnProfile = isLoggedIn && Boolean(currentUserHandle) && profile?.handle
+        ? currentUserHandle === profile.handle
+        : false;
 
     return (
         <div className="max-w-2xl mx-auto pb-8">
@@ -233,12 +245,16 @@ export default function UserProfile() {
 
                 {/* Avatar - overlapping banner */}
                 <div className="px-6 -mt-[50px] relative z-10">
-                    <Avatar className="w-[100px] h-[100px] border-4 border-white dark:border-border shadow-xl">
-                        <AvatarImage src={profile.profileImageUrl} className="object-cover" />
-                        <AvatarFallback className="bg-gray-100 dark:bg-secondary text-gray-400">
-                            <User className="w-12 h-12" />
-                        </AvatarFallback>
-                    </Avatar>
+                    <ProfileAvatar
+                        src={profile.profileImageUrl ?? undefined}
+                        alt={profile.name}
+                        fallbackName={profile.name}
+                        width={96}
+                        height={96}
+                        showRing
+                        ringClassName="p-1 bg-white/95 dark:bg-border shadow-sm"
+                        className="shadow-xl"
+                    />
                 </div>
 
                 {/* Profile Info */}
@@ -320,32 +336,38 @@ export default function UserProfile() {
                 </div>
 
                 {/* Action Buttons */}
-                {!isOwnProfile && currentUser && (
-                    <div className="flex gap-3 mt-4 px-6 mb-6">
-                        <FollowButton
-                            userId={profile.id}
-                            initialFollowing={followCounts?.isFollowedByMe ?? false}
-                            initialNotify={followCounts?.notifyNewPosts ?? false}
-                            initialBlocked={followCounts?.blockedByMe ?? false}
-                            initialBlocking={followCounts?.blockingMe ?? false}
-                            onFollowChange={handleFollowChange}
-                            size="default"
-                            showNotifyOption={true}
-                            className="flex-1"
-                            style={{
-                                backgroundColor: theme.primary,
-                                color: theme.contrastText,
-                            }}
-                        />
-                        <Button
-                            variant="outline"
-                            className="flex-1"
-                            disabled
-                            title="메시지 기능 준비 중"
-                        >
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            메시지 (준비중)
-                        </Button>
+                {!isOwnProfile && isLoggedIn && (
+                    <div className="mt-4 px-6 mb-6 space-y-2">
+                        <div className="flex gap-3">
+                            <FollowButton
+                                handle={profile.handle}
+                                initialFollowing={followCounts?.isFollowedByMe ?? false}
+                                initialNotify={followCounts?.notifyNewPosts ?? false}
+                                initialBlocked={followCounts?.blockedByMe ?? false}
+                                initialBlocking={followCounts?.blockingMe ?? false}
+                                onFollowChange={handleFollowChange}
+                                size="default"
+                                showNotifyOption={true}
+                                className="flex-1"
+                                style={{
+                                    backgroundColor: theme.primary,
+                                    color: theme.contrastText,
+                                }}
+                            />
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={scrollToPostsSection}
+                                data-testid="profile-posts-cta"
+                            >
+                                <FileText className="w-4 h-4 mr-2" />
+                                작성글 보기
+                            </Button>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-300 flex items-center gap-1.5">
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            메시지 기능은 준비 중입니다. 지금은 작성글과 팔로우로 활동을 확인할 수 있습니다.
+                        </p>
                     </div>
                 )}
 
@@ -369,7 +391,7 @@ export default function UserProfile() {
             </div>
 
             {/* Posts Section */}
-            <div className="mt-6 px-4">
+            <div ref={postsSectionRef} className="mt-6 px-4">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <FileText className="w-5 h-5" style={{ color: theme.accent }} />
@@ -381,11 +403,11 @@ export default function UserProfile() {
                 </div>
 
                 {isPostsLoading ? (
-                    <div className="flex justify-center py-12">
+                    <div className="flex justify-center py-8 sm:py-10">
                         <Loader2 className="h-8 w-8 animate-spin" style={{ color: theme.primary }} />
                     </div>
                 ) : isPostsError ? (
-                    <div className="text-center py-12 bg-gray-50 dark:bg-card/50 rounded-2xl border border-gray-200 dark:border-border">
+                    <div className="text-center py-8 sm:py-10 bg-gray-50 dark:bg-card/50 rounded-2xl border border-gray-200 dark:border-border">
                         <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-500" />
                         <p className="text-gray-600 dark:text-gray-300 mb-4">
                             게시글을 불러오지 못했습니다.
@@ -410,7 +432,7 @@ export default function UserProfile() {
                         {!hasNextPage && uniquePosts.length > 0 && <EndOfFeed />}
                     </div>
                 ) : (
-                    <div className="text-center py-20 bg-gray-50 dark:bg-card/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-border">
+                    <div className="text-center py-12 sm:py-14 bg-gray-50 dark:bg-card/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-border">
                         <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-300" />
                         <p className="text-gray-400 dark:text-gray-300">
                             아직 작성한 게시글이 없습니다.
@@ -424,7 +446,7 @@ export default function UserProfile() {
                 <UserListModal
                     isOpen={userListModal.isOpen}
                     onClose={() => setUserListModal(prev => ({ ...prev, isOpen: false }))}
-                    userId={profile.id}
+                    userHandle={profile.handle}
                     type={userListModal.type}
                     title={userListModal.title}
                 />

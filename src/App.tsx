@@ -1,9 +1,17 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { lazy, Suspense, useEffect } from 'react';
-import { useAuthStore } from './store/authStore';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import {
+  isAdminRole,
+  useAuthAccessActions,
+  useAuthDialogState,
+  useAuthProfileActions,
+  useAuthProfileSnapshot,
+  useAuthRedirectState,
+  useAuthSession,
+} from './store/authStore';
+import { useTheme } from './hooks/useTheme';
 import { KAKAO_API_KEY } from './utils/constants';
 import Layout from './components/Layout';
-import ChatBot from './components/ChatBot';
 import ScrollToTop from './components/ScrollToTop';
 import { LoginRequiredDialog } from './components/LoginRequiredDialog';
 import { ErrorModalProvider } from './components/contexts/ErrorModalContext';
@@ -11,6 +19,19 @@ import { ConfirmDialogProvider } from './components/contexts/ConfirmDialogContex
 import GlobalErrorDialog from './components/GlobalErrorDialog';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import { installGlobalErrorListeners, setClientErrorReporterUserContext } from './utils/clientErrorReporter';
+import chatBotIcon from './assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import LeaderboardPage from './pages/LeaderboardPage';
+import { buildLoginPath } from './utils/loginRedirect';
+
+// DEV-only chaos hook: ErrorBoundary를 테스트하기 위한 의도적 렌더링 에러
+// import.meta.env.DEV 조건으로 프로덕션 번들에 포함되지 않음
+function ChaosRenderError() {
+  if (new URLSearchParams(window.location.search).get('chaos') === 'render-error') {
+    throw new Error('chaos-test-render-error');
+  }
+  return null;
+}
 
 // 페이지 컴포넌트를 lazy loading
 const Home = lazy(() => import('./components/Home'));
@@ -20,6 +41,7 @@ const Login = lazy(() => import('./components/Login'));
 const SignUp = lazy(() => import('./components/SignUp'));
 const PasswordReset = lazy(() => import('./components/PasswordReset'));
 const PasswordResetConfirm = lazy(() => import('./components/PasswordResetConfirm'));
+const AccountDeletionRecovery = lazy(() => import('./components/AccountDeletionRecovery'));
 const StadiumGuide = lazy(() => import('./components/StadiumGuide'));
 const Prediction = lazy(() => import('./components/Prediction'));
 const Cheer = lazy(() => import('./components/Cheer'));
@@ -43,16 +65,76 @@ const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./components/OAuthCallback'));
 const TestError = lazy(() => import('./components/TestError')); // Test Purpose Only
-const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const ChatBot = lazy(() => import('./components/ChatBot'));
+
+const PREDICTION_GAME_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+const isValidPredictionDate = (value: string): boolean => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+};
+
+const PredictionQueryGuard = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname !== '/prediction' && location.pathname !== '/prediction/') {
+      return;
+    }
+
+    const search = location.search ?? '';
+    const next = new URLSearchParams(search);
+    let changed = false;
+    const rawGameId = (next.get('gameId') || '').trim();
+    if (rawGameId && !PREDICTION_GAME_ID_PATTERN.test(rawGameId)) {
+      next.delete('gameId');
+      changed = true;
+    } else if (rawGameId && rawGameId !== next.get('gameId')) {
+      next.set('gameId', rawGameId);
+      changed = true;
+    }
+
+    const rawDate = (next.get('date') || '').trim();
+    if (rawDate && !isValidPredictionDate(rawDate)) {
+      next.delete('date');
+      changed = true;
+    } else if (rawDate && rawDate !== next.get('date')) {
+      next.set('date', rawDate);
+      changed = true;
+    }
+
+    if (!changed) {
+      return;
+    }
+
+    const nextSearch = next.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true },
+    );
+  }, [location.pathname, location.search, navigate]);
+
+  return null;
+};
 
 function ProtectedRoute() {
-  const { isLoggedIn, isAuthLoading, setShowLoginRequiredDialog } = useAuthStore();
+  const { isLoggedIn, isAuthLoading } = useAuthSession();
+  const { requireLogin } = useAuthAccessActions();
+  const location = useLocation();
 
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
-      setShowLoginRequiredDialog(true);
+      requireLogin(`${location.pathname}${location.search}${location.hash}`);
     }
-  }, [isAuthLoading, isLoggedIn, setShowLoginRequiredDialog]);
+  }, [isAuthLoading, isLoggedIn, location.hash, location.pathname, location.search, requireLogin]);
 
   if (isAuthLoading) {
     return (
@@ -74,11 +156,13 @@ function ProtectedRoute() {
 }
 
 function AdminRoute() {
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const { isLoggedIn } = useAuthSession();
+  const { userRole } = useAuthProfileSnapshot();
+  const isAdmin = isAdminRole(userRole);
+  const location = useLocation();
 
   if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={buildLoginPath(`${location.pathname}${location.search}${location.hash}`)} replace />;
   }
 
   if (!isAdmin) {
@@ -88,9 +172,35 @@ function AdminRoute() {
   return <Outlet />;
 }
 
+function ThemeBodySync() {
+  const { theme, resolvedTheme } = useTheme();
+
+  useEffect(() => {
+    const effectiveTheme = resolvedTheme || theme;
+    const isDark = effectiveTheme === 'dark';
+
+    const appBg = isDark ? '#020617' : '#ffffff';
+    document.documentElement.style.backgroundColor = isDark ? '#020617' : '';
+    document.body.style.backgroundColor = appBg;
+  }, [theme, resolvedTheme]);
+
+  return null;
+}
+
 export default function App() {
-  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const { fetchProfileAndAuthenticate } = useAuthProfileActions();
+  const { userId } = useAuthProfileSnapshot();
+  const { isLoggedIn } = useAuthSession();
+  const { logout, requireLogin } = useAuthAccessActions();
+  const { showLoginRequiredDialog, setShowLoginRequiredDialog } = useAuthDialogState();
+  const { pendingLoginRedirect, clearPendingLoginRedirect } = useAuthRedirectState();
+  const [isChatBotRequested, setIsChatBotRequested] = useState(false);
+
+  useEffect(() => {
+    setClientErrorReporterUserContext({ userId });
+  }, [userId]);
+
+  useEffect(() => installGlobalErrorListeners(), []);
 
   useEffect(() => {
     fetchProfileAndAuthenticate();
@@ -98,20 +208,44 @@ export default function App() {
 
   useEffect(() => {
     const handleSessionExpired = () => {
-      useAuthStore.getState().logout(true);
-      useAuthStore.getState().setShowLoginRequiredDialog(true);
+      logout(true);
+      requireLogin();
       // Optional: Show a toast or dialog saying "Session expired"
     };
 
     window.addEventListener('auth-session-expired', handleSessionExpired);
     return () => window.removeEventListener('auth-session-expired', handleSessionExpired);
-  }, []);
+  }, [logout, requireLogin]);
+
+  useEffect(() => {
+    const handleInvalidAuthor = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const detail = customEvent.detail as { responseCode?: string } | undefined;
+      if (detail?.responseCode === 'INVALID_AUTHOR') {
+        requireLogin();
+      }
+    };
+
+    window.addEventListener('global-api-error', handleInvalidAuthor);
+    return () => window.removeEventListener('global-api-error', handleInvalidAuthor);
+  }, [requireLogin]);
 
   useEffect(() => {
     if (isLoggedIn && 'Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (!showLoginRequiredDialog || typeof document === 'undefined') {
+      return;
+    }
+
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur();
+    }
+  }, [showLoginRequiredDialog]);
 
   useEffect(() => {
     if (window.Kakao && KAKAO_API_KEY) {
@@ -123,83 +257,132 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-    <ErrorModalProvider>
-      <ConfirmDialogProvider>
-      <BrowserRouter>
-        <ScrollToTop />
-        <Suspense
-          fallback={
-            <LoadingSpinner
-              variant="app"
-              message="화면을 준비하고 있습니다..."
-              subMessage="잠시만 기다려주세요."
-              minDurationMs={250}
+      {import.meta.env.DEV && <ChaosRenderError />}
+      <ErrorModalProvider>
+        <ConfirmDialogProvider>
+          <BrowserRouter>
+            <ThemeBodySync />
+            <ScrollToTop />
+            <PredictionQueryGuard />
+            <Suspense
+              fallback={
+                <LoadingSpinner
+                  variant="app"
+                  message="화면을 준비하고 있습니다..."
+                  subMessage="잠시만 기다려주세요."
+                  minDurationMs={250}
+                />
+              }
+            >
+              <Routes>
+                {/* 공개 라우트 - 로그인 필요 없음 */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/password/reset" element={<PasswordReset />} />
+                <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
+                <Route path="/account/deletion/recovery" element={<AccountDeletionRecovery />} />
+                <Route path="/oauth/callback" element={<OAuthCallback />} />
+
+                {/* Landing & ServiceInfo - Layout 없이 독립 페이지 */}
+                <Route path="/" element={<Landing />} />
+                {/* Layout 포함 라우트 */}
+                <Route element={<Layout />}>
+                  {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()} />} />
+                  <Route path="/offseason/list" element={<OffSeasonList />} />
+                  <Route path="/cheer" element={<Cheer />} />
+                  <Route path="/cheer/write" element={<Cheer openComposerOnMount />} />
+                  <Route path="/cheer/:postId" element={<CheerDetail />} />
+                  <Route path="/profile/:handle" element={<UserProfile />} />
+                  <Route path="/predictions/ranking/share/:shareId/:seasonYear" element={<RankingPredictionShare />} />
+                  <Route path="/notice" element={<NoticePage />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/leaderboard" element={<LeaderboardPage />} />
+                  <Route path="/stadium" element={<StadiumGuide />} />
+                  <Route path="/prediction" element={<Prediction />} />
+                  {/* 로그인 필요한 라우트 */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/mate/:id" element={<MateDetail />} />
+                    <Route path="/mate" element={<Mate />} />
+                    <Route path="/cheer/bookmarks" element={<CheerBookmarks />} />
+                    <Route path="/cheer/edit/:postId" element={<CheerEdit />} />
+                    <Route path="/mate/create" element={<MateCreate />} />
+                    <Route path="/mate/:id/apply" element={<MateApply />} />
+                    <Route path="/mate/:id/checkin" element={<MateCheckIn />} />
+                    <Route path="/mate/:id/chat" element={<MateChat />} />
+                    <Route path="/mate/:id/manage" element={<MateManage />} />
+                    <Route path="/mypage" element={<MyPage />} />
+                    <Route path="/mypage/:handle" element={<MyPage />} />
+                  </Route>
+
+                  {/* 관리자 전용 라우트 */}
+                  <Route element={<AdminRoute />}>
+                    <Route path="/admin" element={<AdminPage />} />
+                  </Route>
+                </Route>
+
+                {/* Test Route */}
+              {import.meta.env.DEV && <Route path="/test/error" element={<TestError />} />}
+
+                {/* 404 처리 */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+            {isChatBotRequested ? (
+              <Suspense fallback={null}>
+                <ChatBot
+                  autoOpen
+                  onClosed={() => setIsChatBotRequested(false)}
+                />
+              </Suspense>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsChatBotRequested(true)}
+                className="fixed z-[9999] h-14 w-14
+                           sm:h-16 sm:w-16 sm:min-h-[64px] sm:min-w-[64px]
+                           md:h-18 md:w-18
+                           rounded-full bg-primary text-white shadow-lg
+                           p-0.5
+                           border-none
+                           inline-flex items-center justify-center overflow-hidden transition-all duration-200
+                           focus:outline-none focus-visible:outline-none focus:ring-0
+                           active:bg-primary active:text-white
+                           touch-action-manipulation
+                           bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))]
+                           md:bottom-[calc(1.25rem+env(safe-area-inset-bottom))] md:right-[calc(1.25rem+env(safe-area-inset-right))]"
+                aria-label="챗봇 열기"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <span className="h-14 w-14 rounded-full bg-primary grid place-items-center p-0.5">
+                  <img
+                    src={chatBotIcon}
+                    alt=""
+                    className="pointer-events-none block h-13 w-13 rounded-full object-contain object-center"
+                    aria-hidden="true"
+                    loading="eager"
+                    decoding="async"
+                  />
+                </span>
+              </button>
+            )}
+            <GlobalErrorDialog />
+            <LoginRequiredDialog
+              open={showLoginRequiredDialog}
+              onOpenChange={(open) => {
+                if (!open) {
+                  clearPendingLoginRedirect();
+                }
+                setShowLoginRequiredDialog(open);
+              }}
+              onCancel={clearPendingLoginRedirect}
+              redirectPath={pendingLoginRedirect}
             />
-          }
-        >
-          <Routes>
-            {/* 공개 라우트 - 로그인 필요 없음 */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/password/reset" element={<PasswordReset />} />
-            <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
-            <Route path="/oauth/callback" element={<OAuthCallback />} />
-
-            {/* Landing & ServiceInfo - Layout 없이 독립 페이지 */}
-            <Route path="/" element={<Landing />} />
-            {/* Layout 포함 라우트 */}
-            <Route element={<Layout />}>
-              {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
-              <Route path="/home" element={<Home />} />
-              <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()} />} />
-              <Route path="/offseason/list" element={<OffSeasonList />} />
-              <Route path="/cheer" element={<Cheer />} />
-              <Route path="/cheer/:postId" element={<CheerDetail />} />
-              <Route path="/profile/:handle" element={<UserProfile />} />
-              <Route path="/predictions/ranking/share/:userId/:seasonYear" element={<RankingPredictionShare />} />
-              <Route path="/notice" element={<NoticePage />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/leaderboard" element={<LeaderboardPage />} />
-              {/* 로그인 필요한 라우트 */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/mate/:id" element={<MateDetail />} />
-                <Route path="/mate" element={<Mate />} />
-                <Route path="/prediction" element={<Prediction />} />
-                <Route path="/stadium" element={<StadiumGuide />} />
-                <Route path="/cheer/bookmarks" element={<CheerBookmarks />} />
-                <Route path="/cheer/edit/:postId" element={<CheerEdit />} />
-                <Route path="/mate/create" element={<MateCreate />} />
-                <Route path="/mate/:id/apply" element={<MateApply />} />
-                <Route path="/mate/:id/checkin" element={<MateCheckIn />} />
-                <Route path="/mate/:id/chat" element={<MateChat />} />
-                <Route path="/mate/:id/manage" element={<MateManage />} />
-                <Route path="/mypage" element={<MyPage />} />
-                <Route path="/mypage/:handle" element={<MyPage />} />
-              </Route>
-
-              {/* 관리자 전용 라우트 */}
-              <Route element={<AdminRoute />}>
-                <Route path="/admin" element={<AdminPage />} />
-              </Route>
-            </Route>
-
-            {/* Test Route */}
-            <Route path="/test/error" element={<TestError />} />
-
-            {/* 404 처리 */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-        <ChatBot />
-        <GlobalErrorDialog />
-        <LoginRequiredDialog
-          open={useAuthStore((state) => state.showLoginRequiredDialog)}
-          onOpenChange={useAuthStore((state) => state.setShowLoginRequiredDialog)}
-        />
-      </BrowserRouter>
-      </ConfirmDialogProvider>
-    </ErrorModalProvider>
+          </BrowserRouter>
+        </ConfirmDialogProvider>
+      </ErrorModalProvider>
     </ErrorBoundary>
   );
 }

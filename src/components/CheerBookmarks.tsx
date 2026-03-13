@@ -1,40 +1,37 @@
-import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Bookmark, Home, Radio, UserRound, Users, Megaphone, LineChart } from 'lucide-react';
-import { fetchPosts } from '../api/cheerApi';
+import { Bookmark, Home, UserRound, Megaphone, LineChart } from 'lucide-react';
+import { fetchBookmarks } from '../api/cheerApi';
 import CheerCard from './CheerCard';
 import { cn } from '../lib/utils';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 
 export default function CheerBookmarks() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuthStore();
+  const { userHandle } = useAuthProfileSnapshot();
+  const userProfilePath = userHandle ? `/profile/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}` : '/mypage';
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['cheer-bookmarks'],
-    queryFn: () => fetchPosts({ teamId: 'all', page: 0, size: 50 }),
+    queryFn: () => fetchBookmarks(0, 20),
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 
-  const bookmarkedPosts = useMemo(
-    () => (data?.content ?? []).filter((post) => post.isBookmarked),
-    [data]
-  );
+  const bookmarkedPosts = data?.content ?? [];
 
   const navItems = [
     { id: 'home', label: '홈', icon: Home, path: '/home' },
     { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
     { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-    { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage' },
+    { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
     { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
   ];
 
   return (
     <div className="min-h-screen bg-[#f7f9f9] dark:bg-background">
-      <div className="mx-auto w-full max-w-[1200px] px-6 py-8">
+      <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 py-6 sm:py-8">
         <div className="grid grid-cols-1 gap-0 lg:grid-cols-[72px_1fr_320px] xl:grid-cols-[200px_1fr_320px]">
           <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
             {navItems.map((item) => {
@@ -95,7 +92,7 @@ export default function CheerBookmarks() {
                 ))}
               </div>
             ) : isError ? (
-              <div className="px-6 py-12 text-center">
+              <div className="px-4 sm:px-6 py-8 sm:py-10 text-center">
                 <p className="text-sm text-slate-500 dark:text-gray-300">북마크를 불러오지 못했습니다.</p>
                 <button
                   type="button"
@@ -106,7 +103,7 @@ export default function CheerBookmarks() {
                 </button>
               </div>
             ) : bookmarkedPosts.length === 0 ? (
-              <div className="px-6 py-16 text-center">
+              <div className="px-4 sm:px-6 py-8 sm:py-10 text-center">
                 <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center mx-auto mb-4">
                   <Bookmark className="h-8 w-8 text-slate-400 dark:text-gray-300" />
                 </div>
@@ -151,7 +148,7 @@ export default function CheerBookmarks() {
             { id: 'home', label: '홈', icon: Home, path: '/home' },
             { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
             { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-            { id: 'profile', label: '프로필', icon: UserRound, path: user?.handle ? `/profile/${user.handle}` : '/mypage' },
+            { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
             { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
           ].map((item) => {
             const Icon = item.icon;

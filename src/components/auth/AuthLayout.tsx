@@ -1,123 +1,83 @@
+import { Home } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import begaCharacter from '../../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
 import grassDecor from '../../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { OptimizedImage } from '../common/OptimizedImage';
-import { Home } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { type CSSProperties } from 'react';
+import { Button } from '../ui/button';
+import {
+  AuthFormPanel,
+  AuthHeroPanel,
+  AuthShell,
+  AuthStage,
+} from '../ui/auth-primitives';
 
 interface AuthLayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
   showHomeButton?: boolean;
 }
 
 export default function AuthLayout({ children, showHomeButton = false }: AuthLayoutProps) {
   const navigate = useNavigate();
-  const darkPrimary: CSSProperties = {
-    '--primary': '164 41% 23%',
-    '--primary-foreground': '210 40% 98%',
-    '--ring': '164 41% 23%',
-  };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden" style={darkPrimary}>
-      {/* Background decorative shapes */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div
-          className="fixed rounded-full opacity-90"
-          style={{
-            top: '-100px',
-            right: '-80px',
-            width: '600px',
-            height: '400px',
-            background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #2f6c5c 100%)',
-            transform: 'rotate(-15deg)'
-          }}
-        />
-        <div
-          className="fixed rounded-full opacity-80"
-          style={{
-            top: '-128px',
-            left: '-240px',
-            width: '500px',
-            height: '500px',
-            background: 'linear-gradient(45deg, hsl(var(--primary)) 0%, #3d7e6d 100%)',
-            transform: 'rotate(25deg)'
-          }}
-        />
-        <div
-          className="fixed rounded-full opacity-85"
-          style={{
-            bottom: '-160px',
-            left: '-160px',
-            width: '550px',
-            height: '450px',
-            background: 'linear-gradient(90deg, hsl(var(--primary)) 0%, #2f6c5c 100%)',
-            transform: 'rotate(-20deg)'
-          }}
-        />
-        <div
-          className="fixed rounded-full opacity-75"
-          style={{
-            bottom: '-128px',
-            right: '-192px',
-            width: '500px',
-            height: '500px',
-            background: 'linear-gradient(180deg, #2f6c5c 0%, hsl(var(--primary)) 100%)',
-            transform: 'rotate(15deg)'
-          }}
-        />
+    <AuthShell data-testid="auth-shell">
+      <div className="auth-backdrop" aria-hidden="true">
+        <div className="auth-backdrop-orb auth-backdrop-orb-one" />
+        <div className="auth-backdrop-orb auth-backdrop-orb-two" />
+        <div className="auth-backdrop-orb auth-backdrop-orb-three" />
+        <div className="auth-backdrop-orb auth-backdrop-orb-four" />
       </div>
 
-      {/* Grass decorations */}
-      <img
-        src={grassDecor}
-        alt=""
-        className="fixed bottom-0 left-0 w-full h-32 object-cover object-top z-10 pointer-events-none"
-      />
+      <img src={grassDecor} alt="" className="auth-ground" />
 
-      {/* Content Card */}
-      <div className="w-full max-w-5xl relative z-20">
-        <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden">
-          <div className="grid md:grid-cols-2">
-            {/* Left - Character */}
-            <div className="p-12 flex flex-col items-center justify-center relative overflow-hidden bg-primary">
+      <AuthStage data-testid="auth-stage">
+        <div className="auth-stage-grid">
+          <AuthHeroPanel data-testid="auth-hero-panel">
+            <div className="relative z-10 text-center">
               <OptimizedImage
-                src={grassDecor}
-                alt=""
-                className="absolute bottom-0 left-0 w-full h-24 object-cover object-top opacity-40"
+                src={begaCharacter}
+                alt="BEGA Character"
+                className="mx-auto mb-8 h-auto w-56 drop-shadow-2xl sm:w-64 lg:w-72"
+                priority={true}
               />
-
-              <div className="relative z-10 text-center">
-                <OptimizedImage
-                  src={begaCharacter}
-                  alt="BEGA Character"
-                  className="w-72 h-auto mb-8 drop-shadow-2xl"
-                  priority={true}
-                />
-                <h1 className="text-white mb-2 text-6xl tracking-wider" style={{ fontWeight: 900 }}>BEGA</h1>
-                <p className="text-green-100 text-xl">BASEBALL GUIDE</p>
+              <div className="space-y-3">
+                <p className="auth-eyebrow mx-auto">KBO Fan Guide</p>
+                <div className="space-y-2">
+                  <h2 className="text-5xl font-bold tracking-[-0.08em] text-white sm:text-6xl">
+                    BEGA
+                  </h2>
+                  <p className="mx-auto max-w-sm text-sm leading-6 text-white/82 sm:text-base">
+                    로그인, 가입, 복구 흐름까지 같은 규칙으로 정돈한 야구 팬 전용 인증 경험
+                  </p>
+                </div>
               </div>
             </div>
+          </AuthHeroPanel>
 
-            <div className="p-12 bg-white relative">
-              {showHomeButton && (
-                <button
-                  onClick={() => navigate('/home')}
-                  className="absolute flex items-center gap-2 bg-white rounded-full px-3 py-2 transition-all hover:scale-105 z-50 border-2 border-primary"
-                  style={{
-                    top: '38px',
-                    right: '48px',
-                  }}
-                >
-                  <Home className="w-5 h-5 text-primary" />
-                </button>
-              )}
+          <AuthFormPanel data-testid="auth-form-panel">
+            {showHomeButton ? (
+              <Button
+                type="button"
+                variant="brandOutline"
+                size="touch"
+                onClick={() => navigate('/home')}
+                className="auth-home-button px-3"
+                data-testid="auth-home-button"
+                aria-label="홈으로 이동"
+              >
+                <Home className="h-5 w-5" />
+                <span className="sr-only">홈으로 이동</span>
+              </Button>
+            ) : null}
 
+            <div className="auth-form-flow">
               {children}
             </div>
-          </div>
+          </AuthFormPanel>
         </div>
-      </div>
-    </div>
+      </AuthStage>
+    </AuthShell>
   );
 }

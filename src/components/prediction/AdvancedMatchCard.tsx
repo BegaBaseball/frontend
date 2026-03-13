@@ -1,13 +1,20 @@
-import { ReactNode, useState, useEffect, Fragment, useRef } from 'react';
+import { ReactNode, useState, useEffect, useRef, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { LayoutGroup, motion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, ChevronLeft, ChevronRight, AlertTriangle, Clock3 } from 'lucide-react';
 import TeamLogo from '../TeamLogo';
-import { Game, VoteTeam, GameDetail } from '../../types/prediction';
+import {
+  Game,
+  VoteTeam,
+  GameDetail,
+  GameSummary,
+  RawGameInningScore,
+} from '../../types/prediction';
 import { GAME_TIME } from '../../constants/prediction';
 import { getTeamColorByAnyKey, getFullTeamName } from '../../constants/teams';
+import type { GameStatusCode } from '../../utils/prediction';
 
 interface AdvancedMatchCardProps {
   game: Game;
@@ -17,7 +24,7 @@ interface AdvancedMatchCardProps {
   votePercentages: { homePercentage: number; awayPercentage: number; totalVotes: number };
   isVoteOpen: boolean;
   statusLabel: string;
-  isClosed: boolean;
+  statusCode: GameStatusCode;
   onVote: (team: VoteTeam) => void;
   onPrevDate: () => void;
   onNextDate: () => void;
@@ -25,6 +32,79 @@ interface AdvancedMatchCardProps {
   hasNextDate: boolean;
   coachBriefing?: ReactNode;
 }
+
+const INNING_TEAM_CODE_ALIASES: Record<string, string> = {
+  DO: 'DB',
+  OB: 'DB',
+  HT: 'KIA',
+  KI: 'KH',
+  WO: 'KH',
+  NX: 'KH',
+  KW: 'KH',
+  SK: 'SSG',
+  SL: 'SSG',
+  BE: 'HH',
+  MBC: 'KH',
+  LOT: 'LT',
+};
+
+const normalizeTeamCode = (value?: string | null): string => {
+  if (!value) return '';
+  const cleaned = value
+    .toString()
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9가-힣]/g, '');
+  if (!cleaned) {
+    return '';
+  }
+  return INNING_TEAM_CODE_ALIASES[cleaned] || cleaned;
+};
+
+const normalizeTeamText = (value?: string | null): string => (
+  (value || '')
+    .toString()
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .replace(/[^A-Z0-9가-힣]/g, '')
+);
+
+const buildTeamNameCandidates = (value: string): string[] => {
+  const fullName = normalizeTeamText(value);
+  if (!fullName) {
+    return [];
+  }
+
+  const candidates = new Set<string>([fullName]);
+  if (fullName.length >= 2) {
+    candidates.add(fullName.slice(0, 2));
+  }
+  if (fullName.length >= 3) {
+    candidates.add(fullName.slice(0, 3));
+  }
+
+  return Array.from(candidates);
+};
+
+const matchesTeamCode = (
+  teamCode: string,
+  teamCodes: string[],
+  teamNameCandidates: string[]
+): boolean => {
+  const normalizedCode = normalizeTeamCode(teamCode);
+  if (!normalizedCode) {
+    return false;
+  }
+
+  if (teamCodes.includes(normalizedCode)) {
+    return true;
+  }
+
+  return normalizedCode.length >= 2 && teamNameCandidates.some((candidate) => (
+    candidate.includes(normalizedCode) || normalizedCode.includes(candidate)
+  ));
+};
 
 const popIn = keyframes`
   0% { transform: scale(0.8); opacity: 0; }
@@ -119,7 +199,7 @@ const ProgressBarWrapper = styled.div`
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
 `;
 
-const GaugeBar = styled(motion.div) <{ color: string }>`
+const GaugeBar = styled(motion.div)<{ color: string }>`
   height: 100%;
   background: ${(props) => props.color};
   position: relative;
@@ -136,6 +216,496 @@ const CenterSlash = styled(motion.div)`
   box-shadow: 0 0 10px rgba(255,255,255,0.5);
 `;
 
+type InningScorePayload = RawGameInningScore & {
+  _inning?: string | number | null;
+};
+
+type InningSide = 'home' | 'away';
+
+type InningRow = { home: number | null; away: number | null; extra: boolean | null };
+
+const toRawText = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  return `${value}`.trim();
+};
+
+const toNumericScoreValue = (value?: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  const normalized = `${value}`.trim();
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const parseInningNumber = (value: unknown): number | null => {
+  const rawText = toRawText(value);
+  if (!rawText) return null;
+  const match = rawText.match(/(\d+)/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const toBooleanValue = (value: unknown): boolean | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  const text = `${value}`.trim().toLowerCase();
+  if (!text) return null;
+  if (['1', 'true', 'y', 'yes', 't', 'on'].includes(text)) return true;
+  if (['0', 'false', 'n', 'no', 'f', 'off'].includes(text)) return false;
+  return null;
+};
+
+const isObjectRecord = (value: unknown): value is Record<string, unknown> => (
+  value !== null
+  && typeof value === 'object'
+  && !Array.isArray(value)
+);
+
+const isNumericInningKey = (value: string): number | null => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const isDirectInningScoreRecord = (node: Record<string, unknown>): boolean => (
+  node.team !== undefined
+  || node.teamCode !== undefined
+  || node.inning !== undefined
+  || node.inningNo !== undefined
+  || node.inning_no !== undefined
+  || node.inningNum !== undefined
+  || node.inning_num !== undefined
+  || node.inningNumber !== undefined
+  || node.inning_number !== undefined
+  || node.run !== undefined
+  || node.runs !== undefined
+  || node.teamSide !== undefined
+  || node.side !== undefined
+  || node.score !== undefined
+  || node.home !== undefined
+  || node.away !== undefined
+  || node.homeScore !== undefined
+  || node.awayScore !== undefined
+  || node.home_score !== undefined
+  || node.away_score !== undefined
+  || node.team_side !== undefined
+  || node.side_code !== undefined
+  || node.sideCode !== undefined
+);
+
+const inferInningSideFromRawKey = (rawKey: string): InningSide | null => {
+  const rawText = toRawText(rawKey);
+  const normalized = rawText.toUpperCase().replace(/[^A-Z가-힣]/g, '');
+  if (!normalized) {
+    return null;
+  }
+
+  if (
+    normalized.includes('HOME')
+    || normalized === 'H'
+    || normalized.includes('HOME_TEAM')
+    || /^홈/.test(rawText)
+    || normalized.includes('HOMETEAM')
+    || /^H/.test(normalized)
+  ) {
+    return 'home';
+  }
+
+  if (
+    normalized.includes('AWAY')
+    || normalized.includes('AWAYTEAM')
+    || normalized === 'A'
+    || normalized.includes('VISITOR')
+    || normalized.includes('TOP')
+    || normalized.includes('원정')
+    || normalized.includes('어웨이')
+    || /^초/.test(rawText)
+  ) {
+    return 'away';
+  }
+
+  if (normalized.includes('BOTTOM') || normalized.includes('BOT') || /^말/.test(rawText)) {
+    return 'home';
+  }
+
+  return null;
+};
+
+  const collectInningScoreEntries = (value: unknown): InningScorePayload[] => {
+  const entries: InningScorePayload[] = [];
+
+  const walk = (
+    node: unknown,
+    fallbackInning?: number | string | null,
+    fallbackSide?: InningSide | null
+  ) => {
+    if (!Array.isArray(node) && !isObjectRecord(node)) {
+      const run = toNumericScoreValue(node);
+      if (run !== null && fallbackInning != null && fallbackSide) {
+        entries.push({
+          _inning: fallbackInning,
+          side: fallbackSide,
+          run,
+        } as InningScorePayload);
+      }
+      return;
+    }
+
+    if (node === null || node === undefined) {
+      return;
+    }
+
+    if (Array.isArray(node)) {
+      node.forEach((item) => walk(item, fallbackInning, fallbackSide));
+      return;
+    }
+
+    if (!isObjectRecord(node)) {
+      return;
+    }
+
+    if (isDirectInningScoreRecord(node)) {
+      const nextScore: Record<string, unknown> = { ...node };
+      if (fallbackInning != null) {
+        nextScore._inning = fallbackInning;
+      }
+      if (fallbackSide) {
+        nextScore.side = fallbackSide;
+      }
+      entries.push(nextScore as InningScorePayload);
+      return;
+    }
+
+    const keys = Object.entries(node);
+    if (keys.length > 0 && keys.every(([entryKey, entryValue]) => (
+      isNumericInningKey(entryKey) !== null
+      && (isObjectRecord(entryValue) || Array.isArray(entryValue))
+    ))) {
+      keys.forEach(([entryKey, entryValue]) => {
+        const inningKey = isNumericInningKey(entryKey);
+        walk(
+          entryValue,
+          inningKey == null ? undefined : inningKey,
+          fallbackSide
+        );
+      });
+      return;
+    }
+
+    keys.forEach((item) => {
+      const [entryKey, entryItem] = item;
+      const entryInning = isNumericInningKey(entryKey);
+      walk(entryItem, entryInning == null ? fallbackInning : entryInning, inferInningSideFromRawKey(entryKey) || fallbackSide);
+    });
+  };
+
+  walk(value);
+  return entries;
+};
+
+const buildTeamNameAliasCandidates = (team: string): string[] => {
+  const normalized = normalizeTeamText(team);
+  if (!normalized) {
+    return [];
+  }
+
+  const full = normalizeTeamText(getFullTeamName(team));
+  const aliases = new Set<string>();
+  aliases.add(normalized);
+  if (full) {
+    aliases.add(full);
+    if (full.length >= 2) {
+      aliases.add(full.slice(0, 2));
+    }
+    if (full.length >= 3) {
+      aliases.add(full.slice(0, 3));
+    }
+  }
+
+  return Array.from(aliases);
+};
+
+const isTeamTextMatch = (value: string, candidates: string[]): boolean => {
+  const normalized = normalizeTeamText(value);
+  if (!normalized) {
+    return false;
+  }
+
+  return candidates.some((candidate) => {
+    if (!candidate) {
+      return false;
+    }
+
+    return normalized === candidate || normalized.includes(candidate) || candidate.includes(normalized);
+  });
+};
+
+const normalizeInningTeamSide = (
+  score: InningScorePayload,
+  homeTeam: string,
+  awayTeam: string
+): InningSide | null => {
+  const rawSide = toRawText(score.teamSide || score.side || score.team_side || score.side_code || score.sideCode);
+  const rawSideNormalized = rawSide.toUpperCase().replace(/\s+/g, '');
+  const hasTopMark = /초/.test(rawSide);
+  const hasBottomMark = /말/.test(rawSide);
+  const rawSideAlpha = rawSideNormalized.replace(/[^A-Z]/g, '');
+
+  if (
+    rawSideNormalized === 'TOP'
+    || rawSideNormalized === 'TOP_INNING'
+    || rawSideAlpha.includes('TOP')
+    || rawSideAlpha.startsWith('T')
+    || /^초/.test(rawSide)
+    || hasTopMark
+  ) {
+    return 'away';
+  }
+
+  if (
+    rawSideNormalized.includes('BOT')
+    || rawSideNormalized.includes('BOTTOM')
+    || rawSideAlpha.includes('BOTTOM')
+    || rawSideAlpha.startsWith('B')
+    || /^말/.test(rawSide)
+    || hasBottomMark
+  ) {
+    return 'home';
+  }
+
+  if (
+    rawSideNormalized === 'HOME'
+    || rawSideNormalized === 'HOME_TEAM'
+    || rawSideNormalized === 'H'
+  ) {
+    return 'home';
+  }
+
+  if (
+    rawSideNormalized === 'AWAY'
+    || rawSideNormalized === 'AWAY_TEAM'
+    || rawSideNormalized === 'A'
+  ) {
+    return 'away';
+  }
+
+  const teamCode = toRawText(score.teamCode || score.team_code || score.teamSideCode || score.team_side_code);
+
+  const awayTeamCode = normalizeTeamCode(awayTeam);
+  const homeTeamCode = normalizeTeamCode(homeTeam);
+  const awayTeamNameCandidates = buildTeamNameAliasCandidates(awayTeam);
+  const homeTeamNameCandidates = buildTeamNameAliasCandidates(homeTeam);
+
+  if (matchesTeamCode(teamCode, [awayTeamCode], awayTeamNameCandidates)) {
+    return 'away';
+  }
+
+  if (matchesTeamCode(teamCode, [homeTeamCode], homeTeamNameCandidates)) {
+    return 'home';
+  }
+
+  const teamText = toRawText(
+    score.teamName
+    ?? score.team_name
+    ?? score.teamNm
+    ?? score.team_nm
+  );
+  if (isTeamTextMatch(teamText, awayTeamNameCandidates)) {
+    return 'away';
+  }
+  if (isTeamTextMatch(teamText, homeTeamNameCandidates)) {
+    return 'home';
+  }
+
+  const sideName = toRawText(score.teamSideName ?? score.team_side_name ?? score.sideName ?? score.side_name);
+  const normalizedSideName = sideName.toUpperCase().replace(/[^A-Z가-힣]/g, '');
+  if (normalizedSideName.includes('원정') || normalizedSideName.includes('어웨이') || normalizedSideName.includes('AWAY')) {
+    return 'away';
+  }
+  if (normalizedSideName.includes('홈') || normalizedSideName.includes('HOME')) {
+    return 'home';
+  }
+
+  return null;
+};
+
+const getInningNumberFromPayload = (score: InningScorePayload): number | null => (
+  parseInningNumber(score._inning)
+  ?? parseInningNumber(score.inning
+    ?? score.inningNo
+    ?? score.inning_no
+    ?? score.inningNum
+    ?? score.inning_num
+    ?? score.inningNumber
+    ?? score.inning_number
+    ?? score.order
+    ?? score.orderNo
+    ?? score.order_no
+  )
+);
+
+const getInningRunsFromPayload = (score: InningScorePayload): number | null => (
+  toNumericScoreValue(score.runs ?? score.run ?? score.score ?? score.r)
+);
+
+const getInningSideRunsFromPayload = (score: InningScorePayload): {
+  home: number | null;
+  away: number | null;
+} => ({
+  home: toNumericScoreValue(score.home ?? (score as Record<string, unknown>).homeScore ?? (score as Record<string, unknown>).home_score),
+  away: toNumericScoreValue(score.away ?? (score as Record<string, unknown>).awayScore ?? (score as Record<string, unknown>).away_score),
+});
+
+const getExtraInningFlagFromPayload = (score: InningScorePayload, inning: number | null): boolean => {
+  if (inning !== null && inning > 9) {
+    return true;
+  }
+  const normalized = toBooleanValue(score.isExtra ?? score.is_extra ?? score.extra);
+  return normalized === null ? false : normalized;
+};
+
+const extractInningScores = (gameDetail?: GameDetail | null): InningScorePayload[] => {
+  const rawDetail = gameDetail as Record<string, unknown> | undefined;
+  const rawCandidates = [
+    gameDetail?.inningScores,
+    gameDetail?.inning_scores,
+    gameDetail?.inning_score,
+    gameDetail?.lineScore,
+    gameDetail?.line_score,
+    gameDetail?.innings,
+    rawDetail?.scores,
+    rawDetail?.scoreByInning,
+    rawDetail?.scoreByInningDetail,
+    rawDetail?.scoreByInnings,
+    rawDetail?.inningScore,
+  ];
+
+  const entries: InningScorePayload[] = [];
+
+  rawCandidates.forEach((candidate) => {
+    if (!candidate) {
+      return;
+    }
+
+    entries.push(...collectInningScoreEntries(candidate));
+  });
+
+  return entries;
+};
+
+const buildInningRows = (game: Game, gameDetail?: GameDetail | null): Record<number, InningRow> => {
+  const rows: Record<number, InningRow> = {};
+  const unresolved: Record<number, InningScorePayload[]> = {};
+  const inningScores = extractInningScores(gameDetail);
+
+  inningScores.forEach((score) => {
+    const inning = getInningNumberFromPayload(score);
+    if (inning === null) return;
+
+    const run = getInningRunsFromPayload(score);
+    const { home: homeRun, away: awayRun } = getInningSideRunsFromPayload(score);
+    const side = normalizeInningTeamSide(score, game.homeTeam, game.awayTeam);
+    const isExtra = getExtraInningFlagFromPayload(score, inning);
+
+    if (!rows[inning]) {
+      rows[inning] = { home: null, away: null, extra: isExtra };
+    } else {
+      rows[inning].extra = rows[inning].extra || isExtra;
+    }
+
+    if (side === 'home') {
+      const resolved = run ?? homeRun;
+      if (resolved !== null) {
+        rows[inning].home = resolved;
+      } else if (homeRun !== null) {
+        rows[inning].home = homeRun;
+      }
+      return;
+    }
+
+    if (side === 'away') {
+      const resolved = run ?? awayRun;
+      if (resolved !== null) {
+        rows[inning].away = resolved;
+      } else if (awayRun !== null) {
+        rows[inning].away = awayRun;
+      }
+      return;
+    }
+
+    if (homeRun != null || awayRun != null) {
+      if (!rows[inning]) {
+        rows[inning] = { home: null, away: null, extra: isExtra };
+      }
+      if (homeRun != null) {
+        rows[inning].home = homeRun;
+      }
+      if (awayRun != null) {
+        rows[inning].away = awayRun;
+      }
+      return;
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(unresolved, inning)) {
+      unresolved[inning] = [];
+    }
+    unresolved[inning].push(score);
+  });
+
+  Object.entries(unresolved).forEach(([inningRaw, entries]) => {
+    const inning = Number(inningRaw);
+    if (!Number.isFinite(inning) || !rows[inning]) {
+      return;
+    }
+
+    entries.forEach((entry) => {
+      const run = getInningRunsFromPayload(entry);
+      const { home: homeRun, away: awayRun } = getInningSideRunsFromPayload(entry);
+
+      if (rows[inning].away == null && awayRun != null) {
+        rows[inning].away = awayRun;
+        return;
+      }
+      if (rows[inning].home == null && homeRun != null) {
+        rows[inning].home = homeRun;
+        return;
+      }
+
+      if (run == null) {
+        return;
+      }
+
+      if (rows[inning].away == null) {
+        rows[inning].away = run;
+        return;
+      }
+      if (rows[inning].home == null) {
+        rows[inning].home = run;
+      }
+    });
+  });
+
+  return rows;
+};
+
+const formatTime = (value?: string | null) => {
+  if (!value) return null;
+  return value.length >= 5 ? value.slice(0, 5) : value;
+};
+
+const toNumericScore = (value?: number | string | null): number | null => {
+  if (value === null || value === undefined) return null;
+  const parsed = Number(`${value}`.trim());
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 export default function AdvancedMatchCard({
   game,
   gameDetail,
@@ -144,7 +714,7 @@ export default function AdvancedMatchCard({
   votePercentages,
   isVoteOpen,
   statusLabel,
-  isClosed,
+  statusCode,
   onVote,
   onPrevDate,
   onNextDate,
@@ -207,16 +777,10 @@ export default function AdvancedMatchCard({
     };
   }, [game.gameId]);
 
-
-  const formatTime = (value?: string | null) => {
-    if (!value) return null;
-    return value.length >= 5 ? value.slice(0, 5) : value;
-  };
-
   const stadiumLabel = gameDetail?.stadiumName || gameDetail?.stadium || game.stadium;
   const startTimeLabel = gameDetail?.startTime || null;
-  const homePitcherName = gameDetail?.homePitcher || game.homePitcher?.name || '미정';
-  const awayPitcherName = gameDetail?.awayPitcher || game.awayPitcher?.name || '미정';
+  const homePitcherName = gameDetail?.homePitcher || game.homePitcher?.name || '발표 전';
+  const awayPitcherName = gameDetail?.awayPitcher || game.awayPitcher?.name || '발표 전';
   const attendanceLabel = gameDetail?.attendance != null
     ? `${gameDetail.attendance.toLocaleString()}명`
     : null;
@@ -225,24 +789,7 @@ export default function AdvancedMatchCard({
     ? `${Math.floor(gameDetail.gameTimeMinutes / 60)}시간 ${gameDetail.gameTimeMinutes % 60}분`
     : null;
 
-  const rawInningScores = gameDetail?.inningScores || [];
-  const inningRows = rawInningScores.reduce(
-    (acc: Record<number, { home?: number | null; away?: number | null; extra?: boolean | null }>, score: GameInningScore) => {
-      const key = score.inning;
-      if (!acc[key]) {
-        acc[key] = { home: null, away: null, extra: score.isExtra ?? false };
-      }
-      const side = score.teamSide?.toLowerCase();
-      if (side === 'home') {
-        acc[key].home = score.runs ?? 0;
-      } else if (side === 'away') {
-        acc[key].away = score.runs ?? 0;
-      }
-      acc[key].extra = acc[key].extra || score.isExtra;
-      return acc;
-    },
-    {}
-  );
+  const inningRows = buildInningRows(game, gameDetail);
 
   const inningKeys = Object.keys(inningRows)
     .map(Number)
@@ -252,13 +799,16 @@ export default function AdvancedMatchCard({
   const regularInningCols = regularInnings.length
     ? regularInnings
     : Array.from({ length: 9 }, (_, index) => index + 1);
-  const extraInningCols = extraInnings.length
-    ? extraInnings
-    : Array.from({ length: 6 }, (_, index) => index + 10);
-  const extraInningScores = rawInningScores.filter(
-    (score) => score.isExtra && (score.runs ?? 0) > 0
+  const extraInningCols = extraInnings;
+  const hasExtraInnings = extraInnings.length > 0;
+  const hasDetailedInningScores = Object.keys(inningRows).length > 0;
+  const inningTotals = Object.values(inningRows).reduce(
+    (acc, score) => ({
+      away: acc.away + (score.away ?? 0),
+      home: acc.home + (score.home ?? 0),
+    }),
+    { away: 0, home: 0 }
   );
-  const hasExtraInnings = extraInningScores.length > 0;
 
   const awayColor = getTeamColorByAnyKey(game.awayTeam);
   const homeColor = getTeamColorByAnyKey(game.homeTeam);
@@ -270,14 +820,45 @@ export default function AdvancedMatchCard({
   const matchMetaLabel = [matchDateLabel, stadiumLabel, formattedStartTime]
     .filter(Boolean)
     .join(' | ');
-  const awayScoreValue = gameDetail?.awayScore ?? game.awayScore ?? 0;
-  const homeScoreValue = gameDetail?.homeScore ?? game.homeScore ?? 0;
-  const lastInning = hasExtraInnings
-    ? Math.max(...extraInningScores.map((score) => score.inning))
-    : 9;
-  const matchStatusLabel = isClosed && lastInning
-    ? `경기 종료 (${lastInning}회)`
-    : statusLabel;
+  const resolvedAwayScore = toNumericScore(gameDetail?.awayScore ?? game.awayScore);
+  const resolvedHomeScore = toNumericScore(gameDetail?.homeScore ?? game.homeScore);
+  const awayScoreValue = resolvedAwayScore ?? (hasDetailedInningScores ? inningTotals.away : undefined);
+  const homeScoreValue = resolvedHomeScore ?? (hasDetailedInningScores ? inningTotals.home : undefined);
+  const hasGameScore = awayScoreValue != null && homeScoreValue != null;
+  const awayScoreForDisplay = hasGameScore ? awayScoreValue : '-';
+  const homeScoreForDisplay = hasGameScore ? homeScoreValue : '-';
+  const awayAnimatedScore = awayScoreValue ?? 0;
+  const homeAnimatedScore = homeScoreValue ?? 0;
+  const lastInning = inningKeys.length > 0 ? Math.max(...inningKeys) : 9;
+  const hasDetailedScores = hasGameScore || Object.keys(inningRows).length > 0;
+  const isResultDecided = hasGameScore && (statusCode === 'COMPLETED' || statusCode === 'DRAW');
+  const isInProgressScoring = hasGameScore && statusCode === 'LIVE';
+  const isTie = hasGameScore && awayScoreValue === homeScoreValue;
+  const winnerLabel = hasGameScore
+    ? isTie
+      ? (isResultDecided ? '무승부' : '동점')
+      : awayScoreValue > homeScoreValue
+        ? `${awayTeamName} 승`
+        : `${homeTeamName} 승`
+    : '';
+  const isPostponedStatus = statusCode === 'POSTPONED';
+  const isCancelledStatus = statusCode === 'CANCELLED';
+  const isPostponedOrCancelled = isPostponedStatus || isCancelledStatus;
+  const isScheduledLayout = statusCode === 'SCHEDULED';
+  const shouldHideResultSections = (isScheduledLayout && !hasDetailedScores) || isPostponedOrCancelled;
+  const scheduledStateLabel = isPostponedStatus
+    ? '경기 연기'
+    : isCancelledStatus
+      ? '경기 취소'
+      : '경기 시작 예정';
+  const showStatusBadge = isPostponedOrCancelled || (isScheduledLayout && !hasDetailedScores);
+  const matchStatusLabel = isPostponedOrCancelled
+    ? scheduledStateLabel
+    : (statusCode === 'COMPLETED' || statusCode === 'DRAW') && lastInning
+      ? `경기 종료 (${lastInning}회)`
+      : statusLabel;
+  const cheeringCaption = isScheduledLayout ? '사전 응원/예측 참여수' : '실시간 팬 응원 참여수';
+  const isScoreboardLoading = gameDetailLoading && !hasDetailedScores;
 
   const cheeringTotal = totalVotes;
   const awayVotes = cheeringTotal === 0
@@ -301,8 +882,8 @@ export default function AdvancedMatchCard({
 
     const animate = (now: number) => {
       const progress = Math.min((now - startTime) / duration, 1);
-      const nextAway = Math.round(startAway + (awayScoreValue - startAway) * progress);
-      const nextHome = Math.round(startHome + (homeScoreValue - startHome) * progress);
+      const nextAway = Math.round(startAway + (awayAnimatedScore - startAway) * progress);
+      const nextHome = Math.round(startHome + (homeAnimatedScore - startHome) * progress);
       setCountedScores({ away: nextAway, home: nextHome });
       if (progress < 1) {
         frameId = requestAnimationFrame(animate);
@@ -314,7 +895,7 @@ export default function AdvancedMatchCard({
     return () => {
       cancelAnimationFrame(frameId);
     };
-  }, [awayScoreValue, homeScoreValue, game.gameId, isVisible]);
+  }, [awayAnimatedScore, homeAnimatedScore, game.gameId, isVisible]);
 
   const handleInningDragEnd = (_event: unknown, info: { offset: { x: number } }) => {
     if (!hasExtraInnings) return;
@@ -326,7 +907,7 @@ export default function AdvancedMatchCard({
     }
   };
 
-  const summaryGroups = (gameDetail?.summary || []).reduce(
+  const summaryGroups = useMemo(() => (gameDetail?.summary || []).reduce(
     (acc: Record<string, GameSummary[]>, item) => {
       const key = item.type || '기타';
       if (!acc[key]) {
@@ -335,35 +916,43 @@ export default function AdvancedMatchCard({
       acc[key].push(item);
       return acc;
     },
-    {}
-  );
+    {} as Record<string, GameSummary[]>
+  ), [gameDetail?.summary]);
 
-  const summaryGroupDefs = [
+  const summaryGroupDefs = useMemo(() => [
     { key: 'batting', title: '타격', types: ['결승타', '홈런', '2루타', '3루타', '병살타'] },
     { key: 'running', title: '주루', types: ['도루', '도루자', '주루사', '견제사'] },
     { key: 'pitching', title: '투구/실책', types: ['폭투', '포일', '보크', '실책'] },
     { key: 'etc', title: '기타', types: ['심판', '기타'] },
-  ];
+  ], []);
 
-  const summaryTypeSet = new Set(summaryGroupDefs.flatMap((group) => group.types));
-  const extraSummaryTypes = Object.keys(summaryGroups)
-    .filter((type) => !summaryTypeSet.has(type));
+  const summaryTypeSet = useMemo(
+    () => new Set(summaryGroupDefs.flatMap((group) => group.types)),
+    [summaryGroupDefs]
+  );
+  const extraSummaryTypes = useMemo(
+    () => Object.keys(summaryGroups).filter((type) => !summaryTypeSet.has(type)),
+    [summaryGroups, summaryTypeSet]
+  );
 
-  const groupedSummary = summaryGroupDefs
-    .map((group) => {
-      const types = group.key === 'etc'
-        ? [...group.types, ...extraSummaryTypes]
-        : group.types;
+  const groupedSummary = useMemo(
+    () => summaryGroupDefs
+      .map((group) => {
+        const types = group.key === 'etc'
+          ? [...group.types, ...extraSummaryTypes]
+          : group.types;
 
-      const entries = types.flatMap((type) => {
-        const items = summaryGroups[type] || [];
-        const trimmed = type === '심판' ? items.slice(0, 1) : items;
-        return trimmed.map((item) => ({ ...item, type }));
-      });
+        const entries = types.flatMap((type) => {
+          const items = summaryGroups[type] || [];
+          const trimmed = type === '심판' ? items.slice(0, 1) : items;
+          return trimmed.map((item) => ({ ...item, type }));
+        });
 
-      return { title: group.title, entries };
-    })
-    .filter((group) => group.entries.length > 0);
+        return { title: group.title, entries };
+      })
+      .filter((group) => group.entries.length > 0),
+    [extraSummaryTypes, summaryGroupDefs, summaryGroups]
+  );
 
   const extractInning = (detail?: string | null) => {
     if (!detail) return Number.POSITIVE_INFINITY;
@@ -371,14 +960,17 @@ export default function AdvancedMatchCard({
     return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
   };
 
-  const timelineEntries = groupedSummary
-    .flatMap((group) => group.entries.map((item) => ({ ...item, groupTitle: group.title })))
-    .map((item, index) => ({
-      ...item,
-      _index: index,
-      _inning: extractInning(item.detail),
-    }))
-    .sort((a, b) => (a._inning - b._inning) || (a._index - b._index));
+  const timelineEntries = useMemo(
+    () => groupedSummary
+      .flatMap((group) => group.entries.map((item) => ({ ...item, groupTitle: group.title })))
+      .map((item, index) => ({
+        ...item,
+        _index: index,
+        _inning: extractInning(item.detail),
+      }))
+      .sort((a, b) => (a._inning - b._inning) || (a._index - b._index)),
+    [groupedSummary]
+  );
 
   const matchEnvironmentSection = !gameDetailLoading && (attendanceLabel || weatherLabel || gameTimeLabel) ? (
     <section>
@@ -406,9 +998,6 @@ export default function AdvancedMatchCard({
   return (
     <Card className="overflow-hidden border border-slate-200/70 shadow-lg bg-white/90 dark:border-border dark:bg-card dark:shadow-xl transition-colors duration-300 mb-6 rounded-2xl">
       <div className="p-4 md:p-6">
-        {/* 투표 버튼 영역 */}
-
-        {/* 투표 버튼 영역 */}
         {isVoteOpen && (
           <div className="flex gap-2 md:gap-3 mt-4 md:mt-6">
             <Button
@@ -452,6 +1041,29 @@ export default function AdvancedMatchCard({
             </Button>
           </div>
         )}
+        {!isVoteOpen && isPostponedOrCancelled && (
+          <div className="mt-4 md:mt-6 space-y-2">
+            <div className="flex gap-2 md:gap-3">
+              <Button
+                disabled
+                data-testid="vote-disabled-away-btn"
+                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300"
+              >
+                {awayTeamName}
+              </Button>
+              <Button
+                disabled
+                data-testid="vote-disabled-home-btn"
+                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300"
+              >
+                {homeTeamName}
+              </Button>
+            </div>
+            <p className="text-xs text-center text-amber-700 dark:text-amber-300">
+              현재 상태에서는 투표할 수 없습니다.
+            </p>
+          </div>
+        )}
 
         <DetailWrapper className="mt-4 md:mt-6 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-border dark:bg-card dark:shadow-md">
           <div
@@ -465,6 +1077,7 @@ export default function AdvancedMatchCard({
               <button
                 onClick={onPrevDate}
                 disabled={!hasPrevDate}
+                aria-label="이전 날짜 보기"
                 className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-10"
               >
                 <ChevronLeft size={32} />
@@ -472,6 +1085,7 @@ export default function AdvancedMatchCard({
               <button
                 onClick={onNextDate}
                 disabled={!hasNextDate}
+                aria-label="다음 날짜 보기"
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-10"
               >
                 <ChevronRight size={32} />
@@ -479,11 +1093,30 @@ export default function AdvancedMatchCard({
             </div>
 
             <div className="relative flex justify-center">
-              <MetaBadge className="absolute top-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold backdrop-blur">
+              {showStatusBadge && (
+                <MetaBadge
+                  data-testid="prediction-status-badge"
+                  className={`absolute top-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold backdrop-blur ${
+                    isCancelledStatus
+                      ? 'bg-rose-500/30 text-rose-100 border border-rose-200/40'
+                      : isPostponedStatus
+                        ? 'bg-amber-500/30 text-amber-50 border border-amber-100/40'
+                        : 'bg-emerald-500/30 text-emerald-50 border border-emerald-100/40'
+                  }`}
+                >
+                  {isPostponedOrCancelled ? (
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                  ) : (
+                    <Clock3 className="h-3.5 w-3.5" />
+                  )}
+                  {scheduledStateLabel}
+                </MetaBadge>
+              )}
+              <MetaBadge className={`absolute rounded-full bg-black/30 px-3 py-1 text-sm font-semibold backdrop-blur ${showStatusBadge ? 'top-8' : 'top-0'}`}>
                 {matchMetaLabel || '경기 정보'}
               </MetaBadge>
             </div>
-            <div className="relative mt-10 flex items-end justify-between gap-3">
+            <div className={`relative flex items-end justify-between gap-3 ${showStatusBadge ? 'mt-14' : 'mt-10'}`}>
               <div className="flex w-[30%] flex-col items-center text-center">
                 <TeamLogoBox className="flex h-14 w-14 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)]">
                   <TeamLogo team={game.awayTeam} size={44} className="h-11 w-11" />
@@ -496,12 +1129,29 @@ export default function AdvancedMatchCard({
                 $visible={isVisible}
                 className="relative -mb-2 w-[40%] rounded-xl border border-white/50 bg-white/80 backdrop-blur-md px-3 py-3 text-center text-gray-900 shadow-2xl dark:border-white/20 dark:bg-black/30 dark:text-white"
               >
-                <div className="flex items-center justify-center gap-2 text-3xl font-extrabold">
-                  <span style={{ color: awayColor }}>{countedScores.away}</span>
-                  <span className="text-gray-300 dark:text-gray-300">:</span>
-                  <span style={{ color: homeColor }}>{countedScores.home}</span>
-                </div>
-                <div className="mt-1 text-[11px] font-semibold text-gray-500 dark:text-gray-300">{matchStatusLabel}</div>
+                {isScheduledLayout ? (
+                  <div className="flex flex-col items-center justify-center gap-1.5">
+                    <span className="h-px w-8 bg-gray-300 dark:bg-gray-600" />
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                      <Clock3 className="h-3 w-3" />
+                      경기 시작 예정
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-center gap-2 text-3xl font-extrabold">
+                      <span style={{ color: awayColor }}>{hasGameScore ? countedScores.away : '-'}</span>
+                      <span className="text-gray-300 dark:text-gray-300">:</span>
+                      <span style={{ color: homeColor }}>{hasGameScore ? countedScores.home : '-'}</span>
+                    </div>
+                    <div className="mt-1 text-[11px] font-semibold text-gray-500 dark:text-gray-300">{matchStatusLabel}</div>
+                    {winnerLabel ? (
+                      <div className={`mt-1 text-[11px] font-bold ${winnerLabel === '무승부' ? 'text-amber-600 dark:text-amber-300' : 'text-slate-600 dark:text-slate-200'}`}>
+                        {winnerLabel}
+                      </div>
+                    ) : null}
+                  </>
+                )}
               </ScoreBox>
               <div className="flex w-[30%] flex-col items-center text-center">
                 <TeamLogoBox className="flex h-14 w-14 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)]">
@@ -514,11 +1164,33 @@ export default function AdvancedMatchCard({
           </div>
 
           <div className="space-y-6 px-4 py-6">
-            {gameDetailLoading && (
+            {isScoreboardLoading && (
               <div className="text-center text-xs text-gray-500 dark:text-gray-300">경기 정보를 불러오는 중입니다...</div>
             )}
 
-            {!gameDetailLoading && (
+            {!isScoreboardLoading && shouldHideResultSections && (
+              <section>
+                <div className="rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-4 text-sm text-gray-600 dark:border-border dark:bg-secondary/40 dark:text-gray-200">
+                  {isPostponedOrCancelled ? (
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
+                      <p>
+                        {isCancelledStatus
+                          ? '해당 경기는 취소되어 투표 및 경기 상세 정보가 제공되지 않습니다.'
+                          : '해당 경기는 연기되어 투표 및 경기 상세 정보가 제공되지 않습니다.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                      <p>스코어보드와 경기 주요 기록은 경기 시작 후 제공됩니다.</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {!isScoreboardLoading && !shouldHideResultSections && (
               <section>
                 <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
                   <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
@@ -558,12 +1230,12 @@ export default function AdvancedMatchCard({
                                     {awayTeamName}
                                   </td>
                                   {cols.map((inning) => (
-                                    <td key={`away-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
-                                      {inningRows[inning]?.away ?? '-'}
-                                    </td>
-                                  ))}
+                                  <td key={`away-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
+                                    {inningRows[inning]?.away ?? '-'}
+                                  </td>
+                                ))}
                                   <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">
-                                    {awayScoreValue}
+                                    {awayScoreForDisplay}
                                   </td>
                                 </tr>
                                 <tr className="border-b border-gray-100 dark:border-border/70 bg-gray-50/70 dark:bg-secondary/50 hover:bg-emerald-50/50 dark:hover:bg-secondary/60 transition-colors">
@@ -571,12 +1243,12 @@ export default function AdvancedMatchCard({
                                     {homeTeamName}
                                   </td>
                                   {cols.map((inning) => (
-                                    <td key={`home-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
-                                      {inningRows[inning]?.home ?? '-'}
-                                    </td>
-                                  ))}
+                                  <td key={`home-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
+                                    {inningRows[inning]?.home ?? '-'}
+                                  </td>
+                                ))}
                                   <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">
-                                    {homeScoreValue}
+                                    {homeScoreForDisplay}
                                   </td>
                                 </tr>
                               </tbody>
@@ -615,7 +1287,7 @@ export default function AdvancedMatchCard({
                                 {inningRows[inning]?.away ?? '-'}
                               </td>
                             ))}
-                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">{awayScoreValue}</td>
+                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">{awayScoreForDisplay}</td>
                           </tr>
                           <tr className="border-b border-gray-100 dark:border-border/70 bg-gray-50/70 dark:bg-secondary/50 hover:bg-emerald-50/50 dark:hover:bg-secondary/60 transition-colors">
                             <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={{ color: homeColor }}>
@@ -626,7 +1298,7 @@ export default function AdvancedMatchCard({
                                 {inningRows[inning]?.home ?? '-'}
                               </td>
                             ))}
-                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">{homeScoreValue}</td>
+                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">{homeScoreForDisplay}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -636,7 +1308,7 @@ export default function AdvancedMatchCard({
               </section>
             )}
 
-            {!gameDetailLoading && (
+            {!gameDetailLoading && !isPostponedOrCancelled && (
               <section>
                 <GaugeContainer>
                   <GaugeHeader>
@@ -682,8 +1354,8 @@ export default function AdvancedMatchCard({
                       transition={{ type: 'spring', stiffness: 50, damping: 20 }}
                     />
                   </ProgressBarWrapper>
-                  <div className="mt-2 text-center text-[12px] text-gray-500 dark:text-gray-300">
-                    실시간 팬 응원 참여수: {cheeringTotal.toLocaleString()}명
+                  <div data-testid="cheering-gauge-caption" className="mt-2 text-center text-[12px] text-gray-500 dark:text-gray-300">
+                    {cheeringCaption}: {cheeringTotal.toLocaleString()}명
                   </div>
                 </GaugeContainer>
               </section>
@@ -702,7 +1374,7 @@ export default function AdvancedMatchCard({
                     </p>
                     <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{awayPitcherName}</p>
                   </div>
-                  <div className="px-3 text-xs font-semibold text-gray-400">VS</div>
+                  <div className="h-8 w-px bg-gray-200 dark:bg-border" />
                   <div className="flex-1 text-center">
                     <p className="text-xs font-semibold" style={{ color: homeColor }}>
                       {homeTeamName}
@@ -713,9 +1385,9 @@ export default function AdvancedMatchCard({
               </section>
             )}
 
-            {!gameDetailLoading && coachBriefing}
+            {!gameDetailLoading && !isPostponedOrCancelled && coachBriefing}
 
-            {!gameDetailLoading && timelineEntries.length > 0 && (
+            {!gameDetailLoading && !shouldHideResultSections && timelineEntries.length > 0 && (
               <section>
                 <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
                   <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
@@ -765,11 +1437,11 @@ export default function AdvancedMatchCard({
               </section>
             )}
 
-            {!gameDetailLoading && Object.keys(inningRows).length === 0 && timelineEntries.length === 0 && (
+            {!gameDetailLoading && !shouldHideResultSections && Object.keys(inningRows).length === 0 && timelineEntries.length === 0 && (
               <div className="text-center text-xs text-gray-500 dark:text-gray-300">표시할 경기 상세 정보가 없습니다.</div>
             )}
 
-            {!gameDetailLoading && summaryGroups['심판']?.length > 0 && (
+            {!gameDetailLoading && !shouldHideResultSections && summaryGroups['심판']?.length > 0 && (
               <div className="border-t border-gray-100 dark:border-border pt-4 text-center text-[11px] text-gray-500 dark:text-gray-300">
                 심판: {summaryGroups['심판'][0]?.playerName || summaryGroups['심판'][0]?.detail || '정보 없음'}
               </div>

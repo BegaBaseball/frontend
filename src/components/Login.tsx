@@ -1,15 +1,23 @@
-// Login.tsx
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+import { getSocialLoginUrl } from '../api/auth';
+import { useLoginForm } from '../hooks/useLoginForm';
+import { buildPasswordResetPath, buildSignUpPath } from '../utils/loginRedirect';
+import AuthLayout from './auth/AuthLayout';
+import {
+  AuthActionGroup,
+  AuthFieldGroup,
+  AuthHeader,
+  AuthStatusPanel,
+} from './ui/auth-primitives';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useLoginForm } from '../hooks/useLoginForm';
-import { getSocialLoginUrl } from '../api/auth';
-import AuthLayout from './auth/AuthLayout';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     formData,
@@ -25,6 +33,10 @@ export default function Login() {
     togglePasswordVisibility,
   } = useLoginForm();
 
+  const redirectPath = new URLSearchParams(location.search).get('redirect');
+  const signUpPath = buildSignUpPath(redirectPath);
+  const passwordResetPath = buildPasswordResetPath(redirectPath);
+
   const handleSocialLogin = (provider: 'kakao' | 'google' | 'naver') => {
     if (!isLoading) {
       window.location.href = getSocialLoginUrl(provider);
@@ -33,145 +45,155 @@ export default function Login() {
 
   return (
     <AuthLayout showHomeButton={true}>
-      <h2 className="text-center mb-8 text-gray-900">SIGN IN</h2>
+      <AuthHeader
+        eyebrow="Account Access"
+        title="로그인"
+        description="경기 일정, 응원, 메이트, 예측을 이어서 보려면 계정으로 들어오세요."
+        data-testid="login-header"
+      />
 
-      <form onSubmit={handleSubmit} className="space-y-6" style={{ colorScheme: 'light' }}>
-        {/* 서버 에러 메시지 */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700 text-center">{error}</p>
-          </div>
-        )}
+      <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
+        {error ? (
+          <AuthStatusPanel tone="error" data-testid="login-status-panel" role="alert">
+            <p className="text-sm font-medium">{error}</p>
+          </AuthStatusPanel>
+        ) : null}
 
-        {/* 이메일 */}
-        <div className="space-y-2">
-          <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
-            <Mail className="w-4 h-4 text-primary" />
-            E-mail
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => handleFieldChange('email', e.target.value)}
-            onBlur={() => handleFieldBlur('email')}
-            className={`!bg-gray-50 !border-gray-200 !text-gray-900 placeholder:!text-gray-500 focus:ring-2 focus:ring-primary [&:-webkit-autofill]:!shadow-[0_0_0_30px_rgb(249,250,251)_inset] [&:-webkit-autofill]:!text-gray-900 [&:-webkit-autofill]:[-webkit-text-fill-color:#111827] ${fieldErrors.email ? '!border-red-500' : ''}`}
-            placeholder="이메일을 입력하세요"
-            disabled={isLoading}
-          />
-          {fieldErrors.email && (
-            <p className="text-sm text-red-500">* {fieldErrors.email}</p>
-          )}
-        </div>
-
-        {/* 비밀번호 */}
-        <div className="space-y-2">
-          <Label htmlFor="password" className="flex items-center gap-2 text-gray-700">
-            <Lock className="w-4 h-4 text-primary" />
-            Password
-          </Label>
-          <div className="relative">
+        <AuthFieldGroup>
+          <div className="space-y-2">
+            <Label htmlFor="email" className="flex items-center gap-2 text-foreground">
+              <Mail className="h-4 w-4 text-primary" />
+              E-mail
+            </Label>
             <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={(e) => handleFieldChange('password', e.target.value)}
-              onBlur={() => handleFieldBlur('password')}
-              className={`!bg-gray-50 !border-gray-200 !text-gray-900 placeholder:!text-gray-500 focus:ring-2 focus:ring-primary pr-10 [&:-webkit-autofill]:!shadow-[0_0_0_30px_rgb(249,250,251)_inset] [&:-webkit-autofill]:!text-gray-900 [&:-webkit-autofill]:[-webkit-text-fill-color:#111827] ${fieldErrors.password ? '!border-red-500' : ''}`}
-              placeholder="비밀번호를 입력하세요"
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="username"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={formData.email}
+              onChange={(event) => handleFieldChange('email', event.target.value)}
+              onBlur={() => handleFieldBlur('email')}
+              className={`auth-input login-autofill-input ${fieldErrors.email ? 'auth-input-error' : ''}`}
+              placeholder="이메일을 입력하세요"
               disabled={isLoading}
+              data-testid="login-email"
             />
-            <button
-              type="button"
-              onClick={togglePasswordVisibility}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              disabled={isLoading}
-              aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+            {fieldErrors.email ? <p className="auth-error-text">* {fieldErrors.email}</p> : null}
           </div>
-          {fieldErrors.password && (
-            <p className="text-sm text-red-500">* {fieldErrors.password}</p>
-          )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <input
-                id="remember-email"
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 bg-white accent-primary text-primary dark:!bg-white dark:!border-gray-300"
-                checked={rememberEmail}
-                onChange={(e) => handleRememberEmailChange(e.target.checked)}
+          <div className="space-y-2">
+            <Label htmlFor="password" className="flex items-center gap-2 text-foreground">
+              <Lock className="h-4 w-4 text-primary" />
+              Password
+            </Label>
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={formData.password}
+                onChange={(event) => handleFieldChange('password', event.target.value)}
+                onBlur={() => handleFieldBlur('password')}
+                className={`auth-input login-autofill-input pr-12 ${fieldErrors.password ? 'auth-input-error' : ''}`}
+                placeholder="비밀번호를 입력하세요"
                 disabled={isLoading}
+                data-testid="login-password"
               />
-              <label htmlFor="remember-email" className="text-sm text-gray-600 dark:!text-gray-600">
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                disabled={isLoading}
+                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                data-testid="login-password-visibility"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {fieldErrors.password ? <p className="auth-error-text">* {fieldErrors.password}</p> : null}
+
+            <div className="auth-support-row">
+              <label htmlFor="remember-email" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <input
+                  id="remember-email"
+                  type="checkbox"
+                  className="auth-checkbox"
+                  checked={rememberEmail}
+                  onChange={(event) => handleRememberEmailChange(event.target.checked)}
+                  disabled={isLoading}
+                />
                 이메일 저장
               </label>
+
+              <button
+                type="button"
+                onClick={() => navigate(passwordResetPath)}
+                className="auth-link text-sm"
+                disabled={isLoading}
+                data-testid="login-password-reset-link"
+              >
+                비밀번호를 잊으셨나요?
+              </button>
             </div>
+          </div>
+        </AuthFieldGroup>
+
+        <AuthActionGroup>
+          <Button
+            type="submit"
+            variant="brand"
+            size="touchLg"
+            className="w-full"
+            disabled={isLoading}
+            aria-busy={isLoading}
+            data-testid="login-submit"
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                로그인 중...
+              </span>
+            ) : '로그인'}
+          </Button>
+
+          <p className="auth-note text-center">
+            계정이 없으신가요?{' '}
             <button
               type="button"
-              onClick={() => navigate('/password/reset')}
-              className="text-sm text-red-500 hover:text-red-600 disabled:opacity-50"
+              onClick={() => navigate(signUpPath)}
+              className="auth-link"
               disabled={isLoading}
+              data-testid="login-signup-link"
             >
-              비밀번호를 잊으셨나요?
+              회원가입
             </button>
-          </div>
-        </div>
-
-        {/* 로그인 버튼 */}
-        <Button
-          type="submit"
-          className="w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed bg-primary-dark hover:bg-primary"
-          disabled={isLoading}
-          aria-busy={isLoading}
-        >
-          {isLoading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              로그인 중...
-            </span>
-          ) : (
-            '로그인'
-          )}
-        </Button>
-
-        {/* 회원가입 링크 */}
-        <p className="text-center text-sm text-gray-600">
-          계정이 없으신가요?{' '}
-          <button
-            type="button"
-            onClick={() => navigate('/signup')}
-            className="hover:underline disabled:opacity-50 text-primary"
-            disabled={isLoading}
-          >
-            회원가입
-          </button>
-        </p>
+          </p>
+        </AuthActionGroup>
       </form>
 
-      {/* Divider */}
-      <div className="relative my-6">
+      <div className="relative my-2">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300"></div>
+          <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center">
-          <span className="bg-white px-4 text-sm text-gray-500">또는</span>
+          <span className="bg-card px-4 text-sm text-muted-foreground">또는</span>
         </div>
       </div>
 
-      {/* Social Login Buttons */}
-      <div className="space-y-3">
+      <div className="auth-provider-stack" data-testid="login-social-group">
         <button
           type="button"
           onClick={() => handleSocialLogin('kakao')}
           disabled={isLoading}
-          className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ backgroundColor: '#FEE500', color: '#000000' }}
+          className="auth-provider-button auth-provider-kakao"
+          data-testid="login-social-kakao"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M10 3C5.589 3 2 5.792 2 9.22c0 2.155 1.396 4.046 3.505 5.146-.15.554-.976 3.505-1.122 4.045-.174.646.237.637.501.463.21-.138 3.429-2.282 3.996-2.657.373.053.754.08 1.12.08 4.411 0 8-2.792 8-6.22C18 5.793 14.411 3 10 3z" fill="currentColor" />
@@ -183,7 +205,8 @@ export default function Login() {
           type="button"
           onClick={() => handleSocialLogin('google')}
           disabled={isLoading}
-          className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="auth-provider-button auth-provider-google"
+          data-testid="login-social-google"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M18.17 8.36h-8.04v3.45h4.62c-.39 2.11-2.26 3.45-4.62 3.45a5.26 5.26 0 1 1 3.42-9.25l2.58-2.58A8.76 8.76 0 1 0 10.13 18.7c4.35 0 8.23-3.02 8.04-10.34z" fill="#4285F4" />
@@ -198,10 +221,10 @@ export default function Login() {
           type="button"
           onClick={() => handleSocialLogin('naver')}
           disabled={isLoading}
-          className="w-full py-6 rounded-full flex items-center justify-center gap-3 text-sm font-medium transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ backgroundColor: '#03C75A', color: '#FFFFFF' }}
+          className="auth-provider-button auth-provider-naver"
+          data-testid="login-social-naver"
         >
-          <span className="font-bold text-lg mr-1 italic">N</span>
+          <span className="mr-1 text-lg font-bold italic">N</span>
           네이버로 로그인
         </button>
       </div>

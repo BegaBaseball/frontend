@@ -1,0 +1,154 @@
+{
+  "status": "passed",
+  "runStartedAt": "2026-03-01T18:16:02.177Z",
+  "runFinishedAt": "2026-03-01T18:16:04.077Z",
+  "apiBase": "http://127.0.0.1:5176/api",
+  "signupIdentity": {
+    "name": "smoke_user_177653",
+    "handle": "@s62177653",
+    "email": "smoke_1772388962177653@example.com"
+  },
+  "steps": [
+    {
+      "name": "required-policies",
+      "status": "passed",
+      "startedAt": "2026-03-01T18:16:02.183Z",
+      "finishedAt": "2026-03-01T18:16:02.297Z",
+      "durationMs": 114,
+      "result": {
+        "status": 200,
+        "data": {
+          "success": true,
+          "message": "필수 정책 목록 조회 성공",
+          "data": {
+            "policies": [
+              {
+                "policyType": "TERMS",
+                "version": "2026-02-26",
+                "path": "/terms",
+                "required": true,
+                "effectiveDate": "2026-02-26"
+              },
+              {
+                "policyType": "PRIVACY",
+                "version": "2026-02-26",
+                "path": "/privacy",
+                "required": true,
+                "effectiveDate": "2026-02-26"
+              },
+              {
+                "policyType": "DATA_DISCLAIMER",
+                "version": "2026-02-26",
+                "path": "/data-disclaimer",
+                "required": true,
+                "effectiveDate": "2026-02-26"
+              }
+            ],
+            "gracePeriodDays": 14,
+            "effectiveDate": "2026-02-26",
+            "hardGateDate": "2026-03-12"
+          }
+        },
+        "rawText": "{\"success\":true,\"message\":\"필수 정책 목록 조회 성공\",\"data\":{\"policies\":[{\"policyType\":\"TERMS\",\"version\":\"2026-02-26\",\"path\":\"/terms\",\"required\":true,\"effectiveDate\":\"2026-02-26\"},{\"policyType\":\"PRIVACY\",\"version\":\"2026-02-26\",\"path\":\"/privacy\",\"required\":true,\"effectiveDate\":\"2026-02-26\"},{\"policyType\":\"DATA_DISCLAIMER\",\"version\":\"2026-02-26\",\"path\":\"/data-disclaimer\",\"required\":true,\"effectiveDate\":\"2026-02-26\"}],\"gracePeriodDays\":14,\"effectiveDate\":\"2026-02-26\",\"hardGateDate\":\"2026-03-12\"}}"
+      }
+    },
+    {
+      "name": "signup",
+      "status": "passed",
+      "startedAt": "2026-03-01T18:16:02.297Z",
+      "finishedAt": "2026-03-01T18:16:02.297Z",
+      "durationMs": 0,
+      "result": {
+        "status": "skipped",
+        "reason": "SMOKE_SKIP_SIGNUP=1"
+      }
+    },
+    {
+      "name": "login",
+      "status": "passed",
+      "startedAt": "2026-03-01T18:16:02.297Z",
+      "finishedAt": "2026-03-01T18:16:02.567Z",
+      "durationMs": 270,
+      "result": {
+        "status": 200,
+        "userId": 167,
+        "handle": "@it17722980",
+        "cookieCount": 2
+      }
+    },
+    {
+      "name": "auth-mypage",
+      "status": "passed",
+      "startedAt": "2026-03-01T18:16:02.568Z",
+      "finishedAt": "2026-03-01T18:16:02.665Z",
+      "durationMs": 97,
+      "result": {
+        "status": 200,
+        "id": 167,
+        "email": "it_17722980@example.com",
+        "policyConsentRequired": false
+      }
+    },
+    {
+      "name": "chat-unread-count",
+      "status": "passed",
+      "startedAt": "2026-03-01T18:16:02.666Z",
+      "finishedAt": "2026-03-01T18:16:02.760Z",
+      "durationMs": 94,
+      "result": {
+        "status": 200,
+        "unreadCount": 0
+      }
+    },
+    {
+      "name": "storage-image-upload",
+      "status": "passed",
+      "startedAt": "2026-03-01T18:16:02.760Z",
+      "finishedAt": "2026-03-01T18:16:03.839Z",
+      "durationMs": 1079,
+      "result": {
+        "status": 200,
+        "path": "chat/167/0c7f4650-0c94-472c-b555-eaace7702feb.webp"
+      }
+    },
+    {
+      "name": "mate-list-smoke",
+      "status": "passed",
+      "startedAt": "2026-03-01T18:16:03.839Z",
+      "finishedAt": "2026-03-01T18:16:03.899Z",
+      "durationMs": 60,
+      "result": {
+        "status": 200,
+        "listedCount": 8,
+        "samplePartyId": 61
+      }
+    },
+    {
+      "name": "my-application-smoke",
+      "status": "passed",
+      "startedAt": "2026-03-01T18:16:03.899Z",
+      "finishedAt": "2026-03-01T18:16:04.038Z",
+      "durationMs": 139,
+      "result": {
+        "status": 200,
+        "applicationCount": 0
+      }
+    },
+    {
+      "name": "payment-prepare-smoke",
+      "status": "passed",
+      "startedAt": "2026-03-01T18:16:04.038Z",
+      "finishedAt": "2026-03-01T18:16:04.077Z",
+      "durationMs": 39,
+      "result": {
+        "status": 503,
+        "partyId": 61,
+        "message": "직거래 모드에서는 앱 내 Toss 결제를 지원하지 않습니다."
+      }
+    }
+  ],
+  "warnings": [
+    "payment-prepare-smoke business rejection: status=503, message=직거래 모드에서는 앱 내 Toss 결제를 지원하지 않습니다."
+  ],
+  "fatalError": null
+}

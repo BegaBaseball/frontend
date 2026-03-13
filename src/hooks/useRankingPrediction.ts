@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useAuthStore } from '../store/authStore';
+import { useAuthSession } from '../store/authStore';
 import { usePredictionStore, Team } from '../store/predictionStore';
 import {
   fetchCurrentSeason,
@@ -18,12 +18,11 @@ import {
 } from '../utils/ranking';
 import { KAKAO_APP_KEY } from '../constants/ranking';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 export const useRankingPrediction = () => {
   const navigate = useNavigate();
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
-  const userId = useAuthStore((state) => state.user?.id);
+  const { isLoggedIn, isAuthLoading } = useAuthSession();
 
   // Local state
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -32,6 +31,7 @@ export const useRankingPrediction = () => {
   const [currentSeason, setCurrentSeason] = useState<number | null>(null);
   const [isPredictionPeriod, setIsPredictionPeriod] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [shareId, setShareId] = useState<string | null>(null);
 
   // Zustand store
   const rankings = usePredictionStore((state) => state.rankings);
@@ -55,7 +55,7 @@ export const useRankingPrediction = () => {
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
       toast.error('로그인이 필요한 서비스입니다.');
-      navigate('/login');
+      navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
     }
   }, [isLoggedIn, isAuthLoading, navigate]);
 
@@ -80,6 +80,7 @@ export const useRankingPrediction = () => {
 
       if (savedPrediction) {
         setAlreadySaved(true);
+        setShareId(savedPrediction.shareId);
 
         // 저장된 예측 복원
         const restoredRankings = restoreTeamsFromIds(savedPrediction.teamIdsInOrder, allTeams);
@@ -90,14 +91,16 @@ export const useRankingPrediction = () => {
         toast.info(`${seasonData.seasonYear} 시즌 순위 예측을 불러왔습니다.`);
       } else {
         // 저장된 예측이 없으면 초기화
+        setShareId(null);
         resetRankings();
       }
 
     } catch (error: unknown) {
+      setShareId(null);
       const errorMessage = getApiErrorMessage(error, '데이터를 불러오는데 실패했습니다.');
       if (errorMessage === 'UNAUTHORIZED') {
         toast.error('로그인이 필요한 서비스입니다.');
-        navigate('/login');
+        navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
       } else {
         setIsPredictionPeriod(false);
         toast.error(errorMessage);
@@ -148,13 +151,17 @@ export const useRankingPrediction = () => {
   // 저장 확인
   const confirmSave = async () => {
     if (isSaving || alreadySaved || !currentSeason) return;
+    if (!isRankingComplete(rankings)) {
+      toast.error('10개 팀을 모두 배치한 후 저장할 수 있습니다.');
+      return;
+    }
 
     setIsSaving(true);
 
     try {
       const teamIds = extractTeamIds(rankings);
 
-      await saveRankingPrediction({
+      const savedPrediction = await saveRankingPrediction({
         seasonYear: currentSeason,
         teamIdsInOrder: teamIds
       });
@@ -162,6 +169,7 @@ export const useRankingPrediction = () => {
       toast.success(`${currentSeason} 시즌 예측이 저장되었습니다!`);
       setShowSaveDialog(false);
       setAlreadySaved(true);
+      setShareId(savedPrediction.shareId);
 
     } catch (error: unknown) {
       const errorMessage = getApiErrorMessage(error, '저장에 실패했습니다.');
@@ -181,13 +189,19 @@ export const useRankingPrediction = () => {
       return;
     }
 
+    const kakaoShare = window.Kakao?.Share;
+    if (!kakaoShare) {
+      toast.error('카카오톡 공유 기능을 사용할 수 없습니다.');
+      return;
+    }
+
     if (!isComplete) {
       toast.warning('10개 팀을 모두 배치한 후 공유할 수 있습니다.');
       return;
     }
 
-    if (!userId) {
-      toast.error('사용자 정보를 불러올 수 없습니다.');
+    if (!alreadySaved || !shareId || !currentSeason) {
+      toast.warning('예측을 저장한 뒤 공유할 수 있습니다.');
       return;
     }
 
@@ -195,10 +209,10 @@ export const useRankingPrediction = () => {
       const rankingText = generateRankingText(rankings);
 
       const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-      const shareUrl = `${baseUrl}/predictions/ranking/share/${userId}/${currentSeason}`;
+      const shareUrl = `${baseUrl}/predictions/ranking/share/${shareId}/${currentSeason}`;
 
 
-      window.Kakao.Share.sendDefault({
+      kakaoShare.sendDefault({
         objectType: 'feed',
         content: {
           title: `${currentSeason} KBO 시즌 순위 예측`,
@@ -238,7 +252,7 @@ export const useRankingPrediction = () => {
     isLoading,
     isAuthLoading,
     isLoggedIn,
-    userId,
+    shareId,
 
     // Store state
     rankings,

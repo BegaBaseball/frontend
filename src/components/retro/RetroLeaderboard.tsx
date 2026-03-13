@@ -6,8 +6,9 @@ import {
   crispText,
 } from './RetroTheme';
 import LeaderboardRow, { LeaderboardEntry } from './LeaderboardRow';
-import { TickerMessage } from './NewsTicker';
-import type { UserLeaderboardStats } from '../../api/leaderboard';
+import NewsTicker, { TickerMessage } from './NewsTicker';
+import PowerUpInventory from './PowerUpInventory';
+import type { UserLeaderboardStats, PowerupInventory } from '../../api/leaderboard';
 
 import mascotRight from '../../assets/images/mascot_v3.png';
 import stadiumBg from '../../assets/images/stadium_bg.png';
@@ -361,10 +362,10 @@ interface RetroLeaderboardProps {
   userStats?: UserLeaderboardStats | null;
   tickerMessages?: TickerMessage[];
   hotStreaks?: LeaderboardEntry[];
-  powerups?: Record<string, number>;
+  powerups?: PowerupInventory;
   activePowerups?: string[];
   isLoading?: boolean;
-  currentUserId?: number;
+  currentUserHandle?: string;
   onTypeChange?: (type: LeaderboardType) => void;
   onPageChange?: (page: number) => void;
   onRefresh?: () => void;
@@ -380,8 +381,13 @@ interface RetroLeaderboardProps {
 export default function RetroLeaderboard({
   leaderboard,
   userStats,
+  tickerMessages = [],
+  hotStreaks = [],
+  powerups = { MAGIC_BAT: 0, GOLDEN_GLOVE: 0, SCOUTER: 0 },
+  activePowerups = [],
+  onUsePowerup,
   isLoading = false,
-  currentUserId,
+  currentUserHandle,
   onTypeChange,
   onPageChange,
   onRefresh,
@@ -422,6 +428,8 @@ export default function RetroLeaderboard({
             <CharacterSprite src={mascotRight} alt="Mascot" />
           </CharacterFrame>
         </TitleWrapper>
+
+        <NewsTicker messages={tickerMessages} />
 
         <MigrationStatsPanel>
           <MigrationStatsGrid>
@@ -481,11 +489,16 @@ export default function RetroLeaderboard({
                           <td>퍼펙트 데이</td>
                           <td>+200점</td>
                         </tr>
+                        <tr>
+                          <td>📸 좌석 시야 공유</td>
+                          <td>+50점 (첫 기여 +100점)</td>
+                        </tr>
                       </tbody>
                     </RulesTable>
                     <p style={{ color: '#aaa', fontSize: '12px', fontFamily: fonts.retroText, marginBottom: '20px', textAlign: 'center' }}>
                       * 연승이 끊기면 연승 보너스는 초기화됩니다.<br />
-                      * 파워업 아이템 사용 시 추가 배율이 적용됩니다.
+                      * 파워업 아이템 사용 시 추가 배율이 적용됩니다.<br />
+                      * 다이어리에서 좌석 시야 사진을 올리면 포인트를 획득합니다.
                     </p>
                     <CloseButton onClick={() => setShowRules(false)}>닫기</CloseButton>
                   </RulesOverlay>
@@ -508,10 +521,10 @@ export default function RetroLeaderboard({
                   <AnimatePresence mode="popLayout">
                     {displayLeaderboard.map((entry, index) => (
                       <LeaderboardRow
-                        key={entry.userId}
-                        rank={index + 1}
+                        key={entry.handle ?? `${entry.userName}-${entry.rank ?? index + 1}`}
+                        rank={entry.rank ?? index + 1}
                         entry={entry}
-                        isCurrentUser={entry.userId === currentUserId}
+                        isCurrentUser={Boolean(currentUserHandle && entry.handle && entry.handle === currentUserHandle)}
                       />
                     ))}
                   </AnimatePresence>
@@ -541,6 +554,60 @@ export default function RetroLeaderboard({
           </ScoreboardBox>
 
         </ScoreboardWrapper>
+
+        {hotStreaks.length > 0 && (
+          <div style={{ width: '90%', maxWidth: '800px', margin: '20px auto 0' }}>
+            <div style={{
+              background: 'rgba(0,0,0,0.7)',
+              border: '3px solid #ff6600',
+              borderRadius: '8px',
+              padding: '16px 20px',
+              boxShadow: '0 0 14px rgba(255, 102, 0, 0.2)',
+            }}>
+              <div style={{
+                fontFamily: fonts.retroText,
+                fontSize: '11px',
+                color: '#ff6600',
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                🔥 연승 중인 플레이어
+              </div>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {hotStreaks.map((entry) => (
+                  <div key={entry.handle ?? entry.userName} style={{
+                    background: 'rgba(255, 102, 0, 0.1)',
+                    border: '2px solid #ff6600',
+                    borderRadius: '6px',
+                    padding: '8px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}>
+                    <span style={{ fontSize: '16px' }}>🔥</span>
+                    <span style={{ fontFamily: fonts.retroText, fontSize: '12px', color: '#fff' }}>
+                      {entry.userName}
+                    </span>
+                    <span style={{ fontFamily: fonts.retroDisplay, fontSize: '14px', color: '#ff6600' }}>
+                      {entry.streak}연승
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ width: '90%', maxWidth: '800px', margin: '20px auto 40px' }}>
+          <PowerUpInventory
+            powerups={powerups as unknown as Record<string, number>}
+            activePowerups={activePowerups}
+            onUsePowerup={onUsePowerup}
+          />
+        </div>
+
       </ContentOverlay>
     </StadiumContainer>
   );

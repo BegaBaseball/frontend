@@ -7,26 +7,33 @@ import {
   UserProviderDto,
   PublicUserProfile,
   DeviceSessionItem,
+  SecurityEventItem,
+  TrustedDeviceItem,
+  AccountDeletionScheduleResponse,
+  AccountDeletionRecoveryInfo,
 } from '../types/profile';
 import api from './axios';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
+import { compressImage } from '../utils/imageCompression';
 
-/**
- * 다른 사용자 프로필 조회 (공개 정보 - ID 기준)
- */
-export async function fetchPublicUserProfile(userId: number): Promise<PublicUserProfile> {
-  try {
-    const response = await api.get<{ success: boolean; data: PublicUserProfile; message?: string }>(`/users/${userId}/profile`);
-
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
-    }
-    return response.data.data;
-  } catch (error: unknown) {
-    throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
+const normalizeFavoriteTeam = (value?: string | null): string | null => {
+  if (value == null) {
+    return null;
   }
-}
+  const trimmed = value.trim();
+  return trimmed === '' || trimmed === '없음' ? null : trimmed;
+};
+
+const normalizePublicProfile = (profile: PublicUserProfile): PublicUserProfile => ({
+  ...profile,
+  favoriteTeam: normalizeFavoriteTeam(profile.favoriteTeam),
+});
+
+const normalizeUserProfile = (profile: UserProfile): UserProfile => ({
+  ...profile,
+  favoriteTeam: normalizeFavoriteTeam(profile.favoriteTeam),
+});
 
 /**
  * 다른 사용자 프로필 조회 (공개 정보 - 핸들 기준)
@@ -38,7 +45,7 @@ export async function fetchPublicUserProfileByHandle(handle: string): Promise<Pu
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
     }
-    return response.data.data;
+    return normalizePublicProfile(response.data.data);
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
   }
@@ -54,7 +61,7 @@ export async function fetchUserProfile(): Promise<UserProfile> {
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
     }
-    return response.data.data;
+    return normalizeUserProfile(response.data.data);
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
   }
@@ -64,15 +71,24 @@ export async function fetchUserProfile(): Promise<UserProfile> {
  * 프로필 이미지 업로드
  */
 export async function uploadProfileImage(file: File): Promise<ProfileImageDto> {
+  let fileToUpload = file;
+  try {
+    fileToUpload = await compressImage(file, {
+      maxSizeMB: 0.8,
+      maxWidthOrHeight: 1536,
+      initialQuality: 0.88,
+      useWebWorker: true,
+    });
+  } catch (compressionError) {
+    console.warn('프로필 이미지 선압축에 실패하여 원본 업로드를 진행합니다.', compressionError);
+    fileToUpload = file;
+  }
+
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', fileToUpload);
 
   try {
-    const response = await api.post('/profile/image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.postForm('/profile/image', formData);
 
     if (response.data.success) {
       return response.data.data;
@@ -95,7 +111,13 @@ export async function updateProfile(data: ProfileUpdateData): Promise<ProfileUpd
       throw new Error(response.data.message || '프로필 저장에 실패했습니다.');
     }
 
-    return response.data;
+    return {
+      ...response.data,
+      data: {
+        ...response.data.data,
+        favoriteTeam: normalizeFavoriteTeam(response.data.data?.favoriteTeam),
+      },
+    };
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response?.status === 401) {
       throw new Error('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
@@ -119,6 +141,17 @@ export interface NicknameCheckResponse {
   normalized?: string;
 }
 
+const isNicknameCheckResponse = (value: unknown): value is NicknameCheckResponse => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return (
+    'available' in value &&
+    typeof (value as { available: unknown }).available === 'boolean'
+  );
+};
+
 export async function changePassword(data: ChangePasswordRequest): Promise<void> {
   try {
     const response = await api.put('/auth/password', data);
@@ -137,20 +170,22 @@ export async function changePassword(data: ChangePasswordRequest): Promise<void>
 /**
  * 계정 삭제 (회원탈퇴)
  */
-export async function deleteAccount(password?: string): Promise<void> {
+export async function deleteAccount(password?: string): Promise<AccountDeletionScheduleResponse> {
   try {
-    const response = await api.delete('/auth/account', {
+    const response = await api.delete<{ success: boolean; data?: AccountDeletionScheduleResponse; message?: string }>('/auth/account', {
       data: password ? { password } : undefined
     });
 
     if (!response.data.success) {
-      throw new Error(response.data.message || '계정 삭제에 실패했습니다.');
+      throw new Error(response.data.message || '계정 삭제 예약에 실패했습니다.');
     }
+
+    return response.data.data || { scheduledFor: '' };
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response?.status === 401) {
       throw new Error('비밀번호가 일치하지 않습니다.');
     }
-    throw new Error(getApiErrorMessage(error, '계정 삭제에 실패했습니다.'));
+    throw new Error(getApiErrorMessage(error, '계정 삭제 예약에 실패했습니다.'));
   }
 }
 
@@ -242,13 +277,79 @@ export async function deleteOtherDeviceSessions(): Promise<string> {
   }
 }
 
+export async function getSecurityEvents(): Promise<SecurityEventItem[]> {
+  try {
+    const response = await api.get<{ success: boolean; data?: SecurityEventItem[]; message?: string }>('/auth/security-events');
+    if (!response.data.success) {
+      throw new Error(response.data.message || '보안 활동을 불러오지 못했습니다.');
+    }
+
+    return response.data.data || [];
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '보안 활동 조회에 실패했습니다.'));
+  }
+}
+
+export async function getTrustedDevices(): Promise<TrustedDeviceItem[]> {
+  try {
+    const response = await api.get<{ success: boolean; data?: TrustedDeviceItem[]; message?: string }>('/auth/trusted-devices');
+    if (!response.data.success) {
+      throw new Error(response.data.message || '신뢰 기기 정보를 불러오지 못했습니다.');
+    }
+
+    return response.data.data || [];
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '신뢰 기기 조회에 실패했습니다.'));
+  }
+}
+
+export async function deleteTrustedDevice(deviceId: number): Promise<void> {
+  try {
+    const response = await api.delete<{ success: boolean; message?: string }>(`/auth/trusted-devices/${deviceId}`);
+    if (!response.data.success) {
+      throw new Error(response.data.message || '신뢰 기기 해제에 실패했습니다.');
+    }
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '신뢰 기기 해제에 실패했습니다.'));
+  }
+}
+
+export async function getAccountDeletionRecoveryInfo(token: string): Promise<AccountDeletionRecoveryInfo> {
+  try {
+    const response = await api.get<{ success: boolean; data?: AccountDeletionRecoveryInfo; message?: string }>('/auth/account/deletion/recovery', {
+      params: { token },
+    });
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.message || '계정 복구 정보를 확인하지 못했습니다.');
+    }
+
+    return response.data.data;
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '계정 복구 정보 조회에 실패했습니다.'));
+  }
+}
+
+export async function requestAccountDeletionRecovery(token: string): Promise<void> {
+  try {
+    const response = await api.post<{ success: boolean; message?: string }>('/auth/account/deletion/recovery', {
+      token,
+    });
+    if (!response.data.success) {
+      throw new Error(response.data.message || '계정 복구에 실패했습니다.');
+    }
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, '계정 복구에 실패했습니다.'));
+  }
+}
+
 /**
  * 닉네임 중복/사용 가능 여부 체크
  */
 export async function checkNicknameAvailability(name: string): Promise<NicknameCheckResponse> {
   try {
-    const response = await api.get<{ success: boolean; message?: string; data?: NicknameCheckResponse }>(`/auth/check-name`, {
+    const response = await api.get<{ success: boolean; message?: string; data?: unknown }>(`/auth/check-name`, {
       params: { name },
+      skipGlobalErrorHandler: true,
     });
 
     if (!response.data.success) {
@@ -258,8 +359,8 @@ export async function checkNicknameAvailability(name: string): Promise<NicknameC
       };
     }
 
-    const payload = response.data.data || {};
-    if (typeof payload.available === 'boolean') {
+    const payload = response.data.data;
+    if (isNicknameCheckResponse(payload)) {
       return payload;
     }
 
@@ -268,6 +369,22 @@ export async function checkNicknameAvailability(name: string): Promise<NicknameC
       message: response.data.message || '사용 여부를 확인할 수 없습니다.',
     };
   } catch (error: unknown) {
+    if (error instanceof AxiosError) {
+      const status = error.response?.status ?? null;
+      const data = error.response?.data as { message?: string; data?: unknown } | undefined;
+      if (status === 400 || status === 409) {
+        const payload = data?.data;
+        if (isNicknameCheckResponse(payload)) {
+          return payload;
+        }
+
+        return {
+          available: false,
+          message: data?.message || '현재 닉네임을 사용할 수 없습니다.',
+        };
+      }
+    }
+
     throw new Error(getApiErrorMessage(error, '닉네임 중복 확인에 실패했습니다.'));
   }
 }

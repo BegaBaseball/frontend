@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useCallback } from 'react';
 import {
   fetchLeaderboard,
   fetchMyRank,
@@ -10,8 +10,7 @@ import {
   usePowerup as usePowerupApi,
   formatScoreEvent,
   type LeaderboardType,
-  type LeaderboardEntry,
-  type RecentScore,
+  type PowerupInventory,
 } from '../api/leaderboard';
 import { useLeaderboardStore } from '../store/leaderboardStore';
 import type { TickerMessage } from '../components/retro/NewsTicker';
@@ -20,13 +19,18 @@ import type { TickerMessage } from '../components/retro/NewsTicker';
 // MAIN HOOK
 // ============================================
 
+type UseLeaderboardOptions = {
+  includeMyRank?: boolean;
+};
+
 export function useLeaderboard(
   type: LeaderboardType = 'season',
   page: number = 0,
-  size: number = 20
+  size: number = 20,
+  options: UseLeaderboardOptions = {}
 ) {
+  const { includeMyRank = true } = options;
   const queryClient = useQueryClient();
-  const { setUserStats, setPowerups, setActivePowerups, cacheLeaderboard } = useLeaderboardStore();
 
   // Fetch leaderboard
   const leaderboardQuery = useQuery({
@@ -36,26 +40,7 @@ export function useLeaderboard(
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Cache leaderboard data in store
-  useEffect(() => {
-    if (leaderboardQuery.data?.content) {
-      cacheLeaderboard(type, leaderboardQuery.data.content);
-    }
-  }, [leaderboardQuery.data, type, cacheLeaderboard]);
-
-  // Fetch current user's stats
-  const myRankQuery = useQuery({
-    queryKey: ['leaderboard', 'me'],
-    queryFn: fetchMyRank,
-    staleTime: 60000, // 1 minute
-  });
-
-  // Update store with user stats
-  useEffect(() => {
-    if (myRankQuery.data) {
-      setUserStats(myRankQuery.data);
-    }
-  }, [myRankQuery.data, setUserStats]);
+  const { stats: myRank } = useUserLeaderboardStats({ enabled: includeMyRank });
 
   // Fetch hot streaks
   const hotStreaksQuery = useQuery({
@@ -90,7 +75,7 @@ export function useLeaderboard(
     totalElements: leaderboardQuery.data?.totalElements ?? 0,
 
     // User data
-    myRank: myRankQuery.data ?? null,
+    myRank: myRank ?? null,
 
     // Hot streaks
     hotStreaks: hotStreaksQuery.data ?? [],
@@ -101,7 +86,6 @@ export function useLeaderboard(
 
     // Loading states
     isLoading: leaderboardQuery.isLoading,
-    isLoadingMyRank: myRankQuery.isLoading,
     isLoadingHotStreaks: hotStreaksQuery.isLoading,
 
     // Error states
@@ -119,7 +103,11 @@ export function useLeaderboard(
 
 export function usePowerups() {
   const queryClient = useQueryClient();
-  const { setPowerups, setActivePowerups, usePowerup: usePowerupInStore } = useLeaderboardStore();
+  const DEFAULT_POWERUPS: PowerupInventory = {
+    MAGIC_BAT: 0,
+    GOLDEN_GLOVE: 0,
+    SCOUTER: 0,
+  };
 
   // Fetch powerup inventory
   const inventoryQuery = useQuery({
@@ -128,13 +116,6 @@ export function usePowerups() {
     staleTime: 60000,
   });
 
-  // Update store with powerups
-  useEffect(() => {
-    if (inventoryQuery.data) {
-      setPowerups(inventoryQuery.data);
-    }
-  }, [inventoryQuery.data, setPowerups]);
-
   // Fetch active powerups
   const activeQuery = useQuery({
     queryKey: ['powerups', 'active'],
@@ -142,30 +123,24 @@ export function usePowerups() {
     staleTime: 30000,
   });
 
-  // Update store with active powerups
-  useEffect(() => {
-    if (activeQuery.data) {
-      setActivePowerups(activeQuery.data.map((p) => p.type));
-    }
-  }, [activeQuery.data, setActivePowerups]);
-
   // Use powerup mutation
   const usePowerupMutation = useMutation({
     mutationFn: ({ type, gameId }: { type: string; gameId?: string }) =>
       usePowerupApi(type, gameId),
-    onSuccess: (data, variables) => {
-      // Update local store optimistically
-      usePowerupInStore(variables.type as 'MAGIC_BAT' | 'GOLDEN_GLOVE' | 'SCOUTER');
-
-      // Invalidate queries to refetch
+    onSuccess: () => {
+      // Keep server state as source of truth in React Query cache.
+      queryClient.invalidateQueries({ queryKey: ['powerups'] });
+    },
+    onError: () => {
+      // Refetch ensures local UI state returns to server truth on failure.
       queryClient.invalidateQueries({ queryKey: ['powerups'] });
     },
   });
 
   return {
-    powerups: inventoryQuery.data ?? { MAGIC_BAT: 0, GOLDEN_GLOVE: 0, SCOUTER: 0 },
+    powerups: inventoryQuery.data ?? DEFAULT_POWERUPS,
     activePowerups: activeQuery.data?.map((p) => p.type) ?? [],
-    isLoading: inventoryQuery.isLoading,
+    isLoading: inventoryQuery.isLoading || activeQuery.isLoading,
     isUsingPowerup: usePowerupMutation.isPending,
     usePowerup: (type: string, gameId?: string) =>
       usePowerupMutation.mutateAsync({ type, gameId }),
@@ -177,8 +152,11 @@ export function usePowerups() {
 // ============================================
 
 export function useComboEffect() {
-  const { triggerCombo, hideCombo, showComboAnimation, comboStreak, comboScore } =
-    useLeaderboardStore();
+  const triggerCombo = useLeaderboardStore((state) => state.triggerCombo);
+  const hideCombo = useLeaderboardStore((state) => state.hideCombo);
+  const showComboAnimation = useLeaderboardStore((state) => state.showComboAnimation);
+  const comboStreak = useLeaderboardStore((state) => state.comboStreak);
+  const comboScore = useLeaderboardStore((state) => state.comboScore);
 
   return {
     showCombo: showComboAnimation,
@@ -193,11 +171,17 @@ export function useComboEffect() {
 // USER STATS HOOK
 // ============================================
 
-export function useUserLeaderboardStats() {
+type UseUserLeaderboardStatsOptions = {
+  enabled?: boolean;
+};
+
+export function useUserLeaderboardStats(options: UseUserLeaderboardStatsOptions = {}) {
+  const { enabled = true } = options;
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['leaderboard', 'me'],
     queryFn: fetchMyRank,
     staleTime: 60000,
+    enabled,
   });
 
   return {

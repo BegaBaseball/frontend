@@ -1,11 +1,8 @@
 // api/home.ts
 import { useQuery } from '@tanstack/react-query';
 import { Game, Ranking, LeagueStartDates } from '../types/home';
-import { DEFAULT_LEAGUE_START_DATES } from '../constants/home';
-import { formatDateForAPI } from '../utils/home';
-import { getApiBaseUrl } from './apiBase';
-
-const API_PREFIX = getApiBaseUrl();
+import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
+import api from './axios';
 
 /**
  * 특정 날짜의 경기 데이터 조회
@@ -14,16 +11,10 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
     const apiDate = formatDateForAPI(date);
 
     try {
-        const response = await fetch(`${API_PREFIX}/kbo/schedule?date=${apiDate}`, {
-            credentials: 'include'
+        const { data } = await api.get<Game[]>('/kbo/schedule', {
+            params: { date: apiDate },
         });
-
-        if (!response.ok) {
-            return [];
-        }
-
-        const gamesData: Game[] = await response.json();
-        return gamesData;
+        return data;
 
     } catch (error) {
         return [];
@@ -35,16 +26,8 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
  */
 export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
     try {
-        const response = await fetch(`${API_PREFIX}/kbo/rankings/${year}`, {
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            return [];
-        }
-
-        const rankingsData: Ranking[] = await response.json();
-        return rankingsData;
+        const { data } = await api.get<Ranking[]>(`/kbo/rankings/${year}`);
+        return data;
 
     } catch (error) {
         return [];
@@ -56,19 +39,12 @@ export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
  */
 export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
     try {
-        const response = await fetch(`${API_PREFIX}/kbo/league-start-dates`, {
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            return DEFAULT_LEAGUE_START_DATES;
-        }
-
-        const data: LeagueStartDates = await response.json();
+        const { data } = await api.get<LeagueStartDates>('/kbo/league-start-dates');
+        cacheLeagueStartDates(data);
         return data;
 
     } catch (error) {
-        return DEFAULT_LEAGUE_START_DATES;
+        return getFallbackLeagueStartDates();
     }
 };
 

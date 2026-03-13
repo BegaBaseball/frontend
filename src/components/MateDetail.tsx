@@ -1,17 +1,25 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import SeatViewGallery from './SeatViewGallery';
 import QRCode from 'react-qr-code';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { KBO_STADIUMS, StadiumZone } from '../utils/stadiumData';
 import { OptimizedImage } from './common/OptimizedImage';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
+import AdSlot from './ads/AdSlot';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
-import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider
+} from './ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -37,64 +45,103 @@ import {
   QrCode,
   Info,
   Map as MapIcon,
-  HelpCircle,
   Plus,
   User,
   RefreshCw,
 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import UserProfileModal from './profile/UserProfileModal';
-import TeamLogo, { teamIdToName } from './TeamLogo';
-import { api } from '../utils/api';
+import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
+import { api, getApiErrorStatus } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
-import { DEPOSIT_AMOUNT } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
-import { formatGameDate, extractHashtags, mapBackendPartyToFrontend, stripHashtags } from '../utils/mate';
+import {
+  extractHashtags,
+  formatHostAverageRating,
+  formatGameDate,
+  getHostAverageRating,
+  hasSameMateUserIdentity,
+  isPartyHostedByUser,
+  mapBackendPartyToFrontend,
+  stripHashtags,
+} from '../utils/mate';
 import ReviewDialog from './ReviewDialog';
-import type { PartyReview, Application } from '../types/mate';
+import type { CancelReasonType, PartyReview, Application } from '../types/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { resolveQrRefreshDelayMs } from '../utils/qrRefresh';
+import { getRefundPolicyMessage } from '../utils/paymentStatus';
 
 export default function MateDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { confirm } = useConfirmDialog();
-  const { party: selectedParty, isLoading: isPartyLoading, error: partyError } = useMatePartyFromRoute(id);
+  const {
+    party: selectedParty,
+    isLoading: isPartyLoading,
+    isRevalidating: isPartyRevalidating,
+    error: partyError,
+    statusCode: partyStatusCode,
+  } = useMatePartyFromRoute(id);
   const setSelectedParty = useMateStore((state) => state.setSelectedParty);
-  const updateParty = useMateStore((state) => state.updateParty);
-  const user = useAuthStore((state) => state.user);
-
-  // Use user from auth store directly
-  const currentUserId = user?.id || null;
+  const {
+    userId: currentUserId,
+    userHandle: currentUserHandle,
+  } = useAuthProfileSnapshot();
 
   const [myApplication, setMyApplication] = useState<Application | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isConvertingToSale, setIsConvertingToSale] = useState(false);
   const [showSaleDialog, setShowSaleDialog] = useState(false);
   const [salePrice, setSalePrice] = useState('');
   const [salePriceError, setSalePriceError] = useState('');
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [selectedCancelReason, setSelectedCancelReason] = useState<CancelReasonType>('BUYER_CHANGED_MIND');
+  const [cancelMemo, setCancelMemo] = useState('');
+  const [qrCheckInUrl, setQrCheckInUrl] = useState('');
+  const [qrSessionExpiresAt, setQrSessionExpiresAt] = useState<string | null>(null);
+  const [isQrLoading, setIsQrLoading] = useState(false);
+  const [qrSessionError, setQrSessionError] = useState<string | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false); // For Seat View toggle
-  const [hostAvgRating, setHostAvgRating] = useState<number | null>(null);
+  const [showZoneDetails, setShowZoneDetails] = useState(false);
   const [showHostProfile, setShowHostProfile] = useState(false);
   const [reviews, setReviews] = useState<PartyReview[]>([]);
-  const [reviewTarget, setReviewTarget] = useState<{ id: number; name: string } | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{ handle: string; name: string } | null>(null);
+  const missingPartyRedirectRef = useRef<string | null>(null);
   const selectedPartyId = selectedParty?.id;
   const selectedPartyStatus = selectedParty?.status;
 
-  // 호스트 평균 평점 가져오기 (리뷰 기반)
   useEffect(() => {
-    if (!selectedParty) return;
-    api.getUserAverageRating(selectedParty.hostId)
-      .then((rating) => setHostAvgRating(rating))
-      .catch(() => setHostAvgRating(null));
-  }, [selectedParty?.hostId]);
+    if (partyStatusCode !== 404 || !id || selectedParty) {
+      missingPartyRedirectRef.current = null;
+      return;
+    }
+    if (missingPartyRedirectRef.current === id) {
+      return;
+    }
+
+    missingPartyRedirectRef.current = id;
+    toast.info('존재하지 않는 파티입니다. 목록으로 이동합니다.');
+    const redirectTimer = window.setTimeout(() => {
+      navigate('/mate', { replace: true });
+    }, 1600);
+
+    return () => window.clearTimeout(redirectTimer);
+  }, [id, navigate, partyStatusCode, selectedParty]);
 
   // COMPLETED 파티의 리뷰 목록 가져오기
   useEffect(() => {
     if (!selectedParty || selectedParty.status !== 'COMPLETED') return;
     api.getPartyReviews(selectedParty.id)
       .then((data) => setReviews(Array.isArray(data) ? data : []))
-      .catch(() => { });
+      .catch((err: unknown) => {
+        const status = getApiErrorStatus(err);
+        if (status !== 403) {
+          toast.error('리뷰 정보를 불러오는데 실패했습니다.');
+        }
+      });
   }, [selectedPartyId, selectedPartyStatus]);
 
   // 내 신청 정보 가져오기
@@ -103,12 +150,21 @@ export default function MateDetail() {
 
     const fetchMyApplication = async () => {
       try {
-        const applicationsData = await api.getMyApplications();
-        const myApp = applicationsData.find((app: Application) =>
-          String(app.partyId) === String(selectedParty.id)
-        );
-        setMyApplication(myApp ?? null);
-      } catch (error) {
+        const myApp = await api.getMyApplicationByParty(selectedParty.id);
+        setMyApplication(myApp);
+      } catch (error: unknown) {
+        if (getApiErrorStatus(error) === 404) {
+          try {
+            const applicationsData = await api.getMyApplications();
+            const fallback = applicationsData.find((app: Application) =>
+              String(app.partyId) === String(selectedParty.id)
+            );
+            setMyApplication(fallback ?? null);
+            return;
+          } catch (fallbackError) {
+            console.error('내 신청 정보 fallback 조회 실패:', fallbackError);
+          }
+        }
         console.error('내 신청 정보 가져오기 실패:', error);
       }
     };
@@ -120,7 +176,7 @@ export default function MateDetail() {
   useEffect(() => {
     if (!selectedParty || !currentUserId) return;
 
-    const isHost = selectedParty.hostId === currentUserId;
+    const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
     if (!isHost) return;
 
     const fetchApplications = async () => {
@@ -133,7 +189,7 @@ export default function MateDetail() {
     };
 
     fetchApplications();
-  }, [selectedPartyId, selectedParty?.hostId, currentUserId]);
+  }, [selectedPartyId, selectedParty?.hostHandle, selectedParty?.hostId, currentUserHandle, currentUserId]);
 
   const isGameTomorrow = () => {
     if (!selectedParty) return false;
@@ -157,22 +213,35 @@ export default function MateDetail() {
   const handleCancelApplication = async () => {
     if (!selectedParty || !myApplication || !currentUserId) return;
     const isApproved = myApplication.isApproved;
-    // ... logic ...
     const confirmMessage = isApproved
-      ? '참여를 취소하시겠습니까?\n\n⚠️ 승인 후 취소 시:\n- 보증금 10,000원은 환불되지 않습니다\n- 티켓 가격만 환불됩니다\n- 취소는 경기 하루 전까지만 가능합니다'
-      : '신청을 취소하시겠습니까?\n\n전액 환불됩니다.';
+      ? '참여를 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.\n취소는 경기 하루 전까지만 가능합니다.'
+      : '신청을 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.';
 
     const confirmed = await confirm({ title: isApproved ? '참여 취소' : '신청 취소', description: confirmMessage, confirmLabel: '취소하기', variant: 'destructive' });
     if (!confirmed) return;
 
+    setSelectedCancelReason(isApproved ? 'BUYER_CHANGED_MIND' : 'OTHER');
+    setCancelMemo('');
+    setShowCancelDialog(true);
+  };
+
+  const executeCancelApplication = async () => {
+    if (!selectedParty || !myApplication || !currentUserId) return;
+
     setIsCancelling(true);
+    setShowCancelDialog(false);
     try {
-      await api.cancelApplication(myApplication.id);
-      if (isApproved) {
-        toast.success('참여가 취소되었습니다.', { description: '티켓 가격만 환불되며, 보증금은 환불되지 않습니다.' });
-      } else {
-        toast.success('신청이 취소되었습니다.', { description: '결제 금액이 전액 환불됩니다.' });
-      }
+      const result = await api.cancelApplicationWithReason(myApplication.id, {
+        cancelReasonType: selectedCancelReason,
+        cancelMemo: cancelMemo.trim() || undefined,
+      });
+      toast.success('신청이 취소되었습니다.', {
+        description: getRefundPolicyMessage(
+          result.refundPolicyApplied,
+          result.refundAmount,
+          result.feeCharged,
+        ),
+      });
       setMyApplication(null);
       const updatedParty = await api.getPartyById(selectedParty.id);
       setSelectedParty(mapBackendPartyToFrontend(updatedParty));
@@ -184,9 +253,115 @@ export default function MateDetail() {
     }
   };
 
+  const cancelReasonOptions = [
+    {
+      value: 'BUYER_CHANGED_MIND' as const,
+      label: '단순변심(구매자)',
+      description: '직거래 신청 취소(플랫폼 결제/환불 없음)',
+    },
+    {
+      value: 'SELLER_CHANGED_MIND' as const,
+      label: '단순변심(판매자)',
+      description: '직거래 신청 취소(플랫폼 결제/환불 없음)',
+    },
+    {
+      value: 'OTHER' as const,
+      label: '기타 사유',
+      description: '사유 확인 후 신청 취소(플랫폼 결제/환불 없음)',
+    },
+  ];
+
+  const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
+  const isApproved = myApplication?.isApproved || false;
+  const canAccessCheckIn = Boolean(selectedParty) &&
+    (isHost || isApproved) &&
+    selectedParty?.status !== 'CHECKED_IN' &&
+    selectedParty?.status !== 'COMPLETED' &&
+    selectedParty?.status !== 'FAILED';
+
+  const fallbackCheckInUrl = useMemo(() => {
+    if (!id && !selectedParty?.id) {
+      return typeof window === 'undefined' ? '/mate' : window.location.href;
+    }
+    const path = `/mate/${id ?? selectedParty?.id}/checkin`;
+    if (typeof window === 'undefined') {
+      return path;
+    }
+    return new URL(path, window.location.origin).toString();
+  }, [id, selectedParty?.id]);
+
+  const fetchQrSession = useCallback(async (isMountedRef: { current: boolean }) => {
+    if (selectedPartyId === undefined) return;
+    setIsQrLoading(true);
+    try {
+      const qrSession = await api.createCheckInQrSession({ partyId: selectedPartyId });
+      if (!isMountedRef.current) return;
+
+      setQrCheckInUrl(qrSession.checkinUrl || fallbackCheckInUrl);
+      const expiresAt = qrSession.expiresAt ?? null;
+      const parsedExpiresAtMs = expiresAt ? Date.parse(expiresAt) : Number.NaN;
+      const isValidExpiresAt = expiresAt ? !Number.isNaN(parsedExpiresAtMs) : false;
+      if (expiresAt && !isValidExpiresAt) {
+        console.warn('[MateDetail] Invalid QR session expiresAt:', expiresAt);
+      }
+      setQrSessionExpiresAt(isValidExpiresAt ? expiresAt : null);
+
+      const delay = resolveQrRefreshDelayMs(expiresAt, Date.now());
+      if (refreshTimerRef.current !== null) {
+        clearTimeout(refreshTimerRef.current);
+      }
+      refreshTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          void fetchQrSession(isMountedRef);
+        }
+      }, delay);
+    } catch (error: unknown) {
+      if (!isMountedRef.current) return;
+      console.error('QR 세션 발급 실패:', error);
+      setQrCheckInUrl(fallbackCheckInUrl);
+      setQrSessionError(getApiErrorMessage(error, 'QR 세션을 발급하지 못했습니다.'));
+    } finally {
+      if (isMountedRef.current) {
+        setIsQrLoading(false);
+      }
+    }
+  }, [selectedPartyId, fallbackCheckInUrl]);
+
+  useEffect(() => {
+    const isMountedRef = { current: true };
+
+    setQrCheckInUrl(fallbackCheckInUrl);
+    setQrSessionExpiresAt(null);
+    setQrSessionError(null);
+
+    if (refreshTimerRef.current !== null) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    if (selectedPartyId === undefined || !canAccessCheckIn) {
+      setIsQrLoading(false);
+      return () => {
+        isMountedRef.current = false;
+      };
+    }
+
+    void fetchQrSession(isMountedRef);
+
+    return () => {
+      isMountedRef.current = false;
+      if (refreshTimerRef.current !== null) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, [selectedPartyId, canAccessCheckIn, fallbackCheckInUrl, fetchQrSession]);
+
+  const qrCodeValue = useMemo(() => qrCheckInUrl || fallbackCheckInUrl, [qrCheckInUrl, fallbackCheckInUrl]);
 
 
-  if (isPartyLoading) {
+
+  if (isPartyLoading && !selectedParty) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
         <div className="max-w-3xl mx-auto px-4 py-6">
@@ -264,8 +439,6 @@ export default function MateDetail() {
     );
   }
 
-  const isHost = selectedParty.hostId === currentUserId;
-  const isApproved = myApplication?.isApproved || false;
   const approvedApplications = applications.filter(app => app.isApproved);
   const pendingApplications = applications.filter(app => !app.isApproved && !app.isRejected);
 
@@ -308,7 +481,7 @@ export default function MateDetail() {
     setShowSaleDialog(true);
   };
 
-  const handleConfirmSale = () => {
+  const handleConfirmSale = async () => {
     const parsed = parseInt(salePrice, 10);
     if (!salePrice || isNaN(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
       setSalePriceError('양의 정수를 입력해주세요.');
@@ -318,31 +491,69 @@ export default function MateDetail() {
       setSalePriceError('최소 100원 이상 입력해주세요.');
       return;
     }
-    updateParty(selectedParty.id, { status: 'SELLING', price: parsed });
-    setShowSaleDialog(false);
+    setIsConvertingToSale(true);
+    try {
+      const updatedParty = await api.updateParty(selectedParty.id, { status: 'SELLING', price: parsed });
+      const mappedParty = mapBackendPartyToFrontend(updatedParty);
+      setSelectedParty(mappedParty);
+      toast.success('판매 전환이 완료되었습니다.');
+      setShowSaleDialog(false);
+    } catch (error: unknown) {
+      console.error('판매 전환 중 오류:', error);
+      toast.error(getApiErrorMessage(error, '판매 전환 중 오류가 발생했습니다.'));
+    } finally {
+      setIsConvertingToSale(false);
+    }
   };
-  const handleShare = () => {
-    if (navigator.share) navigator.share({ title: '직관메이트 파티', text: '함께 직관 가실 분?', url: window.location.href });
-    else toast.success('공유 링크 복사 완료');
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: '직관메이트 파티', text: '함께 직관 가실 분?', url: shareUrl });
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('공유 링크를 복사했습니다.');
+        return;
+      }
+
+      toast.error('이 브라우저에서는 공유 링크 복사를 지원하지 않습니다.');
+    } catch (error) {
+      console.error('공유 처리 중 오류:', error);
+      toast.error('복사에 실패했습니다. 주소창의 링크를 직접 복사해주세요.');
+    }
   };
   const handleApply = () => navigate(`/mate/${id}/apply`);
-  const handleCheckIn = () => navigate(`/mate/${id}/checkin`);
+  const handleCheckIn = () => {
+    const fallbackPath = `/mate/${id}/checkin`;
+    try {
+      const parsedUrl = new URL(qrCheckInUrl || fallbackPath, window.location.origin);
+      navigate(`${parsedUrl.pathname}${parsedUrl.search}`);
+      return;
+    } catch (error) {
+      console.error('체크인 URL 파싱 실패:', error);
+    }
+
+    navigate(fallbackPath);
+  };
   const handleManageParty = () => navigate(`/mate/${id}/manage`);
   const handleOpenChat = () => navigate(`/mate/${id}/chat`);
 
   // UI Helpers
   const homeTeamColor = getTeamColorByAnyKey(selectedParty.homeTeam);
   const getSeatBadgeColor = (section: string) => {
-    if (section.includes('응원')) return 'bg-red-100 text-red-700 border-red-200';
-    if (section.includes('테이블')) return 'bg-purple-100 text-purple-700 border-purple-200';
-    if (section.includes('블루')) return 'bg-blue-100 text-blue-700 border-blue-200';
-    return 'bg-gray-100 text-gray-700 border-gray-200';
+    if (section.includes('응원')) return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-900/50';
+    if (section.includes('테이블')) return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/35 dark:text-purple-200 dark:border-purple-900/50';
+    if (section.includes('블루')) return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-900/50';
+    return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-secondary/80 dark:text-gray-200 dark:border-border/70';
   };
 
   // description에서 해시태그 추출 (생성 Step 4에서 추가된 스타일 태그)
   const hostTags = extractHashtags(selectedParty.description);
-  // 리뷰 기반 평균 평점 우선, 없으면 hostRating 사용 (1-5 스케일)
-  const mannerScore = hostAvgRating && hostAvgRating > 0 ? hostAvgRating : (selectedParty.hostRating ?? 5.0);
+  const mannerScore = getHostAverageRating(selectedParty);
+  const mannerScoreLabel = formatHostAverageRating(selectedParty);
 
 
   // Helper: Find matching zone in stadium data
@@ -359,560 +570,850 @@ export default function MateDetail() {
   };
 
   const currentZone = selectedParty ? resolveSeatZone(selectedParty.stadium, selectedParty.section) : null;
+  const posterShellClass = 'rounded-3xl overflow-hidden mb-8 border border-gray-200/80 shadow-2xl ring-1 ring-black/5 transform transition-all hover:scale-[1.01] dark:border-white/10 dark:shadow-[0_32px_80px_rgba(0,0,0,0.72)] dark:ring-white/10';
+  const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
+  const insetPanelClass = 'rounded-xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
+  const summaryTradeLabel = selectedParty.status === 'SELLING'
+    ? '판매 티켓'
+    : '직거래';
+  const summaryAmountLabel = selectedParty.status === 'SELLING'
+    ? '판매가'
+    : '거래 기준 금액';
+  const summaryAmount = selectedParty.status === 'SELLING'
+    ? (selectedParty.price || 0)
+    : (selectedParty.ticketPrice || 0);
+  const isAwaitingApproval = Boolean(myApplication && !myApplication.isApproved && !myApplication.isRejected);
+  const summaryPolicyText = isHost
+    ? (canConvertToSale ? '경기 임박 시 판매 전환 가능' : '파티 상태를 관리할 수 있습니다')
+    : canCancel()
+      ? (isApproved ? '경기 하루 전까지 취소 가능' : '승인 전에는 자유 취소 가능')
+      : (myApplication?.isRejected ? '거절된 신청입니다' : '상태에 따라 취소가 제한됩니다');
+  const actionContext = (() => {
+    if (isHost) {
+      return {
+        eyebrow: '호스트 모드',
+        title: pendingApplications.length > 0 ? '신청을 검토하고 파티를 관리하세요.' : '현재 파티 상태를 관리할 수 있습니다.',
+        detail: approvedApplications.length > 0
+          ? '승인된 참여자와 채팅을 열고 체크인 준비를 진행할 수 있습니다.'
+          : (canConvertToSale ? '경기 임박 시 판매 전환도 가능합니다.' : '새 신청이 들어오면 이 영역에서 바로 대응할 수 있습니다.'),
+      };
+    }
+    if (isApproved) {
+      return {
+        eyebrow: '참여 확정',
+        title: '채팅과 체크인 준비를 진행하세요.',
+        detail: canAccessCheckIn
+          ? '체크인 QR은 자동으로 갱신됩니다. 경기 당일 전까지 확인해두세요.'
+          : '경기 전까지 채팅에서 만날 시간과 장소를 확정해두세요.',
+      };
+    }
+    if (myApplication && !myApplication.isApproved && !myApplication.isRejected) {
+      return {
+        eyebrow: '승인 대기',
+        title: '호스트 승인 대기 중입니다.',
+        detail: '승인 전까지는 신청을 취소할 수 있습니다.',
+      };
+    }
+    if (myApplication?.isRejected) {
+      return {
+        eyebrow: '신청 결과',
+        title: '이번 신청은 거절되었습니다.',
+        detail: '다른 파티를 찾아보거나 목록으로 돌아갈 수 있습니다.',
+      };
+    }
+    if (selectedParty.status === 'SELLING') {
+      return {
+        eyebrow: '지금 구매 가능',
+        title: '티켓 정보와 정책을 확인하고 신청하세요.',
+        detail: '승인 후 채팅에서 전달 시간과 장소를 조율합니다.',
+      };
+    }
+    return {
+      eyebrow: '지금 참여 가능',
+      title: '핵심 정보 확인 후 바로 참여할 수 있습니다.',
+      detail: '승인 후 채팅에서 거래 시간과 장소를 조율합니다.',
+    };
+  })();
+  const actionButtons: Array<{
+    key: string;
+    label: string;
+    onClick?: () => void;
+    disabled?: boolean;
+    variant?: 'default' | 'outline' | 'ghost';
+    className?: string;
+  }> = [];
 
-  const qrCodeValue = useMemo(() => JSON.stringify({
-    type: 'MATE_CHECKIN',
-    partyId: selectedParty?.id,
-    createdAt: selectedParty?.createdAt,
-  }), [selectedParty?.id, selectedParty?.createdAt]);
+  if (isHost) {
+    actionButtons.push({
+      key: 'manage',
+      label: `신청 관리 (${pendingApplications.length})`,
+      onClick: handleManageParty,
+      className: 'w-full h-14 text-lg font-bold text-white shadow-xl hover:shadow-2xl transition-all bg-primary',
+    });
+    if (approvedApplications.length > 0) {
+      actionButtons.push({
+        key: 'chat',
+        label: '채팅방 입장',
+        onClick: handleOpenChat,
+        variant: 'outline',
+        className: 'w-full h-12 border-primary text-primary hover:bg-primary/10',
+      });
+    }
+    if (canAccessCheckIn) {
+      actionButtons.push({
+        key: 'checkin',
+        label: '체크인 페이지',
+        onClick: handleCheckIn,
+        variant: 'outline',
+        className: 'w-full h-12 border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10',
+      });
+    }
+    if (canConvertToSale) {
+      actionButtons.push({
+        key: 'sale',
+        label: isConvertingToSale ? '전환 중...' : '판매 전환',
+        onClick: handleOpenSaleDialog,
+        disabled: isConvertingToSale,
+        variant: 'outline',
+        className: 'w-full h-12 border-orange-400 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30',
+      });
+    }
+  } else if (isApproved) {
+    actionButtons.push({
+      key: 'chat',
+      label: '채팅방 입장',
+      onClick: handleOpenChat,
+      className: 'w-full h-14 text-lg font-bold text-white shadow-lg bg-primary',
+    });
+    if (canAccessCheckIn) {
+      actionButtons.push({
+        key: 'checkin',
+        label: '체크인 페이지',
+        onClick: handleCheckIn,
+        variant: 'outline',
+        className: 'w-full h-12 border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10',
+      });
+    }
+    if (canCancel()) {
+      actionButtons.push({
+        key: 'cancel',
+        label: isCancelling ? '취소 중...' : '참여 취소',
+        onClick: handleCancelApplication,
+        disabled: isCancelling,
+        variant: 'outline',
+        className: 'w-full h-10 border-red-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30',
+      });
+    }
+  } else if (isAwaitingApproval) {
+    actionButtons.push({
+      key: 'cancel',
+      label: isCancelling ? '취소 중...' : '신청 취소',
+      onClick: handleCancelApplication,
+      disabled: isCancelling,
+      variant: 'ghost',
+      className: 'w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-sm',
+    });
+  } else if (myApplication?.isRejected) {
+    actionButtons.push({
+      key: 'back',
+      label: '다른 파티 보기',
+      onClick: () => navigate('/mate'),
+      variant: 'outline',
+      className: 'w-full h-12 border-primary text-primary hover:bg-primary/10',
+    });
+  } else if (selectedParty.status === 'PENDING') {
+    actionButtons.push({
+      key: 'apply',
+      label: '참여하기',
+      onClick: handleApply,
+      className: 'w-full h-14 text-xl font-bold text-white shadow-xl hover:shadow-2xl hover:bg-primary-hover transition-all bg-primary',
+    });
+  }
+  const primaryMobileAction = actionButtons.find((action) => !action.disabled) ?? actionButtons[0] ?? null;
+  const secondaryMobileAction = actionButtons[0]?.disabled ? null : (actionButtons[1] ?? null);
+  const getMobileActionClass = (actionKey: string) => {
+    if (actionKey === 'checkin') return 'border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10';
+    if (actionKey === 'sale') return 'border-orange-400 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30';
+    if (actionKey === 'cancel') return 'border-red-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30';
+    if (actionKey === 'back') return 'border-primary text-primary hover:bg-primary/10';
+    return 'bg-primary text-white';
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
-      <OptimizedImage
-        src={grassDecor}
-        alt=""
-        className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
-      />
+    <TooltipProvider>
+      <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background pb-32 lg:pb-20">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_48%)]" />
+        <OptimizedImage
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        />
 
-      <div className="max-w-3xl mx-auto px-4 py-6 relative z-10">
-        <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent" onClick={() => navigate('/mate')}>
-          <ChevronLeft className="w-5 h-5 mr-1" /> 목록으로
-        </Button>
-
-        {/* 1. 매치 포스터 (Ticket Metaphor Evolution) */}
-        <div className="rounded-3xl shadow-2xl overflow-hidden mb-8 transform transition-all hover:scale-[1.01]">
-          {/* Header / Banner Area with Team Color Gradient */}
-          <div
-            className="relative p-8 text-white"
-            style={{
-              background: `linear-gradient(135deg, ${homeTeamColor} 0%, ${homeTeamColor}dd 60%, #1a1a1a 100%)`
-            }}
-          >
-            {/* Background Pattern */}
-            <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
-
-            {/* Date & Place Badge (Scoreboard Style) */}
-            <div className="relative z-10 flex justify-center mb-8">
-              <div className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-md px-5 py-2 rounded-full border border-white/20 shadow-lg">
-                <span className="font-mono font-bold tracking-wider">
-                  {formatGameDate(selectedParty.gameDate)}
-                </span>
-                <div className="w-px h-3 bg-white/40"></div>
-                <span className="font-mono font-bold">
-                  {selectedParty.gameTime.substring(0, 5)}
-                </span>
-                <div className="w-px h-3 bg-white/40"></div>
-                <span className="font-bold flex items-center gap-1">
-                  {selectedParty.stadium}
-                </span>
-              </div>
-            </div>
-
-            {/* Main Matchup */}
-            <div className="relative z-10 flex justify-between items-center max-w-lg mx-auto">
-              <div className="flex flex-col items-center gap-3 transform hover:scale-105 transition-transform">
-                <div className="bg-white p-3 rounded-full shadow-lg">
-                  <TeamLogo teamId={selectedParty.homeTeam} size={80} />
-                </div>
-                <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
-                  {teamIdToName[selectedParty.homeTeam.toLowerCase()] || selectedParty.homeTeam}
-                </span>
-              </div>
-
-              <div className="flex flex-col items-center">
-                <span className="text-4xl font-black italic text-white/90 drop-shadow-xl" style={{ fontFamily: 'Georgia, serif' }}>VS</span>
-              </div>
-
-              <div className="flex flex-col items-center gap-3 transform hover:scale-105 transition-transform">
-                <div className="bg-white p-3 rounded-full shadow-lg">
-                  <TeamLogo teamId={selectedParty.awayTeam} size={80} />
-                </div>
-                <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
-                  {teamIdToName[selectedParty.awayTeam.toLowerCase()] || selectedParty.awayTeam}
-                </span>
-              </div>
-            </div>
+        <div className="max-w-3xl mx-auto px-4 py-6 relative z-10">
+          <div className="mb-4 flex items-center justify-between">
+            <Button variant="ghost" className="pl-0 hover:bg-transparent" onClick={() => navigate('/mate')}>
+              <ChevronLeft className="w-5 h-5 mr-1" /> 목록으로
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleShare}>
+              <Share2 className="w-4 h-4 mr-1.5" />
+              공유
+            </Button>
           </div>
+          {isPartyRevalidating && (
+            <Alert className="mb-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+              <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+                최신 파티 정보를 다시 확인하고 있습니다.
+              </AlertDescription>
+            </Alert>
+          )}
 
-          {/* Ticket Body */}
-          <div className="bg-white dark:bg-card p-6 md:p-8 border-t-4 border-dashed border-gray-200 dark:border-border relative">
-            {/* Punch Holes for Ticket realism */}
-            <div className="absolute -left-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
-            <div className="absolute -right-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
-
-            <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
-              {/* Seat Info with Visualization */}
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                  {currentZone ? (
-                    <div className="group relative">
-                      <Badge
-                        className="border-none text-white px-3 py-1 text-sm shadow-sm"
-                        style={{ backgroundColor: currentZone.color || '#4b5563' }} // Default gray if no color
-                      >
-                        {currentZone.name}
-                      </Badge>
-                      {/* Tooltip for Price & Desc */}
-                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 p-3 bg-gray-900/95 text-white text-xs rounded-lg shadow-xl z-50 animate-in fade-in slide-in-from-bottom-1 ring-1 ring-white/10">
-                        <p className="font-bold text-sm mb-1">{currentZone.description}</p>
-                        {currentZone.price && (
-                          <div className="text-gray-300 space-y-0.5">
-                            <div className="flex justify-between"><span>주중</span> <span>{currentZone.price.weekday}</span></div>
-                            <div className="flex justify-between"><span>주말</span> <span className="text-[#ff6f0f]">{currentZone.price.weekend}</span></div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <Badge variant="outline" className={`${getSeatBadgeColor(selectedParty.section)}`}>
-                      {selectedParty.section.split(' ')[0]}
-                    </Badge>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs text-gray-500 hover:text-primary"
-                    onClick={() => setShowSeatViewGuide(!showSeatViewGuide)}
-                  >
-                    <MapIcon className="w-3 h-3 mr-1" /> {showSeatViewGuide ? '닫기' : '위치/시야 보기'}
-                  </Button>
-                </div>
-
-                {/* UGC Seat View Guide Area */}
-                {showSeatViewGuide && (
-                  <div className="mt-4 mb-4 bg-gray-50 dark:bg-secondary/70 rounded-xl border border-dashed border-gray-300 dark:border-border p-4 text-center animate-in zoom-in-95 duration-200">
-                    <div className="w-10 h-10 bg-gray-200 dark:bg-border rounded-full flex items-center justify-center mx-auto mb-2">
-                      <span className="text-xl">📷</span>
-                    </div>
-                    <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1">
-                      아직 등록된 시야가 없어요
-                    </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-300 mb-3">
-                      직관 후 이 좌석의 뷰를 공유해주시면<br />
-                      <span className="text-primary font-bold">50 포인트</span>를 즉시 적립해 다려요!
-                    </p>
-                    <Button size="sm" className="bg-primary hover:bg-primary-hover text-white rounded-full h-8 text-xs">
-                      <Plus className="w-3 h-3 mr-1" />
-                      첫 번째 사진 등록하기
-                    </Button>
-                  </div>
-                )}
-                <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-2">
-                  {selectedParty.section}
-                </h2>
-                <div className="flex items-center justify-center md:justify-start gap-4 text-gray-500 dark:text-gray-300">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{selectedParty.currentParticipants}/{selectedParty.maxParticipants}명</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span className="text-green-600 dark:text-green-400 font-medium">티켓 인증됨</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* QR Code - 모바일: 중앙 정렬 / 데스크톱: 우측 구분선 포함 */}
-              <div className="flex flex-col items-center md:border-l md:border-gray-200 md:dark:border-border md:pl-8">
-                <div className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm max-w-full">
-                  <QRCode
-                    value={qrCodeValue}
-                    size={80}
-                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                    viewBox={`0 0 256 256`}
-                    fgColor="#1a1a1a"
-                    bgColor="#ffffff"
-                    level="Q"
-                  />
-                </div>
-                <p className="text-[10px] text-center text-gray-400 mt-1">ENTRY CODE</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-        {/* 2. 상세 정보 Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-20">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* 파티 소개 */}
-            <Card className="p-6 border-none shadow-md bg-white dark:bg-card/80 backdrop-blur-sm">
-              <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
-                <MessageSquare className="w-5 h-5 text-primary" /> 파티 소개
-              </h3>
-              <p className="whitespace-pre-wrap text-gray-600 dark:text-gray-300 leading-relaxed text-sm md:text-base mb-4">
-                {stripHashtags(selectedParty.description)}
-              </p>
-              {hostTags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {hostTags.map((tag, i) => (
-                    <Badge key={i} variant="secondary" className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-none">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            {/* 결제 정보 (Improved) */}
-            <Card className="p-6 border-none shadow-md bg-white dark:bg-card/80">
-              <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
-                <Info className="w-5 h-5 text-primary" /> 비용 안내
-              </h3>
-
-              {/* Surface Color Box for Dark Mode */}
-              <div className="bg-gray-50 dark:bg-secondary/70 rounded-xl p-5 border border-gray-100 dark:border-border">
-                {selectedParty.status === 'SELLING' ? (
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-600 dark:text-gray-300">티켓 판매가</span>
-                    <span className="text-xl font-bold text-orange-600">
-                      {selectedParty.price?.toLocaleString()}원
-                    </span>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
-                      <span className="font-semibold text-gray-900 dark:text-gray-200">
-                        {(selectedParty.ticketPrice || 0).toLocaleString()}원
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-600 dark:text-gray-300">보증금</span>
-                        <div className="group relative">
-                          <HelpCircle className="w-3.5 h-3.5 text-gray-400 cursor-help" />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50">
-                            경기 당일 체크인 시 100% 환급됩니다 (노쇼 방지)
-                          </div>
-                        </div>
-                      </div>
-                      <span className="font-semibold text-gray-900 dark:text-gray-200">
-                        {DEPOSIT_AMOUNT.toLocaleString()}원
-                      </span>
-                    </div>
-                    <Separator className="bg-gray-200 dark:bg-border my-2" />
-                    <div className="flex justify-between items-center text-lg">
-                      <span className="font-bold text-primary dark:text-[#5abba6]">총 결제 금액</span>
-                      <span className="font-black text-primary dark:text-[#5abba6]">
-                        {((selectedParty.ticketPrice || 0) + DEPOSIT_AMOUNT).toLocaleString()}원
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {selectedParty.status !== 'SELLING' && (
-                <p className="text-xs text-gray-400 mt-3 text-right">
-                  * 결제 수수료 별도
-                </p>
-              )}
-            </Card>
-
-            {/* 좌석 시야 */}
-            <Card className="p-6 border-none shadow-md overflow-hidden bg-white dark:bg-card/80">
-              <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
-              </h3>
-              <div className="aspect-video bg-gray-200 dark:bg-secondary rounded-xl flex items-center justify-center relative overflow-hidden group">
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <Button variant="secondary" className="bg-white/90 text-gray-800 hover:bg-white shadow-lg backdrop-blur-sm">
-                    {selectedParty.stadium} {selectedParty.section} 시야 보기
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Right Sidebar: Host Info & Actions */}
-          <div className="space-y-4">
-            {/* Host Profile Card */}
-            <Card
-              className="p-6 text-center border-none shadow-md bg-white dark:bg-card/80 relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => setShowHostProfile(true)}
+          {/* 1. 매치 포스터 (Ticket Metaphor Evolution) */}
+          <div className={posterShellClass}>
+            {/* Header / Banner Area with Team Color Gradient */}
+            <div
+              className="relative p-4 sm:p-6 text-white"
+              style={{
+                background: `linear-gradient(135deg, ${homeTeamColor} 0%, ${homeTeamColor}dd 60%, #1a1a1a 100%)`
+              }}
             >
-              <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-gray-100 to-transparent dark:from-gray-700/50"></div>
+              {/* Background Pattern */}
+              <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
 
-              <div className="relative z-10 mb-2">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-border shadow-lg mx-auto bg-white">
-                  {selectedParty.hostProfileImageUrl ? (
-                    <OptimizedImage
-                      src={selectedParty.hostProfileImageUrl}
-                      alt={selectedParty.hostName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 dark:bg-secondary flex items-center justify-center">
-                      <User className="w-10 h-10 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                {/* Manner Temperature Bar (Carrot Market Style) */}
-                <div className="mt-3 mb-1">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <span className="font-bold text-lg text-gray-900 dark:text-white">{selectedParty.hostName}</span>
-                  </div>
-                  <div className="inline-flex items-center gap-2 bg-gray-100 dark:bg-secondary px-3 py-1 rounded-full">
-                    <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                    <span className="text-xs font-bold text-gray-900 dark:text-white">{mannerScore.toFixed(1)}</span>
-                    <div className="w-16 h-1.5 bg-gray-300 rounded-full overflow-hidden">
-                      <div className="h-full bg-yellow-500" style={{ width: `${(mannerScore / 5) * 100}%` }}></div>
-                    </div>
-                  </div>
+              {/* Date & Place Badge (Scoreboard Style) */}
+              <div className="relative z-10 flex justify-center mb-8">
+                <div className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-md px-5 py-2 rounded-full border border-white/20 shadow-lg">
+                  <span className="font-mono font-bold tracking-wider">
+                    {formatGameDate(selectedParty.gameDate)}
+                  </span>
+                  <div className="w-px h-3 bg-white/40"></div>
+                  <span className="font-mono font-bold">
+                    {selectedParty.gameTime.substring(0, 5)}
+                  </span>
+                  <div className="w-px h-3 bg-white/40"></div>
+                  <span className="font-bold flex items-center gap-1">
+                    {selectedParty.stadium}
+                  </span>
                 </div>
               </div>
 
+              {/* Main Matchup */}
+              <div className="relative z-10 flex justify-between items-center max-w-lg mx-auto">
+                <div className="flex flex-col items-center gap-3 transform hover:scale-105 transition-transform">
+                  <div className="bg-white p-3 rounded-full shadow-lg">
+                    <TeamLogo teamId={selectedParty.homeTeam} size={80} />
+                  </div>
+                  <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
+                    {resolveTeamDisplayName(selectedParty.homeTeam) || selectedParty.homeTeam}
+                  </span>
+                </div>
 
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl font-black italic text-white/90 drop-shadow-xl" style={{ fontFamily: 'Georgia, serif' }}>VS</span>
+                </div>
 
-              {/* Click hint */}
-              <p className="text-xs text-gray-400 mt-3">클릭하여 프로필 보기</p>
-            </Card>
+                <div className="flex flex-col items-center gap-3 transform hover:scale-105 transition-transform">
+                  <div className="bg-white p-3 rounded-full shadow-lg">
+                    <TeamLogo teamId={selectedParty.awayTeam} size={80} />
+                  </div>
+                  <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
+                    {resolveTeamDisplayName(selectedParty.awayTeam) || selectedParty.awayTeam}
+                  </span>
+                </div>
+              </div>
+            </div>
 
+            {/* Ticket Body */}
+            <div className="bg-white dark:bg-card/95 p-6 md:p-8 border-t-4 border-dashed border-gray-200 dark:border-border relative">
+              {/* Punch Holes for Ticket realism */}
+              <div className="absolute -left-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
+              <div className="absolute -right-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
 
-            {/* Review Section - COMPLETED parties only */}
-            {selectedParty.status === 'COMPLETED' && currentUserId && (isHost || isApproved) && (
-              <Card className="p-4 mb-4">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-1.5">
-                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  리뷰
-                </h3>
-                <div className="space-y-2">
-                  {(() => {
-                    // 리뷰 대상 목록 구성
-                    const targets = isHost
-                      ? approvedApplications.map((app) => ({
-                        id: app.applicantId,
-                        name: app.applicantName,
-                      }))
-                      : [{ id: selectedParty.hostId, name: selectedParty.hostName }];
-
-                    if (targets.length === 0) {
-                      return <p className="text-sm text-gray-400">리뷰 대상이 없습니다.</p>;
-                    }
-
-                    return targets.map((target) => {
-                      const myReview = reviews.find(
-                        (r) => r.reviewerId === currentUserId && r.revieweeId === target.id
-                      );
-
-                      return (
-                        <div
-                          key={target.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-card rounded-lg"
+              <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
+                {/* Seat Info with Visualization */}
+                <div className="flex-1 text-center md:text-left">
+                  <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                    {currentZone ? (
+                      <div className="group relative">
+                        <Badge
+                          className="border-none text-white px-3 py-1 text-sm shadow-sm"
+                          style={{ backgroundColor: currentZone.color || '#4b5563' }} // Default gray if no color
                         >
-                          <div className="flex flex-col gap-1">
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              {target.name}
-                            </span>
-                            {myReview && (
-                              <div className="flex items-center gap-1">
-                                {[1, 2, 3, 4, 5].map((num) => (
-                                  <Star
-                                    key={num}
-                                    className={`w-3.5 h-3.5 ${num <= myReview.rating
-                                      ? 'text-yellow-500 fill-yellow-500'
-                                      : 'text-gray-300'
-                                      }`}
-                                  />
-                                ))}
-                                {myReview.comment && (
-                                  <span className="text-xs text-gray-500 ml-1 truncate max-w-[120px]">
-                                    "{myReview.comment}"
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          {myReview ? (
-                            <Badge variant="outline" className="text-xs text-gray-500">
-                              작성 완료
-                            </Badge>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs border-primary text-primary hover:bg-primary/10"
-                              onClick={() => setReviewTarget(target)}
-                            >
-                              리뷰 작성
-                            </Button>
+                          {currentZone.name}
+                        </Badge>
+                        {/* Tooltip for Price & Desc */}
+                        <div className="absolute bottom-full left-0 mb-2 hidden md:group-hover:block w-64 p-3 bg-gray-900/95 text-white text-xs rounded-lg shadow-xl z-50 border border-white/10 animate-in fade-in slide-in-from-bottom-1">
+                          <p className="font-bold text-sm mb-1">{currentZone.description}</p>
+                          {currentZone.price && (
+                            <div className="text-gray-300 space-y-0.5">
+                              <div className="flex justify-between"><span>주중</span> <span>{currentZone.price.weekday}</span></div>
+                              <div className="flex justify-between"><span>주말</span> <span className="text-[#ff6f0f]">{currentZone.price.weekend}</span></div>
+                            </div>
                           )}
                         </div>
-                      );
-                    });
-                  })()}
-                </div>
-              </Card>
-            )}
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className={`${getSeatBadgeColor(selectedParty.section)}`}>
+                        {selectedParty.section.split(' ')[0]}
+                      </Badge>
+                    )}
 
-            {/* Floating Action Buttons (Sticky) */}
-            <div className="space-y-3 sticky top-6 z-20">
-              {/* Host Actions */}
-              {isHost ? (
-                <>
-                  <Button
-                    onClick={handleManageParty}
-                    className="w-full text-white shadow-xl hover:shadow-2xl transition-all h-14 text-lg font-bold bg-primary"
-                  >
-                    <Settings className="w-5 h-5 mr-2" />
-                    신청 관리 ({pendingApplications.length})
-                  </Button>
-                  {approvedApplications.length > 0 && (
                     <Button
-                      onClick={handleOpenChat}
-                      variant="outline"
-                      className="w-full h-12 border-primary text-primary hover:bg-primary/10"
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-11 text-xs text-gray-500 hover:text-primary dark:text-gray-300 dark:hover:text-primary"
+                      onClick={() => setShowSeatViewGuide(!showSeatViewGuide)}
                     >
-                      <MessageSquare className="w-5 h-5 mr-2" />
-                      채팅방 입장
+                      <MapIcon className="w-3 h-3 mr-1" /> {showSeatViewGuide ? '닫기' : '위치/시야 보기'}
                     </Button>
-                  )}
-                  {canConvertToSale && (
-                    <Button
-                      onClick={handleOpenSaleDialog}
-                      variant="outline"
-                      className="w-full h-12 border-orange-400 text-orange-600 hover:bg-orange-50"
-                    >
-                      판매 전환
-                    </Button>
-                  )}
-                </>
-              ) : (
-                /* Participant Actions */
-                <>
-                  {isApproved ? (
-                    <>
+                    {currentZone && (
                       <Button
-                        onClick={handleOpenChat}
-                        className="w-full text-white h-14 text-lg font-bold shadow-lg bg-primary"
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-11 text-xs text-gray-500 hover:text-primary dark:text-gray-300 dark:hover:text-primary md:hidden"
+                        onClick={() => setShowZoneDetails(!showZoneDetails)}
                       >
-                        <MessageSquare className="w-5 h-5 mr-2" />
-                        채팅방 입장
+                        <Info className="w-3 h-3 mr-1" /> {showZoneDetails ? '구역 설명 닫기' : '구역 설명'}
                       </Button>
+                    )}
+                  </div>
 
-                      {canCancel() && (
-                        <Button
-                          onClick={handleCancelApplication}
-                          disabled={isCancelling}
-                          variant="outline"
-                          className="w-full text-red-500 border-red-200 hover:bg-red-50 h-10"
-                        >
-                          {isCancelling ? '취소 중...' : '참여 취소'}
-                        </Button>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {/* Pending & Not Applied */}
-                      {selectedParty.status === 'PENDING' && !myApplication && (
-                        <Button
-                          onClick={handleApply}
-                          className="w-full text-white h-14 text-xl font-bold shadow-xl hover:shadow-2xl hover:bg-primary-hover transition-all bg-primary"
-                        >
-                          참여하기
-                        </Button>
-                      )}
-
-                      {/* Applied & Pending Approval */}
-                      {myApplication && !myApplication.isApproved && !myApplication.isRejected && (
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            disabled
-                            className="w-full bg-gray-300 text-gray-500 h-14 text-lg cursor-not-allowed"
-                          >
-                            승인 대기 중...
-                          </Button>
-                          <Button
-                            onClick={handleCancelApplication}
-                            disabled={isCancelling}
-                            variant="ghost"
-                            className="w-full text-red-500 hover:bg-red-50 text-sm"
-                          >
-                            신청 취소
-                          </Button>
+                  {currentZone && showZoneDetails && (
+                    <div className={`mb-4 ${insetPanelClass} p-4 text-left md:hidden`}>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{currentZone.description}</p>
+                      {currentZone.price && (
+                        <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                          <div className="flex justify-between">
+                            <span>주중</span>
+                            <span>{currentZone.price.weekday}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>주말</span>
+                            <span>{currentZone.price.weekend}</span>
+                          </div>
                         </div>
                       )}
-
-                      {/* Rejected */}
-                      {myApplication && myApplication.isRejected && (
-                        <Alert className="border-red-200 bg-red-50 mb-2">
-                          <AlertTriangle className="w-4 h-4 text-red-600" />
-                          <AlertDescription className="text-red-800 font-medium">
-                            신청이 거절되었습니다.
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </>
+                    </div>
                   )}
-                </>
-              )}
+
+                  {/* UGC Seat View Guide Area */}
+                  {showSeatViewGuide && (
+                    <div className="mt-4 mb-4 animate-in zoom-in-95 duration-200">
+                      <SeatViewGallery
+                        compact
+                        stadium={selectedParty.stadium}
+                        section={selectedParty.section}
+                      />
+                    </div>
+                  )}
+                  <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-2">
+                    {selectedParty.section}
+                  </h2>
+                  <div className="flex items-center justify-center md:justify-start gap-4 text-gray-500 dark:text-gray-300">
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      <span>{selectedParty.currentParticipants}/{selectedParty.maxParticipants}명</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {selectedParty.ticketVerified ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span className="font-medium text-green-600 dark:text-green-400">티켓 인증됨</span>
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="w-4 h-4 text-amber-500" />
+                          <span className="font-medium text-amber-600 dark:text-amber-300">티켓 확인 전</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* QR Code - 모바일: 중앙 정렬 / 데스크톱: 우측 구분선 포함 */}
+                <div className="flex flex-col items-center md:border-l md:border-gray-200 md:dark:border-border/80 md:pl-8">
+                  <div className="bg-white dark:bg-secondary/80 p-3 rounded-2xl border border-gray-200 dark:border-border/70 shadow-sm dark:shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
+                    <QRCode
+                      value={qrCodeValue}
+                      size={132}
+                      style={{ width: 132, height: 132 }}
+                      viewBox={`0 0 256 256`}
+                      fgColor="#1a1a1a"
+                      bgColor="#ffffff"
+                      level="Q"
+                    />
+                  </div>
+                  <p className="text-[10px] text-center text-gray-400 dark:text-gray-500 mt-1">ENTRY CODE</p>
+                  {isQrLoading && (
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">체크인 QR을 새로 불러오는 중입니다.</p>
+                  )}
+                  {qrSessionExpiresAt && (
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                      유효: {new Date(qrSessionExpiresAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                  {qrSessionError && (
+                    <p className="text-[10px] text-red-500 mt-1 text-center">{qrSessionError}</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-      <UserProfileModal
-        userId={selectedParty?.hostId ?? null}
-        isOpen={showHostProfile}
-        onClose={() => setShowHostProfile(false)}
-      />
-      {reviewTarget && currentUserId && (
-        <ReviewDialog
-          isOpen={reviewTarget !== null}
-          onClose={() => setReviewTarget(null)}
-          partyId={selectedParty.id}
-          reviewerId={currentUserId}
-          reviewee={reviewTarget}
-          onSuccess={() => {
-            api.getPartyReviews(selectedParty.id)
-              .then((data) => setReviews(Array.isArray(data) ? data : []))
-              .catch((err) => console.error('리뷰 목록 갱신 실패:', err));
-          }}
-        />
-      )}
+          <Card className={`mb-6 p-4 ${sectionCardClass}`}>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
+              <div className={`${insetPanelClass} p-3`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">거래 방식</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryTradeLabel}</p>
+              </div>
+              <div className={`${insetPanelClass} p-3`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">티켓 인증</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{selectedParty.ticketVerified ? '인증 완료' : '확인 전'}</p>
+              </div>
+              <div className={`${insetPanelClass} p-3`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">{summaryAmountLabel}</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryAmount.toLocaleString()}원</p>
+              </div>
+              <div className={`${insetPanelClass} p-3`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">취소 규칙</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryPolicyText}</p>
+              </div>
+              <div className={`${insetPanelClass} p-3`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">참여 현황</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{selectedParty.currentParticipants}/{selectedParty.maxParticipants}명</p>
+              </div>
+            </div>
+          </Card>
 
-      {/* 판매 전환 Dialog */}
-      <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>티켓 판매 전환</DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-              판매 가격 (원)
-            </label>
-            <Input
-              type="number"
-              min={100}
-              step={1}
-              placeholder="예: 15000"
-              value={salePrice}
-              onChange={(e) => {
-                setSalePrice(e.target.value);
-                setSalePriceError('');
-              }}
-              className="mt-1"
-            />
-            {salePriceError && (
-              <p className="text-sm text-red-500 mt-1">{salePriceError}</p>
-            )}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-20">
+            <div className="space-y-6 lg:col-span-2">
+              <Card className={`p-6 ${sectionCardClass}`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
+                  <Info className="w-5 h-5 text-primary" /> 비용 안내
+                </h3>
+                <div className={`${insetPanelClass} p-5`}>
+                  {selectedParty.status === 'SELLING' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-600 dark:text-gray-300">티켓 판매가</span>
+                        <span className="text-xl font-bold text-orange-600">
+                          {selectedParty.price?.toLocaleString()}원
+                        </span>
+                      </div>
+                      <Separator className="my-2 bg-gray-200 dark:bg-border" />
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-200">
+                          {(selectedParty.ticketPrice || 0).toLocaleString()}원
+                        </span>
+                      </div>
+                      <Separator className="my-2 bg-gray-200 dark:bg-border" />
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className={`${insetPanelClass} p-4`}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">정책 안내</p>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                      플랫폼 결제/환불 없이 승인 후 채팅으로 직거래를 조율합니다.
+                    </p>
+                  </div>
+                  <div className={`${insetPanelClass} p-4`}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">다음 단계</p>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                      {isHost
+                        ? '신청 관리에서 승인 여부를 결정하고, 이후 채팅이나 체크인으로 흐름을 이어갈 수 있습니다.'
+                        : '상태에 따라 승인 대기, 채팅 입장, 체크인 준비로 이어집니다.'}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className={`p-6 ${sectionCardClass}`}>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <ProfileAvatar
+                      src={selectedParty.hostProfileImageUrl ?? undefined}
+                      alt={selectedParty.hostName}
+                      fallbackName={selectedParty.hostName}
+                      width={96}
+                      height={96}
+                      showRing
+                      ringClassName="p-1 bg-white/95 dark:bg-secondary/90 border border-white/60 dark:border-white/10 shadow-lg"
+                    />
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">Host Trust</p>
+                      <button
+                        type="button"
+                        className="mt-1 text-left text-xl font-black text-gray-900 dark:text-white"
+                        onClick={() => setShowHostProfile(true)}
+                      >
+                        {selectedParty.hostName}
+                      </button>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Badge variant="outline" className="dark:border-border dark:text-gray-200">
+                          <Star className={`w-3 h-3 ${mannerScore === null ? 'text-gray-400' : 'text-yellow-500 fill-yellow-500'}`} />
+                          {mannerScore === null ? mannerScoreLabel : `평점 ${mannerScoreLabel}`}
+                        </Badge>
+                        <Badge variant="outline" className={`${selectedParty.ticketVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200' : 'dark:border-border dark:text-gray-200'}`}>
+                          <Shield className="w-3 h-3" />
+                          {selectedParty.ticketVerified ? '티켓 인증' : '인증 확인 전'}
+                        </Badge>
+                        <Badge variant="outline" className="border-purple-200 bg-purple-50 text-purple-600 dark:border-purple-900/50 dark:bg-purple-950/35 dark:text-purple-200">
+                          {summaryTradeLabel}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="border-primary text-primary hover:bg-primary/10" onClick={() => setShowHostProfile(true)}>
+                    프로필 보기
+                  </Button>
+                </div>
+              </Card>
+
+              <Card className={`p-6 ${sectionCardClass}`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
+                  <MessageSquare className="w-5 h-5 text-primary" /> 파티 소개
+                </h3>
+                <p className="mb-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-300 md:text-base">
+                  {stripHashtags(selectedParty.description)}
+                </p>
+                {hostTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {hostTags.map((tag, i) => (
+                      <Badge key={i} variant="secondary" className="border border-blue-100 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-200">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <Card className={`p-6 overflow-hidden ${sectionCardClass}`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
+                  <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
+                </h3>
+                <SeatViewGallery
+                  stadium={selectedParty.stadium}
+                  section={selectedParty.section}
+                />
+              </Card>
+
+              {selectedParty.status === 'COMPLETED' && currentUserId && (isHost || isApproved) && (
+                <Card className={`p-4 ${sectionCardClass}`}>
+                  <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white">
+                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    리뷰
+                  </h3>
+                  <div className="space-y-2">
+                    {(() => {
+                      const targets = isHost
+                        ? approvedApplications
+                          .filter((app): app is Application & { applicantHandle: string } => Boolean(app.applicantHandle))
+                          .map((app) => ({
+                            handle: app.applicantHandle,
+                            name: app.applicantName,
+                          }))
+                        : (selectedParty.hostHandle
+                          ? [{
+                            handle: selectedParty.hostHandle,
+                            name: selectedParty.hostName,
+                          }]
+                          : []);
+
+                      if (targets.length === 0) {
+                        return <p className="text-sm text-gray-400">리뷰 대상이 없습니다.</p>;
+                      }
+
+                        return targets.map((target) => {
+                          const myReview = reviews.find(
+                          (r) => hasSameMateUserIdentity(
+                            { handle: r.reviewerHandle },
+                            { handle: currentUserHandle },
+                          ) && hasSameMateUserIdentity(
+                            { handle: r.revieweeHandle },
+                            target,
+                          )
+                        );
+
+                        return (
+                          <div
+                            key={target.handle}
+                            className={`flex items-center justify-between p-3 ${insetPanelClass}`}
+                          >
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                {target.name}
+                              </span>
+                              {myReview && (
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map((num) => (
+                                    <Star
+                                      key={num}
+                                      className={`w-3.5 h-3.5 ${num <= myReview.rating
+                                        ? 'text-yellow-500 fill-yellow-500'
+                                        : 'text-gray-300'
+                                        }`}
+                                    />
+                                  ))}
+                                  {myReview.comment && (
+                                    <span className="ml-1 max-w-[120px] truncate text-xs text-gray-500 dark:text-gray-400">
+                                      "{myReview.comment}"
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {myReview ? (
+                              <Badge variant="outline" className="text-xs text-gray-500 dark:border-border dark:text-gray-300">
+                                작성 완료
+                              </Badge>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs border-primary text-primary hover:bg-primary/10"
+                                onClick={() => setReviewTarget(target)}
+                              >
+                                리뷰 작성
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </Card>
+              )}
+
+              <AdSlot
+                slotId="mate_detail_1"
+                pageType="mate_detail"
+                contentId={selectedParty?.id ? String(selectedParty.id) : (id ?? null)}
+                creativeType="sponsor_card"
+                loggedIn={Boolean(currentUserId)}
+                userId={currentUserId ? String(currentUserId) : null}
+                wave="ads_wave2"
+                minHeight={176}
+                className="mt-4"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <Card className={`sticky top-6 p-5 ${sectionCardClass}`}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
+                  {actionContext.eyebrow}
+                </p>
+                <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">
+                  {actionContext.title}
+                </h3>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  {actionContext.detail}
+                </p>
+
+                <div className="mt-4 space-y-2">
+                  {isAwaitingApproval && (
+                    <div
+                      data-testid="mate-pending-status"
+                      className={`${insetPanelClass} flex items-start gap-3 p-4 text-sm text-gray-600 dark:text-gray-300`}
+                    >
+                      <div className="mt-0.5 rounded-full bg-amber-100 p-2 text-amber-600 dark:bg-amber-400/15 dark:text-amber-200">
+                        <Clock className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                          신청이 접수되었습니다.
+                        </p>
+                        <p className="mt-1">
+                          호스트 승인 전까지는 자유롭게 취소할 수 있고, 승인되면 채팅방 입장 버튼이 열립니다.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {actionButtons.length > 0 ? actionButtons.map((action) => (
+                    <Button
+                      key={action.key}
+                      onClick={action.onClick}
+                      disabled={action.disabled}
+                      variant={action.variant}
+                      className={action.className}
+                    >
+                      {action.label}
+                    </Button>
+                  )) : (
+                    <div className={`${insetPanelClass} p-4 text-sm text-gray-600 dark:text-gray-300`}>
+                      현재 바로 실행할 수 있는 액션은 없습니다. 상태 변화를 기다리거나 목록으로 돌아가세요.
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowSaleDialog(false)}
+
+          {primaryMobileAction && (
+            <div
+              className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/90 bg-white/95 px-4 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:border-border dark:bg-card/95 lg:hidden"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
             >
-              취소
-            </Button>
-            <Button
-              className="bg-primary text-white"
-              onClick={handleConfirmSale}
-            >
-              확인
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+              <div className="mx-auto flex max-w-3xl items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                    {actionContext.eyebrow}
+                  </p>
+                  <p className="mt-1 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                    {actionButtons[0]?.disabled ? actionButtons[0].label : actionContext.title}
+                  </p>
+                </div>
+                {secondaryMobileAction && (
+                  <Button
+                    onClick={secondaryMobileAction.onClick}
+                    disabled={secondaryMobileAction.disabled}
+                    variant={secondaryMobileAction.variant ?? 'outline'}
+                    className={`min-w-[104px] ${getMobileActionClass(secondaryMobileAction.key)}`}
+                  >
+                    {secondaryMobileAction.label}
+                  </Button>
+                )}
+                <Button
+                  onClick={primaryMobileAction.onClick}
+                  disabled={primaryMobileAction.disabled}
+                  variant={primaryMobileAction.key === 'manage' || primaryMobileAction.key === 'apply' || primaryMobileAction.key === 'chat' ? 'default' : (primaryMobileAction.variant ?? 'outline')}
+                  className={`min-w-[124px] ${primaryMobileAction.disabled ? 'bg-gray-300 text-gray-500 dark:bg-secondary/80 dark:text-gray-400' : getMobileActionClass(primaryMobileAction.key)}`}
+                >
+                  {primaryMobileAction.label}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+        <UserProfileModal
+          handle={selectedParty?.hostHandle ?? null}
+          isOpen={showHostProfile}
+          onClose={() => setShowHostProfile(false)}
+        />
+        {reviewTarget && currentUserId && (
+          <ReviewDialog
+            isOpen={reviewTarget !== null}
+            onClose={() => setReviewTarget(null)}
+            partyId={selectedParty.id}
+            reviewee={reviewTarget}
+            onSuccess={() => {
+              api.getPartyReviews(selectedParty.id)
+                .then((data) => setReviews(Array.isArray(data) ? data : []))
+                .catch((err) => console.error('리뷰 목록 갱신 실패:', err));
+            }}
+          />
+        )}
+
+        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>취소 사유 선택</DialogTitle>
+            </DialogHeader>
+            <div className="py-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                직거래 파티는 취소 시 플랫폼 결제/환불이 적용되지 않습니다.
+              </p>
+              <div className="space-y-2">
+                {cancelReasonOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setSelectedCancelReason(option.value)}
+                    className={`w-full border rounded-lg px-3 py-2 text-left transition ${selectedCancelReason === option.value
+                      ? 'bg-primary/10 border-primary text-primary'
+                      : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-gray-200'
+                      }`}
+                    disabled={isCancelling}
+                  >
+                    <p className="font-medium">{option.label}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{option.description}</p>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  추가 메모 (선택)
+                </label>
+                <Input
+                  value={cancelMemo}
+                  onChange={(e) => setCancelMemo(e.target.value)}
+                  placeholder="선택 사유를 더 자세히 입력하세요."
+                  disabled={isCancelling}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                disabled={isCancelling}
+                onClick={() => setShowCancelDialog(false)}
+              >
+                뒤로가기
+              </Button>
+              <Button
+                disabled={isCancelling}
+                className="bg-primary text-white"
+                onClick={executeCancelApplication}
+              >
+                {isCancelling ? '취소 처리 중...' : '취소하기'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 판매 전환 Dialog */}
+        <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>티켓 판매 전환</DialogTitle>
+            </DialogHeader>
+            <div className="py-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                판매 가격 (원)
+              </label>
+              <Input
+                type="number"
+                min={100}
+                step={1}
+                placeholder="예: 15000"
+                value={salePrice}
+                onChange={(e) => {
+                  setSalePrice(e.target.value);
+                  setSalePriceError('');
+                }}
+                className="mt-1"
+              />
+              {salePriceError && (
+                <p className="text-sm text-red-500 mt-1">{salePriceError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                disabled={isConvertingToSale}
+                onClick={() => setShowSaleDialog(false)}
+              >
+                취소
+              </Button>
+              <Button
+                disabled={isConvertingToSale}
+                className="bg-primary text-white"
+                onClick={handleConfirmSale}
+              >
+                {isConvertingToSale ? '전환 중...' : '확인'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }

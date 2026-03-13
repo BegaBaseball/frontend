@@ -1,5 +1,5 @@
 import api from './axios';
-import { Game, SaveDiaryRequest, DiaryStatistics, DiaryEntry } from '../types/diary';
+import { Game, SaveDiaryRequest, DiaryStatistics, DiaryEntry, SeatViewCandidate, DiaryPhotoFile } from '../types/diary';
 
 /**
  * 특정 날짜의 경기 목록 조회
@@ -17,11 +17,17 @@ export async function fetchDiaries(): Promise<DiaryEntry[]> {
   return response.data;
 }
 
+export interface SaveDiaryResponse {
+  id: number;
+  ticketVerified?: boolean;
+  [key: string]: unknown;
+}
+
 /**
  * 다이어리 저장
  */
-export async function saveDiary(data: SaveDiaryRequest) {
-  const response = await api.post('/diary/save', data);
+export async function saveDiary(data: SaveDiaryRequest): Promise<SaveDiaryResponse> {
+  const response = await api.post<SaveDiaryResponse>('/diary/save', data);
   return response.data;
 }
 
@@ -43,13 +49,19 @@ export async function deleteDiary(id: number): Promise<void> {
 /**
  * 다이어리 이미지 업로드
  */
+export interface UploadDiaryImagesResponse {
+  photos: string[];
+  candidates: SeatViewCandidate[];
+}
+
 export async function uploadDiaryImages(
   diaryId: number,
-  files: File[]
-): Promise<string[]> {
+  files: DiaryPhotoFile[]
+): Promise<UploadDiaryImagesResponse> {
   const formData = new FormData();
-  files.forEach((file) => {
+  files.forEach(({ file, sourceType }) => {
     formData.append('images', file);
+    formData.append('sourceTypes', sourceType);
   });
 
   const response = await api.post(`/diary/${diaryId}/images`, formData, {
@@ -59,8 +71,15 @@ export async function uploadDiaryImages(
   });
 
   const result = response.data;
-  const photos = result.photos || result.data?.photos || [];
-  return photos;
+  return {
+    photos: result.photos || result.data?.photos || [],
+    candidates: result.candidates || result.data?.candidates || [],
+  };
+}
+
+export async function submitSeatViewSelections(diaryId: number, candidateIds: number[]): Promise<SeatViewCandidate[]> {
+  const response = await api.post(`/diary/${diaryId}/seat-view-selections`, { candidateIds });
+  return response.data?.candidates || response.data?.data?.candidates || [];
 }
 
 /**
@@ -68,5 +87,27 @@ export async function uploadDiaryImages(
  */
 export async function fetchDiaryStatistics(): Promise<DiaryStatistics> {
   const response = await api.get<DiaryStatistics>('/diary/statistics');
+  return response.data;
+}
+
+export interface SeatViewPhoto {
+  photoUrl: string;
+  stadium: string;
+  section: string | null;
+  block: string | null;
+  diaryDate: string;
+}
+
+/**
+ * 좌석 시야 사진 목록 조회 (공개 API)
+ */
+export async function fetchSeatViews(
+  stadium: string,
+  section?: string,
+  limit = 9
+): Promise<SeatViewPhoto[]> {
+  const params = new URLSearchParams({ stadium, limit: limit.toString() });
+  if (section) params.append('section', section);
+  const response = await api.get<SeatViewPhoto[]>(`/diary/seat-views?${params.toString()}`);
   return response.data;
 }

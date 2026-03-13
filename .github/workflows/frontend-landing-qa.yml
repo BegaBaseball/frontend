@@ -1,0 +1,159 @@
+name: Frontend Landing QA
+
+on:
+  pull_request:
+    paths:
+      - "src/components/Landing.tsx"
+      - "src/components/FeatureCard.tsx"
+      - "src/components/LaptopMockup.tsx"
+      - "src/components/ui/button.tsx"
+      - "src/components/ui/card.tsx"
+      - "src/components/ui/page-primitives.tsx"
+      - "src/hooks/useLandingScroll.ts"
+      - "src/constants/landing.ts"
+      - "src/types/landing.tsx"
+      - "src/index.css"
+      - "scripts/landing-qa.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/frontend-landing-qa.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-landing-qa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  landing-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run landing QA
+        run: npm run qa:landing
+
+      - name: Publish landing QA summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Frontend Landing QA" >> "${GITHUB_STEP_SUMMARY}"
+          if [[ -f "output/landing-qa/landing-summary.md" ]]; then
+            cat "output/landing-qa/landing-summary.md" >> "${GITHUB_STEP_SUMMARY}"
+          elif [[ -f "output/landing-qa/landing-report.json" ]]; then
+            node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+            const fs = require('fs');
+
+            const report = JSON.parse(fs.readFileSync('output/landing-qa/landing-report.json', 'utf8'));
+            const lines = [
+              `- Result: ${report.pass ? 'PASS' : 'FAIL'}`,
+              `- Base URL: ${report.baseUrl}`,
+            ];
+
+            const metricEntries = Object.entries(report.metrics || {});
+            if (metricEntries.length > 0) {
+              lines.push(
+                '',
+                '| Viewport | Width | Hero | Panels | Mockup |',
+                '| --- | ---: | --- | ---: | --- |',
+              );
+
+              for (const [label, metric] of metricEntries) {
+                lines.push(`| ${label} | ${metric.viewport.width}px | ${metric.heroFontSize} | ${metric.visibleFeaturePanels} | ${metric.mockupVisible ? 'shown' : 'hidden'} |`);
+              }
+            }
+
+            if (report.navigation) {
+              lines.push(
+                '',
+                '**Navigation**',
+                `- Header login: ${report.navigation.loginPath}`,
+                `- Header start: ${report.navigation.headerCtaPath}`,
+                `- Hero start: ${report.navigation.heroPrimaryPath}`,
+                `- Secondary CTA scrollY: ${report.navigation.secondaryScroll.scrollY}, featuresTop: ${report.navigation.secondaryScroll.featuresTop}`,
+              );
+            }
+
+            if (report.interaction) {
+              lines.push(
+                '',
+                '**Interaction**',
+                `- First feature after click: ${report.interaction.firstAfterClick}`,
+                `- Fourth feature after click: ${report.interaction.fourthAfterClick}`,
+                `- First feature after fourth click: ${report.interaction.firstAfterFourth}`,
+                `- Mockup offset after scroll: ${report.interaction.mockupStyleAfter}`,
+              );
+            }
+
+            if (report.reducedMotion) {
+              lines.push(
+                '',
+                '**Reduced Motion**',
+                `- Mockup transition: ${report.reducedMotion.mockupTransition}`,
+                `- Feature card transition: ${report.reducedMotion.featureCardTransition}`,
+                `- Hero button transition: ${report.reducedMotion.heroButtonTransition}`,
+              );
+            }
+
+            if (report.errorMessage) {
+              lines.push('', '**Error**', `- ${report.errorMessage}`);
+            }
+
+            if (report.failures?.length) {
+              lines.push('', '**Failures**');
+              for (const failure of report.failures) {
+                lines.push(`- ${failure}`);
+              }
+            }
+
+            if (report.cleanupWarnings?.length) {
+              lines.push('', '**Cleanup Warnings**');
+              for (const warning of report.cleanupWarnings) {
+                lines.push(`- ${warning}`);
+              }
+            }
+
+            if (report.readinessDiagnostics?.length) {
+              lines.push('', '**Readiness Diagnostics**');
+              for (const diagnostic of report.readinessDiagnostics) {
+                const missingSelectors = (diagnostic.selectors || [])
+                  .filter((selector) => !selector.found)
+                  .map((selector) => selector.selector);
+                const missingText = missingSelectors.length > 0 ? missingSelectors.join(', ') : 'none';
+                lines.push(`- ${diagnostic.description}: ${diagnostic.path} (readyState=${diagnostic.readyState}, missing=${missingText})`);
+              }
+            }
+
+            console.log(lines.join('\n'));
+            NODE
+          else
+            echo "landing-summary.md not found" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload landing QA artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-landing-qa-artifacts
+          path: |
+            output/landing-qa/landing-report.json
+            output/landing-qa/landing-summary.md
+            output/landing-qa/landing-mobile.png
+            output/landing-qa/landing-tablet.png
+            output/landing-qa/landing-desktop.png
+            output/landing-qa/landing-features.png
+            output/landing-qa/landing-chrome.log
+          if-no-files-found: warn
+          retention-days: 14

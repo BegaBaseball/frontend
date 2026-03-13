@@ -1,15 +1,17 @@
 // src/utils/mate.ts
-import { Party, PartyStatus } from '../types/mate';
+import { Party, PartyStatus, BadgeType } from '../types/mate';
 import { MateParty, MateHistoryTab } from '../types/mate';
 
 interface BackendPartyDTO {
   id: number;
-  hostId: number;
+  hostId?: number;
+  hostHandle?: string;
   hostName: string;
   hostProfileImageUrl?: string;
   hostFavoriteTeam?: string;
   hostBadge: string;
-  hostRating: number;
+  hostAverageRating?: number | null;
+  hostReviewCount?: number;
   teamId: string;
   gameDate: string;
   gameTime: string;
@@ -28,14 +30,24 @@ interface BackendPartyDTO {
   createdAt: string;
 }
 
+const normalizeBadgeType = (badge: string): BadgeType => {
+  const normalized = badge.toUpperCase();
+  if (normalized === 'NEW' || normalized === 'VERIFIED' || normalized === 'TRUSTED') {
+    return normalized;
+  }
+  return 'NEW';
+};
+
 export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party => ({
   id: backendParty.id,
   hostId: backendParty.hostId,
+  hostHandle: backendParty.hostHandle,
   hostName: backendParty.hostName,
   hostProfileImageUrl: backendParty.hostProfileImageUrl,
   hostFavoriteTeam: backendParty.hostFavoriteTeam,
-  hostBadge: backendParty.hostBadge.toLowerCase(),
-  hostRating: backendParty.hostRating,
+  hostBadge: normalizeBadgeType(backendParty.hostBadge),
+  hostAverageRating: backendParty.hostAverageRating ?? null,
+  hostReviewCount: backendParty.hostReviewCount ?? 0,
   teamId: backendParty.teamId,
   gameDate: backendParty.gameDate,
   gameTime: backendParty.gameTime,
@@ -53,6 +65,48 @@ export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party 
   ticketPrice: backendParty.ticketPrice || 0,
   createdAt: backendParty.createdAt,
 });
+
+type HostReviewSummary = Pick<Party, 'hostAverageRating' | 'hostReviewCount'>;
+
+export const getHostAverageRating = (party: HostReviewSummary): number | null => {
+  if ((party.hostReviewCount ?? 0) < 1) {
+    return null;
+  }
+  return typeof party.hostAverageRating === 'number' ? party.hostAverageRating : null;
+};
+
+export const formatHostAverageRating = (party: HostReviewSummary): string => {
+  const averageRating = getHostAverageRating(party);
+  return averageRating === null ? '리뷰 없음' : averageRating.toFixed(1);
+};
+
+type MateIdentity = {
+  id?: number | null;
+  handle?: string | null;
+};
+
+export const hasSameMateUserIdentity = (
+  left: MateIdentity | null | undefined,
+  right: MateIdentity | null | undefined,
+): boolean => {
+  const leftHandle = left?.handle?.trim();
+  const rightHandle = right?.handle?.trim();
+  if (leftHandle && rightHandle) {
+    return leftHandle === rightHandle;
+  }
+
+  const leftId = left?.id;
+  const rightId = right?.id;
+  return typeof leftId === 'number' && typeof rightId === 'number' && leftId === rightId;
+};
+
+export const isPartyHostedByUser = (
+  party: Pick<Party, 'hostId' | 'hostHandle'> | null | undefined,
+  user: MateIdentity | null | undefined,
+): boolean => hasSameMateUserIdentity(
+  { id: party?.hostId ?? null, handle: party?.hostHandle ?? null },
+  user,
+);
 
 export const filterActiveParties = (parties: Party[]): Party[] => {
   return parties.filter(party =>

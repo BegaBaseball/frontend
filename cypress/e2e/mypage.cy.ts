@@ -2,18 +2,62 @@
 
 describe('My Page (User Profile)', () => {
     const uploadedProfileImage =
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2X5ZkAAAAASUVORK5CYII=';
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2X5ZkAAAAASUVORK5CYII=';
     const existingProfileImage =
-      'data:image/gif;base64,R0lGODdhAQABAAAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==';
+        'data:image/gif;base64,R0lGODdhAQABAAAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==';
 
     const openPasswordChangePage = () => {
-      cy.contains('button', '비밀번호 변경').click();
-      cy.contains('button', '안전하게 진행').should('be.visible').click();
-      cy.url().should('include', 'view=changePassword');
+        cy.contains('button', '비밀번호 변경').click();
+        cy.contains('button', '안전하게 진행').should('be.visible').click();
+        cy.url().should('include', 'view=changePassword');
+    };
+
+    const createAuthState = (userOverrides: Partial<typeof authStateUser> = {}) => ({
+        state: {
+            user: {
+                ...authStateUser,
+                ...userOverrides,
+            },
+            isLoggedIn: true,
+            isAdmin: false,
+        },
+        version: 0,
+    });
+
+    const authStateUser = {
+        id: 123,
+        email: 'test@example.com',
+        name: 'TestUser',
+        handle: '@testuser',
+        role: 'ROLE_USER',
+        favoriteTeam: 'HH',
+        profileImageUrl: null,
+        hasPassword: true,
+    };
+
+    const authState = createAuthState();
+
+    const bootstrapAuthenticatedWindow = (win: Window, nextAuthState = authState) => {
+        const originalAddEventListener = win.addEventListener.bind(win);
+        win.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+            if (type === 'auth-session-expired' || type === 'global-api-error') {
+                return;
+            }
+            return originalAddEventListener(type, listener, options);
+        }) as typeof win.addEventListener;
+        win.localStorage.setItem('auth-storage', JSON.stringify(nextAuthState));
+        win.localStorage.setItem('accessToken', 'fake-access-token');
+        win.localStorage.setItem('bega_has_visited', 'true');
+        win.localStorage.setItem('bega_dont_show_guide', 'true');
+    };
+
+    const visitMyPage = (nextAuthState = authState) => {
+        cy.visit('/mypage', {
+            onBeforeLoad: (win) => bootstrapAuthenticatedWindow(win, nextAuthState),
+        });
     };
 
     beforeEach(() => {
-        cy.login('user');
         cy.mockAPI();
 
         // Providers mock for account settings
@@ -22,13 +66,33 @@ describe('My Page (User Profile)', () => {
             body: {
                 success: true,
                 data: [
-                    { provider: 'google', email: 'test@google.com' },
-                    { provider: 'kakao', email: null }
+                    { provider: 'GOOGLE', connected: true, email: 'test@google.com' },
+                    { provider: 'KAKAO', connected: false }
                 ]
             }
         }).as('getProviders');
 
-        cy.visit('/mypage');
+        // Ensure default mypage mock is available
+        cy.intercept('GET', '**/api/auth/mypage*', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    id: 123,
+                    email: 'test@example.com',
+                    name: 'TestUser',
+                    handle: 'testuser',
+                    favoriteTeam: 'HH',
+                    role: 'ROLE_USER',
+                    hasPassword: true,
+                    profileImageUrl: null,
+                }
+            }
+        }).as('getMeInitial');
+
+        visitMyPage();
+        cy.wait('@getMeInitial');
+        cy.wait(300);
         // Wait for profile readiness
         cy.contains('TestUser', { timeout: 20000 }).should('be.visible');
     });
@@ -43,7 +107,7 @@ describe('My Page (User Profile)', () => {
         it('should show default avatar when profile image response is empty string', () => {
             cy.intercept(
                 'GET',
-                '**/api/auth/mypage',
+                '**/api/auth/mypage*',
                 {
                     statusCode: 200,
                     body: {
@@ -61,7 +125,8 @@ describe('My Page (User Profile)', () => {
                 }
             ).as('getMeEmptyImage');
 
-            cy.visit('/mypage');
+            visitMyPage();
+            cy.wait(500);
 
             cy.get('[data-testid="profile-avatar-fallback"]').should('exist');
             cy.get('img[alt="Profile"]').should('not.exist');
@@ -71,8 +136,8 @@ describe('My Page (User Profile)', () => {
             // Check top profile card
             cy.contains('TestUser').should('be.visible');
             cy.contains('test@example.com').should('be.visible');
-            // Team name might only be visible via logo, so we check for HH logo
-            cy.get('img[alt*="HH"]').should('be.visible');
+            // Team badge can render with localized name, so use stable test id.
+            cy.get('[data-testid="mypage-favorite-team-logo"]').should('be.visible');
             // Check for points
             cy.contains('P').should('be.visible');
         });
@@ -80,7 +145,7 @@ describe('My Page (User Profile)', () => {
         it('should apply uploaded image immediately after save', () => {
             const updatedProfileImage = uploadedProfileImage;
 
-            cy.intercept('GET', '**/api/auth/mypage', {
+            cy.intercept('GET', '**/api/auth/mypage*', {
                 statusCode: 200,
                 body: {
                     success: true,
@@ -127,7 +192,10 @@ describe('My Page (User Profile)', () => {
                 });
             }).as('updateProfile');
 
+            cy.wait(500);
             cy.contains('내 정보 수정').click();
+            cy.url().should('include', 'view=editProfile');
+
             cy.get('input[type="file"]').selectFile({
                 contents: Cypress.Buffer.from('avatar image'),
                 fileName: 'avatar.png',
@@ -139,16 +207,16 @@ describe('My Page (User Profile)', () => {
             cy.wait('@uploadProfileImage');
             cy.wait('@updateProfile');
             cy.wait('@getMeWithUpdatedImage');
+
             cy.contains('변경사항이 적용되었습니다').should('be.visible');
             cy.url().should('include', '/mypage');
-            cy.contains('내 정보 수정').should('be.visible');
             cy.get('[data-testid="profile-avatar-image"]').should('have.attr', 'src', updatedProfileImage);
         });
 
         it('should not send profileImageUrl when image is not changed', () => {
             cy.intercept(
                 'GET',
-                '**/api/auth/mypage',
+                '**/api/auth/mypage*',
                 {
                     statusCode: 200,
                     body: {
@@ -166,7 +234,8 @@ describe('My Page (User Profile)', () => {
                 }
             ).as('getMeWithImage');
 
-            cy.visit('/mypage');
+            visitMyPage();
+            cy.wait(500);
 
             cy.intercept('PUT', '**/api/auth/mypage', (req) => {
                 expect(req.body.profileImageUrl).to.be.undefined;
@@ -185,6 +254,7 @@ describe('My Page (User Profile)', () => {
                 });
             }).as('updateProfileWithoutImage');
 
+            cy.wait(500);
             cy.contains('내 정보 수정').click();
             cy.get('input#name').clear().type('ChangedName');
             cy.contains('button', '저장하기').click();
@@ -197,6 +267,7 @@ describe('My Page (User Profile)', () => {
         });
 
         it('should allow editing nickname', () => {
+            cy.wait(500);
             cy.contains('내 정보 수정').click();
 
             cy.intercept('PUT', '**/api/auth/mypage', {
@@ -216,6 +287,7 @@ describe('My Page (User Profile)', () => {
     describe('Account Settings', () => {
         beforeEach(() => {
             // Need to be in edit mode to see account settings
+            cy.wait(500);
             cy.contains('내 정보 수정').click();
             cy.contains('계정 설정').click();
             cy.wait('@getProviders');
@@ -227,18 +299,68 @@ describe('My Page (User Profile)', () => {
             cy.contains('test@google.com').should('be.visible');
             cy.contains('button', '해제').should('be.visible');
         });
+
+        it('should request a link token before starting social account linking', () => {
+            cy.intercept('GET', '**/api/auth/link-token', {
+                statusCode: 500,
+                body: {
+                    message: '연동 토큰 발급에 실패했습니다. 다시 로그인해주세요.',
+                },
+            }).as('getLinkToken');
+
+            cy.contains('button', '연동하기').first().click();
+
+            cy.wait('@getLinkToken').its('response.statusCode').should('eq', 500);
+            cy.url().should('include', '/mypage');
+        });
+
+        it('should show a visible explanation when the last login method cannot be unlinked', () => {
+            cy.intercept('GET', '**/api/auth/providers', {
+                statusCode: 200,
+                body: {
+                    success: true,
+                    data: [
+                        { provider: 'GOOGLE', connected: true, email: 'test@google.com' },
+                    ]
+                }
+            }).as('getProvidersSocialOnly');
+
+            cy.intercept('GET', '**/api/auth/mypage*', {
+                statusCode: 200,
+                body: {
+                    success: true,
+                    data: {
+                        ...authStateUser,
+                        provider: 'GOOGLE',
+                        hasPassword: false,
+                    }
+                }
+            }).as('getMeSocialOnly');
+
+            visitMyPage(createAuthState({ provider: 'GOOGLE', hasPassword: false }));
+            cy.wait('@getMeSocialOnly');
+            cy.contains('TestUser', { timeout: 20000 }).should('be.visible');
+
+            cy.contains('내 정보 수정').click();
+            cy.contains('계정 설정').click();
+            cy.wait('@getProvidersSocialOnly');
+
+            cy.contains('button', '현재 로그인 방식').should('be.disabled');
+            cy.contains('현재 로그인 중인 유일한 수단이라 해제할 수 없습니다.').should('be.visible');
+        });
     });
 
     describe('Password Change', () => {
         beforeEach(() => {
+            cy.wait(500);
             cy.contains('내 정보 수정').click();
             openPasswordChangePage();
         });
 
         it('should validate password change', () => {
             cy.intercept('PUT', '**/api/auth/password', {
-                statusCode: 400,
-                body: { message: '현재 비밀번호가 일치하지 않습니다.' }
+                statusCode: 401,
+                body: { success: false, message: '현재 비밀번호가 일치하지 않습니다.' }
             }).as('updatePassword');
 
             cy.get('input#currentPassword').type('wrongpassword');
@@ -250,6 +372,23 @@ describe('My Page (User Profile)', () => {
 
             cy.contains('현재 비밀번호가 일치하지 않습니다').should('be.visible');
         });
+
+        it('should return to mypage after logging in again when password change succeeds', () => {
+            cy.intercept('PUT', '**/api/auth/password', {
+                statusCode: 200,
+                body: { success: true }
+            }).as('updatePasswordSuccess');
+
+            cy.get('input#currentPassword').type('currentpassword123');
+            cy.get('input#newPassword').type('newpassword123');
+            cy.get('input#confirmPassword').type('newpassword123');
+
+            cy.contains('button', '비밀번호 변경').click();
+            cy.wait('@updatePasswordSuccess');
+
+            cy.location('pathname').should('eq', '/login');
+            cy.location('search').should('eq', '?redirect=%2Fmypage');
+        });
     });
 
     describe('Back Navigation', () => {
@@ -259,8 +398,12 @@ describe('My Page (User Profile)', () => {
         };
 
         const visitMypageFromPrediction = () => {
-            cy.visit('/prediction');
-            cy.visit('/mypage');
+            cy.visit('/prediction', {
+                onBeforeLoad: bootstrapAuthenticatedWindow,
+            });
+            cy.wait(500);
+            visitMyPage();
+            cy.wait(500);
         };
 
         const openAccountSettingsPage = () => {
