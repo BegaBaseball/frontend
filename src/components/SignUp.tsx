@@ -1,19 +1,26 @@
 import { useState } from 'react';
+import { CheckCircle2, Eye, EyeOff, Lock, Mail, User, XCircle } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+import { TEAM_LIST, getFullTeamName } from '../constants/teams';
+import { useSignUpForm } from '../hooks/useSignUpForm';
+import { buildLoginPath } from '../utils/loginRedirect';
+import TeamRecommendationTest from './TeamRecommendationTest';
+import AuthLayout from './auth/AuthLayout';
+import {
+  AuthActionGroup,
+  AuthFieldGroup,
+  AuthHeader,
+  AuthStatusPanel,
+} from './ui/auth-primitives';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import TeamRecommendationTest from './TeamRecommendationTest';
-import { useSignUpForm } from '../hooks/useSignUpForm';
-import { TEAM_LIST, getFullTeamName, TEAM_DATA } from '../constants/teams';
-import AuthLayout from './auth/AuthLayout';
-import { Alert, AlertTitle, AlertDescription } from './ui/alert';
-import { CheckCircle2, XCircle } from 'lucide-react';
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showTeamTest, setShowTeamTest] = useState(false);
@@ -29,295 +36,293 @@ export default function SignUp() {
     handleSubmit,
   } = useSignUpForm();
 
-  const signupInputClass =
-    'bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-300 focus:ring-primary ring-primary auth-autofill-input';
+  const loginPath = buildLoginPath(new URLSearchParams(location.search).get('redirect'));
 
   return (
     <AuthLayout>
-      <h2 className="text-center mb-8 text-zinc-900 dark:text-zinc-100">SIGN UP</h2>
+      <AuthHeader
+        eyebrow="New Account"
+        title="회원가입"
+        description="응원팀과 프로필 정보를 설정해 BEGA 경험을 바로 시작하세요."
+        data-testid="signup-header"
+      />
 
-      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {/* ✅ 성공 Alert */}
-        {isSuccess && (
-          <Alert className="border-green-500 bg-green-50 animate-in fade-in slide-in-from-top-2 duration-300">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertTitle className="text-green-900 font-semibold">
-              회원가입 성공!
-            </AlertTitle>
-            <AlertDescription className="text-green-700">
-              환영합니다! 잠시 후 로그인 화면으로 이동합니다...
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* ✅ 에러 Alert (기존 div를 Alert 컴포넌트로 변경) */}
-        {error && !isSuccess && (
-          <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2 duration-300">
-            <XCircle className="h-4 w-4" />
-            <AlertTitle>회원가입 실패</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* 닉네임 */}
-        <div className="space-y-2">
-          <Label htmlFor="name" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-            <User className="w-4 h-4 text-primary" />
-            닉네임
-          </Label>
-          <Input
-            id="name"
-            type="text"
-            value={formData.name}
-            onChange={(e) => handleFieldChange('name', e.target.value)}
-            onBlur={() => handleFieldBlur('name')}
-            className={`${signupInputClass} ${fieldErrors.name ? 'border-red-500' : ''}`}
-            placeholder="홍길동"
-            disabled={isLoading || isSuccess}  // ✅ 수정
-          />
-          {fieldErrors.name && (
-            <p className="text-sm text-red-500">* {fieldErrors.name}</p>
-          )}
-        </div>
-
-        {/* 핸들 (사용자 아이디) */}
-        <div className="space-y-2">
-          <Label htmlFor="handle" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-            <User className="w-4 h-4 text-primary" />
-            사용자 핸들 (@)
-          </Label>
-          <Input
-            id="handle"
-            type="text"
-            value={formData.handle}
-            onChange={(e) => {
-              const val = e.target.value;
-              // @로 시작하도록 유도하거나 강제
-              if (val === '' || val === '@') {
-                handleFieldChange('handle', '@');
-              } else if (val.startsWith('@')) {
-                handleFieldChange('handle', val);
-              } else {
-                handleFieldChange('handle', `@${val}`);
-              }
-            }}
-            onBlur={() => handleFieldBlur('handle')}
-            className={`${signupInputClass} ${fieldErrors.handle ? 'border-red-500' : ''}`}
-            placeholder="@username"
-            disabled={isLoading || isSuccess}
-          />
-          {fieldErrors.handle ? (
-            <p className="text-sm text-red-500">* {fieldErrors.handle}</p>
-          ) : (
-            <p className="text-xs text-gray-500 dark:text-gray-300">
-              핸들은 내 프로필 주소로 사용됩니다. (기호는 _만 가능)
-            </p>
-          )}
-        </div>
-
-        {/* 이메일 */}
-        <div className="space-y-2">
-          <Label htmlFor="email" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-            <Mail className="w-4 h-4 text-primary" />
-            이메일
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => handleFieldChange('email', e.target.value)}
-            onBlur={() => handleFieldBlur('email')}
-            className={`${signupInputClass} ${fieldErrors.email ? 'border-red-500' : ''}`}
-            placeholder="example@email.com"
-            disabled={isLoading || isSuccess}  // ✅ 수정
-          />
-          {fieldErrors.email && (
-            <p className="text-sm text-red-500">* {fieldErrors.email}</p>
-          )}
-        </div>
-
-        {/* 비밀번호 */}
-        <div className="space-y-2">
-          <Label htmlFor="password" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-            <Lock className="w-4 h-4 text-primary" />
-            비밀번호
-          </Label>
-          <div className="relative">
-            <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={(e) => handleFieldChange('password', e.target.value)}
-              onBlur={() => handleFieldBlur('password')}
-              className={`${signupInputClass} pr-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
-              placeholder="8자 이상 입력"
-              disabled={isLoading || isSuccess}  // ✅ 수정
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
-              disabled={isLoading || isSuccess}
-              aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-          {fieldErrors.password ? (
-            <p className="text-sm text-red-500">* {fieldErrors.password}</p>
-          ) : (
-            <p className="text-xs text-gray-500 dark:text-gray-300">
-              • 8자 이상<br />
-              • 대문자, 소문자, 숫자, 특수문자(@$!%*?&#) 각 1개 이상 포함
-            </p>
-          )}
-        </div>
-
-        {/* 비밀번호 확인 */}
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-            <Lock className="w-4 h-4 text-primary" />
-            비밀번호 확인
-          </Label>
-          <div className="relative">
-            <Input
-              id="confirmPassword"
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={formData.confirmPassword}
-              onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
-              onBlur={() => handleFieldBlur('confirmPassword')}
-              className={`${signupInputClass} pr-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
-              placeholder="비밀번호 재입력"
-              disabled={isLoading || isSuccess}  // ✅ 수정
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
-              disabled={isLoading || isSuccess}
-              aria-label={showConfirmPassword ? "비밀번호 확인 숨기기" : "비밀번호 확인 보기"}
-            >
-              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-          {fieldErrors.confirmPassword && (
-            <p className="text-sm text-red-500">* {fieldErrors.confirmPassword}</p>
-          )}
-        </div>
-
-        {/* 응원팀 선택 */}
-        <div className="space-y-2">
-          <Label id="favoriteTeam-label" className="text-gray-700 dark:text-gray-300">
-            응원팀 선택
-          </Label>
-          <Select
-            value={formData.favoriteTeam}
-            onValueChange={(value: string) => handleFieldChange('favoriteTeam', value)}
-            disabled={isLoading || isSuccess}
-          >
-            <SelectTrigger
-              aria-labelledby="favoriteTeam-label"
-              className={`bg-gray-50 dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 focus:ring-primary ${fieldErrors.favoriteTeam ? 'border-red-500' : ''}`}
-            >
-              <SelectValue placeholder="팀을 선택하세요" />
-            </SelectTrigger>
-            <SelectContent>
-              {TEAM_LIST.map((team) => (
-                <SelectItem key={team} value={team}>
-                  {team}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {fieldErrors.favoriteTeam && (
-            <p className="text-sm text-red-500">* {fieldErrors.favoriteTeam}</p>
-          )}
-
-          {/* "없음" 선택 시 경고 메시지 */}
-          {formData.favoriteTeam === '없음' && (
-            <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                ⚠️ 응원구단을 선택하지 않으면 <strong>응원석을 이용할 수 없습니다.</strong><br />
-                <span className="text-xs dark:text-yellow-200/90">나중에 마이페이지 &gt; 내 정보 수정에서 변경 가능합니다.</span>
-              </p>
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate data-testid="signup-form">
+        {isSuccess ? (
+          <AuthStatusPanel tone="success" data-testid="signup-status-panel" role="status">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold">회원가입 성공!</p>
+              <p className="text-sm">환영합니다! 잠시 후 로그인 화면으로 이동합니다...</p>
             </div>
-          )}
+          </AuthStatusPanel>
+        ) : null}
 
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-sm text-gray-500 dark:text-gray-300">응원구단은 응원석에서 사용됩니다</p>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setShowTeamTest(true)}
-              className="text-sm flex items-center h-auto py-1 px-2 text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
-              disabled={isLoading || isSuccess}  // ✅ 수정
-            >
-              구단 테스트 해보기
-            </Button>
+        {error && !isSuccess ? (
+          <AuthStatusPanel tone="error" data-testid="signup-status-panel" role="alert">
+            <XCircle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold">회원가입 실패</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          </AuthStatusPanel>
+        ) : null}
+
+        <AuthFieldGroup>
+          <div className="space-y-2">
+            <Label htmlFor="name" className="flex items-center gap-2 text-foreground">
+              <User className="h-4 w-4 text-primary" />
+              닉네임
+            </Label>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              autoComplete="nickname"
+              value={formData.name}
+              onChange={(event) => handleFieldChange('name', event.target.value)}
+              onBlur={() => handleFieldBlur('name')}
+              className={`auth-input auth-autofill-input ${fieldErrors.name ? 'auth-input-error' : ''}`}
+              placeholder="홍길동"
+              disabled={isLoading || isSuccess}
+              data-testid="signup-name"
+            />
+            {fieldErrors.name ? <p className="auth-error-text">* {fieldErrors.name}</p> : null}
           </div>
 
-          <TeamRecommendationTest
-            isOpen={showTeamTest}
-            onClose={() => setShowTeamTest(false)}
-            onSelectTeam={(team) => {
-              const fullName = getFullTeamName(team);
-              handleFieldChange('favoriteTeam', fullName);
-              setShowTeamTest(false);
-            }}
-          />
-          <label className="text-sm text-red-500">
-            응원구단은 한번 선택시 변경이 불가합니다.
-          </label>
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="handle" className="flex items-center gap-2 text-foreground">
+              <User className="h-4 w-4 text-primary" />
+              사용자 핸들 (@)
+            </Label>
+            <Input
+              id="handle"
+              name="handle"
+              type="text"
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={formData.handle}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                if (nextValue === '' || nextValue === '@') {
+                  handleFieldChange('handle', '@');
+                } else if (nextValue.startsWith('@')) {
+                  handleFieldChange('handle', nextValue);
+                } else {
+                  handleFieldChange('handle', `@${nextValue}`);
+                }
+              }}
+              onBlur={() => handleFieldBlur('handle')}
+              className={`auth-input auth-autofill-input ${fieldErrors.handle ? 'auth-input-error' : ''}`}
+              placeholder="@username"
+              disabled={isLoading || isSuccess}
+              data-testid="signup-handle"
+            />
+            {fieldErrors.handle ? (
+              <p className="auth-error-text">* {fieldErrors.handle}</p>
+            ) : (
+              <p className="auth-helper-text">핸들은 내 프로필 주소로 사용됩니다. (기호는 _만 가능)</p>
+            )}
+          </div>
 
-        {/* ✅ 수정된 버튼 */}
-        <Button
-          type="submit"
-          className={`w-full text-white py-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isSuccess ? 'bg-primary' : 'bg-primary-dark hover:bg-primary'}`}
-          disabled={isLoading || isSuccess}  // ✅ 수정
-        >
-          {isLoading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              처리 중...
-            </span>
-          ) : isSuccess ? (
-            <span className="flex items-center justify-center gap-2">
-              <CheckCircle2 className="h-5 w-5" />
-              성공!
-            </span>
-          ) : (
-            '회원가입'
-          )}
-        </Button>
+          <div className="space-y-2">
+            <Label htmlFor="email" className="flex items-center gap-2 text-foreground">
+              <Mail className="h-4 w-4 text-primary" />
+              이메일
+            </Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={formData.email}
+              onChange={(event) => handleFieldChange('email', event.target.value)}
+              onBlur={() => handleFieldBlur('email')}
+              className={`auth-input auth-autofill-input ${fieldErrors.email ? 'auth-input-error' : ''}`}
+              placeholder="example@email.com"
+              disabled={isLoading || isSuccess}
+              data-testid="signup-email"
+            />
+            {fieldErrors.email ? <p className="auth-error-text">* {fieldErrors.email}</p> : null}
+          </div>
 
-        <p className="text-center text-sm text-gray-600 dark:text-gray-300">
-          이미 계정이 있으신가요?{' '}
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="hover:underline disabled:opacity-50 text-primary"
-            disabled={isLoading || isSuccess}  // ✅ 수정
+          <div className="space-y-2">
+            <Label htmlFor="password" className="flex items-center gap-2 text-foreground">
+              <Lock className="h-4 w-4 text-primary" />
+              비밀번호
+            </Label>
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                value={formData.password}
+                onChange={(event) => handleFieldChange('password', event.target.value)}
+                onBlur={() => handleFieldBlur('password')}
+                className={`auth-input auth-autofill-input pr-12 ${fieldErrors.password ? 'auth-input-error' : ''}`}
+                placeholder="8자 이상 입력"
+                disabled={isLoading || isSuccess}
+                data-testid="signup-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                disabled={isLoading || isSuccess}
+                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                data-testid="signup-password-visibility"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {fieldErrors.password ? (
+              <p className="auth-error-text">* {fieldErrors.password}</p>
+            ) : (
+              <p className="auth-helper-text">
+                • 8자 이상
+                <br />
+                • 대문자, 소문자, 숫자, 특수문자(@$!%*?&#) 각 1개 이상 포함
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-foreground">
+              <Lock className="h-4 w-4 text-primary" />
+              비밀번호 확인
+            </Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                value={formData.confirmPassword}
+                onChange={(event) => handleFieldChange('confirmPassword', event.target.value)}
+                onBlur={() => handleFieldBlur('confirmPassword')}
+                className={`auth-input auth-autofill-input pr-12 ${fieldErrors.confirmPassword ? 'auth-input-error' : ''}`}
+                placeholder="비밀번호 재입력"
+                disabled={isLoading || isSuccess}
+                data-testid="signup-confirm-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((current) => !current)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                disabled={isLoading || isSuccess}
+                aria-label={showConfirmPassword ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'}
+                data-testid="signup-confirm-password-visibility"
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {fieldErrors.confirmPassword ? <p className="auth-error-text">* {fieldErrors.confirmPassword}</p> : null}
+          </div>
+
+          <div className="space-y-2">
+            <Label id="favoriteTeam-label" className="text-foreground">응원팀 선택</Label>
+            <Select
+              value={formData.favoriteTeam}
+              onValueChange={(value) => handleFieldChange('favoriteTeam', value)}
+              disabled={isLoading || isSuccess}
+            >
+              <SelectTrigger
+                aria-labelledby="favoriteTeam-label"
+                className={`auth-select-trigger ${fieldErrors.favoriteTeam ? 'auth-input-error' : ''}`}
+                data-testid="signup-favorite-team"
+              >
+                <SelectValue placeholder="팀을 선택하세요" />
+              </SelectTrigger>
+              <SelectContent>
+                {TEAM_LIST.map((team) => (
+                  <SelectItem key={team} value={team}>
+                    {team}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {fieldErrors.favoriteTeam ? <p className="auth-error-text">* {fieldErrors.favoriteTeam}</p> : null}
+
+            {formData.favoriteTeam === '없음' ? (
+              <AuthStatusPanel tone="warning" role="status">
+                <div className="space-y-1 text-sm">
+                  <p className="font-semibold">응원구단을 선택하지 않으면 응원석을 이용할 수 없습니다.</p>
+                  <p>회원가입 후에도 마이페이지 &gt; 내 정보 수정에서 언제든 변경할 수 있습니다.</p>
+                </div>
+              </AuthStatusPanel>
+            ) : null}
+
+            <div className="auth-support-row">
+              <p className="auth-note">응원구단은 응원석에서 사용됩니다</p>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setShowTeamTest(true)}
+                className="h-auto px-2 py-1 text-sm text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
+                disabled={isLoading || isSuccess}
+                data-testid="signup-team-test"
+              >
+                구단 테스트 해보기
+              </Button>
+            </div>
+
+            <TeamRecommendationTest
+              isOpen={showTeamTest}
+              onClose={() => setShowTeamTest(false)}
+              onSelectTeam={(team) => {
+                handleFieldChange('favoriteTeam', getFullTeamName(team));
+                setShowTeamTest(false);
+              }}
+            />
+
+            <p className="auth-note">응원구단은 회원가입 후에도 마이페이지 &gt; 내 정보 수정에서 변경할 수 있습니다.</p>
+          </div>
+        </AuthFieldGroup>
+
+        <AuthActionGroup>
+          <Button
+            type="submit"
+            variant="brand"
+            size="touchLg"
+            className="w-full"
+            disabled={isLoading || isSuccess}
+            data-testid="signup-submit"
           >
-            로그인
-          </button>
-        </p>
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                처리 중...
+              </span>
+            ) : isSuccess ? (
+              <span className="flex items-center justify-center gap-2">
+                <CheckCircle2 className="h-5 w-5" />
+                성공!
+              </span>
+            ) : '회원가입'}
+          </Button>
+
+          <p className="auth-note text-center">
+            이미 계정이 있으신가요?{' '}
+            <button
+              type="button"
+              onClick={() => navigate(loginPath)}
+              className="auth-link"
+              disabled={isLoading || isSuccess}
+              data-testid="signup-login-link"
+            >
+              로그인
+            </button>
+          </p>
+        </AuthActionGroup>
       </form>
     </AuthLayout>
   );

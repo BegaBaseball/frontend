@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button } from './ui/button';
-import AuthLayout from './auth/AuthLayout';
+
 import {
   getAccountDeletionRecoveryInfo,
   requestAccountDeletionRecovery,
 } from '../api/profile';
+import { buildLoginPath, getStoredLoginRedirect } from '../utils/loginRedirect';
+import AuthLayout from './auth/AuthLayout';
+import {
+  AuthActionGroup,
+  AuthHeader,
+  AuthStatusPanel,
+} from './ui/auth-primitives';
+import { Button } from './ui/button';
+
+const ACCOUNT_SETTINGS_REDIRECT_PATH = '/mypage?view=accountSettings';
 
 const formatSchedule = (value?: string) => {
   if (!value) {
@@ -31,6 +40,8 @@ export default function AccountDeletionRecovery() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
+  const redirectPath = searchParams.get('redirect') || getStoredLoginRedirect() || ACCOUNT_SETTINGS_REDIRECT_PATH;
+  const loginPath = buildLoginPath(redirectPath);
   const [scheduledFor, setScheduledFor] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
@@ -52,9 +63,9 @@ export default function AccountDeletionRecovery() {
         if (!cancelled) {
           setScheduledFor(info.scheduledFor);
         }
-      } catch (error) {
+      } catch (loadError) {
         if (!cancelled) {
-          setError(error instanceof Error ? error.message : '계정 복구 정보를 확인하지 못했습니다.');
+          setError(loadError instanceof Error ? loadError.message : '계정 복구 정보를 확인하지 못했습니다.');
         }
       } finally {
         if (!cancelled) {
@@ -77,11 +88,12 @@ export default function AccountDeletionRecovery() {
 
     setIsRecovering(true);
     setError('');
+
     try {
       await requestAccountDeletionRecovery(token);
       setIsRecovered(true);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : '계정 복구에 실패했습니다.');
+    } catch (recoverError) {
+      setError(recoverError instanceof Error ? recoverError.message : '계정 복구에 실패했습니다.');
     } finally {
       setIsRecovering(false);
     }
@@ -90,67 +102,93 @@ export default function AccountDeletionRecovery() {
   return (
     <AuthLayout>
       <button
-        onClick={() => navigate('/login')}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+        type="button"
+        onClick={() => navigate(loginPath)}
+        className="auth-back-link"
+        data-testid="account-recovery-back-link"
       >
-        <ArrowLeft className="w-5 h-5" />
+        <ArrowLeft className="h-5 w-5" />
         <span>로그인 화면으로</span>
       </button>
 
       {isRecovered ? (
-        <div className="text-center py-8">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 bg-emerald-600">
-            <CheckCircle2 className="w-10 h-10 text-white" />
+        <>
+          <AuthHeader
+            eyebrow="Recovery Complete"
+            title="계정 복구 완료"
+            description="탈퇴 예약이 취소되었습니다. 이제 기존 계정으로 다시 로그인할 수 있습니다."
+            data-testid="account-recovery-header"
+          />
+
+          <div className="space-y-6 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white">
+              <CheckCircle2 className="h-10 w-10" />
+            </div>
+
+            <AuthActionGroup>
+              <Button
+                type="button"
+                variant="brand"
+                size="touchLg"
+                className="w-full"
+                onClick={() => navigate(loginPath)}
+                data-testid="account-recovery-login"
+              >
+                로그인하기
+              </Button>
+            </AuthActionGroup>
           </div>
-          <h2 className="mb-4">계정 복구 완료</h2>
-          <p className="text-gray-600 mb-8">
-            탈퇴 예약이 취소되었습니다.<br />
-            이제 기존 계정으로 다시 로그인할 수 있습니다.
-          </p>
-          <Button
-            onClick={() => navigate('/login')}
-            className="w-full text-white py-6 rounded-full hover:opacity-90 bg-primary"
-          >
-            로그인하기
-          </Button>
-        </div>
+        </>
       ) : (
         <>
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
-              <ShieldAlert className="w-7 h-7" />
-            </div>
-          </div>
-          <h2 className="text-center mb-4">탈퇴 예약 취소</h2>
-          <p className="text-center text-gray-600 mb-8">
-            메일로 받은 링크를 통해 들어오셨다면 아래에서 탈퇴 예약을 취소하고 계정을 다시 사용할 수 있습니다.
-          </p>
+          <AuthHeader
+            eyebrow="Recovery Link"
+            title="탈퇴 예약 취소"
+            description="메일로 받은 링크를 통해 들어오셨다면 아래에서 탈퇴 예약을 취소하고 계정을 다시 사용할 수 있습니다."
+            data-testid="account-recovery-header"
+          />
 
-          {isLoading ? (
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600 text-center">
-              복구 가능 여부를 확인하고 있습니다.
-            </div>
-          ) : error ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 text-center">
-              {error}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-                <p className="font-semibold mb-2">최종 삭제 예정 시각</p>
-                <p>{formatSchedule(scheduledFor)}</p>
-                <p className="mt-2 text-xs text-gray-500">이 시각 전까지 예약을 취소할 수 있으며, 취소가 끝나면 다시 로그인할 수 있습니다.</p>
+          <div className="space-y-6" data-testid="account-recovery-panel">
+            <div className="flex items-center justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <ShieldAlert className="h-7 w-7" />
               </div>
-
-              <Button
-                onClick={handleRecover}
-                className="w-full text-white py-6 rounded-full hover:opacity-90 bg-primary"
-                disabled={isRecovering}
-              >
-                {isRecovering ? '탈퇴 예약 취소 중...' : '탈퇴 예약 취소하기'}
-              </Button>
             </div>
-          )}
+
+            {isLoading ? (
+              <AuthStatusPanel tone="default" data-testid="account-recovery-status-panel" role="status">
+                <p className="text-sm font-medium">복구 가능 여부를 확인하고 있습니다.</p>
+              </AuthStatusPanel>
+            ) : error ? (
+              <AuthStatusPanel tone="error" data-testid="account-recovery-status-panel" role="alert">
+                <p className="text-sm font-medium">{error}</p>
+              </AuthStatusPanel>
+            ) : (
+              <>
+                <AuthStatusPanel tone="default" role="status">
+                  <div className="space-y-2 text-sm">
+                    <p className="font-semibold text-foreground">최종 삭제 예정 시각</p>
+                    <p>{formatSchedule(scheduledFor)}</p>
+                    <p className="auth-helper-text">이 시각 전까지 예약을 취소할 수 있으며, 취소가 끝나면 다시 로그인할 수 있습니다.</p>
+                  </div>
+                </AuthStatusPanel>
+
+                <AuthActionGroup>
+                  <Button
+                    type="button"
+                    variant="brand"
+                    size="touchLg"
+                    className="w-full"
+                    onClick={handleRecover}
+                    disabled={isRecovering}
+                    data-testid="account-recovery-submit"
+                  >
+                    {isRecovering ? '탈퇴 예약 취소 중...' : '탈퇴 예약 취소하기'}
+                  </Button>
+                </AuthActionGroup>
+              </>
+            )}
+          </div>
         </>
       )}
     </AuthLayout>

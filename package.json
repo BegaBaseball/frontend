@@ -105,6 +105,8 @@
             "cwv:baseline": "node scripts/cwv-baseline.mjs --json reports/cwv-baseline.json --markdown reports/cwv-baseline.md",
             "build": "npm run build:base && npm run seo:prerender && npm run seo:sitemap",
             "preview": "npx vite preview",
+            "qa:landing": "node scripts/landing-qa.mjs",
+            "qa:auth": "node scripts/auth-qa.mjs",
             "cy:doctor": "node scripts/cypress-doctor.mjs",
             "cy:open": "node scripts/cypress-run.mjs --open",
             "cy:run": "node scripts/cypress-run.mjs",

@@ -1,15 +1,53 @@
-import begaCharacter from '../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
-import { OptimizedImage } from './common/OptimizedImage';
-import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import { Button } from './ui/button';
 import { ArrowRight } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthSession } from '../store/authStore';
-import { useLandingScroll } from '../hooks/useLandingScroll';
+
+import begaCharacter from '../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
+import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { LANDING_FEATURES } from '../constants/landing';
+import { useLandingScroll } from '../hooks/useLandingScroll';
+import { useAuthSession } from '../store/authStore';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import FeatureCard from './FeatureCard';
 import LaptopMockup from './LaptopMockup';
+import { OptimizedImage } from './common/OptimizedImage';
+import { Button } from './ui/button';
+import {
+  CTAGroup,
+  Container,
+  MockupFrame,
+  Section,
+  SectionHeader,
+  Stack,
+  TextBlock,
+} from './ui/page-primitives';
+
+const FOOTER_SECTIONS = [
+  {
+    title: '제품',
+    links: [
+      { label: '주요 기능', href: '#features' },
+      { label: '홈', href: '/home' },
+      { label: '구장 가이드', href: '/stadium' },
+    ],
+  },
+  {
+    title: '탐색',
+    links: [
+      { label: '응원석', href: '/cheer' },
+      { label: '직관 메이트', href: '/mate' },
+      { label: '전력분석실', href: '/prediction' },
+    ],
+  },
+  {
+    title: '지원',
+    links: [
+      { label: '공지사항', href: '/notice' },
+      { label: '이용약관', href: '/terms' },
+      { label: '개인정보처리방침', href: '/privacy' },
+    ],
+  },
+] as const;
 
 export default function Landing() {
   const [activeFeature, setActiveFeature] = useState(0);
@@ -27,7 +65,7 @@ export default function Landing() {
     scrollProgress,
     featureRefs,
     laptopRef,
-    featuresContainerRef
+    featuresContainerRef,
   } = useLandingScroll();
 
   const handleFeatureToggle = (index: number) => {
@@ -35,135 +73,169 @@ export default function Landing() {
     setExpandedFeature(expandedFeature === index ? null : index);
   };
 
+  const handleFooterLinkClick = (href: string) => {
+    if (href.startsWith('#')) {
+      document.getElementById(href.slice(1))?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      return;
+    }
+
+    if (href.startsWith('/')) {
+      navigate(href);
+      return;
+    }
+
+    window.location.href = href;
+  };
+
   return (
-    <div className="min-h-screen bg-white transition-colors duration-200">
-      {/* Fixed Header */}
-      <header
-        className="fixed top-0 left-0 right-0 z-50 border-b border-gray-100 bg-white/85 transition-all duration-300"
-        style={{ backdropFilter: 'blur(12px)' }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <div className="flex items-center gap-2">
-              <img src={baseballLogo} alt="BEGA" className="w-6 h-6 sm:w-8 sm:h-8" />
-              <span className="text-lg sm:text-xl font-black text-primary">BEGA</span>
+    <div className="min-h-screen bg-background text-foreground" data-testid="landing-page">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md">
+        <Container>
+          <div className="flex h-16 items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img src={baseballLogo} alt="BEGA" className="h-8 w-8" />
+              <div className="flex items-baseline gap-2">
+                <span className="landing-wordmark text-lg text-primary sm:text-xl">
+                  BEGA
+                </span>
+                <span className="landing-brand-caption hidden text-muted-foreground sm:inline">
+                  Baseball Guide
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-4">
+
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
-                onClick={() => navigate('/login')}
-                className="text-gray-600 text-sm sm:text-base px-2 sm:px-4 hover:bg-gray-100"
+                onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
+                size="touch"
+                data-testid="landing-header-login"
+                className="px-3 text-sm text-muted-foreground hover:bg-primary/5 hover:text-foreground sm:px-4"
               >
                 로그인
               </Button>
               <Button
+                size="touchLg"
+                variant="brand"
                 onClick={() => navigate('/home')}
-                className="bg-primary text-white rounded-full px-4 sm:px-6 text-sm sm:text-base"
+                data-testid="landing-header-cta"
+                className="px-5 sm:px-6"
               >
                 시작하기
               </Button>
             </div>
           </div>
-        </div>
+        </Container>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16 sm:pt-20">
-        <div
-          className="absolute inset-0 bg-gradient-to-br from-[#ecfdf5] via-white to-[#f0fdfa]"
-        />
+      <Section
+        className="landing-hero-backdrop landing-hero-section relative overflow-hidden"
+        data-testid="landing-hero"
+      >
+        <Container className="landing-hero-grid">
+          <Stack gap="md" className="items-center text-center lg:items-start lg:text-left">
+            <span className="ds-kicker">KBO 야구 팬을 위한 올인원 플랫폼</span>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 lg:py-32 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <div className="text-center lg:text-left">
-            <div className="flex items-center justify-center lg:justify-start gap-2 sm:gap-3 mb-4 sm:mb-8">
-              <img src={baseballLogo} alt="BEGA Logo" className="w-10 h-10 sm:w-16 sm:h-16" />
-              <span className="text-2xl sm:text-3xl font-black text-primary">BEGA</span>
+            <div className="flex items-center gap-3">
+              <img src={baseballLogo} alt="BEGA Logo" className="h-12 w-12 sm:h-14 sm:w-14" />
+              <span className="landing-wordmark text-2xl text-primary sm:text-3xl">
+                BEGA
+              </span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-[#1a1a1a] leading-tight mb-4 sm:mb-6">
-              야구를 더<br />
-              <span className="text-primary">스마트</span>하게
-            </h1>
+            <TextBlock measure="narrow" align="start" className="items-center lg:items-start">
+              <h1 className="ds-hero-title max-w-md">
+                야구를 더 <span className="text-primary">스마트</span>하게
+              </h1>
+              <p className="ds-section-copy">
+                경기 일정, 응원, 구장 가이드, 예측, 메이트, 다이어리를 한 화면 흐름 안에
+                정리해 KBO 팬의 하루를 더 가볍게 만듭니다.
+              </p>
+            </TextBlock>
 
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-8 sm:mb-10 leading-relaxed">
-              KBO 야구 팬들을 위한 올인원 플랫폼<br className="hidden sm:block" />
-              BEGA와 함께 모든 순간을 특별하게
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
+            <CTAGroup align="start">
               <Button
+                size="touchLg"
+                variant="brand"
                 onClick={() => navigate('/home')}
-                className="group bg-primary text-white py-6 px-8 rounded-full text-lg w-full sm:w-auto"
+                data-testid="landing-hero-cta-primary"
+                className="group w-full sm:w-auto"
               >
                 지금 바로 시작하기
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
               <Button
+                size="touchLg"
+                variant="brandOutline"
                 onClick={() => {
                   document.getElementById('features')?.scrollIntoView({
                     behavior: 'smooth',
-                    block: 'start'
+                    block: 'start',
                   });
                 }}
-                variant="outline"
-                className="border-2 border-primary text-primary bg-transparent py-6 px-8 rounded-full text-lg w-full sm:w-auto hover:bg-primary/10"
+                data-testid="landing-hero-cta-secondary"
+                className="w-full sm:w-auto"
               >
                 더 알아보기
               </Button>
-            </div>
-          </div>
+            </CTAGroup>
+          </Stack>
 
-          {/* Hero Laptop Mockup */}
-          <div className="relative mt-8 lg:mt-0 px-4 sm:px-0">
-            <div className="absolute top-8 right-[-1rem] w-full h-full rounded-3xl bg-[#d1fae5] -z-10 hidden sm:block" />
-
+          <MockupFrame className="mx-auto w-full max-w-xl p-5 sm:p-6">
             <div className="relative z-10">
-              <div className="relative p-2 sm:p-3 bg-gray-800 rounded-t-xl sm:rounded-t-2xl shadow-2xl">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 sm:w-32 h-4 sm:h-6 bg-gray-800 rounded-b-lg z-10" />
+              <div className="landing-device-shell">
+                <div className="landing-device-notch" />
 
-                <div className="relative overflow-hidden bg-black rounded-lg aspect-[16/10]">
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary to-[#3d7f5f]">
-                    <OptimizedImage src={begaCharacter} alt="BEGA Character" className="w-16 h-16 sm:w-24 sm:h-24 object-contain" priority={true} />
-                    <div className="text-center">
-                      <h1 className="text-white text-2xl sm:text-4xl font-black tracking-wider mb-1">
+                <div className="landing-device-screen">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+                    <OptimizedImage
+                      src={begaCharacter}
+                      alt="BEGA Character"
+                      className="h-20 w-20 object-contain sm:h-24 sm:w-24"
+                      priority={true}
+                    />
+                    <div>
+                      <h2 className="landing-wordmark text-3xl text-white sm:text-4xl">
                         BEGA
-                      </h1>
-                      <p className="text-white/90 font-medium tracking-widest text-xs sm:text-base">
-                        BASEBALL GUIDE
+                      </h2>
+                      <p className="landing-brand-caption mt-2 text-white/80 sm:text-sm">
+                        Baseball Guide
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="relative h-2 sm:h-3 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-xl sm:rounded-b-2xl shadow-md" />
-
-              <div className="absolute left-1/2 -translate-x-1/2 -bottom-4 w-[80%] h-4 bg-gray-900/20 blur-xl rounded-full" />
+              <div className="landing-device-base" />
+              <div className="landing-device-shadow" />
             </div>
-          </div>
-        </div>
-      </section>
+          </MockupFrame>
+        </Container>
+      </Section>
 
-      {/* Features Section */}
-      <section id="features" className="py-16 sm:py-24 lg:py-32 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Title */}
-          <div className="text-center mb-12 sm:mb-24">
-            <div className="inline-block px-4 py-2 mb-4 sm:mb-6 bg-[#ecfdf5] rounded-full">
-              <span className="text-sm font-semibold text-primary">주요 기능</span>
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black text-[#1a1a1a] mb-4 sm:mb-6 leading-tight">
-              BEGA에서 사용 가능한<br className="sm:hidden" /> 기능들
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-500">
-              야구 팬들을 위한 모든 기능이 한곳에
-            </p>
-          </div>
+      <Section id="features" className="bg-background" data-testid="landing-features">
+        <Container>
+          <SectionHeader
+            eyebrow="주요 기능"
+            title={
+              <>
+                비율과 간격을 정리해 한눈에 이해되는 야구 경험
+              </>
+            }
+            description="모든 기능을 같은 리듬으로 배치해 무엇이 중요한지 빠르게 파악할 수 있도록 구성했습니다."
+            measure="default"
+            className="lg:mb-16"
+          />
 
-          {/* Features Grid */}
-          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start" ref={featuresContainerRef}>
-            {/* Feature Cards */}
-            <div className="space-y-6 sm:space-y-8">
+          <div
+            className="landing-feature-layout"
+            ref={featuresContainerRef}
+            data-testid="landing-feature-layout"
+          >
+            <div className="space-y-6">
               {LANDING_FEATURES.map((feature, index) => (
                 <FeatureCard
                   key={index}
@@ -172,13 +244,14 @@ export default function Landing() {
                   isActive={activeFeature === index}
                   isExpanded={expandedFeature === index}
                   onToggle={() => handleFeatureToggle(index)}
-                  featureRef={(el) => (featureRefs.current[index] = el)}
+                  featureRef={(el) => {
+                    featureRefs.current[index] = el;
+                  }}
                 />
               ))}
             </div>
 
-            {/* Laptop Mockup - Desktop Only */}
-            <div className="hidden lg:block sticky top-32">
+            <div className="hidden lg:block">
               <LaptopMockup
                 activeFeature={activeFeature}
                 features={LANDING_FEATURES}
@@ -187,109 +260,88 @@ export default function Landing() {
               />
             </div>
           </div>
-        </div>
-      </section>
+        </Container>
+      </Section>
 
-      {/* CTA Section */}
-      <section className="relative overflow-hidden py-20 sm:py-32 bg-gradient-to-br from-[#059669] via-[#0d9488] to-[#047857]">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
-        </div>
+      <section className="pb-16 pt-0 lg:pb-20" data-testid="landing-cta">
+        <Container>
+          <div className="landing-cta-panel px-6 py-12 text-center sm:px-10 sm:py-16">
+            <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center">
+              <img
+                src={baseballLogo}
+                alt="BEGA Character"
+                className="h-20 w-20 sm:h-24 sm:w-24"
+              />
+              <span className="mt-6 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white">
+                지금 시작하기
+              </span>
+              <h2 className="landing-cta-title mt-6 text-white">
+                BEGA와 함께 KBO 야구의 모든 순간을 더 편하게 즐기세요
+              </h2>
+              <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg">
+                규칙적인 레이아웃과 명확한 정보 구조로, 오늘 필요한 경기 정보와 팬 경험을
+                빠르게 이어서 확인할 수 있습니다.
+              </p>
 
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="mb-6 sm:mb-10">
-            <img src={baseballLogo} alt="BEGA Character" className="w-20 h-20 sm:w-28 sm:h-28 mx-auto" />
+              <Button
+                size="touchLg"
+                variant="brandOutline"
+                onClick={() => navigate('/home')}
+                data-testid="landing-cta-button"
+                className="group mt-8 border-white/15 bg-white text-primary hover:bg-white/90"
+              >
+                무료로 시작하기
+                <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+              </Button>
+            </div>
           </div>
-
-          <h2 className="text-3xl sm:text-5xl font-black text-white mb-4 sm:mb-6">
-            지금 바로 시작하세요
-          </h2>
-          <p className="text-white/90 text-lg sm:text-xl mb-8 sm:mb-10 leading-relaxed max-w-2xl mx-auto">
-            BEGA와 함께 KBO 야구의 모든 순간을 더욱 특별하게 만들어보세요
-          </p>
-
-          <Button
-            onClick={() => navigate('/home')}
-            className="group bg-white text-primary py-4 px-8 sm:py-5 sm:px-10 rounded-full text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-          >
-            무료로 시작하기
-            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Button>
-        </div>
+        </Container>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-50 border-t border-gray-100 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="col-span-2 lg:col-span-1">
-              <div className="flex items-center gap-3 mb-3">
-                <img src={baseballLogo} alt="BEGA" className="w-7 h-7" />
+      <footer className="border-t border-border/70 bg-secondary/40 py-10">
+        <Container>
+          <div className="landing-footer-grid">
+            <div className="max-w-sm">
+              <div className="flex items-center gap-3">
+                <img src={baseballLogo} alt="BEGA" className="h-8 w-8" />
                 <div className="flex items-baseline gap-2">
-                  <span className="text-lg font-black text-primary">BEGA</span>
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">BASEBALL GUIDE</span>
+                  <span className="landing-wordmark text-lg text-primary">BEGA</span>
+                  <span className="landing-brand-caption text-muted-foreground">
+                    Baseball Guide
+                  </span>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mb-4 leading-relaxed max-w-xs">
-                KBO 야구 팬들을 위한 올인원 플랫폼
+
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                KBO 야구 팬들을 위한 일정, 응원, 구장 정보, 예측, 메이트 기능을 한 곳에
+                정리한 플랫폼입니다.
               </p>
-              <div className="text-[10px] text-gray-400">
+              <p className="mt-4 text-xs font-medium text-muted-foreground/80">
                 © 2025 BEGA. All rights reserved.
+              </p>
+            </div>
+
+            {FOOTER_SECTIONS.map((section) => (
+              <div key={section.title}>
+                <h3 className="text-sm font-bold text-foreground">{section.title}</h3>
+                <ul className="mt-4 space-y-3">
+                  {section.links.map((link) => (
+                    <li key={link.label}>
+                      <button
+                        type="button"
+                        onClick={() => handleFooterLinkClick(link.href)}
+                        className="bg-transparent p-0 text-left text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {link.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-bold text-gray-900 mb-4">제품</h4>
-              <ul className="space-y-3 text-sm text-gray-500">
-                <li><a href="#" className="hover:text-gray-900 transition-colors">기능</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">가격</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">FAQ</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-bold text-gray-900 mb-4">회사</h4>
-              <ul className="space-y-3 text-sm text-gray-500">
-                <li><a href="#" className="hover:text-gray-900 transition-colors">소개</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">블로그</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">채용</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-bold text-gray-900 mb-4">지원</h4>
-              <ul className="space-y-3 text-sm text-gray-500">
-                <li><a href="#" className="hover:text-gray-900 transition-colors">고객센터</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">이용약관</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">개인정보처리방침</a></li>
-              </ul>
-            </div>
+            ))}
           </div>
-        </div>
+        </Container>
       </footer>
-
-      {/* Custom CSS for animations */}
-      <style>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
-
-        html {
-          scroll-behavior: smooth;
-        }
-      `}</style>
     </div>
   );
 }
