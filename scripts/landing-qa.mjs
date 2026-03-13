@@ -322,6 +322,96 @@ const evaluateJson = async (client, expression, awaitPromise = false) => {
   throw new Error(`CDP evaluation did not return a serializable JSON value.\n${expression.slice(0, 180)}`);
 };
 
+const waitForDocumentReady = async (client, timeoutMs = 8000) => evaluateJson(client, `
+  new Promise((resolve) => {
+    const deadline = Date.now() + ${timeoutMs};
+
+    const check = () => {
+      if (document.readyState === 'complete') {
+        resolve(JSON.stringify({ ready: true }));
+        return;
+      }
+
+      if (Date.now() >= deadline) {
+        resolve(JSON.stringify({ ready: false, readyState: document.readyState }));
+        return;
+      }
+
+      setTimeout(check, 50);
+    };
+
+    check();
+  })
+`, true).then((result) => result.ready === true);
+
+const waitForSelectors = async (client, selectors, timeoutMs = 5000) => {
+  const selectorList = selectors.filter(Boolean);
+  if (selectorList.length === 0) {
+    return true;
+  }
+
+  return evaluateJson(client, `
+    new Promise((resolve) => {
+      const selectors = ${JSON.stringify(selectorList)};
+      const deadline = Date.now() + ${timeoutMs};
+
+      const check = () => {
+        const ready = selectors.every((selector) => !!document.querySelector(selector));
+        if (ready) {
+          resolve(JSON.stringify({ ready: true }));
+          return;
+        }
+
+      if (Date.now() >= deadline) {
+        resolve(JSON.stringify({ ready: false }));
+        return;
+      }
+
+      setTimeout(check, 50);
+    };
+
+    check();
+  })
+  `, true).then((result) => result.ready === true);
+};
+
+const ensurePageReady = async (client, selectors, description, timeoutMs = 8000) => {
+  const isReady = async () => {
+    const documentReady = await waitForDocumentReady(client, timeoutMs);
+    const selectorsReady = await waitForSelectors(client, selectors, timeoutMs);
+    return documentReady && selectorsReady;
+  };
+
+  if (await isReady()) {
+    return;
+  }
+
+  await client.send('Page.reload');
+  await delay(1500);
+
+  if (await isReady()) {
+    return;
+  }
+
+  const diagnostics = await evaluateJson(client, `
+    (() => {
+      const selectors = ${JSON.stringify(selectors.filter(Boolean))};
+
+      return JSON.stringify({
+        path: location.pathname + location.search,
+        title: document.title,
+        readyState: document.readyState,
+        selectors: selectors.map((selector) => ({
+          selector,
+          found: !!document.querySelector(selector),
+        })),
+      });
+    })()
+  `);
+
+  throw new Error(`${description}: required selectors did not become ready.\n${JSON.stringify(diagnostics)}`);
+};
+
 const assertLandingMetrics = (metrics) => {
   const failures = [];
 
@@ -493,6 +583,17 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
+    const landingSelectors = [
+      '[data-testid="landing-page"]',
+      '.ds-hero-title',
+      '[data-testid="landing-feature-layout"]',
+      '[data-testid="landing-header-login"]',
+      '[data-testid="landing-header-cta"]',
+      '[data-testid="landing-hero-cta-primary"]',
+      '[data-testid="landing-hero-cta-secondary"]',
+      '[data-testid="landing-cta-button"]',
+    ];
+    await ensurePageReady(client, landingSelectors, 'landing initial page');
 
     const metrics = {};
 
@@ -504,6 +605,7 @@ const main = async () => {
         mobile: testCase.label === 'mobile',
       });
       await delay(400);
+      await ensurePageReady(client, landingSelectors, `${testCase.label} landing viewport`);
 
       metrics[testCase.label] = await evaluateJson(client, `
         JSON.stringify({
@@ -536,6 +638,7 @@ const main = async () => {
       mobile: false,
     });
     await delay(400);
+    await ensurePageReady(client, landingSelectors, 'landing desktop interaction');
 
     const interaction = await evaluateJson(client, `
       new Promise((resolve) => {
@@ -575,10 +678,12 @@ const main = async () => {
       returnByValue: true,
     });
     await delay(400);
+    await ensurePageReady(client, landingSelectors, 'landing features capture');
     await captureScreenshot(client, join(args.outDir, 'landing-features.png'));
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
+    await ensurePageReady(client, landingSelectors, 'landing secondary navigation');
     const secondaryScroll = await evaluateJson(client, `
       new Promise((resolve) => {
         const features = document.getElementById('features');
@@ -596,6 +701,7 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
+    await ensurePageReady(client, landingSelectors, 'landing login navigation');
     const loginNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="landing-header-login"]')?.click();
@@ -609,6 +715,7 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
+    await ensurePageReady(client, landingSelectors, 'landing header CTA navigation');
     const headerCtaNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="landing-header-cta"]')?.click();
@@ -622,6 +729,7 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
+    await ensurePageReady(client, landingSelectors, 'landing hero CTA navigation');
     const heroPrimaryNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="landing-hero-cta-primary"]')?.click();
@@ -650,6 +758,7 @@ const main = async () => {
     });
     await client.send('Page.reload');
     await delay(4000);
+    await ensurePageReady(client, landingSelectors, 'landing reduced motion reload');
 
     const reducedMotion = await evaluateJson(client, `
       (() => {
@@ -761,21 +870,25 @@ const main = async () => {
   }
 };
 
-main().catch((error) => {
-  const reportPath = join(args.outDir, 'landing-report.json');
-  if (!existsSync(reportPath)) {
-    const report = {
-      generatedAt: new Date().toISOString(),
-      baseUrl: args.baseUrl,
-      artifacts: getArtifactPaths(args.outDir),
-      metrics: {},
-      pass: false,
-      failures: [error.message],
-      errorMessage: error.message,
-    };
-    writeReportArtifacts(report);
-  }
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    const reportPath = join(args.outDir, 'landing-report.json');
+    if (!existsSync(reportPath)) {
+      const report = {
+        generatedAt: new Date().toISOString(),
+        baseUrl: args.baseUrl,
+        artifacts: getArtifactPaths(args.outDir),
+        metrics: {},
+        pass: false,
+        failures: [error.message],
+        errorMessage: error.message,
+      };
+      writeReportArtifacts(report);
+    }
 
-  console.error(`[landing-qa] ${error.message}`);
-  process.exit(1);
-});
+    console.error(`[landing-qa] ${error.message}`);
+    process.exit(1);
+  });
