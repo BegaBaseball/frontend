@@ -1,11 +1,13 @@
 /// <reference types="cypress" />
 
 describe('Mate Page Accuracy', () => {
+  const checkinBaseUrl = (Cypress.config('baseUrl') || window.location.origin || 'http://localhost:5176').replace(/\/$/, '');
   const baseParty = {
     hostProfileImageUrl: 'https://cdn.example.com/profile.png',
     hostFavoriteTeam: 'KT',
     hostBadge: 'NEW',
-    hostRating: 4.5,
+    hostAverageRating: 4.5,
+    hostReviewCount: 12,
     ticketVerified: false,
     createdAt: '2026-02-01T00:00:00',
   };
@@ -226,8 +228,8 @@ describe('Mate Page Accuracy', () => {
         return;
       }
 
-        req.alias = `getPartiesPage${page}`;
-        if (page === '1') {
+      req.alias = `getPartiesPage${page}`;
+      if (page === '1') {
         req.reply({
           content: [pendingPartyPage1],
           totalElements: 2,
@@ -239,6 +241,19 @@ describe('Mate Page Accuracy', () => {
         req.reply(defaultPartiesPayload);
       }
     });
+
+    cy.intercept('POST', '**/api/checkin/qr-session', (req) => {
+      const partyId = Number((req.body as { partyId?: number })?.partyId || 0);
+      req.reply({
+        statusCode: 201,
+        body: {
+          sessionId: `session-${partyId || 'test'}`,
+          partyId,
+          expiresAt: '2026-02-28T12:00:00Z',
+          checkinUrl: `${checkinBaseUrl}/mate/${partyId}/checkin?sessionId=session-${partyId || 'test'}`,
+        },
+      });
+    }).as('createCheckinQrSession');
 
     cy.login('user');
     cy.mockAPI();
@@ -258,6 +273,36 @@ describe('Mate Page Accuracy', () => {
     cy.contains('대구 삼성 라이온즈파크').should('be.visible');
   });
 
+  it('surfaces decision-first signals on cards and detail summary', () => {
+    cy.intercept('GET', '**/api/parties/777*', {
+      statusCode: 200,
+      body: detailParty,
+    }).as('getPartyById');
+    cy.intercept('GET', '**/api/applications/party/777/mine', {
+      statusCode: 200,
+      body: null,
+    }).as('getMyApplicationByParty');
+    cy.intercept('GET', '**/api/applications/party/777*', {
+      statusCode: 200,
+      body: [],
+    }).as('getPartyApplications');
+
+    cy.visit('/mate');
+    cy.wait('@getPartiesPage0');
+    cy.contains('테스트 호스트').should('be.visible');
+    cy.contains('인증 전').should('be.visible');
+    cy.contains('4.5').should('be.visible');
+    cy.contains(/1\s*\/\s*4명/).should('be.visible');
+    cy.contains(/직거래 베타|보증금 결제/).should('be.visible');
+
+    cy.visit('/mate/777');
+    cy.wait('@getPartyById');
+    cy.contains('거래 방식').should('be.visible');
+    cy.contains('취소 규칙').should('be.visible');
+    cy.contains('Host Trust').should('be.visible');
+    cy.contains('비용 안내').should('be.visible');
+  });
+
   it('resets pagination to first page on search and date filter changes', () => {
     cy.visit('/mate');
     cy.wait('@getPartiesPage0')
@@ -273,6 +318,7 @@ describe('Mate Page Accuracy', () => {
     cy.contains('2 / 2').should('be.visible');
 
     cy.get('input[type="text"]').clear().type('검색용');
+    // With the fix, we expect immediate page 0 request, no double fetch
     cy.wait('@getPartiesSearch').then((interception) => {
       const requestUrl = new URL(interception.request.url);
       expect(requestUrl.searchParams.get('page')).to.eq('0');
@@ -281,7 +327,8 @@ describe('Mate Page Accuracy', () => {
     cy.contains('대전 한화생명 이글스파크').should('be.visible');
 
     cy.get('input[type="text"]').clear();
-    cy.get('.min-w-\\[60px\\]').eq(1).click();
+    cy.get('button[aria-label*="요일"]').first().click();
+
     cy.wait('@getPartiesDate').then((interception) => {
       const requestUrl = new URL(interception.request.url);
       expect(requestUrl.searchParams.get('page')).to.eq('0');
@@ -291,30 +338,32 @@ describe('Mate Page Accuracy', () => {
   });
 
   it('loads detail, manage, and checkin pages from deep links with URL id', () => {
-    cy.intercept('GET', '**/api/parties/777', {
+    cy.intercept('GET', '**/api/parties/777*', {
       statusCode: 200,
       body: detailParty,
     }).as('getPartyById');
-    cy.intercept('GET', '**/api/applications/my', {
+    cy.intercept('GET', '**/api/applications/party/777/mine', {
       statusCode: 200,
-      body: [],
-    }).as('getMyApplications');
-    cy.intercept('GET', '**/api/reviews/user/123/average', {
-      statusCode: 200,
-      body: 4.3,
-    }).as('getHostRating');
-    cy.intercept('GET', '**/api/applications/party/777', {
+      body: null,
+    }).as('getMyApplicationByParty');
+    cy.intercept('GET', '**/api/applications/party/777*', {
       statusCode: 200,
       body: [],
     }).as('getPartyApplications');
-    cy.intercept('GET', '**/api/checkin/party/777', {
+    cy.intercept('GET', '**/api/checkin/party/777*', {
       statusCode: 200,
       body: [],
     }).as('getPartyCheckins');
 
     cy.visit('/mate/777');
     cy.wait('@getPartyById');
-    cy.contains('문학 카펜트리').should('be.visible');
+    // Ensure skeleton is gone or specific content is visible with longer timeout
+    cy.contains('문학 카펜트리', { timeout: 10000 }).should('be.visible');
+    // Verify team names to ensure data loaded
+    cy.contains('KT').should('be.visible');
+    cy.contains('LG').should('be.visible');
+    cy.contains('비용 안내').should('be.visible');
+    cy.contains('파티 소개').should('be.visible');
 
     cy.visit('/mate/777/manage');
     cy.wait('@getPartyApplications');

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import TeamLogo from '../TeamLogo';
 import { MateParty } from '../../types/mate';
-import { getStatusLabel, getStatusStyle } from '../../utils/mate';
+import { getStatusLabel, getStatusStyle, formatGameDate } from '../../utils/mate';
 import { useMateStore } from '../../store/mateStore';
 
 interface MateHistoryCardProps {
@@ -20,7 +20,6 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
   // 클릭 핸들러 추가
   const handleClick = () => {
     setSelectedParty(party);
-    localStorage.setItem('selectedParty', JSON.stringify(party));
     navigate(`/mate/${party.id}`);
   };
 
@@ -41,9 +40,9 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
             </span>
           </div>
 
-          <div className="space-y-1 text-sm text-gray-600">
+          <div className="space-y-1 text-sm text-muted-foreground">
             <p>
-              날짜: {party.gameDate} {party.gameTime}
+              날짜: {formatGameDate(party.gameDate)} {party.gameTime.substring(0, 5)}
             </p>
             <p>좌석: {party.section}</p>
             <p>
@@ -54,7 +53,7 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
           {party.status === 'COMPLETED' && (
             <div className="mt-3 p-3 bg-green-50 rounded-lg">
               <p className="text-sm text-green-700">
-                경기 관람 완료 · 보증금 환불 완료
+                경기 관람 완료 · 직거래 일정 종료
               </p>
             </div>
           )}

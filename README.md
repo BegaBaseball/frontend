@@ -19,7 +19,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6.svg?style=flat&logo=TypeScript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-646CFF.svg?style=flat&logo=Vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4.svg?style=flat&logo=Tailwind-CSS&logoColor=white)](https://tailwindcss.com/)
-[![Supabase](https://img.shields.io/badge/Supabase-3FCF8E.svg?style=flat&logo=Supabase&logoColor=white)](https://supabase.com/)
+[![OCI](https://img.shields.io/badge/OCI-Object%20Storage-1F2A44.svg?style=flat&logo=oracle&logoColor=white)](https://www.oracle.com/cloud/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED.svg?style=flat&logo=Docker&logoColor=white)](https://www.docker.com/)
 
 <br>
@@ -142,7 +142,7 @@ KBO 리그에 대한 모든 궁금증을 해결하세요.
 
 | 분류 | 기술 |
 |:---|:---|
-| **Database & Storage** | Supabase (PostgreSQL) |
+| **Database & Storage** | OCI Autonomous Database + OCI Object Storage |
 | **Container** | Docker |
 | **CI/CD** | GitHub Actions |
 | **Hosting** | AWS EC2 |
@@ -158,15 +158,15 @@ KBO 리그에 대한 모든 궁금증을 해결하세요.
                           │
           ┌───────────────┼───────────────┐
           ▼               ▼               ▼
-┌─────────────────┐ ┌───────────┐ ┌───────────────┐
-│  Spring Boot    │ │  FastAPI  │ │   Supabase    │
-│  Backend API    │ │ AI Server │ │  Storage/DB   │
-└────────┬────────┘ └─────┬─────┘ └───────────────┘
+┌─────────────────┐ ┌───────────┐ ┌──────────────────────┐
+│  Spring Boot    │ │  FastAPI  │ │   OCI Object Storage │
+│  Backend API    │ │ AI Server │ │      (Images)        │
+└────────┬────────┘ └─────┬─────┘ └──────────────────────┘
          │                │
          ▼                ▼
-┌─────────────────────────────────────────┐
-│           PostgreSQL (Supabase)          │
-└─────────────────────────────────────────┘
+┌───────────────────────────────────────────┐
+│        OCI Autonomous Database (Oracle)   │
+└───────────────────────────────────────────┘
 ```
 
 ---
@@ -230,6 +230,15 @@ docker run -p 5173:5173 bega-frontend
 docker-compose up -d
 ```
 
+### Stadium E2E 표준 실행
+```bash
+# 1순위(로컬 서버 기동 상태): self-heal 경로
+npm run cy:run:heal -- --spec cypress/e2e/stadium.cy.ts --config baseUrl=http://127.0.0.1:5176
+
+# 기본 대체 경로(서버 미기동/포트 바인딩 실패 포함): rescue 경로
+npm run test:e2e:rescue -- --spec cypress/e2e/stadium.cy.ts
+```
+
 ---
 
 ## ⚙️ 환경 변수
@@ -239,20 +248,26 @@ docker-compose up -d
 # API 서버
 VITE_API_BASE_URL=http://localhost:8080/api
 
-# Supabase
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+# 카카오 지도
+VITE_KAKAO_MAP_KEY=your_kakao_map_key
 
-# AI 챗봇 서버
-VITE_AI_SERVER_URL=http://localhost:8000
+# SEO canonical/sitemap 기준 URL (필수)
+VITE_SITE_URL=https://www.begabaseball.xyz
+
+# SEO 권장(운영 환경)
+# VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXXX
+# VITE_GOOGLE_SITE_VERIFICATION=google-site-verification-token
+# VITE_NAVER_SITE_VERIFICATION=naver-site-verification-token
 ```
 
 | 변수명 | 설명 | 필수 |
 |:---|:---|:---:|
 | `VITE_API_BASE_URL` | Spring Boot 백엔드 API 주소 | ✅ |
-| `VITE_SUPABASE_URL` | Supabase 프로젝트 URL | ✅ |
-| `VITE_SUPABASE_ANON_KEY` | Supabase Anonymous Key | ✅ |
-| `VITE_AI_SERVER_URL` | FastAPI AI 서버 주소 | ✅ |
+| `VITE_KAKAO_MAP_KEY` | 카카오 지도 JavaScript 키 | ✅ |
+| `VITE_SITE_URL` | canonical/sitemap 기준 URL | ✅ |
+| `VITE_GA4_MEASUREMENT_ID` | GA4 측정 ID | 선택 |
+| `VITE_GOOGLE_SITE_VERIFICATION` | Google Search Console 검증 메타 | 선택 |
+| `VITE_NAVER_SITE_VERIFICATION` | 네이버 서치어드바이저 검증 메타 | 선택 |
 
 ---
 
@@ -265,9 +280,12 @@ docker-compose up -d --build
 
 ### 수동 배포
 
-1. 프로덕션 빌드: `npm run build`
-2. `dist` 폴더를 웹 서버에 배포
-3. SPA 라우팅 설정 (모든 경로 → index.html)
+1. 기본 env 점검: `VITE_SITE_URL=https://www.begabaseball.xyz npm run seo:env:check`
+2. 릴리즈 직전 strict 점검: `VITE_SITE_URL=... VITE_GA4_MEASUREMENT_ID=... VITE_GOOGLE_SITE_VERIFICATION=... VITE_NAVER_SITE_VERIFICATION=... npm run seo:env:check:strict`
+3. 프로덕션 빌드/게이트: `npm run seo:gate`
+4. `dist` 폴더를 웹 서버에 배포
+5. SPA 라우팅 설정 (모든 경로 → index.html)
+6. SEO 점검 및 문제 해결 가이드: `/Users/mac/project/KBO_platform/docs/deployment/seo-checklist.md` 참조
 
 ### Nginx 설정 예시
 ```nginx

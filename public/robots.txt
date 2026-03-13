@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+Disallow: /login
+Disallow: /signup
+Disallow: /password/
+Disallow: /oauth/
+Disallow: /admin
+Disallow: /mypage
+Disallow: /mate
+Disallow: /prediction
+Disallow: /payment/
+Disallow: /test/
+Disallow: /cheer/write
+Disallow: /cheer/bookmarks
+Disallow: /cheer/edit/
+Disallow: /cheer/*
+Disallow: /profile/*
+Disallow: /predictions/ranking/share/*
+
+Sitemap: https://www.begabaseball.xyz/sitemap.xml

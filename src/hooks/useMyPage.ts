@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetchUserProfile } from '../api/profile';
-import { useAuthStore } from '../store/authStore';
-import { useNavigationStore } from '../store/navigationStore';
+import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { UserProfile, ViewMode } from '../types/profile';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 const VALID_VIEW_MODES: ViewMode[] = ['diary', 'stats', 'editProfile', 'mateHistory', 'changePassword', 'accountSettings', 'blockedUsers'];
 const LEGACY_TAB_TO_VIEW_MODE: Record<string, ViewMode> = {
@@ -16,11 +16,21 @@ const LEGACY_TAB_TO_VIEW_MODE: Record<string, ViewMode> = {
 };
 
 export const useMyPage = () => {
-  const navigateToLogin = useNavigationStore((state) => state.navigateToLogin);
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
-  const user = useAuthStore((state) => state.user);
-  const userId = user?.id;
+  const navigate = useNavigate();
+  const { isLoggedIn, isAuthLoading } = useAuthSession();
+  const {
+    userId,
+    userEmail,
+    userName,
+    userHandle,
+    userFavoriteTeam,
+    userProfileImageUrl,
+    userRole,
+    userProvider,
+    userBio,
+    userCheerPoints,
+    userHasPassword,
+  } = useAuthProfileSnapshot();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -92,20 +102,42 @@ export const useMyPage = () => {
   }, [searchParams, setSearchParams, viewMode]);
 
   const fallbackProfile = useMemo<UserProfile | null>(() => {
-    if (!user) return null;
+    if (!userId) return null;
 
     return {
-      id: user.id,
-      name: user.name || '',
-      email: user.email,
-      handle: user.handle,
-      favoriteTeam: user.favoriteTeam || '없음',
-      profileImageUrl: user.profileImageUrl ?? null,
-      role: user.role,
-      bio: user.bio ?? null,
-      cheerPoints: user.cheerPoints ?? 0,
+      id: userId,
+      name: userName || '',
+      email: userEmail ?? '',
+      handle: userHandle,
+      favoriteTeam: userFavoriteTeam || '없음',
+      profileImageUrl: userProfileImageUrl ?? null,
+      role: userRole,
+      provider: userProvider,
+      bio: userBio ?? null,
+      cheerPoints: userCheerPoints ?? 0,
+      hasPassword: userHasPassword,
     };
-  }, [user]);
+  }, [userBio, userCheerPoints, userFavoriteTeam, userHandle, userHasPassword, userId, userName, userProfileImageUrl, userProvider, userRole, userEmail]);
+
+  const user = useMemo<UserProfile | null>(() => {
+    if (!userId) {
+      return null;
+    }
+
+    return {
+      id: userId,
+      name: userName || '',
+      email: userEmail ?? '',
+      handle: userHandle,
+      favoriteTeam: userFavoriteTeam || '없음',
+      profileImageUrl: userProfileImageUrl ?? null,
+      role: userRole,
+      provider: userProvider,
+      bio: userBio ?? null,
+      cheerPoints: userCheerPoints ?? 0,
+      hasPassword: userHasPassword,
+    };
+  }, [userBio, userCheerPoints, userFavoriteTeam, userHandle, userHasPassword, userId, userName, userEmail, userProfileImageUrl, userProvider, userRole]);
 
   // ========== React Query ==========
   const {
@@ -122,10 +154,10 @@ export const useMyPage = () => {
 
   // ========== 로그인 체크 ==========
   useEffect(() => {
-    if (!isLoggedIn) {
-      navigateToLogin();
+    if (!isAuthLoading && !isLoggedIn) {
+      navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
     }
-  }, [isLoggedIn, navigateToLogin]);
+  }, [isLoggedIn, isAuthLoading, navigate]);
 
   // ========== Computed Values ==========
   const profileImage = profile?.profileImageUrl ?? null;

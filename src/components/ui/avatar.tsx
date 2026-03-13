@@ -36,6 +36,8 @@ function AvatarImage({
       data-slot="avatar-image"
       className={cn("aspect-square size-full block object-cover", className)}
       style={mergedStyle}
+      decoding="async"
+      loading="lazy"
       {...props}
     />
   );

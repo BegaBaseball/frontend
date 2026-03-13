@@ -1,64 +1,86 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Bell, LogOut, ShieldAlert, Menu, X, Moon, Sun, MessageSquare, Map, Trophy, Users, Megaphone, LineChart } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useUIStore } from '../store/uiStore';
-import { useAuthStore } from '../store/authStore';
+import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotificationStore } from '../store/notificationStore';
 import NotificationPanel from './NotificationPanel';
 import { motion } from 'framer-motion';
+import { getChatUnreadCounts } from '../api/mate';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
+
+const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, setTheme } = useTheme();
-  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const isDarkMode = resolvedTheme === 'dark' || theme === 'dark';
+  const toggleTheme = () => setTheme(isDarkMode ? 'light' : 'dark');
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [userId, setUserId] = useState<number | null>(null);
 
   const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
   const setIsNotificationOpen = useUIStore((state) => state.setIsNotificationOpen);
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
-  const unreadCount = useNotificationStore((state) => state.unreadCount);
-  const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
+  const { isLoggedIn } = useAuthSession();
+  const { userHandle, userName, userRole } = useAuthProfileSnapshot();
+  const { logout } = useAuthAccessActions();
+  const isAdmin = isAdminRole(userRole);
+  const notifications = useNotificationStore((state) => state.notifications);
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const userProfilePath = userHandle
+    ? `/mypage/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}`
+    : '/mypage';
+  const unreadCount = notifications.reduce((count, notification) => (!notification.isRead ? count + 1 : count), 0);
+  const prefetchPredictionPage = useCallback(() => {
+    void import('./Prediction');
+  }, []);
 
+  // 안 읽은 채팅 메시지 수 (폴링)
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
 
-
-  // React to user changes from store
   useEffect(() => {
-    setUserId(user ? user.id : null);
-  }, [user]);
+    if (!isLoggedIn) {
+      setChatUnreadCount(0);
+      return;
+    }
 
-
-  // 초기 알림 개수만 가져오기 (WebSocket이 실시간으로 업데이트)
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const fetchInitialUnreadCount = async () => {
+    const checkChatUnread = async () => {
       try {
-        // Use api utility for consistent behavior
-        const { api, isIgnorableNotificationError } = await import('../utils/api');
-        const count = await api.getUnreadCount();
-        setUnreadCount(count);
+        const count = await getChatUnreadCounts();
+        setChatUnreadCount(count);
       } catch (error) {
-        if (!isIgnorableNotificationError(error)) {
-          console.error('읽지 않은 알림 개수 조회 오류:', error);
-        }
+        // 백그라운드 폴링이므로 에러 무시
       }
     };
 
-    void fetchInitialUnreadCount();
-  }, [user?.id, setUnreadCount]);
+    void checkChatUnread();
+    const interval = setInterval(checkChatUnread, 30000); // 30초마다 갱신
+    return () => clearInterval(interval);
+  }, [isLoggedIn, location.pathname]); // 경로 변경 시(채팅 뷰 진입/이탈 등) 즉각 업데이트
+
+  useEffect(() => {
+    const handleChatUnreadUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ count?: number }>;
+      const count = customEvent.detail?.count;
+      if (typeof count === 'number' && Number.isFinite(count)) {
+        setChatUnreadCount(Math.max(0, count));
+      }
+    };
+
+    window.addEventListener(CHAT_UNREAD_UPDATED_EVENT, handleChatUnreadUpdated as EventListener);
+    return () => {
+      window.removeEventListener(CHAT_UNREAD_UPDATED_EVENT, handleChatUnreadUpdated as EventListener);
+    };
+  }, []);
+
+
   // 페이지 이동 시 모바일 메뉴 닫기
   useEffect(() => {
     setIsMenuOpen(false);
@@ -87,6 +109,26 @@ export default function Navbar() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isMenuOpen]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      return;
+    }
+
+    if ('requestIdleCallback' in window) {
+      const idleId = (window as any).requestIdleCallback(() => {
+        prefetchPredictionPage();
+      }, { timeout: 1500 });
+
+      return () => (window as any).cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = setTimeout(() => {
+      prefetchPredictionPage();
+    }, 1200);
+
+    return () => clearTimeout(timeoutId);
+  }, [isLoggedIn, prefetchPredictionPage]);
 
 
   const handleLogout = () => {
@@ -137,6 +179,9 @@ export default function Navbar() {
                   <button
                     key={item.id}
                     onClick={() => navigate(`/${item.id}`)}
+                    onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                    onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                    onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     className={`
                       relative px-1 py-1 text-sm lg:text-base font-bold transition-all duration-200
                       ${location.pathname === `/${item.id}`
@@ -149,6 +194,12 @@ export default function Navbar() {
                     {/* 선택된 메뉴 아래에 작은 점 표시 */}
                     {location.pathname === `/${item.id}` && (
                       <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary dark:bg-primary-light" />
+                    )}
+                    {/* 채팅 안 읽은 수 배지 */}
+                    {item.id === 'mate' && chatUnreadCount > 0 && (
+                      <span className="absolute -top-2 -right-5 inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                        {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                      </span>
                     )}
                   </button>
                 ))}
@@ -166,7 +217,7 @@ export default function Navbar() {
                 className="p-1 transition-colors text-gray-600 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                 aria-label="다크모드 전환"
               >
-                {theme === 'dark' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+                {isDarkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
               </button>
             )}
 
@@ -199,7 +250,7 @@ export default function Navbar() {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
 
                         {/* 2. 실제 배지: 배경색과 분리되는 테두리(ring) 추가 */}
-                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 ring-2 ring-background items-center justify-center">
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-background items-center justify-center">
                           <span className="text-[10px] font-bold text-white leading-none">
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
@@ -254,11 +305,11 @@ export default function Navbar() {
                 {isLoggedIn ? (
                   <>
                     <button
-                      onClick={() => navigate(user?.handle ? `/mypage/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
+                      onClick={() => navigate(userProfilePath)}
                       className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary dark:border-primary-light text-primary dark:text-primary-light font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-primary-foreground dark:hover:text-white"
                     >                                                      {/* 1. 닉네임: 평소 중앙, 호버 시 위로 사라짐 */}
                       <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:-translate-y-full group-hover:opacity-0 group-hover:text-white">
-                        {user?.name || '회원'} 님
+                        {userName || '회원'} 님
                       </span>
 
                       {/* 2. 프로필: 평소 아래, 호버 시 중앙으로 올라옴 */}
@@ -288,7 +339,7 @@ export default function Navbar() {
                   </>
                 ) : (
                   <Button
-                    onClick={() => navigate('/login')}
+                    onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
                     className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white bg-primary-dark hover:bg-primary"
                   >
                     로그인
@@ -319,7 +370,7 @@ export default function Navbar() {
       {isMenuOpen && !isDesktop && (
         <div
           className="mobile-menu-container fixed top-16 left-0 right-0 bottom-0 z-50 overflow-y-auto"
-          style={{ backgroundColor: theme === 'dark' ? '#000000' : 'white' }}
+          style={{ backgroundColor: isDarkMode ? '#000000' : 'white' }}
         >
           {/* 네비게이션 섹션 */}
           <div className="px-6 py-6">
@@ -334,15 +385,25 @@ export default function Navbar() {
                   <button
                     key={item.id}
                     onClick={() => navigate(`/${item.id}`)}
+                    onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                    onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                    onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     className={`flex items-center gap-4 w-full text-left py-4 px-4 text-lg font-semibold rounded-xl transition-all duration-200 ${isActive
                       ? 'bg-primary/15 text-primary dark:text-primary-light'
-                      : theme === 'dark'
+                      : isDarkMode
                         ? 'text-gray-100 hover:bg-secondary'
                         : 'text-gray-700 hover:bg-gray-100'
                       }`}
                   >
                     <Icon className={`w-5 h-5 ${isActive ? '' : 'text-gray-400'}`} />
-                    <span>{item.label}</span>
+                    <span className="flex items-center gap-2">
+                      {item.label}
+                      {item.id === 'mate' && chatUnreadCount > 0 && (
+                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
+                          {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                        </span>
+                      )}
+                    </span>
                     {isActive && (
                       <span className="ml-auto w-2 h-2 rounded-full bg-current" />
                     )}
@@ -361,19 +422,19 @@ export default function Navbar() {
               <div className="space-y-2">
                 {/* 프로필 카드 */}
                 <button
-                  onClick={() => navigate(user?.handle ? `/mypage/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
-                  className={`flex items-center gap-4 w-full py-4 px-4 rounded-xl transition-all duration-200 ${theme === 'dark'
+                  onClick={() => navigate(userProfilePath)}
+                  className={`flex items-center gap-4 w-full py-4 px-4 rounded-xl transition-all duration-200 ${isDarkMode
                     ? 'bg-card hover:bg-secondary'
                     : 'bg-gray-50 hover:bg-gray-100'
                     }`}
                   aria-label="프로필로 이동"
                 >
                   <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
-                    {user?.name?.charAt(0) || '?'}
+                    {userName?.charAt(0) || '?'}
                   </div>
                   <div className="flex-1 text-left">
-                    <p className={`font-bold text-base ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      {user?.name || '회원'} 님
+                    <p className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {userName || '회원'} 님
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-300">
                       내 프로필 보기 →
@@ -410,7 +471,7 @@ export default function Navbar() {
               </div>
             ) : (
               <Button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
                 className="w-full py-6 text-base font-semibold text-white rounded-xl bg-primary-dark hover:bg-primary"
               >
                 로그인

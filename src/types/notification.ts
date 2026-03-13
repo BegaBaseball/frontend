@@ -2,7 +2,6 @@ export type NotificationType =
   | 'APPLICATION_RECEIVED'
   | 'APPLICATION_APPROVED'
   | 'APPLICATION_REJECTED'
-  | 'APPLICATION_CANCELLED'
   | 'PARTY_EXPIRED'
   | 'PARTY_AUTO_COMPLETED'
   | 'GAME_TOMORROW_REMINDER'
@@ -16,14 +15,15 @@ export type NotificationType =
   | 'POST_LIKE'
   | 'POST_REPOST'
   | 'NEW_FOLLOWER'
-  | 'FOLLOWING_NEW_POST';
+  | 'FOLLOWING_NEW_POST'
+  | 'NEW_DEVICE_LOGIN';
 
 export interface NotificationData {
   id: number;
   type: NotificationType;
   title: string;
   message: string;
-  relatedId: number;
+  relatedId: number | null;
   isRead: boolean;
   createdAt: string;
 }

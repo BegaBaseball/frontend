@@ -1,19 +1,23 @@
 // hooks/useLoginForm.ts
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { loginUser } from '../api/auth';
-import { useAuthStore } from '../store/authStore';
+import { useAuthAuthenticationActions } from '../store/authStore';
 import { validateLoginField, validateLoginForm } from '../utils/validation';
 import { LoginFormData } from '../types/auth';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { getLoginQueryErrorMessage } from '../utils/loginError';
+import { resolvePostLoginRedirect, sanitizeLoginRedirect } from '../utils/loginRedirect';
+import { useAuthRedirectState } from '../store/authStore';
 
 const SAVED_EMAIL_KEY = 'savedEmail';
 
 export const useLoginForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const login = useAuthStore((state) => state.login);
-  const fetchProfileAndAuthenticate = useAuthStore((state) => state.fetchProfileAndAuthenticate);
+  const { login, fetchProfileAndAuthenticate } = useAuthAuthenticationActions();
+  const { pendingLoginRedirect, setPendingLoginRedirect, clearPendingLoginRedirect } = useAuthRedirectState();
 
   const getSavedEmail = () => {
     try {
@@ -33,6 +37,22 @@ export const useLoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rememberEmail, setRememberEmail] = useState(!!getSavedEmail());
+
+  useEffect(() => {
+    setError(getLoginQueryErrorMessage(location.search));
+  }, [location.search]);
+
+  useEffect(() => {
+    const redirect = sanitizeLoginRedirect(new URLSearchParams(location.search).get('redirect'));
+    if (redirect) {
+      setPendingLoginRedirect(redirect);
+      return;
+    }
+
+    if (pendingLoginRedirect) {
+      clearPendingLoginRedirect();
+    }
+  }, [clearPendingLoginRedirect, location.search, pendingLoginRedirect, setPendingLoginRedirect]);
 
   const handleFieldChange = (field: keyof LoginFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -84,17 +104,22 @@ export const useLoginForm = () => {
       // login(email: string, name: string, profileImageUrl?: string, role?: string)
       login(
         formData.email,
-        response.data.name,
+        response.data.name ?? formData.email,
         undefined, // profileImageUrl는 나중에 마이페이지에서 가져옴
         response.data.role,
         undefined, // favoriteTeam
         response.data.id,
-        undefined, // cheerPoints (will be fetched)
-        response.data.handle
+        response.data.cheerPoints,
+        response.data.handle ?? undefined
       );
 
       await fetchProfileAndAuthenticate();
-      navigate('/home');
+      const redirectTarget = resolvePostLoginRedirect(
+        new URLSearchParams(location.search).get('redirect'),
+        pendingLoginRedirect,
+      );
+      clearPendingLoginRedirect();
+      navigate(redirectTarget);
     } catch (err: unknown) {
       console.error('로그인 실패:', err);
       setError(getApiErrorMessage(err, '로그인에 실패했습니다. 다시 시도해주세요.'));

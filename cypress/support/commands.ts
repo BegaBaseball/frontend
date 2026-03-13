@@ -18,9 +18,67 @@ declare global {
              * Custom command to select by data-testid.
              */
             getBySel(selector: string): Chainable<JQuery<HTMLElement>>;
+
+            /**
+             * Custom command to mock follow counts API for public profile.
+             */
+            mockPublicFollowCounts(
+                handle: string,
+                body?: {
+                    followerCount: number;
+                    followingCount: number;
+                    isFollowedByMe: boolean;
+                    notifyNewPosts: boolean;
+                    blockedByMe?: boolean;
+                    blockingMe?: boolean;
+                }
+            ): Chainable<void>;
         }
     }
 }
+
+const defaultFollowCounts = {
+    followerCount: 10,
+    followingCount: 20,
+    isFollowedByMe: false,
+    notifyNewPosts: false,
+    blockedByMe: false,
+    blockingMe: false,
+};
+
+Cypress.Commands.add('mockPublicFollowCounts', (handle: string, body = defaultFollowCounts) => {
+    const normalizedHandle = handle.trim();
+    const normalizedHandleWithAt = normalizedHandle.startsWith('@')
+        ? normalizedHandle
+        : `@${normalizedHandle}`;
+    const normalizedHandleWithoutAt = normalizedHandleWithAt.replace(/^@/, '');
+
+    const encodedWithAt = encodeURIComponent(normalizedHandleWithAt);
+    const encodedWithoutAt = encodeURIComponent(normalizedHandleWithoutAt);
+
+    const followCountBody = {
+        statusCode: 200,
+        body: {
+            ...defaultFollowCounts,
+            ...(body || {}),
+        },
+    };
+
+    const followCountPatterns = [
+        `**/api/users/profile/${normalizedHandleWithAt}/follow-counts*`,
+        `**/api/users/profile/${encodedWithAt}/follow-counts*`,
+        `**/api/users/profile/${normalizedHandleWithoutAt}/follow-counts*`,
+        `**/api/users/profile/${encodedWithoutAt}/follow-counts*`,
+        `**/api/users/${normalizedHandleWithAt}/follow-counts*`,
+        `**/api/users/${encodedWithAt}/follow-counts*`,
+        `**/api/users/${normalizedHandleWithoutAt}/follow-counts*`,
+        `**/api/users/${encodedWithoutAt}/follow-counts*`,
+    ];
+
+    followCountPatterns.forEach((pattern) => {
+        cy.intercept('GET', pattern, followCountBody).as('getFollowCounts');
+    });
+});
 
 Cypress.Commands.add('login', (userType = 'user') => {
     cy.fixture('user').then((users) => {
@@ -37,19 +95,61 @@ Cypress.Commands.add('login', (userType = 'user') => {
             version: 0
         };
 
-        cy.session(userType, () => {
-            // Use setCookie and set localStorage
-            cy.setCookie('Authorization', fakeToken);
-            window.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            window.localStorage.setItem('accessToken', fakeToken);
+        const seedAuthState = (win: Window) => {
+            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+            win.localStorage.setItem('accessToken', fakeToken);
+            win.localStorage.setItem('bega_has_visited', 'true');
+            win.localStorage.setItem('bega_dont_show_guide', 'true');
+        };
 
-            // Disable WelcomeGuide for tests
-            window.localStorage.setItem('bega_has_visited', 'true');
-            window.localStorage.setItem('bega_dont_show_guide', 'true');
+        cy.intercept('GET', '**/auth/mypage*', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    handle: user.handle?.replace(/^@/, ''),
+                    favoriteTeam: user.favoriteTeam,
+                    role: user.role,
+                    hasPassword: user.hasPassword ?? true,
+                    profileImageUrl: user.profileImageUrl ?? null,
+                },
+            },
+        }).as('sessionGetMe');
+
+        // Prevent Navbar chat polling from hitting the real backend with a fake JWT,
+        // which would trigger auth-session-expired via the axios interceptor.
+        cy.intercept('GET', '**/api/chat/my/unread-counts', {
+            statusCode: 200,
+            body: { success: true, data: 0 },
         });
 
+        // Prevent Navbar notification polling from hitting the real backend during login visit.
+        // mockAPI hasn't run yet at this point, so these requests would go unintercepted
+        // and potentially flip module-level availability flags in notificationApi.ts.
+        cy.intercept('GET', '**/api/notifications/my/unread-count', {
+            statusCode: 200,
+            body: 5,
+        });
+        cy.intercept('GET', '**/api/notifications/my', {
+            statusCode: 200,
+            body: [],
+        });
+
+        cy.visit('/', {
+            onBeforeLoad(win) {
+                seedAuthState(win);
+            },
+        });
+        cy.window().then((win) => {
+            seedAuthState(win);
+        });
+        cy.setCookie('Authorization', fakeToken);
+
         // Mock reissue to prevent loops
-        cy.intercept('**/api/auth/reissue', {
+        cy.intercept('**/auth/reissue*', {
             statusCode: 200,
             body: { success: true, data: { accessToken: fakeToken } }
         }).as('reissue');
@@ -58,13 +158,13 @@ Cypress.Commands.add('login', (userType = 'user') => {
 
 Cypress.Commands.add('mockAPI', () => {
     // Mock reissue usage in mockAPI
-    cy.intercept('**/api/auth/reissue', {
+    cy.intercept('**/auth/reissue*', {
         statusCode: 200,
         body: { success: true, data: { accessToken: 'fake-new-token' } }
     }).as('reissue');
 
     // Current User
-    cy.intercept('**/api/auth/mypage', {
+    cy.intercept('GET', '**/auth/mypage*', {
         statusCode: 200,
         body: {
             success: true,
@@ -116,6 +216,33 @@ Cypress.Commands.add('mockAPI', () => {
         ]
     }).as('getStadiums');
 
+    cy.intercept('GET', '**/api/stadiums/favorites', {
+        statusCode: 200,
+        body: { stadiumIds: [] },
+    }).as('getStadiumFavorites');
+
+    // Team franchise metadata (used by Cheer page)
+    cy.intercept('GET', '**/api/franchises/code/*', {
+        statusCode: 200,
+        body: {
+            id: 1,
+            name: 'Hanwha Eagles',
+            originalCode: 'HH',
+            currentCode: 'HH',
+            webUrl: 'https://www.hanwhaeagles.co.kr',
+        },
+    }).as('getFranchiseByCode');
+
+    cy.intercept('GET', '**/api/franchises/*/metadata', {
+        statusCode: 200,
+        body: {
+            summary: '한화 이글스 공식 팀 소개',
+            homeStadium: '대전 한화생명 이글스파크',
+            foundedYear: 1986,
+            owner: '한화그룹',
+        },
+    }).as('getFranchiseMetadata');
+
     // Home Page Stats/Schedules
     cy.intercept('**/api/kbo/schedule*', {
         statusCode: 200,
@@ -145,45 +272,84 @@ Cypress.Commands.add('mockAPI', () => {
         }
     }).as('getPredictionStats');
 
+    cy.intercept('**/api/predictions/my-votes*', {
+        statusCode: 200,
+        body: { votes: {} }
+    }).as('getMyVotes');
+
+    cy.intercept('**/api/matches*', (req) => {
+        if (req.url.includes('/api/matches/bounds')) {
+            req.reply({
+                statusCode: 200,
+                body: {
+                    hasData: true,
+                    earliestGameDate: '2026-01-01',
+                    latestGameDate: '2026-12-31',
+                },
+            });
+            return;
+        }
+
+        req.reply({
+            statusCode: 200,
+            body: [],
+        });
+    }).as('getMatches');
+
     cy.intercept('**/api/kbo/rankings/*', {
         statusCode: 200,
         body: []
     }).as('getRankings');
 
     // Navbar Mocks
-    cy.intercept('**/api/users/email-to-id*', {
-        statusCode: 200,
-        body: { success: true, data: 123 }
-    }).as('getEmailToId');
-
-    cy.intercept('**/api/notifications/user/*/unread-count', {
-        statusCode: 200,
-        body: 5
-    }).as('getUnreadCountByUser');
-
     cy.intercept('**/api/notifications/my', {
         statusCode: 200,
         body: []
     }).as('getMyNotifications');
+
+    cy.intercept('**/api/users/email-to-id*', {
+        statusCode: 200,
+        body: {
+            success: true,
+            data: 123,
+        },
+    }).as('getEmailToId');
+
+    cy.intercept('**/api/notifications/user/*/unread-count', {
+        statusCode: 200,
+        body: 5,
+    }).as('getUnreadCountByUser');
 
     cy.intercept('**/api/notifications/my/unread-count', {
         statusCode: 200,
         body: 5
     }).as('getUnreadCount');
 
-    // Follow Counts - NOT wrapped in { success: true, data: ... }
-    cy.intercept('**/api/users/*/follow-counts', {
+    cy.intercept('**/api/chat/my/unread-counts', {
         statusCode: 200,
         body: {
-            followerCount: 10,
-            followingCount: 20,
-            isFollowedByMe: false,
-            notifyNewPosts: false
-        }
-    }).as('getFollowCounts');
+            success: true,
+            data: 0,
+        },
+    }).as('getChatUnreadCounts');
 
-    // User Profile (Public) - URL is /users/profile/${handle}
-    cy.intercept('**/api/users/profile/*', {
+    // Follow counts: support both id-based and profile-handle routes with one alias.
+    const followCountDefaults = {
+        followerCount: 10,
+        followingCount: 20,
+        isFollowedByMe: false,
+        notifyNewPosts: false,
+        blockedByMe: false,
+        blockingMe: false,
+    };
+
+    cy.intercept('GET', /\/api\/users\/(?:\d+|profile\/[^/?#]+|[^/?#]+)\/follow-counts\/?(?:\?.*)?$/, {
+        statusCode: 200,
+        body: followCountDefaults,
+    }).as('getFollowCountsDefault');
+
+    // User Profile (Public) - supports both /api/users/profile/${handle} and /api/users/${handleOrId}
+    cy.intercept('GET', /\/api\/users\/(?:profile\/[^/?#]+|[^/?#]+)\/?(?:\?.*)?$/, {
         statusCode: 200,
         body: {
             success: true,
@@ -203,6 +369,62 @@ Cypress.Commands.add('mockAPI', () => {
         statusCode: 200,
         body: []
     }).as('getMyParties');
+
+    // Sessions (Account Settings)
+    cy.intercept('**/api/auth/sessions', {
+        statusCode: 200,
+        body: {
+            success: true,
+            data: [
+                {
+                    id: 'session-1',
+                    deviceLabel: 'Cypress Test Browser',
+                    deviceType: 'desktop',
+                    browser: 'Electron',
+                    os: 'Mac OS',
+                    ip: '127.0.0.1',
+                    lastActiveAt: new Date().toISOString(),
+                    isCurrent: true
+                }
+            ]
+        }
+    }).as('getSessions');
+
+    // Nickname check
+    cy.intercept('**/api/auth/check-name*', {
+        statusCode: 200,
+        body: {
+            success: true,
+            data: {
+                available: true,
+                message: '사용 가능한 닉네임입니다.',
+                normalized: 'testuser'
+            }
+        }
+    }).as('checkName');
+
+    // Blocked users
+    cy.intercept('**/api/users/me/blocked*', {
+        statusCode: 200,
+        body: {
+            success: true,
+            data: {
+                content: [],
+                last: true,
+                totalElements: 0,
+                totalPages: 0,
+                number: 0,
+                size: 20
+            }
+        }
+    }).as('getBlockedUsers');
+
+    // Default AI coach fallback — per-test intercepts override this (LIFO)
+    cy.intercept('POST', '**/coach/analyze*', {
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: 'event: done\ndata: [DONE]\n\n',
+    }).as('coachAnalyzeDefault');
 
 });
 

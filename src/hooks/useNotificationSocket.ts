@@ -1,19 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileActions, useAuthSession } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { NotificationData } from '../types/notification';
-import { getApiBaseUrl } from '../api/apiBase';
+import { SERVER_BASE_URL } from '../constants/config';
+import { NOTIFICATION_SOCKET_DESTINATION } from '../utils/socketDestinations';
 
 export const useNotificationSocket = () => {
-    const { user } = useAuthStore();
-    const { addNotification } = useNotificationStore();
+    const { isLoggedIn, userId } = useAuthSession();
+    const { fetchProfileAndAuthenticate } = useAuthProfileActions();
+    const addNotification = useNotificationStore((state) => state.addNotification);
     const clientRef = useRef<Client | null>(null);
 
     useEffect(() => {
         // 로그인이 안되어 있거나 유저 정보가 없으면 연결하지 않음
-        if (!user) {
+        if (!isLoggedIn) {
             if (clientRef.current) {
                 clientRef.current.deactivate();
                 clientRef.current = null;
@@ -26,22 +28,18 @@ export const useNotificationSocket = () => {
             return;
         }
 
-        const apiBaseUrl = getApiBaseUrl();
-        let wsBaseUrl = '';
+        const resolveBrokerUrl = (): string => {
+            try {
+                const serverUrl = new URL(SERVER_BASE_URL);
+                const serverProtocol = serverUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+                return `${serverProtocol}//${serverUrl.host}/ws`;
+            } catch {
+                const pageProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                return `${pageProtocol}//${window.location.host}/ws`;
+            }
+        };
 
-        if (apiBaseUrl.startsWith('http')) {
-            wsBaseUrl = apiBaseUrl
-                .replace(/^http:/, 'ws:')
-                .replace(/^https:/, 'wss:')
-                .replace(/\/api\/?$/, '');
-        } else {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // "/api" -> ""
-            const cleanPath = apiBaseUrl.replace(/\/api\/?$/, '');
-            wsBaseUrl = `${protocol}//${window.location.host}${cleanPath}`;
-        }
-
-        const brokerUrl = `${wsBaseUrl}/ws`;
+        const brokerUrl = resolveBrokerUrl();
 
         const client = new Client({
             brokerURL: brokerUrl,
@@ -53,12 +51,12 @@ export const useNotificationSocket = () => {
 
             onConnect: () => {
                 // 개인 알림 구독
-                client.subscribe(`/topic/notifications/${user.id}`, (message) => {
+                client.subscribe(NOTIFICATION_SOCKET_DESTINATION, (message) => {
                     try {
                         const notification: NotificationData = JSON.parse(message.body);
                         addNotification(notification);
                         // 알림 수신 시 사용자 정보(포인트 등) 최신화
-                        useAuthStore.getState().fetchProfileAndAuthenticate();
+                        fetchProfileAndAuthenticate();
                     } catch (error) {
                         console.error('Failed to parse notification:', error);
                     }
@@ -66,12 +64,25 @@ export const useNotificationSocket = () => {
             },
 
             onStompError: (frame) => {
-                console.error('Broker reported error: ' + frame.headers['message']);
-                console.error('Additional details: ' + frame.body);
+                const brokerMessage = frame.headers?.message || 'Unknown broker error';
+                const detailLength = frame.body ? frame.body.length : 0;
+                console.error('Broker STOMP error', {
+                    message: brokerMessage,
+                    detailLength,
+                    command: frame.command,
+                    code: frame.headers?.['message-id'] || frame.headers?.receipt,
+                });
             },
 
             onWebSocketError: (event) => {
-                console.error('WebSocket error:', event);
+                const eventLike = event as Record<string, unknown>;
+                const eventTarget = eventLike.target as Record<string, unknown> | undefined;
+                console.error('WebSocket error:', {
+                    type: eventLike.type ?? 'websocket',
+                    message: eventLike.message ?? eventLike.reason ?? 'Unknown websocket error',
+                    readyState: eventTarget?.readyState,
+                    url: eventTarget?.url,
+                });
             }
         });
 
@@ -85,5 +96,5 @@ export const useNotificationSocket = () => {
                 clientRef.current = null;
             }
         };
-    }, [user?.id, addNotification]); // user.id가 변경될 때마다(로그인/로그아웃) 재실행
+    }, [isLoggedIn, userId, addNotification, fetchProfileAndAuthenticate]); // isLoggedIn/userId 변경 시(로그인/로그아웃) 재실행
 };

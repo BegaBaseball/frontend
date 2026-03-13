@@ -1,5 +1,6 @@
 // components/LoginRequiredDialog.tsx
 import { useNavigate } from 'react-router-dom';
+import { buildLoginPath } from '../utils/loginRedirect';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,27 +16,32 @@ interface LoginRequiredDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCancel?: () => void;
+  redirectPath?: string | null;
 }
 
 export const LoginRequiredDialog = ({ 
   open, 
   onOpenChange,
-  onCancel 
+  onCancel,
+  redirectPath,
 }: LoginRequiredDialogProps) => {
   const navigate = useNavigate();
 
   const handleGoToLogin = () => {
     onOpenChange(false);
-    navigate('/login');
+    navigate(buildLoginPath(redirectPath));
   };
 
   const handleCancel = () => {
     onOpenChange(false);
-    if (onCancel) {
-      onCancel();
-    } else {
+    onCancel?.();
+
+    if (window.history.length > 1) {
       window.history.back();
+      return;
     }
+
+    navigate('/home');
   };
 
   return (

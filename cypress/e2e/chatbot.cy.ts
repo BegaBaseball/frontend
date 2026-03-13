@@ -7,12 +7,39 @@ describe('AI Chatbot', () => {
 
         // Mock chat stream (SSE)
         cy.intercept('POST', '**/ai/chat/stream*', (req) => {
+            const question = String(req.body?.question || '');
+            const isCachedScenario = question.toLowerCase().includes('cached');
+
+            const normalSseBody = [
+                'event: message',
+                'data: {"delta": "Hello! I am the KBO AI Assistant."}',
+                '',
+                'event: meta',
+                'data: {"verified": true, "cached": false, "intent": "freeform", "data_sources": [], "tool_calls": []}',
+                '',
+                'event: done',
+                'data: [DONE]',
+                '',
+            ].join('\n');
+
+            const cachedSseBody = [
+                'event: message',
+                'data: {"delta": "이 응답은 캐시에서 제공됩니다."}',
+                '',
+                'event: meta',
+                'data: {"verified": true, "cached": true, "intent": "stats_lookup", "data_sources": [], "tool_calls": []}',
+                '',
+                'event: done',
+                'data: [DONE]',
+                '',
+            ].join('\n');
+
             req.reply({
                 statusCode: 200,
                 headers: {
                     'content-type': 'text/event-stream'
                 },
-                body: 'data: {"delta": "Hello! I am the KBO AI Assistant."}\n\ndata: [DONE]\n\n'
+                body: isCachedScenario ? cachedSseBody : normalSseBody
             });
         }).as('sendMessage');
 
@@ -44,6 +71,17 @@ describe('AI Chatbot', () => {
 
         // Check for bot response
         cy.contains('Hello! I am the KBO AI Assistant.', { timeout: 10000 }).should('be.visible');
+    });
+
+    it('should show fast response badge for cached replies', () => {
+        const message = 'please send cached response';
+
+        cy.get('button[aria-label="챗봇 열기"]').should('exist').click();
+        cy.get('input[placeholder*="메시지를 입력하세요"]').should('be.enabled').type(`${message}{enter}`);
+
+        cy.wait('@sendMessage', { timeout: 15000 });
+        cy.contains('이 응답은 캐시에서 제공됩니다.', { timeout: 10000 }).should('be.visible');
+        cy.contains('빠른 응답').should('be.visible');
     });
 
     it('should close the chat panel', () => {

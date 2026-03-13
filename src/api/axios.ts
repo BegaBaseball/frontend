@@ -1,5 +1,7 @@
 import axios from 'axios';
+import type { GlobalApiErrorDetail } from '../types/error';
 import { parseError } from '../utils/errorUtils';
+import { reportApiError } from '../utils/clientErrorReporter';
 import { getApiBaseUrl } from './apiBase';
 
 const API_BASE_URL = getApiBaseUrl();
@@ -7,6 +9,7 @@ const API_BASE_URL = getApiBaseUrl();
 const api = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true, // Cookie 전송을 위해 필수
+    timeout: 10000, // 10초 타임아웃 추가
     headers: {
         'Content-Type': 'application/json',
     },
@@ -23,6 +26,85 @@ const skipReissueRequestPaths = [
     '/auth/logout',
 ];
 
+const normalizeRequestPath = (url?: string) => {
+    if (!url) {
+        return undefined;
+    }
+
+    if (typeof window === 'undefined') {
+        return url;
+    }
+
+    try {
+        const parsed = new URL(url, window.location.origin);
+        return `${parsed.pathname}${parsed.search}`;
+    } catch {
+        return url;
+    }
+};
+
+const shouldSkipErrorReporting = (error: any, responseCode?: string) => {
+    const status = error.response?.status ?? null;
+    const requestUrl = error.config?.url || '';
+
+    if (error.config?.skipErrorReporting) {
+        return true;
+    }
+
+    if (responseCode === 'INVALID_AUTHOR') {
+        return true;
+    }
+
+    if (status === 401) {
+        return true;
+    }
+
+    if (error.config?.skipGlobalErrorHandler && status !== null && status < 500) {
+        return true;
+    }
+
+    if (skipReissueRequestPaths.some((path) => requestUrl.includes(path)) && status !== null && status < 500) {
+        return true;
+    }
+
+    return false;
+};
+
+const isManualRetryAllowed = (error: any) => {
+    const method = (error.config?.method || 'get').toUpperCase();
+    return method === 'GET' || method === 'HEAD' || error.config?.allowManualRetry === true;
+};
+
+const createManualRetryHandler = (requestConfig: any) => {
+    return () => api({
+        ...requestConfig,
+        headers: requestConfig?.headers ? { ...requestConfig.headers } : undefined,
+        signal: undefined,
+    });
+};
+
+const buildGlobalErrorDetail = (error: any): GlobalApiErrorDetail => {
+    const parsedError = parseError(error);
+    const requestMethod = (error.config?.method || 'get').toUpperCase();
+    const eventId = reportApiError({
+        message: parsedError.message,
+        statusCode: parsedError.statusCode,
+        responseCode: parsedError.responseCode,
+        method: requestMethod,
+        endpoint: normalizeRequestPath(error.config?.url),
+        shouldReport: !shouldSkipErrorReporting(error, parsedError.responseCode),
+    });
+
+    return {
+        ...parsedError,
+        errorId: eventId,
+        source: 'api',
+        onRetry: parsedError.statusCode === 401 || !isManualRetryAllowed(error)
+            ? null
+            : createManualRetryHandler(error.config),
+    };
+};
+
 // Response Interceptor
 api.interceptors.response.use(
     (response) => {
@@ -34,12 +116,32 @@ api.interceptors.response.use(
     },
     async (error) => {
         const originalRequest = error.config;
+        const responseCode = error.response?.data?.code;
+        const errorMessage = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
+        const isCancelError = axios.isCancel(error)
+            || error?.code === 'ERR_CANCELED'
+            || error?.name === 'AbortError'
+            || error?.name === 'CanceledError'
+            || errorMessage.includes('canceled');
+
+        if (isCancelError) {
+            return Promise.reject(error);
+        }
 
         if (hasSessionExpired) {
             return Promise.reject(error);
         }
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+            if (responseCode === 'INVALID_AUTHOR') {
+                console.error('Session invalid due to missing/invalid author user.');
+                const parsedError = buildGlobalErrorDetail(error);
+                if (!error.config?.skipGlobalErrorHandler) {
+                    window.dispatchEvent(new CustomEvent('global-api-error', { detail: parsedError }));
+                }
+                return Promise.reject(error);
+            }
+
             if (skipReissueRequestPaths.some((path) => originalRequest.url?.includes(path))) {
                 hasSessionExpired = false;
                 return Promise.reject(error);
@@ -47,7 +149,7 @@ api.interceptors.response.use(
 
             originalRequest._retry = true;
             if (!reissueInFlight) {
-                reissueInFlight = axios.post(`${API_BASE_URL}/auth/reissue`, {}, { withCredentials: true, skipGlobalErrorHandler: true })
+                reissueInFlight = axios.post(`${API_BASE_URL}/auth/reissue`, {}, { withCredentials: true, skipGlobalErrorHandler: true, skipErrorReporting: true })
                     .then(() => {
                         hasSessionExpired = false;
                     })
@@ -71,11 +173,27 @@ api.interceptors.response.use(
 
                 return Promise.reject(reissueError);
             }
+        } else if (error.response?.status === 401) {
+            if (responseCode === 'INVALID_AUTHOR') {
+                console.error('Session invalid due to missing/invalid author user.');
+                const parsedError = buildGlobalErrorDetail(error);
+                if (!error.config?.skipGlobalErrorHandler) {
+                    window.dispatchEvent(new CustomEvent('global-api-error', { detail: parsedError }));
+                }
+                return Promise.reject(error);
+            }
+
+            // 재발급 후에도 401이 남는 경우: 토큰은 만료되었거나 계정이 유효하지 않아 세션이 복구 불가
+            if (!hasSessionExpired) {
+                hasSessionExpired = true;
+                console.error('Session invalid. Please login again.');
+                window.dispatchEvent(new CustomEvent('auth-session-expired'));
+            }
         }
 
         // Global Error Handling
+        const parsedError = buildGlobalErrorDetail(error);
         if (!error.config?.skipGlobalErrorHandler) {
-            const parsedError = parseError(error);
             // 401 is handled above, so we skip it here unless it fell through (e.g. reissue failed)
             if (parsedError.statusCode !== 401) {
                 window.dispatchEvent(new CustomEvent('global-api-error', { detail: parsedError }));

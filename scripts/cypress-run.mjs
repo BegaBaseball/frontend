@@ -322,6 +322,18 @@ console.log('Cypress orchestrator');
 console.log(`- cacheDir: ${cacheDir}`);
 console.log(`- useGlobalCache: ${useGlobalCache ? 'true' : 'false'}`);
 
+if (forceDocker) {
+  if (commandMode !== 'run') {
+    console.log('\nDocker mode supports run mode only.');
+    process.exit(1);
+  }
+  if (!hasDocker()) {
+    console.log('\nDocker is not available. Re-run after installing Docker Desktop.');
+    process.exit(1);
+  }
+  process.exit(runDocker());
+}
+
 if (skipVerify) {
   process.exit(runLocal());
 }

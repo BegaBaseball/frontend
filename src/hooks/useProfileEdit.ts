@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { uploadProfileImage, updateProfile, checkNicknameAvailability } from '../api/profile';
 import { ProfileUpdateData, UserProfile, NicknameCheckState } from '../types/profile';
 import { toast } from 'sonner';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileActions, useAuthProfileSnapshot } from '../store/authStore';
 import { FRANCHISE_TEAM_IDS, TEAM_NAME_TO_ID } from '../constants/teams';
 
 interface UseProfileEditProps {
@@ -44,6 +44,18 @@ export const useProfileEdit = ({
   onSave,
 }: UseProfileEditProps) => {
   const queryClient = useQueryClient();
+  const { setUserProfile, fetchProfileAndAuthenticate } = useAuthProfileActions();
+  const {
+    userId,
+    userEmail,
+    userName,
+    userHandle,
+    userFavoriteTeam,
+    userProfileImageUrl,
+    userRole,
+    userBio,
+    userCheerPoints,
+  } = useAuthProfileSnapshot();
 
   const normalizeFavoriteTeam = (team: string): string => {
     if (!team) return '없음';
@@ -95,6 +107,15 @@ export const useProfileEdit = ({
 
     setProfileImage(initialProfileImage);
   }, [initialProfileImage, newProfileImageFile]);
+
+  // 컴포넌트 언마운트 또는 profileImage 교체 시 이전 blob URL 정리
+  useEffect(() => {
+    return () => {
+      if (profileImage?.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImage);
+      }
+    };
+  }, [profileImage]);
 
   const resetProfileState = useCallback(() => {
     if (profileImage && profileImage.startsWith('blob:')) {
@@ -148,21 +169,16 @@ export const useProfileEdit = ({
       return await updateProfile(data);
     },
     onSuccess: async (response, variables) => {
-      const { setUserProfile, fetchProfileAndAuthenticate, user } = useAuthStore.getState();
-
-      if (response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
-      }
-
       if (profileImage?.startsWith('blob:')) {
         URL.revokeObjectURL(profileImage);
       }
 
       const resolvedProfileImageUrl = response.data.profileImageUrl ?? variables.profileImageUrl;
+      const resolvedName = response.data.name ?? name.trim();
       const normalizedFavoriteTeam = normalizeFavoriteTeam(editingFavoriteTeam);
 
       const cachedProfilePatch: Partial<UserProfile> = {
-        name: response.data.name ?? name.trim(),
+        name: resolvedName,
         email,
         favoriteTeam: response.data.favoriteTeam ?? (normalizedFavoriteTeam === '없음' ? null : normalizedFavoriteTeam),
         bio: response.data.bio ?? (bio.trim() || null),
@@ -172,19 +188,13 @@ export const useProfileEdit = ({
         cachedProfilePatch.profileImageUrl = resolvedProfileImageUrl;
       }
 
-      const updatedUserProfilePatch: {
-        email: string;
-        name: string;
-        favoriteTeam?: string | null;
-        profileImageUrl?: string | null;
-        bio?: string | null;
-      } = {
+      const updatedUserProfilePatch: Parameters<typeof setUserProfile>[0] = {
         email,
-        name: cachedProfilePatch.name,
+        name: resolvedName,
       };
 
       if (cachedProfilePatch.favoriteTeam !== undefined) {
-        updatedUserProfilePatch.favoriteTeam = cachedProfilePatch.favoriteTeam;
+        updatedUserProfilePatch.favoriteTeam = cachedProfilePatch.favoriteTeam ?? undefined;
       }
       if (cachedProfilePatch.profileImageUrl !== undefined) {
         updatedUserProfilePatch.profileImageUrl = cachedProfilePatch.profileImageUrl;
@@ -196,17 +206,17 @@ export const useProfileEdit = ({
       setUserProfile(updatedUserProfilePatch);
 
       queryClient.setQueryData<UserProfile>(['userProfile'], (previousProfile) => {
-        const baseProfile = previousProfile ?? (user
+        const baseProfile = previousProfile ?? (userId != null
           ? {
-            id: user.id,
-            email: user.email,
-            name: user.name || name,
-            handle: user.handle,
-            favoriteTeam: user.favoriteTeam || null,
-            profileImageUrl: user.profileImageUrl ?? null,
-            role: user.role,
-            bio: user.bio ?? null,
-            cheerPoints: user.cheerPoints,
+            id: userId,
+            email: userEmail ?? '',
+            name: userName || name,
+            handle: userHandle ?? '',
+            favoriteTeam: userFavoriteTeam || null,
+            profileImageUrl: userProfileImageUrl ?? null,
+            role: userRole ?? 'USER',
+            bio: userBio ?? null,
+            cheerPoints: userCheerPoints ?? 0,
           }
           : null);
 
@@ -260,12 +270,15 @@ export const useProfileEdit = ({
       return;
     }
 
+    let isCurrent = true;
+
     const timer = window.setTimeout(async () => {
       setNicknameCheckState('checking');
       setNicknameCheckMessage(NICKNAME_CHECKING_MESSAGE);
 
       try {
         const result = await checkNicknameAvailability(normalizedName);
+        if (!isCurrent) return;
         if (result.available) {
           setNicknameCheckState('available');
           setNicknameCheckMessage(NICKNAME_AVAILABLE_MESSAGE);
@@ -275,12 +288,16 @@ export const useProfileEdit = ({
         setNicknameCheckState('taken');
         setNicknameCheckMessage(NICKNAME_TAKEN_MESSAGE);
       } catch (error) {
+        if (!isCurrent) return;
         setNicknameCheckState('error');
         setNicknameCheckMessage(NICKNAME_CHECK_ERROR_MESSAGE);
       }
     }, NICKNAME_CHECK_DELAY_MS);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timer);
+    };
   }, [initialName, isLoading, name]);
 
   // ========== Input Handlers ==========

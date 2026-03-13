@@ -1,18 +1,46 @@
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Search, ChevronRight, ChevronLeft, Calculator, Trophy, Medal, Crown, TrendingUp, Loader2, Info, ChevronDown, Clock, Award } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/button';
 import { getTeamKoreanName } from '../utils/teamNames';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { getApiBaseUrl } from '../api/apiBase';
+import { useQuery } from '@tanstack/react-query';
+import api from '../api/axios';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
+}
+
+interface AwardData {
+  award: string;
+  playerName: string;
+  team: string;
+  stats: string;
+}
+
+interface Ranking {
+  rank: number;
+  teamId: string;
+  teamName: string;
+  wins: number;
+  losses: number;
+  draws: number;
+  winRate: string;
+  games: number;
+}
+
+interface OffseasonMetadata {
+  awards: AwardData[];
+}
+
+interface OffseasonHomeData {
+  movements: OffseasonMovement[];
+  awards: AwardData[];
+  rankings: Ranking[];
 }
 
 interface OffseasonMovement {
@@ -22,9 +50,47 @@ interface OffseasonMovement {
   team: string; // teamCode
   player: string;
   remarks: string;
-  bigEvent: boolean;
+  isBigEvent: boolean;
   estimatedAmount: number;
 }
+
+const STOVE_LEAGUE_START = '2024-11-01';
+const OFFSEASON_METADATA_YEAR = 2025;
+const OFFSEASON_RANKING_YEAR = 2025;
+
+const defaultOffseasonHomeData: OffseasonHomeData = {
+  movements: [],
+  awards: [],
+  rankings: [],
+};
+
+const fetchOffseasonHomeData = async (): Promise<OffseasonHomeData> => {
+  const [movementsResponse, metadataResponse, rankingsResponse] = await Promise.allSettled([
+    api.get<OffseasonMovement[]>('/kbo/offseason/movements'),
+    api.get<OffseasonMetadata>('/kbo/offseason/metadata', { params: { year: OFFSEASON_METADATA_YEAR } }),
+    api.get<Ranking[]>(`/kbo/rankings/${OFFSEASON_RANKING_YEAR}`),
+  ]);
+
+  if (movementsResponse.status === 'rejected') {
+    console.error('Failed to fetch offseason movements', movementsResponse.reason);
+  }
+  if (metadataResponse.status === 'rejected') {
+    console.error('Failed to fetch offseason metadata', metadataResponse.reason);
+  }
+  if (rankingsResponse.status === 'rejected') {
+    console.error('Failed to fetch offseason rankings', rankingsResponse.reason);
+  }
+
+  const metadata = metadataResponse.status === 'fulfilled'
+    ? metadataResponse.value.data
+    : { awards: [] };
+
+  return {
+    movements: movementsResponse.status === 'fulfilled' ? movementsResponse.value.data : [],
+    awards: metadata.awards,
+    rankings: rankingsResponse.status === 'fulfilled' ? rankingsResponse.value.data : [],
+  };
+};
 
 
 // Helper to highlight money string
@@ -45,75 +111,28 @@ const formatRemarks = (text: string) => {
   );
 };
 
-export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
-  const API_BASE = getApiBaseUrl();
+export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeasonHomeProps) {
   const navigate = useNavigate();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { theme } = useTheme();
   const isLargeScreen = useMediaQuery('(min-width: 1024px)');
-
-  // Data State
-  const [movements, setMovements] = useState<OffseasonMovement[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Dynamic Data State (Awards, PostSeason, Rankings)
-  interface AwardData { award: string; playerName: string; team: string; stats: string; }
-  interface PostSeasonResult { title: string; result: string; detail: string; }
-  interface Ranking { rank: number; teamId: string; teamName: string; wins: number; losses: number; draws: number; winRate: string; games: number; }
-
-  const [awards, setAwards] = useState<AwardData[]>([]);
-  const [postSeasonResults, setPostSeasonResults] = useState<PostSeasonResult[]>([]);
-  const [rankings, setRankings] = useState<Ranking[]>([]);
+  const { data, isLoading } = useQuery<OffseasonHomeData>({
+    queryKey: ['offseason-home'],
+    queryFn: fetchOffseasonHomeData,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+  const { movements, awards, rankings } = data ?? defaultOffseasonHomeData;
 
   // 2026 Season Opening Day
   const openingDay = new Date(2026, 2, 28);
   const diffTime = openingDay.getTime() - new Date().getTime();
   const daysUntilOpening = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch movements
-        const movementsRes = await fetch(`${API_BASE}/kbo/offseason/movements`, {
-          credentials: 'include',
-        });
-        if (movementsRes.ok) {
-          setMovements(await movementsRes.json());
-        }
-
-        // Fetch metadata (awards, postseason)
-        const metadataRes = await fetch(`${API_BASE}/kbo/offseason/metadata?year=2025`, {
-          credentials: 'include',
-        });
-        if (metadataRes.ok) {
-          const metadata = await metadataRes.json();
-          setAwards(metadata.awards || []);
-          setPostSeasonResults(metadata.postSeasonResults || []);
-        }
-
-        // Fetch rankings
-        const rankingsRes = await fetch(`${API_BASE}/kbo/rankings/2025`, {
-          credentials: 'include',
-        });
-        if (rankingsRes.ok) {
-          setRankings(await rankingsRes.json());
-        }
-      } catch (error) {
-        console.error("Failed to fetch offseason data", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
   // Filter for 2025 Stove League (Frontend Fail-safe)
   // Even if backend sends all data, we only show recent ones here.
-  const stoveLeagueStart = "2024-11-01";
-  const recentMovements = movements.filter(m => m.date >= stoveLeagueStart);
+  const recentMovements = useMemo(() => movements.filter((m) => m.date >= STOVE_LEAGUE_START), [movements]);
 
   // Filter Big Events (Top 4)
-  const bigEvents = recentMovements.filter(m => m.bigEvent).slice(0, 4);
+  const bigEvents = useMemo(() => recentMovements.filter((m) => m.isBigEvent).slice(0, 4), [recentMovements]);
 
   // Use shared team name utility
   const getTeamName = (code: string) => {
@@ -121,10 +140,10 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
   };
 
   return (
-    <div className="space-y-8 md:space-y-12 min-h-screen bg-gray-50 dark:bg-background transition-colors px-4 py-6 md:p-8">
+    <div className="space-y-8 md:space-y-12 min-h-screen bg-gray-50 dark:bg-background transition-colors px-4 sm:px-6 py-6 md:py-8 md:px-6">
       <button
         onClick={() => navigate('/home')}
-        className="text-sm mb-2 flex items-center gap-2 group transition-all border-2 border-primary text-primary px-4 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+        className="text-sm mb-2 flex items-center gap-2 group transition-all border-2 border-primary text-primary px-4 py-1.5 min-h-11 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
       >
         <span className="w-6 h-6 rounded-full bg-primary/10/10 flex items-center justify-center transition-all group-hover:scale-110">
           <ChevronLeft className="w-4 h-4" />
@@ -135,10 +154,10 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-2xl md:rounded-3xl shadow-xl border-none bg-primary">
         <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('/grid-pattern.svg')] bg-center"></div>
-        <div className="px-6 py-10 md:px-8 md:py-12 relative z-10">
+        <div className="px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-12 relative z-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <Badge className="bg-yellow-400 text-gray-900 mb-3 md:mb-4 hover:bg-yellow-500 border-none font-bold">2025-26 스토브리그</Badge>
+              <Badge className="bg-yellow-400 text-gray-900 dark:text-zinc-900 mb-3 md:mb-4 hover:bg-yellow-500 border-none font-bold">2025-26 스토브리그</Badge>
               <h2 className="text-white text-2xl md:text-4xl mb-2" style={{ fontWeight: 900 }}>스토브리그 하이라이트</h2>
               <p className="text-emerald-100/80 text-base md:text-lg">다가오는 새로운 시즌을 준비하는 뜨거운 기록들</p>
             </div>
@@ -154,7 +173,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
 
       {/* Countdown Card */}
       <Card className="overflow-hidden shadow-2xl bg-white dark:bg-background border-none rounded-2xl md:rounded-3xl">
-        <div className="text-center py-12 md:py-16 px-6 relative overflow-hidden bg-gradient-to-br from-[#1a3c34] to-primary">
+        <div className="text-center py-8 sm:py-10 md:py-12 px-4 sm:px-6 relative overflow-hidden bg-gradient-to-br from-[#1a3c34] to-primary">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-white rounded-full blur-3xl"></div>
           </div>
@@ -165,7 +184,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
             <h3 className="text-xl md:text-3xl mb-6 md:mb-8 text-white font-black tracking-tight">
               2026 시즌 개막까지
             </h3>
-            <div className="inline-block px-8 py-4 md:px-12 md:py-8 rounded-[30px] md:rounded-[40px] mb-6 md:mb-8 shadow-2xl border border-white/20" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+            <div className="inline-block px-6 py-3 sm:px-8 sm:py-4 md:px-12 md:py-8 rounded-[30px] md:rounded-[40px] mb-6 md:mb-8 shadow-2xl border border-white/20" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
               <div className="text-5xl md:text-8xl text-white font-black tracking-tighter">
                 D-{daysUntilOpening}
               </div>
@@ -201,9 +220,9 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
             ))}
           </div>
         ) : bigEvents.length === 0 ? (
-          <Card className="p-10 md:p-16 text-center border-none bg-white dark:bg-background ring-1 ring-black/5 dark:ring-white/10">
+          <Card className="p-6 sm:p-8 md:p-10 text-center border-none bg-white dark:bg-background ring-1 ring-black/5 dark:ring-white/10">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-card flex items-center justify-center">
-              <TrendingUp className="w-8 h-8 text-gray-400" />
+              <TrendingUp className="w-8 h-8 text-gray-400 dark:text-zinc-300" />
             </div>
             <p className="text-gray-500 dark:text-gray-300 font-medium">아직 등록된 주요 이적 소식이 없습니다.</p>
             <p className="text-sm text-gray-400 dark:text-gray-300 mt-2">새로운 소식이 등록되면 여기에 표시됩니다.</p>
@@ -224,7 +243,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5 md:mb-2">
                       <Badge className="text-white bg-primary border-none font-bold text-[10px]">{news.section}</Badge>
-                      <span className="text-[10px] text-gray-400 font-medium">{news.date}</span>
+                      <span className="text-[10px] text-gray-400 dark:text-zinc-300 font-medium">{news.date}</span>
                     </div>
                     <p className="text-gray-900 dark:text-white text-base md:text-lg font-bold group-hover:text-primary transition-colors line-clamp-1">
                       {news.player} ({getTeamName(news.team)})
@@ -244,7 +263,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
       <section className="flex justify-center pb-10">
         <Button
           onClick={() => navigate('/offseason/list')}
-          className="bg-white dark:bg-card text-primary border border-primary/20 hover:bg-primary/5 rounded-full px-8 py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+          className="bg-white dark:bg-card text-primary border border-primary/20 hover:bg-primary/5 rounded-full px-6 py-4 sm:px-8 sm:py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
         >
           전체 이적 현황 보러가기 ({movements.length}건)
           <ChevronDown className="w-5 h-5 ml-2 -rotate-90" />
@@ -301,7 +320,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                 <span className="text-xs font-bold text-gray-400 dark:text-gray-300 mb-2 block">와일드카드</span>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
-                    <span className="text-xs font-bold text-gray-500 w-6">5위</span>
+                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-300 w-6">5위</span>
                     <TeamLogo team="NC" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">NC</span>
                   </div>
@@ -320,7 +339,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                 <span className="text-xs font-bold text-gray-400 dark:text-gray-300 mb-2 block">준플레이오프</span>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
-                    <span className="text-xs font-bold text-gray-500 w-6">3위</span>
+                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-300 w-6">3위</span>
                     <TeamLogo team="SSG" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">SSG</span>
                   </div>
@@ -345,7 +364,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                     <Badge className="ml-auto text-[10px] bg-primary text-white">승</Badge>
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
-                    <span className="text-xs font-bold text-gray-500 w-6">준PO</span>
+                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-300 w-6">준PO</span>
                     <TeamLogo team="삼성" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">삼성</span>
                   </div>
@@ -367,7 +386,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                     <Badge className="ml-auto text-[10px] bg-yellow-400 text-black">V3</Badge>
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border opacity-70">
-                    <span className="text-xs font-bold text-gray-500 w-6">PO</span>
+                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-300 w-6">PO</span>
                     <TeamLogo team="한화" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">한화</span>
                   </div>
@@ -376,7 +395,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
             </div>
           ) : (
             /* Desktop: Original Horizontal Bracket Layout */
-            <div className="min-w-[800px] flex items-center justify-center relative h-[400px] gap-12">
+            <div className="min-w-[680px] sm:min-w-[760px] md:min-w-[800px] flex items-center justify-center relative h-[340px] sm:h-[380px] md:h-[400px] gap-6 sm:gap-9 md:gap-12">
 
               {/* WC Stage (Left - Lowest) */}
               <div className="flex flex-col gap-4 relative z-10 translate-y-20">
@@ -388,7 +407,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                     <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-border"></div>
 
                     <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-44">
-                      <span className="text-sm font-bold text-gray-500 w-8">5위</span>
+                      <span className="text-sm font-bold text-gray-500 dark:text-zinc-300 w-8">5위</span>
                       <TeamLogo team="NC" size={24} />
                       <span className="font-bold text-gray-900 dark:text-white">NC</span>
                     </div>
@@ -414,7 +433,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                   <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-border"></div>
 
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-48">
-                    <span className="text-sm font-bold text-gray-500 w-8">3위</span>
+                    <span className="text-sm font-bold text-gray-500 dark:text-zinc-300 w-8">3위</span>
                     <TeamLogo team="SSG" size={24} />
                     <span className="font-bold text-gray-900 dark:text-white">SSG</span>
                   </div>
@@ -447,7 +466,7 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                     <Badge className="ml-auto text-[10px] bg-primary text-white">승</Badge>
                   </div>
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-52">
-                    <span className="text-sm font-bold text-gray-500 w-8">준PO</span>
+                    <span className="text-sm font-bold text-gray-500 dark:text-zinc-300 w-8">준PO</span>
                     <TeamLogo team="삼성" size={24} />
                     <span className="font-bold text-gray-900 dark:text-white">삼성</span>
                   </div>
@@ -465,14 +484,14 @@ export default function OffSeasonHome({ selectedDate }: OffSeasonHomeProps) {
                   {/* Incoming Connector from PO */}
                   <div className="absolute left-[-48px] bottom-[30px] w-[48px] h-[2px] bg-primary"></div>
 
-                  <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-primary to-[#1a3c34] rounded-xl shadow-lg shadow-emerald-900/20 border-none w-60 scale-110">
+                  <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-primary to-[#1a3c34] rounded-xl shadow-lg shadow-emerald-900/20 border-none w-60 sm:scale-110">
                     <span className="text-sm font-bold text-emerald-200 w-8">1위</span>
                     <TeamLogo team="LG" size={32} />
                     <span className="font-bold text-white text-lg">LG</span>
                     <Badge className="ml-auto text-[10px] bg-yellow-400 text-black hover:bg-yellow-500">V3</Badge>
                   </div>
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-60 opacity-70">
-                    <span className="text-sm font-bold text-gray-500 w-8">PO</span>
+                    <span className="text-sm font-bold text-gray-500 dark:text-zinc-300 w-8">PO</span>
                     <TeamLogo team="한화" size={24} />
                     <span className="font-bold text-gray-900 dark:text-white">한화</span>
                   </div>

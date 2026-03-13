@@ -7,6 +7,8 @@ const LOOPBACK_HOSTS = new Set([
   '0:0:0:0:0:0:0:1',
 ]);
 
+const viteEnv = import.meta.env ?? {};
+
 const normalizeHost = (host: string): string => host.toLowerCase().trim();
 
 const normalizeBaseUrl = (value: string): string => value.trim().replace(/\/$/, '');
@@ -27,13 +29,13 @@ const parseProxyPort = (value: string): string => {
 };
 
 const resolveDefaultServerBaseUrl = (): string => {
-  const manualServerBase = normalizeBaseUrl(import.meta.env.VITE_NO_API_BASE_URL || '');
+  const manualServerBase = normalizeBaseUrl(viteEnv.VITE_NO_API_BASE_URL || '');
 
   if (manualServerBase) {
     return manualServerBase;
   }
 
-  const proxyTarget = (import.meta.env.VITE_PROXY_TARGET || 'http://localhost:8080').trim();
+  const proxyTarget = (viteEnv.VITE_PROXY_TARGET || 'http://localhost:8080').trim();
   const pageHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
   const pageProtocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
 

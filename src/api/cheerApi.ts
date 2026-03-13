@@ -1,6 +1,8 @@
 import { formatTimeAgo } from '../utils/time';
+import type { AxiosRequestConfig } from 'axios';
 import api from './axios';
 import { getTeamColorByAnyKey, TEAM_DATA, getFullTeamName } from '../constants/teams';
+import { buildPostChangesQuery } from '../utils/cheerPolling';
 
 export function getTeamNameById(teamId: string | null): string {
     if (!teamId) return '전체';
@@ -12,7 +14,7 @@ export function getTeamNameById(teamId: string | null): string {
 
 // API 인터페이스 정의 (프론트엔드 사용용)
 export interface CheerAuthor {
-    id: number;
+    id?: number;
     handle: string;
     profileImageUrl?: string;
     teamId?: string;
@@ -22,9 +24,9 @@ export interface CheerPost {
     id: number;
     teamId: string;
     team: string; // compatibility
-    postType: 'NORMAL' | 'NOTICE' | 'CHEER' | 'FREE';
+    postType: 'NORMAL' | 'NOTICE';
     author: string; // Changed from CheerAuthor to string (display name)
-    authorId: number;
+    authorId?: number;
     authorHandle: string;
     authorProfileImageUrl?: string;
     authorTeamId?: string;
@@ -40,21 +42,18 @@ export interface CheerPost {
     createdAt: string;
     updatedAt: string;
     liked: boolean;
-    likedByUser: boolean; // compatibility
     bookmarked: boolean;
-    isBookmarked: boolean; // compatibility
     isOwner: boolean;
     repostedByMe: boolean;
     imageUrls?: string[];
-    images?: string[]; // compatibility
-    comments: number; // Changed from any[] to number (count)
-    likes: number; // Changed from number | undefined to number
     imageUploadFailed?: boolean; // Added
     // 리포스트 관련 필드
     repostOfId?: number;           // 원본 게시글 ID (리포스트인 경우)
     repostType?: RepostType;       // 'SIMPLE' | 'QUOTE' | undefined(원본)
     originalPost?: EmbeddedPost;   // 원본 게시글 임베드 정보
     originalDeleted?: boolean;     // 원본 삭제 여부
+    shareMode?: ShareMode;
+    sourceInfo?: SourceInfo;
 }
 
 // ... (PageResponse, PostSummaryRes, etc. - skipping unrelated parts if possible, but replace_file_content needs contiguous block)
@@ -76,6 +75,11 @@ export interface FetchPostsParams {
     page?: number;
     size?: number;
     sort?: string;
+}
+
+export interface PostChangesResponse {
+    newCount: number;
+    latestId: number | null;
 }
 
 export type PopularFeedAlgorithm = 'TIME_DECAY' | 'ENGAGEMENT_RATE' | 'HYBRID';
@@ -126,6 +130,24 @@ export interface EmbeddedPost {
     repostCount?: number;
 }
 
+export type ShareMode =
+    | 'INTERNAL_REPOST'
+    | 'INTERNAL_QUOTE'
+    | 'EXTERNAL_LINK'
+    | 'EXTERNAL_COPY'
+    | 'EXTERNAL_EMBED'
+    | 'EXTERNAL_SUMMARY';
+
+export interface SourceInfo {
+    title?: string;
+    author?: string;
+    url?: string;
+    license?: string;
+    licenseUrl?: string;
+    changedNote?: string;
+    snapshotType?: string;
+}
+
 // 리포스트 타입
 export type RepostType = 'SIMPLE' | 'QUOTE';
 
@@ -141,7 +163,6 @@ export interface Comment {
     authorHandle?: string;
     authorTeamId?: string;
     replies?: Comment[];
-    authorEmail?: string; // Added for ownership check
 }
 
 // === API 함수들 ===
@@ -163,7 +184,10 @@ export const fetchPosts = async (params: FetchPostsParams = {}): Promise<PageRes
 };
 
 // 인기 게시글 목록 조회
-export const fetchHotPosts = async (params: FetchHotPostsParams = {}): Promise<PageResponse<CheerPost>> => {
+export const fetchHotPosts = async (
+    params: FetchHotPostsParams = {},
+    requestConfig: AxiosRequestConfig = {},
+): Promise<PageResponse<CheerPost>> => {
     const { page = 0, size = 20, algorithm } = params;
     const searchParams = new URLSearchParams({
         page: page.toString(),
@@ -172,7 +196,7 @@ export const fetchHotPosts = async (params: FetchHotPostsParams = {}): Promise<P
     if (algorithm) {
         searchParams.append('algorithm', algorithm);
     }
-    const response = await api.get(`/cheer/posts/hot?${searchParams.toString()}`);
+    const response = await api.get(`/cheer/posts/hot?${searchParams.toString()}`, requestConfig);
     return transformPostPage(response.data);
 };
 
@@ -181,6 +205,16 @@ export const fetchFollowingPosts = async (params: FetchPostsParams = {}): Promis
     const { page = 0, size = 20 } = params;
     const response = await api.get(`/cheer/posts/following?page=${page}&size=${size}`);
     return transformPostPage(response.data);
+};
+
+// 게시글 변경사항 조회 (폴링용 경량 엔드포인트)
+export const fetchPostChanges = async (params: {
+    sinceId?: number | null;
+    teamId?: string | null;
+} = {}): Promise<PostChangesResponse> => {
+    const query = buildPostChangesQuery(params);
+    const response = await api.get(`/cheer/posts/changes${query}`);
+    return response.data;
 };
 
 export const searchPosts = async (params: SearchPostsParams): Promise<PageResponse<CheerPost>> => {
@@ -206,53 +240,62 @@ export async function fetchUserPostsByHandle(handle: string, page = 0, size = 20
 
 /** Backend response DTOs (before transformation) */
 interface PostDTO {
-  id: number;
-  teamId: string;
-  teamColor?: string;
-  content: string;
-  author: string;
-  authorId: number;
-  authorHandle: string;
-  authorProfileImageUrl?: string;
-  authorTeamId?: string;
-  createdAt: string;
-  updatedAt: string;
-  comments: number;
-  likes: number;
-  likeCount: number;
-  commentCount: number;
-  bookmarkCount?: number;
-  repostCount: number;
-  views: number;
-  liked: boolean;
-  likedByMe?: boolean;
-  bookmarkedByMe?: boolean;
-  isBookmarked?: boolean;
-  isOwner?: boolean;
-  repostedByMe?: boolean;
-  isHot?: boolean;
-  postType: 'NORMAL' | 'NOTICE' | 'CHEER' | 'FREE';
-  imageUrls?: string[];
-  imageUploadFailed?: boolean;
-  repostOfId?: number;
-  repostType?: RepostType;
-  originalPost?: PostDTO;
-  originalDeleted?: boolean;
-  deleted?: boolean;
+    id: number;
+    teamId: string;
+    teamColor?: string;
+    content: string;
+    author: string;
+    authorId?: number;
+    authorHandle: string;
+    authorProfileImageUrl?: string;
+    authorTeamId?: string;
+    createdAt: string;
+    updatedAt: string;
+    comments: number;
+    likes: number;
+    likeCount: number;
+    commentCount: number;
+    bookmarkCount?: number;
+    repostCount: number;
+    views: number;
+    liked: boolean;
+    likedByMe?: boolean;
+    bookmarkedByMe?: boolean;
+    isBookmarked?: boolean;
+    isOwner?: boolean;
+    repostedByMe?: boolean;
+    isHot?: boolean;
+    postType?: string;
+    imageUrls?: string[];
+    imageUploadFailed?: boolean;
+    repostOfId?: number;
+    repostType?: RepostType;
+    originalPost?: PostDTO;
+    originalDeleted?: boolean;
+    deleted?: boolean;
+    shareMode?: ShareMode;
+    sourceInfo?: SourceInfo;
 }
 
+const normalizePostType = (postType?: string): CheerPost['postType'] => {
+    return postType === 'NOTICE' ? 'NOTICE' : 'NORMAL';
+};
+
+const normalizeCreatePostType = (postType?: string): 'NORMAL' | 'NOTICE' => {
+    return postType === 'NOTICE' ? 'NOTICE' : 'NORMAL';
+};
+
 interface CommentDTO {
-  id: number;
-  author: string;
-  authorEmail?: string;
-  authorTeamId?: string;
-  authorProfileImageUrl?: string;
-  authorHandle?: string;
-  content: string;
-  createdAt: string;
-  likeCount: number;
-  likedByMe?: boolean;
-  replies?: CommentDTO[];
+    id: number;
+    author: string;
+    authorTeamId?: string;
+    authorProfileImageUrl?: string;
+    authorHandle?: string;
+    content: string;
+    createdAt: string;
+    likeCount: number;
+    likedByMe?: boolean;
+    replies?: CommentDTO[];
 }
 
 // 데이터 변환 헬퍼
@@ -264,28 +307,22 @@ function transformPost(post: PostDTO): CheerPost {
         teamColor: getTeamColorByAnyKey(post.teamId),
         content: post.content || '',
         author: post.author, // Assuming post.author is string from backend PostSummaryRes
-        authorId: post.authorId,
         authorHandle: post.authorHandle || '',
         authorProfileImageUrl: post.authorProfileImageUrl,
         authorTeamId: post.authorTeamId,
         timeAgo: formatTimeAgo(post.createdAt),
-        comments: post.comments || 0, // Now number
-        likes: post.likes || 0,
-        likeCount: post.likeCount || post.likes || 0,
-        commentCount: post.commentCount || post.comments || 0,
+        likeCount: post.likeCount ?? post.likes ?? 0,
+        commentCount: post.commentCount ?? post.comments ?? 0,
         bookmarkCount: post.bookmarkCount ?? 0,
-        repostCount: post.repostCount || 0,
+        repostCount: post.repostCount ?? 0,
         views: post.views,
         liked: post.liked ?? post.likedByMe ?? false,
-        likedByUser: post.liked ?? post.likedByMe ?? false,
         bookmarked: post.bookmarkedByMe ?? post.isBookmarked ?? false,
-        isBookmarked: post.bookmarkedByMe ?? post.isBookmarked ?? false,
-        images: post.imageUrls || [],
         imageUrls: post.imageUrls || [],
         isOwner: post.isOwner ?? false,
         repostedByMe: post.repostedByMe ?? false,
         isHot: post.isHot ?? false,
-        postType: post.postType,
+        postType: normalizePostType(post.postType),
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
         imageUploadFailed: post.imageUploadFailed,
@@ -293,7 +330,9 @@ function transformPost(post: PostDTO): CheerPost {
         repostOfId: post.repostOfId,
         repostType: post.repostType,
         originalPost: post.originalPost ? transformEmbeddedPost(post.originalPost) : undefined,
-        originalDeleted: post.originalDeleted ?? false
+        originalDeleted: post.originalDeleted ?? false,
+        shareMode: post.shareMode,
+        sourceInfo: post.sourceInfo,
     };
 }
 
@@ -338,30 +377,46 @@ export async function createPost(data: {
     teamId: string;
     content: string;
     postType?: string;
+    shareMode?: ShareMode;
+    sourceUrl?: string;
+    sourceTitle?: string;
+    sourceAuthor?: string;
+    sourceLicense?: string;
+    sourceLicenseUrl?: string;
+    sourceChangedNote?: string;
+    sourceSnapshotType?: string;
 }) {
     const response = await api.post('/cheer/posts', {
         ...data,
-        postType: data.postType || 'CHEER'
-    });
+        postType: normalizeCreatePostType(data.postType),
+    }, { skipGlobalErrorHandler: true });
     return transformPost(response.data);
 }
 
 // 게시글 수정
 export async function updatePost(id: number, data: {
     content: string;
+    shareMode?: ShareMode;
+    sourceUrl?: string;
+    sourceTitle?: string;
+    sourceAuthor?: string;
+    sourceLicense?: string;
+    sourceLicenseUrl?: string;
+    sourceChangedNote?: string;
+    sourceSnapshotType?: string;
 }) {
-    const response = await api.put(`/cheer/posts/${id}`, data);
+    const response = await api.put(`/cheer/posts/${id}`, data, { skipGlobalErrorHandler: true });
     return transformPost(response.data);
 }
 
 // 게시글 삭제
 export async function deletePost(id: number) {
-    await api.delete(`/cheer/posts/${id}`);
+    await api.delete(`/cheer/posts/${id}`, { skipGlobalErrorHandler: true });
 }
 
 // 좋아요 토글
 export async function toggleLike(postId: number): Promise<LikeToggleResponse> {
-    const response = await api.post(`/cheer/posts/${postId}/like`);
+    const response = await api.post(`/cheer/posts/${postId}/like`, undefined, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
@@ -380,7 +435,6 @@ export async function fetchComments(postId: number, page = 0, size = 20) {
         authorProfileImageUrl: c.authorProfileImageUrl,
         authorHandle: c.authorHandle,
         authorTeamId: c.authorTeamId,
-        authorEmail: c.authorEmail,
         replies: c.replies ? c.replies.map(transformComment) : []
     });
 
@@ -392,36 +446,46 @@ export async function fetchComments(postId: number, page = 0, size = 20) {
 
 // 댓글 작성
 export async function createComment(postId: number, content: string) {
-    const response = await api.post(`/cheer/posts/${postId}/comments`, { content });
+    const response = await api.post(`/cheer/posts/${postId}/comments`, { content }, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
 // 댓글 삭제
 export async function deleteComment(commentId: number) {
-    await api.delete(`/cheer/comments/${commentId}`);
+    await api.delete(`/cheer/comments/${commentId}`, { skipGlobalErrorHandler: true });
 }
 
 // 댓글 좋아요 토글
 export async function toggleCommentLike(commentId: number): Promise<LikeToggleResponse> {
-    const response = await api.post(`/cheer/comments/${commentId}/like`);
+    const response = await api.post(`/cheer/comments/${commentId}/like`, undefined, { skipGlobalErrorHandler: true });
     return response.data;
+}
+
+// 북마크 목록 조회 (전용 API)
+export async function fetchBookmarks(page = 0, size = 20): Promise<{ content: CheerPost[]; hasNext: boolean }> {
+    const response = await api.get(`/cheer/bookmarks?page=${page}&size=${size}`);
+    const data = response.data;
+    return {
+        content: (data.content ?? []).map(transformPost),
+        hasNext: !data.last,
+    };
 }
 
 // 북마크 토글
 export async function toggleBookmark(postId: number): Promise<BookmarkToggleResponse> {
-    const response = await api.post(`/cheer/posts/${postId}/bookmark`);
+    const response = await api.post(`/cheer/posts/${postId}/bookmark`, undefined, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
 // 재게시 (Repost) 토글 - 단순 리포스트
 export async function toggleRepost(postId: number): Promise<RepostToggleResponse> {
-    const response = await api.post(`/cheer/posts/${postId}/repost`);
+    const response = await api.post(`/cheer/posts/${postId}/repost`, undefined, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
 // 리포스트 취소 - 단순 리포스트 삭제
 export async function cancelRepost(repostId: number): Promise<RepostToggleResponse> {
-    const response = await api.delete(`/cheer/posts/${repostId}/repost`);
+    const response = await api.delete(`/cheer/posts/${repostId}/repost`, { skipGlobalErrorHandler: true });
     return response.data;
 }
 
@@ -429,7 +493,7 @@ export async function cancelRepost(repostId: number): Promise<RepostToggleRespon
 export async function createQuoteRepost(postId: number, content: string) {
     const response = await api.post(`/cheer/posts/${postId}/quote`, {
         content
-    });
+    }, { skipGlobalErrorHandler: true });
     return transformPost(response.data);
 }
 
@@ -438,6 +502,8 @@ export enum ReportReason {
     INAPPROPRIATE_CONTENT = 'INAPPROPRIATE_CONTENT',
     ABUSIVE_LANGUAGE = 'ABUSIVE_LANGUAGE',
     ADVERTISEMENT = 'ADVERTISEMENT',
+    COPYRIGHT_INFRINGEMENT = 'COPYRIGHT_INFRINGEMENT',
+    FAKE_INFORMATION = 'FAKE_INFORMATION',
     OTHER = 'OTHER',
 }
 
@@ -446,11 +512,34 @@ export const ReportReasonLabels: Record<ReportReason, string> = {
     [ReportReason.INAPPROPRIATE_CONTENT]: '부적절한 콘텐츠',
     [ReportReason.ABUSIVE_LANGUAGE]: '욕설/비하 발언',
     [ReportReason.ADVERTISEMENT]: '상업적 광고',
+    [ReportReason.COPYRIGHT_INFRINGEMENT]: '저작권/권리 침해',
+    [ReportReason.FAKE_INFORMATION]: '허위 정보/사기성 게시',
     [ReportReason.OTHER]: '기타',
 };
 
-export async function reportPost(postId: number, reason: ReportReason, description?: string): Promise<void> {
-    await api.post(`/cheer/posts/${postId}/report`, { reason, description });
+export interface ReportPostPayload {
+    reason: ReportReason;
+    description?: string;
+    sourceUrl?: string;
+    hasRightEvidence?: boolean;
+    license?: string;
+    ownerContact?: string;
+    requestedReason?: string;
+    requestedAction?: string;
+    evidenceUrl?: string;
+}
+
+export interface ReportCaseResponse {
+    caseId: number;
+    reportStatus: string;
+    handledAt?: string | null;
+    nextAction?: string | null;
+    adminMessage?: string | null;
+}
+
+export async function reportPost(postId: number, payload: ReportPostPayload): Promise<ReportCaseResponse> {
+    const response = await api.post(`/cheer/posts/${postId}/report`, payload, { skipGlobalErrorHandler: true });
+    return response.data;
 }
 
 // 이미지 업로드

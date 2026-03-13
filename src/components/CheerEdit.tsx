@@ -5,14 +5,15 @@ import { Textarea } from './ui/textarea';
 import { Card } from './ui/card';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getTeamNameById } from '../api/cheerApi';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import { useCheerEdit } from '../hooks/useCheerEdit';
 
 export default function CheerEdit() {
   const navigate = useNavigate();
   const { postId: postIdParam } = useParams();
   const postId = Number(postIdParam);
-  const favoriteTeam = useAuthStore((state) => state.user?.favoriteTeam) ?? null;
+  const { userFavoriteTeam } = useAuthProfileSnapshot();
+  const favoriteTeam = userFavoriteTeam ?? null;
 
   const {
     post,
@@ -44,8 +45,8 @@ export default function CheerEdit() {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="mx-auto max-w-3xl px-4 py-12 text-center text-red-600">
+      <div className="min-h-screen bg-white dark:bg-background">
+        <div className="mx-auto max-w-3xl px-4 py-12 text-center text-red-600 dark:text-red-400">
           게시글 정보를 불러오는 중 문제가 발생했습니다.
         </div>
       </div>
@@ -55,12 +56,12 @@ export default function CheerEdit() {
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
       {/* Header */}
-      <div className="border-b bg-gray-50">
+      <div className="border-b bg-gray-50 dark:bg-secondary">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <button
               onClick={handleCancel}
-              className="text-gray-600 transition-colors hover:text-gray-900"
+              className="text-gray-600 dark:text-gray-300 transition-colors hover:text-gray-900 dark:hover:text-white"
             >
               <ArrowLeft className="h-6 w-6" />
             </button>
@@ -70,7 +71,7 @@ export default function CheerEdit() {
             <Button
               onClick={handleCancel}
               variant="outline"
-              className="border-gray-300"
+              className="border-gray-300 dark:border-border"
             >
               취소
             </Button>
@@ -89,8 +90,8 @@ export default function CheerEdit() {
         {/* Loading Skeleton */}
         {isLoading && (
           <div className="space-y-4">
-            <div className="h-6 w-1/3 animate-pulse rounded bg-gray-200" />
-            <div className="h-40 animate-pulse rounded bg-gray-100" />
+            <div className="h-6 w-1/3 animate-pulse rounded bg-gray-200 dark:bg-secondary/70" />
+            <div className="h-40 animate-pulse rounded bg-gray-100 dark:bg-secondary/70" />
           </div>
         )}
 
@@ -99,12 +100,12 @@ export default function CheerEdit() {
           <>
             {/* No Access */}
             {!hasAccess ? (
-              <Card className="rounded-xl bg-white p-12 text-center shadow-sm">
+              <Card className="rounded-xl bg-white dark:bg-card p-12 text-center shadow-sm">
                 <div className="mx-auto w-20 rounded-full bg-red-100 p-6">
                   <MessageSquare className="h-10 w-10 text-red-500" />
                 </div>
-                <h2 className="mt-6 mb-4 text-gray-900">수정 권한이 없습니다</h2>
-                <p className="mb-6 text-gray-600 leading-relaxed">
+                <h2 className="mt-6 mb-4 text-gray-900 dark:text-white">수정 권한이 없습니다</h2>
+                <p className="mb-6 text-gray-600 dark:text-gray-300 leading-relaxed">
                   이 게시글은{' '}
                   <span className="font-bold" style={{ color: post.teamColor ?? 'var(--primary)' }}>
                     {post.team}
@@ -148,11 +149,11 @@ export default function CheerEdit() {
 
                 {/* Images */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between">
                     <label className="block text-sm text-primary">
                       첨부 이미지
                     </label>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 dark:text-gray-300">
                       최대 10개, 파일당 5MB 이하
                     </span>
                   </div>
@@ -171,7 +172,7 @@ export default function CheerEdit() {
                         input?.click();
                       }
                     }}
-                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-gray-400'
+                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50 dark:border-green-500/60 dark:bg-green-950/40' : 'border-gray-300 dark:border-border hover:border-gray-400 dark:hover:border-white/20 dark:bg-secondary/20'
                       }`}
                   >
                     <Upload className="h-6 w-6" />
@@ -209,7 +210,7 @@ export default function CheerEdit() {
                               />
                             )}
                             <div
-                              className={`absolute inset-0 z-0 flex flex-col items-center justify-center bg-gray-100 text-gray-400 ${imageUrl ? 'hidden' : ''
+                              className={`absolute inset-0 z-0 flex flex-col items-center justify-center bg-gray-100 dark:bg-secondary text-gray-400 dark:text-gray-300 ${imageUrl ? 'hidden' : ''
                                 }`}
                             >
                               <ImageIcon className="h-8 w-8" />

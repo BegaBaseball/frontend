@@ -6,12 +6,13 @@ export interface UserProfile {
   favoriteTeam: string | null;
   profileImageUrl: string | null;
   role?: string;
+  provider?: string;
   bio?: string | null;
   cheerPoints?: number;
+  hasPassword?: boolean;
 }
 
 export interface PublicUserProfile {
-  id: number;
   name: string;
   handle: string;
   favoriteTeam: string | null;
@@ -46,11 +47,10 @@ export interface ProfileUpdateData {
 export interface ProfileUpdateResponse {
   success: boolean;
   data: {
-    token?: string;
     profileImageUrl?: string | null;
     name?: string;
     email?: string;
-    favoriteTeam?: string;
+    favoriteTeam?: string | null;
     bio?: string;
   };
   message?: string;
@@ -83,4 +83,36 @@ export interface DeviceSessionItem {
   isCurrent?: boolean;
   isRevoked?: boolean;
   ip?: string;
+}
+
+export interface SecurityEventItem {
+  id: number;
+  eventType: string;
+  occurredAt: string;
+  deviceLabel?: string;
+  deviceType?: string;
+  browser?: string;
+  os?: string;
+  ip?: string;
+  message: string;
+}
+
+export interface TrustedDeviceItem {
+  id: number;
+  deviceLabel: string;
+  deviceType: string;
+  browser: string;
+  os: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  lastLoginAt?: string;
+  lastIp?: string;
+}
+
+export interface AccountDeletionScheduleResponse {
+  scheduledFor: string;
+}
+
+export interface AccountDeletionRecoveryInfo {
+  scheduledFor: string;
 }

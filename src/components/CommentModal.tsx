@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, ImagePlus, Smile } from 'lucide-react';
+import { Smile } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import {
     Dialog,
@@ -9,9 +9,10 @@ import {
     DialogTitle,
 } from './ui/dialog';
 import { Button } from './ui/button';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import { CheerPost, createComment } from '../api/cheerApi';
 import TeamLogo from './TeamLogo';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import { TEAM_DATA } from '../constants/teams';
 import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { useTheme } from '../hooks/useTheme';
@@ -21,21 +22,37 @@ interface CommentModalProps {
     isOpen: boolean;
     onClose: () => void;
     post: CheerPost;
+    targetPostId?: number;
 }
 
-export default function CommentModal({ isOpen, onClose, post }: CommentModalProps) {
-    const { user } = useAuthStore();
-    const { theme } = useTheme();
+export default function CommentModal({ isOpen, onClose, post, targetPostId }: CommentModalProps) {
+    const {
+        userName,
+        userProfileImageUrl,
+        userFavoriteTeam,
+    } = useAuthProfileSnapshot();
+    const { theme, resolvedTheme } = useTheme();
+    const isDarkMode = resolvedTheme === 'dark' || theme === 'dark';
     const queryClient = useQueryClient();
     const [content, setContent] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
+    const resolvedPostId = targetPostId ?? post.id;
+    const postProfileImageUrl = post.authorProfileImageUrl
+        ? post.authorProfileImageUrl.includes('/assets/') || post.authorProfileImageUrl.includes('/src/assets/')
+            ? null
+            : post.authorProfileImageUrl
+        : null;
+    const resolvedUserProfileImageUrl = userProfileImageUrl &&
+        !(userProfileImageUrl.includes('/assets/') || userProfileImageUrl.includes('/src/assets/'))
+        ? userProfileImageUrl
+        : null;
 
     const commentMutation = useMutation({
-        mutationFn: () => createComment(post.id, content),
+        mutationFn: () => createComment(resolvedPostId, content),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
-            queryClient.invalidateQueries({ queryKey: ['cheer-comments', post.id] });
+            queryClient.invalidateQueries({ queryKey: ['cheer-comments', resolvedPostId] });
             setContent('');
             onClose();
         },
@@ -77,9 +94,23 @@ export default function CommentModal({ isOpen, onClose, post }: CommentModalProp
                     {/* Original Post Preview */}
                     <div className="flex gap-3 mb-6 relative">
                         <div className="absolute left-[19px] top-10 bottom-0 w-0.5 bg-slate-100 dark:bg-secondary" />
-                        <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary flex-shrink-0 flex items-center justify-center overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
-                            <TeamLogo team={teamLabel} size={40} />
-                        </div>
+                        {postProfileImageUrl ? (
+                            <ProfileAvatar
+                                src={postProfileImageUrl}
+                                alt={post.author || '프로필'}
+                                fallbackName={post.author || '프로필'}
+                                width={40}
+                                height={40}
+                                showRing
+                                ringClassName="p-px bg-black/5 dark:bg-white/10"
+                            />
+                        ) : (
+                            <span className="inline-flex h-10 w-10 rounded-full bg-black/5 dark:bg-white/10 p-px items-center justify-center">
+                                <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
+                                    <TeamLogo team={teamLabel} size={40} />
+                                </span>
+                            </span>
+                        )}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-1">
                                 <span className="font-bold text-[15px] dark:text-white">{post.author}</span>
@@ -96,13 +127,34 @@ export default function CommentModal({ isOpen, onClose, post }: CommentModalProp
 
                     {/* Reply Area */}
                     <div className="flex gap-3 mt-4">
-                        <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-secondary flex-shrink-0 flex items-center justify-center overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
-                            {user?.favoriteTeam && user.favoriteTeam !== '없음' ? (
-                                <TeamLogo team={TEAM_DATA[user.favoriteTeam]?.name || user.favoriteTeam} size={40} />
+                        <div className="h-10 w-10 flex-shrink-0">
+                            {resolvedUserProfileImageUrl ? (
+                                <ProfileAvatar
+                                    src={resolvedUserProfileImageUrl}
+                                    alt={userName || '사용자'}
+                                    fallbackName={userName}
+                                    width={40}
+                                    height={40}
+                                    showRing
+                                    ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                />
                             ) : (
-                                <span className="text-sm font-semibold text-slate-600 dark:text-gray-300">
-                                    {user?.name?.slice(0, 1) || '?'}
-                                </span>
+                                userFavoriteTeam && userFavoriteTeam !== '없음' ? (
+                                    <span className="inline-flex h-10 w-10 rounded-full bg-black/5 dark:bg-white/10 p-px items-center justify-center overflow-hidden">
+                                        <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
+                                            <TeamLogo team={TEAM_DATA[userFavoriteTeam]?.name || userFavoriteTeam} size={40} />
+                                        </span>
+                                    </span>
+                                ) : (
+                                    <ProfileAvatar
+                                        alt={userName || '사용자'}
+                                        fallbackName={userName}
+                                        width={40}
+                                        height={40}
+                                        showRing
+                                        ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                    />
+                                )
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -130,7 +182,7 @@ export default function CommentModal({ isOpen, onClose, post }: CommentModalProp
                                             <div className="absolute top-full left-0 z-50 mt-2">
                                                 <EmojiPicker
                                                     onEmojiClick={handleEmojiClick}
-                                                    theme={theme === 'dark' ? EmojiTheme.DARK : EmojiTheme.LIGHT}
+                                                    theme={isDarkMode ? EmojiTheme.DARK : EmojiTheme.LIGHT}
                                                     lazyLoadEmojis={true}
                                                     skinTonesDisabled={true}
                                                     searchPlaceHolder="이모지 검색..."

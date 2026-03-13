@@ -1,12 +1,14 @@
 // src/types/mate.ts
 export interface Party {
   id: number;
-  hostId: number;
+  hostId?: number;
+  hostHandle?: string;
   hostName: string;
   hostProfileImageUrl?: string;
   hostFavoriteTeam?: string;
-  hostBadge: string;
-  hostRating: number;
+  hostBadge: BadgeType;
+  hostAverageRating: number | null;
+  hostReviewCount: number;
   teamId: string;
   gameDate: string;
   gameTime: string;
@@ -37,13 +39,17 @@ export type PartyStatus =
 export interface Application {
   id: number;
   partyId: number;
-  applicantId: number;
+  applicantHandle?: string;
   applicantName: string;
-  applicantBadge: string;
+  applicantBadge: BadgeType;
   applicantRating: number;
   message: string;
-  depositAmount: number;
-  paymentType: 'DEPOSIT' | 'FULL';
+  depositAmount?: number;
+  paymentType?: 'DEPOSIT' | 'FULL';
+  feeAmount?: number;
+  netSettlementAmount?: number;
+  paymentStatus?: 'PAID' | 'REFUND_REQUESTED' | 'CANCELED' | 'REFUND_FAILED';
+  settlementStatus?: 'PENDING' | 'REQUESTED' | 'COMPLETED' | 'FAILED' | 'SKIPPED' | 'REFUNDED_AFTER_SETTLEMENT';
   isApproved: boolean;
   isRejected: boolean;
   ticketVerified?: boolean;
@@ -55,7 +61,7 @@ export interface Application {
 export interface CheckIn {
   id: number;
   partyId: number;
-  userId: number;
+  userHandle?: string;
   userName: string;
   location: string;
   checkedInAt: string;
@@ -64,8 +70,8 @@ export interface CheckIn {
 export interface PartyReview {
   id: number;
   partyId: number;
-  reviewerId: number;
-  revieweeId: number;
+  reviewerHandle?: string;
+  revieweeHandle?: string;
   rating: number;
   comment?: string;
   createdAt: string;
@@ -77,15 +83,17 @@ export interface ChatMessage {
   senderId: number | string;
   senderName: string;
   message: string;
+  imageUrl?: string;
   createdAt: string;
 }
 
-export type BadgeType = 'new' | 'verified' | 'trusted';
+export type BadgeType = 'NEW' | 'VERIFIED' | 'TRUSTED';
 
 // MateParty: 히스토리/목록용 간소화 타입 (Party의 서브셋)
 export interface MateParty {
   id: number;
-  hostId: number;
+  hostId?: number;
+  hostHandle?: string;
   teamId: string;
   stadium: string;
   gameDate: string;
@@ -102,7 +110,6 @@ export interface MateParty {
 export interface MateApplication {
   id: number;
   partyId: number;
-  applicantId: number;
   status: string;
 }
 
@@ -111,10 +118,6 @@ export type MateHistoryTab = 'all' | 'completed' | 'ongoing';
 // --- Request Types (matching backend DTOs) ---
 
 export interface CreatePartyRequest {
-  hostId: number;
-  hostName: string;
-  hostBadge?: string;
-  hostRating?: number;
   teamId: string;
   gameDate: string;
   gameTime: string;
@@ -140,11 +143,7 @@ export interface UpdatePartyRequest {
 
 export interface CreateApplicationRequest {
   partyId: number;
-  applicantId: number;
-  applicantName: string;
-  applicantBadge: string;
-  depositAmount: number;
-  paymentType: 'DEPOSIT' | 'FULL';
+  message?: string;
   verificationToken?: string | null;
   ticketVerified?: boolean;
   ticketImageUrl?: string | null;
@@ -152,14 +151,47 @@ export interface CreateApplicationRequest {
 
 export interface CreateCheckInRequest {
   partyId: number;
-  userId: number;
   location: string;
+  qrSessionId?: string;
+  manualCode?: string;
+}
+
+export interface CreateCheckInQrSessionRequest {
+  partyId: number;
+}
+
+export interface CreateCheckInQrSessionResponse {
+  sessionId: string;
+  partyId: number;
+  expiresAt: string;
+  checkinUrl: string;
+  manualCode?: string;
 }
 
 export interface CreateReviewRequest {
   partyId: number;
-  reviewerId: number;
-  revieweeId: number;
+  revieweeHandle: string;
   rating: number;
   comment?: string;
+}
+
+export type CancelReasonType =
+  | 'BUYER_CHANGED_MIND'
+  | 'SELLER_CHANGED_MIND'
+  | 'SYSTEM'
+  | 'EVENT_CANCELED'
+  | 'OTHER';
+
+export interface CancelApplicationRequest {
+  cancelReasonType: CancelReasonType;
+  cancelMemo?: string;
+}
+
+export interface CancelApplicationResponse {
+  applicationId: number;
+  refundAmount: number;
+  feeCharged: number;
+  refundPolicyApplied: string;
+  paymentStatus?: Application['paymentStatus'];
+  settlementStatus?: Application['settlementStatus'];
 }

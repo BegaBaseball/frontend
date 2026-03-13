@@ -1,13 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { useAuthProfileSnapshot } from '../store/authStore';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 
 
 export default function Footer() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { userHandle } = useAuthProfileSnapshot();
   return (
-    <footer className="bg-gray-900 text-white py-8">
+    <footer className="bg-gray-100 dark:bg-gray-900 text-zinc-900 dark:text-white py-8 border-t border-zinc-200 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-row items-center gap-3 mb-4">
           <img
@@ -26,36 +26,36 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
           <div>
             <h4 className="mb-2 text-sm font-bold">서비스</h4>
-            <ul className="space-y-1 text-xs text-gray-400">
+            <ul className="space-y-1 text-xs text-zinc-600 dark:text-gray-400">
               <li>
-                <Link to="/home" className="hover:text-white">
+                <Link to="/home" className="hover:text-primary dark:hover:text-white">
                   홈
                 </Link>
               </li>
               <li>
-                <Link to="/cheer" className="hover:text-white">
+                <Link to="/cheer" className="hover:text-primary dark:hover:text-white">
                   응원석
                 </Link>
               </li>
               <li>
-                <Link to="/stadium" className="hover:text-white">
+                <Link to="/stadium" className="hover:text-primary dark:hover:text-white">
                   구장가이드
                 </Link>
               </li>
               <li>
-                <Link to="/prediction" className="hover:text-white">
+                <Link to="/prediction" className="hover:text-primary dark:hover:text-white">
                   전력분석실
                 </Link>
               </li>
               <li>
-                <Link to="/mate" className="hover:text-white">
+                <Link to="/mate" className="hover:text-primary dark:hover:text-white">
                   같이가요
                 </Link>
               </li>
               <li>
                 <button
-                  onClick={() => navigate(user?.handle ? `/profile/${user.handle.startsWith('@') ? user.handle : `@${user.handle}`}` : '/mypage')}
-                  className="hover:text-white text-left"
+                  onClick={() => navigate(userHandle ? `/profile/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}` : '/mypage')}
+                  className="hover:text-primary dark:hover:text-white text-left"
                 >
                   프로필
                 </button>
@@ -64,19 +64,19 @@ export default function Footer() {
           </div>
           <div>
             <h4 className="mb-2 text-sm font-bold">정보</h4>
-            <ul className="space-y-1 text-xs text-gray-400">
+            <ul className="space-y-1 text-xs text-zinc-600 dark:text-gray-400">
               <li>
-                <Link to="/notice" className="hover:text-white">
+                <Link to="/notice" className="hover:text-primary dark:hover:text-white">
                   공지사항
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="hover:text-white">
+                <Link to="/terms" className="hover:text-primary dark:hover:text-white">
                   이용약관
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="hover:text-white">
+                <Link to="/privacy" className="hover:text-primary dark:hover:text-white">
                   개인정보처리방침
                 </Link>
               </li>
@@ -84,14 +84,22 @@ export default function Footer() {
           </div>
           <div className="col-span-2 md:col-span-1">
             <h4 className="mb-2 text-sm font-bold">고객센터</h4>
-            <ul className="space-y-1 text-xs text-gray-400">
-              <li>이메일: baseballguide251021@gmail.com</li>
+            <ul className="space-y-1 text-xs text-zinc-600 dark:text-gray-400">
+              <li>
+                이메일:{' '}
+                <a
+                  href="mailto:baseballguide251021@gmail.com"
+                  className="hover:text-primary dark:hover:text-white underline-offset-2 hover:underline"
+                >
+                  baseballguide251021@gmail.com
+                </a>
+              </li>
               <li>운영시간: 평일 09:00-18:00</li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-gray-800 pt-4 text-center text-gray-500 text-[10px]">
+        <div className="border-t border-zinc-200 dark:border-gray-800 pt-4 text-center text-zinc-500 dark:text-gray-500 text-[10px]">
           <p>© 2025 BEGA (BASEBALL GUIDE). All rights reserved.</p>
         </div>
       </div>

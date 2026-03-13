@@ -9,7 +9,9 @@ export const getCategoryIconConfig = (category: string): {
   Icon: LucideIcon;
   color: string;
 } => {
-  const config = CATEGORY_CONFIGS[category];
+  const config = category in CATEGORY_CONFIGS
+    ? CATEGORY_CONFIGS[category as keyof typeof CATEGORY_CONFIGS]
+    : null;
   
   if (!config) {
     return {

@@ -12,6 +12,7 @@ import firstPlaceImage from '../assets/f552d9266ac817e0c86b657dead0069395c6da11.
 import { useRankingPrediction } from '../hooks/useRankingPrediction';
 import { useDrag, useDrop } from 'react-dnd';
 import { Team } from '../store/predictionStore';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 
 import {
@@ -72,7 +73,7 @@ export default function RankingPrediction() {
           순위 예측에 참여하려면 로그인해주세요.
         </p>
         <Button
-          onClick={() => navigate('/login')}
+          onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
           className="text-white bg-primary-dark hover:bg-primary px-6 py-2"
         >
           로그인하기
@@ -182,7 +183,7 @@ export default function RankingPrediction() {
         >
           <div className="flex items-center gap-3">
             <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${rankBadgeClassName} font-black text-lg ${isPostSeasonZone ? 'ring-2 ring-primary/20 dark:ring-primary/40' : ''}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${rankBadgeClassName} font-black text-lg ${isPostSeasonZone ? 'border-2 border-primary/20 dark:border-primary/40' : ''}`}
             >
               {index + 1}
             </div>

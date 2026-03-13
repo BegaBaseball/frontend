@@ -1,6 +1,30 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import api from '../api/axios';
+import { useShallow } from 'zustand/react/shallow';
+import { clearSessionScopedQueries } from '../lib/queryClient';
+import { fetchCurrentUserProfile, logoutUser, normalizeProfileImageUrl } from '../api/auth';
+import {
+  clearStoredLoginRedirect,
+  getCurrentRelativeUrl,
+  sanitizeLoginRedirect,
+  setStoredLoginRedirect,
+} from '../utils/loginRedirect';
+
+const LEGACY_AUTH_TOKEN_KEY = 'authToken';
+
+const clearLegacyAuthTokenStorage = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+  } catch {
+    // 스토리지 접근 실패는 보안 정합성 검증에서 제외하고 진행합니다.
+  }
+};
+
+clearLegacyAuthTokenStorage();
 
 interface User {
   id: number;
@@ -9,7 +33,6 @@ interface User {
   handle?: string;
   favoriteTeam?: string;
   favoriteTeamColor?: string;
-  isAdmin?: boolean;
   profileImageUrl?: string | null;
   role?: string;
   provider?: string;    // 'LOCAL', 'GOOGLE', 'KAKAO', 'NAVER'
@@ -19,62 +42,48 @@ interface User {
   hasPassword?: boolean;
 }
 
+export const isAdminRole = (role?: string): boolean =>
+  role === 'ROLE_ADMIN' || role === 'ROLE_SUPER_ADMIN';
+
+export const isLoggedInUser = (user: User | null): boolean => Boolean(user);
+
 interface AuthState {
   user: User | null;
-  isLoggedIn: boolean;
-  isAdmin: boolean;
   isAuthLoading: boolean;
-  email: string;
-  password: string;
-  showPassword: boolean;
   showLoginRequiredDialog: boolean;
+  pendingLoginRedirect: string | null;
+}
 
+interface AuthActions {
   fetchProfileAndAuthenticate: () => Promise<void>;
   setUserProfile: (profile: Partial<Omit<User, 'id'>> & { email: string; name: string }) => void;
   deductCheerPoints: (amount: number) => void; // Added action
-
-  setEmail: (email: string) => void;
-  setPassword: (password: string) => void;
-  setShowPassword: (show: boolean) => void;
   login: (email: string, name: string, profileImageUrl?: string | null, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => void;
   logout: (skipServerLogout?: boolean) => void;
   setFavoriteTeam: (team: string, color: string) => void;
   setShowLoginRequiredDialog: (show: boolean) => void;
-  requireLogin: (callback?: () => void) => boolean;
+  setPendingLoginRedirect: (redirectPath?: string | null) => void;
+  clearPendingLoginRedirect: () => void;
+  requireLogin: (redirectPath?: string | null) => boolean;
+  reset: () => void;
 }
+
+type AuthStore = AuthState & AuthActions;
+
+const getInitialState = (): AuthState => ({
+  user: null,
+  isAuthLoading: true,
+  showLoginRequiredDialog: false,
+  pendingLoginRedirect: null,
+});
 
 let pendingAuthProfileRequest: Promise<void> | null = null;
 let pendingLogoutRequest: Promise<void> | null = null;
 
-const normalizeProfileImageUrl = (value?: string | null) => {
-  if (!value || typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmedValue = value.trim();
-  if (
-    trimmedValue.startsWith('/assets/') ||
-    trimmedValue.startsWith('/src/assets/') ||
-    trimmedValue.startsWith('blob:') ||
-    trimmedValue.startsWith('data:')
-  ) {
-    return null;
-  }
-
-  return trimmedValue.length > 0 ? trimmedValue : null;
-};
-
-export const useAuthStore = create<AuthState>()(
+export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
-      user: null,
-      isLoggedIn: false,
-      isAdmin: false,
-      isAuthLoading: true,
-      email: '',
-      password: '',
-      showPassword: false,
-      showLoginRequiredDialog: false,
+      ...getInitialState(),
 
       fetchProfileAndAuthenticate: async () => {
         if (pendingAuthProfileRequest) {
@@ -85,47 +94,18 @@ export const useAuthStore = create<AuthState>()(
           set({ isAuthLoading: true });
 
           try {
-            // Using axios api instance to handle 401 interceptor
-            const response = await api.get('/auth/mypage');
+            const profile = await fetchCurrentUserProfile();
+            set({
+              user: profile,
+              isAuthLoading: false,
+            });
 
-            if (response.status === 200) {
-              const result = response.data;
-              const profile = result.data;
-              const isAdminUser = profile.role === 'ROLE_ADMIN' || profile.role === 'ROLE_SUPER_ADMIN';
-
-              set({
-                user: {
-                  id: Number(profile.id),
-                  email: profile.email,
-                  name: profile.name,
-                  handle: profile.handle,
-                  favoriteTeam: profile.favoriteTeam,
-                  favoriteTeamColor: profile.favoriteTeamColor,
-                  isAdmin: isAdminUser,
-                  profileImageUrl: normalizeProfileImageUrl(profile.profileImageUrl),
-                  role: profile.role,
-                  bio: profile.bio,
-                  cheerPoints: profile.cheerPoints ?? profile['cheer_points'] ?? 0, // Map cheerPoints (defensive check)
-                  provider: profile.provider,
-                  providerId: profile.providerId,
-                  hasPassword: profile.hasPassword,
-                },
-                isLoggedIn: true,
-                isAdmin: isAdminUser,
-                isAuthLoading: false,
-              });
-
-            } else {
-              // Should be handled by catch mainly, but if 200 logic fails
-              set({ isAuthLoading: false });
-            }
           } catch (error) {
             // 401 errors are handled by interceptor (redirect to login)
             // For other errors during initial auth check, we just reset state silently to avoid modal on startup
+            clearSessionScopedQueries();
             set({
               user: null,
-              isLoggedIn: false,
-              isAdmin: false,
               isAuthLoading: false
             });
           }
@@ -139,7 +119,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      setUserProfile: (profile) => {
+      setUserProfile: (profile: Partial<Omit<User, 'id'>> & { email: string; name: string }) => {
         set((state) => {
           const mergedProfile = state.user
             ? {
@@ -161,7 +141,7 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      deductCheerPoints: (amount) => {
+      deductCheerPoints: (amount: number) => {
         set((state) => {
           if (!state.user) return {};
           const currentPoints = state.user.cheerPoints || 0;
@@ -174,8 +154,7 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      login: (email, name, profileImageUrl, role, favoriteTeam, id, cheerPoints, handle, provider, hasPassword) => {
-        const isAdminUser = role === 'ROLE_ADMIN' || role === 'ROLE_SUPER_ADMIN';
+      login: (email: string, name: string, profileImageUrl?: string | null, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => {
         const normalizedId = Number(id) || 0;
 
         set({
@@ -184,7 +163,6 @@ export const useAuthStore = create<AuthState>()(
             email: email,
             name: name,
             // ... (keep existing)
-            isAdmin: isAdminUser,
             profileImageUrl: normalizeProfileImageUrl(profileImageUrl),
             role: role,
             favoriteTeam: favoriteTeam || '없음',
@@ -193,86 +171,151 @@ export const useAuthStore = create<AuthState>()(
             provider: provider,
             hasPassword,
           },
-          isLoggedIn: true,
-          isAdmin: isAdminUser,
           isAuthLoading: false,
-          email: '',
-          password: '',
         });
       },
 
       logout: (skipServerLogout = false) => {
-        if (!get().isLoggedIn || skipServerLogout) {
-          set({
-            user: null,
-            isLoggedIn: false,
-            isAdmin: false,
-            isAuthLoading: false,
-            email: '',
-            password: '',
-          });
+        clearStoredLoginRedirect();
+        if (!get().user || skipServerLogout) {
+          clearSessionScopedQueries();
+          set(getInitialState());
           return;
         }
 
-        if (!pendingLogoutRequest) {
-          pendingLogoutRequest = api
-            .post('/auth/logout', undefined, { skipGlobalErrorHandler: true })
-            .catch(() => {
-              // Ignore logout request failures (e.g., already expired token / invalid session).
-              // Local auth state is already cleared above.
-            })
-            .finally(() => {
-              pendingLogoutRequest = null;
-            });
-        }
+          clearSessionScopedQueries();
+          if (!pendingLogoutRequest) {
+            pendingLogoutRequest = logoutUser()
+              .then(() => {
+                // ignore response
+              })
+              .catch(() => {
+                // Ignore logout request failures (e.g., already expired token / invalid session).
+                // Local auth state is already cleared above.
+              })
+              .finally(() => {
+                pendingLogoutRequest = null;
+              });
+          }
 
         set({
-          user: null,
-          isLoggedIn: false,
-          isAdmin: false,
-          isAuthLoading: false,
-          email: '',
-          password: ''
+          ...getInitialState(),
         });
       },
+      reset: () =>
+        set({
+          ...getInitialState(),
+        }),
 
-      setEmail: (email) => set({ email }),
-      setPassword: (password) => set({ password }),
-      setShowPassword: (show) => set({ showPassword: show }),
-      setFavoriteTeam: (team, color) =>
+      setFavoriteTeam: (team: string, color: string) =>
         set((state) => ({
           user: state.user ? { ...state.user, favoriteTeam: team, favoriteTeamColor: color } : null,
         })),
 
-      setShowLoginRequiredDialog: (show) => set({ showLoginRequiredDialog: show }),
+      setShowLoginRequiredDialog: (show: boolean) => {
+        set({ showLoginRequiredDialog: show });
+      },
 
-      requireLogin: (callback) => {
-        const { isLoggedIn } = get();
-        if (!isLoggedIn) {
-          set({ showLoginRequiredDialog: true });
+      setPendingLoginRedirect: (redirectPath?: string | null) => {
+        const sanitized = setStoredLoginRedirect(redirectPath);
+        set({ pendingLoginRedirect: sanitized });
+      },
+
+      clearPendingLoginRedirect: () => {
+        clearStoredLoginRedirect();
+        set({ pendingLoginRedirect: null });
+      },
+
+      requireLogin: (redirectPath?: string | null) => {
+        const currentUser = get().user;
+        if (!currentUser) {
+          const nextRedirect = sanitizeLoginRedirect(redirectPath) || getCurrentRelativeUrl();
+          get().setPendingLoginRedirect(nextRedirect);
+          get().setShowLoginRequiredDialog(true);
           return false;
         }
-        callback?.();
         return true;
       },
 
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        isLoggedIn: state.isLoggedIn,
-        isAdmin: state.isAdmin,
-      }),
-      onRehydrateStorage: () => (state: AuthState | undefined, error: unknown) => {
-        return () => {
-          if (state?.isLoggedIn) {
-            state.isAuthLoading = true;
-          } else if (state) {
-            state.isAuthLoading = false;
-          }
-        };
-      },
+      partialize: () => ({}),
     }
   )
 );
+
+export const useAuthSession = () =>
+  useAuthStore(
+    useShallow((state) => ({
+      isLoggedIn: isLoggedInUser(state.user),
+      isAuthLoading: state.isAuthLoading,
+      userId: state.user?.id ?? null,
+    })),
+  );
+
+export const useAuthProfileSnapshot = () =>
+  useAuthStore(
+    useShallow((state) => ({
+      userId: state.user?.id ?? null,
+      userEmail: state.user?.email,
+      userName: state.user?.name,
+      userHandle: state.user?.handle,
+      userFavoriteTeam: state.user?.favoriteTeam,
+      userFavoriteTeamColor: state.user?.favoriteTeamColor,
+      userProfileImageUrl: state.user?.profileImageUrl,
+      userRole: state.user?.role,
+      userProvider: state.user?.provider,
+      userBio: state.user?.bio,
+      userCheerPoints: state.user?.cheerPoints,
+      userHasPassword: state.user?.hasPassword,
+    })),
+  );
+
+export const useAuthProfileActions = () =>
+  useAuthStore(
+    useShallow((state) => ({
+      setUserProfile: state.setUserProfile,
+      fetchProfileAndAuthenticate: state.fetchProfileAndAuthenticate,
+    })),
+  );
+
+export const useAuthAccessActions = () =>
+  useAuthStore(
+    useShallow((state) => ({
+      logout: state.logout,
+      requireLogin: state.requireLogin,
+    })),
+  );
+
+export const useAuthAuthenticationActions = () =>
+  useAuthStore(
+    useShallow((state) => ({
+      login: state.login,
+      fetchProfileAndAuthenticate: state.fetchProfileAndAuthenticate,
+    })),
+  );
+
+export const useAuthRedirectState = () =>
+  useAuthStore(
+    useShallow((state) => ({
+      pendingLoginRedirect: state.pendingLoginRedirect,
+      setPendingLoginRedirect: state.setPendingLoginRedirect,
+      clearPendingLoginRedirect: state.clearPendingLoginRedirect,
+    })),
+  );
+
+export const useAuthCheerActions = () =>
+  useAuthStore(
+    useShallow((state) => ({
+      deductCheerPoints: state.deductCheerPoints,
+    })),
+  );
+
+export const useAuthDialogState = () =>
+  useAuthStore(
+    useShallow((state) => ({
+      showLoginRequiredDialog: state.showLoginRequiredDialog,
+      setShowLoginRequiredDialog: state.setShowLoginRequiredDialog,
+    })),
+  );
