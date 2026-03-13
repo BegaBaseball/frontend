@@ -1,0 +1,82 @@
+name: Frontend Auth QA
+
+on:
+  pull_request:
+    paths:
+      - "src/components/auth/AuthLayout.tsx"
+      - "src/components/Login.tsx"
+      - "src/components/SignUp.tsx"
+      - "src/components/PasswordReset.tsx"
+      - "src/components/PasswordResetConfirm.tsx"
+      - "src/components/AccountDeletionRecovery.tsx"
+      - "src/components/ui/auth-primitives.tsx"
+      - "src/components/ui/button.tsx"
+      - "src/components/ui/input.tsx"
+      - "src/components/ui/select.tsx"
+      - "src/components/ui/label.tsx"
+      - "src/index.css"
+      - "scripts/auth-qa.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/frontend-auth-qa.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-auth-qa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  auth-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run auth QA
+        run: npm run qa:auth
+
+      - name: Publish auth QA summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Frontend Auth QA" >> "${GITHUB_STEP_SUMMARY}"
+          if [[ -f "output/auth-qa/auth-summary.md" ]]; then
+            cat "output/auth-qa/auth-summary.md" >> "${GITHUB_STEP_SUMMARY}"
+          elif [[ -f "output/auth-qa/auth-report.json" ]]; then
+            echo '```json' >> "${GITHUB_STEP_SUMMARY}"
+            cat "output/auth-qa/auth-report.json" >> "${GITHUB_STEP_SUMMARY}"
+            echo '```' >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "auth-summary.md not found" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload auth QA artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-auth-qa-artifacts
+          path: |
+            output/auth-qa/auth-report.json
+            output/auth-qa/auth-summary.md
+            output/auth-qa/auth-login-mobile.png
+            output/auth-qa/auth-login-tablet.png
+            output/auth-qa/auth-login-desktop.png
+            output/auth-qa/auth-signup-desktop.png
+            output/auth-qa/auth-password-reset-desktop.png
+            output/auth-qa/auth-password-reset-confirm-desktop.png
+            output/auth-qa/auth-account-recovery-desktop.png
+            output/auth-qa/auth-chrome.log
+          if-no-files-found: warn
+          retention-days: 14
