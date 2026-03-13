@@ -1158,22 +1158,6 @@ export const usePredictionSchedule = ({
             actionPriorityOrder: ['RETRY', 'GO_LIST'],
           },
         });
-        showPredictionErrorOverlay(mapPredictionErrorCode(parsedError.type), {
-          message: parsedError.message || '예측 경기 목록 조회에 실패했습니다.',
-          copyKey: 'network_error_message',
-          recovery: {
-            recoverable: true,
-            retryEnabled: true,
-            keepDraft: true,
-            actionPriorityOrder: ['RETRY', 'GO_LIST'],
-          },
-          onRetry: () => {
-            void fetchAllGames(true);
-          },
-          onGoList: () => {
-            window.location.href = '/';
-          },
-        });
         return;
       }
 
@@ -1212,22 +1196,6 @@ export const usePredictionSchedule = ({
           retryEnabled: true,
           keepDraft: true,
           actionPriorityOrder: ['RETRY', 'GO_LIST'],
-        },
-      });
-      showPredictionErrorOverlay(mapPredictionErrorCode(parsedError.type), {
-        message: parsedError.message || '예측 경기 목록 조회에 실패했습니다.',
-        copyKey: 'network_error_message',
-        recovery: {
-          recoverable: true,
-          retryEnabled: true,
-          keepDraft: true,
-          actionPriorityOrder: ['RETRY', 'GO_LIST'],
-        },
-        onRetry: () => {
-          void fetchAllGames(true);
-        },
-        onGoList: () => {
-          window.location.href = '/';
         },
       });
     } finally {

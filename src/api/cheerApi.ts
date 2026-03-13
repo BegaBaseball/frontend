@@ -1,4 +1,5 @@
 import { formatTimeAgo } from '../utils/time';
+import type { AxiosRequestConfig } from 'axios';
 import api from './axios';
 import { getTeamColorByAnyKey, TEAM_DATA, getFullTeamName } from '../constants/teams';
 import { buildPostChangesQuery } from '../utils/cheerPolling';
@@ -183,7 +184,10 @@ export const fetchPosts = async (params: FetchPostsParams = {}): Promise<PageRes
 };
 
 // 인기 게시글 목록 조회
-export const fetchHotPosts = async (params: FetchHotPostsParams = {}): Promise<PageResponse<CheerPost>> => {
+export const fetchHotPosts = async (
+    params: FetchHotPostsParams = {},
+    requestConfig: AxiosRequestConfig = {},
+): Promise<PageResponse<CheerPost>> => {
     const { page = 0, size = 20, algorithm } = params;
     const searchParams = new URLSearchParams({
         page: page.toString(),
@@ -192,7 +196,7 @@ export const fetchHotPosts = async (params: FetchHotPostsParams = {}): Promise<P
     if (algorithm) {
         searchParams.append('algorithm', algorithm);
     }
-    const response = await api.get(`/cheer/posts/hot?${searchParams.toString()}`);
+    const response = await api.get(`/cheer/posts/hot?${searchParams.toString()}`, requestConfig);
     return transformPostPage(response.data);
 };
 

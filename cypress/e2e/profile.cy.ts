@@ -92,6 +92,15 @@ describe('Public User Profile Page', () => {
         cy.contains(/팔로우|Following|Follow/i).should('be.visible');
     });
 
+    it('replaces the disabled message action with a working posts CTA', () => {
+        cy.wait('@getFollowCounts');
+        cy.get('[data-testid="profile-posts-cta"]')
+            .should('be.visible')
+            .and('not.be.disabled')
+            .and('contain.text', '작성글 보기');
+        cy.contains('메시지 기능은 준비 중입니다.').should('be.visible');
+    });
+
     it('displays bio text', () => {
         cy.contains('안녕하세요! 야구를 사랑합니다.').should('be.visible');
     });

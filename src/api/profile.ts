@@ -349,6 +349,7 @@ export async function checkNicknameAvailability(name: string): Promise<NicknameC
   try {
     const response = await api.get<{ success: boolean; message?: string; data?: unknown }>(`/auth/check-name`, {
       params: { name },
+      skipGlobalErrorHandler: true,
     });
 
     if (!response.data.success) {
@@ -368,6 +369,22 @@ export async function checkNicknameAvailability(name: string): Promise<NicknameC
       message: response.data.message || '사용 여부를 확인할 수 없습니다.',
     };
   } catch (error: unknown) {
+    if (error instanceof AxiosError) {
+      const status = error.response?.status ?? null;
+      const data = error.response?.data as { message?: string; data?: unknown } | undefined;
+      if (status === 400 || status === 409) {
+        const payload = data?.data;
+        if (isNicknameCheckResponse(payload)) {
+          return payload;
+        }
+
+        return {
+          available: false,
+          message: data?.message || '현재 닉네임을 사용할 수 없습니다.',
+        };
+      }
+    }
+
     throw new Error(getApiErrorMessage(error, '닉네임 중복 확인에 실패했습니다.'));
   }
 }

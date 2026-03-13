@@ -56,7 +56,7 @@ function CommentItemComponent({
   const isReplyOpen = activeReplyId === comment.id;
   const isCommentLiked = Boolean(comment.likedByMe);
   const isCommentLikeAnimating = Boolean(commentLikeAnimating[comment.id]);
-  const showReplyAction = canInteract && repliesEnabled;
+  const showReplyAction = canInteract && repliesEnabled && !repliesComingSoon;
   const canDeleteComment = Boolean(
     onDelete &&
     normalizeHandle(userHandle) &&
@@ -134,19 +134,11 @@ function CommentItemComponent({
             </button>
             {showReplyAction && (
               <button
-                onClick={() => !repliesComingSoon && onReplyToggle(comment.id)}
-                disabled={!canInteract || repliesComingSoon}
-                className={`flex items-center gap-1.5 transition-colors ${repliesComingSoon
-                  ? 'cursor-not-allowed text-gray-400 dark:text-gray-300'
-                  : 'hover:text-gray-700 dark:hover:text-gray-300 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600'
-                  }`}
+                onClick={() => onReplyToggle(comment.id)}
+                disabled={!canInteract}
+                className="flex items-center gap-1.5 transition-colors hover:text-gray-700 dark:hover:text-gray-300 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600"
               >
                 답글 달기
-                {repliesComingSoon && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-200 dark:bg-secondary text-gray-500 dark:text-gray-300">
-                    준비 중
-                  </span>
-                )}
               </button>
             )}
           </div>

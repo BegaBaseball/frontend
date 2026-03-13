@@ -30,7 +30,6 @@ import { useAuthAccessActions } from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '../../utils/errorUtils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { type DeviceSessionItem, type SecurityEventItem, type TrustedDeviceItem } from '../../types/profile';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import VerificationRequiredDialog from '../VerificationRequiredDialog';
@@ -41,7 +40,7 @@ interface AccountSettingsSectionProps {
 }
 
 const DELETE_CONFIRM_TEXT = '정말로 삭제하시겠습니까?';
-const LAST_METHOD_TOOLTIP = '최소 1개의 로그인 수단이 필요하여 해제할 수 없습니다.';
+const LAST_METHOD_TOOLTIP = '현재 로그인 중인 유일한 수단이라 해제할 수 없습니다.';
 const deletePasswordInputClass = 'auth-autofill-input pr-10';
 
 type ProviderKey = 'google' | 'kakao' | 'naver';
@@ -383,7 +382,8 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
     const connectedEmail = getConnectedEmail(provider.key);
     const disabled = isLastLoginMethod(provider.key, isConnected);
     const isButtonDisabled = unlinkMutation.isPending || isProvidersLoading || (!isConnected ? isLinking : disabled);
-  const button = (
+    const helperTextId = `${provider.key}-provider-helper`;
+    const button = (
       <Button
         variant="outline"
         size="sm"
@@ -396,12 +396,20 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
           handleLinkAccount(provider.key);
         }}
         className="h-9 px-3"
+        aria-describedby={disabled && isConnected ? helperTextId : undefined}
       >
         {isConnected ? (
-          <>
-            <Unlink className="w-4 h-4 mr-2" />
-            연동 해제
-          </>
+          disabled ? (
+            <>
+              <ShieldAlert className="w-4 h-4 mr-2" />
+              현재 로그인 방식
+            </>
+          ) : (
+            <>
+              <Unlink className="w-4 h-4 mr-2" />
+              연동 해제
+            </>
+          )
         ) : (
           <>
             <Link className="w-4 h-4 mr-2" />
@@ -409,21 +417,6 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
           </>
         )}
       </Button>
-    );
-
-    const actionButton = disabled && isConnected ? (
-      <TooltipProvider delayDuration={0}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="inline-flex">{button}</span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{LAST_METHOD_TOOLTIP}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    ) : (
-      button
     );
 
     return (
@@ -447,9 +440,17 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
                   3초 만에 연결하고 로그인 편하게 하기
                 </p>
               )}
+              {disabled && isConnected && (
+                <p
+                  id={helperTextId}
+                  className="mt-2 text-xs text-amber-700 dark:text-amber-300"
+                >
+                  {LAST_METHOD_TOOLTIP}
+                </p>
+              )}
             </div>
           </div>
-          {actionButton}
+          {button}
         </div>
       </div>
     );

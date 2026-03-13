@@ -38,6 +38,7 @@ import { uploadChatImage, updateChatReadTimestamp } from '../api/mate';
 import { Application, ChatMessage } from '../types/mate';
 import { cn } from '../lib/utils';
 import { api, getApiErrorStatus } from '../utils/api';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import {
   getPartyFlowLabel,
   getPartyStatusMeta,
@@ -437,11 +438,11 @@ export default function MateChat() {
           <Card className={`p-6 ${mateSectionCardClass}`}>
             <Alert className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/25">
               <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              <AlertDescription className="text-red-700 dark:text-red-300">
+            <AlertDescription className="text-red-700 dark:text-red-300">
                 로그인이 필요합니다. 로그인 후 이용해주세요.
               </AlertDescription>
             </Alert>
-            <Button onClick={() => { window.location.href = '/login'; }} className="mt-4 w-fit">
+            <Button onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))} className="mt-4 w-fit">
               로그인하기
             </Button>
           </Card>
