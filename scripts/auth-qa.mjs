@@ -346,6 +346,28 @@ const navigateAndWait = async (client, url, waitMs = 2500) => {
   await delay(waitMs);
 };
 
+const waitForDocumentReady = async (client, timeoutMs = 8000) => evaluateJson(client, `
+  new Promise((resolve) => {
+    const deadline = Date.now() + ${timeoutMs};
+
+    const check = () => {
+      if (document.readyState === 'complete') {
+        resolve(JSON.stringify({ ready: true }));
+        return;
+      }
+
+      if (Date.now() >= deadline) {
+        resolve(JSON.stringify({ ready: false, readyState: document.readyState }));
+        return;
+      }
+
+      setTimeout(check, 50);
+    };
+
+    check();
+  })
+`, true).then((result) => result.ready === true);
+
 const waitForSelectors = async (client, selectors, timeoutMs = 5000) => {
   const selectorList = selectors.filter(Boolean);
   if (selectorList.length === 0) {
@@ -364,17 +386,54 @@ const waitForSelectors = async (client, selectors, timeoutMs = 5000) => {
           return;
         }
 
-        if (Date.now() >= deadline) {
-          resolve(JSON.stringify({ ready: false }));
-          return;
-        }
+      if (Date.now() >= deadline) {
+        resolve(JSON.stringify({ ready: false }));
+        return;
+      }
 
-        requestAnimationFrame(check);
-      };
+      setTimeout(check, 50);
+    };
 
-      check();
-    })
+    check();
+  })
   `, true).then((result) => result.ready === true);
+};
+
+const ensurePageReady = async (client, selectors, description, timeoutMs = 8000) => {
+  const isReady = async () => {
+    const documentReady = await waitForDocumentReady(client, timeoutMs);
+    const selectorsReady = await waitForSelectors(client, selectors, timeoutMs);
+    return documentReady && selectorsReady;
+  };
+
+  if (await isReady()) {
+    return;
+  }
+
+  await client.send('Page.reload');
+  await delay(1500);
+
+  if (await isReady()) {
+    return;
+  }
+
+  const diagnostics = await evaluateJson(client, `
+    (() => {
+      const selectors = ${JSON.stringify(selectors.filter(Boolean))};
+
+      return JSON.stringify({
+        path: location.pathname + location.search,
+        title: document.title,
+        readyState: document.readyState,
+        selectors: selectors.map((selector) => ({
+          selector,
+          found: !!document.querySelector(selector),
+        })),
+      });
+    })()
+  `);
+
+  throw new Error(`${description}: required selectors did not become ready.\n${JSON.stringify(diagnostics)}`);
 };
 
 const pressTab = async (client) => {
@@ -537,12 +596,12 @@ const main = async () => {
       });
 
       await navigateAndWait(client, `${args.baseUrl}/login`);
-      await waitForSelectors(client, [
+      await ensurePageReady(client, [
         '[data-testid="auth-shell"]',
         '.auth-stage-grid',
         '[data-testid="auth-hero-panel"]',
         '[data-testid="login-submit"]',
-      ]);
+      ], `${testCase.label} login viewport`);
       responsive[testCase.label] = await evaluateJson(client, `
         (() => {
           const stageGrid = document.querySelector('.auth-stage-grid');
@@ -585,11 +644,11 @@ const main = async () => {
     const routes = {};
     for (const routeCase of routeCases) {
       await navigateAndWait(client, `${args.baseUrl}${routeCase.path}`);
-      await waitForSelectors(client, [
+      await ensurePageReady(client, [
         '[data-testid="auth-shell"]',
         '[data-testid="auth-form-panel"]',
         '[data-slot="auth-header"]',
-      ]);
+      ], `${routeCase.label} route`);
       routes[routeCase.label] = await evaluateJson(client, `
         JSON.stringify({
           path: location.pathname,
@@ -607,10 +666,10 @@ const main = async () => {
     }
 
     await navigateAndWait(client, `${args.baseUrl}/login`);
-    await waitForSelectors(client, [
+    await ensurePageReady(client, [
       '[data-testid="auth-shell"]',
       '[data-testid="auth-home-button"]',
-    ]);
+    ], 'focus smoke');
     await pressTab(client);
     const focus = await evaluateJson(client, `
       (() => {
@@ -628,7 +687,7 @@ const main = async () => {
     `);
 
     await navigateAndWait(client, `${args.baseUrl}/login?redirect=%2Fprediction%3Fdate%3D2026-03-12`);
-    await waitForSelectors(client, ['[data-testid="auth-home-button"]']);
+    await ensurePageReady(client, ['[data-testid="auth-home-button"]'], 'home button navigation');
     const homeNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="auth-home-button"]')?.click();
@@ -639,7 +698,7 @@ const main = async () => {
     `, true);
 
     await navigateAndWait(client, `${args.baseUrl}/login?redirect=%2Fprediction%3Fdate%3D2026-03-12`);
-    await waitForSelectors(client, ['[data-testid="login-signup-link"]']);
+    await ensurePageReady(client, ['[data-testid="login-signup-link"]'], 'login to signup navigation');
     const signupNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="login-signup-link"]')?.click();
@@ -650,7 +709,7 @@ const main = async () => {
     `, true);
 
     await navigateAndWait(client, `${args.baseUrl}/login?redirect=%2Fprediction%3Fdate%3D2026-03-12`);
-    await waitForSelectors(client, ['[data-testid="login-password-reset-link"]']);
+    await ensurePageReady(client, ['[data-testid="login-password-reset-link"]'], 'login to password reset navigation');
     const passwordResetNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="login-password-reset-link"]')?.click();
@@ -661,7 +720,7 @@ const main = async () => {
     `, true);
 
     await navigateAndWait(client, `${args.baseUrl}/password/reset?redirect=%2Fmypage`);
-    await waitForSelectors(client, ['[data-testid="password-reset-back-link"]']);
+    await ensurePageReady(client, ['[data-testid="password-reset-back-link"]'], 'password reset back navigation');
     const resetBackNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="password-reset-back-link"]')?.click();
@@ -672,7 +731,7 @@ const main = async () => {
     `, true);
 
     await navigateAndWait(client, `${args.baseUrl}/account/deletion/recovery?redirect=%2Fmypage%3Fview%3DaccountSettings`);
-    await waitForSelectors(client, ['[data-testid="account-recovery-back-link"]']);
+    await ensurePageReady(client, ['[data-testid="account-recovery-back-link"]'], 'account recovery back navigation');
     const recoveryBackNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="account-recovery-back-link"]')?.click();
@@ -683,11 +742,11 @@ const main = async () => {
     `, true);
 
     await navigateAndWait(client, `${args.baseUrl}/login`);
-    await waitForSelectors(client, [
+    await ensurePageReady(client, [
       '[data-testid="auth-home-button"]',
       '[data-testid="login-submit"]',
       '[data-testid="login-social-google"]',
-    ]);
+    ], 'reduced motion auth smoke');
     await client.send('Emulation.setEmulatedMedia', {
       features: [
         { name: 'prefers-reduced-motion', value: 'reduce' },
@@ -695,6 +754,11 @@ const main = async () => {
     });
     await client.send('Page.reload');
     await delay(2500);
+    await ensurePageReady(client, [
+      '[data-testid="auth-home-button"]',
+      '[data-testid="login-submit"]',
+      '[data-testid="login-social-google"]',
+    ], 'reduced motion auth reload');
 
     const reducedMotion = await evaluateJson(client, `
       (() => {
@@ -849,25 +913,29 @@ const main = async () => {
   }
 };
 
-main().catch((error) => {
-  const reportPath = join(args.outDir, 'auth-report.json');
-  if (!existsSync(reportPath)) {
-    const report = {
-      generatedAt: new Date().toISOString(),
-      baseUrl: args.baseUrl,
-      artifacts: getArtifactPaths(args.outDir),
-      responsive: {},
-      routes: {},
-      pass: false,
-      failures: [error.message],
-      navigation: null,
-      focus: null,
-      reducedMotion: null,
-      errorMessage: error.message,
-    };
-    writeReportArtifacts(report);
-  }
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    const reportPath = join(args.outDir, 'auth-report.json');
+    if (!existsSync(reportPath)) {
+      const report = {
+        generatedAt: new Date().toISOString(),
+        baseUrl: args.baseUrl,
+        artifacts: getArtifactPaths(args.outDir),
+        responsive: {},
+        routes: {},
+        pass: false,
+        failures: [error.message],
+        navigation: null,
+        focus: null,
+        reducedMotion: null,
+        errorMessage: error.message,
+      };
+      writeReportArtifacts(report);
+    }
 
-  console.error(`[auth-qa] ${error.message}`);
-  process.exit(1);
-});
+    console.error(`[auth-qa] ${error.message}`);
+    process.exit(1);
+  });
