@@ -122,7 +122,7 @@ export default function MateCheckIn() {
       if (authUserId && authUserId > 0) {
         if (isMounted) {
           setCurrentUserId(authUserId);
-          setCurrentUserHandle(authUserHandle);
+          setCurrentUserHandle(authUserHandle || null);
           setIsLoadingUser(false);
         }
         return;

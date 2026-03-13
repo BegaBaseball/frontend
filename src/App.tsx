@@ -6,6 +6,7 @@ import {
   useAuthDialogState,
   useAuthProfileActions,
   useAuthProfileSnapshot,
+  useAuthRedirectState,
   useAuthSession,
 } from './store/authStore';
 import { useTheme } from './hooks/useTheme';
@@ -18,13 +19,24 @@ import { ConfirmDialogProvider } from './components/contexts/ConfirmDialogContex
 import GlobalErrorDialog from './components/GlobalErrorDialog';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import { installGlobalErrorListeners, setClientErrorReporterUserContext } from './utils/clientErrorReporter';
 import chatBotIcon from './assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import LeaderboardPage from './pages/LeaderboardPage';
+import { buildLoginPath } from './utils/loginRedirect';
+
+// DEV-only chaos hook: ErrorBoundary를 테스트하기 위한 의도적 렌더링 에러
+// import.meta.env.DEV 조건으로 프로덕션 번들에 포함되지 않음
+function ChaosRenderError() {
+  if (new URLSearchParams(window.location.search).get('chaos') === 'render-error') {
+    throw new Error('chaos-test-render-error');
+  }
+  return null;
+}
 
 // 페이지 컴포넌트를 lazy loading
 const Home = lazy(() => import('./components/Home'));
 const OffSeasonHome = lazy(() => import('./components/OffSeasonHome'));
-const OffSeasonList = lazy(() => import('./components/OffSeasonList.tsx'));
+const OffSeasonList = lazy(() => import('./components/OffSeasonList'));
 const Login = lazy(() => import('./components/Login'));
 const SignUp = lazy(() => import('./components/SignUp'));
 const PasswordReset = lazy(() => import('./components/PasswordReset'));
@@ -116,12 +128,13 @@ const PredictionQueryGuard = () => {
 function ProtectedRoute() {
   const { isLoggedIn, isAuthLoading } = useAuthSession();
   const { requireLogin } = useAuthAccessActions();
+  const location = useLocation();
 
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
-      requireLogin();
+      requireLogin(`${location.pathname}${location.search}${location.hash}`);
     }
-  }, [isAuthLoading, isLoggedIn, requireLogin]);
+  }, [isAuthLoading, isLoggedIn, location.hash, location.pathname, location.search, requireLogin]);
 
   if (isAuthLoading) {
     return (
@@ -146,9 +159,10 @@ function AdminRoute() {
   const { isLoggedIn } = useAuthSession();
   const { userRole } = useAuthProfileSnapshot();
   const isAdmin = isAdminRole(userRole);
+  const location = useLocation();
 
   if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={buildLoginPath(`${location.pathname}${location.search}${location.hash}`)} replace />;
   }
 
   if (!isAdmin) {
@@ -175,17 +189,25 @@ function ThemeBodySync() {
 
 export default function App() {
   const { fetchProfileAndAuthenticate } = useAuthProfileActions();
+  const { userId } = useAuthProfileSnapshot();
   const { isLoggedIn } = useAuthSession();
   const { logout, requireLogin } = useAuthAccessActions();
   const { showLoginRequiredDialog, setShowLoginRequiredDialog } = useAuthDialogState();
+  const { pendingLoginRedirect, clearPendingLoginRedirect } = useAuthRedirectState();
   const [isChatBotRequested, setIsChatBotRequested] = useState(false);
+
+  useEffect(() => {
+    setClientErrorReporterUserContext({ userId });
+  }, [userId]);
+
+  useEffect(() => installGlobalErrorListeners(), []);
 
   useEffect(() => {
     fetchProfileAndAuthenticate();
   }, [fetchProfileAndAuthenticate]);
 
   useEffect(() => {
-      const handleSessionExpired = () => {
+    const handleSessionExpired = () => {
       logout(true);
       requireLogin();
       // Optional: Show a toast or dialog saying "Session expired"
@@ -196,13 +218,13 @@ export default function App() {
   }, [logout, requireLogin]);
 
   useEffect(() => {
-      const handleInvalidAuthor = (event: Event) => {
-        const customEvent = event as CustomEvent;
-        const detail = customEvent.detail as { responseCode?: string } | undefined;
-        if (detail?.responseCode === 'INVALID_AUTHOR') {
-          requireLogin();
-        }
-      };
+    const handleInvalidAuthor = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const detail = customEvent.detail as { responseCode?: string } | undefined;
+      if (detail?.responseCode === 'INVALID_AUTHOR') {
+        requireLogin();
+      }
+    };
 
     window.addEventListener('global-api-error', handleInvalidAuthor);
     return () => window.removeEventListener('global-api-error', handleInvalidAuthor);
@@ -234,8 +256,9 @@ export default function App() {
   }, []);
 
   return (
-        <ErrorBoundary>
-        <ErrorModalProvider>
+    <ErrorBoundary>
+      {import.meta.env.DEV && <ChaosRenderError />}
+      <ErrorModalProvider>
         <ConfirmDialogProvider>
           <BrowserRouter>
             <ThemeBodySync />
@@ -301,7 +324,7 @@ export default function App() {
                 </Route>
 
                 {/* Test Route */}
-                <Route path="/test/error" element={<TestError />} />
+              {import.meta.env.DEV && <Route path="/test/error" element={<TestError />} />}
 
                 {/* 404 처리 */}
                 <Route path="*" element={<Navigate to="/" replace />} />
@@ -348,7 +371,14 @@ export default function App() {
             <GlobalErrorDialog />
             <LoginRequiredDialog
               open={showLoginRequiredDialog}
-              onOpenChange={setShowLoginRequiredDialog}
+              onOpenChange={(open) => {
+                if (!open) {
+                  clearPendingLoginRedirect();
+                }
+                setShowLoginRequiredDialog(open);
+              }}
+              onCancel={clearPendingLoginRedirect}
+              redirectPath={pendingLoginRedirect}
             />
           </BrowserRouter>
         </ConfirmDialogProvider>

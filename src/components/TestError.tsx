@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import api from '../api/axios';
 import { Button } from './ui/button';
 
+function RenderCrash() {
+    throw new Error('Test render crash for ErrorBoundary');
+}
+
 export default function TestError() {
+    const [shouldCrashOnRender, setShouldCrashOnRender] = useState(false);
+    const isDev = import.meta.env.DEV;
+
     const triggerError = async (status: number) => {
         try {
             // Intentionally calling non-existent endpoints or mocking status
@@ -56,10 +63,19 @@ export default function TestError() {
         }));
     };
 
+    if (shouldCrashOnRender) {
+        return <RenderCrash />;
+    }
+
     return (
         <div className="p-8 space-y-4">
             <h1 className="text-2xl font-bold">Global Error Handler Test</h1>
             <div className="flex flex-wrap gap-4">
+                {isDev && (
+                    <Button onClick={() => setShouldCrashOnRender(true)} variant="destructive">
+                        Trigger Render Crash
+                    </Button>
+                )}
                 <Button onClick={() => triggerError(404)} variant="destructive">
                     Trigger Real 404 (Axios)
                 </Button>

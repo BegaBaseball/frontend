@@ -8,6 +8,7 @@ import { useAuthSession } from '../store/authStore';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 
 // 도구 이름 한국어 매핑 (null이면 UI에서 숨김)
@@ -231,6 +232,14 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
     };
   }, []);
 
+  const handleNavigateToLogin = () => {
+    const loginPath = buildLoginPath(getCurrentRelativeUrl());
+    handleClose();
+    window.setTimeout(() => {
+      navigate(loginPath);
+    }, 300);
+  };
+
   const handleCopyMessage = async (text: string, index: number) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -405,14 +414,15 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
                 <div className="text-center p-6 rounded-2xl bg-gray-100 dark:bg-card/50 border border-gray-300 dark:border-white/10">
                   <h3 className="text-gray-900 dark:text-white font-bold mb-2">로그인이 필요합니다</h3>
                   <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
-                  <a
-                    href="/login"
+                  <button
+                    type="button"
+                    onClick={handleNavigateToLogin}
                     className="inline-block py-2.5 px-6 rounded-xl text-gray-900 dark:text-white bg-gray-200 dark:bg-white/10
                                border border-gray-300 dark:border-white/20 no-underline font-medium
                                hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
                   >
                     로그인하러 가기
-                  </a>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -565,96 +575,111 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
           )}
 
           {/* Input */}
-          <form
-            onSubmit={handleSendMessage}
-            className="p-4 border-t border-gray-200 dark:border-white/10"
-          >
-            <div className={`
-              flex items-center gap-2 bg-gray-100 dark:bg-background rounded-2xl p-2 border border-gray-300 dark:border-white/10
-              transition-colors duration-200
-              ${isProcessing ? 'border-primary/50 bg-gray-100 dark:bg-background/80' : 'focus-within:border-primary focus-within:bg-gray-50 dark:focus-within:bg-black'}
-            `}>
-              <label htmlFor="chatbot-message-input" className="sr-only">
-                메시지 입력
-              </label>
-              <input
-                id="chatbot-message-input"
-                ref={inputRef}
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder={!isLoggedIn ? '로그인이 필요합니다...' : (isProcessing ? '답변을 기다리는 중...' : '메시지를 입력하세요...')}
-                disabled={!isLoggedIn}
-                inputMode="text"
-                autoComplete="off"
-                className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white text-sm py-2 px-1
-                           placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:cursor-not-allowed"
-              />
-              <button
-                type="submit"
-                disabled={!isLoggedIn || isProcessing || isRateLimited || !inputMessage.trim()}
-                className={`
-                  bg-primary text-white border-none rounded-xl p-2
-                  ${(!isLoggedIn || isProcessing || isRateLimited || !inputMessage.trim()) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-[#3d7f6f]'}
-                  transition-colors
-                  min-w-[40px] min-h-[40px] flex items-center justify-center
-                `}
-                aria-label="메시지 전송"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-            {rateLimitActive && rateLimitCopy && (
-              <div
-                aria-live="assertive"
-                aria-atomic="true"
-                role="status"
-                className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100"
-              >
-                <p className="m-0">
-                  {rateLimitCopy.main}
-                </p>
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-amber-800 dark:text-amber-100">
-                    {rateLimitCopy.guide}
-                  </span>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleRetrySend}
-                      disabled={rateLimitCountdown > 0}
-                      className={`
-                        rounded-lg px-3 py-1 text-xs font-semibold
-                        ${rateLimitCountdown > 0
-                          ? 'cursor-not-allowed bg-amber-100 text-amber-500 dark:bg-amber-400/20 dark:text-amber-200'
-                          : 'bg-primary text-white hover:bg-[#3d7f6f]'
-                        }
-                        transition-colors
-                      `}
-                    >
-                      {rateLimitCountdown > 0
-                        ? `${rateLimitCountdown}초 후 ${rateLimitCopy.buttonBase}`
-                        : `지금 ${rateLimitCopy.buttonBase}`}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleRestorePendingMessage}
-                      disabled={!pendingMessage.trim()}
-                      className={`
-                        rounded-lg border border-amber-200 px-3 py-1 text-xs font-semibold
-                        ${pendingMessage.trim().length > 0
-                          ? 'text-amber-900 hover:bg-amber-100 dark:border-amber-200/40 dark:text-amber-100 dark:hover:bg-amber-400/10'
-                          : 'cursor-not-allowed text-amber-300 dark:text-amber-300/60'
-                        }
-                        transition-colors
-                      `}
-                    >
-                      메시지 복구
-                    </button>
+          {isLoggedIn ? (
+            <form
+              onSubmit={handleSendMessage}
+              className="p-4 border-t border-gray-200 dark:border-white/10"
+            >
+              <div className={`
+                flex items-center gap-2 bg-gray-100 dark:bg-background rounded-2xl p-2 border border-gray-300 dark:border-white/10
+                transition-colors duration-200
+                ${isProcessing ? 'border-primary/50 bg-gray-100 dark:bg-background/80' : 'focus-within:border-primary focus-within:bg-gray-50 dark:focus-within:bg-black'}
+              `}>
+                <label htmlFor="chatbot-message-input" className="sr-only">
+                  메시지 입력
+                </label>
+                <input
+                  id="chatbot-message-input"
+                  ref={inputRef}
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder={isProcessing ? '답변을 기다리는 중...' : '메시지를 입력하세요...'}
+                  inputMode="text"
+                  autoComplete="off"
+                  className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white text-sm py-2 px-1
+                             placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                />
+                <button
+                  type="submit"
+                  disabled={isProcessing || isRateLimited || !inputMessage.trim()}
+                  className={`
+                    bg-primary text-white border-none rounded-xl p-2
+                    ${(isProcessing || isRateLimited || !inputMessage.trim()) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-[#3d7f6f]'}
+                    transition-colors
+                    min-w-[40px] min-h-[40px] flex items-center justify-center
+                  `}
+                  aria-label="메시지 전송"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+              {rateLimitActive && rateLimitCopy && (
+                <div
+                  aria-live="assertive"
+                  aria-atomic="true"
+                  role="status"
+                  className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100"
+                >
+                  <p className="m-0">
+                    {rateLimitCopy.main}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-amber-800 dark:text-amber-100">
+                      {rateLimitCopy.guide}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleRetrySend}
+                        disabled={rateLimitCountdown > 0}
+                        className={`
+                          rounded-lg px-3 py-1 text-xs font-semibold
+                          ${rateLimitCountdown > 0
+                            ? 'cursor-not-allowed bg-amber-100 text-amber-500 dark:bg-amber-400/20 dark:text-amber-200'
+                            : 'bg-primary text-white hover:bg-[#3d7f6f]'
+                          }
+                          transition-colors
+                        `}
+                      >
+                        {rateLimitCountdown > 0
+                          ? `${rateLimitCountdown}초 후 ${rateLimitCopy.buttonBase}`
+                          : `지금 ${rateLimitCopy.buttonBase}`}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRestorePendingMessage}
+                        disabled={!pendingMessage.trim()}
+                        className={`
+                          rounded-lg border border-amber-200 px-3 py-1 text-xs font-semibold
+                          ${pendingMessage.trim().length > 0
+                            ? 'text-amber-900 hover:bg-amber-100 dark:border-amber-200/40 dark:text-amber-100 dark:hover:bg-amber-400/10'
+                            : 'cursor-not-allowed text-amber-300 dark:text-amber-300/60'
+                          }
+                          transition-colors
+                        `}
+                      >
+                        메시지 복구
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </form>
+              )}
+            </form>
+          ) : (
+            <div className="border-t border-gray-200 bg-gray-50/90 p-4 dark:border-white/10 dark:bg-black/20">
+              <button
+                type="button"
+                data-testid="chatbot-login-cta-footer"
+                onClick={handleNavigateToLogin}
+                className="flex w-full items-center justify-center rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3d7f6f]"
+              >
+                로그인 후 질문하기
+              </button>
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                경기 정보, 규정, 선수 기록 질문을 로그인 후 바로 이어서 확인할 수 있습니다.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

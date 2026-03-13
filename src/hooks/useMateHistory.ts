@@ -9,7 +9,7 @@ import type { AxiosError } from 'axios';
 
 export const useMateHistory = (tab: MateHistoryTab) => {
   const { isLoggedIn, isAuthLoading, userId } = useAuthSession();
-  const canLoadMyParties = isLoggedIn && !isAuthLoading && userId > 0;
+  const canLoadMyParties = isLoggedIn && !isAuthLoading && userId !== null && userId > 0;
 
   // ========== Fetch My Parties ==========
   const {

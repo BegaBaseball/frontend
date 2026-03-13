@@ -601,9 +601,12 @@ export default function Prediction() {
               <TrendingUp className="w-8 h-8 text-rose-500 dark:text-rose-300" />
             </div>
             <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
-              {matchesLoadErrorMessage || '예측 경기 데이터를 불러오지 못했습니다.'}
+              예측 경기 데이터를 불러오지 못했습니다.
             </h3>
             <p className="text-slate-500 dark:text-gray-300">
+              {matchesLoadErrorMessage || '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'}
+            </p>
+            <p className="mt-2 text-sm text-slate-400 dark:text-gray-400">
               잠시 후 다시 시도하거나 새로고침해 주세요.
             </p>
             <Button
@@ -751,7 +754,7 @@ export default function Prediction() {
                                 <p className="text-sm text-amber-800/90 dark:text-amber-100/80 mt-1">
                                   {currentGame.awayTeam} - {currentGame.homeTeam} · {formatDate(currentDate)} · {gameStatus.statusLabel}
                                 </p>
-                                <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-2">오류: {currentGameDetailError}</p>
+                                <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-2">{currentGameDetailError}</p>
                               </div>
 
                               <div className="grid grid-cols-2 gap-3">

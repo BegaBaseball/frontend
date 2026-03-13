@@ -185,7 +185,8 @@ describe('MateDetail state coverage', () => {
 
     getDesktopActionCard().scrollIntoView().within(() => {
       cy.contains('승인 대기').should('exist');
-      cy.contains('승인 대기 중...').should('exist');
+      cy.get('[data-testid="mate-pending-status"]').should('be.visible');
+      cy.contains('신청이 접수되었습니다.').should('exist');
       cy.contains('신청 취소').should('exist');
     });
   });

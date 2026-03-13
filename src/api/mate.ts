@@ -1,4 +1,5 @@
 import type { Application, Party } from '../types/mate';
+import type { AxiosRequestConfig } from 'axios';
 import api from './axios';
 import { compressImage } from '../utils/imageCompression';
 import { mapBackendPartyToFrontend } from '../utils/mate';
@@ -51,8 +52,8 @@ export async function fetchCurrentUser() {
 /**
  * 전체 파티 목록 조회 (페이징 - 최대 1000개)
  */
-export async function fetchAllParties(): Promise<Party[]> {
-  const response = await api.get<ListPayload<BackendPartyDTO> | BackendPartyDTO[]>(`/parties?page=0&size=1000`);
+export async function fetchAllParties(requestConfig: AxiosRequestConfig = {}): Promise<Party[]> {
+  const response = await api.get<ListPayload<BackendPartyDTO> | BackendPartyDTO[]>(`/parties?page=0&size=1000`, requestConfig);
 
   if (!response.data) {
     throw new Error('파티 목록 조회 실패');
@@ -128,7 +129,10 @@ export async function uploadChatImage(file: File): Promise<{ path: string; url?:
  */
 export async function updateChatReadTimestamp(partyId: number | string): Promise<void> {
   try {
-    await api.post(`/chat/party/${partyId}/read`);
+    await api.post(`/chat/party/${partyId}/read`, undefined, {
+      skipGlobalErrorHandler: true,
+      skipErrorReporting: true,
+    });
   } catch (error) {
     console.error('채팅 읽음 처리 실패:', error);
     // 읽음 처리는 백그라운드로 조용히 실패해도 무방함
@@ -142,6 +146,7 @@ export async function getChatUnreadCounts(): Promise<number> {
   try {
     const response = await api.get<{ success?: boolean; data?: number }>('/chat/my/unread-counts', {
       skipGlobalErrorHandler: true,
+      skipErrorReporting: true,
     });
 
     const payload = response.data;

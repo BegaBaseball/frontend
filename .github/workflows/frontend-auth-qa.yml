@@ -55,9 +55,91 @@ jobs:
           if [[ -f "output/auth-qa/auth-summary.md" ]]; then
             cat "output/auth-qa/auth-summary.md" >> "${GITHUB_STEP_SUMMARY}"
           elif [[ -f "output/auth-qa/auth-report.json" ]]; then
-            echo '```json' >> "${GITHUB_STEP_SUMMARY}"
-            cat "output/auth-qa/auth-report.json" >> "${GITHUB_STEP_SUMMARY}"
-            echo '```' >> "${GITHUB_STEP_SUMMARY}"
+            node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+            const fs = require('fs');
+
+            const report = JSON.parse(fs.readFileSync('output/auth-qa/auth-report.json', 'utf8'));
+            const lines = [
+              `- Result: ${report.pass ? 'PASS' : 'FAIL'}`,
+              `- Base URL: ${report.baseUrl}`,
+            ];
+
+            const responsiveEntries = Object.entries(report.responsive || {});
+            if (responsiveEntries.length > 0) {
+              lines.push(
+                '',
+                '| Viewport | Width | Columns | Home CTA | Submit | Kakao | Google | Naver |',
+                '| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |',
+              );
+
+              for (const [label, metric] of responsiveEntries) {
+                lines.push(`| ${label} | ${metric.viewport.width}px | ${metric.stageColumns} | ${metric.homeButtonVisible ? 'shown' : 'hidden'} | ${metric.loginSubmitHeight ?? '-'} | ${metric.kakaoHeight ?? '-'} | ${metric.googleHeight ?? '-'} | ${metric.naverHeight ?? '-'} |`);
+              }
+            }
+
+            const routeEntries = Object.entries(report.routes || {});
+            if (routeEntries.length > 0) {
+              lines.push('', '| Route | Path | Header | Submit | Status |', '| --- | --- | --- | ---: | --- |');
+              for (const [label, metric] of routeEntries) {
+                lines.push(`| ${label} | ${metric.path} | ${metric.header ?? '-'} | ${metric.submitHeight ?? '-'} | ${metric.statusText ?? '-'} |`);
+              }
+            }
+
+            if (report.navigation?.home) {
+              lines.push(
+                '',
+                '**Navigation**',
+                `- Home CTA: ${report.navigation.home.path}${report.navigation.home.search}`,
+                `- Login -> Signup: ${report.navigation.signup.path}${report.navigation.signup.search}`,
+                `- Login -> Reset: ${report.navigation.passwordReset.path}${report.navigation.passwordReset.search}`,
+                `- Reset -> Login: ${report.navigation.resetBack.path}${report.navigation.resetBack.search}`,
+                `- Recovery -> Login: ${report.navigation.recoveryBack.path}${report.navigation.recoveryBack.search}`,
+              );
+            }
+
+            if (report.focus?.testId || report.reducedMotion?.submitTransition) {
+              lines.push(
+                '',
+                '**Accessibility Smoke**',
+                `- Focus target: ${report.focus?.testId ?? '-'}`,
+                `- Focus style: outline ${report.focus?.outlineWidth ?? '-'} ${report.focus?.outlineStyle ?? '-'}, shadow ${report.focus?.boxShadow ?? '-'}`,
+                `- Reduced motion submit: ${report.reducedMotion?.submitTransition ?? '-'}`,
+                `- Reduced motion provider: ${report.reducedMotion?.providerTransition ?? '-'}`,
+                `- Reduced motion back link: ${report.reducedMotion?.backLinkTransition ?? '-'}`,
+              );
+            }
+
+            if (report.errorMessage) {
+              lines.push('', '**Error**', `- ${report.errorMessage}`);
+            }
+
+            if (report.failures?.length) {
+              lines.push('', '**Failures**');
+              for (const failure of report.failures) {
+                lines.push(`- ${failure}`);
+              }
+            }
+
+            if (report.cleanupWarnings?.length) {
+              lines.push('', '**Cleanup Warnings**');
+              for (const warning of report.cleanupWarnings) {
+                lines.push(`- ${warning}`);
+              }
+            }
+
+            if (report.readinessDiagnostics?.length) {
+              lines.push('', '**Readiness Diagnostics**');
+              for (const diagnostic of report.readinessDiagnostics) {
+                const missingSelectors = (diagnostic.selectors || [])
+                  .filter((selector) => !selector.found)
+                  .map((selector) => selector.selector);
+                const missingText = missingSelectors.length > 0 ? missingSelectors.join(', ') : 'none';
+                lines.push(`- ${diagnostic.description}: ${diagnostic.path} (readyState=${diagnostic.readyState}, missing=${missingText})`);
+              }
+            }
+
+            console.log(lines.join('\n'));
+            NODE
           else
             echo "auth-summary.md not found" >> "${GITHUB_STEP_SUMMARY}"
           fi

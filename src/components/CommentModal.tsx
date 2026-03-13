@@ -44,7 +44,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
             : post.authorProfileImageUrl
         : null;
     const resolvedUserProfileImageUrl = userProfileImageUrl &&
-    !(userProfileImageUrl.includes('/assets/') || userProfileImageUrl.includes('/src/assets/'))
+        !(userProfileImageUrl.includes('/assets/') || userProfileImageUrl.includes('/src/assets/'))
         ? userProfileImageUrl
         : null;
 
@@ -131,7 +131,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                             {resolvedUserProfileImageUrl ? (
                                 <ProfileAvatar
                                     src={resolvedUserProfileImageUrl}
-                                    alt={userName}
+                                    alt={userName || '사용자'}
                                     fallbackName={userName}
                                     width={40}
                                     height={40}
@@ -147,7 +147,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                                     </span>
                                 ) : (
                                     <ProfileAvatar
-                                        alt={userName}
+                                        alt={userName || '사용자'}
                                         fallbackName={userName}
                                         width={40}
                                         height={40}

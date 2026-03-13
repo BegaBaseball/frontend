@@ -1,14 +1,14 @@
 
 import api from './axios';
 import {
-  COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS,
-  DEFAULT_STREAM_TIMEOUT_MS,
-  getStreamRetryDelayMs,
-  CHATBOT_STREAM_TIMEOUT_ERROR,
-  isStreamReadTimeoutError,
-  isStreamRequestTimeoutError,
-  readWithTimeout,
-  requestStream,
+    COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS,
+    DEFAULT_STREAM_TIMEOUT_MS,
+    getStreamRetryDelayMs,
+    CHATBOT_STREAM_TIMEOUT_ERROR,
+    isStreamReadTimeoutError,
+    isStreamRequestTimeoutError,
+    readWithTimeout,
+    requestStream,
 } from './stream';
 
 const COACH_ANALYZE_ENDPOINT = '/ai/coach/analyze';
@@ -471,17 +471,17 @@ export async function analyzeTeam(
                                 if (Array.isArray(parsed.used_evidence)) {
                                     usedEvidence = parsed.used_evidence
                                         .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
-                                        .map((value) => value.trim());
+                                        .map((value: string) => value.trim());
                                 }
                                 if (Array.isArray(parsed.grounding_warnings)) {
                                     groundingWarnings = parsed.grounding_warnings
                                         .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
-                                        .map((value) => value.trim());
+                                        .map((value: string) => value.trim());
                                 }
                                 if (Array.isArray(parsed.grounding_reasons)) {
                                     groundingReasons = parsed.grounding_reasons
                                         .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
-                                        .map((value) => value.trim());
+                                        .map((value: string) => value.trim());
                                 }
                                 if (typeof parsed.supported_fact_count === 'number' && Number.isFinite(parsed.supported_fact_count)) {
                                     supportedFactCount = parsed.supported_fact_count;
@@ -506,7 +506,7 @@ export async function analyzeTeam(
             }
         } catch (error) {
             if (isStreamReadTimeoutError(error)) {
-                    throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
+                throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
             }
             if (isAbortLikeError(error)) {
                 throw error instanceof Error ? error : new DOMException('aborted', 'AbortError');

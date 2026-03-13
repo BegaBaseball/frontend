@@ -209,16 +209,48 @@ const stopChild = async (child) => {
     return;
   }
 
-  child.kill('SIGINT');
-  await Promise.race([
-    new Promise((resolve) => child.once('exit', resolve)),
-    delay(2500),
-  ]);
+  const waitForExit = async (timeoutMs) => {
+    if (child.exitCode !== null) {
+      return;
+    }
+
+    try {
+      await Promise.race([
+        new Promise((resolve) => child.once('exit', resolve)),
+        delay(timeoutMs),
+      ]);
+    } catch {
+      // Ignore shutdown wait failures.
+    }
+  };
+
+  try {
+    child.kill('SIGINT');
+  } catch {
+    return;
+  }
+
+  await waitForExit(2500);
 
   if (child.exitCode === null) {
-    child.kill('SIGKILL');
+    try {
+      child.kill('SIGKILL');
+    } catch {
+      // Ignore cleanup failures after the main QA result has been determined.
+    }
+    await waitForExit(1000);
   }
 };
+
+const runCleanupStep = async (label, action, warnings) => {
+  try {
+    await action();
+  } catch (error) {
+    warnings.push(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+const getErrorMessage = (error) => (error instanceof Error ? error.message : String(error));
 
 class CDPClient {
   constructor(wsUrl) {
@@ -277,7 +309,30 @@ class CDPClient {
       return;
     }
 
-    this.socket.close();
+    const socket = this.socket;
+    this.socket = null;
+
+    if (socket.readyState === WebSocket.CLOSING || socket.readyState === WebSocket.CLOSED) {
+      await Promise.race([
+        new Promise((resolve) => socket.addEventListener('close', resolve, { once: true })),
+        delay(1000),
+      ]);
+      return;
+    }
+
+    try {
+      socket.close();
+    } catch {
+      return;
+    }
+
+    await Promise.race([
+      new Promise((resolve) => {
+        socket.addEventListener('close', resolve, { once: true });
+        socket.addEventListener('error', resolve, { once: true });
+      }),
+      delay(1000),
+    ]);
   }
 }
 
@@ -399,7 +454,7 @@ const waitForSelectors = async (client, selectors, timeoutMs = 5000) => {
   `, true).then((result) => result.ready === true);
 };
 
-const ensurePageReady = async (client, selectors, description, timeoutMs = 8000) => {
+const ensurePageReady = async (client, selectors, description, timeoutMs = 8000, diagnosticsCollector = null) => {
   const isReady = async () => {
     const documentReady = await waitForDocumentReady(client, timeoutMs);
     const selectorsReady = await waitForSelectors(client, selectors, timeoutMs);
@@ -422,6 +477,7 @@ const ensurePageReady = async (client, selectors, description, timeoutMs = 8000)
       const selectors = ${JSON.stringify(selectors.filter(Boolean))};
 
       return JSON.stringify({
+        description: ${JSON.stringify(description)},
         path: location.pathname + location.search,
         title: document.title,
         readyState: document.readyState,
@@ -433,7 +489,11 @@ const ensurePageReady = async (client, selectors, description, timeoutMs = 8000)
     })()
   `);
 
-  throw new Error(`${description}: required selectors did not become ready.\n${JSON.stringify(diagnostics)}`);
+  if (Array.isArray(diagnosticsCollector)) {
+    diagnosticsCollector.push(diagnostics);
+  }
+
+  throw new Error(`${description}: required selectors did not become ready.`);
 };
 
 const pressTab = async (client) => {
@@ -451,6 +511,21 @@ const pressTab = async (client) => {
     windowsVirtualKeyCode: 9,
     nativeVirtualKeyCode: 9,
   });
+};
+
+const withOptionalReportDetails = (report, cleanupWarnings, readinessDiagnostics) => ({
+  ...report,
+  ...(cleanupWarnings.length > 0 ? { cleanupWarnings: [...cleanupWarnings] } : {}),
+  ...(readinessDiagnostics.length > 0 ? { readinessDiagnostics: [...readinessDiagnostics] } : {}),
+});
+
+const buildReadinessDiagnosticLine = (diagnostic) => {
+  const missingSelectors = (diagnostic.selectors || [])
+    .filter((selector) => !selector.found)
+    .map((selector) => selector.selector);
+  const missingText = missingSelectors.length > 0 ? missingSelectors.join(', ') : 'none';
+
+  return `- ${diagnostic.description}: ${diagnostic.path} (readyState=${diagnostic.readyState}, missing=${missingText})`;
 };
 
 const buildSummaryMarkdown = (report) => {
@@ -518,6 +593,20 @@ const buildSummaryMarkdown = (report) => {
     }
   }
 
+  if (report.cleanupWarnings?.length > 0) {
+    lines.push('', '**Cleanup Warnings**');
+    for (const warning of report.cleanupWarnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+
+  if (report.readinessDiagnostics?.length > 0) {
+    lines.push('', '**Readiness Diagnostics**');
+    for (const diagnostic of report.readinessDiagnostics) {
+      lines.push(buildReadinessDiagnosticLine(diagnostic));
+    }
+  }
+
   return `${lines.join('\n')}\n`;
 };
 
@@ -578,6 +667,18 @@ const main = async () => {
   });
 
   let client = null;
+  const cleanupWarnings = [];
+  const readinessDiagnostics = [];
+  let report = null;
+  let mainError = null;
+
+  const writeCurrentReport = () => {
+    if (!report) {
+      return;
+    }
+
+    writeReportArtifacts(withOptionalReportDetails(report, cleanupWarnings, readinessDiagnostics));
+  };
 
   try {
     const wsUrl = await getPageWebSocketUrl(debugPort, args.baseUrl);
@@ -585,6 +686,9 @@ const main = async () => {
     await client.connect();
     await client.send('Page.enable');
     await client.send('Runtime.enable');
+    const ensureReady = (selectors, description, timeoutMs) => (
+      ensurePageReady(client, selectors, description, timeoutMs, readinessDiagnostics)
+    );
 
     const responsive = {};
     for (const testCase of viewportCases) {
@@ -596,7 +700,7 @@ const main = async () => {
       });
 
       await navigateAndWait(client, `${args.baseUrl}/login`);
-      await ensurePageReady(client, [
+      await ensureReady([
         '[data-testid="auth-shell"]',
         '.auth-stage-grid',
         '[data-testid="auth-hero-panel"]',
@@ -644,7 +748,7 @@ const main = async () => {
     const routes = {};
     for (const routeCase of routeCases) {
       await navigateAndWait(client, `${args.baseUrl}${routeCase.path}`);
-      await ensurePageReady(client, [
+      await ensureReady([
         '[data-testid="auth-shell"]',
         '[data-testid="auth-form-panel"]',
         '[data-slot="auth-header"]',
@@ -666,7 +770,7 @@ const main = async () => {
     }
 
     await navigateAndWait(client, `${args.baseUrl}/login`);
-    await ensurePageReady(client, [
+    await ensureReady([
       '[data-testid="auth-shell"]',
       '[data-testid="auth-home-button"]',
     ], 'focus smoke');
@@ -687,7 +791,7 @@ const main = async () => {
     `);
 
     await navigateAndWait(client, `${args.baseUrl}/login?redirect=%2Fprediction%3Fdate%3D2026-03-12`);
-    await ensurePageReady(client, ['[data-testid="auth-home-button"]'], 'home button navigation');
+    await ensureReady(['[data-testid="auth-home-button"]'], 'home button navigation');
     const homeNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="auth-home-button"]')?.click();
@@ -698,7 +802,7 @@ const main = async () => {
     `, true);
 
     await navigateAndWait(client, `${args.baseUrl}/login?redirect=%2Fprediction%3Fdate%3D2026-03-12`);
-    await ensurePageReady(client, ['[data-testid="login-signup-link"]'], 'login to signup navigation');
+    await ensureReady(['[data-testid="login-signup-link"]'], 'login to signup navigation');
     const signupNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="login-signup-link"]')?.click();
@@ -709,7 +813,7 @@ const main = async () => {
     `, true);
 
     await navigateAndWait(client, `${args.baseUrl}/login?redirect=%2Fprediction%3Fdate%3D2026-03-12`);
-    await ensurePageReady(client, ['[data-testid="login-password-reset-link"]'], 'login to password reset navigation');
+    await ensureReady(['[data-testid="login-password-reset-link"]'], 'login to password reset navigation');
     const passwordResetNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="login-password-reset-link"]')?.click();
@@ -720,7 +824,7 @@ const main = async () => {
     `, true);
 
     await navigateAndWait(client, `${args.baseUrl}/password/reset?redirect=%2Fmypage`);
-    await ensurePageReady(client, ['[data-testid="password-reset-back-link"]'], 'password reset back navigation');
+    await ensureReady(['[data-testid="password-reset-back-link"]'], 'password reset back navigation');
     const resetBackNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="password-reset-back-link"]')?.click();
@@ -731,7 +835,7 @@ const main = async () => {
     `, true);
 
     await navigateAndWait(client, `${args.baseUrl}/account/deletion/recovery?redirect=%2Fmypage%3Fview%3DaccountSettings`);
-    await ensurePageReady(client, ['[data-testid="account-recovery-back-link"]'], 'account recovery back navigation');
+    await ensureReady(['[data-testid="account-recovery-back-link"]'], 'account recovery back navigation');
     const recoveryBackNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="account-recovery-back-link"]')?.click();
@@ -742,7 +846,7 @@ const main = async () => {
     `, true);
 
     await navigateAndWait(client, `${args.baseUrl}/login`);
-    await ensurePageReady(client, [
+    await ensureReady([
       '[data-testid="auth-home-button"]',
       '[data-testid="login-submit"]',
       '[data-testid="login-social-google"]',
@@ -754,7 +858,7 @@ const main = async () => {
     });
     await client.send('Page.reload');
     await delay(2500);
-    await ensurePageReady(client, [
+    await ensureReady([
       '[data-testid="auth-home-button"]',
       '[data-testid="login-submit"]',
       '[data-testid="login-social-google"]',
@@ -869,7 +973,7 @@ const main = async () => {
       }
     }
 
-    const report = {
+    report = {
       generatedAt: new Date().toISOString(),
       baseUrl: args.baseUrl,
       artifacts,
@@ -886,56 +990,88 @@ const main = async () => {
       reducedMotion,
       pass: failures.length === 0,
       failures,
+      ...(failures.length > 0 ? { errorMessage: failures.join('\n') } : {}),
     };
 
-    writeReportArtifacts(report);
+    writeCurrentReport();
 
     if (failures.length > 0) {
       throw new Error(failures.join('\n'));
     }
 
     log(`QA passed. Report: ${join(args.outDir, 'auth-report.json')}`);
-  } finally {
-    if (client) {
-      await client.close();
-    }
+  } catch (error) {
+    mainError = error;
+    const errorMessage = getErrorMessage(error);
 
-    await stopChild(chromeProcess);
-    rmSync(userDataDir, { recursive: true, force: true });
-
-    if (devServer) {
-      await stopChild(devServer.child);
-    }
-
-    if (chromeLogs.length > 0) {
-      writeFileSync(join(args.outDir, 'auth-chrome.log'), chromeLogs.join(''));
-    }
-  }
-};
-
-main()
-  .then(() => {
-    process.exit(0);
-  })
-  .catch((error) => {
-    const reportPath = join(args.outDir, 'auth-report.json');
-    if (!existsSync(reportPath)) {
-      const report = {
+    if (!report) {
+      report = {
         generatedAt: new Date().toISOString(),
         baseUrl: args.baseUrl,
         artifacts: getArtifactPaths(args.outDir),
         responsive: {},
         routes: {},
         pass: false,
-        failures: [error.message],
+        failures: [errorMessage],
         navigation: null,
         focus: null,
         reducedMotion: null,
-        errorMessage: error.message,
+        errorMessage,
       };
-      writeReportArtifacts(report);
+    } else if (!report.errorMessage) {
+      report = {
+        ...report,
+        errorMessage,
+      };
+    }
+  } finally {
+    if (client) {
+      await runCleanupStep('cdp close', () => client.close(), cleanupWarnings);
     }
 
-    console.error(`[auth-qa] ${error.message}`);
-    process.exit(1);
+    await runCleanupStep('chrome process shutdown', () => stopChild(chromeProcess), cleanupWarnings);
+    await runCleanupStep('chrome profile cleanup', () => rmSync(userDataDir, { recursive: true, force: true }), cleanupWarnings);
+
+    if (devServer) {
+      await runCleanupStep('dev server shutdown', () => stopChild(devServer.child), cleanupWarnings);
+    }
+
+    if (chromeLogs.length > 0) {
+      await runCleanupStep('chrome log write', () => writeFileSync(join(args.outDir, 'auth-chrome.log'), chromeLogs.join('')), cleanupWarnings);
+    }
+
+    if (cleanupWarnings.length > 0) {
+      console.warn(`[auth-qa] cleanup warnings:\n${cleanupWarnings.join('\n')}`);
+    }
+
+    writeCurrentReport();
+  }
+
+  if (mainError) {
+    console.error(`[auth-qa] ${getErrorMessage(mainError)}`);
+    throw mainError;
+  }
+};
+
+main()
+  .catch((error) => {
+    const reportPath = join(args.outDir, 'auth-report.json');
+    if (!existsSync(reportPath)) {
+      const errorMessage = getErrorMessage(error);
+      writeReportArtifacts({
+        generatedAt: new Date().toISOString(),
+        baseUrl: args.baseUrl,
+        artifacts: getArtifactPaths(args.outDir),
+        responsive: {},
+        routes: {},
+        pass: false,
+        failures: [errorMessage],
+        navigation: null,
+        focus: null,
+        reducedMotion: null,
+        errorMessage,
+      });
+    }
+
+    process.exitCode = 1;
   });

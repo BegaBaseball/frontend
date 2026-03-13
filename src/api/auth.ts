@@ -3,6 +3,7 @@ import api from './axios';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
 import { SERVER_BASE_URL } from '../constants/config';
+import { sanitizeLoginRedirect } from '../utils/loginRedirect';
 
 // ========== 타입 정의 ==========
 export interface LoginRequest {
@@ -194,6 +195,7 @@ interface RequiredPoliciesApiResponse {
 
 export interface PasswordResetRequest {
   email: string;
+  redirect?: string;
 }
 
 export interface PasswordResetResponse {
@@ -353,9 +355,14 @@ export const logoutUser = async (): Promise<void> => {
 /**
  * 비밀번호 재설정 요청 API 호출
  */
-export const requestPasswordReset = async (email: string): Promise<PasswordResetResponse> => {
+export const requestPasswordReset = async (
+  email: string,
+  redirectPath?: string | null,
+): Promise<PasswordResetResponse> => {
   try {
-    const response = await api.post<PasswordResetResponse>('/auth/password/reset/request', { email }, {
+    const redirect = sanitizeLoginRedirect(redirectPath);
+    const payload: PasswordResetRequest = redirect ? { email, redirect } : { email };
+    const response = await api.post<PasswordResetResponse>('/auth/password/reset/request', payload, {
       skipGlobalErrorHandler: true,
     });
     return response.data;

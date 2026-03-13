@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetchUserProfile } from '../api/profile';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { UserProfile, ViewMode } from '../types/profile';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 const VALID_VIEW_MODES: ViewMode[] = ['diary', 'stats', 'editProfile', 'mateHistory', 'changePassword', 'accountSettings', 'blockedUsers'];
 const LEGACY_TAB_TO_VIEW_MODE: Record<string, ViewMode> = {
@@ -25,8 +26,10 @@ export const useMyPage = () => {
     userFavoriteTeam,
     userProfileImageUrl,
     userRole,
+    userProvider,
     userBio,
     userCheerPoints,
+    userHasPassword,
   } = useAuthProfileSnapshot();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -109,10 +112,12 @@ export const useMyPage = () => {
       favoriteTeam: userFavoriteTeam || '없음',
       profileImageUrl: userProfileImageUrl ?? null,
       role: userRole,
+      provider: userProvider,
       bio: userBio ?? null,
       cheerPoints: userCheerPoints ?? 0,
+      hasPassword: userHasPassword,
     };
-  }, [userBio, userCheerPoints, userFavoriteTeam, userHandle, userId, userName, userProfileImageUrl, userRole, userEmail]);
+  }, [userBio, userCheerPoints, userFavoriteTeam, userHandle, userHasPassword, userId, userName, userProfileImageUrl, userProvider, userRole, userEmail]);
 
   const user = useMemo<UserProfile | null>(() => {
     if (!userId) {
@@ -127,10 +132,12 @@ export const useMyPage = () => {
       favoriteTeam: userFavoriteTeam || '없음',
       profileImageUrl: userProfileImageUrl ?? null,
       role: userRole,
+      provider: userProvider,
       bio: userBio ?? null,
       cheerPoints: userCheerPoints ?? 0,
+      hasPassword: userHasPassword,
     };
-  }, [userBio, userCheerPoints, userFavoriteTeam, userHandle, userId, userName, userEmail, userProfileImageUrl, userRole]);
+  }, [userBio, userCheerPoints, userFavoriteTeam, userHandle, userHasPassword, userId, userName, userEmail, userProfileImageUrl, userProvider, userRole]);
 
   // ========== React Query ==========
   const {
@@ -148,7 +155,7 @@ export const useMyPage = () => {
   // ========== 로그인 체크 ==========
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
-      navigate('/login');
+      navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
     }
   }, [isLoggedIn, isAuthLoading, navigate]);
 

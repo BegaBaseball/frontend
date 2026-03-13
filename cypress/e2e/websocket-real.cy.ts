@@ -4,6 +4,7 @@ describe('WebSocket real integration smoke', () => {
   const fallbackLoginPassword = 'Test1234!';
   const fallbackFavoriteTeam = 'LG';
   let backendBaseUrl: string | undefined;
+  type EnvVars = Record<string, unknown>;
 
   type RequiredPolicy = {
     policyType?: string;
@@ -12,6 +13,12 @@ describe('WebSocket real integration smoke', () => {
   };
 
   const stripTrailingSlash = (value: string) => value.trim().replace(/\/+$/, '');
+  const getEnvString = (envVars: EnvVars, key: string) => {
+    const value = envVars[key];
+    return typeof value === 'string' ? value : undefined;
+  };
+  const asPromiseLike = <T,>(chainable: Cypress.Chainable<T>): PromiseLike<T> =>
+    chainable as unknown as PromiseLike<T>;
 
   const resolveBaseOrigin = () => {
     const baseUrl = Cypress.config('baseUrl');
@@ -66,23 +73,18 @@ describe('WebSocket real integration smoke', () => {
     }
   };
 
-  const resolveBackendBaseUrl = () =>
-    cy.env([
-      'BACKEND_BASE_URL',
-      'SMOKE_API_BASE_URL',
-      'CYPRESS_BASE_URL',
-      'CYPRESS_BACKEND_BASE_URL',
-      'VITE_API_BASE_URL',
-      'FRONTEND_API_BASE_URL',
-    ]).then((envVars) => {
-      return (
-        normalizeBackendBaseUrl(envVars.BACKEND_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.SMOKE_API_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.CYPRESS_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.CYPRESS_BACKEND_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.VITE_API_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.FRONTEND_API_BASE_URL as string | undefined)
-      );
+  const resolveBackendBaseUrl = (): Cypress.Chainable<string | undefined> =>
+    cy.wrap(null, { log: false }).then(() => {
+      const envVars = Cypress.env() as EnvVars;
+      const resolvedBackendBaseUrl =
+        normalizeBackendBaseUrl(getEnvString(envVars, 'BACKEND_BASE_URL'))
+        || normalizeBackendBaseUrl(getEnvString(envVars, 'SMOKE_API_BASE_URL'))
+        || normalizeBackendBaseUrl(getEnvString(envVars, 'CYPRESS_BASE_URL'))
+        || normalizeBackendBaseUrl(getEnvString(envVars, 'CYPRESS_BACKEND_BASE_URL'))
+        || normalizeBackendBaseUrl(getEnvString(envVars, 'VITE_API_BASE_URL'))
+        || normalizeBackendBaseUrl(getEnvString(envVars, 'FRONTEND_API_BASE_URL'));
+
+      return cy.wrap(resolvedBackendBaseUrl, { log: false });
     });
 
   const buildApiUrl = (path: string) => {
@@ -122,16 +124,18 @@ describe('WebSocket real integration smoke', () => {
           return;
         }
 
-        return cy.request({
-          method: 'GET',
-          url: `${backendBaseUrl}/actuator/health`,
-          failOnStatusCode: false,
-        }).then((response) => {
+        return asPromiseLike(
+          cy.request({
+            method: 'GET',
+            url: `${backendBaseUrl}/actuator/health`,
+            failOnStatusCode: false,
+          })
+        ).then((response) => {
           if (!isBackendHealthResponse(response)) {
             cy.log('Skipping websocket-real: /actuator/health did not return backend JSON payload.');
             this.skip();
           }
-        }, (error) => {
+        }, (error: Error) => {
           cy.log(`Skipping websocket-real: backend health check failed (${error.message}).`);
           this.skip();
         });
@@ -365,8 +369,9 @@ describe('WebSocket real integration smoke', () => {
   it('rejects STOMP broker connection over /ws without authenticated session', () => {
     let requestedBrokerURL: string | undefined;
 
-    cy.env(['WS_BROKER_URL']).then((envVars: any) => {
-      requestedBrokerURL = envVars.WS_BROKER_URL;
+    cy.wrap(null, { log: false }).then(() => {
+      const envVars = Cypress.env() as EnvVars;
+      requestedBrokerURL = getEnvString(envVars, 'WS_BROKER_URL');
     });
 
     cy.visit('/login');
@@ -381,10 +386,11 @@ describe('WebSocket real integration smoke', () => {
     let requestedBrokerURL: string | undefined;
     let hasAuthenticatedSession = false;
 
-    cy.env(['SMOKE_LOGIN_EMAIL', 'SMOKE_LOGIN_PASSWORD', 'WS_BROKER_URL']).then((envVars: any) => {
-      requestedBrokerURL = envVars.WS_BROKER_URL;
-      const configuredEmail = envVars.SMOKE_LOGIN_EMAIL;
-      const configuredPassword = envVars.SMOKE_LOGIN_PASSWORD;
+    cy.wrap(null, { log: false }).then(() => {
+      const envVars = Cypress.env() as EnvVars;
+      requestedBrokerURL = getEnvString(envVars, 'WS_BROKER_URL');
+      const configuredEmail = getEnvString(envVars, 'SMOKE_LOGIN_EMAIL');
+      const configuredPassword = getEnvString(envVars, 'SMOKE_LOGIN_PASSWORD');
 
       if (configuredEmail && configuredPassword) {
         return loginWithCredentials(configuredEmail, configuredPassword).then(() => {

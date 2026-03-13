@@ -6,6 +6,7 @@ export interface ParsedError {
     type: ErrorType;
     responseCode?: string;
     message: string;
+    rawMessage?: string;
     statusCode: number | null;
 }
 
@@ -26,10 +27,89 @@ const isApiError = (error: unknown): error is ApiErrorLike =>
     'status' in error &&
     typeof (error as { status?: unknown }).status === 'number';
 
+const TECHNICAL_MESSAGE_PATTERNS = [
+    /request failed with status code \d+/i,
+    /^network error$/i,
+    /^api error:/i,
+    /timeout of \d+ms exceeded/i,
+    /failed to fetch/i,
+];
+
+const normalizeErrorText = (value: unknown): string | null => {
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+};
+
+const isTechnicalErrorMessage = (message: string): boolean =>
+    TECHNICAL_MESSAGE_PATTERNS.some((pattern) => pattern.test(message));
+
+const getDefaultErrorMessage = (type: ErrorType, statusCode: number | null, fallback?: string): string => {
+    if (type === 'AUTH' || statusCode === 401) {
+        return '로그인 정보를 다시 확인해주세요.';
+    }
+
+    if (type === 'RATE_LIMIT' || statusCode === 429) {
+        return '요청이 많습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    if (type === 'NETWORK' || (typeof statusCode === 'number' && statusCode >= 500)) {
+        return '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    if (type === 'PERMISSION' || statusCode === 403) {
+        return '접근 권한이 없습니다.';
+    }
+
+    if (type === 'NOT_FOUND' || statusCode === 404) {
+        return '요청한 정보를 찾을 수 없습니다.';
+    }
+
+    if (type === 'CONFLICT' || statusCode === 409) {
+        return '이미 처리된 요청입니다.';
+    }
+
+    return fallback || '문제가 발생했습니다. 다시 시도해주세요.';
+};
+
+const resolveUserFacingMessage = (
+    type: ErrorType,
+    statusCode: number | null,
+    serverMessage: unknown,
+    fallback?: string,
+): string => {
+    const normalizedServerMessage = normalizeErrorText(serverMessage);
+
+    if (type === 'AUTH') {
+        if (
+            normalizedServerMessage &&
+            !isTechnicalErrorMessage(normalizedServerMessage) &&
+            !/^unauthorized$/i.test(normalizedServerMessage) &&
+            normalizedServerMessage !== '로그인이 필요한 서비스입니다.'
+        ) {
+            return normalizedServerMessage;
+        }
+
+        return getDefaultErrorMessage(type, statusCode, fallback);
+    }
+
+    if (type === 'RATE_LIMIT' || type === 'NETWORK' || type === 'SERVER') {
+        return getDefaultErrorMessage(type, statusCode, fallback);
+    }
+    if (normalizedServerMessage && !isTechnicalErrorMessage(normalizedServerMessage)) {
+        return normalizedServerMessage;
+    }
+
+    return getDefaultErrorMessage(type, statusCode, fallback);
+};
+
 export const isNetworkError = (error: unknown): boolean => {
     return (
         error instanceof AxiosError &&
-        (error.code === 'ERR_NETWORK' || error.message === 'Network Error')
+        (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED' || error.message === 'Network Error')
     );
 };
 
@@ -38,14 +118,15 @@ export const parseError = (error: unknown): ParsedError => {
     if (isApiError(error)) {
         const code = error.status;
         const data = error.data || {};
-        const serverMessage = data.message || data.error || error.message;
+        const rawMessage = normalizeErrorText(data.message || data.error || error.message) || undefined;
         const responseCode = data.code;
 
         if (code === 401) {
             return {
                 type: 'AUTH',
                 responseCode,
-                message: serverMessage || '로그인이 필요한 서비스입니다.',
+                message: resolveUserFacingMessage('AUTH', 401, rawMessage),
+                rawMessage,
                 statusCode: 401,
             };
         }
@@ -54,7 +135,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'PERMISSION',
                 responseCode,
-                message: serverMessage || '접근 권한이 없습니다.',
+                message: resolveUserFacingMessage('PERMISSION', 403, rawMessage),
+                rawMessage,
                 statusCode: 403,
             };
         }
@@ -63,7 +145,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'NOT_FOUND',
                 responseCode,
-                message: serverMessage || '요청한 정보를 찾을 수 없습니다.',
+                message: resolveUserFacingMessage('NOT_FOUND', 404, rawMessage),
+                rawMessage,
                 statusCode: 404,
             };
         }
@@ -72,7 +155,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'CONFLICT',
                 responseCode,
-                message: serverMessage || '이미 처리된 요청입니다.',
+                message: resolveUserFacingMessage('CONFLICT', 409, rawMessage),
+                rawMessage,
                 statusCode: 409,
             };
         }
@@ -81,7 +165,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'RATE_LIMIT',
                 responseCode,
-                message: serverMessage || '너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.',
+                message: resolveUserFacingMessage('RATE_LIMIT', 429, rawMessage),
+                rawMessage,
                 statusCode: 429,
             };
         }
@@ -90,7 +175,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'SERVER',
                 responseCode,
-                message: serverMessage || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+                message: resolveUserFacingMessage('SERVER', code, rawMessage),
+                rawMessage,
                 statusCode: code,
             };
         }
@@ -98,7 +184,8 @@ export const parseError = (error: unknown): ParsedError => {
         return {
             type: 'UNKNOWN',
             responseCode,
-            message: serverMessage || '알 수 없는 오류가 발생했습니다.',
+            message: resolveUserFacingMessage('UNKNOWN', code, rawMessage),
+            rawMessage,
             statusCode: code,
         };
     }
@@ -107,16 +194,19 @@ export const parseError = (error: unknown): ParsedError => {
     if (error instanceof AxiosError) {
         const code = error.response?.status;
         const data = error.response?.data as Record<string, unknown> | undefined;
-        const serverMessage = data?.message as string ||
+        const rawMessage = normalizeErrorText(
+            (data?.message as string) ||
             data?.error as string ||
-            error.message;
+            error.message,
+        ) || undefined;
         const responseCode = data?.code as string | undefined;
 
         if (isNetworkError(error)) {
             return {
                 type: 'NETWORK',
                 responseCode,
-                message: '네트워크 연결 상태를 확인해주세요.',
+                message: resolveUserFacingMessage('NETWORK', null, rawMessage),
+                rawMessage,
                 statusCode: null,
             };
         }
@@ -125,7 +215,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'AUTH',
                 responseCode,
-                message: (typeof serverMessage === 'string' ? serverMessage : null) || '로그인이 필요한 서비스입니다.',
+                message: resolveUserFacingMessage('AUTH', 401, rawMessage),
+                rawMessage,
                 statusCode: 401,
             };
         }
@@ -134,7 +225,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'PERMISSION',
                 responseCode,
-                message: typeof serverMessage === 'string' && serverMessage ? serverMessage : '접근 권한이 없습니다.',
+                message: resolveUserFacingMessage('PERMISSION', 403, rawMessage),
+                rawMessage,
                 statusCode: 403,
             };
         }
@@ -143,7 +235,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'NOT_FOUND',
                 responseCode,
-                message: serverMessage || '요청한 정보를 찾을 수 없습니다.',
+                message: resolveUserFacingMessage('NOT_FOUND', 404, rawMessage),
+                rawMessage,
                 statusCode: 404,
             };
         }
@@ -152,7 +245,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'CONFLICT',
                 responseCode,
-                message: typeof serverMessage === 'string' && serverMessage ? serverMessage : '이미 처리된 요청입니다.',
+                message: resolveUserFacingMessage('CONFLICT', 409, rawMessage),
+                rawMessage,
                 statusCode: 409,
             };
         }
@@ -161,7 +255,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'RATE_LIMIT',
                 responseCode,
-                message: typeof serverMessage === 'string' && serverMessage ? serverMessage : '너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.',
+                message: resolveUserFacingMessage('RATE_LIMIT', 429, rawMessage),
+                rawMessage,
                 statusCode: 429,
             };
         }
@@ -170,7 +265,8 @@ export const parseError = (error: unknown): ParsedError => {
             return {
                 type: 'SERVER',
                 responseCode,
-                message: serverMessage || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+                message: resolveUserFacingMessage('SERVER', code, rawMessage),
+                rawMessage,
                 statusCode: code,
             };
         }
@@ -178,16 +274,19 @@ export const parseError = (error: unknown): ParsedError => {
         return {
             type: 'UNKNOWN',
             responseCode,
-            message: serverMessage || '알 수 없는 오류가 발생했습니다.',
+            message: resolveUserFacingMessage('UNKNOWN', code || null, rawMessage),
+            rawMessage,
             statusCode: code || null,
         };
     }
 
     if (error instanceof Error) {
+        const rawMessage = normalizeErrorText(error.message) || undefined;
         return {
             type: 'UNKNOWN',
             responseCode: undefined,
-            message: error.message,
+            message: resolveUserFacingMessage('UNKNOWN', null, rawMessage),
+            rawMessage,
             statusCode: null,
         };
     }
@@ -202,13 +301,9 @@ export const parseError = (error: unknown): ParsedError => {
 
 /** API 에러에서 메시지 추출 (catch(error: unknown) 패턴용) */
 export function getApiErrorMessage(error: unknown, fallback: string): string {
-    if (isApiError(error)) {
-        return error.data?.message || error.data?.error || error.message || fallback;
+    const parsed = parseError(error);
+    if (parsed.type === 'UNKNOWN' && (!parsed.rawMessage || isTechnicalErrorMessage(parsed.rawMessage))) {
+        return fallback;
     }
-    if (error instanceof AxiosError) {
-        const data = error.response?.data as Record<string, unknown>;
-        return (data?.message as string) || (data?.error as string) || error.message || fallback;
-    }
-    if (error instanceof Error) return error.message;
-    return fallback;
+    return parsed.message || fallback;
 }

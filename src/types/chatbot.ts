@@ -46,6 +46,7 @@ export interface ChatMeta {
   verified: boolean;
   cached?: boolean;
   intent?: string;
+  strategy?: string;
   dataSources: Array<{
     title: string;
     url?: string;

@@ -110,6 +110,23 @@ describe('Home scheduled tab', () => {
     (cy as any).login('user');
     (cy as any).mockAPI();
 
+    cy.intercept('GET', '**/api/cheer/posts/hot*', {
+      statusCode: 200,
+      body: {
+        content: [],
+        last: true,
+        totalPages: 0,
+        totalElements: 0,
+        size: 20,
+        number: 0,
+      },
+    }).as('getHomeHotPosts');
+
+    cy.intercept('GET', '**/api/parties?page=0&size=1000*', {
+      statusCode: 200,
+      body: [],
+    }).as('getHomeFeaturedMates');
+
     cy.intercept('GET', '**/api/kbo/schedule/navigation?*', {
       statusCode: 200,
       body: {
@@ -245,6 +262,33 @@ describe('Home scheduled tab', () => {
       .should('contain.text', '펼치기');
 
     cy.contains('연기/취소 경기가 접혀 있습니다. 펼치기 버튼으로 확인하세요.').should('be.visible');
+  });
+
+  it('keeps successful scheduled dates visible when some 8-day requests fail', () => {
+    cy.intercept('GET', '**/api/kbo/schedule?*', (req) => {
+      const dateParam = req.query.date;
+      const date = Array.isArray(dateParam) ? dateParam[0] : String(dateParam || '');
+
+      if (date === '2026-02-10' || date === '2026-02-11') {
+        req.reply({
+          statusCode: 200,
+          body: scheduleByDate[date] || [],
+        });
+        return;
+      }
+
+      req.reply({
+        statusCode: 500,
+        body: { message: 'forced-scheduled-window-failure' },
+      });
+    }).as('getHomeSchedulePartial');
+
+    cy.visit('/home');
+
+    cy.contains('button', '예정경기', { timeout: 15000 }).click();
+    cy.contains('예정 경기 일정을 불러오지 못했습니다').should('not.exist');
+    cy.contains('곧 열리는 경기').should('be.visible');
+    cy.contains('[data-slot="card"]', 'LG').should('be.visible');
   });
 
   it('navigates to prediction using scheduled card CTA', () => {
