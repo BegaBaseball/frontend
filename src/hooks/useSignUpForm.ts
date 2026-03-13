@@ -1,9 +1,10 @@
 // hooks/useSignUpForm.ts
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { signupUser } from '../api/auth';
 import { validateField, validateAllFields } from '../utils/validation';
 import { SignUpFormData, FieldErrors, FieldName } from '../types/auth';
+import { buildLoginPath } from '../utils/loginRedirect';
 
 const initialFormData: SignUpFormData = {
   name: '',
@@ -25,11 +26,19 @@ const initialFieldErrors: FieldErrors = {
 
 export const useSignUpForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState<SignUpFormData>(initialFormData);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>(initialFieldErrors);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);  // ✅ 성공 상태 추가
+  const successRedirectTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (successRedirectTimeoutRef.current !== null) {
+      window.clearTimeout(successRedirectTimeoutRef.current);
+    }
+  }, []);
 
   const handleFieldChange = (fieldName: FieldName, value: string) => {
     setFormData({ ...formData, [fieldName]: value });
@@ -78,8 +87,8 @@ export const useSignUpForm = () => {
       setIsSuccess(true);  // ✅ 성공 상태 설정
 
       // ✅ 3초 후 로그인 페이지로 이동
-      setTimeout(() => {
-        navigate('/login');
+      successRedirectTimeoutRef.current = window.setTimeout(() => {
+        navigate(buildLoginPath(new URLSearchParams(location.search).get('redirect')));
       }, 3000);
     } catch (err) {
       console.error('Sign up error:', err);

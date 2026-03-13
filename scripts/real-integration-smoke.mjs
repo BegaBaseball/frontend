@@ -114,6 +114,7 @@ const cookieJar = new Map();
 const warnings = [];
 const steps = [];
 const runStartedAt = new Date().toISOString();
+const ALLOWED_DIAGNOSTIC_KINDS = new Set(['network', 'timeout', 'http', 'payload', 'config']);
 
 const randomSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
 const signupIdentity = {
@@ -142,6 +143,71 @@ const withTimeout = async (promise, timeoutMs, timeoutMessage) => {
 };
 
 const sleep = (ms) => new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+
+const normalizeDiagnosticKind = (kind, fallback = 'payload') => (
+  ALLOWED_DIAGNOSTIC_KINDS.has(kind) ? kind : fallback
+);
+
+const inferDiagnosticKind = (error, fallback = 'payload') => {
+  const message = error instanceof Error ? error.message : String(error);
+  const explicitStatus = typeof error?.status === 'number' ? error.status : null;
+  if (explicitStatus !== null) {
+    return 'http';
+  }
+  if (/timed? out|타임아웃|abort/i.test(message)) {
+    return 'timeout';
+  }
+  if (/fetch failed|network|econnrefused|enotfound|eai_again|eperm/i.test(message)) {
+    return 'network';
+  }
+  if (/api_base|not configured|configuration|env/i.test(message)) {
+    return 'config';
+  }
+  return fallback;
+};
+
+const buildDiagnostics = (error, defaults = {}) => {
+  const base = error && typeof error === 'object' && error.diagnostics
+    ? error.diagnostics
+    : {};
+  const message = defaults.message
+    || (error instanceof Error ? error.message : String(error));
+  const status = typeof defaults.status === 'number'
+    ? defaults.status
+    : (typeof error?.status === 'number' ? error.status : (typeof base.status === 'number' ? base.status : null));
+  const kind = normalizeDiagnosticKind(
+    defaults.kind || base.kind || inferDiagnosticKind(error, status !== null ? 'http' : 'payload'),
+    status !== null ? 'http' : 'payload',
+  );
+
+  return {
+    kind,
+    step: defaults.step ?? base.step ?? null,
+    method: defaults.method ?? base.method ?? null,
+    path: defaults.path ?? base.path ?? null,
+    url: defaults.url ?? base.url ?? null,
+    status,
+    attempts: defaults.attempts ?? base.attempts ?? null,
+    message,
+  };
+};
+
+const attachDiagnostics = (error, defaults = {}) => {
+  const normalized = error instanceof Error ? error : new Error(String(error));
+  normalized.diagnostics = buildDiagnostics(normalized, defaults);
+  if (typeof normalized.diagnostics.status === 'number') {
+    normalized.status = normalized.diagnostics.status;
+  }
+  return normalized;
+};
+
+const formatDiagnostics = (diagnostics) => {
+  const method = diagnostics.method ? `${diagnostics.method} ` : '';
+  const target = diagnostics.path || diagnostics.url || diagnostics.step || 'unknown';
+  const status = typeof diagnostics.status === 'number' ? ` status=${diagnostics.status}` : '';
+  const attempts = typeof diagnostics.attempts === 'number' ? ` attempts=${diagnostics.attempts}` : '';
+  return `[${diagnostics.kind}] ${method}${target}${status}${attempts}: ${diagnostics.message}`;
+};
 
 const parseSetCookie = (setCookieValue) => {
   const token = setCookieValue.split(';')[0]?.trim();
@@ -210,15 +276,26 @@ const requestJson = async (path, options = {}) => {
     requestHeaders.Cookie = cookieHeader;
   }
 
-  const response = await withTimeout(
-    fetch(url, {
+  let response;
+  try {
+    response = await withTimeout(
+      fetch(url, {
+        method,
+        headers: requestHeaders,
+        body,
+      }),
+      timeoutMs,
+      `${method} ${url} 요청 타임아웃(${timeoutMs}ms)`,
+    );
+  } catch (error) {
+    const timeout = error instanceof Error && error.message.includes('요청 타임아웃');
+    throw attachDiagnostics(error, {
+      kind: timeout ? 'timeout' : 'network',
       method,
-      headers: requestHeaders,
-      body,
-    }),
-    timeoutMs,
-    `${method} ${url} 요청 타임아웃(${timeoutMs}ms)`,
-  );
+      path,
+      url,
+    });
+  }
 
   updateCookieJar(response);
   const rawText = await response.text();
@@ -231,12 +308,16 @@ const requestJson = async (path, options = {}) => {
 
   if (!expectedStatuses.includes(response.status)) {
     const message = parsed?.message || rawText || '응답 본문 없음';
-    const error = new Error(
+    throw attachDiagnostics(new Error(
       `${method} ${path} 상태코드 ${response.status} (기대: ${expectedStatuses.join(', ')}) - ${message}`,
-    );
-    error.status = response.status;
-    error.payload = parsed;
-    throw error;
+    ), {
+      kind: 'http',
+      method,
+      path,
+      url,
+      status: response.status,
+      message,
+    });
   }
 
   return {
@@ -259,11 +340,13 @@ const runStep = async (name, fn) => {
       finishedAt: new Date().toISOString(),
       durationMs,
       result,
+      diagnostics: null,
     });
     console.log(`✓ ${name} (${durationMs}ms)`);
     return result;
   } catch (error) {
     const durationMs = Date.now() - start;
+    const diagnostics = buildDiagnostics(error, { step: name });
     steps.push({
       name,
       status: 'failed',
@@ -271,9 +354,10 @@ const runStep = async (name, fn) => {
       finishedAt: new Date().toISOString(),
       durationMs,
       error: error instanceof Error ? error.message : String(error),
+      diagnostics,
     });
     console.error(`✗ ${name} (${durationMs}ms)`);
-    throw error;
+    throw attachDiagnostics(error, diagnostics);
   }
 };
 
@@ -283,15 +367,18 @@ const requestWithRetry = async (stepName, attempts, fn, delayMs = 800) => {
     try {
       return await fn();
     } catch (error) {
-      lastError = error;
+      const diagnostics = buildDiagnostics(error, {
+        step: stepName,
+        attempts: attempt,
+      });
+      lastError = attachDiagnostics(error, diagnostics);
       if (attempt < attempts) {
-        const reason = error instanceof Error ? error.message : String(error);
-        warnings.push(`${stepName} 재시도 ${attempt}/${attempts - 1}: ${reason}`);
+        warnings.push(`${stepName} 재시도 ${attempt}/${attempts - 1}: ${formatDiagnostics(diagnostics)}`);
         await sleep(delayMs);
       }
     }
   }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  throw attachDiagnostics(lastError, { step: stepName, attempts });
 };
 
 const extractRequiredPolicyConsents = (payload) => {
@@ -328,11 +415,14 @@ const buildTinyPng = () => Buffer.from(
 
 const main = async () => {
   if (!API_BASE) {
-    throw new Error(
+    throw attachDiagnostics(new Error(
       'SKIP_REAL_SMOKE: API_BASE not configured. '
       + 'Set one of SMOKE_API_BASE_URL, BACKEND_BASE_URL, CYPRESS_BACKEND_BASE_URL, '
       + 'CYPRESS_BASE_URL, VITE_API_BASE_URL, or FRONTEND_API_BASE_URL.',
-    );
+    ), {
+      kind: 'config',
+      step: 'config-check',
+    });
   }
 
   console.log(`[real-smoke] api base: ${API_BASE}`);
@@ -351,7 +441,14 @@ const main = async () => {
       return { status: 'ok' };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
-      throw new Error(`SKIP_REAL_SMOKE: backend unavailable at ${API_BASE}. ${reason}`);
+      const wrappedError = new Error(`SKIP_REAL_SMOKE: backend unavailable at ${API_BASE}. ${reason}`);
+      wrappedError.diagnostics = buildDiagnostics(error, {
+        step: 'backend-health',
+        method: 'GET',
+        path: '/actuator/health',
+        url: `${API_BASE}/actuator/health`,
+      });
+      throw wrappedError;
     }
   });
 
@@ -604,7 +701,7 @@ const main = async () => {
   });
 };
 
-const writeReport = (status, fatalError = null) => {
+const writeReport = (status, fatalError = null, fatalErrorDetails = null) => {
   mkdirSync(REPORT_DIR, { recursive: true });
   const report = {
     status,
@@ -619,6 +716,7 @@ const writeReport = (status, fatalError = null) => {
     steps,
     warnings,
     fatalError: fatalError ? (fatalError instanceof Error ? fatalError.message : String(fatalError)) : null,
+    fatalErrorDetails,
   };
 
   writeFileSync(reportPath, JSON.stringify(report, null, 2));
@@ -633,11 +731,17 @@ const isSmokeSkipError = (error) => (
 
 try {
   await main();
-  writeReport('passed');
+  writeReport('passed', null, null);
   process.exit(0);
 } catch (error) {
   const isSkipped = isSmokeSkipError(error);
-  writeReport(isSkipped ? 'skipped' : 'failed', error);
+  const fatalErrorDetails = buildDiagnostics(
+    error,
+    steps[steps.length - 1]?.status === 'failed'
+      ? steps[steps.length - 1].diagnostics || {}
+      : {},
+  );
+  writeReport(isSkipped ? 'skipped' : 'failed', error, fatalErrorDetails);
   const reason = error instanceof Error ? error.message : String(error);
   if (isSkipped) {
     console.warn(`[real-smoke] skipped: ${reason}`);

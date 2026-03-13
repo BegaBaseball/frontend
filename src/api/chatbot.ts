@@ -181,6 +181,7 @@ export async function sendChatMessageStream(
                 verified: parsed.verified ?? false,
                 cached: parsed.cached ?? false,
                 intent: parsed.intent,
+                strategy: parsed.strategy,
                 dataSources: (parsed.data_sources || []).map((s: { title?: string; url?: string; content?: string }) => ({
                   title: s.title || 'Unknown',
                   url: s.url,

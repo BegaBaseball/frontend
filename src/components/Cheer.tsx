@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { parseError } from '../utils/errorUtils';
 import TextareaAutosize from 'react-textarea-autosize';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthAccessActions, useAuthProfileActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Smile, UserRound, Megaphone, LineChart } from 'lucide-react';
@@ -31,6 +31,7 @@ import {
 } from '../utils/teamColors';
 import { compressImages } from '../utils/imageCompression';
 import { resolveLatestVisiblePostId } from '../utils/cheerPolling';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
 type FeedTabKey = 'all' | 'popular' | 'following';
@@ -49,6 +50,7 @@ interface CheerProps {
 
 export default function Cheer({ openComposerOnMount = false }: CheerProps) {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const {
         userId: authUserId,
         userEmail: authUserEmail,
@@ -71,7 +73,12 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
         ],
         []
     );
-    const [activeFeedTab, setActiveFeedTab] = useState(feedTabs[0].key);
+    const [activeFeedTab, setActiveFeedTab] = useState<FeedTabKey>(() => {
+        const tabParam = searchParams.get('tab');
+        return feedTabs.some((tab) => tab.key === tabParam)
+            ? (tabParam as FeedTabKey)
+            : feedTabs[0].key;
+    });
     const hasFetchedProfile = useRef(false);
     const didOpenComposerFromRoute = useRef(false);
     const didNotifyLoginRequiredFromWriteRoute = useRef(false);
@@ -100,20 +107,63 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
             if (!didNotifyLoginRequiredFromWriteRoute.current) {
                 didNotifyLoginRequiredFromWriteRoute.current = true;
                 toast.error('로그인이 필요한 서비스입니다.');
+                navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
             }
             return;
         }
 
         didOpenComposerFromRoute.current = true;
         setIsWriteModalOpen(true);
-    }, [openComposerOnMount, isAuthLoading, isLoggedIn]);
+    }, [isAuthLoading, isLoggedIn, navigate, openComposerOnMount]);
+
+    useEffect(() => {
+        const tabParam = searchParams.get('tab');
+        const nextTab = feedTabs.some((tab) => tab.key === tabParam)
+            ? (tabParam as FeedTabKey)
+            : feedTabs[0].key;
+
+        setActiveFeedTab((currentTab) => (currentTab === nextTab ? currentTab : nextTab));
+    }, [feedTabs, searchParams]);
+
+    useEffect(() => {
+        const currentTab = searchParams.get('tab');
+        const normalizedCurrentTab = feedTabs.some((tab) => tab.key === currentTab)
+            ? currentTab
+            : null;
+        const expectedTab = activeFeedTab === feedTabs[0].key ? null : activeFeedTab;
+
+        if (normalizedCurrentTab === expectedTab) {
+            return;
+        }
+
+        const nextSearchParams = new URLSearchParams(searchParams);
+        if (expectedTab) {
+            nextSearchParams.set('tab', expectedTab);
+        } else {
+            nextSearchParams.delete('tab');
+        }
+        setSearchParams(nextSearchParams, { replace: true });
+    }, [activeFeedTab, feedTabs, searchParams, setSearchParams]);
+
+    const buildCheerWritePath = () => {
+        const nextSearchParams = new URLSearchParams();
+        const currentTab = searchParams.get('tab');
+
+        if (feedTabs.some((tab) => tab.key === currentTab)) {
+            nextSearchParams.set('tab', currentTab as FeedTabKey);
+        }
+
+        const nextSearch = nextSearchParams.toString();
+        return `/cheer/write${nextSearch ? `?${nextSearch}` : ''}`;
+    };
 
     const handleWriteClick = () => {
         if (!isLoggedIn) {
             toast.error('로그인이 필요한 서비스입니다.');
+            navigate(buildLoginPath(buildCheerWritePath()));
             return;
         }
-        navigate('/cheer/write');
+        navigate(buildCheerWritePath());
     };
 
     const teamColor = normalizeHexColor(authUserFavoriteTeamColor || DEFAULT_BRAND_COLOR);
@@ -687,13 +737,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
 
                             <button
                                 type="button"
-                                onClick={() => {
-                                    if (!isLoggedIn) {
-                                        toast.error('로그인이 필요한 서비스입니다.');
-                                        return;
-                                    }
-                                    setIsWriteModalOpen(true);
-                                }}
+                                onClick={handleWriteClick}
                                 className="mt-4 flex w-full items-center justify-center xl:justify-start gap-3 h-12 px-4 rounded-full xl:rounded-xl text-[18px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
                                 style={{ backgroundColor: teamAccent }}
                             >
@@ -963,7 +1007,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                         <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">팔로우한 유저의 글을 보려면 로그인해주세요.</p>
                                         <button
                                             type="button"
-                                            onClick={() => navigate('/login')}
+                                            onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
                                             className="mt-4 rounded-full px-6 py-2 text-sm font-semibold text-white"
                                             style={{ backgroundColor: teamColor }}
                                         >

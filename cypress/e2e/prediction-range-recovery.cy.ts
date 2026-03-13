@@ -223,6 +223,18 @@ describe('Prediction Range Recovery', () => {
         cy.contains('조회 실패').should('not.exist');
     });
 
+    it('초기 목록 로드 실패에서는 인라인 에러만 보이고 오버레이는 노출하지 않는다', () => {
+        cy.intercept('GET', '**/api/matches/day*', {
+            statusCode: 500,
+            body: { message: 'Request failed with status code 500' },
+        }).as('getMatchDay');
+
+        openPredictionPage();
+        cy.contains('예측 경기 데이터를 불러오지 못했습니다.').should('be.visible');
+        cy.contains('서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+        cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
+    });
+
     it('실제 미래 조회 실패에서는 오류 배너를 표시한다', () => {
         let futureRequestCount = 0;
 

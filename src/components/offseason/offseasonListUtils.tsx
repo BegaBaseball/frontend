@@ -1,6 +1,7 @@
 import { OffseasonMovement, SectionFilter } from './offseasonListTypes';
 
 const MONEY_TEXT_PATTERN = /(?:\d+\s*년\s*)?\d+(?:,\d+)*\s*(?:억|만\s*원|만\s*달러|달러)/;
+const OFFSEASON_EMPTY_DETAILS_MESSAGE = '세부 내용이 아직 등록되지 않았습니다.';
 
 const trimToText = (value?: string | null) => {
     if (!value) {
@@ -36,7 +37,7 @@ export const formatRemarks = (text?: string | null) => {
     const normalized = trimToText(text);
 
     if (!normalized) {
-        return <span className="italic text-zinc-400">세부 내용이 아직 등록되지 않았습니다.</span>;
+        return <span className="italic text-zinc-400">{OFFSEASON_EMPTY_DETAILS_MESSAGE}</span>;
     }
 
     const parts = normalized.split(MONEY_TEXT_PATTERN);
@@ -148,7 +149,7 @@ export const getMovementSummary = (movement: OffseasonMovement) => {
         return remarks;
     }
 
-    return '세부 내용 준비 중';
+    return OFFSEASON_EMPTY_DETAILS_MESSAGE;
 };
 
 export const getDisplayAmount = (movement: OffseasonMovement) => {

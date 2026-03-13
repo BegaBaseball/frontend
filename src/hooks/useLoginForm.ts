@@ -7,6 +7,8 @@ import { validateLoginField, validateLoginForm } from '../utils/validation';
 import { LoginFormData } from '../types/auth';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { getLoginQueryErrorMessage } from '../utils/loginError';
+import { resolvePostLoginRedirect, sanitizeLoginRedirect } from '../utils/loginRedirect';
+import { useAuthRedirectState } from '../store/authStore';
 
 const SAVED_EMAIL_KEY = 'savedEmail';
 
@@ -15,6 +17,7 @@ export const useLoginForm = () => {
   const location = useLocation();
 
   const { login, fetchProfileAndAuthenticate } = useAuthAuthenticationActions();
+  const { pendingLoginRedirect, setPendingLoginRedirect, clearPendingLoginRedirect } = useAuthRedirectState();
 
   const getSavedEmail = () => {
     try {
@@ -38,6 +41,18 @@ export const useLoginForm = () => {
   useEffect(() => {
     setError(getLoginQueryErrorMessage(location.search));
   }, [location.search]);
+
+  useEffect(() => {
+    const redirect = sanitizeLoginRedirect(new URLSearchParams(location.search).get('redirect'));
+    if (redirect) {
+      setPendingLoginRedirect(redirect);
+      return;
+    }
+
+    if (pendingLoginRedirect) {
+      clearPendingLoginRedirect();
+    }
+  }, [clearPendingLoginRedirect, location.search, pendingLoginRedirect, setPendingLoginRedirect]);
 
   const handleFieldChange = (field: keyof LoginFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -99,7 +114,12 @@ export const useLoginForm = () => {
       );
 
       await fetchProfileAndAuthenticate();
-      navigate('/home');
+      const redirectTarget = resolvePostLoginRedirect(
+        new URLSearchParams(location.search).get('redirect'),
+        pendingLoginRedirect,
+      );
+      clearPendingLoginRedirect();
+      navigate(redirectTarget);
     } catch (err: unknown) {
       console.error('로그인 실패:', err);
       setError(getApiErrorMessage(err, '로그인에 실패했습니다. 다시 시도해주세요.'));

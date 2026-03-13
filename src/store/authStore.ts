@@ -3,6 +3,12 @@ import { persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { clearSessionScopedQueries } from '../lib/queryClient';
 import { fetchCurrentUserProfile, logoutUser, normalizeProfileImageUrl } from '../api/auth';
+import {
+  clearStoredLoginRedirect,
+  getCurrentRelativeUrl,
+  sanitizeLoginRedirect,
+  setStoredLoginRedirect,
+} from '../utils/loginRedirect';
 
 const LEGACY_AUTH_TOKEN_KEY = 'authToken';
 
@@ -45,6 +51,7 @@ interface AuthState {
   user: User | null;
   isAuthLoading: boolean;
   showLoginRequiredDialog: boolean;
+  pendingLoginRedirect: string | null;
 }
 
 interface AuthActions {
@@ -55,7 +62,9 @@ interface AuthActions {
   logout: (skipServerLogout?: boolean) => void;
   setFavoriteTeam: (team: string, color: string) => void;
   setShowLoginRequiredDialog: (show: boolean) => void;
-  requireLogin: (callback?: () => void) => boolean;
+  setPendingLoginRedirect: (redirectPath?: string | null) => void;
+  clearPendingLoginRedirect: () => void;
+  requireLogin: (redirectPath?: string | null) => boolean;
   reset: () => void;
 }
 
@@ -65,6 +74,7 @@ const getInitialState = (): AuthState => ({
   user: null,
   isAuthLoading: true,
   showLoginRequiredDialog: false,
+  pendingLoginRedirect: null,
 });
 
 let pendingAuthProfileRequest: Promise<void> | null = null;
@@ -166,6 +176,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: (skipServerLogout = false) => {
+        clearStoredLoginRedirect();
         if (!get().user || skipServerLogout) {
           clearSessionScopedQueries();
           set(getInitialState());
@@ -205,13 +216,24 @@ export const useAuthStore = create<AuthStore>()(
         set({ showLoginRequiredDialog: show });
       },
 
-      requireLogin: (callback?: () => void) => {
+      setPendingLoginRedirect: (redirectPath?: string | null) => {
+        const sanitized = setStoredLoginRedirect(redirectPath);
+        set({ pendingLoginRedirect: sanitized });
+      },
+
+      clearPendingLoginRedirect: () => {
+        clearStoredLoginRedirect();
+        set({ pendingLoginRedirect: null });
+      },
+
+      requireLogin: (redirectPath?: string | null) => {
         const currentUser = get().user;
         if (!currentUser) {
+          const nextRedirect = sanitizeLoginRedirect(redirectPath) || getCurrentRelativeUrl();
+          get().setPendingLoginRedirect(nextRedirect);
           get().setShowLoginRequiredDialog(true);
           return false;
         }
-        callback?.();
         return true;
       },
 
@@ -240,10 +262,13 @@ export const useAuthProfileSnapshot = () =>
       userName: state.user?.name,
       userHandle: state.user?.handle,
       userFavoriteTeam: state.user?.favoriteTeam,
+      userFavoriteTeamColor: state.user?.favoriteTeamColor,
       userProfileImageUrl: state.user?.profileImageUrl,
       userRole: state.user?.role,
+      userProvider: state.user?.provider,
       userBio: state.user?.bio,
       userCheerPoints: state.user?.cheerPoints,
+      userHasPassword: state.user?.hasPassword,
     })),
   );
 
@@ -268,6 +293,15 @@ export const useAuthAuthenticationActions = () =>
     useShallow((state) => ({
       login: state.login,
       fetchProfileAndAuthenticate: state.fetchProfileAndAuthenticate,
+    })),
+  );
+
+export const useAuthRedirectState = () =>
+  useAuthStore(
+    useShallow((state) => ({
+      pendingLoginRedirect: state.pendingLoginRedirect,
+      setPendingLoginRedirect: state.setPendingLoginRedirect,
+      clearPendingLoginRedirect: state.clearPendingLoginRedirect,
     })),
   );
 

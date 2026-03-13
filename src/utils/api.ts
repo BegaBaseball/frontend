@@ -55,6 +55,8 @@ export interface PaginatedResponse<T> {
 
 interface ApiRequestOptions extends RequestInit {
   skipGlobalErrorHandler?: boolean;
+  skipErrorReporting?: boolean;
+  allowManualRetry?: boolean;
 }
 
 let notificationUnreadCountEndpointAvailable = true;
@@ -117,6 +119,8 @@ export const api = {
         },
         signal: options?.signal as any,
         skipGlobalErrorHandler: options?.skipGlobalErrorHandler,
+        skipErrorReporting: options?.skipErrorReporting,
+        allowManualRetry: options?.allowManualRetry,
       });
 
       return response.status === 204 ? ({} as T) : (response.data as unknown as T);
@@ -135,12 +139,12 @@ export const api = {
   },
 
   // Stadium
-  async getStadiums(): Promise<Stadium[]> {
-    return this.request<Stadium[]>('/stadiums');
+  async getStadiums(options?: ApiRequestOptions): Promise<Stadium[]> {
+    return this.request<Stadium[]>('/stadiums', options);
   },
 
-  async getStadiumPlaces(stadiumId: string, category: string): Promise<Place[]> {
-    return this.request<Place[]>(`/stadiums/${stadiumId}/places?category=${category}`);
+  async getStadiumPlaces(stadiumId: string, category: string, options?: ApiRequestOptions): Promise<Place[]> {
+    return this.request<Place[]>(`/stadiums/${stadiumId}/places?category=${category}`, options);
   },
 
   async getKboSchedule(date: string): Promise<KboScheduleItem[]> {

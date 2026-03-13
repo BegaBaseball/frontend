@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { changePassword } from '../../api/profile';
 import { toast } from 'sonner';
 import { useAuthAccessActions } from '../../store/authStore';
+import { buildLoginPath } from '../../utils/loginRedirect';
 
 interface PasswordChangeSectionProps {
     onCancel: () => void;
@@ -35,7 +36,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
             toast.success('비밀번호가 변경되어 다시 로그인해주세요.');
             logout(true);
             onSuccess();
-            navigate('/login', { replace: true });
+            navigate(buildLoginPath('/mypage'), { replace: true });
         },
         onError: (error: Error) => {
             setError(error.message);

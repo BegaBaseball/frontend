@@ -190,16 +190,48 @@ const stopChild = async (child) => {
     return;
   }
 
-  child.kill('SIGINT');
-  await Promise.race([
-    new Promise((resolve) => child.once('exit', resolve)),
-    delay(2500),
-  ]);
+  const waitForExit = async (timeoutMs) => {
+    if (child.exitCode !== null) {
+      return;
+    }
+
+    try {
+      await Promise.race([
+        new Promise((resolve) => child.once('exit', resolve)),
+        delay(timeoutMs),
+      ]);
+    } catch {
+      // Ignore shutdown wait failures.
+    }
+  };
+
+  try {
+    child.kill('SIGINT');
+  } catch {
+    return;
+  }
+
+  await waitForExit(2500);
 
   if (child.exitCode === null) {
-    child.kill('SIGKILL');
+    try {
+      child.kill('SIGKILL');
+    } catch {
+      // Ignore cleanup failures after the main QA result has been determined.
+    }
+    await waitForExit(1000);
   }
 };
+
+const runCleanupStep = async (label, action, warnings) => {
+  try {
+    await action();
+  } catch (error) {
+    warnings.push(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+const getErrorMessage = (error) => (error instanceof Error ? error.message : String(error));
 
 class CDPClient {
   constructor(wsUrl) {
@@ -258,7 +290,30 @@ class CDPClient {
       return;
     }
 
-    this.socket.close();
+    const socket = this.socket;
+    this.socket = null;
+
+    if (socket.readyState === WebSocket.CLOSING || socket.readyState === WebSocket.CLOSED) {
+      await Promise.race([
+        new Promise((resolve) => socket.addEventListener('close', resolve, { once: true })),
+        delay(1000),
+      ]);
+      return;
+    }
+
+    try {
+      socket.close();
+    } catch {
+      return;
+    }
+
+    await Promise.race([
+      new Promise((resolve) => {
+        socket.addEventListener('close', resolve, { once: true });
+        socket.addEventListener('error', resolve, { once: true });
+      }),
+      delay(1000),
+    ]);
   }
 }
 
@@ -375,7 +430,7 @@ const waitForSelectors = async (client, selectors, timeoutMs = 5000) => {
   `, true).then((result) => result.ready === true);
 };
 
-const ensurePageReady = async (client, selectors, description, timeoutMs = 8000) => {
+const ensurePageReady = async (client, selectors, description, timeoutMs = 8000, diagnosticsCollector = null) => {
   const isReady = async () => {
     const documentReady = await waitForDocumentReady(client, timeoutMs);
     const selectorsReady = await waitForSelectors(client, selectors, timeoutMs);
@@ -398,6 +453,7 @@ const ensurePageReady = async (client, selectors, description, timeoutMs = 8000)
       const selectors = ${JSON.stringify(selectors.filter(Boolean))};
 
       return JSON.stringify({
+        description: ${JSON.stringify(description)},
         path: location.pathname + location.search,
         title: document.title,
         readyState: document.readyState,
@@ -409,7 +465,11 @@ const ensurePageReady = async (client, selectors, description, timeoutMs = 8000)
     })()
   `);
 
-  throw new Error(`${description}: required selectors did not become ready.\n${JSON.stringify(diagnostics)}`);
+  if (Array.isArray(diagnosticsCollector)) {
+    diagnosticsCollector.push(diagnostics);
+  }
+
+  throw new Error(`${description}: required selectors did not become ready.`);
 };
 
 const assertLandingMetrics = (metrics) => {
@@ -446,6 +506,21 @@ const assertLandingMetrics = (metrics) => {
   }
 
   return failures;
+};
+
+const withOptionalReportDetails = (report, cleanupWarnings, readinessDiagnostics) => ({
+  ...report,
+  ...(cleanupWarnings.length > 0 ? { cleanupWarnings: [...cleanupWarnings] } : {}),
+  ...(readinessDiagnostics.length > 0 ? { readinessDiagnostics: [...readinessDiagnostics] } : {}),
+});
+
+const buildReadinessDiagnosticLine = (diagnostic) => {
+  const missingSelectors = (diagnostic.selectors || [])
+    .filter((selector) => !selector.found)
+    .map((selector) => selector.selector);
+  const missingText = missingSelectors.length > 0 ? missingSelectors.join(', ') : 'none';
+
+  return `- ${diagnostic.description}: ${diagnostic.path} (readyState=${diagnostic.readyState}, missing=${missingText})`;
 };
 
 const buildSummaryMarkdown = (report) => {
@@ -513,6 +588,20 @@ const buildSummaryMarkdown = (report) => {
     }
   }
 
+  if (report.cleanupWarnings?.length > 0) {
+    lines.push('', '**Cleanup Warnings**');
+    for (const warning of report.cleanupWarnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+
+  if (report.readinessDiagnostics?.length > 0) {
+    lines.push('', '**Readiness Diagnostics**');
+    for (const diagnostic of report.readinessDiagnostics) {
+      lines.push(buildReadinessDiagnosticLine(diagnostic));
+    }
+  }
+
   return `${lines.join('\n')}\n`;
 };
 
@@ -573,6 +662,18 @@ const main = async () => {
   });
 
   let client = null;
+  const cleanupWarnings = [];
+  const readinessDiagnostics = [];
+  let report = null;
+  let mainError = null;
+
+  const writeCurrentReport = () => {
+    if (!report) {
+      return;
+    }
+
+    writeReportArtifacts(withOptionalReportDetails(report, cleanupWarnings, readinessDiagnostics));
+  };
 
   try {
     const wsUrl = await getPageWebSocketUrl(debugPort, args.baseUrl);
@@ -580,6 +681,9 @@ const main = async () => {
     await client.connect();
     await client.send('Page.enable');
     await client.send('Runtime.enable');
+    const ensureReady = (selectors, description, timeoutMs) => (
+      ensurePageReady(client, selectors, description, timeoutMs, readinessDiagnostics)
+    );
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
@@ -593,7 +697,7 @@ const main = async () => {
       '[data-testid="landing-hero-cta-secondary"]',
       '[data-testid="landing-cta-button"]',
     ];
-    await ensurePageReady(client, landingSelectors, 'landing initial page');
+    await ensureReady(landingSelectors, 'landing initial page');
 
     const metrics = {};
 
@@ -605,7 +709,7 @@ const main = async () => {
         mobile: testCase.label === 'mobile',
       });
       await delay(400);
-      await ensurePageReady(client, landingSelectors, `${testCase.label} landing viewport`);
+      await ensureReady(landingSelectors, `${testCase.label} landing viewport`);
 
       metrics[testCase.label] = await evaluateJson(client, `
         JSON.stringify({
@@ -638,7 +742,7 @@ const main = async () => {
       mobile: false,
     });
     await delay(400);
-    await ensurePageReady(client, landingSelectors, 'landing desktop interaction');
+    await ensureReady(landingSelectors, 'landing desktop interaction');
 
     const interaction = await evaluateJson(client, `
       new Promise((resolve) => {
@@ -678,12 +782,12 @@ const main = async () => {
       returnByValue: true,
     });
     await delay(400);
-    await ensurePageReady(client, landingSelectors, 'landing features capture');
+    await ensureReady(landingSelectors, 'landing features capture');
     await captureScreenshot(client, join(args.outDir, 'landing-features.png'));
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
-    await ensurePageReady(client, landingSelectors, 'landing secondary navigation');
+    await ensureReady(landingSelectors, 'landing secondary navigation');
     const secondaryScroll = await evaluateJson(client, `
       new Promise((resolve) => {
         const features = document.getElementById('features');
@@ -701,7 +805,7 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
-    await ensurePageReady(client, landingSelectors, 'landing login navigation');
+    await ensureReady(landingSelectors, 'landing login navigation');
     const loginNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="landing-header-login"]')?.click();
@@ -715,7 +819,7 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
-    await ensurePageReady(client, landingSelectors, 'landing header CTA navigation');
+    await ensureReady(landingSelectors, 'landing header CTA navigation');
     const headerCtaNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="landing-header-cta"]')?.click();
@@ -729,7 +833,7 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
-    await ensurePageReady(client, landingSelectors, 'landing hero CTA navigation');
+    await ensureReady(landingSelectors, 'landing hero CTA navigation');
     const heroPrimaryNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="landing-hero-cta-primary"]')?.click();
@@ -758,7 +862,7 @@ const main = async () => {
     });
     await client.send('Page.reload');
     await delay(4000);
-    await ensurePageReady(client, landingSelectors, 'landing reduced motion reload');
+    await ensureReady(landingSelectors, 'landing reduced motion reload');
 
     const reducedMotion = await evaluateJson(client, `
       (() => {
@@ -828,7 +932,7 @@ const main = async () => {
       }
     }
 
-    const report = {
+    report = {
       generatedAt: new Date().toISOString(),
       baseUrl: args.baseUrl,
       artifacts,
@@ -843,52 +947,80 @@ const main = async () => {
       reducedMotion,
       pass: failures.length === 0,
       failures,
+      ...(failures.length > 0 ? { errorMessage: failures.join('\n') } : {}),
     };
 
-    writeReportArtifacts(report);
+    writeCurrentReport();
 
     if (failures.length > 0) {
       throw new Error(failures.join('\n'));
     }
 
     log(`QA passed. Report: ${join(args.outDir, 'landing-report.json')}`);
-  } finally {
-    if (client) {
-      await client.close();
-    }
+  } catch (error) {
+    mainError = error;
+    const errorMessage = getErrorMessage(error);
 
-    await stopChild(chromeProcess);
-    rmSync(userDataDir, { recursive: true, force: true });
-
-    if (devServer) {
-      await stopChild(devServer.child);
-    }
-
-    if (chromeLogs.length > 0) {
-      writeFileSync(join(args.outDir, 'landing-chrome.log'), chromeLogs.join(''));
-    }
-  }
-};
-
-main()
-  .then(() => {
-    process.exit(0);
-  })
-  .catch((error) => {
-    const reportPath = join(args.outDir, 'landing-report.json');
-    if (!existsSync(reportPath)) {
-      const report = {
+    if (!report) {
+      report = {
         generatedAt: new Date().toISOString(),
         baseUrl: args.baseUrl,
         artifacts: getArtifactPaths(args.outDir),
         metrics: {},
         pass: false,
-        failures: [error.message],
-        errorMessage: error.message,
+        failures: [errorMessage],
+        errorMessage,
       };
-      writeReportArtifacts(report);
+    } else if (!report.errorMessage) {
+      report = {
+        ...report,
+        errorMessage,
+      };
+    }
+  } finally {
+    if (client) {
+      await runCleanupStep('cdp close', () => client.close(), cleanupWarnings);
     }
 
-    console.error(`[landing-qa] ${error.message}`);
-    process.exit(1);
+    await runCleanupStep('chrome process shutdown', () => stopChild(chromeProcess), cleanupWarnings);
+    await runCleanupStep('chrome profile cleanup', () => rmSync(userDataDir, { recursive: true, force: true }), cleanupWarnings);
+
+    if (devServer) {
+      await runCleanupStep('dev server shutdown', () => stopChild(devServer.child), cleanupWarnings);
+    }
+
+    if (chromeLogs.length > 0) {
+      await runCleanupStep('chrome log write', () => writeFileSync(join(args.outDir, 'landing-chrome.log'), chromeLogs.join('')), cleanupWarnings);
+    }
+
+    if (cleanupWarnings.length > 0) {
+      console.warn(`[landing-qa] cleanup warnings:\n${cleanupWarnings.join('\n')}`);
+    }
+
+    writeCurrentReport();
+  }
+
+  if (mainError) {
+    console.error(`[landing-qa] ${getErrorMessage(mainError)}`);
+    throw mainError;
+  }
+};
+
+main()
+  .catch((error) => {
+    const reportPath = join(args.outDir, 'landing-report.json');
+    if (!existsSync(reportPath)) {
+      const errorMessage = getErrorMessage(error);
+      writeReportArtifacts({
+        generatedAt: new Date().toISOString(),
+        baseUrl: args.baseUrl,
+        artifacts: getArtifactPaths(args.outDir),
+        metrics: {},
+        pass: false,
+        failures: [errorMessage],
+        errorMessage,
+      });
+    }
+
+    process.exitCode = 1;
   });

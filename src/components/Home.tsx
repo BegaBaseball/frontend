@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Calendar as CalendarIcon, Trophy, ChevronLeft, ChevronRight,
@@ -154,8 +154,10 @@ export default function Home({ onNavigate }: HomeProps) {
     // New Data States
     const [hotCheerPosts, setHotCheerPosts] = useState<CheerPost[]>([]);
     const [isHotCheerLoading, setIsHotCheerLoading] = useState(true);
+    const [hotCheerError, setHotCheerError] = useState<string | null>(null);
     const [featuredMates, setFeaturedMates] = useState<Party[]>([]);
     const [isFeaturedMatesLoading, setIsFeaturedMatesLoading] = useState(true);
+    const [featuredMatesError, setFeaturedMatesError] = useState<string | null>(null);
 
     // Loading States
     const [isLoading, setIsLoading] = useState(true);
@@ -478,6 +480,7 @@ export default function Home({ onNavigate }: HomeProps) {
         try {
             const { data } = await api.get<{ prevGameDate?: string | null; nextGameDate?: string | null }>('/kbo/schedule/navigation', {
                 params: { date: apiDate },
+                skipGlobalErrorHandler: true,
             });
             if (requestId !== navRequestIdRef.current) return;
             const prevGameDate = data?.prevGameDate ?? null;
@@ -501,7 +504,9 @@ export default function Home({ onNavigate }: HomeProps) {
         const fallbackDates = getFallbackLeagueStartDates();
 
         try {
-            const { data } = await api.get<LeagueStartDates>('/kbo/league-start-dates');
+            const { data } = await api.get<LeagueStartDates>('/kbo/league-start-dates', {
+                skipGlobalErrorHandler: true,
+            });
             cacheLeagueStartDates(data);
             setLeagueStartDates(data);
         } catch (error) {
@@ -519,6 +524,7 @@ export default function Home({ onNavigate }: HomeProps) {
         try {
             const { data: gamesData } = await api.get<Game[]>('/kbo/schedule', {
                 params: { date: apiDate },
+                skipGlobalErrorHandler: true,
             });
             setGames(gamesData);
 
@@ -545,26 +551,34 @@ export default function Home({ onNavigate }: HomeProps) {
 
         try {
             const dates = getDateWindow(baseDate, 8);
-            const responses = await Promise.all(dates.map(async (targetDate) => {
-                try {
-                    const apiDate = formatDateForAPI(targetDate);
-                    const { data: dailyGames } = await api.get<Game[]>('/kbo/schedule', {
-                        params: { date: apiDate },
-                    });
-                    return dailyGames.map((game) => ({
-                        ...game,
-                        sourceDate: apiDate,
-                        leagueBadge: resolveLeagueBadge(game.leagueType),
-                    }));
-                } catch (error) {
-                    console.error('[Scheduled] Error loading day schedule:', error);
-                    return [];
-                }
+            const responses = await Promise.allSettled(dates.map(async (targetDate) => {
+                const apiDate = formatDateForAPI(targetDate);
+                const { data: dailyGames } = await api.get<Game[]>('/kbo/schedule', {
+                    params: { date: apiDate },
+                    skipGlobalErrorHandler: true,
+                });
+                return dailyGames.map((game) => ({
+                    ...game,
+                    sourceDate: apiDate,
+                    leagueBadge: resolveLeagueBadge(game.leagueType),
+                }));
             }));
 
             if (requestId !== scheduledRequestIdRef.current) return;
 
-            const merged = responses
+            responses.forEach((result) => {
+                if (result.status === 'rejected') {
+                    console.error('[Scheduled] Error loading day schedule:', result.reason);
+                }
+            });
+
+            const fulfilledResponses = responses.filter(
+                (result): result is PromiseFulfilledResult<Game[]> => result.status === 'fulfilled'
+            );
+            const hasAnyFailure = responses.some((result) => result.status === 'rejected');
+
+            const merged = fulfilledResponses
+                .map((result) => result.value)
                 .flat()
                 .sort((a, b) => {
                     const dateCompare = (a.sourceDate || '').localeCompare(b.sourceDate || '');
@@ -575,6 +589,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 });
 
             setScheduledGames(merged);
+            setIsScheduledError(fulfilledResponses.length === 0 && hasAnyFailure);
         } catch (error) {
             if (requestId !== scheduledRequestIdRef.current) return;
             console.error('[Scheduled] Error loading scheduled games:', error);
@@ -594,7 +609,9 @@ export default function Home({ onNavigate }: HomeProps) {
         setRankingSeasonYear(seasonYear);
 
         const requestRankings = async (targetSeasonYear: number): Promise<Ranking[]> => {
-            const response = await api.get<Ranking[]>(`/kbo/rankings/${targetSeasonYear}`);
+            const response = await api.get<Ranking[]>(`/kbo/rankings/${targetSeasonYear}`, {
+                skipGlobalErrorHandler: true,
+            });
             return response.data;
         };
 
@@ -721,36 +738,48 @@ export default function Home({ onNavigate }: HomeProps) {
         loadScheduledGamesData(selectedDate);
     }, [selectedDate]);
 
-    // Initial load for new Dashboard Widgets
-    useEffect(() => {
-        const loadDashboardWidgets = async () => {
-            setIsHotCheerLoading(true);
-            setIsFeaturedMatesLoading(true);
-            try {
-                // Fetch Hot Cheer Posts
-                const cheerRes = await fetchHotPosts({ page: 0, size: 5, algorithm: 'HYBRID' });
-                setHotCheerPosts(cheerRes.content.slice(0, 3)); // Taking top 3
-            } catch (err) {
-                console.error('[Widget] Error loading Hot Cheer:', err);
-            } finally {
-                setIsHotCheerLoading(false);
-            }
+    const loadHotCheerPosts = useCallback(async () => {
+        setIsHotCheerLoading(true);
+        setHotCheerError(null);
 
-            try {
-                // Fetch Mate Parties (assuming fetchAllParties gets upcoming ones based on API defaults)
-                const mateData = await fetchAllParties();
-                // Filter for upcoming parties and take top 4
-                const upcomingMates = mateData.filter(p => new Date(p.gameDate) >= new Date() && p.status === 'PENDING').slice(0, 4);
-                setFeaturedMates(upcomingMates);
-            } catch (err) {
-                console.error('[Widget] Error loading Mates:', err);
-            } finally {
-                setIsFeaturedMatesLoading(false);
-            }
-        };
-
-        loadDashboardWidgets();
+        try {
+            const cheerRes = await fetchHotPosts(
+                { page: 0, size: 5, algorithm: 'HYBRID' },
+                { skipGlobalErrorHandler: true },
+            );
+            setHotCheerPosts(cheerRes.content.slice(0, 3));
+        } catch (err) {
+            console.error('[Widget] Error loading Hot Cheer:', err);
+            setHotCheerPosts([]);
+            setHotCheerError('인기 응원글을 불러오지 못했습니다.');
+        } finally {
+            setIsHotCheerLoading(false);
+        }
     }, []);
+
+    const loadFeaturedMates = useCallback(async () => {
+        setIsFeaturedMatesLoading(true);
+        setFeaturedMatesError(null);
+
+        try {
+            const mateData = await fetchAllParties({ skipGlobalErrorHandler: true });
+            const upcomingMates = mateData
+                .filter(p => new Date(p.gameDate) >= new Date() && p.status === 'PENDING')
+                .slice(0, 4);
+            setFeaturedMates(upcomingMates);
+        } catch (err) {
+            console.error('[Widget] Error loading Mates:', err);
+            setFeaturedMates([]);
+            setFeaturedMatesError('직관 메이트 목록을 불러오지 못했습니다.');
+        } finally {
+            setIsFeaturedMatesLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadHotCheerPosts();
+        void loadFeaturedMates();
+    }, [loadFeaturedMates, loadHotCheerPosts]);
     useEffect(() => {
         setIsSecondarySectionExpanded(false);
     }, [selectedDate]);
@@ -1152,6 +1181,19 @@ export default function Home({ onNavigate }: HomeProps) {
                                             <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
                                             <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
                                         </div>
+                                    ) : hotCheerError ? (
+                                        <div className="flex h-full flex-col items-center justify-center text-center text-zinc-500 dark:text-zinc-400">
+                                            <p className="font-medium text-zinc-700 dark:text-zinc-200">{hotCheerError}</p>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => void loadHotCheerPosts()}
+                                                className="mt-4"
+                                            >
+                                                <RefreshCw className="mr-1.5 h-4 w-4" />
+                                                다시 시도
+                                            </Button>
+                                        </div>
                                     ) : hotCheerPosts.length === 0 ? (
                                         <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400">
                                             인기 응원글이 없습니다.
@@ -1206,6 +1248,19 @@ export default function Home({ onNavigate }: HomeProps) {
                                             <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
                                             <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
                                             <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
+                                        </div>
+                                    ) : featuredMatesError ? (
+                                        <div className="flex h-full flex-col items-center justify-center text-center text-zinc-500 dark:text-zinc-400">
+                                            <p className="font-medium text-zinc-700 dark:text-zinc-200">{featuredMatesError}</p>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => void loadFeaturedMates()}
+                                                className="mt-4"
+                                            >
+                                                <RefreshCw className="mr-1.5 h-4 w-4" />
+                                                다시 시도
+                                            </Button>
                                         </div>
                                     ) : featuredMates.length === 0 ? (
                                         <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400">

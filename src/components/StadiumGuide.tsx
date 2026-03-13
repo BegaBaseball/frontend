@@ -86,6 +86,8 @@ export default function StadiumGuide() {
   const selectedStadiumAddress = normalizeOptionalText(selectedStadium?.address);
   const selectedStadiumPhone = normalizeOptionalText(selectedStadium?.phone);
   const canRenderMap = Boolean(selectedStadium && KAKAO_API_KEY && isMapReady && mapStatus === 'success' && hasStadiumCoordinates);
+  const stadiumControlsDisabled = stadiumsStatus === 'loading' || stadiumsStatus === 'empty' || stadiumsStatus === 'error';
+  const listControlsDisabled = stadiumControlsDisabled || !selectedStadium;
 
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
@@ -138,7 +140,7 @@ export default function StadiumGuide() {
                 <select
                   value={selectedStadium?.stadiumId || ''}
                   onChange={(e) => handleStadiumChange(e.target.value)}
-                  disabled={stadiumsStatus === 'loading' || stadiumsStatus === 'empty'}
+                  disabled={stadiumControlsDisabled}
                   className="w-full py-6 px-4 pr-12 bg-white dark:bg-card border-2 rounded-2xl text-base cursor-pointer dark:text-gray-200"
                   style={{
                     borderColor: isDark ? '#374151' : THEME_COLORS.primary,
@@ -149,7 +151,11 @@ export default function StadiumGuide() {
                 >
                   {stadiums.length === 0 && (
                     <option value="">
-                      {stadiumsStatus === 'loading' ? '구장 목록 로딩 중...' : '등록된 구장이 없습니다.'}
+                      {stadiumsStatus === 'loading'
+                        ? '구장 목록 로딩 중...'
+                        : stadiumsStatus === 'error'
+                          ? '구장 정보를 불러오지 못했습니다.'
+                          : '등록된 구장이 없습니다.'}
                     </option>
                   )}
                   {stadiums.map((stadium) => (
@@ -317,6 +323,7 @@ export default function StadiumGuide() {
                     <button
                       key={config.key}
                       onClick={() => { setSelectedCategory(config.key); setSearchQuery(''); }}
+                      disabled={stadiumControlsDisabled}
                       className="py-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 dark:bg-card"
                       style={{
                         backgroundColor: isSelected
@@ -328,6 +335,7 @@ export default function StadiumGuide() {
                         color: isSelected
                           ? config.color
                           : (isDark ? '#9ca3af' : THEME_COLORS.gray),
+                        opacity: stadiumControlsDisabled ? 0.5 : 1,
                       }}
                     >
                       <Icon className="w-6 h-6" />
@@ -370,6 +378,7 @@ export default function StadiumGuide() {
                     placeholder="장소 이름 검색..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    disabled={listControlsDisabled}
                     className="pl-9 h-9 text-sm dark:bg-card dark:border-border"
                   />
                 </div>
@@ -378,6 +387,7 @@ export default function StadiumGuide() {
                   <select
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value as StadiumGuideSortOrder)}
+                    disabled={listControlsDisabled}
                     className="h-9 pl-8 pr-3 text-sm rounded-md border border-input bg-background dark:bg-card dark:border-border dark:text-gray-200 cursor-pointer"
                   >
                     <option value="default">기본순</option>

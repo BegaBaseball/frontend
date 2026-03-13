@@ -12,25 +12,32 @@ describe('My Page (User Profile)', () => {
         cy.url().should('include', 'view=changePassword');
     };
 
-    const authState = {
+    const createAuthState = (userOverrides: Partial<typeof authStateUser> = {}) => ({
         state: {
             user: {
-                id: 123,
-                email: 'test@example.com',
-                name: 'TestUser',
-                handle: '@testuser',
-                role: 'ROLE_USER',
-                favoriteTeam: 'HH',
-                profileImageUrl: null,
-                hasPassword: true,
+                ...authStateUser,
+                ...userOverrides,
             },
             isLoggedIn: true,
             isAdmin: false,
         },
         version: 0,
+    });
+
+    const authStateUser = {
+        id: 123,
+        email: 'test@example.com',
+        name: 'TestUser',
+        handle: '@testuser',
+        role: 'ROLE_USER',
+        favoriteTeam: 'HH',
+        profileImageUrl: null,
+        hasPassword: true,
     };
 
-    const bootstrapAuthenticatedWindow = (win: Window) => {
+    const authState = createAuthState();
+
+    const bootstrapAuthenticatedWindow = (win: Window, nextAuthState = authState) => {
         const originalAddEventListener = win.addEventListener.bind(win);
         win.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
             if (type === 'auth-session-expired' || type === 'global-api-error') {
@@ -38,15 +45,15 @@ describe('My Page (User Profile)', () => {
             }
             return originalAddEventListener(type, listener, options);
         }) as typeof win.addEventListener;
-        win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+        win.localStorage.setItem('auth-storage', JSON.stringify(nextAuthState));
         win.localStorage.setItem('accessToken', 'fake-access-token');
         win.localStorage.setItem('bega_has_visited', 'true');
         win.localStorage.setItem('bega_dont_show_guide', 'true');
     };
 
-    const visitMyPage = () => {
+    const visitMyPage = (nextAuthState = authState) => {
         cy.visit('/mypage', {
-            onBeforeLoad: bootstrapAuthenticatedWindow,
+            onBeforeLoad: (win) => bootstrapAuthenticatedWindow(win, nextAuthState),
         });
     };
 
@@ -292,6 +299,55 @@ describe('My Page (User Profile)', () => {
             cy.contains('test@google.com').should('be.visible');
             cy.contains('button', '해제').should('be.visible');
         });
+
+        it('should request a link token before starting social account linking', () => {
+            cy.intercept('GET', '**/api/auth/link-token', {
+                statusCode: 500,
+                body: {
+                    message: '연동 토큰 발급에 실패했습니다. 다시 로그인해주세요.',
+                },
+            }).as('getLinkToken');
+
+            cy.contains('button', '연동하기').first().click();
+
+            cy.wait('@getLinkToken').its('response.statusCode').should('eq', 500);
+            cy.url().should('include', '/mypage');
+        });
+
+        it('should show a visible explanation when the last login method cannot be unlinked', () => {
+            cy.intercept('GET', '**/api/auth/providers', {
+                statusCode: 200,
+                body: {
+                    success: true,
+                    data: [
+                        { provider: 'GOOGLE', connected: true, email: 'test@google.com' },
+                    ]
+                }
+            }).as('getProvidersSocialOnly');
+
+            cy.intercept('GET', '**/api/auth/mypage*', {
+                statusCode: 200,
+                body: {
+                    success: true,
+                    data: {
+                        ...authStateUser,
+                        provider: 'GOOGLE',
+                        hasPassword: false,
+                    }
+                }
+            }).as('getMeSocialOnly');
+
+            visitMyPage(createAuthState({ provider: 'GOOGLE', hasPassword: false }));
+            cy.wait('@getMeSocialOnly');
+            cy.contains('TestUser', { timeout: 20000 }).should('be.visible');
+
+            cy.contains('내 정보 수정').click();
+            cy.contains('계정 설정').click();
+            cy.wait('@getProvidersSocialOnly');
+
+            cy.contains('button', '현재 로그인 방식').should('be.disabled');
+            cy.contains('현재 로그인 중인 유일한 수단이라 해제할 수 없습니다.').should('be.visible');
+        });
     });
 
     describe('Password Change', () => {
@@ -315,6 +371,23 @@ describe('My Page (User Profile)', () => {
             cy.wait('@updatePassword');
 
             cy.contains('현재 비밀번호가 일치하지 않습니다').should('be.visible');
+        });
+
+        it('should return to mypage after logging in again when password change succeeds', () => {
+            cy.intercept('PUT', '**/api/auth/password', {
+                statusCode: 200,
+                body: { success: true }
+            }).as('updatePasswordSuccess');
+
+            cy.get('input#currentPassword').type('currentpassword123');
+            cy.get('input#newPassword').type('newpassword123');
+            cy.get('input#confirmPassword').type('newpassword123');
+
+            cy.contains('button', '비밀번호 변경').click();
+            cy.wait('@updatePasswordSuccess');
+
+            cy.location('pathname').should('eq', '/login');
+            cy.location('search').should('eq', '?redirect=%2Fmypage');
         });
     });
 

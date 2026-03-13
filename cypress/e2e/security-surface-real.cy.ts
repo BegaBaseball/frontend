@@ -1,6 +1,7 @@
 describe('Security surface real smoke', () => {
   const fallbackLoginPassword = 'Test1234!';
   const fallbackFavoriteTeam = 'LG';
+  type EnvVars = Record<string, unknown>;
 
   type RequiredPolicy = {
     policyType?: string;
@@ -9,6 +10,10 @@ describe('Security surface real smoke', () => {
   };
 
   const stripTrailingSlash = (value: string) => value.trim().replace(/\/+$/, '');
+  const getEnvString = (envVars: EnvVars, key: string) => {
+    const value = envVars[key];
+    return typeof value === 'string' ? value : undefined;
+  };
 
   const resolveBaseOrigin = () => {
     const baseUrl = Cypress.config('baseUrl');
@@ -65,27 +70,18 @@ describe('Security surface real smoke', () => {
     return `${backendBaseUrl}${safePath}`;
   };
 
-  const resolveBackendBaseUrl = () =>
-    cy.env([
-      'BACKEND_BASE_URL',
-      'SMOKE_API_BASE_URL',
-      'CYPRESS_BASE_URL',
-      'CYPRESS_BACKEND_BASE_URL',
-      'VITE_API_BASE_URL',
-      'FRONTEND_API_BASE_URL',
-    ]).then((envVars) => {
+  const resolveBackendBaseUrl = (): Cypress.Chainable<string | undefined> =>
+    cy.wrap(null, { log: false }).then(() => {
+      const envVars = Cypress.env() as EnvVars;
       const backendBaseUrl =
-        normalizeBackendBaseUrl(envVars.BACKEND_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.SMOKE_API_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.CYPRESS_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.CYPRESS_BACKEND_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.VITE_API_BASE_URL as string | undefined)
-        || normalizeBackendBaseUrl(envVars.FRONTEND_API_BASE_URL as string | undefined);
+        normalizeBackendBaseUrl(getEnvString(envVars, 'BACKEND_BASE_URL'))
+        || normalizeBackendBaseUrl(getEnvString(envVars, 'SMOKE_API_BASE_URL'))
+        || normalizeBackendBaseUrl(getEnvString(envVars, 'CYPRESS_BASE_URL'))
+        || normalizeBackendBaseUrl(getEnvString(envVars, 'CYPRESS_BACKEND_BASE_URL'))
+        || normalizeBackendBaseUrl(getEnvString(envVars, 'VITE_API_BASE_URL'))
+        || normalizeBackendBaseUrl(getEnvString(envVars, 'FRONTEND_API_BASE_URL'));
 
-      if (!backendBaseUrl) {
-        return undefined;
-      }
-      return backendBaseUrl;
+      return cy.wrap(backendBaseUrl, { log: false });
     });
 
   const isBackendHealthResponse = (response: Cypress.Response<unknown>) => {
@@ -108,7 +104,7 @@ describe('Security surface real smoke', () => {
 
   before(function () {
     return resolveBackendBaseUrl()
-      .then((backendBaseUrl: any) => {
+      .then(async (backendBaseUrl) => {
         if (!backendBaseUrl) {
           cy.log('Skipping security-surface-real: BACKEND_BASE_URL is not available or backend is not reachable.');
           cy.log('Set BACKEND_BASE_URL, CYPRESS_BACKEND_BASE_URL, SMOKE_API_BASE_URL, VITE_API_BASE_URL, or FRONTEND_API_BASE_URL for execution.');
@@ -116,24 +112,27 @@ describe('Security surface real smoke', () => {
           return;
         }
 
-        return cy.request({
-          method: 'GET',
-          url: buildBackendUrl(backendBaseUrl, '/actuator/health'),
-          failOnStatusCode: false,
-        }).then((response) => {
+        try {
+          const response = await (cy.request({
+            method: 'GET',
+            url: buildBackendUrl(backendBaseUrl, '/actuator/health'),
+            failOnStatusCode: false,
+          }) as unknown as Promise<Cypress.Response<unknown>>);
+
           if (!isBackendHealthResponse(response)) {
             cy.log('Skipping security-surface-real: /actuator/health did not return backend JSON payload.');
             this.skip();
           }
-        }, (error) => {
-          cy.log(`Skipping security-surface-real: backend health check failed (${error.message}).`);
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          cy.log(`Skipping security-surface-real: backend health check failed (${message}).`);
           this.skip();
-        });
+        }
       });
   });
 
   const requestBlocked = (method: 'GET' | 'POST', url: string) =>
-    resolveBackendBaseUrl().then((backendBaseUrl: any) => {
+    resolveBackendBaseUrl().then((backendBaseUrl) => {
       if (!backendBaseUrl) return;
       return cy.request({
         method,
@@ -145,7 +144,7 @@ describe('Security surface real smoke', () => {
     });
 
   const loginWithCredentials = (email: string, password: string) => {
-    return resolveBackendBaseUrl().then((backendBaseUrl: any) => {
+    return resolveBackendBaseUrl().then((backendBaseUrl) => {
       if (!backendBaseUrl) return;
       return cy.request({
         method: 'POST',
@@ -167,7 +166,7 @@ describe('Security surface real smoke', () => {
   };
 
   const resolveRequiredPolicyConsents = () => {
-    return resolveBackendBaseUrl().then((backendBaseUrl: any) => {
+    return resolveBackendBaseUrl().then((backendBaseUrl) => {
       if (!backendBaseUrl) return [];
       return cy.request({
         method: 'GET',
@@ -196,7 +195,7 @@ describe('Security surface real smoke', () => {
 
   const createAccountAndLogin = (email: string, password: string, handle: string) => {
     return resolveRequiredPolicyConsents()
-      .then((policyConsents) => resolveBackendBaseUrl().then((backendBaseUrl: any) => {
+      .then((policyConsents) => resolveBackendBaseUrl().then((backendBaseUrl) => {
         if (!backendBaseUrl) return;
         return cy.request({
           method: 'POST',
@@ -224,10 +223,11 @@ describe('Security surface real smoke', () => {
       });
   };
 
-  const loginAsNormalUser = () => {
-    return cy.env(['SMOKE_LOGIN_EMAIL', 'SMOKE_LOGIN_PASSWORD']).then((envVars) => {
-      const configuredEmail = envVars.SMOKE_LOGIN_EMAIL;
-      const configuredPassword = envVars.SMOKE_LOGIN_PASSWORD;
+  const loginAsNormalUser = (): Cypress.Chainable<boolean | undefined> => {
+    return cy.wrap(null, { log: false }).then(() => {
+      const envVars = Cypress.env() as EnvVars;
+      const configuredEmail = getEnvString(envVars, 'SMOKE_LOGIN_EMAIL');
+      const configuredPassword = getEnvString(envVars, 'SMOKE_LOGIN_PASSWORD');
 
       if (configuredEmail && configuredPassword) {
         return loginWithCredentials(configuredEmail, configuredPassword);
@@ -239,7 +239,7 @@ describe('Security surface real smoke', () => {
         fallbackLoginPassword,
         `its${uniqueSuffix}`
       );
-    });
+    }) as unknown as Cypress.Chainable<boolean | undefined>;
   };
 
   it('blocks unauthenticated access to dashboard and leaderboard seed route', () => {
