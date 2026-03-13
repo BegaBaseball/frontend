@@ -116,4 +116,73 @@ describe('MateDetail QR refresh', () => {
       expect(qrSessionCallCount).to.be.at.most(baselineCallCount + 1);
     });
   });
+
+  it('shows a clear loading message while refreshing the checkin QR', () => {
+    const detailParty = {
+      id: 778,
+      hostId: 123,
+      hostName: '로딩호스트',
+      hostBadge: 'NEW',
+      hostAverageRating: 4.5,
+      hostReviewCount: 10,
+      hostProfileImageUrl: 'https://cdn.example.com/profile.png',
+      hostFavoriteTeam: 'KT',
+      status: 'PENDING',
+      gameDate: '2026-03-02',
+      gameTime: '19:00',
+      stadium: '잠실',
+      teamId: 'KT',
+      homeTeam: 'KT',
+      awayTeam: 'LG',
+      section: '중앙석',
+      maxParticipants: 4,
+      currentParticipants: 1,
+      ticketVerified: true,
+      ticketPrice: 50000,
+      description: 'QR 로딩 문구 검증용 파티',
+      createdAt: '2026-02-20T09:00:00',
+    };
+
+    cy.intercept('GET', '**/api/parties*', {
+      statusCode: 200,
+      body: {
+        content: [detailParty],
+        totalElements: 1,
+        totalPages: 1,
+        number: 0,
+        size: 9,
+      },
+    }).as('getParties');
+    cy.intercept('GET', '**/api/parties/778*', {
+      statusCode: 200,
+      body: detailParty,
+    }).as('getPartyById');
+    cy.intercept('GET', '**/api/applications/party/778/mine', {
+      statusCode: 200,
+      body: null,
+    }).as('getMyApplicationByParty');
+    cy.intercept('GET', '**/api/applications/party/778*', {
+      statusCode: 200,
+      body: [],
+    }).as('getPartyApplications');
+    cy.intercept('POST', '**/api/checkin/qr-session', {
+      statusCode: 201,
+      delay: 1200,
+      body: {
+        sessionId: 'session-loading',
+        partyId: 778,
+        expiresAt: '2026-03-01T12:30:00Z',
+        checkinUrl: `${checkinBaseUrl}/mate/778/checkin?sessionId=session-loading`,
+      },
+    }).as('createCheckinQrSession');
+
+    cy.visit('/mate');
+    cy.wait('@getParties');
+    cy.contains('잠실').click();
+    cy.url().should('include', '/mate/778');
+    cy.wait('@getPartyById');
+    cy.contains('체크인 QR을 새로 불러오는 중입니다.').should('be.visible');
+    cy.wait('@createCheckinQrSession');
+    cy.contains('체크인 QR을 새로 불러오는 중입니다.').should('not.exist');
+  });
 });

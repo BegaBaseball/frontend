@@ -1,5 +1,7 @@
 import axios from 'axios';
+import type { GlobalApiErrorDetail } from '../types/error';
 import { parseError } from '../utils/errorUtils';
+import { reportApiError } from '../utils/clientErrorReporter';
 import { getApiBaseUrl } from './apiBase';
 
 const API_BASE_URL = getApiBaseUrl();
@@ -7,6 +9,7 @@ const API_BASE_URL = getApiBaseUrl();
 const api = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true, // Cookie 전송을 위해 필수
+    timeout: 10000, // 10초 타임아웃 추가
     headers: {
         'Content-Type': 'application/json',
     },
@@ -22,6 +25,85 @@ const skipReissueRequestPaths = [
     '/auth/reissue',
     '/auth/logout',
 ];
+
+const normalizeRequestPath = (url?: string) => {
+    if (!url) {
+        return undefined;
+    }
+
+    if (typeof window === 'undefined') {
+        return url;
+    }
+
+    try {
+        const parsed = new URL(url, window.location.origin);
+        return `${parsed.pathname}${parsed.search}`;
+    } catch {
+        return url;
+    }
+};
+
+const shouldSkipErrorReporting = (error: any, responseCode?: string) => {
+    const status = error.response?.status ?? null;
+    const requestUrl = error.config?.url || '';
+
+    if (error.config?.skipErrorReporting) {
+        return true;
+    }
+
+    if (responseCode === 'INVALID_AUTHOR') {
+        return true;
+    }
+
+    if (status === 401) {
+        return true;
+    }
+
+    if (error.config?.skipGlobalErrorHandler && status !== null && status < 500) {
+        return true;
+    }
+
+    if (skipReissueRequestPaths.some((path) => requestUrl.includes(path)) && status !== null && status < 500) {
+        return true;
+    }
+
+    return false;
+};
+
+const isManualRetryAllowed = (error: any) => {
+    const method = (error.config?.method || 'get').toUpperCase();
+    return method === 'GET' || method === 'HEAD' || error.config?.allowManualRetry === true;
+};
+
+const createManualRetryHandler = (requestConfig: any) => {
+    return () => api({
+        ...requestConfig,
+        headers: requestConfig?.headers ? { ...requestConfig.headers } : undefined,
+        signal: undefined,
+    });
+};
+
+const buildGlobalErrorDetail = (error: any): GlobalApiErrorDetail => {
+    const parsedError = parseError(error);
+    const requestMethod = (error.config?.method || 'get').toUpperCase();
+    const eventId = reportApiError({
+        message: parsedError.message,
+        statusCode: parsedError.statusCode,
+        responseCode: parsedError.responseCode,
+        method: requestMethod,
+        endpoint: normalizeRequestPath(error.config?.url),
+        shouldReport: !shouldSkipErrorReporting(error, parsedError.responseCode),
+    });
+
+    return {
+        ...parsedError,
+        errorId: eventId,
+        source: 'api',
+        onRetry: parsedError.statusCode === 401 || !isManualRetryAllowed(error)
+            ? null
+            : createManualRetryHandler(error.config),
+    };
+};
 
 // Response Interceptor
 api.interceptors.response.use(
@@ -53,7 +135,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (responseCode === 'INVALID_AUTHOR') {
                 console.error('Session invalid due to missing/invalid author user.');
-                const parsedError = parseError(error);
+                const parsedError = buildGlobalErrorDetail(error);
                 if (!error.config?.skipGlobalErrorHandler) {
                     window.dispatchEvent(new CustomEvent('global-api-error', { detail: parsedError }));
                 }
@@ -67,7 +149,7 @@ api.interceptors.response.use(
 
             originalRequest._retry = true;
             if (!reissueInFlight) {
-                reissueInFlight = axios.post(`${API_BASE_URL}/auth/reissue`, {}, { withCredentials: true, skipGlobalErrorHandler: true })
+                reissueInFlight = axios.post(`${API_BASE_URL}/auth/reissue`, {}, { withCredentials: true, skipGlobalErrorHandler: true, skipErrorReporting: true })
                     .then(() => {
                         hasSessionExpired = false;
                     })
@@ -94,7 +176,7 @@ api.interceptors.response.use(
         } else if (error.response?.status === 401) {
             if (responseCode === 'INVALID_AUTHOR') {
                 console.error('Session invalid due to missing/invalid author user.');
-                const parsedError = parseError(error);
+                const parsedError = buildGlobalErrorDetail(error);
                 if (!error.config?.skipGlobalErrorHandler) {
                     window.dispatchEvent(new CustomEvent('global-api-error', { detail: parsedError }));
                 }
@@ -110,8 +192,8 @@ api.interceptors.response.use(
         }
 
         // Global Error Handling
+        const parsedError = buildGlobalErrorDetail(error);
         if (!error.config?.skipGlobalErrorHandler) {
-            const parsedError = parseError(error);
             // 401 is handled above, so we skip it here unless it fell through (e.g. reissue failed)
             if (parsedError.statusCode !== 401) {
                 window.dispatchEvent(new CustomEvent('global-api-error', { detail: parsedError }));

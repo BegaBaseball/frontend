@@ -6,8 +6,10 @@ export interface UserProfile {
   favoriteTeam: string | null;
   profileImageUrl: string | null;
   role?: string;
+  provider?: string;
   bio?: string | null;
   cheerPoints?: number;
+  hasPassword?: boolean;
 }
 
 export interface PublicUserProfile {

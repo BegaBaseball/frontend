@@ -18,6 +18,7 @@ import {
 } from '../utils/ranking';
 import { KAKAO_APP_KEY } from '../constants/ranking';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 export const useRankingPrediction = () => {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ export const useRankingPrediction = () => {
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
       toast.error('로그인이 필요한 서비스입니다.');
-      navigate('/login');
+      navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
     }
   }, [isLoggedIn, isAuthLoading, navigate]);
 
@@ -99,7 +100,7 @@ export const useRankingPrediction = () => {
       const errorMessage = getApiErrorMessage(error, '데이터를 불러오는데 실패했습니다.');
       if (errorMessage === 'UNAUTHORIZED') {
         toast.error('로그인이 필요한 서비스입니다.');
-        navigate('/login');
+        navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
       } else {
         setIsPredictionPeriod(false);
         toast.error(errorMessage);

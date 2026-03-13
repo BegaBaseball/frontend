@@ -61,6 +61,7 @@ import {
     normalizeHexColor,
     toRgba,
 } from '../utils/teamColors';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 const detailDateFormatter = new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'long',
@@ -124,6 +125,7 @@ export default function CheerDetail() {
         userHandle: authUserHandle,
         userProfileImageUrl: authUserProfileImageUrl,
     } = useAuthProfileSnapshot();
+    const areCommentRepliesAvailable = false;
     const { isLoggedIn } = useAuthSession();
     const authUserDisplayName = authUserName || authUserEmail || '나';
     const { confirm } = useConfirmDialog();
@@ -1006,6 +1008,15 @@ export default function CheerDetail() {
                                     <p className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400 sm:text-[13px]">
                                         응원은 댓글에서 더 뜨거워집니다.
                                     </p>
+                                    {!areCommentRepliesAvailable && (
+                                        <div
+                                            data-testid="cheer-reply-status"
+                                            className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-600 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-300"
+                                        >
+                                            <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                                            <span>답글 기능은 준비 중입니다. 지금은 댓글과 좋아요로 응원에 참여할 수 있습니다.</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -1059,14 +1070,14 @@ export default function CheerDetail() {
                                     }}
                                 >
                                     <p className="text-sm text-slate-600 dark:text-slate-300">
-                                        댓글을 작성하려면 로그인이 필요합니다.
+                                        댓글, 좋아요, 답글 참여는 로그인 후 이용할 수 있습니다.
                                     </p>
                                     <Button
-                                        onClick={() => navigate('/login')}
+                                        onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
                                         className="mt-4 h-9 rounded-full px-4 text-[13px] text-white"
                                         style={{ backgroundColor: detailAccent }}
                                     >
-                                        로그인하기
+                                        로그인하고 참여하기
                                     </Button>
                                 </div>
                             )}
@@ -1159,8 +1170,8 @@ export default function CheerDetail() {
                                                     comment={comment}
                                                     canInteract={isLoggedIn}
                                                     canLike={isLoggedIn}
-                                                    repliesEnabled={false}
-                                                    repliesComingSoon={true}
+                                                    repliesEnabled={areCommentRepliesAvailable}
+                                                    repliesComingSoon={!areCommentRepliesAvailable}
                                                     activeReplyId={activeReplyId}
                                                     replyDraft={replyDraft}
                                                     isReplyPending={isReplyPending}

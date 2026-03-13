@@ -85,7 +85,15 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-1">
             <h4 className="mb-2 text-sm font-bold">고객센터</h4>
             <ul className="space-y-1 text-xs text-zinc-600 dark:text-gray-400">
-              <li>이메일: baseballguide251021@gmail.com</li>
+              <li>
+                이메일:{' '}
+                <a
+                  href="mailto:baseballguide251021@gmail.com"
+                  className="hover:text-primary dark:hover:text-white underline-offset-2 hover:underline"
+                >
+                  baseballguide251021@gmail.com
+                </a>
+              </li>
               <li>운영시간: 평일 09:00-18:00</li>
             </ul>
           </div>

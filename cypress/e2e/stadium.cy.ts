@@ -160,7 +160,10 @@ describe('Stadium Guide Quality Flow', () => {
 
     cy.reload();
     cy.wait('@getStadiumsFailure');
-    cy.contains('구장 목록을 불러오는데 실패했습니다.').should('be.visible');
+    cy.contains('구장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+    cy.get('select').first().should('be.disabled');
+    cy.contains('button', '구장 먹거리').should('be.disabled');
+    cy.get('input[placeholder="장소 이름 검색..."]').should('be.disabled');
     cy.screenshot('stadium-smoke-failure');
 
     cy.intercept('GET', '**/api/stadiums', {
@@ -231,7 +234,7 @@ describe('Stadium Guide Quality Flow', () => {
 
     cy.visit('/stadium');
     cy.wait('@getStadiums');
-    cy.contains('구장 목록을 불러오는데 실패했습니다.').should('be.visible');
+    cy.contains('구장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.').should('be.visible');
     cy.contains('button', '재시도').click();
     cy.wait('@getStadiums');
     cy.wait('@getFoodPlaces');

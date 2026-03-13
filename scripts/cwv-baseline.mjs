@@ -35,7 +35,9 @@ const routes = ['/', '/home', '/cheer'];
 const strategies = ['mobile', 'desktop'];
 const warnings = [];
 const checks = [];
-const records = [];
+const results = [];
+const ALLOWED_ERROR_KINDS = new Set(['network', 'timeout', 'http', 'payload', 'config']);
+const getErrorMessage = (error) => (error instanceof Error ? error.message : String(error));
 
 const fetchWithTimeout = async (url) => {
   const controller = new AbortController();
@@ -47,10 +49,39 @@ const fetchWithTimeout = async (url) => {
       },
       signal: controller.signal,
     });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      const timeoutError = new Error(`Pagespeed API 요청 타임아웃(${timeoutMs}ms)`);
+      timeoutError.kind = 'timeout';
+      throw timeoutError;
+    }
+    throw error;
   } finally {
     clearTimeout(timer);
   }
 };
+
+const normalizeErrorKind = (kind, fallback = 'payload') => (
+  ALLOWED_ERROR_KINDS.has(kind) ? kind : fallback
+);
+
+const inferErrorKind = (error) => {
+  const message = error instanceof Error ? error.message : String(error);
+  if (typeof error?.kind === 'string') {
+    return normalizeErrorKind(error.kind, 'payload');
+  }
+  if (/timed? out|타임아웃|abort/i.test(message)) {
+    return 'timeout';
+  }
+  if (/fetch failed|network|econnrefused|enotfound|eai_again|eperm/i.test(message)) {
+    return 'network';
+  }
+  return 'payload';
+};
+
+const formatWarning = (routeLabel, strategy, kind, targetUrl, message) => (
+  `[${routeLabel} | ${strategy}] Pagespeed API ${kind} 오류 (${targetUrl}): ${message}`
+);
 
 const readMetric = (audits, id) => {
   const metric = audits?.[id];
@@ -62,6 +93,26 @@ const readMetric = (audits, id) => {
     displayValue: metric.displayValue || '-',
   };
 };
+
+const cloneResult = (record) => ({
+  ...record,
+  lcp: { ...record.lcp },
+  inp: { ...record.inp },
+  cls: { ...record.cls },
+});
+
+const createReport = ({ ok, errorMessage = null }) => ({
+  ok,
+  checkedAt: new Date().toISOString(),
+  siteUrl,
+  timeoutMs,
+  routes: [...routes],
+  strategies: [...strategies],
+  checks: [...checks],
+  warnings: [...warnings],
+  results: results.map(cloneResult),
+  ...(errorMessage ? { errorMessage } : {}),
+});
 
 const measureRoute = async (routePath, strategy) => {
   const normalizedPath = normalizePath(routePath);
@@ -76,12 +127,15 @@ const measureRoute = async (routePath, strategy) => {
     route: normalizedPath,
     strategy,
     targetUrl,
+    requestUrl: apiUrl.toString(),
     status: 'ok',
     performanceScore: null,
     lcp: { numericValue: null, displayValue: '-' },
     inp: { numericValue: null, displayValue: '-' },
     cls: { numericValue: null, displayValue: '-' },
     rawFinalUrl: null,
+    errorKind: null,
+    httpStatus: null,
     error: null,
   };
 
@@ -89,8 +143,12 @@ const measureRoute = async (routePath, strategy) => {
     const response = await fetchWithTimeout(apiUrl.toString());
     if (!response.ok) {
       record.status = 'warning';
+      record.errorKind = 'http';
+      record.httpStatus = response.status;
       record.error = `HTTP ${response.status}`;
-      warnings.push(`[${routeLabel} | ${strategy}] Pagespeed API 실패: HTTP ${response.status}`);
+      warnings.push(
+        formatWarning(routeLabel, strategy, 'http', record.requestUrl, `HTTP ${response.status}`),
+      );
       return record;
     }
 
@@ -101,8 +159,11 @@ const measureRoute = async (routePath, strategy) => {
 
     if (!lighthouse || !categories?.performance || !audits) {
       record.status = 'warning';
+      record.errorKind = 'payload';
       record.error = 'Lighthouse payload missing';
-      warnings.push(`[${routeLabel} | ${strategy}] Lighthouse payload 누락`);
+      warnings.push(
+        formatWarning(routeLabel, strategy, 'payload', record.requestUrl, 'Lighthouse payload 누락'),
+      );
       return record;
     }
 
@@ -118,9 +179,11 @@ const measureRoute = async (routePath, strategy) => {
     checks.push(`[${routeLabel} | ${strategy}] 측정 완료`);
     return record;
   } catch (error) {
+    const errorKind = inferErrorKind(error);
     record.status = 'warning';
+    record.errorKind = errorKind;
     record.error = error instanceof Error ? error.message : String(error);
-    warnings.push(`[${routeLabel} | ${strategy}] 측정 예외: ${record.error}`);
+    warnings.push(formatWarning(routeLabel, strategy, errorKind, record.requestUrl, record.error));
     return record;
   }
 };
@@ -132,6 +195,7 @@ const writeReportFiles = (report) => {
   const lines = [
     '# CWV Baseline Report',
     '',
+    `- Result: ${report.ok ? 'PASS' : 'FAIL'}`,
     `- Checked At: ${report.checkedAt}`,
     `- Site URL: ${report.siteUrl}`,
     `- Timeout: ${report.timeoutMs}ms`,
@@ -147,6 +211,17 @@ const writeReportFiles = (report) => {
     );
   }
 
+  if (report.errorMessage) {
+    lines.push('', '## Error', `- ${report.errorMessage}`);
+  }
+
+  if (report.checks.length > 0) {
+    lines.push('', '## Checks');
+    for (const check of report.checks) {
+      lines.push(`- ${check}`);
+    }
+  }
+
   if (report.warnings.length > 0) {
     lines.push('', '## Warnings');
     for (const warning of report.warnings) {
@@ -159,25 +234,13 @@ const writeReportFiles = (report) => {
 };
 
 const run = async () => {
-  const results = [];
   for (const routePath of routes) {
     for (const strategy of strategies) {
       results.push(await measureRoute(routePath, strategy));
     }
   }
 
-  const report = {
-    ok: true,
-    checkedAt: new Date().toISOString(),
-    siteUrl,
-    timeoutMs,
-    routes,
-    strategies,
-    checks,
-    warnings,
-    results,
-  };
-
+  const report = createReport({ ok: true });
   writeReportFiles(report);
 
   console.log('[cwv:baseline] COMPLETED (warning-only mode)');
@@ -192,6 +255,11 @@ const run = async () => {
 };
 
 run().catch((error) => {
-  console.error(`[cwv:baseline] unexpected error: ${error instanceof Error ? error.message : String(error)}`);
+  const errorMessage = getErrorMessage(error);
+  const report = createReport({ ok: false, errorMessage });
+  writeReportFiles(report);
+  console.error(`[cwv:baseline] unexpected error: ${errorMessage}`);
+  console.error(`[cwv:baseline] json: ${jsonPath}`);
+  console.error(`[cwv:baseline] markdown: ${markdownPath}`);
   process.exit(1);
 });

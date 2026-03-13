@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { Stadium, Place, CategoryType } from '../types/stadium';
 import { api } from '../utils/api';
 import { loadKakaoMapScript, searchNearbyPlaces, updateMapMarkers } from '../utils/kakaoMap';
@@ -52,7 +51,9 @@ export const useStadiumGuide = () => {
     try {
       setStadiumsStatus('loading');
       setStadiumsError(null);
-      const data = await api.getStadiums();
+      const data = await api.getStadiums({
+        skipGlobalErrorHandler: true,
+      });
       setStadiums(data);
 
       if (data.length === 0) {
@@ -68,8 +69,12 @@ export const useStadiumGuide = () => {
       );
     } catch (error) {
       console.error('구장 목록 로드 실패:', error);
+      setStadiums([]);
+      setSelectedStadium(null);
+      setPlaces([]);
+      setSelectedPlace(null);
       setStadiumsStatus('error');
-      setStadiumsError('구장 목록을 불러오는데 실패했습니다.');
+      setStadiumsError('구장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     }
   }, []);
 
@@ -127,7 +132,6 @@ export const useStadiumGuide = () => {
           setPlaces([]);
           setNearbyStatus('error');
           setNearbyError(`주변 ${selectedCategory === 'store' ? '편의점' : '주차장'} 검색에 실패했습니다.`);
-          toast.error(`주변 ${selectedCategory === 'store' ? '편의점' : '주차장'}을 검색하지 못했습니다.`);
         }
       );
       return;
@@ -138,7 +142,9 @@ export const useStadiumGuide = () => {
       setNearbyError(null);
       setPlacesStatus('loading');
       setPlacesError(null);
-      const data = await api.getStadiumPlaces(selectedStadium.stadiumId, selectedCategory);
+      const data = await api.getStadiumPlaces(selectedStadium.stadiumId, selectedCategory, {
+        skipGlobalErrorHandler: true,
+      });
       setPlaces(data);
       setPlacesStatus(data.length > 0 ? 'success' : 'empty');
     } catch (error) {
@@ -146,7 +152,6 @@ export const useStadiumGuide = () => {
       setPlaces([]);
       setPlacesStatus('error');
       setPlacesError('장소 목록을 불러오지 못했습니다.');
-      toast.error('장소 목록을 불러오지 못했습니다.');
     }
   }, [selectedStadium, selectedCategory, isMapReady, clearMarkers, mapStatus, map]);
 

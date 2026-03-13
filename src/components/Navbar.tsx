@@ -11,6 +11,7 @@ import { useNotificationStore } from '../store/notificationStore';
 import NotificationPanel from './NotificationPanel';
 import { motion } from 'framer-motion';
 import { getChatUnreadCounts } from '../api/mate';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -338,7 +339,7 @@ export default function Navbar() {
                   </>
                 ) : (
                   <Button
-                    onClick={() => navigate('/login')}
+                    onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
                     className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white bg-primary-dark hover:bg-primary"
                   >
                     로그인
@@ -470,7 +471,7 @@ export default function Navbar() {
               </div>
             ) : (
               <Button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
                 className="w-full py-6 text-base font-semibold text-white rounded-xl bg-primary-dark hover:bg-primary"
               >
                 로그인

@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchPublicUserProfileByHandle } from '../../api/profile';
 import { fetchUserPostsByHandle } from '../../api/cheerApi';
 import { getPublicFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
@@ -34,6 +34,7 @@ export default function UserProfile() {
     const queryClient = useQueryClient();
     const { isLoggedIn } = useAuthSession();
     const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
+    const postsSectionRef = useRef<HTMLDivElement | null>(null);
 
     const [userListModal, setUserListModal] = useState<{
         isOpen: boolean;
@@ -123,6 +124,13 @@ export default function UserProfile() {
             return `${(count / 1000).toFixed(1).replace(/\.0$/, '')}k`;
         }
         return count.toString();
+    };
+
+    const scrollToPostsSection = () => {
+        postsSectionRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        });
     };
 
     if (isProfileLoading) {
@@ -329,31 +337,37 @@ export default function UserProfile() {
 
                 {/* Action Buttons */}
                 {!isOwnProfile && isLoggedIn && (
-                    <div className="flex gap-3 mt-4 px-6 mb-6">
-                        <FollowButton
-                            handle={profile.handle}
-                            initialFollowing={followCounts?.isFollowedByMe ?? false}
-                            initialNotify={followCounts?.notifyNewPosts ?? false}
-                            initialBlocked={followCounts?.blockedByMe ?? false}
-                            initialBlocking={followCounts?.blockingMe ?? false}
-                            onFollowChange={handleFollowChange}
-                            size="default"
-                            showNotifyOption={true}
-                            className="flex-1"
-                            style={{
-                                backgroundColor: theme.primary,
-                                color: theme.contrastText,
-                            }}
-                        />
-                        <Button
-                            variant="outline"
-                            className="flex-1"
-                            disabled
-                            title="메시지 기능 준비 중"
-                        >
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            메시지 (준비중)
-                        </Button>
+                    <div className="mt-4 px-6 mb-6 space-y-2">
+                        <div className="flex gap-3">
+                            <FollowButton
+                                handle={profile.handle}
+                                initialFollowing={followCounts?.isFollowedByMe ?? false}
+                                initialNotify={followCounts?.notifyNewPosts ?? false}
+                                initialBlocked={followCounts?.blockedByMe ?? false}
+                                initialBlocking={followCounts?.blockingMe ?? false}
+                                onFollowChange={handleFollowChange}
+                                size="default"
+                                showNotifyOption={true}
+                                className="flex-1"
+                                style={{
+                                    backgroundColor: theme.primary,
+                                    color: theme.contrastText,
+                                }}
+                            />
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={scrollToPostsSection}
+                                data-testid="profile-posts-cta"
+                            >
+                                <FileText className="w-4 h-4 mr-2" />
+                                작성글 보기
+                            </Button>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-300 flex items-center gap-1.5">
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            메시지 기능은 준비 중입니다. 지금은 작성글과 팔로우로 활동을 확인할 수 있습니다.
+                        </p>
                     </div>
                 )}
 
@@ -377,7 +391,7 @@ export default function UserProfile() {
             </div>
 
             {/* Posts Section */}
-            <div className="mt-6 px-4">
+            <div ref={postsSectionRef} className="mt-6 px-4">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <FileText className="w-5 h-5" style={{ color: theme.accent }} />
