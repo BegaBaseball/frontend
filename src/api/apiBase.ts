@@ -24,6 +24,18 @@ const normalizeRelativePath = (value: string): string => {
   return normalized || '/api';
 };
 
+const normalizeAbsoluteApiPath = (value: string): string => {
+  const normalized = (value || '/')
+    .replace(/\/+/g, '/')
+    .replace(/\/+$/, '');
+
+  if (!normalized || normalized === '/') {
+    return '/api';
+  }
+
+  return normalized.endsWith('/api') ? normalized : `${normalized}/api`;
+};
+
 const ensureApiPath = (url: string): string => {
   if (url === '') {
     return '/api';
@@ -85,9 +97,8 @@ export const getApiBaseUrl = (value = viteEnv.VITE_API_BASE_URL): string => {
       return fallback;
     }
 
-    const path = target.pathname ? target.pathname.replace(/\/+$/, '') : '';
     const base = `${target.protocol}//${target.host}`;
-    return ensureApiPath(`${base}${path || '/api'}`);
+    return `${base}${normalizeAbsoluteApiPath(target.pathname)}`;
   } catch {
     return fallback;
   }
