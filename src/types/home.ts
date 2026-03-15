@@ -3,15 +3,16 @@ export interface Game {
     gameId: string;
     time: string;
     stadium: string;
-    gameStatus: string; 
+    gameStatus: string;
     gameStatusKr: string;
-    gameInfo: string; 
+    gameInfo: string;
     leagueType: 'REGULAR' | 'POSTSEASON' | 'KOREAN_SERIES' | 'OFFSEASON' | 'PRE' | 'PRESEASON' | string;
-    homeTeam: string; 
-    homeTeamFull: string; 
-    awayTeam: string; 
-    awayTeamFull: string; 
-    homeScore?: number;  
+    homeTeam: string;
+    homeTeamFull: string;
+    awayTeam: string;
+    awayTeamFull: string;
+    gameDate?: string;
+    homeScore?: number;
     awayScore?: number;
     sourceDate?: string;
     leagueBadge?: string;
@@ -34,6 +35,42 @@ export interface LeagueStartDates {
     regularSeasonStart: string;
     postseasonStart: string;
     koreanSeriesStart: string;
+}
+
+export interface ScheduleNavigation {
+    prevGameDate?: string | null;
+    nextGameDate?: string | null;
+    hasPrev: boolean;
+    hasNext: boolean;
+}
+
+export interface FeaturedMateCard {
+    id: number;
+    gameDate: string;
+    gameTime: string;
+    homeTeam: string;
+    awayTeam: string;
+    currentParticipants: number;
+    maxParticipants: number;
+    ticketPrice?: number | null;
+    status: string;
+}
+
+export interface HomeBootstrapResponse {
+    selectedDate: string;
+    leagueStartDates: LeagueStartDates;
+    navigation: ScheduleNavigation;
+    games: Game[];
+    scheduledGamesWindow: Game[];
+    rankingSeasonYear: number;
+    rankingSourceMessage: string;
+    isOffSeason: boolean;
+    rankings: Ranking[];
+}
+
+export interface HomeWidgetsResponse {
+    hotCheerPosts: import('../api/cheerApi').CheerPost[];
+    featuredMates: FeaturedMateCard[];
 }
 
 export interface HomeProps {

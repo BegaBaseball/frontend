@@ -1,4 +1,5 @@
 import type { Place } from '../types/stadium';
+import { getApiErrorMessage } from './errorUtils';
 
 export type StadiumGuideSortOrder = 'default' | 'rating' | 'name';
 
@@ -15,6 +16,14 @@ export const normalizeOptionalText = (value?: string | null): string | null => {
 
 export const formatOptionalText = (value?: string | null, fallback = '정보 없음'): string =>
   normalizeOptionalText(value) ?? fallback;
+
+export const sanitizeStadiumGuideErrorMessage = (
+  error: unknown,
+  fallback = '문제가 발생했습니다. 다시 시도해주세요.',
+): string => getApiErrorMessage(
+  typeof error === 'string' ? new Error(error) : error,
+  fallback,
+);
 
 export const hasValidCoordinates = (
   lat?: number | null,

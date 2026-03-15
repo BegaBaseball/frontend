@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { fetchGameDetail, fetchVoteStatus } from '../api/prediction';
+import { buildPredictionRecoveryPath } from '../utils/predictionDeepLink';
 import {
   PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
   canSchedulePredictionRetry,
@@ -87,6 +88,20 @@ export const usePredictionGameData = ({
     const nextDateGames = allDatesData[currentDateIndex]?.games || [];
     return nextDateGames[selectedGame]?.gameId || null;
   }, [allDatesData, currentDateIndex, selectedGame]);
+
+  const goToPredictionRecovery = useCallback((options?: {
+    currentDate?: string | null;
+    currentGameId?: string | null;
+  }) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.location.href = buildPredictionRecoveryPath({
+      currentDate: options?.currentDate ?? allDatesData[currentDateIndex]?.date ?? null,
+      currentGameId: options?.currentGameId ?? getCurrentGameId(),
+    });
+  }, [allDatesData, currentDateIndex, getCurrentGameId]);
 
   const resetNetworkRetryAttempt = useCallback((actionKey: PredictionRetryActionKey) => {
     resetPredictionRetryAttempt(retryAttemptRef.current, actionKey);
@@ -331,7 +346,7 @@ export const usePredictionGameData = ({
             });
           },
           onGoList: () => {
-            window.location.href = '/';
+            goToPredictionRecovery({ currentGameId: gameId });
           },
         });
         return false;
@@ -478,7 +493,7 @@ export const usePredictionGameData = ({
             });
           },
           onGoList: () => {
-            window.location.href = '/';
+            goToPredictionRecovery({ currentGameId: gameId });
           },
         });
         return false;
@@ -569,7 +584,7 @@ export const usePredictionGameData = ({
               });
             },
             onGoList: () => {
-              window.location.href = '/';
+              goToPredictionRecovery({ currentGameId: gameId });
             },
           });
           return false;
@@ -615,7 +630,7 @@ export const usePredictionGameData = ({
             });
           },
           onGoList: () => {
-            window.location.href = '/';
+            goToPredictionRecovery({ currentGameId: gameId });
           },
         });
         return false;
@@ -623,6 +638,7 @@ export const usePredictionGameData = ({
     }
   }, [
     emitFlowEvent,
+    goToPredictionRecovery,
     nextNetworkRetryAttempt,
     resetNetworkRetryAttempt,
     showOfflineToastOnce,

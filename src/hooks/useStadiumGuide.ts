@@ -3,7 +3,11 @@ import { Stadium, Place, CategoryType } from '../types/stadium';
 import { api } from '../utils/api';
 import { loadKakaoMapScript, searchNearbyPlaces, updateMapMarkers } from '../utils/kakaoMap';
 import { useKakaoMap } from './useKakaoMap';
-import { AsyncStatus, hasValidCoordinates } from '../utils/stadiumGuideUtils';
+import {
+  AsyncStatus,
+  hasValidCoordinates,
+  sanitizeStadiumGuideErrorMessage,
+} from '../utils/stadiumGuideUtils';
 
 export const useStadiumGuide = () => {
   const [stadiums, setStadiums] = useState<Stadium[]>([]);
@@ -42,7 +46,10 @@ export const useStadiumGuide = () => {
       },
       (message) => {
         setMapStatus('error');
-        setMapError(message ?? '지도를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
+        setMapError(sanitizeStadiumGuideErrorMessage(
+          message,
+          '지도를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.',
+        ));
       }
     );
   }, []);
@@ -176,7 +183,10 @@ export const useStadiumGuide = () => {
     } catch (error) {
       console.error('지도 초기화 실패:', error);
       setMapStatus('error');
-      setMapError(error instanceof Error ? error.message : '지도를 불러오는데 실패했습니다.');
+      setMapError(sanitizeStadiumGuideErrorMessage(
+        error,
+        '지도를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.',
+      ));
     }
   }, [selectedStadium, isMapReady, mapContainer, initializeMap]);
 

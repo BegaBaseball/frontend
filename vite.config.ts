@@ -102,6 +102,24 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/recharts/')) {
               return 'vendor-charts';
             }
+            if (id.includes('/emoji-picker-react/')) {
+              return 'vendor-emoji';
+            }
+            if (id.includes('/browser-image-compression/')) {
+              return 'vendor-upload';
+            }
+            if (
+              id.includes('/styled-components/')
+              || id.includes('/stylis/')
+            ) {
+              return 'vendor-styles';
+            }
+            if (
+              id.includes('/react-day-picker/')
+              || id.includes('/date-fns/')
+            ) {
+              return 'vendor-calendar';
+            }
             if (id.includes('/lucide-react/')) {
               return 'vendor-icons';
             }
@@ -125,6 +143,8 @@ export default defineConfig(({ mode }) => {
             if (
               id.includes('/framer-motion/')
               || id.includes('/motion/')
+              || id.includes('/motion-dom/')
+              || id.includes('/motion-utils/')
             ) {
               return 'vendor-motion';
             }

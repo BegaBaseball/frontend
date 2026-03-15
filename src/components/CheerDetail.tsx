@@ -131,7 +131,12 @@ export default function CheerDetail() {
     const { confirm } = useConfirmDialog();
 
     const parsedPostId = postId ? parseInt(postId) : 0;
-    const { data: selectedPost, isLoading: loading, error } = useCheerPost(parsedPostId);
+    const {
+        data: selectedPost,
+        isLoading: loading,
+        error,
+        refetch: refetchPost,
+    } = useCheerPost(parsedPostId, { retry: false });
     const { toggleLikeMutation, toggleBookmarkMutation, deletePostMutation, deleteCommentMutation, repostMutation, cancelRepostMutation } = useCheerMutations();
 
     const [commentText, setCommentText] = useState('');
@@ -208,6 +213,10 @@ export default function CheerDetail() {
         }
     };
 
+    const redirectToLogin = () => {
+        navigate(buildLoginPath(getCurrentRelativeUrl()));
+    };
+
     const handleDelete = async () => {
         if (!selectedPost) return;
         const deleteConfirmed = await confirm({ title: '게시글 삭제', description: '정말 삭제하시겠습니까?', confirmLabel: '삭제', variant: 'destructive' });
@@ -223,7 +232,7 @@ export default function CheerDetail() {
 
     const toggleLike = () => {
         if (!isLoggedIn) {
-            toast.error('로그인이 필요한 서비스입니다.');
+            redirectToLogin();
             return;
         }
         if (!resolvedPostId) {
@@ -235,7 +244,7 @@ export default function CheerDetail() {
 
     const toggleBookmark = () => {
         if (!isLoggedIn) {
-            toast.error('로그인이 필요한 서비스입니다.');
+            redirectToLogin();
             return;
         }
         if (!resolvedPostId) {
@@ -254,7 +263,7 @@ export default function CheerDetail() {
     const handleSimpleRepost = () => {
         if (!selectedPost) return;
         if (!isLoggedIn) {
-            toast.error('로그인이 필요한 서비스입니다.');
+            redirectToLogin();
             return;
         }
         setIsRepostPopoverOpen(false);
@@ -266,7 +275,7 @@ export default function CheerDetail() {
 
     const handleQuoteRepost = () => {
         if (!isLoggedIn) {
-            toast.error('로그인이 필요한 서비스입니다.');
+            redirectToLogin();
             return;
         }
         setIsRepostPopoverOpen(false);
@@ -276,7 +285,7 @@ export default function CheerDetail() {
     const handleCancelRepost = () => {
         if (!selectedPost) return;
         if (!isLoggedIn) {
-            toast.error('로그인이 필요한 서비스입니다.');
+            redirectToLogin();
             return;
         }
         setIsRepostPopoverOpen(false);
@@ -286,7 +295,7 @@ export default function CheerDetail() {
     const handleCommentSubmit = async () => {
         if (!selectedPost || !commentText.trim()) return;
         if (!isLoggedIn) {
-            toast.error('로그인이 필요한 서비스입니다.');
+            redirectToLogin();
             return;
         }
 
@@ -357,7 +366,7 @@ export default function CheerDetail() {
 
     const handleCommentLike = async (commentId: number) => {
         if (!isLoggedIn) {
-            toast.error('로그인이 필요한 서비스입니다.');
+            redirectToLogin();
             return;
         }
 
@@ -384,7 +393,7 @@ export default function CheerDetail() {
 
     const handleReplyToggle = (commentId: number) => {
         if (!isLoggedIn) {
-            toast.error('로그인이 필요한 서비스입니다.');
+            redirectToLogin();
             return;
         }
         setActiveReplyId((prev) => (prev === commentId ? null : commentId));
@@ -487,10 +496,30 @@ export default function CheerDetail() {
     }
 
     if (error || !selectedPost) {
+        const detailErrorMessage = error instanceof Error
+            ? error.message
+            : '게시글을 불러오지 못했습니다.';
+
         return (
-            <div className="p-8 text-center">
-                <p className="text-red-500 mb-4">{(error as Error)?.message || '게시글을 찾을 수 없습니다.'}</p>
-                <Button onClick={() => navigate('/cheer')}>목록으로 돌아가기</Button>
+            <div className="min-h-screen bg-slate-50 px-4 py-12 dark:bg-background">
+                <div className="mx-auto flex max-w-xl justify-center">
+                    <div className="w-full rounded-[24px] border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-white/10 dark:bg-slate-950">
+                        <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                            게시글을 불러오지 못했습니다.
+                        </p>
+                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                            {detailErrorMessage}
+                        </p>
+                        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                            <Button onClick={() => void refetchPost()}>
+                                다시 시도
+                            </Button>
+                            <Button variant="outline" onClick={() => navigate('/cheer')}>
+                                목록으로 돌아가기
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -822,7 +851,7 @@ export default function CheerDetail() {
                                                 open={isRepostPopoverOpen}
                                                 onOpenChange={(open: boolean) => {
                                                     if (open && !isLoggedIn) {
-                                                        toast.error('로그인이 필요한 서비스입니다.');
+                                                        redirectToLogin();
                                                         return;
                                                     }
                                                     setIsRepostPopoverOpen(open);
@@ -1073,7 +1102,7 @@ export default function CheerDetail() {
                                         댓글, 좋아요, 답글 참여는 로그인 후 이용할 수 있습니다.
                                     </p>
                                     <Button
-                                        onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
+                                        onClick={redirectToLogin}
                                         className="mt-4 h-9 rounded-full px-4 text-[13px] text-white"
                                         style={{ backgroundColor: detailAccent }}
                                     >

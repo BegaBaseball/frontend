@@ -205,6 +205,23 @@ export interface AnalyzeOptions {
     signal?: AbortSignal;
 }
 
+export type CoachAnalyzeErrorCode = 'AUTH_EXPIRED' | 'REQUEST_FAILED';
+
+export class CoachAnalyzeError extends Error {
+    code: CoachAnalyzeErrorCode;
+    statusCode: number | null;
+
+    constructor(code: CoachAnalyzeErrorCode, message: string, statusCode: number | null = null) {
+        super(message);
+        this.name = 'CoachAnalyzeError';
+        this.code = code;
+        this.statusCode = statusCode;
+    }
+}
+
+export const isCoachAnalyzeError = (error: unknown): error is CoachAnalyzeError =>
+    error instanceof CoachAnalyzeError;
+
 function isAbortLikeError(error: unknown): boolean {
     if (error instanceof DOMException && error.name === 'AbortError') {
         return true;
@@ -308,13 +325,18 @@ export async function analyzeTeam(
             });
 
             if (request.status === 401) {
-                const refreshResponse = await api.post('/auth/reissue', undefined, {
-                    skipGlobalErrorHandler: true,
-                });
-                if (refreshResponse.status >= 200 && refreshResponse.status < 300) {
-                    if (attempt < MAX_RETRIES) {
-                        continue;
+                try {
+                    const refreshResponse = await api.post('/auth/reissue', undefined, {
+                        skipGlobalErrorHandler: true,
+                    });
+                    if (refreshResponse.status >= 200 && refreshResponse.status < 300) {
+                        if (attempt < MAX_RETRIES) {
+                            continue;
+                        }
                     }
+                } catch {
+                    response = request;
+                    break;
                 }
             }
 
@@ -354,6 +376,13 @@ export async function analyzeTeam(
         if (!response) {
             throw new Error('Failed to connect to coach stream');
         }
+        if (response.status === 401) {
+            throw new CoachAnalyzeError(
+                'AUTH_EXPIRED',
+                '인증이 만료되었습니다. 다시 로그인 후 시도해주세요.',
+                401,
+            );
+        }
         const errorText = await response.text();
         let errorDetail = 'coach_internal_error';
         if (response.status < 500) {
@@ -367,7 +396,14 @@ export async function analyzeTeam(
                 // keep raw text for 4xx
             }
         }
-        throw new Error(`HTTP error! status: ${response.status}, body: ${errorDetail}`);
+        if (response.status >= 500) {
+            throw new CoachAnalyzeError(
+                'REQUEST_FAILED',
+                '분석 중 오류가 발생했습니다.',
+                response.status,
+            );
+        }
+        throw new Error(errorDetail);
     }
 
     // Handle Streaming (SSE)

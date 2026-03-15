@@ -75,6 +75,9 @@ const isManualRetryAllowed = (error: any) => {
     return method === 'GET' || method === 'HEAD' || error.config?.allowManualRetry === true;
 };
 
+const shouldSkipAuthSessionHandling = (requestConfig: any): boolean =>
+    requestConfig?.skipAuthSessionHandling === true;
+
 const createManualRetryHandler = (requestConfig: any) => {
     return () => api({
         ...requestConfig,
@@ -165,6 +168,10 @@ api.interceptors.response.use(
                 return api(originalRequest);
             } catch (reissueError) {
                 // 재발급 실패 시 (Refresh Token 만료 등)
+                if (shouldSkipAuthSessionHandling(originalRequest)) {
+                    return Promise.reject(reissueError);
+                }
+
                 if (!hasSessionExpired) {
                     hasSessionExpired = true;
                     console.error('Session expired. Please login again.');
@@ -174,6 +181,10 @@ api.interceptors.response.use(
                 return Promise.reject(reissueError);
             }
         } else if (error.response?.status === 401) {
+            if (shouldSkipAuthSessionHandling(originalRequest)) {
+                return Promise.reject(error);
+            }
+
             if (responseCode === 'INVALID_AUTHOR') {
                 console.error('Session invalid due to missing/invalid author user.');
                 const parsedError = buildGlobalErrorDetail(error);

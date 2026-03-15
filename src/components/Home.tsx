@@ -18,6 +18,7 @@ import ScheduledGameCard from './ScheduledGameCard';
 import WelcomeGuide from './WelcomeGuide';
 import AdSlot from './ads/AdSlot';
 import api from '../api/axios';
+import { fetchHomeBootstrap, fetchHomeWidgets } from '../api/home';
 import {
     partitionScheduledGames,
     shouldAutoSwitchToScheduled,
@@ -26,7 +27,7 @@ import {
 import { cacheLeagueStartDates, getFallbackLeagueStartDates } from '../utils/home';
 import { fetchHotPosts, CheerPost } from '../api/cheerApi';
 import { fetchAllParties } from '../api/mate';
-import { Party } from '../types/mate';
+import type { FeaturedMateCard } from '../types/home';
 import { formatTimeAgo } from '../utils/time';
 import { getFullTeamName, TEAM_NAME_TO_ID, TEAM_ID_TO_CODE } from '../constants/teams';
 
@@ -60,7 +61,7 @@ interface Ranking {
     draws: number;
     winRate: string;
     games: number;
-    shortName: string;
+    shortName?: string;
 }
 
 interface LeagueStartDates {
@@ -72,6 +73,38 @@ interface LeagueStartDates {
 interface HomeProps {
     onNavigate?: (page: string) => void;
 }
+
+
+// --- Initial Values ---
+const getInitialRankingSeasonYear = (date: Date, fallbackStartDates: LeagueStartDates): number => {
+    const targetDate = new Date(date);
+    targetDate.setHours(12, 0, 0, 0);
+
+    if (Number.isNaN(targetDate.getTime())) {
+        return targetDate.getFullYear();
+    }
+
+    const month = targetDate.getMonth() + 1;
+    const day = targetDate.getDate();
+
+    const regularSeasonStartDate = new Date(fallbackStartDates.regularSeasonStart);
+
+    if (Number.isNaN(regularSeasonStartDate.getTime())) {
+        return month >= 11 || month <= 2 || (month === 3 && day < 22)
+            ? targetDate.getFullYear() - 1
+            : targetDate.getFullYear();
+    }
+
+    const regularSeasonStartThisYear = new Date(regularSeasonStartDate);
+    regularSeasonStartThisYear.setFullYear(targetDate.getFullYear());
+    regularSeasonStartThisYear.setHours(12, 0, 0, 0);
+
+    const isBeforeRegularStart = targetDate < regularSeasonStartThisYear;
+
+    return month >= 11 || month <= 2 || isBeforeRegularStart
+        ? targetDate.getFullYear() - 1
+        : targetDate.getFullYear();
+};
 
 
 // --- Helpers ---
@@ -131,6 +164,7 @@ const ScheduledGameCardSkeleton = () => (
 
 export default function Home({ onNavigate }: HomeProps) {
     const navigate = useNavigate();
+    const fallbackLeagueStartDates = getFallbackLeagueStartDates();
 
     // State
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -141,8 +175,15 @@ export default function Home({ onNavigate }: HomeProps) {
     const [showCalendar, setShowCalendar] = useState(false);
     const [games, setGames] = useState<Game[]>([]);
     const [rankings, setRankings] = useState<Ranking[]>([]);
-    const [leagueStartDates, setLeagueStartDates] = useState<LeagueStartDates | null>(null);
-    const [rankingSeasonYear, setRankingSeasonYear] = useState(new Date().getFullYear());
+    const [leagueStartDates, setLeagueStartDates] = useState<LeagueStartDates | null>(fallbackLeagueStartDates);
+    const [rankingSeasonYear, setRankingSeasonYear] = useState(() => getInitialRankingSeasonYear(
+        selectedDate,
+        fallbackLeagueStartDates,
+    ));
+    const [isOffSeason, setIsOffSeason] = useState(() => selectedDate.getFullYear() !== getInitialRankingSeasonYear(
+        selectedDate,
+        fallbackLeagueStartDates,
+    ));
     const [rankingsError, setRankingsError] = useState(false);
     const [rankingSourceMessage, setRankingSourceMessage] = useState('');
 
@@ -155,7 +196,7 @@ export default function Home({ onNavigate }: HomeProps) {
     const [hotCheerPosts, setHotCheerPosts] = useState<CheerPost[]>([]);
     const [isHotCheerLoading, setIsHotCheerLoading] = useState(true);
     const [hotCheerError, setHotCheerError] = useState<string | null>(null);
-    const [featuredMates, setFeaturedMates] = useState<Party[]>([]);
+    const [featuredMates, setFeaturedMates] = useState<FeaturedMateCard[]>([]);
     const [isFeaturedMatesLoading, setIsFeaturedMatesLoading] = useState(true);
     const [featuredMatesError, setFeaturedMatesError] = useState<string | null>(null);
 
@@ -170,8 +211,12 @@ export default function Home({ onNavigate }: HomeProps) {
     const [isScheduledError, setIsScheduledError] = useState(false);
     const [isSecondarySectionExpanded, setIsSecondarySectionExpanded] = useState(false);
     const hasUserChangedTabRef = useRef(false);
+    const bootstrapRequestIdRef = useRef(0);
     const scheduledRequestIdRef = useRef(0);
     const navRequestIdRef = useRef(0);
+    const widgetsRequestIdRef = useRef(0);
+    const widgetsTimeoutRef = useRef<number | null>(null);
+    const widgetsIdleCallbackRef = useRef<number | null>(null);
     const matchLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
     const scheduledLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
 
@@ -446,6 +491,28 @@ export default function Home({ onNavigate }: HomeProps) {
         });
     };
 
+    const applyDefaultLeagueTab = (gamesData: Game[]) => {
+        if (gamesData.length === 0 || hasUserChangedTabRef.current) {
+            return;
+        }
+
+        const firstGameType = gamesData[0].leagueType;
+        if (firstGameType === 'REGULAR') setActiveLeagueTab('regular');
+        else if (firstGameType === 'POSTSEASON') setActiveLeagueTab('postseason');
+        else if (firstGameType === 'KOREAN_SERIES') setActiveLeagueTab('koreanseries');
+    };
+
+    const clearScheduledWidgetLoad = () => {
+        if (widgetsIdleCallbackRef.current !== null && 'cancelIdleCallback' in window) {
+            (window as any).cancelIdleCallback(widgetsIdleCallbackRef.current);
+            widgetsIdleCallbackRef.current = null;
+        }
+        if (widgetsTimeoutRef.current !== null) {
+            window.clearTimeout(widgetsTimeoutRef.current);
+            widgetsTimeoutRef.current = null;
+        }
+    };
+
     const changeDate = (direction: 'prev' | 'next') => {
         const newDate = new Date(selectedDate);
         newDate.setHours(12, 0, 0, 0);
@@ -500,7 +567,7 @@ export default function Home({ onNavigate }: HomeProps) {
     };
 
     // --- Data Fetching ---
-    const loadLeagueStartDates = async () => {
+    const loadLeagueStartDates = async (): Promise<LeagueStartDates> => {
         const fallbackDates = getFallbackLeagueStartDates();
 
         try {
@@ -509,13 +576,15 @@ export default function Home({ onNavigate }: HomeProps) {
             });
             cacheLeagueStartDates(data);
             setLeagueStartDates(data);
+            return data;
         } catch (error) {
             console.error('[System] Error loading league dates:', error);
             setLeagueStartDates(fallbackDates);
+            return fallbackDates;
         }
     };
 
-  const loadGamesData = async (date: Date) => {
+    const loadGamesData = async (date: Date) => {
         const apiDate = formatDateForAPI(date);
         setIsLoading(true);
         setIsGamesError(false);
@@ -527,13 +596,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 skipGlobalErrorHandler: true,
             });
             setGames(gamesData);
-
-            if (gamesData.length > 0 && !hasUserChangedTabRef.current) {
-                const firstGameType = gamesData[0].leagueType;
-                if (firstGameType === 'REGULAR') setActiveLeagueTab('regular');
-                else if (firstGameType === 'POSTSEASON') setActiveLeagueTab('postseason');
-                else if (firstGameType === 'KOREAN_SERIES') setActiveLeagueTab('koreanseries');
-            }
+            applyDefaultLeagueTab(gamesData);
         } catch (error) {
             console.error('[Game] Error loading games:', error);
             setGames([]);
@@ -543,7 +606,7 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
-  const loadScheduledGamesData = async (baseDate: Date) => {
+    const loadScheduledGamesData = async (baseDate: Date) => {
         const requestId = ++scheduledRequestIdRef.current;
         setIsScheduledLoading(true);
         setIsScheduledError(false);
@@ -572,15 +635,21 @@ export default function Home({ onNavigate }: HomeProps) {
                 }
             });
 
-            const fulfilledResponses = responses.filter(
-                (result): result is PromiseFulfilledResult<Game[]> => result.status === 'fulfilled'
-            );
-            const hasAnyFailure = responses.some((result) => result.status === 'rejected');
+            const merged: Game[] = [];
+            let fulfilledCount = 0;
+            let hasAnyFailure = false;
 
-            const merged = fulfilledResponses
-                .map((result) => result.value)
-                .flat()
-                .sort((a, b) => {
+            responses.forEach((result) => {
+                if (result.status === 'fulfilled') {
+                    fulfilledCount += 1;
+                    merged.push(...result.value);
+                    return;
+                }
+
+                hasAnyFailure = true;
+            });
+
+            merged.sort((a, b) => {
                     const dateCompare = (a.sourceDate || '').localeCompare(b.sourceDate || '');
                     if (dateCompare !== 0) return dateCompare;
                     const timeCompare = (a.time || '').localeCompare(b.time || '');
@@ -589,7 +658,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 });
 
             setScheduledGames(merged);
-            setIsScheduledError(fulfilledResponses.length === 0 && hasAnyFailure);
+            setIsScheduledError(fulfilledCount === 0 && hasAnyFailure);
         } catch (error) {
             if (requestId !== scheduledRequestIdRef.current) return;
             console.error('[Scheduled] Error loading scheduled games:', error);
@@ -602,11 +671,18 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
-    const loadRankingsData = async (seasonYear: number) => {
+    const loadRankingsData = async (
+        seasonYear: number,
+        options: { baseDate?: Date; startDates?: LeagueStartDates | null } = {},
+    ) => {
+        const baseDate = options.baseDate ?? selectedDate;
+        const startDates = options.startDates ?? leagueStartDates;
+        const shouldFallbackToPrevious = isOffSeasonByDate(baseDate, startDates);
         setIsRankingsLoading(true);
         setRankingsError(false);
         setRankingSourceMessage('');
         setRankingSeasonYear(seasonYear);
+        setIsOffSeason(shouldFallbackToPrevious);
 
         const requestRankings = async (targetSeasonYear: number): Promise<Ranking[]> => {
             const response = await api.get<Ranking[]>(`/kbo/rankings/${targetSeasonYear}`, {
@@ -616,9 +692,6 @@ export default function Home({ onNavigate }: HomeProps) {
         };
 
         try {
-            const now = selectedDate;
-            const shouldFallbackToPrevious = isOffSeasonByDate(now, leagueStartDates);
-
             const rankingsData = await requestRankings(seasonYear);
 
             if (rankingsData.length > 0) {
@@ -662,9 +735,6 @@ export default function Home({ onNavigate }: HomeProps) {
             setRankings([]);
             setRankingsError(true);
 
-            const now = selectedDate;
-            const shouldFallbackToPrevious = isOffSeasonByDate(now, leagueStartDates);
-
             if (shouldFallbackToPrevious) {
                 const previousSeasonYear = seasonYear - 1;
                 setRankingSourceMessage(`전시즌(${getSeasonShortLabel(previousSeasonYear)}) 재조회 중`);
@@ -699,6 +769,147 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
+    const loadLegacyHomeData = useCallback(async (date: Date) => {
+        const startDates = await loadLeagueStartDates();
+        const seasonYear = resolveRankingSeasonYear(date, startDates);
+
+        await Promise.allSettled([
+            loadGamesData(date),
+            loadNavigationData(date),
+            loadScheduledGamesData(date),
+            loadRankingsData(seasonYear, { baseDate: date, startDates }),
+        ]);
+    }, [leagueStartDates, selectedDate]);
+
+    const loadHomeBootstrap = useCallback(async (date: Date) => {
+        const requestId = ++bootstrapRequestIdRef.current;
+        setIsLoading(true);
+        setIsGamesError(false);
+        setIsScheduledLoading(true);
+        setIsScheduledError(false);
+        setIsRankingsLoading(true);
+        setRankingsError(false);
+        matchLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
+        scheduledLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
+
+        try {
+            const data = await fetchHomeBootstrap(date);
+            if (requestId !== bootstrapRequestIdRef.current) {
+                return;
+            }
+
+            cacheLeagueStartDates(data.leagueStartDates);
+            setLeagueStartDates(data.leagueStartDates);
+            setNavInfo({
+                prev: data.navigation.prevGameDate ?? null,
+                next: data.navigation.nextGameDate ?? null,
+                hasPrev: Boolean(data.navigation.hasPrev),
+                hasNext: Boolean(data.navigation.hasNext),
+            });
+            setGames(data.games);
+            applyDefaultLeagueTab(data.games);
+            setScheduledGames(data.scheduledGamesWindow);
+            setRankingSeasonYear(data.rankingSeasonYear);
+            setRankingSourceMessage(data.rankingSourceMessage);
+            setIsOffSeason(data.isOffSeason);
+            setRankings(data.rankings);
+            setIsLoading(false);
+            setIsScheduledLoading(false);
+            setIsRankingsLoading(false);
+        } catch (error) {
+            if (requestId !== bootstrapRequestIdRef.current) {
+                return;
+            }
+            console.error('[HomeBootstrap] Error loading bootstrap:', error);
+            await loadLegacyHomeData(date);
+        }
+    }, [loadLegacyHomeData]);
+
+    const loadHotCheerPostsLegacy = useCallback(async (requestId: number) => {
+        try {
+            const cheerRes = await fetchHotPosts(
+                { page: 0, size: 5, algorithm: 'HYBRID' },
+                { skipGlobalErrorHandler: true },
+            );
+            if (requestId !== widgetsRequestIdRef.current) {
+                return;
+            }
+            setHotCheerPosts(cheerRes.content.slice(0, 3));
+            setHotCheerError(null);
+        } catch (err) {
+            if (requestId !== widgetsRequestIdRef.current) {
+                return;
+            }
+            console.error('[Widget] Error loading Hot Cheer:', err);
+            setHotCheerPosts([]);
+            setHotCheerError('인기 응원글을 불러오지 못했습니다.');
+        } finally {
+            if (requestId === widgetsRequestIdRef.current) {
+                setIsHotCheerLoading(false);
+            }
+        }
+    }, []);
+
+    const loadFeaturedMatesLegacy = useCallback(async (requestId: number) => {
+        try {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const mateData = await fetchAllParties({ skipGlobalErrorHandler: true });
+            const upcomingMates = mateData
+                .filter(p => new Date(`${p.gameDate}T12:00:00`) >= today)
+                .filter(p => p.status === 'PENDING')
+                .slice(0, 4);
+
+            if (requestId !== widgetsRequestIdRef.current) {
+                return;
+            }
+
+            setFeaturedMates(upcomingMates);
+            setFeaturedMatesError(null);
+        } catch (err) {
+            if (requestId !== widgetsRequestIdRef.current) {
+                return;
+            }
+            console.error('[Widget] Error loading Mates:', err);
+            setFeaturedMates([]);
+            setFeaturedMatesError('직관 메이트 목록을 불러오지 못했습니다.');
+        } finally {
+            if (requestId === widgetsRequestIdRef.current) {
+                setIsFeaturedMatesLoading(false);
+            }
+        }
+    }, []);
+
+    const loadHomeWidgets = useCallback(async (date: Date) => {
+        const requestId = ++widgetsRequestIdRef.current;
+        setIsHotCheerLoading(true);
+        setHotCheerError(null);
+        setIsFeaturedMatesLoading(true);
+        setFeaturedMatesError(null);
+
+        try {
+            const data = await fetchHomeWidgets(date);
+            if (requestId !== widgetsRequestIdRef.current) {
+                return;
+            }
+
+            setHotCheerPosts(data.hotCheerPosts);
+            setFeaturedMates(data.featuredMates);
+            setIsHotCheerLoading(false);
+            setIsFeaturedMatesLoading(false);
+        } catch (err) {
+            if (requestId !== widgetsRequestIdRef.current) {
+                return;
+            }
+
+            console.error('[HomeWidgets] Error loading widgets:', err);
+            await Promise.allSettled([
+                loadHotCheerPostsLegacy(requestId),
+                loadFeaturedMatesLegacy(requestId),
+            ]);
+        }
+    }, [loadFeaturedMatesLegacy, loadHotCheerPostsLegacy]);
+
     const handleTabChange = (value: string) => {
         const tabValue = value as LeagueTab;
         hasUserChangedTabRef.current = true;
@@ -720,66 +931,28 @@ export default function Home({ onNavigate }: HomeProps) {
     };
 
     useEffect(() => {
-        loadLeagueStartDates();
-    }, []);
+        void loadHomeBootstrap(selectedDate);
+    }, [loadHomeBootstrap, selectedDate]);
 
     useEffect(() => {
-        if (!leagueStartDates) {
-            return;
-        }
-
-        const seasonYear = resolveRankingSeasonYear(selectedDate, leagueStartDates);
-        setRankingSeasonYear((prev) => (prev === seasonYear ? prev : seasonYear));
-        loadRankingsData(seasonYear);
-    }, [leagueStartDates, selectedDate]);
-    useEffect(() => {
-        loadGamesData(selectedDate);
-        loadNavigationData(selectedDate);
-        loadScheduledGamesData(selectedDate);
-    }, [selectedDate]);
-
-    const loadHotCheerPosts = useCallback(async () => {
+        clearScheduledWidgetLoad();
         setIsHotCheerLoading(true);
         setHotCheerError(null);
-
-        try {
-            const cheerRes = await fetchHotPosts(
-                { page: 0, size: 5, algorithm: 'HYBRID' },
-                { skipGlobalErrorHandler: true },
-            );
-            setHotCheerPosts(cheerRes.content.slice(0, 3));
-        } catch (err) {
-            console.error('[Widget] Error loading Hot Cheer:', err);
-            setHotCheerPosts([]);
-            setHotCheerError('인기 응원글을 불러오지 못했습니다.');
-        } finally {
-            setIsHotCheerLoading(false);
-        }
-    }, []);
-
-    const loadFeaturedMates = useCallback(async () => {
         setIsFeaturedMatesLoading(true);
         setFeaturedMatesError(null);
 
-        try {
-            const mateData = await fetchAllParties({ skipGlobalErrorHandler: true });
-            const upcomingMates = mateData
-                .filter(p => new Date(p.gameDate) >= new Date() && p.status === 'PENDING')
-                .slice(0, 4);
-            setFeaturedMates(upcomingMates);
-        } catch (err) {
-            console.error('[Widget] Error loading Mates:', err);
-            setFeaturedMates([]);
-            setFeaturedMatesError('직관 메이트 목록을 불러오지 못했습니다.');
-        } finally {
-            setIsFeaturedMatesLoading(false);
-        }
-    }, []);
+        const run = () => {
+            void loadHomeWidgets(selectedDate);
+        };
 
-    useEffect(() => {
-        void loadHotCheerPosts();
-        void loadFeaturedMates();
-    }, [loadFeaturedMates, loadHotCheerPosts]);
+        if ('requestIdleCallback' in window) {
+            widgetsIdleCallbackRef.current = (window as any).requestIdleCallback(run, { timeout: 1500 });
+        } else {
+            widgetsTimeoutRef.current = globalThis.setTimeout(run, 800);
+        }
+
+        return clearScheduledWidgetLoad;
+    }, [loadHomeWidgets, selectedDate]);
     useEffect(() => {
         setIsSecondarySectionExpanded(false);
     }, [selectedDate]);
@@ -823,7 +996,7 @@ export default function Home({ onNavigate }: HomeProps) {
     const rankingDataVisibilityMessage = displayableRankings.length === 0 && rankings.length > 0
         ? '순위 데이터에서 정규 팀이 아닌 항목이 감지되어 표시 가능한 팀 순위가 없습니다.'
         : (rankingSourceMessage || '현재 시즌의 팀 순위 집계 데이터가 없습니다.');
-    const rankingStatusHintMessage = isOffSeasonByDate(selectedDate, leagueStartDates)
+    const rankingStatusHintMessage = isOffSeason
         ? '현재는 비시즌이므로 이전 시즌 순위를 표시하고 있습니다.'
         : '현재 시즌이 시작된 상태입니다. 시즌 순위는 경기 결과 집계 후 표시됩니다.';
     const matchSkeletonCount = clampLoadingCount(
@@ -976,12 +1149,12 @@ export default function Home({ onNavigate }: HomeProps) {
                                 <p className="text-gray-400 dark:text-gray-400 text-sm mb-4">
                                     네트워크 연결을 확인하고 다시 시도해주세요
                                 </p>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => loadGamesData(selectedDate)}
-                                    className="border-primary/30 text-primary hover:bg-primary/5"
-                                >
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => void loadHomeBootstrap(selectedDate)}
+                                        className="border-primary/30 text-primary hover:bg-primary/5"
+                                    >
                                     <RefreshCw className="w-4 h-4 mr-1.5" />
                                     다시 시도
                                 </Button>
@@ -1045,7 +1218,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => loadScheduledGamesData(selectedDate)}
+                                                onClick={() => void loadHomeBootstrap(selectedDate)}
                                                 className="border-primary/30 text-primary hover:bg-primary/5 mt-3"
                                             >
                                                 <RefreshCw className="w-4 h-4 mr-1.5" />
@@ -1187,7 +1360,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => void loadHotCheerPosts()}
+                                                onClick={() => void loadHomeWidgets(selectedDate)}
                                                 className="mt-4"
                                             >
                                                 <RefreshCw className="mr-1.5 h-4 w-4" />
@@ -1255,7 +1428,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => void loadFeaturedMates()}
+                                                onClick={() => void loadHomeWidgets(selectedDate)}
                                                 className="mt-4"
                                             >
                                                 <RefreshCw className="mr-1.5 h-4 w-4" />

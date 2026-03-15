@@ -10,6 +10,7 @@ import { changePassword } from '../../api/profile';
 import { toast } from 'sonner';
 import { useAuthAccessActions } from '../../store/authStore';
 import { buildLoginPath } from '../../utils/loginRedirect';
+import { getApiErrorMessage } from '../../utils/errorUtils';
 
 interface PasswordChangeSectionProps {
     onCancel: () => void;
@@ -38,8 +39,8 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
             onSuccess();
             navigate(buildLoginPath('/mypage'), { replace: true });
         },
-        onError: (error: Error) => {
-            setError(error.message);
+        onError: (error: unknown) => {
+            setError(getApiErrorMessage(error, '비밀번호 변경에 실패했습니다.'));
         },
     });
 

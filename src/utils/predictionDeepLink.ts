@@ -47,6 +47,12 @@ export type PredictionLocationSeed = {
   stateSeedDate: string;
 };
 
+export type PredictionRecoveryPathOptions = {
+  currentDate?: string | null;
+  currentGameId?: string | null;
+  searchParams?: URLSearchParams | string | null;
+};
+
 export const toPredictionGameId = (value: string): string | null => {
   const normalized = value.trim();
   if (!normalized) {
@@ -171,6 +177,54 @@ export const sanitizePredictionDeepLinkParams = (
     hasChange,
     nextSearchParams,
   };
+};
+
+const resolvePredictionRecoverySearchParams = (
+  searchParams?: URLSearchParams | string | null
+): URLSearchParams => {
+  if (searchParams instanceof URLSearchParams) {
+    return new URLSearchParams(searchParams.toString());
+  }
+
+  if (typeof searchParams === 'string') {
+    return new URLSearchParams(searchParams.startsWith('?') ? searchParams.slice(1) : searchParams);
+  }
+
+  if (typeof window !== 'undefined') {
+    return new URLSearchParams(window.location.search);
+  }
+
+  return new URLSearchParams();
+};
+
+export const buildPredictionRecoveryPath = ({
+  currentDate,
+  currentGameId,
+  searchParams,
+}: PredictionRecoveryPathOptions = {}): string => {
+  const resolvedSearchParams = resolvePredictionRecoverySearchParams(searchParams);
+  const normalizedCurrentDate = normalizePredictionDate(currentDate || '') || '';
+  const normalizedCurrentGameId = toPredictionGameId(currentGameId || '') || '';
+  const fallbackDate = normalizePredictionDate(resolvedSearchParams.get('date') || '') || '';
+  const fallbackGameId = toPredictionGameId(resolvedSearchParams.get('gameId') || '') || '';
+  const nextSearchParams = new URLSearchParams();
+
+  if (normalizedCurrentDate) {
+    nextSearchParams.set('date', normalizedCurrentDate);
+    if (normalizedCurrentGameId) {
+      nextSearchParams.set('gameId', normalizedCurrentGameId);
+    }
+  } else if (fallbackDate || fallbackGameId) {
+    if (fallbackDate) {
+      nextSearchParams.set('date', fallbackDate);
+    }
+    if (fallbackGameId) {
+      nextSearchParams.set('gameId', fallbackGameId);
+    }
+  }
+
+  const query = nextSearchParams.toString();
+  return query ? `/prediction?${query}` : '/prediction';
 };
 
 export const buildPredictionNavigationSeedGame = (

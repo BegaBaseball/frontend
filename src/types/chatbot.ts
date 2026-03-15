@@ -18,6 +18,7 @@ export interface Message {
     parameters: Record<string, unknown>;
   }>;
   intent?: string;
+  strategy?: string;
 }
 
 export interface ChatRequest {

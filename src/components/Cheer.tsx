@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { parseError } from '../utils/errorUtils';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuthAccessActions, useAuthProfileActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
+import { useAuthProfileActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Smile, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -62,7 +62,6 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
     } = useAuthProfileSnapshot();
     const { isLoggedIn, isAuthLoading } = useAuthSession();
     const { fetchProfileAndAuthenticate } = useAuthProfileActions();
-    const { requireLogin } = useAuthAccessActions();
     const queryClient = useQueryClient();
     const today = useMemo(() => new Date(), []);
     const feedTabs = useMemo<FeedTabConfig[]>(
@@ -87,6 +86,10 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
     const userProfilePath = authUserHandle
         ? `/profile/${authUserHandle.startsWith('@') ? authUserHandle : `@${authUserHandle}`}`
         : '/mypage';
+    const redirectToLogin = (replace = true) => {
+        toast.error('로그인이 필요한 서비스입니다.');
+        navigate(buildLoginPath(getCurrentRelativeUrl()), replace ? { replace: true } : undefined);
+    };
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -358,7 +361,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                 sourceLicenseUrl: payload.sourceLicenseUrl,
                 sourceChangedNote: payload.sourceChangedNote,
                 sourceSnapshotType: payload.sourceSnapshotType,
-            });
+            }, { skipAuthSessionHandling: true });
             let uploadedUrls: string[] = [];
             let uploadFailed = false;
             if (created?.id && payload.files.length > 0) {
@@ -376,7 +379,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                 }
 
                 try {
-                    uploadedUrls = await uploadPostImages(created.id, filesToUpload);
+                    uploadedUrls = await uploadPostImages(created.id, filesToUpload, { skipAuthSessionHandling: true });
                 } catch (error) {
                     // 이미지 업로드 실패 시 게시글 삭제 (Atomic 처럼 동작하게)
                     console.error('Image upload failed, deleting post...', error);
@@ -387,6 +390,9 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                     }
 
                     const parsedError = parseError(error);
+                    if (parsedError.type === 'AUTH' || parsedError.responseCode === 'INVALID_AUTHOR') {
+                        throw error;
+                    }
 
                     // 글로벌 에러 다이얼로그 호출 (파싱된 에러 사용)
                     window.dispatchEvent(new CustomEvent('global-api-error', {
@@ -474,9 +480,8 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                 queryClient.setQueryData(['cheer-posts', 'all'], context.previousAll);
             }
             const parsedError = parseError(_error);
-            if (parsedError.responseCode === 'INVALID_AUTHOR') {
-                requireLogin();
-                toast.error(parsedError.message || '인증된 사용자 정보를 확인할 수 없어 다시 로그인해 주세요.');
+            if (parsedError.type === 'AUTH' || parsedError.responseCode === 'INVALID_AUTHOR') {
+                redirectToLogin(true);
             } else {
                 toast.error(parsedError.message || '게시글 등록에 실패했습니다.');
             }
@@ -514,7 +519,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
 
     const handleComposerSubmit = async () => {
         if (!isLoggedIn) {
-            toast.error('로그인이 필요한 서비스입니다.');
+            redirectToLogin(false);
             return;
         }
         if (!hasFavoriteTeam) {

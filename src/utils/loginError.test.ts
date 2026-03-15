@@ -15,3 +15,17 @@ test('provider 세부 오류 메시지를 그대로 노출한다', () => {
     '카카오 계정의 이메일이 인증되지 않았습니다.',
   );
 });
+
+test('oauth2_link_requires_unlink를 사용자 안내 문구로 매핑한다', () => {
+  assert.equal(
+    getLoginQueryErrorMessage('?error=oauth2_link_requires_unlink'),
+    '같은 소셜 제공자는 먼저 기존 연동을 해제한 뒤 다시 연결해주세요.',
+  );
+});
+
+test('oauth2_link_conflict를 사용자 안내 문구로 매핑한다', () => {
+  assert.equal(
+    getLoginQueryErrorMessage('?error=oauth2_link_conflict'),
+    '이미 다른 계정에 연결된 소셜 계정입니다. 다른 계정으로는 연동할 수 없습니다.',
+  );
+});

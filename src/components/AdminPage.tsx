@@ -6,7 +6,7 @@ import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
-import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X, UserCog, MapPin, Pencil, Plus, Bot, Sparkles, ClipboardCopy, RefreshCw, FileSearch, Save, Download, FolderOpen, Newspaper, Camera } from 'lucide-react';
+import { Search, Users, MessageSquare, Calendar, Trash2, Shield, Activity, TrendingUp, Eye, X, UserCog, MapPin, Pencil, Plus, Bot, Sparkles, ClipboardCopy, RefreshCw, FileSearch, Save, Download, FolderOpen, Newspaper, Camera, Bug } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +39,7 @@ import { useAuthProfileSnapshot } from '../store/authStore';
 import { TEAM_DATA } from '../constants/teams';
 import { formatDate, formatGameDate, getTimeAgo } from '../utils/formatters';
 import { OffseasonMovementAdminPanel } from './admin/OffseasonMovementAdminPanel';
+import { ClientErrorAdminPanel } from './admin/ClientErrorAdminPanel';
 import {
   createPlace,
   updatePlace,
@@ -781,7 +782,7 @@ export default function AdminPage() {
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="border-b border-slate-800 px-6 pt-6">
-              <TabsList className="grid w-full grid-cols-3 gap-1 rounded-xl bg-slate-800/50 p-1 sm:grid-cols-4 xl:grid-cols-8">
+              <TabsList className="grid w-full grid-cols-3 gap-1 rounded-xl bg-slate-800/50 p-1 sm:grid-cols-5 xl:grid-cols-9">
                 <TabsTrigger
                   value="users"
                   className="rounded-lg data-[state=active]:bg-amber-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/25 transition-all duration-300"
@@ -809,6 +810,13 @@ export default function AdminPage() {
                 >
                   <Search className="w-4 h-4 mr-2" />
                   신고
+                </TabsTrigger>
+                <TabsTrigger
+                  value="clientErrors"
+                  className="rounded-lg data-[state=active]:bg-rose-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-rose-500/25 transition-all duration-300"
+                >
+                  <Bug className="w-4 h-4 mr-2" />
+                  클라이언트 에러
                 </TabsTrigger>
                 <TabsTrigger
                   value="seatViews"
@@ -1366,6 +1374,10 @@ export default function AdminPage() {
                   </TableBody>
                 </Table>
               </div>
+            </TabsContent>
+
+            <TabsContent value="clientErrors" className="p-6">
+              <ClientErrorAdminPanel active={activeTab === 'clientErrors'} />
             </TabsContent>
 
             <TabsContent value="seatViews" className="p-6">

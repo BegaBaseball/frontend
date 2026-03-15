@@ -3,6 +3,7 @@ import type { AxiosRequestConfig } from 'axios';
 import api from './axios';
 import { getTeamColorByAnyKey, TEAM_DATA, getFullTeamName } from '../constants/teams';
 import { buildPostChangesQuery } from '../utils/cheerPolling';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 export function getTeamNameById(teamId: string | null): string {
     if (!teamId) return '전체';
@@ -368,8 +369,12 @@ function transformPostPage(data: { content: PostDTO[]; last: boolean; totalPages
 
 // 게시글 상세 조회
 export async function fetchPostDetail(id: number): Promise<CheerPost> {
-    const response = await api.get(`/cheer/posts/${id}`);
-    return transformPost(response.data);
+    try {
+        const response = await api.get(`/cheer/posts/${id}`, { skipGlobalErrorHandler: true });
+        return transformPost(response.data);
+    } catch (error) {
+        throw new Error(getApiErrorMessage(error, '게시글을 불러오지 못했습니다.'));
+    }
 }
 
 // 게시글 작성
@@ -385,11 +390,14 @@ export async function createPost(data: {
     sourceLicenseUrl?: string;
     sourceChangedNote?: string;
     sourceSnapshotType?: string;
-}) {
+}, requestConfig: AxiosRequestConfig = {}) {
     const response = await api.post('/cheer/posts', {
         ...data,
         postType: normalizeCreatePostType(data.postType),
-    }, { skipGlobalErrorHandler: true });
+    }, {
+        skipGlobalErrorHandler: true,
+        ...requestConfig,
+    });
     return transformPost(response.data);
 }
 
@@ -543,7 +551,11 @@ export async function reportPost(postId: number, payload: ReportPostPayload): Pr
 }
 
 // 이미지 업로드
-export async function uploadPostImages(postId: number, files: File[]): Promise<string[]> {
+export async function uploadPostImages(
+    postId: number,
+    files: File[],
+    requestConfig: AxiosRequestConfig = {},
+): Promise<string[]> {
     const formData = new FormData();
     files.forEach((file) => {
         formData.append('files', file);
@@ -554,6 +566,7 @@ export async function uploadPostImages(postId: number, files: File[]): Promise<s
             'Content-Type': 'multipart/form-data',
         },
         skipGlobalErrorHandler: true, // 직접 에러 처리 (글 작성 실패 메시지 커스텀)
+        ...requestConfig,
     });
     return response.data; // 업로드된 이미지 URL 목록 반환
 }

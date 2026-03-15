@@ -1,28 +1,24 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { Button } from './ui/button';
-import { Bell, LogOut, ShieldAlert, Menu, X, Moon, Sun, MessageSquare, Map, Trophy, Users, Megaphone, LineChart } from 'lucide-react';
-import { useTheme } from '../hooks/useTheme';
+import { Bell, LogOut, ShieldAlert, Menu, X, MessageSquare, Map, Trophy, Users, Megaphone, LineChart } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotificationStore } from '../store/notificationStore';
-import NotificationPanel from './NotificationPanel';
-import { motion } from 'framer-motion';
 import { getChatUnreadCounts } from '../api/mate';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
+const NotificationPanel = lazy(() => import('./NotificationPanel'));
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, resolvedTheme, setTheme } = useTheme();
-  const isDarkMode = resolvedTheme === 'dark' || theme === 'dark';
-  const toggleTheme = () => setTheme(isDarkMode ? 'light' : 'dark');
+  const isDarkMode = false;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -42,7 +38,7 @@ export default function Navbar() {
     void import('./Prediction');
   }, []);
 
-  // 안 읽은 채팅 메시지 수 (폴링)
+  // 안 읽은 채팅 메시지 수 (폴링 - 탭 비활성 시 중지)
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -60,9 +56,30 @@ export default function Navbar() {
       }
     };
 
-    void checkChatUnread();
-    const interval = setInterval(checkChatUnread, 30000); // 30초마다 갱신
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      void checkChatUnread();
+      interval = setInterval(() => {
+        if (!document.hidden) void checkChatUnread();
+      }, 30000);
+    };
+
+    const handleVisibilityChange = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+      if (!document.hidden) startPolling();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    if (!document.hidden) startPolling();
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (interval) clearInterval(interval);
+    };
   }, [isLoggedIn, location.pathname]); // 경로 변경 시(채팅 뷰 진입/이탈 등) 즉각 업데이트
 
   useEffect(() => {
@@ -210,17 +227,6 @@ export default function Navbar() {
           {/* 3. 우측 아이콘 및 메뉴 영역 */}
           <div className="flex items-center gap-3 shrink-0">
 
-            {/* 테마 토글 버튼 - 모바일 메뉴 열렸을 때 숨김 */}
-            {!(isMenuOpen && !isDesktop) && (
-              <button
-                onClick={toggleTheme}
-                className="p-1 transition-colors text-gray-600 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                aria-label="다크모드 전환"
-              >
-                {isDarkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-              </button>
-            )}
-
             {/* 알림 버튼 - 모바일 메뉴 열렸을 때 숨김 */}
             {!(isMenuOpen && !isDesktop) && (
               <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
@@ -229,19 +235,11 @@ export default function Navbar() {
                     className="relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
                     aria-label={`알림${unreadCount > 0 ? ` (읽지 않은 알림 ${unreadCount}개)` : ''}`}
                   >
-                    <motion.div
-                      animate={unreadCount > 0 ? {
-                        rotate: [0, -15, 12, -10, 5, 0],
-                      } : { rotate: 0 }}
-                      transition={{
-                        duration: 1.5,
-                        repeat: unreadCount > 0 ? Infinity : 0,
-                        repeatDelay: 3,
-                        ease: "easeInOut"
-                      }}
+                    <span
+                      className={unreadCount > 0 ? 'inline-flex animate-pulse' : 'inline-flex'}
                     >
                       <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-primary dark:text-primary-light' : ''}`} />
-                    </motion.div>
+                    </span>
 
                     {/* 개선된 알림 배지 */}
                     {unreadCount > 0 && (
@@ -265,11 +263,7 @@ export default function Navbar() {
                   align="end"
                   sideOffset={8}
                 >
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                  <div
                     className="
                       w-[calc(100vw-32px)] mr-4 
                       sm:w-96 sm:mr-0
@@ -277,6 +271,7 @@ export default function Navbar() {
                       bg-white dark:bg-card 
                       border border-gray-200 dark:border-border 
                       shadow-xl
+                      animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200
                     "
                   >
                     <div className="p-4 border-b border-gray-200 dark:border-border bg-gray-50/50 dark:bg-secondary/70 flex justify-between items-center">
@@ -291,9 +286,17 @@ export default function Navbar() {
                     </div>
                     {/* 최대 높이 제한 및 스크롤 추가 */}
                     <div className="max-h-[60vh] overflow-y-auto">
-                      <NotificationPanel />
+                      <Suspense
+                        fallback={
+                          <div className="flex min-h-[300px] items-center justify-center text-sm text-muted-foreground">
+                            알림을 불러오는 중...
+                          </div>
+                        }
+                      >
+                        <NotificationPanel />
+                      </Suspense>
                     </div>
-                  </motion.div>
+                  </div>
                 </PopoverContent>
               </Popover>
             )}
