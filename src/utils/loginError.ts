@@ -18,6 +18,12 @@ export const getLoginQueryErrorMessage = (search: string): string | null => {
       return 'OAuth2 인증 요청이 유효하지 않습니다. 다시 시도해주세요.';
     case 'oauth2_link_session_expired':
       return '계정 연동 세션이 만료되었습니다. 마이페이지에서 다시 시도해주세요.';
+    case 'oauth2_link_replayed':
+      return '이미 사용된 연동 요청입니다. 마이페이지에서 다시 시도해주세요.';
+    case 'oauth2_link_requires_unlink':
+      return '같은 소셜 제공자는 먼저 기존 연동을 해제한 뒤 다시 연결해주세요.';
+    case 'oauth2_link_conflict':
+      return '이미 다른 계정에 연결된 소셜 계정입니다. 다른 계정으로는 연동할 수 없습니다.';
     case 'oauth2_link_failed':
       return '계정 연동 처리 중 오류가 발생했습니다. 다시 시도해주세요.';
     case 'oauth2_provider_payload_invalid':

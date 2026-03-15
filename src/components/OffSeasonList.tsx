@@ -32,6 +32,7 @@ import {
     SORT_OPTIONS,
     TEAM_FILTER_ALL,
 } from './offseason/offseasonListTypes';
+import { normalizeOffseasonErrorMessage } from './offseason/offseasonError';
 import { formatDateLabel, matchesSectionFilter, toDateValue } from './offseason/offseasonListUtils';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -46,11 +47,15 @@ import {
 } from './ui/select';
 
 const fetchMovements = async (): Promise<OffseasonMovement[]> => {
-    const response = await api.get<OffseasonMovement[]>('/kbo/offseason/movements', {
-        skipGlobalErrorHandler: true,
-    });
+    try {
+        const response = await api.get<OffseasonMovement[]>('/kbo/offseason/movements', {
+            skipGlobalErrorHandler: true,
+        });
 
-    return response.data;
+        return response.data;
+    } catch (error) {
+        throw new Error(normalizeOffseasonErrorMessage(error));
+    }
 };
 
 export default function OffSeasonList() {

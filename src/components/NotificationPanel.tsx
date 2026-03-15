@@ -21,23 +21,17 @@ export default function NotificationPanel() {
   const [activeTab, setActiveTab] = useState<TabType>('ALL');
   const unreadCount = notifications.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0);
 
+  // 패널이 열릴 때 1회 fetch (WebSocket push가 이후 업데이트를 담당)
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    const fetchNotifications = async () => {
-      try {
-        const notifs = await notificationApi.getNotifications();
-        setNotifications(notifs);
-      } catch (error) {
+    notificationApi.getNotifications()
+      .then(setNotifications)
+      .catch((error) => {
         if (!isIgnorableNotificationError(error)) {
           console.error('알림 불러오기 오류:', error);
         }
-      }
-    };
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+      });
   }, [isLoggedIn, setNotifications]);
 
   const handleNotificationClick = async (notification: Notification) => {

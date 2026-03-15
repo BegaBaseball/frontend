@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '../api/axios';
 import { getCheerBattleStatus, CheerBattleStatus } from '../api/cheerApi';
 import { useAuthCheerActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
+import { resolveCheerBattleVoteLoginPath } from '../utils/cheerBattle';
+import { getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 interface UseCheerBattleOptions {
     gameId: string | null | undefined;
@@ -54,6 +57,7 @@ export function useCheerBattle({
     awayTeamId,
     enabled = true,
 }: UseCheerBattleOptions): UseCheerBattleReturn {
+    const navigate = useNavigate();
     const { isLoggedIn } = useAuthSession();
     const { userCheerPoints = 0 } = useAuthProfileSnapshot();
     const { deductCheerPoints } = useAuthCheerActions();
@@ -354,8 +358,9 @@ export function useCheerBattle({
         (teamId: string) => {
             if (!gameId) return;
 
-            if (!isLoggedIn) {
-                toast.error('로그인이 필요한 서비스입니다.');
+            const loginPath = resolveCheerBattleVoteLoginPath(isLoggedIn, getCurrentRelativeUrl());
+            if (loginPath) {
+                navigate(loginPath);
                 return;
             }
 
@@ -417,7 +422,7 @@ export function useCheerBattle({
 
             setState((prev) => ({ ...prev, isVoting: false }));
         },
-        [gameId, isLoggedIn, state.myVote, state.isVoting, deductCheerPoints, userCheerPoints]
+        [gameId, isLoggedIn, navigate, state.myVote, state.isVoting, deductCheerPoints, userCheerPoints]
     );
 
     // -----------------------------------------------------------------------

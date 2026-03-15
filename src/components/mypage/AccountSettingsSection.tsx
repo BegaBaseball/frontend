@@ -199,8 +199,8 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       logout();
       navigate('/');
     },
-    onError: (error: Error) => {
-      toast.error(error.message || '탈퇴 예약에 실패했습니다. 다시 시도해주세요.');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, '탈퇴 예약에 실패했습니다. 다시 시도해주세요.'));
     },
   });
 
@@ -211,8 +211,8 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       refetchDeviceSessions();
       refetchSecurityEvents();
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, '기기 로그아웃에 실패했습니다. 다시 시도해주세요.'));
     },
   });
 
@@ -223,14 +223,15 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       refetchDeviceSessions();
       refetchSecurityEvents();
     },
-    onError: (error: Error) => {
-      if (error.message.includes('현재 세션을 확인하지 못해')) {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : '';
+      if (errorMessage.includes('현재 세션을 확인하지 못해')) {
         toast.error('다른 기기 로그아웃을 완료하지 못했습니다.', {
           description: '보안을 위해 작업을 중단했습니다. 다시 로그인한 뒤 다시 시도해주세요.',
         });
         return;
       }
-      toast.error(error.message);
+      toast.error(getApiErrorMessage(error, '다른 기기 로그아웃에 실패했습니다. 다시 시도해주세요.'));
     },
   });
 
@@ -241,8 +242,8 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       refetchProviders();
       refetchSecurityEvents();
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, '연동 해제에 실패했습니다. 다시 시도해주세요.'));
     },
     onSettled: () => {
       setPendingUnlinkProvider(null);
@@ -258,8 +259,8 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       refetchTrustedDevices();
       refetchSecurityEvents();
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, '신뢰 기기 해제에 실패했습니다. 다시 시도해주세요.'));
     },
   });
 

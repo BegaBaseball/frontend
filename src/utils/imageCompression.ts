@@ -1,5 +1,3 @@
-import imageCompression from 'browser-image-compression';
-
 /**
  * 이미지 압축 옵션
  */
@@ -21,6 +19,16 @@ const DEFAULT_OPTIONS: Required<CompressionOptions> = {
   initialQuality: 0.8,
   useWebWorker: true,
 };
+
+let imageCompressionLoader: Promise<typeof import('browser-image-compression').default> | null = null;
+
+async function getImageCompression() {
+  if (!imageCompressionLoader) {
+    imageCompressionLoader = import('browser-image-compression').then((module) => module.default);
+  }
+
+  return imageCompressionLoader;
+}
 
 /**
  * 단일 이미지 압축
@@ -47,6 +55,7 @@ export async function compressImage(
   };
 
   try {
+    const imageCompression = await getImageCompression();
     const originalSize = file.size;
     const compressedFile = await imageCompression(file, compressionOptions);
     const compressedSize = compressedFile.size;

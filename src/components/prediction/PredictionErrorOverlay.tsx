@@ -29,7 +29,7 @@ type RecoveryActionList = PredRecoveryAction[];
 const ACTION_LABELS: RecoveryActionLabel = {
   RETRY: '다시 시도',
   FALLBACK_SIMPLE: '간단 모드로 전환',
-  GO_LIST: '목록으로 이동',
+  GO_LIST: '예측으로 돌아가기',
   GO_BACK: '뒤로가기',
 };
 

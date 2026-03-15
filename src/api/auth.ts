@@ -214,6 +214,40 @@ export interface PasswordResetConfirmResponse {
   message: string;
 }
 
+const SIGNUP_SUBMIT_TIMEOUT_MS = 20_000;
+const SIGNUP_POLICY_TIMEOUT_MESSAGE = '필수 정책 정보를 불러오는 중 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
+const SIGNUP_SUBMIT_TIMEOUT_MESSAGE = '회원가입 요청 처리에 시간이 오래 걸리고 있습니다. 잠시 후 다시 시도해주세요. 같은 이메일이 이미 가입되었는지도 확인해주세요.';
+
+const isAxiosTimeoutError = (error: unknown): error is AxiosError =>
+  error instanceof AxiosError
+  && (error.code === 'ECONNABORTED' || /timeout of \d+ms exceeded/i.test(error.message));
+
+const resolvePolicyConsentsForSignup = async (
+  policyConsents?: PolicyConsentPayloadItem[],
+): Promise<PolicyConsentPayloadItem[]> => {
+  if (policyConsents && policyConsents.length > 0) {
+    return policyConsents;
+  }
+
+  try {
+    return await fetchRequiredPolicyConsents();
+  } catch (error: unknown) {
+    if (isAxiosTimeoutError(error)) {
+      throw new Error(SIGNUP_POLICY_TIMEOUT_MESSAGE);
+    }
+
+    if (error instanceof AxiosError) {
+      throw new Error(getApiErrorMessage(error, '필수 정책 정보를 불러오지 못했습니다.'));
+    }
+
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error(getApiErrorMessage(error, '필수 정책 정보를 불러오지 못했습니다.'));
+  }
+};
+
 // ========== API 함수 ==========
 
 /**
@@ -249,23 +283,24 @@ export const loginUser = async (credentials: LoginRequest): Promise<LoginRespons
  * 회원가입 API 호출
  */
 export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> => {
-  try {
-    const policyConsents = data.policyConsents && data.policyConsents.length > 0
-      ? data.policyConsents
-      : await fetchRequiredPolicyConsents();
+  const policyConsents = await resolvePolicyConsentsForSignup(data.policyConsents);
 
+  try {
     const response = await api.post<SignUpResponse>('/auth/signup', {
       ...data,
       policyConsents,
     }, {
       skipGlobalErrorHandler: true,
+      timeout: SIGNUP_SUBMIT_TIMEOUT_MS,
     });
     return response.data;
   } catch (error: unknown) {
+    if (isAxiosTimeoutError(error)) {
+      throw new Error(SIGNUP_SUBMIT_TIMEOUT_MESSAGE);
+    }
+
     if (error instanceof AxiosError) {
-      const errorMessage = error.response?.data?.message ||
-        (typeof error.response?.data === 'string' ? error.response.data : `회원가입 실패: ${error.message}`);
-      throw new Error(errorMessage);
+      throw new Error(getApiErrorMessage(error, '회원가입에 실패했습니다.'));
     }
     if (error instanceof Error) {
       throw error;

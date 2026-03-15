@@ -249,6 +249,38 @@ Cypress.Commands.add('mockAPI', () => {
         body: []
     }).as('getHomeSchedule');
 
+    cy.intercept('**/api/home/bootstrap*', {
+        statusCode: 200,
+        body: {
+            selectedDate: '2026-03-15',
+            leagueStartDates: {
+                regularSeasonStart: '2026-03-22',
+                postseasonStart: '2026-10-06',
+                koreanSeriesStart: '2026-10-26',
+            },
+            navigation: {
+                hasPrev: true,
+                hasNext: true,
+                prevGameDate: '2026-03-14',
+                nextGameDate: '2026-03-16',
+            },
+            games: [],
+            scheduledGamesWindow: [],
+            rankingSeasonYear: 2025,
+            rankingSourceMessage: '2025 시즌 순위 데이터',
+            isOffSeason: true,
+            rankings: [],
+        },
+    }).as('getHomeBootstrap');
+
+    cy.intercept('**/api/home/widgets*', {
+        statusCode: 200,
+        body: {
+            hotCheerPosts: [],
+            featuredMates: [],
+        },
+    }).as('getHomeWidgets');
+
     cy.intercept('**/api/kbo/schedule/navigation*', {
         statusCode: 200,
         body: { hasPrev: true, hasNext: true, prevGameDate: '2024-01-01', nextGameDate: '2024-01-02' }

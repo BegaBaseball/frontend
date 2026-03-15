@@ -26,6 +26,7 @@ import { SEAT_CATEGORIES, SeatCategory, KBO_STADIUMS } from '../utils/stadiumDat
 import { SEAT_ICONS } from '../utils/seatIcons';
 import { getEstimatedPrice } from '../utils/priceHelper';
 import { validateMateDescription } from '../utils/mateValidation';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 export default function MateCreate() {
   const navigate = useNavigate();
@@ -60,12 +61,18 @@ export default function MateCreate() {
   const updateFormData = useMateStore((state) => state.updateFormData);
   const setFormError = useMateStore((state) => state.setFormError);
   const { userId: authUserId } = useAuthSession();
-  const { logout, requireLogin } = useAuthAccessActions();
+  const { logout } = useAuthAccessActions();
 
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const lastSubmitErrorRef = useRef('');
   const loadedMatchDateRef = useRef('');
+
+  const redirectToLogin = (replace = false) => {
+    setCurrentUserId(null);
+    logout(true);
+    navigate(buildLoginPath(getCurrentRelativeUrl()), replace ? { replace: true } : undefined);
+  };
 
   useEffect(() => {
     void fetchCurrentUser();
@@ -116,8 +123,7 @@ export default function MateCreate() {
       console.error('사용자 정보 가져오기 실패:', error);
       if ((error instanceof AxiosError && error.response?.status === 401) ||
         (error instanceof ApiError && error.status === 401)) {
-        logout(true);
-        requireLogin();
+        redirectToLogin(true);
       }
     }
   };
@@ -147,7 +153,7 @@ export default function MateCreate() {
 
   const handleSubmit = () => {
     if (!currentUserId) {
-      toast.error('로그인이 필요합니다.');
+      redirectToLogin();
       return;
     }
 
@@ -232,6 +238,11 @@ export default function MateCreate() {
 
     if (submitErrorStatus === 403) {
       setShowVerificationDialog(true);
+      return;
+    }
+
+    if (submitErrorStatus === 401) {
+      redirectToLogin();
       return;
     }
 
