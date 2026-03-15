@@ -841,14 +841,20 @@ export default function CoachBriefing({
             return;
         }
         setDisplayedMessage('');
-        let i = 0;
         const message = activeMessage;
-        const timer = setInterval(() => {
-            setDisplayedMessage(message.substring(0, i + 1));
-            i++;
-            if (i >= message.length) clearInterval(timer);
-        }, 30);
-        return () => clearInterval(timer);
+        let i = 0;
+        let rafId: number;
+        let lastTime = 0;
+        const step = (time: number) => {
+            if (time - lastTime >= 50) {
+                i = Math.min(i + 2, message.length);
+                setDisplayedMessage(message.substring(0, i));
+                lastTime = time;
+            }
+            if (i < message.length) rafId = requestAnimationFrame(step);
+        };
+        rafId = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(rafId);
     }, [activeMessage]);
 
     return (

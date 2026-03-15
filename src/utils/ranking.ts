@@ -1,6 +1,11 @@
 // utils/ranking.ts (기존 파일에 추가)
 import { Team } from '../types/ranking';
 
+const KAKAO_SDK_URL = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';
+const KAKAO_SDK_INTEGRITY = 'sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4';
+
+let kakaoSdkLoadPromise: Promise<void> | null = null;
+
 /**
  * 팀 ID 배열을 Team 객체 배열로 복원
  */
@@ -66,15 +71,62 @@ export const isKakaoSDKReady = (): boolean => {
 };
 
 /**
- * Kakao SDK 초기화
+ * Kakao SDK 스크립트 로드
  */
-export const initializeKakaoSDK = (appKey: string | undefined): void => {
-  if (!appKey) {
-    console.warn("Kakao App Key is missing. Kakao SDK initialization skipped.");
+const loadKakaoSDK = async (): Promise<void> => {
+  if (typeof window === 'undefined') {
     return;
   }
+
+  if (window.Kakao) {
+    return;
+  }
+
+  if (kakaoSdkLoadPromise) {
+    return kakaoSdkLoadPromise;
+  }
+
+  kakaoSdkLoadPromise = new Promise<void>((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>('script[data-kakao-sdk="true"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(), { once: true });
+      existingScript.addEventListener('error', () => reject(new Error('Failed to load Kakao SDK')), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = KAKAO_SDK_URL;
+    script.async = true;
+    script.crossOrigin = 'anonymous';
+    script.integrity = KAKAO_SDK_INTEGRITY;
+    script.dataset.kakaoSdk = 'true';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Kakao SDK'));
+    document.head.appendChild(script);
+  });
+
+  try {
+    await kakaoSdkLoadPromise;
+  } catch (error) {
+    kakaoSdkLoadPromise = null;
+    throw error;
+  }
+};
+
+/**
+ * Kakao SDK 초기화
+ */
+export const initializeKakaoSDK = async (appKey: string | undefined): Promise<boolean> => {
+  if (!appKey) {
+    console.warn("Kakao App Key is missing. Kakao SDK initialization skipped.");
+    return false;
+  }
+
+  await loadKakaoSDK();
 
   if (window.Kakao && !window.Kakao.isInitialized()) {
     window.Kakao.init(appKey);
   }
+
+  return isKakaoSDKReady();
 };

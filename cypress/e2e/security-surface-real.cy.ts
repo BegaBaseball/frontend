@@ -139,7 +139,7 @@ describe('Security surface real smoke', () => {
         url: buildBackendUrl(backendBaseUrl, url),
         failOnStatusCode: false,
       }).then((response) => {
-        expect([401, 302, 403, 404]).to.include(response.status);
+        expect([401, 403]).to.include(response.status);
       });
     });
 
@@ -270,7 +270,7 @@ describe('Security surface real smoke', () => {
         url: buildBackendUrl(backendBaseUrl, '/dashboard'),
         failOnStatusCode: false,
       }).then((response) => {
-        expect([302, 403, 404]).to.include(response.status);
+        expect([401, 403]).to.include(response.status);
       });
 
       cy.request({
@@ -278,7 +278,7 @@ describe('Security surface real smoke', () => {
         url: buildBackendUrl(backendBaseUrl, '/api/leaderboard/seed-test-data'),
         failOnStatusCode: false,
       }).then((response) => {
-        expect([302, 403, 404]).to.include(response.status);
+        expect([401, 403]).to.include(response.status);
       });
 
       cy.request({
@@ -286,7 +286,7 @@ describe('Security surface real smoke', () => {
         url: buildBackendUrl(backendBaseUrl, '/api/ai/release-decision/presets'),
         failOnStatusCode: false,
       }).then((response) => {
-        expect([302, 403, 404]).to.include(response.status);
+        expect([401, 403]).to.include(response.status);
       });
     });
   });

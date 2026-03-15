@@ -190,19 +190,6 @@ export default function Login() {
       <div className="auth-provider-stack" data-testid="login-social-group">
         <button
           type="button"
-          onClick={() => handleSocialLogin('kakao')}
-          disabled={isLoading}
-          className="auth-provider-button auth-provider-kakao"
-          data-testid="login-social-kakao"
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M10 3C5.589 3 2 5.792 2 9.22c0 2.155 1.396 4.046 3.505 5.146-.15.554-.976 3.505-1.122 4.045-.174.646.237.637.501.463.21-.138 3.429-2.282 3.996-2.657.373.053.754.08 1.12.08 4.411 0 8-2.792 8-6.22C18 5.793 14.411 3 10 3z" fill="currentColor" />
-          </svg>
-          카카오로 로그인
-        </button>
-
-        <button
-          type="button"
           onClick={() => handleSocialLogin('google')}
           disabled={isLoading}
           className="auth-provider-button auth-provider-google"
@@ -226,6 +213,19 @@ export default function Login() {
         >
           <span className="mr-1 text-lg font-bold italic">N</span>
           네이버로 로그인
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleSocialLogin('kakao')}
+          disabled={isLoading}
+          className="auth-provider-button auth-provider-kakao"
+          data-testid="login-social-kakao"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M10 3C5.589 3 2 5.792 2 9.22c0 2.155 1.396 4.046 3.505 5.146-.15.554-.976 3.505-1.122 4.045-.174.646.237.637.501.463.21-.138 3.429-2.282 3.996-2.657.373.053.754.08 1.12.08 4.411 0 8-2.792 8-6.22C18 5.793 14.411 3 10 3z" fill="currentColor" />
+          </svg>
+          카카오로 로그인
         </button>
       </div>
     </AuthLayout>

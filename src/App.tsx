@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import {
   isAdminRole,
   useAuthAccessActions,
@@ -8,9 +8,8 @@ import {
   useAuthProfileSnapshot,
   useAuthRedirectState,
   useAuthSession,
+  useAuthStore,
 } from './store/authStore';
-import { useTheme } from './hooks/useTheme';
-import { KAKAO_API_KEY } from './utils/constants';
 import Layout from './components/Layout';
 import ScrollToTop from './components/ScrollToTop';
 import { LoginRequiredDialog } from './components/LoginRequiredDialog';
@@ -21,7 +20,6 @@ import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { installGlobalErrorListeners, setClientErrorReporterUserContext } from './utils/clientErrorReporter';
 import chatBotIcon from './assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import LeaderboardPage from './pages/LeaderboardPage';
 import { buildLoginPath } from './utils/loginRedirect';
 
 // DEV-only chaos hook: ErrorBoundary를 테스트하기 위한 의도적 렌더링 에러
@@ -66,8 +64,27 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./components/OAuthCallback'));
 const TestError = lazy(() => import('./components/TestError')); // Test Purpose Only
 const ChatBot = lazy(() => import('./components/ChatBot'));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 
 const PREDICTION_GAME_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+const AUTH_BOOTSTRAP_SKIPPED_PATHS = new Set([
+  '/login',
+  '/signup',
+  '/password/reset',
+  '/password/reset/confirm',
+  '/account/deletion/recovery',
+]);
+
+const normalizePathname = (pathname: string): string => {
+  const trimmed = pathname.replace(/\/+$/, '');
+  return trimmed || '/';
+};
+
+const shouldSkipAuthBootstrap = (pathname: string): boolean =>
+  AUTH_BOOTSTRAP_SKIPPED_PATHS.has(normalizePathname(pathname));
+
+const shouldDeferAuthBootstrap = (pathname: string): boolean =>
+  normalizePathname(pathname) === '/home';
 
 const isValidPredictionDate = (value: string): boolean => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -125,6 +142,62 @@ const PredictionQueryGuard = () => {
   return null;
 };
 
+const AuthBootstrap = () => {
+  const location = useLocation();
+  const bootstrapPendingRef = useRef(true);
+  const { fetchProfileAndAuthenticate } = useAuthProfileActions();
+  const { isLoggedIn, isAuthLoading } = useAuthSession();
+
+  useEffect(() => {
+    if (shouldSkipAuthBootstrap(location.pathname)) {
+      if (!isLoggedIn && isAuthLoading) {
+        useAuthStore.setState({ isAuthLoading: false });
+      }
+      return;
+    }
+
+    if (!bootstrapPendingRef.current) {
+      return;
+    }
+
+    const runBootstrap = () => {
+      if (!bootstrapPendingRef.current) {
+        return;
+      }
+      bootstrapPendingRef.current = false;
+      void fetchProfileAndAuthenticate();
+    };
+
+    if (shouldDeferAuthBootstrap(location.pathname)) {
+      if (!isLoggedIn && isAuthLoading) {
+        useAuthStore.setState({ isAuthLoading: false });
+      }
+
+      let timeoutId: number | undefined;
+      let idleId: number | undefined;
+
+      if ('requestIdleCallback' in window) {
+        idleId = (window as any).requestIdleCallback(runBootstrap, { timeout: 1500 });
+      } else {
+        timeoutId = globalThis.setTimeout(runBootstrap, 800);
+      }
+
+      return () => {
+        if (idleId !== undefined && 'cancelIdleCallback' in window) {
+          (window as any).cancelIdleCallback(idleId);
+        }
+        if (timeoutId !== undefined) {
+          globalThis.clearTimeout(timeoutId);
+        }
+      };
+    }
+
+    runBootstrap();
+  }, [fetchProfileAndAuthenticate, isAuthLoading, isLoggedIn, location.pathname]);
+
+  return null;
+};
+
 function ProtectedRoute() {
   const { isLoggedIn, isAuthLoading } = useAuthSession();
   const { requireLogin } = useAuthAccessActions();
@@ -172,23 +245,28 @@ function AdminRoute() {
   return <Outlet />;
 }
 
-function ThemeBodySync() {
-  const { theme, resolvedTheme } = useTheme();
+function RootEntryRoute() {
+  const { isLoggedIn, isAuthLoading } = useAuthSession();
 
-  useEffect(() => {
-    const effectiveTheme = resolvedTheme || theme;
-    const isDark = effectiveTheme === 'dark';
+  if (isAuthLoading) {
+    return (
+      <LoadingSpinner
+        variant="app"
+        message="첫 화면을 준비하고 있습니다."
+        subMessage="사용자 상태를 확인하는 중입니다."
+        minDurationMs={120}
+      />
+    );
+  }
 
-    const appBg = isDark ? '#020617' : '#ffffff';
-    document.documentElement.style.backgroundColor = isDark ? '#020617' : '';
-    document.body.style.backgroundColor = appBg;
-  }, [theme, resolvedTheme]);
+  if (isLoggedIn) {
+    return <Navigate to="/home" replace />;
+  }
 
-  return null;
+  return <Landing />;
 }
 
 export default function App() {
-  const { fetchProfileAndAuthenticate } = useAuthProfileActions();
   const { userId } = useAuthProfileSnapshot();
   const { isLoggedIn } = useAuthSession();
   const { logout, requireLogin } = useAuthAccessActions();
@@ -201,10 +279,6 @@ export default function App() {
   }, [userId]);
 
   useEffect(() => installGlobalErrorListeners(), []);
-
-  useEffect(() => {
-    fetchProfileAndAuthenticate();
-  }, [fetchProfileAndAuthenticate]);
 
   useEffect(() => {
     const handleSessionExpired = () => {
@@ -247,22 +321,14 @@ export default function App() {
     }
   }, [showLoginRequiredDialog]);
 
-  useEffect(() => {
-    if (window.Kakao && KAKAO_API_KEY) {
-      if (!window.Kakao.isInitialized()) {
-        window.Kakao.init(KAKAO_API_KEY);
-      }
-    }
-  }, []);
-
   return (
     <ErrorBoundary>
       {import.meta.env.DEV && <ChaosRenderError />}
       <ErrorModalProvider>
         <ConfirmDialogProvider>
           <BrowserRouter>
-            <ThemeBodySync />
             <ScrollToTop />
+            <AuthBootstrap />
             <PredictionQueryGuard />
             <Suspense
               fallback={
@@ -284,7 +350,7 @@ export default function App() {
                 <Route path="/oauth/callback" element={<OAuthCallback />} />
 
                 {/* Landing & ServiceInfo - Layout 없이 독립 페이지 */}
-                <Route path="/" element={<Landing />} />
+                <Route path="/" element={<RootEntryRoute />} />
                 {/* Layout 포함 라우트 */}
                 <Route element={<Layout />}>
                   {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}

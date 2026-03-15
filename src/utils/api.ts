@@ -57,6 +57,7 @@ interface ApiRequestOptions extends RequestInit {
   skipGlobalErrorHandler?: boolean;
   skipErrorReporting?: boolean;
   allowManualRetry?: boolean;
+  skipAuthSessionHandling?: boolean;
 }
 
 let notificationUnreadCountEndpointAvailable = true;
@@ -121,6 +122,7 @@ export const api = {
         skipGlobalErrorHandler: options?.skipGlobalErrorHandler,
         skipErrorReporting: options?.skipErrorReporting,
         allowManualRetry: options?.allowManualRetry,
+        skipAuthSessionHandling: options?.skipAuthSessionHandling,
       });
 
       return response.status === 204 ? ({} as T) : (response.data as unknown as T);
@@ -187,6 +189,7 @@ export const api = {
     return this.request<Party>('/parties', {
       method: 'POST',
       body: JSON.stringify(data),
+      skipAuthSessionHandling: true,
     });
   },
 
@@ -212,6 +215,7 @@ export const api = {
     return this.request<Application>('/applications', {
       method: 'POST',
       body: JSON.stringify(data),
+      skipAuthSessionHandling: true,
     });
   },
 

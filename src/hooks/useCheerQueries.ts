@@ -320,11 +320,17 @@ const notifyRepostError = (error: unknown) => {
     toast.error(getRepostErrorMessageFromCode(parsed.responseCode, parsed.message));
 };
 
-export const useCheerPost = (id: number) => {
+type CheerPostQueryOptions = {
+    enabled?: boolean;
+    retry?: boolean | number;
+};
+
+export const useCheerPost = (id: number, options: CheerPostQueryOptions = {}) => {
     return useQuery({
         queryKey: ['cheer-post', id],
         queryFn: () => cheerApi.fetchPostDetail(id),
-        enabled: !!id,
+        enabled: options.enabled ?? !!id,
+        retry: options.retry,
     });
 };
 

@@ -121,6 +121,114 @@ export interface AdminApiResponse<T> {
   message?: string;
 }
 
+export interface AdminClientErrorDashboardTotals {
+  api: number;
+  runtime: number;
+  feedback: number;
+  uniqueFingerprints: number;
+  affectedRoutes: number;
+}
+
+export interface AdminClientErrorTimeSeriesPoint {
+  bucketStart: string;
+  api: number;
+  runtime: number;
+  feedback: number;
+}
+
+export interface AdminClientErrorRecentFeedback {
+  eventId: string;
+  route: string;
+  actionTaken: string;
+  comment: string;
+  occurredAt: string;
+}
+
+export interface AdminClientErrorAlertNotification {
+  id: number;
+  fingerprint: string;
+  bucket: 'api' | 'runtime' | 'feedback';
+  source: 'api' | 'runtime' | 'unhandled_rejection' | 'unknown';
+  route: string;
+  statusGroup: string;
+  observedCount: number;
+  thresholdCount: number;
+  windowMinutes: number;
+  latestEventId: string | null;
+  latestMessage: string | null;
+  latestOccurredAt: string | null;
+  notifiedAt: string;
+  deliveryStatus: 'SENT' | 'FAILED';
+  failureReason: string | null;
+}
+
+export interface AdminClientErrorTopFingerprint {
+  fingerprint: string;
+  bucket: 'api' | 'runtime' | 'feedback';
+  source: 'api' | 'runtime' | 'unhandled_rejection' | 'unknown';
+  message: string;
+  route: string;
+  endpoint: string | null;
+  statusGroup: string;
+  method: string | null;
+  count: number;
+  uniqueSessions: number;
+  latestEventId: string;
+  latestOccurredAt: string;
+  latestAlertSentAt: string | null;
+}
+
+export interface AdminClientErrorEventSummary {
+  eventId: string;
+  bucket: 'api' | 'runtime' | 'feedback';
+  source: 'api' | 'runtime' | 'unhandled_rejection' | 'unknown';
+  message: string;
+  statusCode: number | null;
+  statusGroup: string;
+  responseCode: string | null;
+  route: string;
+  normalizedRoute: string;
+  method: string | null;
+  endpoint: string | null;
+  normalizedEndpoint: string | null;
+  fingerprint: string;
+  occurredAt: string;
+  sessionId: string | null;
+  userId: number | null;
+  feedbackCount: number;
+}
+
+export interface AdminClientErrorEventDetail {
+  event: AdminClientErrorEventSummary;
+  stack: string | null;
+  componentStack: string | null;
+  feedback: AdminClientErrorRecentFeedback[];
+  sameFingerprintRecentEvents: AdminClientErrorEventSummary[];
+}
+
+export interface AdminClientErrorEventPage {
+  content: AdminClientErrorEventSummary[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  last: boolean;
+  first?: boolean;
+  empty?: boolean;
+  numberOfElements?: number;
+}
+
+export interface AdminClientErrorDashboard {
+  from: string;
+  to: string;
+  granularity: 'hour' | 'day';
+  totals: AdminClientErrorDashboardTotals;
+  timeSeries: AdminClientErrorTimeSeriesPoint[];
+  topFingerprints: AdminClientErrorTopFingerprint[];
+  recentFeedback: AdminClientErrorRecentFeedback[];
+  recentAlerts: AdminClientErrorAlertNotification[];
+}
+
 export interface AdminOffseasonMovement {
   id: number;
   movementDate: string;

@@ -14,9 +14,9 @@ import { CheerPost, createComment } from '../api/cheerApi';
 import TeamLogo from './TeamLogo';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { TEAM_DATA } from '../constants/teams';
-import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { useTheme } from '../hooks/useTheme';
 import { useRef, useEffect } from 'react';
+import LazyEmojiPicker from './LazyEmojiPicker';
 
 interface CommentModalProps {
     isOpen: boolean;
@@ -72,8 +72,8 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
         };
     }, [showEmojiPicker]);
 
-    const handleEmojiClick = (emojiData: { emoji: string }) => {
-        setContent(prev => prev + emojiData.emoji);
+    const handleEmojiSelect = (emoji: string) => {
+        setContent(prev => prev + emoji);
     };
 
     const handleSubmit = () => {
@@ -180,14 +180,9 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                                         </button>
                                         {showEmojiPicker && (
                                             <div className="absolute top-full left-0 z-50 mt-2">
-                                                <EmojiPicker
-                                                    onEmojiClick={handleEmojiClick}
-                                                    theme={isDarkMode ? EmojiTheme.DARK : EmojiTheme.LIGHT}
-                                                    lazyLoadEmojis={true}
-                                                    skinTonesDisabled={true}
-                                                    searchPlaceHolder="이모지 검색..."
-                                                    width={300}
-                                                    height={400}
+                                                <LazyEmojiPicker
+                                                    isDarkMode={isDarkMode}
+                                                    onEmojiSelect={handleEmojiSelect}
                                                 />
                                             </div>
                                         )}

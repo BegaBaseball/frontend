@@ -466,6 +466,12 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
                               </p>
                             </div>
                           </div>
+                          {/* DB 장애 면책 배너 */}
+                          {message.strategy === 'llm_knowledge_db_unavailable' && (
+                            <div className="mt-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700 dark:border-orange-700/40 dark:bg-orange-900/20 dark:text-orange-300">
+                              ⚠️ 현재 통계 DB에 일시적으로 접근할 수 없어 일반 지식 기반으로 답변드렸습니다. 수치는 부정확할 수 있습니다.
+                            </div>
+                          )}
                           {/* Tool Disclosure - AI가 사용한 도구 목록 */}
                           {!isStreamError && (() => {
                             const visibleTools = (message.toolCalls ?? []).filter(

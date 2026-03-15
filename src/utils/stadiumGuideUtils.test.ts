@@ -6,6 +6,7 @@ import {
   formatOptionalText,
   hasValidCoordinates,
   resolveAsyncStatus,
+  sanitizeStadiumGuideErrorMessage,
 } from './stadiumGuideUtils';
 
 const basePlaces: Place[] = [
@@ -86,4 +87,24 @@ test('resolveAsyncStatus: loading > error > empty > success 우선순위를 보�
   assert.equal(resolveAsyncStatus(false, 'error', [1]), 'error');
   assert.equal(resolveAsyncStatus(false, null, []), 'empty');
   assert.equal(resolveAsyncStatus(false, null, [1]), 'success');
+});
+
+test('sanitizeStadiumGuideErrorMessage: technical message를 친화형 문구로 바꾼다', () => {
+  assert.equal(
+    sanitizeStadiumGuideErrorMessage(
+      'Request failed with status code 500',
+      '지도를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.',
+    ),
+    '지도를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.',
+  );
+});
+
+test('sanitizeStadiumGuideErrorMessage: non-technical message는 유지한다', () => {
+  assert.equal(
+    sanitizeStadiumGuideErrorMessage(
+      '카카오맵 API 키가 없습니다.',
+      '지도를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.',
+    ),
+    '카카오맵 API 키가 없습니다.',
+  );
 });

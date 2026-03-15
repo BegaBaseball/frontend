@@ -6,7 +6,7 @@ import {
   type MatchDayResult,
 } from '../api/prediction';
 import { getTodayString, getTomorrowString, formatDate } from '../utils/prediction';
-import { parseError, type ParsedError } from '../utils/errorUtils';
+import { getApiErrorMessage, parseError, type ParsedError } from '../utils/errorUtils';
 import {
   buildPredictionRangeWindow,
   findAdjacentLoadedDateIndex,
@@ -18,6 +18,7 @@ import {
   resolveInitialPredictionDateIndex,
 } from '../utils/predictionHomeLogic';
 import {
+  buildPredictionRecoveryPath,
   buildDeepLinkNotFoundMessage,
   buildPredictionNavigationSeedGame,
   buildSeedGameDetail,
@@ -79,13 +80,46 @@ type LoadPredictionDayOptions = {
   requestGuard?: () => boolean;
 };
 
-const normalizeFutureRangeErrorMessage = (message?: string) => {
-  const normalized = (message || '').trim();
-  if (!normalized) {
-    return '미래 구간 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+const getPredictionRangeErrorMessage = (
+  error: {
+    message?: string;
+    status?: number | null;
+    code?: string;
+  } | undefined,
+  fallback: string,
+) => {
+  const normalizedStatus = typeof error?.status === 'number' ? error.status : null;
+  const normalizedMessage = typeof error?.message === 'string' ? error.message.trim() : '';
+
+  if (normalizedStatus !== null) {
+    return getApiErrorMessage({
+      status: normalizedStatus,
+      data: {
+        message: normalizedMessage || undefined,
+        code: error?.code,
+      },
+      message: normalizedMessage || fallback,
+    }, fallback);
   }
-  return normalized;
+
+  return getApiErrorMessage(new Error(normalizedMessage || fallback), fallback);
 };
+
+const normalizeFutureRangeErrorMessage = (error?: {
+  message?: string;
+  status?: number | null;
+  code?: string;
+}) => (
+  getPredictionRangeErrorMessage(error, '미래 구간 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+);
+
+const normalizePastRangeErrorMessage = (error?: {
+  message?: string;
+  status?: number | null;
+  code?: string;
+}) => (
+  getPredictionRangeErrorMessage(error, '과거 경기 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+);
 
 const normalizeMatchRangeError = (error?: {
   message?: string;
@@ -99,7 +133,7 @@ const normalizeMatchRangeError = (error?: {
     return {
       type: 'AUTH',
       responseCode: error?.code,
-      message: error?.message || '로그인이 필요한 서비스입니다.',
+      message: getPredictionRangeErrorMessage(error, '로그인 정보를 다시 확인해주세요.'),
       statusCode: normalizedStatus,
     };
   }
@@ -107,7 +141,7 @@ const normalizeMatchRangeError = (error?: {
     return {
       type: 'PERMISSION',
       responseCode: error?.code,
-      message: error?.message || '접근 권한이 없습니다.',
+      message: getPredictionRangeErrorMessage(error, '접근 권한이 없습니다.'),
       statusCode: normalizedStatus,
     };
   }
@@ -115,7 +149,7 @@ const normalizeMatchRangeError = (error?: {
     return {
       type: 'NOT_FOUND',
       responseCode: error?.code,
-      message: error?.message || '요청한 정보를 찾을 수 없습니다.',
+      message: getPredictionRangeErrorMessage(error, '요청한 정보를 찾을 수 없습니다.'),
       statusCode: normalizedStatus,
     };
   }
@@ -123,14 +157,14 @@ const normalizeMatchRangeError = (error?: {
     return {
       type: 'SERVER',
       responseCode: error?.code,
-      message: error?.message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+      message: getPredictionRangeErrorMessage(error, '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'),
       statusCode: normalizedStatus,
     };
   }
   return {
     type: 'UNKNOWN',
     responseCode: error?.code,
-    message: error?.message || '예측 경기 목록 조회에 실패했습니다.',
+    message: getPredictionRangeErrorMessage(error, '예측 경기 목록 조회에 실패했습니다.'),
     statusCode: normalizedStatus,
   };
 };
@@ -183,6 +217,24 @@ export const usePredictionSchedule = ({
   const currentDateIndexRef = useRef(0);
   const dayNavigationByDateRef = useRef<Record<string, MatchDayNavigationMeta>>({});
   const dayRequestInFlightRef = useRef<Map<string, Promise<MatchDayResult>>>(new Map());
+
+  const goToPredictionRecovery = useCallback((options?: {
+    currentDate?: string | null;
+    currentGameId?: string | null;
+  }) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const visibleDate = allDatesDataRef.current[currentDateIndexRef.current]?.date || null;
+    const visibleGameId = allDatesDataRef.current[currentDateIndexRef.current]?.games[selectedGame]?.gameId || null;
+
+    window.location.href = buildPredictionRecoveryPath({
+      currentDate: options?.currentDate ?? visibleDate,
+      currentGameId: options?.currentGameId ?? visibleGameId,
+      searchParams,
+    });
+  }, [searchParams, selectedGame]);
 
   useEffect(() => {
     allDatesDataRef.current = allDatesData;
@@ -588,7 +640,7 @@ export const usePredictionSchedule = ({
               return;
             }
 
-            const normalizedMessage = normalizeFutureRangeErrorMessage(anchorResult.error.message);
+            const normalizedMessage = normalizeFutureRangeErrorMessage(anchorResult.error);
             setCanLoadMoreFutureState(false);
             setFutureRangeLoadErrorMessage(normalizedMessage);
             setFutureRangeLoadState('error');
@@ -618,7 +670,7 @@ export const usePredictionSchedule = ({
             return;
           }
 
-          const normalizedMessage = normalizeFutureRangeErrorMessage(result.error.message);
+          const normalizedMessage = normalizeFutureRangeErrorMessage(result.error);
           setCanLoadMoreFutureState(false);
           setFutureRangeLoadErrorMessage(normalizedMessage);
           setFutureRangeLoadState('error');
@@ -636,7 +688,7 @@ export const usePredictionSchedule = ({
               void loadMoreFutureMatches(true, true, reason);
             },
             onGoList: () => {
-              window.location.href = '/';
+              goToPredictionRecovery({ currentDate: navigationAnchorDate });
             },
           });
           return;
@@ -661,7 +713,9 @@ export const usePredictionSchedule = ({
           return;
         }
         if (!isCancelLikeError(error)) {
-          const normalizedMessage = normalizeFutureRangeErrorMessage('미래 경기 조회에 실패했습니다.');
+          const normalizedMessage = normalizeFutureRangeErrorMessage({
+            message: '미래 경기 조회에 실패했습니다.',
+          });
           setCanLoadMoreFutureState(false);
           setFutureRangeLoadErrorMessage(normalizedMessage);
           setFutureRangeLoadState('error');
@@ -679,7 +733,7 @@ export const usePredictionSchedule = ({
               void loadMoreFutureMatches(true, true, reason);
             },
             onGoList: () => {
-              window.location.href = '/';
+              goToPredictionRecovery({ currentDate: navigationAnchorDate });
             },
           });
         }
@@ -733,7 +787,7 @@ export const usePredictionSchedule = ({
             return;
           }
 
-          const normalizedMessage = normalizeFutureRangeErrorMessage(result.error.message);
+          const normalizedMessage = normalizeFutureRangeErrorMessage(result.error);
           setCanLoadMoreFutureState(false);
           setFutureRangeLoadErrorMessage(normalizedMessage);
           setFutureRangeLoadState('error');
@@ -751,7 +805,7 @@ export const usePredictionSchedule = ({
               void loadMoreFutureMatches(true, true, reason);
             },
             onGoList: () => {
-              window.location.href = '/';
+              goToPredictionRecovery({ currentDate: navigationAnchorDate });
             },
           });
           return;
@@ -823,7 +877,9 @@ export const usePredictionSchedule = ({
         return;
       }
       if (!isCancelLikeError(error)) {
-        const normalizedMessage = normalizeFutureRangeErrorMessage('미래 경기 조회에 실패했습니다.');
+        const normalizedMessage = normalizeFutureRangeErrorMessage({
+          message: '미래 경기 조회에 실패했습니다.',
+        });
         setCanLoadMoreFutureState(false);
         setFutureRangeLoadErrorMessage(normalizedMessage);
         setFutureRangeLoadState('error');
@@ -841,7 +897,7 @@ export const usePredictionSchedule = ({
             void loadMoreFutureMatches(true, true, reason);
           },
           onGoList: () => {
-            window.location.href = '/';
+            goToPredictionRecovery({ currentDate: navigationAnchorDate });
           },
         });
       }
@@ -859,6 +915,7 @@ export const usePredictionSchedule = ({
     restoreFutureRangeLoadState,
     setCanLoadMoreFutureState,
     setFutureRangeEnd,
+    goToPredictionRecovery,
     showPredictionErrorOverlay,
     syncRangeStateFromDates,
   ]);
@@ -898,7 +955,7 @@ export const usePredictionSchedule = ({
               restorePastRangeLoadState();
               return;
             }
-            setPastRangeError(anchorResult.error.message || '과거 경기 조회에 실패했습니다.');
+            setPastRangeError(normalizePastRangeErrorMessage(anchorResult.error));
             return;
           }
           anchorMeta = dayNavigationByDateRef.current[navigationAnchorDate];
@@ -924,7 +981,7 @@ export const usePredictionSchedule = ({
             restorePastRangeLoadState();
             return;
           }
-          setPastRangeError(result.error.message || '과거 경기 조회에 실패했습니다.');
+          setPastRangeError(normalizePastRangeErrorMessage(result.error));
           return;
         }
 
@@ -998,7 +1055,7 @@ export const usePredictionSchedule = ({
             restorePastRangeLoadState();
             return;
           }
-          setPastRangeError(result.error.message);
+          setPastRangeError(normalizePastRangeErrorMessage(result.error));
           return;
         }
 
@@ -1178,13 +1235,13 @@ export const usePredictionSchedule = ({
         return;
       }
       const fallbackDate = deepLinkDate || getTodayString();
+      const parsedError = parseError(error);
       setMatchesLoadState('error');
-      setMatchesLoadErrorMessage('예측 경기 목록 조회에 실패했습니다.');
+      setMatchesLoadErrorMessage(parsedError.message || '예측 경기 목록 조회에 실패했습니다.');
       const fallbackDates = [{ date: fallbackDate, games: [] }];
       setAllDatesData(fallbackDates);
       allDatesDataRef.current = fallbackDates;
       setCurrentDateIndex(0);
-      const parsedError = parseError(error);
       emitFlowEvent('onListLoadFail', 'LIST', {
         errorCode: mapPredictionErrorCode(parsedError.type),
         recoverable: true,

@@ -119,5 +119,20 @@ describe('Offseason Mode', () => {
         it('shows contract amounts', () => {
             cy.contains(/200|억/i).should('be.visible');
         });
+
+        it('shows a sanitized error state when movements fetch fails', () => {
+            cy.intercept('GET', '**/kbo/offseason/movements*', {
+                statusCode: 500,
+                body: { message: 'Internal Server Error' },
+            }).as('getMovementsError');
+
+            cy.visit('/offseason/list');
+            cy.wait('@getMovementsError');
+
+            cy.contains('이적 현황을 가져오지 못했습니다.').should('be.visible');
+            cy.contains('서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+            cy.contains(/Internal Server Error|Request failed with status code 500/).should('not.exist');
+            cy.contains('button', '다시 시도').should('be.visible');
+        });
     });
 });

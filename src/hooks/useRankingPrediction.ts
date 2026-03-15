@@ -17,12 +17,16 @@ import {
   initializeKakaoSDK
 } from '../utils/ranking';
 import { KAKAO_APP_KEY } from '../constants/ranking';
-import { getApiErrorMessage } from '../utils/errorUtils';
+import { getApiErrorMessage, parseError } from '../utils/errorUtils';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 export const useRankingPrediction = () => {
   const navigate = useNavigate();
   const { isLoggedIn, isAuthLoading } = useAuthSession();
+  const redirectToLogin = (replace = true) => {
+    toast.error('로그인이 필요한 서비스입니다.');
+    navigate(buildLoginPath(getCurrentRelativeUrl()), { replace });
+  };
 
   // Local state
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -48,14 +52,13 @@ export const useRankingPrediction = () => {
 
   // Kakao SDK 초기화
   useEffect(() => {
-    initializeKakaoSDK(KAKAO_APP_KEY);
+    void initializeKakaoSDK(KAKAO_APP_KEY);
   }, []);
 
   // 로그인 체크
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
-      toast.error('로그인이 필요한 서비스입니다.');
-      navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
+      redirectToLogin(true);
     }
   }, [isLoggedIn, isAuthLoading, navigate]);
 
@@ -97,11 +100,11 @@ export const useRankingPrediction = () => {
 
     } catch (error: unknown) {
       setShareId(null);
-      const errorMessage = getApiErrorMessage(error, '데이터를 불러오는데 실패했습니다.');
-      if (errorMessage === 'UNAUTHORIZED') {
-        toast.error('로그인이 필요한 서비스입니다.');
-        navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
+      const parsedError = parseError(error);
+      if (parsedError.type === 'AUTH') {
+        redirectToLogin(true);
       } else {
+        const errorMessage = getApiErrorMessage(error, '데이터를 불러오는데 실패했습니다.');
         setIsPredictionPeriod(false);
         toast.error(errorMessage);
       }
@@ -172,6 +175,13 @@ export const useRankingPrediction = () => {
       setShareId(savedPrediction.shareId);
 
     } catch (error: unknown) {
+      const parsedError = parseError(error);
+      if (parsedError.type === 'AUTH') {
+        setShowSaveDialog(false);
+        redirectToLogin(true);
+        return;
+      }
+
       const errorMessage = getApiErrorMessage(error, '저장에 실패했습니다.');
       if (errorMessage.includes('이미')) {
         setAlreadySaved(true);
@@ -183,8 +193,9 @@ export const useRankingPrediction = () => {
   };
 
   // 카카오톡 공유
-  const handleShare = () => {
-    if (!isKakaoSDKReady()) {
+  const handleShare = async () => {
+    const sdkReady = isKakaoSDKReady() || await initializeKakaoSDK(KAKAO_APP_KEY);
+    if (!sdkReady) {
       toast.error('카카오톡 공유 기능을 불러올 수 없습니다.');
       return;
     }

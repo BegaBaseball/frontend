@@ -3,6 +3,7 @@ import test from 'node:test';
 import type { DateGames } from '../types/prediction';
 import {
   buildDeepLinkNotFoundMessage,
+  buildPredictionRecoveryPath,
   buildPredictionNavigationSeedGame,
   extractPredictionLocationSeed,
   resolvePredictionDeepLinkSelection,
@@ -56,6 +57,35 @@ test('buildPredictionNavigationSeedGame ignores mismatched deep link gameId', ()
   }, 'GAME-2', '2026-03-07');
 
   assert.equal(result, null);
+});
+
+test('buildPredictionRecoveryPath prefers current date and gameId', () => {
+  const recoveryPath = buildPredictionRecoveryPath({
+    currentDate: '2026/03/08',
+    currentGameId: ' GAME-2 ',
+    searchParams: new URLSearchParams('date=2026-03-07&gameId=GAME-1'),
+  });
+
+  assert.equal(recoveryPath, '/prediction?date=2026-03-08&gameId=GAME-2');
+});
+
+test('buildPredictionRecoveryPath falls back to current date only when gameId is missing', () => {
+  const recoveryPath = buildPredictionRecoveryPath({
+    currentDate: '2026-03-09',
+    searchParams: new URLSearchParams('date=2026-03-07&gameId=GAME-1'),
+  });
+
+  assert.equal(recoveryPath, '/prediction?date=2026-03-09');
+});
+
+test('buildPredictionRecoveryPath uses existing query params before default prediction route', () => {
+  const recoveryPathWithQuery = buildPredictionRecoveryPath({
+    searchParams: new URLSearchParams('date=2026-03-07&gameId=GAME-1'),
+  });
+  const recoveryPathWithoutQuery = buildPredictionRecoveryPath();
+
+  assert.equal(recoveryPathWithQuery, '/prediction?date=2026-03-07&gameId=GAME-1');
+  assert.equal(recoveryPathWithoutQuery, '/prediction');
 });
 
 test('buildDeepLinkNotFoundMessage includes validation and targets', () => {

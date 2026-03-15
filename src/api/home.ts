@@ -1,8 +1,90 @@
 // api/home.ts
 import { useQuery } from '@tanstack/react-query';
-import { Game, Ranking, LeagueStartDates } from '../types/home';
+import type { CheerPost } from './cheerApi';
+import { getTeamColorByAnyKey } from '../constants/teams';
+import { formatTimeAgo } from '../utils/time';
+import {
+    FeaturedMateCard,
+    Game,
+    HomeBootstrapResponse,
+    HomeWidgetsResponse,
+    LeagueStartDates,
+    Ranking,
+} from '../types/home';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
 import api from './axios';
+
+interface RawHotCheerPost {
+    id: number;
+    teamId: string;
+    content: string;
+    author: string;
+    authorHandle?: string;
+    authorProfileImageUrl?: string;
+    authorTeamId?: string;
+    createdAt: string;
+    comments?: number;
+    likes?: number;
+    bookmarkCount?: number;
+    views?: number;
+    isHot?: boolean;
+    isBookmarked?: boolean;
+    isOwner?: boolean;
+    repostCount?: number;
+    repostedByMe?: boolean;
+    postType?: string;
+    imageUrls?: string[];
+}
+
+const toCheerPost = (post: RawHotCheerPost): CheerPost => ({
+    id: post.id,
+    teamId: post.teamId,
+    team: post.teamId,
+    postType: (post.postType as CheerPost['postType']) || 'NORMAL',
+    author: post.author,
+    authorHandle: post.authorHandle || '',
+    authorProfileImageUrl: post.authorProfileImageUrl,
+    authorTeamId: post.authorTeamId,
+    content: post.content || '',
+    timeAgo: formatTimeAgo(post.createdAt),
+    teamColor: getTeamColorByAnyKey(post.teamId),
+    likeCount: post.likes ?? 0,
+    commentCount: post.comments ?? 0,
+    bookmarkCount: post.bookmarkCount ?? 0,
+    repostCount: post.repostCount ?? 0,
+    views: post.views ?? 0,
+    isHot: post.isHot ?? false,
+    createdAt: post.createdAt,
+    updatedAt: post.createdAt,
+    liked: false,
+    bookmarked: post.isBookmarked ?? false,
+    isOwner: post.isOwner ?? false,
+    repostedByMe: post.repostedByMe ?? false,
+    imageUrls: post.imageUrls || [],
+});
+
+const isBootstrapResponse = (value: unknown): value is HomeBootstrapResponse => {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const candidate = value as Record<string, unknown>;
+    return typeof candidate.selectedDate === 'string'
+        && Array.isArray(candidate.games)
+        && Array.isArray(candidate.scheduledGamesWindow)
+        && Array.isArray(candidate.rankings)
+        && !!candidate.leagueStartDates
+        && !!candidate.navigation;
+};
+
+const isWidgetsResponse = (value: unknown): value is { hotCheerPosts: RawHotCheerPost[]; featuredMates: FeaturedMateCard[] } => {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const candidate = value as Record<string, unknown>;
+    return Array.isArray(candidate.hotCheerPosts) && Array.isArray(candidate.featuredMates);
+};
 
 /**
  * 특정 날짜의 경기 데이터 조회
@@ -46,6 +128,38 @@ export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
     } catch (error) {
         return getFallbackLeagueStartDates();
     }
+};
+
+export const fetchHomeBootstrap = async (date: Date): Promise<HomeBootstrapResponse> => {
+    const apiDate = formatDateForAPI(date);
+    const { data } = await api.get('/home/bootstrap', {
+        params: { date: apiDate },
+        skipGlobalErrorHandler: true,
+    });
+
+    if (!isBootstrapResponse(data)) {
+        throw new Error('Invalid home bootstrap response');
+    }
+
+    cacheLeagueStartDates(data.leagueStartDates);
+    return data;
+};
+
+export const fetchHomeWidgets = async (date: Date): Promise<HomeWidgetsResponse> => {
+    const apiDate = formatDateForAPI(date);
+    const { data } = await api.get('/home/widgets', {
+        params: { date: apiDate },
+        skipGlobalErrorHandler: true,
+    });
+
+    if (!isWidgetsResponse(data)) {
+        throw new Error('Invalid home widgets response');
+    }
+
+    return {
+        hotCheerPosts: data.hotCheerPosts.map(toCheerPost),
+        featuredMates: data.featuredMates,
+    };
 };
 
 // ✅ React Query 훅 추가

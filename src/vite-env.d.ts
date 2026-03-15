@@ -26,4 +26,6 @@ interface Window {
     };
   };
   Cypress?: unknown;
+  __begaRenderPerf?: Record<string, unknown>;
+  __dumpBegaRenderPerf?: () => void;
 }

@@ -11,7 +11,10 @@ import type {
   PredictionRunEvent,
 } from '../types/predictionFlow';
 import type { GameDetail, PredictionTab } from '../types/prediction';
-import type { PredictionLocationState } from '../utils/predictionDeepLink';
+import {
+  buildPredictionRecoveryPath,
+  type PredictionLocationState,
+} from '../utils/predictionDeepLink';
 import {
   buildRecoveryState,
   getPredictionCopyKey,
@@ -51,6 +54,7 @@ export const usePrediction = () => {
   const [pendingSeedDetail, setPendingSeedDetail] = useState<{ gameId: string; detail: GameDetail } | null>(null);
   const activeTabRef = useRef<PredictionTab>('match');
   const currentGameIdRef = useRef<string | null>(null);
+  const currentDateRef = useRef<string | null>(null);
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -103,7 +107,7 @@ export const usePrediction = () => {
 
       return null;
     });
-  }, [emitFlowEvent]);
+  }, [emitFlowEvent, searchParams]);
 
   const showPredictionErrorOverlay = useCallback((
     errorCode: PredictionErrorCode,
@@ -113,7 +117,11 @@ export const usePrediction = () => {
     const normalizedOnFallback = config.onFallback ?? (() => {});
     const normalizedOnGoList = config.onGoList ?? (() => {
       if (typeof window !== 'undefined') {
-        window.location.href = '/';
+        window.location.href = buildPredictionRecoveryPath({
+          currentDate: currentDateRef.current,
+          currentGameId: currentGameIdRef.current,
+          searchParams,
+        });
       }
     });
     const normalizedOnGoBack = config.onGoBack ?? (() => {
@@ -124,7 +132,7 @@ export const usePrediction = () => {
         window.history.back();
         return;
       }
-      window.location.href = '/';
+      void normalizedOnGoList();
     });
     const recoveryState = buildRecoveryState(errorCode, config.recovery);
     const actionPriorityOrder = normalizeRecoveryActionOrder(errorCode, recoveryState, {
@@ -232,6 +240,7 @@ export const usePrediction = () => {
 
   const currentGameId = schedule.currentGame?.gameId || null;
   currentGameIdRef.current = currentGameId;
+  currentDateRef.current = schedule.currentDate || null;
 
   const gameData = usePredictionGameData({
     allDatesData: schedule.allDatesData,

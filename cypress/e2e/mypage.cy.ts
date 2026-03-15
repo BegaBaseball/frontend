@@ -282,6 +282,26 @@ describe('My Page (User Profile)', () => {
             cy.wait('@updateProfile');
             cy.contains('변경사항이 적용되었습니다').should('be.visible');
         });
+
+        it('should show a sanitized message when profile save fails with a technical error', () => {
+            cy.wait(500);
+            cy.contains('내 정보 수정').click();
+
+            cy.intercept('PUT', '**/api/auth/mypage', {
+                statusCode: 500,
+                body: {
+                    success: false,
+                    message: 'Request failed with status code 500',
+                },
+            }).as('updateProfileFailure');
+
+            cy.get('textarea#bio').clear().type('새 자기소개');
+            cy.contains('button', '저장하기').click();
+
+            cy.wait('@updateProfileFailure');
+            cy.contains('서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+            cy.contains('Request failed with status code 500').should('not.exist');
+        });
     });
 
     describe('Account Settings', () => {
@@ -348,6 +368,23 @@ describe('My Page (User Profile)', () => {
             cy.contains('button', '현재 로그인 방식').should('be.disabled');
             cy.contains('현재 로그인 중인 유일한 수단이라 해제할 수 없습니다.').should('be.visible');
         });
+
+        it('should show a sanitized message when provider unlink fails with a technical error', () => {
+            cy.intercept('DELETE', '**/api/auth/providers/google', {
+                statusCode: 500,
+                body: {
+                    success: false,
+                    message: 'Request failed with status code 500',
+                },
+            }).as('unlinkGoogleFailure');
+
+            cy.contains('button', '연동 해제').click();
+            cy.contains('button', '연동 해제 진행').click();
+
+            cy.wait('@unlinkGoogleFailure');
+            cy.contains('서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+            cy.contains('Request failed with status code 500').should('not.exist');
+        });
     });
 
     describe('Password Change', () => {
@@ -388,6 +425,26 @@ describe('My Page (User Profile)', () => {
 
             cy.location('pathname').should('eq', '/login');
             cy.location('search').should('eq', '?redirect=%2Fmypage');
+        });
+
+        it('should show a sanitized message when password change fails with a technical error', () => {
+            cy.intercept('PUT', '**/api/auth/password', {
+                statusCode: 500,
+                body: {
+                    success: false,
+                    message: 'Request failed with status code 500',
+                }
+            }).as('updatePasswordFailure');
+
+            cy.get('input#currentPassword').type('currentpassword123');
+            cy.get('input#newPassword').type('newpassword123');
+            cy.get('input#confirmPassword').type('newpassword123');
+
+            cy.contains('button', '비밀번호 변경').click();
+            cy.wait('@updatePasswordFailure');
+
+            cy.contains('서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+            cy.contains('Request failed with status code 500').should('not.exist');
         });
     });
 

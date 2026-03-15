@@ -3,6 +3,7 @@ import { AlertCircle, RefreshCw, Search, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Skeleton } from '../ui/skeleton';
+import { normalizeOffseasonErrorMessage } from './offseasonError';
 
 export function OffseasonListSkeleton() {
     return (
@@ -30,7 +31,7 @@ export function OffseasonErrorState({
     error: unknown;
     onRetry: () => void;
 }) {
-    const message = error instanceof Error ? error.message : '스토브리그 데이터를 불러오지 못했습니다.';
+    const message = normalizeOffseasonErrorMessage(error);
 
     return (
         <Card className="rounded-3xl border border-red-200 bg-red-50/60 p-8 text-center shadow-sm dark:border-red-900/50 dark:bg-red-950/20">

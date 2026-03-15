@@ -57,6 +57,7 @@ export async function sendChatMessageStream(
     verified: boolean;
     cached?: boolean;
     intent?: string;
+    strategy?: string;
     dataSources: Array<{ title: string; url?: string; content?: string }>;
     toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
   }) => void

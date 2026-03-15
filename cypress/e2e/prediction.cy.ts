@@ -922,9 +922,14 @@ describe('Game Prediction', () => {
             expect(firstIdentity).to.include('"requestMode":"auto_brief"');
         });
 
-        cy.get('button[aria-label="다크모드 전환"], button[aria-label="Toggle theme"]').first().click({ force: true });
-        cy.wait(350);
-        cy.get('button[aria-label="다크모드 전환"], button[aria-label="Toggle theme"]').first().click({ force: true });
+        cy.get('body').then(($body) => {
+            const themeToggle = $body.find('button[aria-label="다크모드 전환"], button[aria-label="Toggle theme"]');
+            if (themeToggle.length > 0) {
+                cy.wrap(themeToggle.first()).click({ force: true });
+                cy.wait(350);
+                cy.wrap(themeToggle.first()).click({ force: true });
+            }
+        });
 
         cy.get('body').then(($body) => {
             if ($body.text().includes('순위예측')) {
@@ -1008,9 +1013,75 @@ describe('Game Prediction', () => {
 
         openPredictionPage();
 
-        cy.contains('예측 처리 중 오류가 발생했습니다.').should('exist');
-        cy.contains(/Internal Server Error|Request failed with status code 500/).should('exist');
-        cy.contains('button', '다시 시도').should('be.visible');
+        cy.contains('예측 경기 데이터를 불러오지 못했습니다.').should('exist');
+        cy.contains('서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.').should('exist');
+        cy.contains(/Internal Server Error|Request failed with status code 500/).should('not.exist');
+        cy.contains('button', '목록 다시 불러오기').should('be.visible');
+        cy.contains('button', '예측으로 돌아가기').should('be.visible');
+    });
+
+    it('should keep current prediction date and game when detail fallback returns to prediction', () => {
+        rangeSchedulePayload = [
+            {
+                ...defaultRangeSchedulePayload[0],
+                gameId: '20240510LGLK0',
+                gameDate: '2026-02-04',
+                homeTeam: 'LG',
+                awayTeam: 'KT',
+            },
+        ];
+
+        cy.intercept('GET', '**/api/matches/20240510LGLK0*', {
+            statusCode: 500,
+            body: { message: 'Internal Server Error' },
+        }).as('getGameDetailFailure');
+
+        openPredictionPage({ path: '/prediction?gameId=20240510LGLK0&date=2026-02-04' });
+        cy.wait('@getGameDetailFailure');
+        cy.get('[data-testid="prediction-render-fallback-card"]').should('be.visible');
+        cy.contains('예측으로 돌아가기').click();
+        cy.location('pathname').should('eq', '/prediction');
+        cy.location('search').should('include', 'date=2026-02-04');
+        cy.location('search').should('include', 'gameId=20240510LGLK0');
+    });
+
+    it('should show login CTA when coach analysis auth expires', () => {
+        cy.intercept('**/api/kbo/rankings/*', {
+            statusCode: 200,
+            body: [
+                { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 104, draws: 0, winRate: '0.278', games: 80, gamesBehind: 4.0 },
+                { teamId: 'SS', teamName: '삼성 라이온즈', rank: 10, wins: 20, losses: 124, draws: 0, winRate: '0.139', games: 80, gamesBehind: 6.5 },
+            ],
+        }).as('getRankingsAuthExpiredCoach');
+        cy.intercept('POST', '**/coach/analyze*', {
+            statusCode: 401,
+            body: { detail: 'Unauthorized' },
+        }).as('coachAnalyzeAuthExpired');
+        cy.intercept('POST', '**/api/auth/reissue*', {
+            statusCode: 401,
+            body: { message: 'Unauthorized' },
+        }).as('coachAnalyzeReissueFailed');
+
+        openPredictionPage({ path: '/prediction?gameId=20240510HHSS0&date=2026-02-03' });
+        cy.wait('@getGameDetail');
+        cy.wait('@getRankingsAuthExpiredCoach');
+        cy.tick(1000);
+        cy.wait(700);
+        cy.get('[data-testid="coach-analysis-open"]', { timeout: 10000 })
+            .should('be.visible')
+            .click({ force: true });
+        cy.get('[data-testid="coach-analysis-run-button"]', { timeout: 10000 })
+            .should('exist')
+            .scrollIntoView()
+            .click({ force: true });
+        cy.wait('@coachAnalyzeAuthExpired');
+        cy.wait('@coachAnalyzeReissueFailed');
+        cy.get('[data-testid="coach-analysis-login-cta"]', { timeout: 10000 })
+            .should('exist')
+            .scrollIntoView()
+            .click({ force: true });
+        cy.location('pathname').should('eq', '/login');
+        cy.location('search').should('include', 'redirect=%2Fprediction%3FgameId%3D20240510HHSS0%26date%3D2026-02-03');
     });
 
     it('should emit timeout banner foreground/background actions', () => {
@@ -1048,7 +1119,7 @@ describe('Game Prediction', () => {
         cy.tick(45000);
         cy.contains('button', '다시 시도').should('exist');
         cy.contains('button', '간단 모드로 전환').should('exist');
-        cy.contains('button', '목록으로 이동').should('exist');
+        cy.contains('button', '예측으로 돌아가기').should('exist');
     });
 
     it('should keep retry overlay inactive before submit starts', () => {
