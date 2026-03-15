@@ -10,6 +10,9 @@ import {
   AdminReport,
   AdminReportPage,
   AdminSeatView,
+  AdminClientErrorDashboard,
+  AdminClientErrorEventDetail,
+  AdminClientErrorEventPage,
   ReleaseDecisionArtifactRecord,
   ReleaseDecisionArtifactSummary,
   ReleaseDecisionDraftResponse,
@@ -18,6 +21,7 @@ import {
   ReleaseDecisionPreset,
 } from '../types/admin';
 import api from './axios';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 // ─── Stadium / Place Types ───────────────────────────────────────────────────
 
@@ -49,32 +53,11 @@ export interface PlaceFormData {
   closeTime?: string;
 }
 
-type ApiErrorData = {
-  detail?: string;
-  message?: string;
-};
-
 const isAxiosStatusError = (error: unknown, status: number): boolean =>
   axios.isAxiosError(error) && error.response?.status === status;
 
 const readErrorMessage = (error: unknown, fallback: string): string => {
-  if (axios.isAxiosError(error)) {
-    const payload = error.response?.data as ApiErrorData | undefined;
-    if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-      if (typeof payload.detail === 'string' && payload.detail.trim()) {
-        return payload.detail;
-      }
-      if (typeof payload.message === 'string' && payload.message.trim()) {
-        return payload.message;
-      }
-    }
-  }
-
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  return fallback;
+  return getApiErrorMessage(error, fallback);
 };
 
 const unwrapAdminResponse = <T>(payload: AdminApiResponse<T> | null | undefined, fallback: string): T => {
@@ -253,6 +236,55 @@ export const fetchAdminSeatViewDetail = async (seatViewId: number): Promise<Admi
     return unwrapAdminResponse(response.data, '시야뷰 후보 상세 조회 실패');
   } catch (error) {
     throw new Error(readErrorMessage(error, '시야뷰 후보 상세 조회 실패'));
+  }
+};
+
+export const fetchAdminClientErrorDashboard = async (params?: {
+  from?: string;
+  to?: string;
+}): Promise<AdminClientErrorDashboard> => {
+  try {
+    const response = await api.get<AdminApiResponse<AdminClientErrorDashboard>>('/admin/client-errors/dashboard', {
+      params,
+    });
+    return unwrapAdminResponse(response.data, '클라이언트 에러 대시보드 조회 실패');
+  } catch (error) {
+    throw new Error(readErrorMessage(error, '클라이언트 에러 대시보드 조회 실패'));
+  }
+};
+
+export const fetchAdminClientErrorEvents = async (params?: {
+  bucket?: string;
+  source?: string;
+  statusGroup?: string;
+  route?: string;
+  fingerprint?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+}): Promise<AdminClientErrorEventPage> => {
+  try {
+    const response = await api.get<AdminApiResponse<AdminClientErrorEventPage>>('/admin/client-errors/events', {
+      params: {
+        ...params,
+        page: params?.page ?? 0,
+        size: params?.size ?? 20,
+      },
+    });
+    return unwrapAdminResponse(response.data, '클라이언트 에러 이벤트 조회 실패');
+  } catch (error) {
+    throw new Error(readErrorMessage(error, '클라이언트 에러 이벤트 조회 실패'));
+  }
+};
+
+export const fetchAdminClientErrorEventDetail = async (eventId: string): Promise<AdminClientErrorEventDetail> => {
+  try {
+    const response = await api.get<AdminApiResponse<AdminClientErrorEventDetail>>(`/admin/client-errors/events/${eventId}`);
+    return unwrapAdminResponse(response.data, '클라이언트 에러 이벤트 상세 조회 실패');
+  } catch (error) {
+    throw new Error(readErrorMessage(error, '클라이언트 에러 이벤트 상세 조회 실패'));
   }
 };
 

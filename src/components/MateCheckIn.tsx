@@ -185,7 +185,7 @@ export default function MateCheckIn() {
     void fetchCheckInStatus();
     const interval = setInterval(() => {
       void fetchCheckInStatus();
-    }, 5000);
+    }, 15000);
 
     return () => {
       isMounted = false;

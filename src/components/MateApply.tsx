@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
@@ -10,7 +10,7 @@ import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
 import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 import { useMateStore } from '../store/mateStore';
-import { useAuthSession } from '../store/authStore';
+import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -22,6 +22,12 @@ import { analyzeTicket, TicketInfo } from '../api/ticket';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { AxiosError } from 'axios';
 import LoadingSpinner from './LoadingSpinner';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import {
+  clearMateApplyDraft,
+  loadMateApplyDraft,
+  saveMateApplyDraft,
+} from '../utils/mateApplyDraft';
 
 const sanitizeUserFacingMessage = (message: string, fallback: string): string => {
   const trimmed = message.trim();
@@ -37,6 +43,7 @@ const sanitizeUserFacingMessage = (message: string, fallback: string): string =>
 export default function MateApply() {
   const validateMessage = useMateStore((state) => state.validateMessage);
   const { userId: authUserId } = useAuthSession();
+  const { logout } = useAuthAccessActions();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const {
@@ -53,6 +60,70 @@ export default function MateApply() {
   const [ticketVerified, setTicketVerified] = useState(false);
   const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isDraftHydrated, setIsDraftHydrated] = useState(false);
+  const restoredDraftPartyIdRef = useRef<string | null>(null);
+  const previousPartyIdRef = useRef<string | null>(null);
+
+  const redirectToLogin = (replace = false) => {
+    setCurrentUserId(null);
+    logout(true);
+    navigate(buildLoginPath(getCurrentRelativeUrl()), replace ? { replace: true } : undefined);
+  };
+
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    if (previousPartyIdRef.current && previousPartyIdRef.current !== id) {
+      clearMateApplyDraft(previousPartyIdRef.current);
+    }
+
+    previousPartyIdRef.current = id;
+  }, [id]);
+
+  useEffect(() => {
+    setIsDraftHydrated(false);
+    setMessage('');
+    setTicketVerified(false);
+    setTicketInfo(null);
+
+    if (!id) {
+      restoredDraftPartyIdRef.current = null;
+      setIsDraftHydrated(true);
+      return;
+    }
+
+    const draft = loadMateApplyDraft(id);
+    if (!draft) {
+      restoredDraftPartyIdRef.current = null;
+      setIsDraftHydrated(true);
+      return;
+    }
+
+    setMessage(draft.message);
+    setTicketVerified(draft.ticketVerified);
+    setTicketInfo(draft.ticketInfo);
+
+    if (restoredDraftPartyIdRef.current !== id) {
+      restoredDraftPartyIdRef.current = id;
+      toast.info('이전 신청 내용을 복원했습니다. 필요한 정보만 다시 확인해주세요.');
+    }
+
+    setIsDraftHydrated(true);
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || !isDraftHydrated) {
+      return;
+    }
+
+    saveMateApplyDraft(id, {
+      message,
+      ticketVerified,
+      ticketInfo,
+    });
+  }, [id, isDraftHydrated, message, ticketInfo, ticketVerified]);
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
@@ -66,6 +137,12 @@ export default function MateApply() {
         const userData = await api.getCurrentUser();
         setCurrentUserId(userData.data.id);
       } catch (error) {
+        if ((error instanceof AxiosError && error.response?.status === 401) ||
+          (error instanceof ApiError && error.status === 401)) {
+          redirectToLogin(true);
+          return;
+        }
+
         console.error('사용자 정보 가져오기 실패:', error);
         toast.error('사용자 정보를 불러오지 못했습니다.');
       }
@@ -175,7 +252,7 @@ export default function MateApply() {
 
   const handleSubmit = async () => {
     if (!currentUserId) {
-      toast.error('로그인이 필요합니다.');
+      redirectToLogin();
       return;
     }
 
@@ -204,11 +281,20 @@ export default function MateApply() {
         ticketImageUrl: null,
       });
 
+      if (id) {
+        clearMateApplyDraft(id);
+      }
       toast.success(isSelling
         ? '구매 신청이 접수되었습니다. 호스트 승인 후 직거래로 진행됩니다.'
         : '참여 신청이 접수되었습니다.');
       navigate(`/mate/${selectedParty.id}`);
     } catch (error: unknown) {
+      if ((error instanceof AxiosError && error.response?.status === 401) ||
+        (error instanceof ApiError && error.status === 401)) {
+        redirectToLogin();
+        return;
+      }
+
       if ((error instanceof AxiosError && error.response?.status === 403) ||
         (error instanceof ApiError && error.status === 403)) {
         setShowVerificationDialog(true);
@@ -216,6 +302,7 @@ export default function MateApply() {
         console.error('신청 처리 오류:', error);
         toast.error(getApiErrorMessage(error, '신청 처리 중 오류가 발생했습니다.'));
       }
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -232,7 +319,12 @@ export default function MateApply() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-36 lg:pb-8 relative z-10">
         <Button
           variant="ghost"
-          onClick={() => navigate(`/mate/${id}`)}
+          onClick={() => {
+            if (id) {
+              clearMateApplyDraft(id);
+            }
+            navigate(`/mate/${id}`);
+          }}
           className="mb-4"
         >
           <ChevronLeft className="w-4 h-4 mr-2" />

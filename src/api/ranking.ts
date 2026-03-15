@@ -7,7 +7,10 @@ import { AxiosError } from 'axios';
  * 현재 예측 가능한 시즌 조회
  */
 export const fetchCurrentSeason = async (): Promise<SeasonResponse> => {
-  const response = await api.get('/predictions/ranking/current-season');
+  const response = await api.get('/predictions/ranking/current-season', {
+    skipGlobalErrorHandler: true,
+    skipAuthSessionHandling: true,
+  });
   return response.data;
 };
 
@@ -20,6 +23,7 @@ export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPre
     const response = await api.get(`/predictions/ranking`, {
       params: { seasonYear },
       skipGlobalErrorHandler: true, // 404는 예외가 아니므로 전역 에러 처리 제외
+      skipAuthSessionHandling: true,
     });
     return response.data;
   } catch (error: unknown) {
@@ -35,7 +39,10 @@ export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPre
  * 순위 예측 저장
  */
 export const saveRankingPrediction = async (data: SaveRankingRequest): Promise<SavedPredictionResponse> => {
-  const response = await api.post('/predictions/ranking', data);
+  const response = await api.post('/predictions/ranking', data, {
+    skipGlobalErrorHandler: true,
+    skipAuthSessionHandling: true,
+  });
   return response.data;
 };
 

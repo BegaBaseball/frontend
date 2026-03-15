@@ -14,6 +14,7 @@ import { usePrediction } from '../hooks/usePrediction';
 import { useRankingsData } from '../api/home';
 import { fetchMyPredictionStats } from '../api/prediction';
 import { useAuthProfileSnapshot } from '../store/authStore';
+import { buildPredictionRecoveryPath } from '../utils/predictionDeepLink';
 import {
   formatDate,
   calculateVotePercentages,
@@ -106,6 +107,10 @@ export default function Prediction() {
   // 현재 경기 정보
   const currentGame = currentDateGames.length > 0 ? currentDateGames[selectedGame] : null;
   const currentGameId = currentGame?.gameId;
+  const predictionRecoveryPath = buildPredictionRecoveryPath({
+    currentDate,
+    currentGameId,
+  });
 
   const rankingByTeamId = useMemo(() => {
     const map = new Map<string, { rank: number; gamesBehind?: number; games: number }>();
@@ -304,10 +309,10 @@ export default function Prediction() {
             {renderRetryLabel(isFutureRetryLoading, '예정 경기 다시 불러오기')}
           </Button>
           <Link
-            to="/"
+            to={predictionRecoveryPath}
             className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-rose-300/70 text-rose-900 hover:bg-rose-100 dark:border-rose-300/60 dark:text-rose-100 dark:hover:bg-rose-800/30"
           >
-            홈으로 이동
+            예측으로 돌아가기
           </Link>
         </div>
       </Card>
@@ -426,10 +431,10 @@ export default function Prediction() {
                 {renderRetryLabel(isVoteRetryLoading, '투표 집계 다시 시도')}
               </Button>
               <Link
-                to="/"
+                to={predictionRecoveryPath}
                 className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-rose-200 text-rose-900 hover:bg-rose-100 dark:border-rose-300/70 dark:text-rose-100 dark:hover:bg-rose-900/40"
               >
-                홈으로 이동
+                예측으로 돌아가기
               </Link>
             </div>
           </Card>
@@ -455,10 +460,10 @@ export default function Prediction() {
                 {renderRetryLabel(isPastRetryLoading, '이전 경기 다시 불러오기')}
               </Button>
               <Link
-                to="/"
+                to={predictionRecoveryPath}
                 className="min-h-11 px-3 inline-flex items-center justify-center rounded-md border border-rose-300/70 text-rose-900 hover:bg-rose-100 dark:border-rose-300/60 dark:text-rose-100 dark:hover:bg-rose-800/30"
               >
-                홈으로 이동
+                예측으로 돌아가기
               </Link>
             </div>
           </Card>
@@ -621,10 +626,10 @@ export default function Prediction() {
               variant="outline"
               className="mt-2 bg-white text-rose-600 dark:text-rose-300 border-rose-300/70"
               onClick={() => {
-                window.location.href = '/';
+                window.location.href = predictionRecoveryPath;
               }}
             >
-              홈으로 이동
+              예측으로 돌아가기
             </Button>
           </Card>
         </div>
@@ -786,10 +791,10 @@ export default function Prediction() {
                                   {renderRetryLabel(isDetailRetryLoading, '다시 시도')}
                                 </Button>
                                 <Link
-                                  to="/"
+                                  to={predictionRecoveryPath}
                                   className="min-h-10 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
                                 >
-                                  목록으로 이동
+                                  예측으로 돌아가기
                                 </Link>
                               </div>
                             </div>

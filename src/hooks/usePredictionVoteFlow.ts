@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { cancelVote, submitVote } from '../api/prediction';
+import { buildPredictionRecoveryPath } from '../utils/predictionDeepLink';
 import { useAuthCheerActions } from '../store/authStore';
 import { useLeaderboardStore } from '../store/leaderboardStore';
 import { getFullTeamName } from '../constants/teams';
@@ -111,6 +112,20 @@ export const usePredictionVoteFlow = ({
   const nextNetworkRetryAttempt = useCallback((actionKey: PredictionRetryActionKey) => {
     return increasePredictionRetryAttempt(retryAttemptRef.current, actionKey);
   }, []);
+
+  const goToPredictionRecovery = useCallback((options?: {
+    currentDate?: string | null;
+    currentGameId?: string | null;
+  }) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.location.href = buildPredictionRecoveryPath({
+      currentDate: options?.currentDate ?? null,
+      currentGameId: options?.currentGameId ?? currentGameId,
+    });
+  }, [currentGameId]);
 
   const upsertRunSession = useCallback((session: PredictionRunSessionV1 | null) => {
     runSessionRef.current = session;
@@ -324,7 +339,7 @@ export const usePredictionVoteFlow = ({
           toast.info('간단 모드로 진행합니다.');
         },
         onGoList: () => {
-          window.location.href = '/';
+          goToPredictionRecovery({ currentDate: game.gameDate, currentGameId: gameId });
         },
       });
     }, PREDICTION_RUN_FATAL_TIMEOUT_MS);
@@ -389,7 +404,7 @@ export const usePredictionVoteFlow = ({
               void executeVote(gameId, team, game);
             },
             onGoList: () => {
-              window.location.href = '/';
+              goToPredictionRecovery({ currentDate: game.gameDate, currentGameId: gameId });
             },
           });
           return;
@@ -479,7 +494,7 @@ export const usePredictionVoteFlow = ({
                 void executeVote(gameId, team, game);
               },
               onGoList: () => {
-                window.location.href = '/';
+                goToPredictionRecovery({ currentDate: game.gameDate, currentGameId: gameId });
               },
             });
             return;
@@ -520,7 +535,7 @@ export const usePredictionVoteFlow = ({
               void executeVote(gameId, team, game);
             },
             onGoList: () => {
-              window.location.href = '/';
+              goToPredictionRecovery({ currentDate: game.gameDate, currentGameId: gameId });
             },
           });
           return;
@@ -603,6 +618,7 @@ export const usePredictionVoteFlow = ({
     getNextFlowId,
     getRunElapsedMs,
     getRunProgressMessageByStage,
+    goToPredictionRecovery,
     nextNetworkRetryAttempt,
     reloadVoteStatus,
     resetNetworkRetryAttempt,
@@ -719,7 +735,7 @@ export const usePredictionVoteFlow = ({
               void executeCancelVote(gameId);
             },
             onGoList: () => {
-              window.location.href = '/';
+              goToPredictionRecovery({ currentGameId: gameId });
             },
           });
           return;
@@ -799,7 +815,7 @@ export const usePredictionVoteFlow = ({
                 void executeCancelVote(gameId);
               },
               onGoList: () => {
-                window.location.href = '/';
+                goToPredictionRecovery({ currentGameId: gameId });
               },
             });
             return;
@@ -838,7 +854,7 @@ export const usePredictionVoteFlow = ({
               void executeCancelVote(gameId);
             },
             onGoList: () => {
-              window.location.href = '/';
+              goToPredictionRecovery({ currentGameId: gameId });
             },
           });
           return;
@@ -872,6 +888,7 @@ export const usePredictionVoteFlow = ({
     emitFlowEvent,
     getNextFlowId,
     getRunElapsedMs,
+    goToPredictionRecovery,
     nextNetworkRetryAttempt,
     reloadVoteStatus,
     resetNetworkRetryAttempt,
@@ -994,7 +1011,7 @@ export const usePredictionVoteFlow = ({
         },
       });
       showPredictionErrorOverlay('TIMEOUT', {
-        message: '실행 세션이 만료되었습니다. 다시 시도하거나 목록으로 이동해 주세요.',
+        message: '실행 세션이 만료되었습니다. 다시 시도하거나 예측으로 돌아가 주세요.',
         copyKey: 'timeout_hint',
         recovery: {
           recoverable: true,
@@ -1010,7 +1027,7 @@ export const usePredictionVoteFlow = ({
           });
         },
         onGoList: () => {
-          window.location.href = '/';
+          goToPredictionRecovery({ currentGameId: parsedSession.gameId });
         },
       });
       return;
@@ -1054,6 +1071,7 @@ export const usePredictionVoteFlow = ({
     clearRunSession,
     emitFlowEvent,
     getRunProgressMessageByStage,
+    goToPredictionRecovery,
     loadVoteStatus,
     resetRunProgressState,
     setRunTimeoutStage,

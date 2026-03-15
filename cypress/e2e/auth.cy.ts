@@ -151,6 +151,47 @@ describe('Authentication Flow', () => {
             cy.location('pathname').should('eq', '/login');
             cy.location('search').should('eq', '?redirect=%2Fprediction%3Fdate%3D2026-03-12');
         });
+
+        it('should sanitize technical signup errors', () => {
+            cy.intercept('GET', '**/api/auth/policies/required', {
+                statusCode: 200,
+                body: {
+                    success: true,
+                    data: {
+                        policies: [
+                            { policyType: 'TERMS', version: '2026-02-26', required: true },
+                            { policyType: 'PRIVACY', version: '2026-02-26', required: true },
+                            { policyType: 'DATA_DISCLAIMER', version: '2026-02-26', required: true },
+                        ],
+                    },
+                },
+            }).as('requiredPoliciesForFailure');
+
+            cy.intercept('POST', '**/api/auth/signup', {
+                statusCode: 500,
+                body: {
+                    message: 'Request failed with status code 500',
+                },
+            }).as('signupFailure');
+
+            cy.visit('/signup');
+
+            cy.get('input#name').type('실패테스트유저');
+            cy.get('input#handle').clear().type('signupfailure');
+            cy.get('input#email').type('signup_failure_user@example.com');
+            cy.get('input#password').type('Test1234!');
+            cy.get('input#confirmPassword').type('Test1234!');
+
+            cy.get('button[role="combobox"]').first().click();
+            cy.contains('[role="option"]', 'LG 트윈스').click();
+
+            cy.contains('button', '회원가입').click();
+
+            cy.wait('@requiredPoliciesForFailure');
+            cy.wait('@signupFailure');
+            cy.contains('서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+            cy.contains('Request failed with status code 500').should('not.exist');
+        });
     });
 
     describe('Protected Routes', () => {

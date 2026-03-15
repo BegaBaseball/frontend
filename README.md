@@ -285,7 +285,7 @@ docker-compose up -d --build
 3. 프로덕션 빌드/게이트: `npm run seo:gate`
 4. `dist` 폴더를 웹 서버에 배포
 5. SPA 라우팅 설정 (모든 경로 → index.html)
-6. SEO 점검 및 문제 해결 가이드: `/Users/mac/project/KBO_platform/docs/deployment/seo-checklist.md` 참조
+6. SEO 점검 및 문제 해결 가이드: `/Users/mac/project/KBO_platform/task/operations/seo-checklist.md` 참조
 
 ### Nginx 설정 예시
 ```nginx

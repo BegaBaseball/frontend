@@ -230,6 +230,7 @@ export const useChatBot = (initialOpen = false) => {
                     verified: meta.verified,
                     cached: meta.cached,
                     intent: meta.intent,
+                    strategy: meta.strategy,
                     citations: meta.dataSources,
                     toolCalls: meta.toolCalls,
                   }

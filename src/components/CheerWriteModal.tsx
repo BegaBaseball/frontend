@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { X, ImagePlus, Smile } from 'lucide-react';
 import { toast } from 'sonner';
 import TextareaAutosize from 'react-textarea-autosize';
-import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { useTheme } from '../hooks/useTheme';
 import {
     Dialog,
@@ -16,6 +15,7 @@ import TeamLogo from './TeamLogo';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { ShareMode } from '../api/cheerApi';
+import LazyEmojiPicker from './LazyEmojiPicker';
 
 export interface CheerWritePayload {
     content: string;
@@ -147,8 +147,8 @@ export default function CheerWriteModal({
         });
     };
 
-    const handleEmojiClick = (emojiData: { emoji: string }) => {
-        setContent(prev => prev + emojiData.emoji);
+    const handleEmojiSelect = (emoji: string) => {
+        setContent(prev => prev + emoji);
     };
 
     const handleSubmit = async () => {
@@ -187,7 +187,7 @@ export default function CheerWriteModal({
             onClose();
         } catch (error) {
             console.error('게시글 작성 실패:', error);
-            toast.error('게시글 작성에 실패했습니다. 다시 시도해주세요.');
+            // 상위 컴포넌트가 사용자 노출용 오류/로그인 복귀를 처리한다.
         } finally {
             setIsSubmitting(false);
         }
@@ -333,14 +333,9 @@ export default function CheerWriteModal({
                                         </button>
                                         {showEmojiPicker && (
                                             <div className="absolute top-0 left-full z-50 ml-2 sm:left-auto sm:right-0 sm:top-full sm:mt-2">
-                                                <EmojiPicker
-                                                    onEmojiClick={handleEmojiClick}
-                                                    theme={isDarkMode ? EmojiTheme.DARK : EmojiTheme.LIGHT}
-                                                    lazyLoadEmojis={true}
-                                                    skinTonesDisabled={true}
-                                                    searchPlaceHolder="이모지 검색..."
-                                                    width={300}
-                                                    height={400}
+                                                <LazyEmojiPicker
+                                                    isDarkMode={isDarkMode}
+                                                    onEmojiSelect={handleEmojiSelect}
                                                 />
                                             </div>
                                         )}

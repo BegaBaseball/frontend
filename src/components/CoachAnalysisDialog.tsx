@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import {
     Dialog,
@@ -16,6 +17,7 @@ import {
     analyzeTeam,
     CoachAnalyzeResponse,
     CoachAnalysisData,
+    isCoachAnalyzeError,
     CoachMetric,
     CoachRiskItem,
     DashboardStat,
@@ -28,6 +30,7 @@ import {
     COACH_BRIEFING_MANUAL_HINT,
     normalizeCoachBriefing,
 } from '../utils/prediction';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import CoachAnalysisResultView from './prediction/CoachAnalysisResultView';
 
 const isAbortError = (error: unknown): boolean => {
@@ -263,11 +266,16 @@ export default function CoachAnalysisDialog({
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<CoachAnalyzeResponse | null>(null);
     const [analysisStep, setAnalysisStep] = useState<string>('');
+    const [errorAction, setErrorAction] = useState<'login' | null>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (isOpen) {
             setSelectedTeam(getInitialTeamName(initialTeam));
             setFocus(normalizeFocusLocal(buildDefaultFocus()));
+            setResult(null);
+            setAnalysisStep('');
+            setErrorAction(null);
         }
     }, [isOpen, initialTeam, homeTeamId, awayTeamId, gameId, homePitcher, awayPitcher]);
 
@@ -334,6 +342,7 @@ export default function CoachAnalysisDialog({
         setLoading(true);
         setAnalysisStep('감독님이 헤드셋 끼고 준비 중...');
         setResult(null);
+        setErrorAction(null);
 
         const steps = [
             '상대팀 벤치 몰래 훔쳐보는 중...',
@@ -404,10 +413,11 @@ export default function CoachAnalysisDialog({
                 setResult({
                     error: '시즌 연도를 확인하지 못했습니다. 날짜/시즌 정보를 다시 확인해주세요.'
                 });
-            } else if (message.includes('status: 401')) {
+            } else if (isCoachAnalyzeError(error) && error.code === 'AUTH_EXPIRED') {
                 setResult({
                     error: '인증이 만료되었습니다. 다시 로그인 후 시도해주세요.'
                 });
+                setErrorAction('login');
             } else {
                 setResult({ error: '분석 중 오류가 발생했습니다.' });
             }
@@ -957,6 +967,17 @@ export default function CoachAnalysisDialog({
                             <p className="text-sm font-semibold text-red-700 dark:text-red-300">
                                 {result.error}
                             </p>
+                            {errorAction === 'login' && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    data-testid="coach-analysis-login-cta"
+                                    className="mt-3 border-red-300/70 text-red-700 hover:bg-red-100 dark:border-red-800/50 dark:text-red-200 dark:hover:bg-red-950/40"
+                                    onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
+                                >
+                                    로그인하기
+                                </Button>
+                            )}
                         </motion.div>
                     )}
                 </div>

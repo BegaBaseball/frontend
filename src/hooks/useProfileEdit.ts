@@ -5,6 +5,7 @@ import { ProfileUpdateData, UserProfile, NicknameCheckState } from '../types/pro
 import { toast } from 'sonner';
 import { useAuthProfileActions, useAuthProfileSnapshot } from '../store/authStore';
 import { FRANCHISE_TEAM_IDS, TEAM_NAME_TO_ID } from '../constants/teams';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 interface UseProfileEditProps {
   initialProfileImage: string | null;
@@ -157,9 +158,9 @@ export const useProfileEdit = ({
   // ========== Image Upload Mutation ==========
   const imageUploadMutation = useMutation({
     mutationFn: (file: File) => uploadProfileImage(file),
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
       setSaveMessage('저장 실패');
-      toast.error(error.message || '이미지 업로드에 실패했습니다.');
+      toast.error(getApiErrorMessage(error, '이미지 업로드에 실패했습니다.'));
     },
   });
 
@@ -246,9 +247,9 @@ export const useProfileEdit = ({
       toast.success('변경사항이 적용되었습니다.');
       onSave();
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
       setSaveMessage('저장 실패');
-      toast.error(error.message || '프로필 저장 중 오류가 발생했습니다.');
+      toast.error(getApiErrorMessage(error, '프로필 저장 중 오류가 발생했습니다.'));
     },
   });
 

@@ -60,6 +60,55 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             },
         }).as('getMeAnyPath');
     };
+    const buildGuestCheerDetail = (postId: number) => ({
+        id: postId,
+        content: '비로그인 상세 액션 복귀 점검',
+        author: 'writer',
+        authorId: 55,
+        authorHandle: 'writer',
+        teamId: 'HH',
+        team: 'HH',
+        teamColor: 'HH',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        comments: 1,
+        commentCount: 1,
+        likes: 3,
+        likeCount: 3,
+        bookmarkCount: 1,
+        repostCount: 2,
+        views: 10,
+        liked: false,
+        likedByUser: false,
+        bookmarked: false,
+        isBookmarked: false,
+        repostedByMe: false,
+        repostType: undefined,
+        postType: 'NORMAL',
+        isOwner: false,
+        isHot: false,
+        images: [],
+        imageUrls: [],
+    });
+
+    const stubGuestCheerDetailRoute = (postId: number) => {
+        cy.intercept('GET', `**/api/cheer/posts/${postId}`, {
+            statusCode: 200,
+            body: buildGuestCheerDetail(postId),
+        }).as('getGuestCheerDetail');
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}/comments*`, {
+            statusCode: 200,
+            body: {
+                content: [],
+                totalElements: 0,
+                totalPages: 1,
+                last: true,
+                size: 20,
+                number: 0,
+            },
+        }).as('getGuestCheerComments');
+    };
 
     it('1) NoticePage 글쓰기 버튼이 /cheer/write로 이동하고 작성 composer가 열린다', () => {
         const noticePost = {
@@ -878,6 +927,93 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         cy.location('search').should('eq', `?redirect=%2Fcheer%2F${postId}`);
     });
 
+    it('8-1) 상세 상단 게스트 액션이 현재 상세 경로 redirect를 유지한다', () => {
+        cy.intercept('GET', '**/api/auth/mypage*', { statusCode: 401 });
+        cy.intercept('GET', '**/api/auth/reissue*', { statusCode: 401 });
+
+        const postId = 79;
+        const expectedRedirect = `?redirect=%2Fcheer%2F${postId}`;
+        stubGuestCheerDetailRoute(postId);
+
+        [
+            'button[aria-label^="좋아요 "]',
+            'button[aria-label^="리포스트 "]',
+            'button[aria-label^="북마크 "]',
+        ].forEach((selector) => {
+            cy.visit(`/cheer/${postId}`, {
+                onBeforeLoad: (win) => {
+                    win.localStorage.clear();
+                    win.sessionStorage.clear();
+                },
+            });
+
+            cy.wait('@getGuestCheerDetail');
+            cy.wait('@getGuestCheerComments');
+            cy.get(selector).first().click();
+            cy.location('pathname').should('eq', '/login');
+            cy.location('search').should('eq', expectedRedirect);
+        });
+    });
+
+    it('8-2) 상세 초기 로드 실패는 친화형 문구와 재시도만 노출한다', () => {
+        cy.intercept('GET', '**/api/auth/mypage*', { statusCode: 401 });
+        cy.intercept('GET', '**/api/auth/reissue*', { statusCode: 401 });
+
+        const postId = 80;
+        let detailRequestCount = 0;
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}`, (req) => {
+            detailRequestCount += 1;
+
+            if (detailRequestCount === 1) {
+                req.reply({
+                    statusCode: 500,
+                    body: {
+                        message: 'Request failed with status code 500',
+                    },
+                });
+                return;
+            }
+
+            req.reply({
+                statusCode: 200,
+                body: {
+                    ...buildGuestCheerDetail(postId),
+                    content: '재시도 후 정상 로드된 응원글',
+                },
+            });
+        }).as('getCheerDetailWithRetry');
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}/comments*`, {
+            statusCode: 200,
+            body: {
+                content: [],
+                totalElements: 0,
+                totalPages: 1,
+                last: true,
+                size: 20,
+                number: 0,
+            },
+        }).as('getCheerCommentsAfterRetry');
+
+        cy.visit(`/cheer/${postId}`, {
+            onBeforeLoad: (win) => {
+                win.localStorage.clear();
+                win.sessionStorage.clear();
+            },
+        });
+
+        cy.wait('@getCheerDetailWithRetry');
+        cy.contains('게시글을 불러오지 못했습니다.').should('be.visible');
+        cy.contains('서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+        cy.contains('Request failed with status code 500').should('not.exist');
+        cy.contains('button', '다시 시도').click();
+
+        cy.wait('@getCheerDetailWithRetry');
+        cy.wait('@getCheerCommentsAfterRetry');
+        cy.contains('재시도 후 정상 로드된 응원글').should('be.visible');
+    });
+
     it('9) 비로그인 상태에서 게시하기를 누르면 작성 경로로 복귀하도록 로그인 이동한다', () => {
         cy.intercept('GET', '**/api/auth/mypage*', { statusCode: 401 });
         cy.intercept('GET', '**/api/auth/reissue*', { statusCode: 401 });
@@ -973,5 +1109,59 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
 
         cy.location('pathname').should('eq', '/login');
         cy.location('search').should('eq', '?redirect=%2Fcheer%2Fwrite%3Ftab%3Dfollowing');
+    });
+
+    it('10-1) 작성 모달 제출 중 세션이 만료되면 현재 write 경로로 복귀 가능한 로그인으로 이동한다', () => {
+        cy.mockAPI();
+        stubAuthProfile('ROLE_USER');
+
+        const emptyPostPage = {
+            content: [],
+            last: true,
+            totalPages: 1,
+            totalElements: 0,
+            size: 20,
+            number: 0,
+        };
+
+        cy.intercept('GET', '**/api/cheer/posts/hot*', {
+            statusCode: 200,
+            body: emptyPostPage,
+        }).as('getPopularPostsForExpiredWrite');
+
+        cy.intercept('GET', '**/api/cheer/posts*', {
+            statusCode: 200,
+            body: emptyPostPage,
+        }).as('getCheerPostsForExpiredWrite');
+
+        cy.intercept('POST', '**/api/auth/reissue*', {
+            statusCode: 401,
+            body: {
+                message: 'Unauthorized',
+            },
+        }).as('reissueForExpiredCheerWrite');
+
+        cy.intercept('POST', '**/api/cheer/posts', {
+            statusCode: 401,
+            body: {
+                message: 'Unauthorized',
+            },
+        }).as('createCheerPostUnauthorized');
+
+        cy.visit('/cheer/write?tab=popular', {
+            onBeforeLoad: (win) => {
+                seedAuthState(win);
+            },
+        });
+
+        cy.wait('@getMeAnyPath');
+        cy.wait('@getPopularPostsForExpiredWrite');
+        cy.get('textarea[placeholder*="응원"]').filter(':visible').first().type('세션 만료 복귀 점검', { force: true });
+        cy.get('[data-testid="write-post-btn"]').filter(':visible').first().click({ force: true });
+
+        cy.wait('@createCheerPostUnauthorized');
+        cy.wait('@reissueForExpiredCheerWrite');
+        cy.location('pathname').should('eq', '/login');
+        cy.location('search').should('eq', '?redirect=%2Fcheer%2Fwrite%3Ftab%3Dpopular');
     });
 });
