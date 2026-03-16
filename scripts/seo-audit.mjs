@@ -35,6 +35,7 @@ const addCheck = (message) => checks.push(message);
 
 const hasHangul = (value) => /[가-힣]/.test(value);
 const plainTextLength = (value) => [...String(value || '').trim()].length;
+const hasGaMeasurementId = Boolean(String(process.env.VITE_GA4_MEASUREMENT_ID || '').trim());
 
 const readFile = (filePath) => fs.readFileSync(filePath, 'utf-8');
 
@@ -113,7 +114,9 @@ if (!failures.length) {
 
   const assetsDir = path.join(distDir, 'assets');
   const requiredGaTokens = ['bega-ga4-script', '__BEGA_GA4_INITIALIZED__'];
-  if (!fs.existsSync(assetsDir)) {
+  if (!hasGaMeasurementId) {
+    addWarning('VITE_GA4_MEASUREMENT_ID 미설정: GA 중복 방어 토큰 검사를 건너뜁니다.');
+  } else if (!fs.existsSync(assetsDir)) {
     addFailure('dist/assets 디렉터리가 없습니다. 번들 산출물을 확인하세요.');
   } else {
     const jsAssets = fs.readdirSync(assetsDir).filter((fileName) => fileName.endsWith('.js'));

@@ -227,10 +227,11 @@ export default function OffSeasonList() {
     return (
         <div className="min-h-screen bg-[#f4f7f5] pb-24 transition-colors dark:bg-[#09090b]">
             <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 md:gap-8 md:py-10">
-                <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between">
                     <button
-                        onClick={() => navigate('/offseason')}
-                        className="group inline-flex items-center gap-2.5 text-zinc-500 transition-colors hover:text-primary dark:text-zinc-400 dark:hover:text-emerald-400"
+                      type="button"
+                      onClick={() => navigate('/offseason')}
+                      className="group inline-flex items-center gap-2.5 text-zinc-500 transition-colors hover:text-primary dark:text-zinc-400 dark:hover:text-emerald-400"
                     >
                         <div className="rounded-2xl border border-zinc-200 bg-white p-2.5 shadow-sm transition-all group-hover:-translate-x-1 group-hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
                             <ChevronLeft className="h-5 w-5" />

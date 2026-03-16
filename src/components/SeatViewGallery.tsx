@@ -62,6 +62,7 @@ export default function SeatViewGallery({ stadium, section, compact = false }: S
       <div className={`grid gap-2 ${compact ? 'grid-cols-2' : 'grid-cols-3'}`}>
         {photos.map((photo, idx) => (
           <button
+            type="button"
             key={idx}
             onClick={() => setLightboxPhoto(photo)}
             className="group overflow-hidden rounded-xl bg-gray-100 dark:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -85,6 +86,7 @@ export default function SeatViewGallery({ stadium, section, compact = false }: S
           onClick={() => setLightboxPhoto(null)}
         >
           <button
+            type="button"
             className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30"
             onClick={() => setLightboxPhoto(null)}
             aria-label="닫기"

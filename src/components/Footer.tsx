@@ -54,6 +54,7 @@ export default function Footer() {
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => navigate(userHandle ? `/profile/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}` : '/mypage')}
                   className="hover:text-primary dark:hover:text-white text-left"
                 >

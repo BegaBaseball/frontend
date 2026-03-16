@@ -295,6 +295,7 @@ export default function RankingPrediction() {
               <div>
                 {availableTeams.map((team) => (
                   <button
+                    type="button"
                     key={team.id}
                     onClick={() => handleTeamClick(team)}
                     disabled={alreadySaved}
