@@ -208,6 +208,7 @@ export default function StadiumGuide() {
                         </h4>
                         {isLoggedIn && selectedStadiumId && (
                           <button
+                            type="button"
                             onClick={() => selectedStadiumId && favMutation.mutate({ id: selectedStadiumId, currentlyFav: isFav })}
                             disabled={favMutation.isPending}
                             className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
@@ -321,6 +322,7 @@ export default function StadiumGuide() {
 
                   return (
                     <button
+                      type="button"
                       key={config.key}
                       onClick={() => { setSelectedCategory(config.key); setSearchQuery(''); }}
                       disabled={stadiumControlsDisabled}
@@ -546,10 +548,11 @@ export default function StadiumGuide() {
                                     </div>
                                   )}
 
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openKakaoMapRoute(place.name, place.lat, place.lng);
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openKakaoMapRoute(place.name, place.lat, place.lng);
                                     }}
                                     disabled={!hasPlaceCoordinates}
                                     className="px-4 py-2 rounded-lg text-white transition-colors hover:opacity-90 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"

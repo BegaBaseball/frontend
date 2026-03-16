@@ -9,7 +9,6 @@ interface ImportMetaEnv {
   readonly VITE_TOSS_CLIENT_KEY?: string;
   readonly VITE_MATE_REQUIRE_SOCIAL_VERIFICATION?: 'true' | 'false';
   readonly VITE_MOCK_CHATBOT_RATE_LIMIT?: 'true' | 'false' | 'cycling' | '10' | '20' | '40';
-  readonly VITE_DISABLE_SERVER_ERROR_MODAL?: 'true' | 'false';
 }
 
 interface ImportMeta {

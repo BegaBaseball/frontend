@@ -19,6 +19,7 @@ import GlobalErrorDialog from './components/GlobalErrorDialog';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { installGlobalErrorListeners, setClientErrorReporterUserContext } from './utils/clientErrorReporter';
+import { hasPersistedAuthBootstrapHint, resolveAuthBootstrapMode } from './utils/authBootstrap';
 import chatBotIcon from './assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { buildLoginPath } from './utils/loginRedirect';
 
@@ -67,24 +68,6 @@ const ChatBot = lazy(() => import('./components/ChatBot'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 
 const PREDICTION_GAME_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
-const AUTH_BOOTSTRAP_SKIPPED_PATHS = new Set([
-  '/login',
-  '/signup',
-  '/password/reset',
-  '/password/reset/confirm',
-  '/account/deletion/recovery',
-]);
-
-const normalizePathname = (pathname: string): string => {
-  const trimmed = pathname.replace(/\/+$/, '');
-  return trimmed || '/';
-};
-
-const shouldSkipAuthBootstrap = (pathname: string): boolean =>
-  AUTH_BOOTSTRAP_SKIPPED_PATHS.has(normalizePathname(pathname));
-
-const shouldDeferAuthBootstrap = (pathname: string): boolean =>
-  normalizePathname(pathname) === '/home';
 
 const isValidPredictionDate = (value: string): boolean => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -147,9 +130,13 @@ const AuthBootstrap = () => {
   const bootstrapPendingRef = useRef(true);
   const { fetchProfileAndAuthenticate } = useAuthProfileActions();
   const { isLoggedIn, isAuthLoading } = useAuthSession();
+  const authBootstrapMode = resolveAuthBootstrapMode(location.pathname, {
+    isLoggedIn,
+    hasPersistedAuthHint: hasPersistedAuthBootstrapHint(),
+  });
 
   useEffect(() => {
-    if (shouldSkipAuthBootstrap(location.pathname)) {
+    if (authBootstrapMode === 'skip' || authBootstrapMode === 'public-home') {
       if (!isLoggedIn && isAuthLoading) {
         useAuthStore.setState({ isAuthLoading: false });
       }
@@ -168,7 +155,7 @@ const AuthBootstrap = () => {
       void fetchProfileAndAuthenticate();
     };
 
-    if (shouldDeferAuthBootstrap(location.pathname)) {
+    if (authBootstrapMode === 'defer') {
       if (!isLoggedIn && isAuthLoading) {
         useAuthStore.setState({ isAuthLoading: false });
       }
@@ -193,7 +180,7 @@ const AuthBootstrap = () => {
     }
 
     runBootstrap();
-  }, [fetchProfileAndAuthenticate, isAuthLoading, isLoggedIn, location.pathname]);
+  }, [authBootstrapMode, fetchProfileAndAuthenticate, isAuthLoading, isLoggedIn]);
 
   return null;
 };

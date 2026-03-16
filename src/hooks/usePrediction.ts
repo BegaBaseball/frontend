@@ -338,6 +338,7 @@ export const usePrediction = () => {
     handleVote: voteFlow.handleVote,
     goToPreviousDate: schedule.goToPreviousDate,
     goToNextDate: schedule.goToNextDate,
+    goToDate: schedule.goToDate,
     isRunInProgress: voteFlow.isRunInProgress,
     isRunBannerDismissed: voteFlow.isRunBannerDismissed,
     runProgressMessage: voteFlow.runProgressMessage,

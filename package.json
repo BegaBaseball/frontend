@@ -93,6 +93,7 @@
   "scripts": {
     "dev": "npx vite",
     "build:base": "npx vite build",
+    "build:artifact": "npm run build",
     "seo:prerender": "node scripts/prerender-seo.mjs",
     "seo:sitemap": "node scripts/generate-sitemap.mjs",
     "seo:check": "node scripts/seo-audit.mjs",
@@ -100,13 +101,14 @@
     "seo:env:check": "node scripts/seo-env-check.mjs",
     "seo:env:check:strict": "node scripts/seo-env-check.mjs --strict",
     "seo:smoke:prod": "node scripts/seo-postdeploy-smoke.mjs --report reports/seo-postdeploy-smoke.json",
-    "seo:gate": "npm run log:audit:strict && npm run build:base && npm run seo:prerender && npm run seo:sitemap && node scripts/seo-audit.mjs --report reports/seo-audit-report.json",
+    "seo:gate": "npm run build && node scripts/seo-audit.mjs --report reports/seo-audit-report.json",
     "log:audit": "node scripts/log-audit.mjs",
     "log:audit:strict": "node scripts/log-audit.mjs --strict",
-    "prebuild": "npm run log:audit:strict",
+    "prebuild": "npm run log:audit:strict && npm run seo:env:check",
     "cwv:baseline": "node scripts/cwv-baseline.mjs --json reports/cwv-baseline.json --markdown reports/cwv-baseline.md",
     "build": "npm run build:base && npm run seo:prerender && npm run seo:sitemap",
-    "preview": "npm run build:base && wrangler dev",
+    "preview": "npm run preview:pages",
+    "preview:pages": "npm run build && wrangler dev",
     "qa:landing": "node scripts/landing-qa.mjs",
     "qa:auth": "node scripts/auth-qa.mjs",
     "cy:doctor": "node scripts/cypress-doctor.mjs",
@@ -114,6 +116,7 @@
     "cy:run": "node scripts/cypress-run.mjs",
     "cy:run:docker": "CYPRESS_USE_DOCKER=1 node scripts/cypress-run.mjs",
     "cy:run:global": "node scripts/cypress-run.mjs --global-cache",
+    "cy:run:coach": "node scripts/cypress-run.mjs --spec cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/prediction.cy.ts",
     "cy:run:rescue": "node scripts/cypress-run.mjs --self-heal --auto-docker",
     "cy:run:global:docker": "CYPRESS_USE_DOCKER=1 node scripts/cypress-run.mjs --global-cache --docker",
     "cy:run:heal": "node scripts/cypress-run.mjs --self-heal",
@@ -130,6 +133,8 @@
     "test:e2e:smoke:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts,cypress/e2e/stadium.cy.ts",
     "test:e2e:smoke:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts,cypress/e2e/stadium.cy.ts",
     "test:e2e:smoke:prodlike:docker": "node scripts/test-e2e.mjs --no-server --docker --spec cypress/e2e/auth.cy.ts,cypress/e2e/cheer-board.cy.ts,cypress/e2e/mypage.cy.ts,cypress/e2e/stadium.cy.ts",
+    "test:e2e:coach:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/prediction.cy.ts",
+    "test:e2e:coach:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/prediction.cy.ts",
     "test:e2e:security:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/security-surface-real.cy.ts,cypress/e2e/websocket-real.cy.ts",
     "test:e2e:security:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/security-surface-real.cy.ts,cypress/e2e/websocket-real.cy.ts",
     "test:e2e:prediction:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/prediction.cy.ts,cypress/e2e/prediction-lazy-load.cy.ts,cypress/e2e/prediction-range-recovery.cy.ts,cypress/e2e/prediction-date-boundary.cy.ts,cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/home-to-prediction.cy.ts",
@@ -138,6 +143,7 @@
     "test:e2e": "node scripts/test-e2e.mjs",
     "test:seo": "node --import tsx --test \"src/seo/**/*.test.ts\"",
     "test:unit": "node --import tsx --test \"src/**/*.test.ts\"",
-    "deploy": "npm run build:base && wrangler deploy"
+    "deploy": "npm run build:artifact",
+    "deploy:pages": "npm run build && wrangler deploy"
   }
 }

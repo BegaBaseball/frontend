@@ -272,7 +272,7 @@ describe('Prediction Range Recovery', () => {
         cy.get('@getUserVote.all').should('have.length', 0);
         cy.get('button[aria-label="다음 날짜 보기"]').first().click({ force: true });
         cy.contains(/예측 처리 중 오류가 발생했습니다.|미래 구간 조회|요청 실패|오류/, { timeout: 10000 }).should('exist');
-        cy.contains(/홈으로 이동|목록으로 이동/).should('exist');
+        cy.contains('예측으로 돌아가기').should('exist');
         cy.contains(/예정 경기 다시 불러오기|다시 시도|닫기/).should('exist');
         cy.wrap(null).then(() => {
             expect(futureRequestCount).to.be.gte(1);
@@ -314,6 +314,6 @@ describe('Prediction Range Recovery', () => {
         cy.contains('예측 처리 중 오류가 발생했습니다.', { timeout: 10000 }).should('be.visible');
         cy.contains('실행 세션이 만료되었습니다.').should('be.visible');
         cy.contains('button', '다시 시도').should('be.visible');
-        cy.contains('button', '목록으로 이동').should('be.visible');
+        cy.contains('button', '예측으로 돌아가기').should('be.visible');
     });
 });

@@ -17,17 +17,74 @@
 describe('Chaos: Auth Session Resilience', () => {
     const fakeToken =
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+    const leaderboardResponse = {
+        content: [
+            {
+                rank: 1,
+                userName: '한화스타',
+                handle: 'testuser',
+                profileImageUrl: null,
+                level: 8,
+                score: 12500,
+                streak: 12,
+                rankTitle: 'MAJOR_LEAGUER',
+            },
+        ],
+        totalPages: 1,
+        totalElements: 1,
+    };
+    const myRankResponse = {
+        handle: 'testuser',
+        userName: 'TestUser',
+        rank: 1,
+        totalScore: 12500,
+        seasonScore: 12500,
+        monthlyScore: 6400,
+        weeklyScore: 1800,
+        level: 8,
+        rankTitle: 'MAJOR_LEAGUER',
+        currentStreak: 12,
+        maxStreak: 18,
+        experiencePoints: 640,
+        nextLevelExp: 900,
+        accuracy: 88.8,
+        totalPredictions: 1400,
+        correctPredictions: 1242,
+    };
+
+    const installLeaderboardSuccessMocks = () => {
+        cy.intercept({ method: 'GET', pathname: '/api/leaderboard' }, {
+            statusCode: 200,
+            body: leaderboardResponse,
+        }).as('getLeaderboard');
+
+        cy.intercept({ method: 'GET', pathname: '/api/leaderboard/me' }, {
+            statusCode: 200,
+            body: myRankResponse,
+        }).as('getMyRank');
+
+        cy.intercept({ method: 'GET', pathname: '/api/leaderboard/hot-streaks' }, {
+            statusCode: 200,
+            body: [],
+        }).as('getHotStreaks');
+
+        cy.intercept({ method: 'GET', pathname: '/api/leaderboard/recent-scores' }, {
+            statusCode: 200,
+            body: [],
+        }).as('getRecentScores');
+    };
 
     // ───────────────────────────────────────────────────────────
     // 1. 동시 401 + 재발급 중복 호출 방지
-    //    Home 페이지 마운트 시 schedule + rankings가 동시에 401 →
+    //    리더보드 마운트 시 powerups + active powerups가 동시에 401 →
     //    reissueInFlight 가드로 재발급은 1회만 발생해야 한다.
     // ───────────────────────────────────────────────────────────
 
     describe('Reissue Deduplication (Concurrent 401s)', () => {
-        it('issues exactly ONE reissue when schedule and rankings return 401 simultaneously', () => {
+        it('issues exactly ONE reissue when powerup endpoints return 401 simultaneously', () => {
             cy.login();
             cy.mockAPI();
+            installLeaderboardSuccessMocks();
 
             // 재발급 호출 횟수 카운터 (LIFO: mockAPI + login의 reissue 인터셉트를 덮어씀)
             let reissueCount = 0;
@@ -39,29 +96,34 @@ describe('Chaos: Auth Session Resilience', () => {
                 });
             }).as('reissueCounted');
 
-            // 첫 번째 호출은 401, 재발급 후 재시도는 200 반환 (LIFO: mockAPI 덮어씀)
-            let scheduleCallCount = 0;
-            cy.intercept('GET', '**/api/kbo/schedule*', (req) => {
-                scheduleCallCount++;
+            let inventoryCallCount = 0;
+            cy.intercept('GET', '**/api/leaderboard/powerups', (req) => {
+                inventoryCallCount++;
                 req.reply(
-                    scheduleCallCount === 1
+                    inventoryCallCount === 1
+                        ? { statusCode: 401, body: {} }
+                        : {
+                            statusCode: 200,
+                            body: {
+                                MAGIC_BAT: 3,
+                                GOLDEN_GLOVE: 1,
+                                SCOUTER: 2,
+                            },
+                        }
+                );
+            }).as('inventory401');
+
+            let activePowerupsCallCount = 0;
+            cy.intercept('GET', '**/api/leaderboard/powerups/active', (req) => {
+                activePowerupsCallCount++;
+                req.reply(
+                    activePowerupsCallCount === 1
                         ? { statusCode: 401, body: {} }
                         : { statusCode: 200, body: [] }
                 );
-            }).as('schedule401');
+            }).as('activePowerups401');
 
-            let rankingsCallCount = 0;
-            cy.intercept('GET', '**/api/kbo/rankings/**', (req) => {
-                rankingsCallCount++;
-                req.reply(
-                    rankingsCallCount === 1
-                        ? { statusCode: 401, body: {} }
-                        : { statusCode: 200, body: [] }
-                );
-            }).as('rankings401');
-
-            // Home 페이지로 이동 → schedule + rankings 동시 요청 발생
-            cy.visit('/home');
+            cy.visit('/leaderboard');
 
             // 재발급 완료까지 대기
             cy.wait('@reissueCounted', { timeout: 10000 });
@@ -78,13 +140,13 @@ describe('Chaos: Auth Session Resilience', () => {
         it('retries original request after successful reissue (no session expiry)', () => {
             cy.login();
             cy.mockAPI();
+            installLeaderboardSuccessMocks();
 
             cy.intercept('POST', '**/auth/reissue*', {
                 statusCode: 200,
                 body: { success: true, data: { accessToken: fakeToken } },
             }).as('reissue');
 
-            // Navbar는 항상 unread-counts를 폴링 → 401 → 재발급 → 재시도 200
             let unreadCallCount = 0;
             cy.intercept('GET', '**/api/chat/my/unread-counts*', (req) => {
                 unreadCallCount++;
@@ -93,9 +155,9 @@ describe('Chaos: Auth Session Resilience', () => {
                         ? { statusCode: 401, body: {} }
                         : { statusCode: 200, body: { success: true, data: 0 } },
                 );
-            });
+            }).as('unreadCounts401');
 
-            cy.visit('/home');
+            cy.visit('/leaderboard');
 
             cy.wait('@reissue', { timeout: 10000 });
 
@@ -117,6 +179,7 @@ describe('Chaos: Auth Session Resilience', () => {
         it('fires auth-session-expired event exactly once when reissue fails', () => {
             cy.login();
             cy.mockAPI();
+            installLeaderboardSuccessMocks();
 
             // 재발급 실패하도록 덮어씀 (LIFO)
             cy.intercept('POST', '**/auth/reissue*', {
@@ -125,11 +188,11 @@ describe('Chaos: Auth Session Resilience', () => {
             }).as('reissueFail');
 
             // 두 요청 모두 401 반환 (항상)
-            cy.intercept('GET', '**/api/kbo/schedule*', { statusCode: 401, body: {} });
-            cy.intercept('GET', '**/api/kbo/rankings/**', { statusCode: 401, body: {} });
+            cy.intercept('GET', '**/api/leaderboard/powerups', { statusCode: 401, body: {} });
+            cy.intercept('GET', '**/api/leaderboard/powerups/active', { statusCode: 401, body: {} });
 
             // auth-session-expired 이벤트 카운터를 window에 붙인다
-            cy.visit('/home', {
+            cy.visit('/leaderboard', {
                 onBeforeLoad(win) {
                     (win as Window & { __sessionExpiredCount?: number }).__sessionExpiredCount = 0;
                     win.addEventListener('auth-session-expired', () => {
@@ -156,6 +219,7 @@ describe('Chaos: Auth Session Resilience', () => {
         it('shows login required dialog (not raw 401) when session expires mid-session', () => {
             cy.login();
             cy.mockAPI();
+            installLeaderboardSuccessMocks();
 
             // 재발급 실패
             cy.intercept('POST', '**/auth/reissue*', {
@@ -163,11 +227,11 @@ describe('Chaos: Auth Session Resilience', () => {
                 body: { message: 'Refresh token expired' },
             }).as('reissueFail');
 
-            // schedule/rankings를 401로 유도해 세션 만료 트리거
-            cy.intercept('GET', '**/api/kbo/schedule*', { statusCode: 401, body: {} });
-            cy.intercept('GET', '**/api/kbo/rankings/**', { statusCode: 401, body: {} });
+            // powerups 요청을 401로 유도해 세션 만료 트리거
+            cy.intercept('GET', '**/api/leaderboard/powerups', { statusCode: 401, body: {} });
+            cy.intercept('GET', '**/api/leaderboard/powerups/active', { statusCode: 401, body: {} });
 
-            cy.visit('/home');
+            cy.visit('/leaderboard');
             cy.wait('@reissueFail', { timeout: 10000 });
 
             // LoginRequiredDialog 다이얼로그 제목 "로그인 필요"가 표시되어야 한다

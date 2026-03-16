@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -24,7 +25,7 @@ import {
     shouldAutoSwitchToScheduled,
     type LeagueTab,
 } from '../utils/predictionHomeLogic';
-import { cacheLeagueStartDates, getFallbackLeagueStartDates } from '../utils/home';
+import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
 import { fetchHotPosts, CheerPost } from '../api/cheerApi';
 import { fetchAllParties } from '../api/mate';
 import type { FeaturedMateCard } from '../types/home';
@@ -114,6 +115,45 @@ const SCHEDULED_GAME_CARD_MIN_HEIGHT = 'h-[224px]';
 const SCHEDULED_GAME_CARD_MIN_HEIGHT_PX = 224;
 const MIN_LOADING_CARD_COUNT = 5;
 const LOADING_CARD_COUNT_MAX = 9;
+const HOME_DASHBOARD_TEAM_COUNT = 10;
+const HOME_DASHBOARD_RANKING_DIVIDER_COUNT = HOME_DASHBOARD_TEAM_COUNT - 1;
+// Desktop ranking/cheer/mate cards are aligned to 10 rows:
+// 52px(row) * 10 + 9px(dividers) = 529px
+const HOME_DASHBOARD_MOBILE_CARD_HEIGHT_PX = 260;
+const HOME_DASHBOARD_MOBILE_CARD_HEIGHT_CLASS = `h-[${HOME_DASHBOARD_MOBILE_CARD_HEIGHT_PX}px]`;
+const HOME_DASHBOARD_RANKING_ROW_HEIGHT_PX = 52;
+const HOME_DASHBOARD_CARD_DESKTOP_HEIGHT_PX =
+    HOME_DASHBOARD_RANKING_ROW_HEIGHT_PX * HOME_DASHBOARD_TEAM_COUNT + HOME_DASHBOARD_RANKING_DIVIDER_COUNT;
+const HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS = `lg:h-[${HOME_DASHBOARD_CARD_DESKTOP_HEIGHT_PX}px]`;
+const HOME_DASHBOARD_RANKING_ROW_CLASS = `lg:h-[${HOME_DASHBOARD_RANKING_ROW_HEIGHT_PX}px] lg:min-h-[${HOME_DASHBOARD_RANKING_ROW_HEIGHT_PX}px]`;
+const HOME_DASHBOARD_CARD_HEIGHT_CLASS = `${HOME_DASHBOARD_MOBILE_CARD_HEIGHT_CLASS} ${HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS}`;
+const TEAM_RANKING_CARD_HEIGHT_CLASS = HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS;
+const PUBLIC_HOME_REQUEST_CONFIG = {
+    skipAuthSessionHandling: true,
+} as const;
+
+const buildHomeRequestErrorContext = (error: unknown, endpoint: string, date: Date) => {
+    const fallback = {
+        endpoint,
+        selectedDate: formatDateForAPI(date),
+        status: null,
+        responseCode: null,
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+        message: error instanceof Error ? error.message : 'Unknown error',
+    };
+
+    if (!axios.isAxiosError(error)) {
+        return fallback;
+    }
+
+    return {
+        ...fallback,
+        status: error.response?.status ?? null,
+        responseCode: error.response?.data?.code ?? null,
+        errorName: error.name,
+        message: error.message,
+    };
+};
 
 const GameCardSkeleton = () => (
     <Card
@@ -212,22 +252,17 @@ export default function Home({ onNavigate }: HomeProps) {
     const [isSecondarySectionExpanded, setIsSecondarySectionExpanded] = useState(false);
     const hasUserChangedTabRef = useRef(false);
     const bootstrapRequestIdRef = useRef(0);
+    const lastBootstrapDateKeyRef = useRef<string | null>(null);
     const scheduledRequestIdRef = useRef(0);
     const navRequestIdRef = useRef(0);
     const widgetsRequestIdRef = useRef(0);
+    const lastWidgetsDateKeyRef = useRef<string | null>(null);
     const widgetsTimeoutRef = useRef<number | null>(null);
     const widgetsIdleCallbackRef = useRef<number | null>(null);
     const matchLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
     const scheduledLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
 
     // --- Helpers ---
-    const formatDateForAPI = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
     const formatDate = (date: Date) => {
         const days = ['일', '월', '화', '수', '목', '금', '토'];
         const year = date.getFullYear();
@@ -547,7 +582,7 @@ export default function Home({ onNavigate }: HomeProps) {
         try {
             const { data } = await api.get<{ prevGameDate?: string | null; nextGameDate?: string | null }>('/kbo/schedule/navigation', {
                 params: { date: apiDate },
-                skipGlobalErrorHandler: true,
+                ...PUBLIC_HOME_REQUEST_CONFIG,
             });
             if (requestId !== navRequestIdRef.current) return;
             const prevGameDate = data?.prevGameDate ?? null;
@@ -567,12 +602,12 @@ export default function Home({ onNavigate }: HomeProps) {
     };
 
     // --- Data Fetching ---
-    const loadLeagueStartDates = async (): Promise<LeagueStartDates> => {
+    const loadLeagueStartDates = useCallback(async (): Promise<LeagueStartDates> => {
         const fallbackDates = getFallbackLeagueStartDates();
 
         try {
             const { data } = await api.get<LeagueStartDates>('/kbo/league-start-dates', {
-                skipGlobalErrorHandler: true,
+                ...PUBLIC_HOME_REQUEST_CONFIG,
             });
             cacheLeagueStartDates(data);
             setLeagueStartDates(data);
@@ -582,7 +617,7 @@ export default function Home({ onNavigate }: HomeProps) {
             setLeagueStartDates(fallbackDates);
             return fallbackDates;
         }
-    };
+    }, []);
 
     const loadGamesData = async (date: Date) => {
         const apiDate = formatDateForAPI(date);
@@ -593,7 +628,7 @@ export default function Home({ onNavigate }: HomeProps) {
         try {
             const { data: gamesData } = await api.get<Game[]>('/kbo/schedule', {
                 params: { date: apiDate },
-                skipGlobalErrorHandler: true,
+                ...PUBLIC_HOME_REQUEST_CONFIG,
             });
             setGames(gamesData);
             applyDefaultLeagueTab(gamesData);
@@ -618,7 +653,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 const apiDate = formatDateForAPI(targetDate);
                 const { data: dailyGames } = await api.get<Game[]>('/kbo/schedule', {
                     params: { date: apiDate },
-                    skipGlobalErrorHandler: true,
+                    ...PUBLIC_HOME_REQUEST_CONFIG,
                 });
                 return dailyGames.map((game) => ({
                     ...game,
@@ -685,9 +720,7 @@ export default function Home({ onNavigate }: HomeProps) {
         setIsOffSeason(shouldFallbackToPrevious);
 
         const requestRankings = async (targetSeasonYear: number): Promise<Ranking[]> => {
-            const response = await api.get<Ranking[]>(`/kbo/rankings/${targetSeasonYear}`, {
-                skipGlobalErrorHandler: true,
-            });
+            const response = await api.get<Ranking[]>(`/kbo/rankings/${targetSeasonYear}`, PUBLIC_HOME_REQUEST_CONFIG);
             return response.data;
         };
 
@@ -779,7 +812,7 @@ export default function Home({ onNavigate }: HomeProps) {
             loadScheduledGamesData(date),
             loadRankingsData(seasonYear, { baseDate: date, startDates }),
         ]);
-    }, [leagueStartDates, selectedDate]);
+    }, [loadLeagueStartDates]);
 
     const loadHomeBootstrap = useCallback(async (date: Date) => {
         const requestId = ++bootstrapRequestIdRef.current;
@@ -820,7 +853,11 @@ export default function Home({ onNavigate }: HomeProps) {
             if (requestId !== bootstrapRequestIdRef.current) {
                 return;
             }
-            console.error('[HomeBootstrap] Error loading bootstrap:', error);
+            console.error(
+                '[HomeBootstrap] Error loading bootstrap:',
+                buildHomeRequestErrorContext(error, '/home/bootstrap', date),
+                error,
+            );
             await loadLegacyHomeData(date);
         }
     }, [loadLegacyHomeData]);
@@ -829,7 +866,7 @@ export default function Home({ onNavigate }: HomeProps) {
         try {
             const cheerRes = await fetchHotPosts(
                 { page: 0, size: 5, algorithm: 'HYBRID' },
-                { skipGlobalErrorHandler: true },
+                { skipAuthSessionHandling: true },
             );
             if (requestId !== widgetsRequestIdRef.current) {
                 return;
@@ -854,7 +891,7 @@ export default function Home({ onNavigate }: HomeProps) {
         try {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const mateData = await fetchAllParties({ skipGlobalErrorHandler: true });
+            const mateData = await fetchAllParties({ skipAuthSessionHandling: true });
             const upcomingMates = mateData
                 .filter(p => new Date(`${p.gameDate}T12:00:00`) >= today)
                 .filter(p => p.status === 'PENDING')
@@ -902,7 +939,11 @@ export default function Home({ onNavigate }: HomeProps) {
                 return;
             }
 
-            console.error('[HomeWidgets] Error loading widgets:', err);
+            console.error(
+                '[HomeWidgets] Error loading widgets:',
+                buildHomeRequestErrorContext(err, '/home/widgets', date),
+                err,
+            );
             await Promise.allSettled([
                 loadHotCheerPostsLegacy(requestId),
                 loadFeaturedMatesLegacy(requestId),
@@ -931,17 +972,29 @@ export default function Home({ onNavigate }: HomeProps) {
     };
 
     useEffect(() => {
+        const dateKey = formatDateForAPI(selectedDate);
+        if (lastBootstrapDateKeyRef.current === dateKey) {
+            return;
+        }
+
+        lastBootstrapDateKeyRef.current = dateKey;
         void loadHomeBootstrap(selectedDate);
     }, [loadHomeBootstrap, selectedDate]);
 
     useEffect(() => {
         clearScheduledWidgetLoad();
+        const dateKey = formatDateForAPI(selectedDate);
         setIsHotCheerLoading(true);
         setHotCheerError(null);
         setIsFeaturedMatesLoading(true);
         setFeaturedMatesError(null);
 
         const run = () => {
+            if (lastWidgetsDateKeyRef.current === dateKey) {
+                return;
+            }
+
+            lastWidgetsDateKeyRef.current = dateKey;
             void loadHomeWidgets(selectedDate);
         };
 
@@ -993,12 +1046,14 @@ export default function Home({ onNavigate }: HomeProps) {
         });
         return acc;
     }, []);
+    const displayedRankings = displayableRankings.slice(0, HOME_DASHBOARD_TEAM_COUNT);
     const rankingDataVisibilityMessage = displayableRankings.length === 0 && rankings.length > 0
         ? '순위 데이터에서 정규 팀이 아닌 항목이 감지되어 표시 가능한 팀 순위가 없습니다.'
         : (rankingSourceMessage || '현재 시즌의 팀 순위 집계 데이터가 없습니다.');
     const rankingStatusHintMessage = isOffSeason
         ? '현재는 비시즌이므로 이전 시즌 순위를 표시하고 있습니다.'
         : '현재 시즌이 시작된 상태입니다. 시즌 순위는 경기 결과 집계 후 표시됩니다.';
+    const rankingPlaceholderRows = Math.max(0, HOME_DASHBOARD_TEAM_COUNT - displayedRankings.length);
     const matchSkeletonCount = clampLoadingCount(
         Math.max(regularSeasonGames.length, postSeasonGames.length, koreanSeriesGames.length),
     );
@@ -1095,7 +1150,15 @@ export default function Home({ onNavigate }: HomeProps) {
 
                 {/* Date Navigation (Green Accent Included) */}
                 <div className="flex items-center justify-center gap-6 bg-white dark:bg-card/70 py-3 px-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/15 w-full md:w-fit mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
-                    <Button data-testid="home-date-prev" variant="ghost" size="icon" onClick={() => changeDate('prev')} disabled={!navInfo.hasPrev} className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
+                    <Button
+                      data-testid="home-date-prev"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => changeDate('prev')}
+                      disabled={!navInfo.hasPrev}
+                      aria-label="이전 날짜"
+                      className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30"
+                    >
                         <ChevronLeft className="w-6 h-6" />
                     </Button>
 
@@ -1108,7 +1171,15 @@ export default function Home({ onNavigate }: HomeProps) {
                         </Button>
                     </div>
 
-                    <Button data-testid="home-date-next" variant="ghost" size="icon" onClick={() => changeDate('next')} disabled={!navInfo.hasNext} className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30">
+                    <Button
+                      data-testid="home-date-next"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => changeDate('next')}
+                      disabled={!navInfo.hasNext}
+                      aria-label="다음 날짜"
+                      className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30"
+                    >
                         <ChevronRight className="w-6 h-6" />
                     </Button>
                 </div>
@@ -1347,7 +1418,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                         더보기 <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>
-                                <Card className="p-4 bg-white dark:bg-[#121316] border border-zinc-200 dark:border-zinc-800 shadow-sm h-[260px] overflow-hidden relative">
+                                <Card className={`p-4 bg-white dark:bg-card border border-zinc-200 dark:border-zinc-800 shadow-sm ${HOME_DASHBOARD_CARD_HEIGHT_CLASS} overflow-hidden lg:overflow-y-auto relative`}>
                                     {isHotCheerLoading ? (
                                         <div className="space-y-4 flex flex-col justify-center h-full">
                                             <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
@@ -1375,6 +1446,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                         <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800/60">
                                             {hotCheerPosts.map(post => (
                                                 <button
+                                                    type="button"
                                                     key={post.id}
                                                     onClick={() => navigate(`/cheer?postId=${post.id}`)}
                                                     className="text-left w-full px-2.5 py-2.5 rounded-md transition-colors group hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
@@ -1415,7 +1487,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                         더보기 <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>
-                                <Card className="p-4 bg-white dark:bg-[#121316] border border-zinc-200 dark:border-zinc-800 shadow-sm h-[260px] overflow-hidden relative">
+                                <Card className={`p-4 bg-white dark:bg-card border border-zinc-200 dark:border-zinc-800 shadow-sm ${HOME_DASHBOARD_CARD_HEIGHT_CLASS} overflow-hidden lg:overflow-y-auto relative`}>
                                     {isFeaturedMatesLoading ? (
                                         <div className="space-y-4 flex flex-col justify-center h-full">
                                             <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
@@ -1456,6 +1528,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
                                                 return (
                                                     <button
+                                                        type="button"
                                                         key={mate.id}
                                                         onClick={() => navigate(`/mate/${mate.id}`)}
                                                         className="text-left w-full px-2 py-1.5 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/35 last:pb-0 overflow-hidden"
@@ -1493,14 +1566,15 @@ export default function Home({ onNavigate }: HomeProps) {
 
                     {/* Right Sidebar (Rankings) */}
                     <div className="lg:col-span-4 flex flex-col gap-4">
-                            <section className="space-y-4">
-                            <div className="flex items-center justify-between px-1">
+                            <section className="space-y-3">
+                            <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
                                     <Trophy className="w-5 h-5 text-[#2ecc71]" />
                                     <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">팀 순위</h2>
                                 </div>
-                                <div className="flex items-center bg-slate-100 dark:bg-[#121316] border border-zinc-200 dark:border-zinc-800 rounded-full p-0.5 shadow-sm">
+                                <div className="flex items-center bg-slate-100 dark:bg-card border border-zinc-200 dark:border-zinc-800 rounded-full p-0.5 shadow-sm">
                                     <Button
+                                        aria-label={`${rankingSeasonYear - 1}시즌 팀 순위 보기`}
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => loadRankingsData(rankingSeasonYear - 1)}
@@ -1512,6 +1586,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                         {rankingSeasonYear}
                                     </span>
                                     <Button
+                                        aria-label={`${rankingSeasonYear + 1}시즌 팀 순위 보기`}
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => loadRankingsData(rankingSeasonYear + 1)}
@@ -1523,7 +1598,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                 </div>
                             </div>
 
-                            <Card className="overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121316] rounded-2xl">
+                            <Card className={`overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-card rounded-2xl ${TEAM_RANKING_CARD_HEIGHT_CLASS} lg:overflow-y-auto`}>
                                 {isRankingsLoading ? (
                                     <div className="p-8 space-y-4">
                                         <Skeleton className="h-12 w-full bg-zinc-200 dark:bg-zinc-800/50 rounded-lg" />
@@ -1548,7 +1623,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                             다시 시도
                                         </Button>
                                     </div>
-                                ) : displayableRankings.length === 0 ? (
+                                ) : displayedRankings.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-16 text-center px-4">
                                         <p className="text-zinc-900 dark:text-zinc-200 font-medium mb-2">
                                             {rankingDataVisibilityMessage}
@@ -1558,13 +1633,14 @@ export default function Home({ onNavigate }: HomeProps) {
                                         </p>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col">
-                                        {displayableRankings.map(team => {
+                                    <div className="flex flex-col h-full">
+                                        {displayedRankings.map(team => {
                                             const isTopThree = team.rank <= 3;
+                                            const rowKey = team.teamId;
                                                 return (
                                                     <div
-                                                        key={team.teamId}
-                                                        className={`group grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2.5 py-2 border-b border-zinc-200/80 dark:border-zinc-800/80 last:border-b-0 hover:bg-slate-100 dark:hover:bg-zinc-800/40 transition-colors ${isTopThree ? 'border-l border-l-[#2ecc71]/40' : ''}`}
+                                                        key={rowKey}
+                                                        className={`group grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2.5 border-b border-zinc-200/80 dark:border-zinc-800/80 last:border-b-0 hover:bg-slate-100 dark:hover:bg-zinc-800/40 transition-colors ${HOME_DASHBOARD_RANKING_ROW_CLASS} ${isTopThree ? 'border-l border-l-[#2ecc71]/40' : ''}`}
                                                     >
                                                     <div className="min-w-0 flex items-center gap-1.5 sm:gap-2">
                                                         <span className={`w-5 text-center text-[13px] sm:text-sm font-black flex-shrink-0 ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500 dark:text-zinc-500'}`}>
@@ -1592,8 +1668,34 @@ export default function Home({ onNavigate }: HomeProps) {
                                                         </span>
                                                     </div>
                                                 </div>
-                                            );
+                                                );
                                         })}
+                                        {Array.from({ length: rankingPlaceholderRows }).map((_, index) => (
+                                            <div
+                                                key={`team-rank-placeholder-${index}`}
+                                                className={`group grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2.5 border-b border-zinc-200/80 dark:border-zinc-800/80 last:border-b-0 ${HOME_DASHBOARD_RANKING_ROW_CLASS} opacity-45`}
+                                            >
+                                                <div className="min-w-0 flex items-center gap-1.5 sm:gap-2">
+                                                    <span className="w-5 text-center text-[13px] sm:text-sm font-black flex-shrink-0 text-zinc-400 dark:text-zinc-500">
+                                                        {displayedRankings.length + index + 1}
+                                                    </span>
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800/80 rounded-full p-1.25 shadow-sm flex-shrink-0">
+                                                            <span className="block h-2 w-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                                                        </div>
+                                                        <span className="block h-4 w-20 rounded bg-zinc-100 dark:bg-zinc-700/80" />
+                                                    </div>
+                                                </div>
+                                                <div className="shrink-0 flex items-center gap-2 sm:gap-3 whitespace-nowrap text-right">
+                                                    <span className="block h-4 w-12 rounded bg-zinc-100 dark:bg-zinc-700/70" />
+                                                    <span className="flex items-center gap-1.5 text-[12px] sm:text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 whitespace-nowrap tabular-nums">
+                                                        <span className="block h-4 w-8 rounded bg-zinc-100 dark:bg-zinc-700/70" />
+                                                        <span className="block h-4 w-3 rounded bg-zinc-100 dark:bg-zinc-700/70" />
+                                                        <span className="block h-4 w-8 rounded bg-zinc-100 dark:bg-zinc-700/70" />
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </Card>

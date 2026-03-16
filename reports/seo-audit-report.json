@@ -1,18 +1,18 @@
 {
   "ok": true,
-  "checkedAt": "2026-02-26T21:13:23.771Z",
+  "checkedAt": "2026-03-16T14:20:09.096Z",
   "siteUrl": "https://www.begabaseball.xyz",
   "checks": [
     "seo-prerender-report.json route 수/경로 확인",
     "robots.txt user-agent 규칙 확인",
     "robots.txt sitemap 링크 확인",
     "sitemap.xml indexable 라우트 확인",
-    "번들 내 GA 중복 방어 토큰 확인",
     "프리렌더 HTML 메타/구조화데이터 검증",
     "noindex 정책 확인 (/Users/mac/project/KBO_platform/bega_frontend/seo-routes.json)"
   ],
   "failures": [],
   "warnings": [
+    "VITE_GA4_MEASUREMENT_ID 미설정: GA 중복 방어 토큰 검사를 건너뜁니다.",
     "Core Web Vitals(Lighthouse/PageSpeed)는 네트워크 변동성으로 현재 경고 전용입니다."
   ]
 }

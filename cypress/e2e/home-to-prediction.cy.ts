@@ -5,6 +5,36 @@ describe('Home to Prediction deep link', () => {
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const todayCompact = today.replace(/-/g, '');
     const fakeToken = 'home-to-prediction-token';
+    const homeGames = [
+        {
+            gameId: `${todayCompact}HHLG0`,
+            time: '18:30',
+            stadium: '대전',
+            gameStatus: 'SCHEDULED',
+            gameStatusKr: '경기전',
+            gameInfo: '',
+            leagueType: 'REGULAR',
+            homeTeam: 'HH',
+            homeTeamFull: '한화 이글스',
+            awayTeam: 'LG',
+            awayTeamFull: 'LG 트윈스',
+            sourceDate: today,
+        },
+        {
+            gameId: `${todayCompact}KTSS0`,
+            time: '18:30',
+            stadium: '수원',
+            gameStatus: 'SCHEDULED',
+            gameStatusKr: '경기전',
+            gameInfo: '',
+            leagueType: 'REGULAR',
+            homeTeam: 'SS',
+            homeTeamFull: '삼성 라이온즈',
+            awayTeam: 'KT',
+            awayTeamFull: 'KT 위즈',
+            sourceDate: today,
+        },
+    ];
 
     const seedAuthState = (win: Window) => {
         win.localStorage.setItem('auth-storage', JSON.stringify({
@@ -33,37 +63,29 @@ describe('Home to Prediction deep link', () => {
         (cy as any).login('user');
         (cy as any).mockAPI();
 
-        cy.intercept('**/api/kbo/schedule?*', {
+        cy.intercept('GET', '**/api/home/bootstrap*', {
             statusCode: 200,
-            body: [
-                {
-                    gameId: `${todayCompact}HHLG0`,
-                    time: '18:30',
-                    stadium: '대전',
-                    gameStatus: 'SCHEDULED',
-                    gameStatusKr: '경기전',
-                    leagueType: 'REGULAR',
-                    homeTeam: 'HH',
-                    homeTeamFull: '한화 이글스',
-                    awayTeam: 'LG',
-                    awayTeamFull: 'LG 트윈스',
-                    sourceDate: today
+            body: {
+                selectedDate: today,
+                leagueStartDates: {
+                    regularSeasonStart: `${now.getFullYear()}-03-22`,
+                    postseasonStart: `${now.getFullYear()}-10-06`,
+                    koreanSeriesStart: `${now.getFullYear()}-10-26`,
                 },
-                {
-                    gameId: `${todayCompact}KTSS0`,
-                    time: '18:30',
-                    stadium: '수원',
-                    gameStatus: 'SCHEDULED',
-                    gameStatusKr: '경기전',
-                    leagueType: 'REGULAR',
-                    homeTeam: 'SS',
-                    homeTeamFull: '삼성 라이온즈',
-                    awayTeam: 'KT',
-                    awayTeamFull: 'KT 위즈',
-                    sourceDate: today
-                }
-            ]
-        }).as('getHomeScheduleCustom');
+                navigation: {
+                    hasPrev: true,
+                    hasNext: true,
+                    prevGameDate: today,
+                    nextGameDate: today,
+                },
+                games: homeGames,
+                scheduledGamesWindow: homeGames,
+                rankingSeasonYear: now.getFullYear(),
+                rankingSourceMessage: `${now.getFullYear()} 시즌 순위 데이터`,
+                isOffSeason: false,
+                rankings: [],
+            },
+        }).as('getHomeBootstrapCustom');
 
         cy.intercept('**/api/matches/day*', {
             statusCode: 200,
@@ -147,7 +169,7 @@ describe('Home to Prediction deep link', () => {
         cy.setCookie('Authorization', fakeToken);
         // Wait for the auth check to occur
         cy.wait('@getMe');
-        cy.wait('@getHomeScheduleCustom');
+        cy.wait('@getHomeBootstrapCustom');
 
 
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactNode, useState } from 'react';
+import { useCallback, useEffect, useMemo, type ReactNode, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -51,6 +51,7 @@ export default function Prediction() {
     handleVote,
     goToPreviousDate,
     goToNextDate,
+    goToDate,
     reloadMatches,
     isLoggedIn,
     matchesLoadState,
@@ -242,11 +243,13 @@ export default function Prediction() {
 
     return null;
   }, [allDatesData, currentDayNavigationMeta]);
-  const handleNearestNavigation = nearestNavigationDate
-    ? nearestNavigationDate.isPast
-      ? goToPreviousDate
-      : goToNextDate
-    : null;
+  const handleNearestNavigation = useCallback(() => {
+    if (!nearestNavigationDate) {
+      return;
+    }
+
+    void goToDate(nearestNavigationDate.date);
+  }, [goToDate, nearestNavigationDate]);
   const normalizeBoundaryDate = (value: string | null | undefined): string | null => {
     if (!value) return null;
     const trimmed = value.trim();
@@ -694,20 +697,22 @@ export default function Prediction() {
               animate={{ x: activeTab === 'match' ? 0 : '100%' }}
               transition={{ type: 'spring', stiffness: 420, damping: 32 }}
             />
-            <button
-              onClick={() => setActiveTab('match')}
-              className={`relative z-10 w-1/2 px-3 min-h-10 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'match'
-                ? 'text-white'
-                : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('match')}
+                  className={`relative z-10 w-1/2 px-3 min-h-10 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'match'
+                    ? 'text-white'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
                 }`}
             >
               <span className="relative z-10">승부예측</span>
             </button>
-            <button
-              onClick={() => setActiveTab('ranking')}
-              className={`relative z-10 w-1/2 px-3 min-h-10 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'ranking'
-                ? 'text-white'
-                : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('ranking')}
+                  className={`relative z-10 w-1/2 px-3 min-h-10 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'ranking'
+                    ? 'text-white'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
                 }`}
             >
               <span className="relative z-10">순위예측</span>
@@ -837,6 +842,7 @@ export default function Prediction() {
                       {/* Navigation Buttons for Empty State */}
                       <div className="hidden md:block">
                         <button
+                          type="button"
                           onClick={goToPreviousDate}
                           disabled={!canMovePrevDate}
                           aria-label="이전 날짜 보기"
@@ -845,6 +851,7 @@ export default function Prediction() {
                           <ChevronLeft size={36} />
                         </button>
                         <button
+                          type="button"
                           onClick={goToNextDate}
                           disabled={!canMoveNextDate}
                           aria-label="다음 날짜 보기"
@@ -889,6 +896,7 @@ export default function Prediction() {
                 {/* Mobile Navigation (Bottom) */}
                 <div className="flex md:hidden items-center justify-between mt-3 px-4">
                   <button
+                    type="button"
                     onClick={goToPreviousDate}
                     disabled={!canMovePrevDate}
                     aria-label="이전 날짜 보기"
@@ -900,6 +908,7 @@ export default function Prediction() {
                     {formatDate(currentDate)}
                   </span>
                   <button
+                    type="button"
                     onClick={goToNextDate}
                     disabled={!canMoveNextDate}
                     aria-label="다음 날짜 보기"

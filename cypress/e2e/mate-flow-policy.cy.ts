@@ -31,8 +31,13 @@ describe('Mate Flow Policy', () => {
     }).as('getDirectTradePendingParty');
 
     cy.intercept('POST', '**/api/applications', (req) => {
-      expect(req.body.depositAmount).to.eq(17000);
-      expect(req.body.paymentType).to.eq('DEPOSIT');
+      expect(req.body).to.deep.equal({
+        partyId: 666,
+        message: '직거래 신청 메시지 테스트입니다',
+        verificationToken: null,
+        ticketVerified: false,
+        ticketImageUrl: null,
+      });
       req.reply({
         statusCode: 201,
         body: {
@@ -92,8 +97,13 @@ describe('Mate Flow Policy', () => {
     }).as('getDirectTradeSellingParty');
 
     cy.intercept('POST', '**/api/applications', (req) => {
-      expect(req.body.depositAmount).to.eq(50000);
-      expect(req.body.paymentType).to.eq('FULL');
+      expect(req.body).to.deep.equal({
+        partyId: 667,
+        message: '티켓 구매 신청합니다.',
+        verificationToken: null,
+        ticketVerified: false,
+        ticketImageUrl: null,
+      });
       req.reply({
         statusCode: 201,
         body: {
@@ -151,8 +161,13 @@ describe('Mate Flow Policy', () => {
     }).as('getSellingParty');
 
     cy.intercept('POST', '**/api/applications', (req) => {
-      expect(req.body.depositAmount).to.eq(50000);
-      expect(req.body.paymentType).to.eq('FULL');
+      expect(req.body).to.deep.equal({
+        partyId: 777,
+        message: '티켓 구매 신청합니다.',
+        verificationToken: null,
+        ticketVerified: false,
+        ticketImageUrl: null,
+      });
       req.reply({ statusCode: 201, body: {} });
     }).as('createApplication');
 

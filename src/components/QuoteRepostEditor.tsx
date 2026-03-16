@@ -84,21 +84,23 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
             <DialogContent className="sm:max-w-[500px] p-0 gap-0 max-h-[90vh] overflow-hidden flex flex-col">
                 <DialogHeader className="px-4 py-3 border-b border-gray-100 dark:border-border flex-shrink-0">
-                    <div className="flex items-center justify-between">
-                        <button
-                            onClick={handleClose}
-                            className="p-1 -ml-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                            disabled={quoteRepostMutation.isPending}
-                        >
+                        <div className="flex items-center justify-between">
+                            <button
+                                type="button"
+                                onClick={handleClose}
+                                className="p-1 -ml-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                disabled={quoteRepostMutation.isPending}
+                            >
                             <X className="w-5 h-5 text-gray-500" />
                         </button>
                         <DialogTitle className="text-base font-semibold">
                             인용 리포스트
                         </DialogTitle>
-                        <button
-                            onClick={handleSubmit}
-                            disabled={!canSubmit}
-                            className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${
+                            <button
+                                type="button"
+                                onClick={handleSubmit}
+                                disabled={!canSubmit}
+                                className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${
                                 canSubmit
                                     ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                                     : 'bg-gray-200 dark:bg-secondary text-gray-400 cursor-not-allowed'

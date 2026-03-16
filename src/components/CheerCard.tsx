@@ -481,6 +481,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                 <div className="flex flex-col py-1">
                                     {canCancelRepost ? (
                                         <button
+                                            type="button"
                                             onClick={handleCancelRepost}
                                             className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                         >
@@ -506,6 +507,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         <>
                                             {canSimpleRepost ? (
                                                 <button
+                                                    type="button"
                                                     onClick={handleSimpleRepost}
                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                 >
@@ -528,6 +530,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                             ) : null}
                                             {canQuoteRepost ? (
                                                 <button
+                                                    type="button"
                                                     onClick={handleQuoteRepost}
                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                 >
