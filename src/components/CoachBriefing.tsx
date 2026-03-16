@@ -930,11 +930,13 @@ export default function CoachBriefing({
                                     <span data-testid="coach-briefing-message">
                                         {displayedMessage}
                                     </span>
-                                    <motion.span
-                                        animate={{ opacity: [1, 0.2, 1] }}
-                                        transition={{ duration: 1, repeat: Infinity }}
-                                        className="inline-block w-1 h-3 bg-emerald-200/80 ml-1 align-middle"
-                                    />
+                                    {aiLoading && (
+                                        <motion.span
+                                            animate={{ opacity: [1, 0.2, 1] }}
+                                            transition={{ duration: 1, repeat: Infinity }}
+                                            className="inline-block w-1 h-3 bg-emerald-200/80 ml-1 align-middle"
+                                        />
+                                    )}
                                 </p>
                                 {briefingMeta?.groundingWarnings.length ? (
                                     <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 font-medium break-keep">

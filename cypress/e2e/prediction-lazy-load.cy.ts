@@ -11,7 +11,10 @@ describe('Prediction Lazy Load', () => {
     const previousDate = '2026-02-02';
     const nextDate = '2026-02-06';
     const emptyStateText = /오늘은 예정된 경기가 없습니다\.|예정된 경기 일정이 없습니다\./;
-    const displayDatePattern = (date: string) => new RegExp(date.replace(/-/g, '\\.\\s*'));
+    const displayDatePattern = (date: string) => {
+        const [year, month, day] = date.split('-').map((value) => Number(value));
+        return new RegExp(`${year}년\\s*${month}월\\s*${day}일`);
+    };
 
     const baseRankings = [
         { teamId: 'HH', teamName: '한화 이글스', rank: 7, wins: 30, losses: 50, draws: 0, winRate: '0.375', games: 80, gamesBehind: 6.0 },
@@ -275,19 +278,16 @@ describe('Prediction Lazy Load', () => {
         });
 
         cy.get('body').then(($body) => {
-            const quickAction = $body.find('[data-testid="prediction-empty-nearest-date-btn"]').get(0) as HTMLButtonElement | undefined;
-            if (quickAction) {
-                quickAction.click();
+            const hasQuickAction = $body.find('[data-testid="prediction-empty-nearest-date-btn"]').length > 0;
+            if (hasQuickAction) {
+                cy.get('[data-testid="prediction-empty-nearest-date-btn"]').click({ force: true });
                 return;
             }
 
-            const nextButton = $body.find('button[aria-label="다음 날짜 보기"]').filter(':visible').get(0) as HTMLButtonElement | undefined;
-            if (nextButton) {
-                nextButton.click();
-            }
+            cy.get('button[aria-label="다음 날짜 보기"]:visible').first().click({ force: true });
         });
         cy.contains(displayDatePattern(nextDate)).should('exist');
-        cy.contains(emptyStateText).should('not.exist');
+        cy.get('[data-testid="prediction-empty-nearest-date-btn"]').should('not.exist');
 
         cy.wrap(null).then(() => {
             expect(requestedDates).to.have.members([today, previousDate, nextDate]);
@@ -340,7 +340,7 @@ describe('Prediction Lazy Load', () => {
             .click({ force: true });
 
         cy.contains(displayDatePattern(previousDate)).should('exist');
-        cy.contains(emptyStateText).should('not.exist');
+        cy.get('[data-testid="prediction-empty-nearest-date-btn"]').should('not.exist');
 
         cy.wrap(null).then(() => {
             expect(requestedDates).to.have.members([today, previousDate]);

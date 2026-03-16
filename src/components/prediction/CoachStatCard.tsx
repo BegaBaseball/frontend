@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { DashboardStat } from '../../api/coach';
@@ -22,7 +23,7 @@ const itemVariants = {
     }
 } as const;
 
-export default function CoachStatCard({ stat }: { stat: DashboardStat }) {
+function CoachStatCard({ stat }: { stat: DashboardStat }) {
     const trendLabel = stat.trend === 'up'
         ? '상향'
         : stat.trend === 'down'
@@ -51,7 +52,7 @@ export default function CoachStatCard({ stat }: { stat: DashboardStat }) {
             </div>
 
             <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white">
+                <span className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate">
                     {stat.value}
                 </span>
             </div>
@@ -68,3 +69,5 @@ export default function CoachStatCard({ stat }: { stat: DashboardStat }) {
         </motion.div>
     );
 }
+
+export default memo(CoachStatCard);

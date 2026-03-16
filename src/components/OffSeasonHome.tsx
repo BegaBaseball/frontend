@@ -142,6 +142,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
   return (
     <div className="space-y-8 md:space-y-12 min-h-screen bg-gray-50 dark:bg-background transition-colors px-4 sm:px-6 py-6 md:py-8 md:px-6">
       <button
+        type="button"
         onClick={() => navigate('/home')}
         className="text-sm mb-2 flex items-center gap-2 group transition-all border-2 border-primary text-primary px-4 py-1.5 min-h-11 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
       >

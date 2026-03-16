@@ -165,6 +165,7 @@ export default function MyPage() {
                   </div>
                   <div className="flex flex-nowrap items-center justify-start gap-2.5 row-start-2">
                     <button
+                      type="button"
                       className="text-center group cursor-pointer whitespace-nowrap flex-shrink-0"
                       onClick={() => setUserListModal({ isOpen: true, type: 'followers', title: '팔로워' })}
                     >
@@ -178,6 +179,7 @@ export default function MyPage() {
                     </button>
                     <div className="h-8 w-px bg-gray-200 dark:bg-border mx-1.5"></div>
                     <button
+                      type="button"
                       className="text-center group cursor-pointer whitespace-nowrap flex-shrink-0"
                       onClick={() => setUserListModal({ isOpen: true, type: 'following', title: '팔로잉' })}
                     >
@@ -267,10 +269,11 @@ export default function MyPage() {
                   </div>
                 </div>
                 <div className={`flex items-center gap-3 mt-3 justify-start`}>
-                  <button
-                    className="text-center group cursor-pointer whitespace-nowrap flex-shrink-0"
-                    onClick={() => setUserListModal({ isOpen: true, type: 'followers', title: '팔로워' })}
-                  >
+                    <button
+                    type="button"
+                      className="text-center group cursor-pointer whitespace-nowrap flex-shrink-0"
+                      onClick={() => setUserListModal({ isOpen: true, type: 'followers', title: '팔로워' })}
+                    >
                     <span className="font-bold text-lg text-gray-900 dark:text-white block group-hover:text-primary transition-colors">
                       {formatCount(followCounts?.followerCount || 0)}
                     </span>
@@ -280,10 +283,11 @@ export default function MyPage() {
                     </span>
                   </button>
                   <div className="h-8 w-px bg-gray-200 dark:bg-border"></div>
-                  <button
-                    className="text-center group cursor-pointer whitespace-nowrap flex-shrink-0"
-                    onClick={() => setUserListModal({ isOpen: true, type: 'following', title: '팔로잉' })}
-                  >
+                    <button
+                    type="button"
+                      className="text-center group cursor-pointer whitespace-nowrap flex-shrink-0"
+                      onClick={() => setUserListModal({ isOpen: true, type: 'following', title: '팔로잉' })}
+                    >
                     <span className="font-bold text-lg text-gray-900 dark:text-white block group-hover:text-primary transition-colors">
                       {formatCount(followCounts?.followingCount || 0)}
                     </span>

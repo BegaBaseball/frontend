@@ -104,7 +104,7 @@ describe('Landing design system pilot QA', () => {
         .should('have.length', visiblePanels);
 
       if (label === 'desktop') {
-        cy.getBySel('landing-laptop-mockup').should('be.visible');
+        cy.getBySel('landing-laptop-mockup').scrollIntoView().should('be.visible');
       } else {
         cy.getBySel('landing-laptop-mockup').should('not.be.visible');
       }

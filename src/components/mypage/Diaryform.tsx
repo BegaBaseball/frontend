@@ -92,6 +92,7 @@ export default function DiaryViewSection() {
           <Card className="p-5 md:p-8 lg:col-span-7">
             <div className="flex items-center justify-between mb-6">
               <button
+                type="button"
                 onClick={() =>
                   setCurrentMonth(
                     new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
@@ -105,6 +106,7 @@ export default function DiaryViewSection() {
                 {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
               </h3>
               <button
+                type="button"
                 onClick={() =>
                   setCurrentMonth(
                     new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
@@ -145,6 +147,7 @@ export default function DiaryViewSection() {
 
                 return (
                   <button
+                    type="button"
                     key={i}
                     data-testid={day.isValidDay ? `day-${day.dayNumber}` : undefined}
                     onClick={() =>
@@ -244,7 +247,11 @@ export default function DiaryViewSection() {
           {/* 주간 캘린더 */}
           <Card className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <button onClick={weekCalendar.goToPrevWeek} className="p-2 hover:bg-muted rounded-full">
+              <button
+                type="button"
+                onClick={weekCalendar.goToPrevWeek}
+                className="p-2 hover:bg-muted rounded-full"
+              >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <h3 style={{ fontWeight: 900, fontSize: '16px' }}>
@@ -253,7 +260,11 @@ export default function DiaryViewSection() {
                 {weekCalendar.getWeekDays()[6].getMonth() + 1}월{' '}
                 {weekCalendar.getWeekDays()[6].getDate()}일
               </h3>
-              <button onClick={weekCalendar.goToNextWeek} className="p-2 hover:bg-muted rounded-full">
+              <button
+                type="button"
+                onClick={weekCalendar.goToNextWeek}
+                className="p-2 hover:bg-muted rounded-full"
+              >
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
@@ -273,6 +284,7 @@ export default function DiaryViewSection() {
 
                 return (
                   <button
+                    type="button"
                     key={index}
                     data-testid={`day-${date.getDate()}`}
                     onClick={() => handleDateSelect(date)}

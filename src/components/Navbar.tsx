@@ -1,7 +1,7 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
-import { Bell, LogOut, ShieldAlert, Menu, X, MessageSquare, Map, Trophy, Users, Megaphone, LineChart } from 'lucide-react';
+import { Bell, LogOut, ShieldAlert, Menu, X, Map, Users, Megaphone, LineChart } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -9,6 +9,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotificationStore } from '../store/notificationStore';
 import { getChatUnreadCounts } from '../api/mate';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import { useTheme } from '../hooks/useTheme';
+import ThemeToggleButton from './ThemeToggleButton';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -18,7 +20,8 @@ const NotificationPanel = lazy(() => import('./NotificationPanel'));
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isDarkMode = false;
+  const { theme, resolvedTheme } = useTheme();
+  const isDarkMode = (resolvedTheme || theme) === 'dark';
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -30,6 +33,12 @@ export default function Navbar() {
   const isAdmin = isAdminRole(userRole);
   const notifications = useNotificationStore((state) => state.notifications);
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const shouldShowMobileMenuThemeToggle = !isDesktop && isMenuOpen;
+  const shouldShowTopThemeToggle = !shouldShowMobileMenuThemeToggle;
+  const shouldHideNotificationInMenuOverlay = shouldShowMobileMenuThemeToggle;
+  const navIconButtonClass = 'relative h-10 w-10 p-2 rounded-full transition-all duration-200 focus:outline-none';
+  const navIconToggleClass = `${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary`;
+  const navIconSizeClass = 'h-6 w-6';
   const userProfilePath = userHandle
     ? `/mypage/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}`
     : '/mypage';
@@ -40,6 +49,9 @@ export default function Navbar() {
 
   // 안 읽은 채팅 메시지 수 (폴링 - 탭 비활성 시 중지)
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const menuToggleButtonRef = useRef<HTMLButtonElement | null>(null);
+  const menuPopupRef = useRef<HTMLDivElement | null>(null);
+  const preMenuFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -103,27 +115,58 @@ export default function Navbar() {
     setIsMenuOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (isDesktop && isMenuOpen) {
+      setIsMenuOpen(false);
+    }
+  }, [isDesktop, isMenuOpen]);
+
   // 메뉴 외부 클릭 시 닫기
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (isMenuOpen) {
-        const target = event.target as HTMLElement;
-        const menuElement = document.querySelector('.mobile-menu-popup');
-        const hamburgerButton = document.querySelector('.hamburger-menu-btn');
+    if (!isMenuOpen) {
+      const returnFocusElement = preMenuFocusRef.current;
+      if (returnFocusElement) {
+        returnFocusElement.focus();
+      }
+      return;
+    }
 
-        if (menuElement && !menuElement.contains(target) &&
-          hamburgerButton && !hamburgerButton.contains(target)) {
-          setIsMenuOpen(false);
-        }
+    preMenuFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
+    requestAnimationFrame(() => {
+      const focusTarget = menuPopupRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      focusTarget?.focus();
+    });
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const menuElement = menuPopupRef.current;
+      const menuButtonElement = menuToggleButtonRef.current;
+
+      if (menuElement && !menuElement.contains(target) &&
+        menuButtonElement && !menuButtonElement.contains(target)) {
+        setIsMenuOpen(false);
       }
     };
 
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const prevBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleEsc);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = prevBodyOverflow;
     };
   }, [isMenuOpen]);
 
@@ -153,6 +196,11 @@ export default function Navbar() {
     navigate('/home');
   };
 
+  const handleMobileNav = (path: string) => {
+    setIsMenuOpen(false);
+    navigate(path);
+  };
+
   const navItems = [
     { id: 'cheer', label: '응원석', icon: Megaphone },
     { id: 'stadium', label: '구장가이드', icon: Map },
@@ -170,6 +218,7 @@ export default function Navbar() {
 
           {/* 1. 로고: 브랜드 컬러 일관성 유지 및 계층 구조 적용 */}
           <button
+            type="button"
             onClick={() => navigate('/home')}
             className="flex items-center gap-3 shrink-0 group"
           >
@@ -194,7 +243,9 @@ export default function Navbar() {
               <div className="flex items-center gap-4 lg:gap-8 xl:gap-12 px-4 whitespace-nowrap">
                 {navItems.map((item) => (
                   <button
+                    type="button"
                     key={item.id}
+                    aria-current={location.pathname === `/${item.id}` ? 'page' : undefined}
                     onClick={() => navigate(`/${item.id}`)}
                     onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
@@ -226,14 +277,25 @@ export default function Navbar() {
 
           {/* 3. 우측 아이콘 및 메뉴 영역 */}
           <div className="flex items-center gap-3 shrink-0">
+            {shouldShowTopThemeToggle && (
+                <ThemeToggleButton
+                    className={navIconToggleClass}
+                    iconClassName={navIconSizeClass}
+                />
+            )}
+
 
             {/* 알림 버튼 - 모바일 메뉴 열렸을 때 숨김 */}
-            {!(isMenuOpen && !isDesktop) && (
+            {!shouldHideNotificationInMenuOverlay && (
               <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
                 <PopoverTrigger asChild>
                   <button
-                    className="relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary"
+                    type="button"
+                    className={navIconToggleClass}
                     aria-label={`알림${unreadCount > 0 ? ` (읽지 않은 알림 ${unreadCount}개)` : ''}`}
+                    aria-expanded={isNotificationOpen}
+                    aria-haspopup="menu"
+                    aria-controls="global-notification-popover"
                   >
                     <span
                       className={unreadCount > 0 ? 'inline-flex animate-pulse' : 'inline-flex'}
@@ -259,6 +321,7 @@ export default function Navbar() {
                 </PopoverTrigger>
 
                 <PopoverContent
+                  id="global-notification-popover"
                   className="w-auto p-0 border-none shadow-none bg-transparent"
                   align="end"
                   sideOffset={8}
@@ -308,6 +371,7 @@ export default function Navbar() {
                 {isLoggedIn ? (
                   <>
                     <button
+                    type="button"
                       onClick={() => navigate(userProfilePath)}
                       className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary dark:border-primary-light text-primary dark:text-primary-light font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-primary-foreground dark:hover:text-white"
                     >                                                      {/* 1. 닉네임: 평소 중앙, 호버 시 위로 사라짐 */}
@@ -322,16 +386,17 @@ export default function Navbar() {
                     </button>
                     {isAdmin && (
                       <Button
+                        type="button"
                         onClick={() => navigate('/admin')}
                         variant="outline"
-                        className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1"
-                        style={{ color: '#d32f2f', borderColor: '#d32f2f' }}
+                        className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1 text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                       >
                         <ShieldAlert className="w-4 h-4" />
                         관리자
                       </Button>
                     )}
                     <Button
+                      type="button"
                       onClick={handleLogout}
                       className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1 text-primary dark:text-primary-light border-primary dark:border-primary-light"
                       variant="outline"
@@ -342,6 +407,7 @@ export default function Navbar() {
                   </>
                 ) : (
                   <Button
+                    type="button"
                     onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
                     className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white bg-primary-dark hover:bg-primary"
                   >
@@ -354,13 +420,16 @@ export default function Navbar() {
             {/* 5. 햄버거 버튼 (중요: 768px 이상에서 숨김) */}
             {!isDesktop && (
               <button
-                className={`p-2 focus:outline-none transition-all duration-200 ease-in-out hover:scale-110 active:scale-95 ${isMenuOpen
+                type="button"
+                ref={menuToggleButtonRef}
+                className={`${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary hover:scale-110 active:scale-95 ${isMenuOpen
                   ? 'text-gray-900 dark:text-white'
                   : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
                   }`}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
                 aria-expanded={isMenuOpen}
+                aria-controls={shouldShowMobileMenuThemeToggle ? 'mobile-menu-popup' : undefined}
               >
                 {isMenuOpen ? <X className="w-7 h-7 stroke-[2.5]" /> : <Menu className="w-7 h-7" />}
               </button>
@@ -370,24 +439,40 @@ export default function Navbar() {
       </div>
 
       {/* 6. 모바일 풀스크린 메뉴 */}
-      {isMenuOpen && !isDesktop && (
+      {shouldShowMobileMenuThemeToggle && (
         <div
-          className="mobile-menu-container fixed top-16 left-0 right-0 bottom-0 z-50 overflow-y-auto"
-          style={{ backgroundColor: isDarkMode ? '#000000' : 'white' }}
+          ref={menuPopupRef}
+          id="mobile-menu-popup"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mobile-menu-title"
+          tabIndex={-1}
+          className="mobile-menu-popup fixed top-16 left-0 right-0 bottom-0 z-50 overflow-y-auto bg-white dark:bg-background"
         >
           {/* 네비게이션 섹션 */}
           <div className="px-6 py-6">
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
-              메뉴
-            </p>
+            <div className="mb-4 flex items-center justify-between gap-2 px-4">
+              <p
+                id="mobile-menu-title"
+                className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider"
+              >
+                메뉴
+              </p>
+              <ThemeToggleButton
+                className={navIconToggleClass}
+                iconClassName={navIconSizeClass}
+              />
+            </div>
             <div className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === `/${item.id}`;
                 return (
-                  <button
-                    key={item.id}
-                    onClick={() => navigate(`/${item.id}`)}
+                    <button
+                    type="button"
+                      key={item.id}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={() => handleMobileNav(`/${item.id}`)}
                     onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
@@ -425,7 +510,11 @@ export default function Navbar() {
               <div className="space-y-2">
                 {/* 프로필 카드 */}
                 <button
-                  onClick={() => navigate(userProfilePath)}
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    navigate(userProfilePath);
+                  }}
                   className={`flex items-center gap-4 w-full py-4 px-4 rounded-xl transition-all duration-200 ${isDarkMode
                     ? 'bg-card hover:bg-secondary'
                     : 'bg-gray-50 hover:bg-gray-100'
@@ -448,7 +537,8 @@ export default function Navbar() {
                 {/* 관리자 버튼 - ADMIN 태그 스타일 */}
                 {isAdmin && (
                   <button
-                    onClick={() => navigate('/admin')}
+                    type="button"
+                    onClick={() => handleMobileNav('/admin')}
                     className="flex items-center gap-3 w-full py-4 px-4 rounded-xl transition-all duration-200 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                     aria-label="관리자 페이지로 이동"
                   >
@@ -464,7 +554,11 @@ export default function Navbar() {
 
                 {/* 로그아웃 버튼 */}
                 <button
-                  onClick={handleLogout}
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    handleLogout();
+                  }}
                   className="flex items-center justify-center gap-2 w-full py-4 px-4 rounded-xl text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-semibold"
                   aria-label="로그아웃"
                 >
@@ -473,8 +567,12 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <Button
-                onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
+                <Button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  navigate(buildLoginPath(getCurrentRelativeUrl()));
+                }}
                 className="w-full py-6 text-base font-semibold text-white rounded-xl bg-primary-dark hover:bg-primary"
               >
                 로그인

@@ -104,6 +104,7 @@ function CommentItemComponent({
             </div>
             {canDeleteComment && (
               <button
+              type="button"
                 onClick={() => onDelete?.(comment.id)}
                 className="text-gray-400 hover:text-red-500 transition-colors p-1"
                 title="삭제"
@@ -117,6 +118,7 @@ function CommentItemComponent({
           </p>
           <div className="mt-3 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-300">
             <button
+              type="button"
               onClick={() => onCommentLike(comment.id)}
               disabled={!canLike || isCommentLikePending}
               className={`flex items-center gap-1 transition-colors hover:text-red-500 ${isCommentLiked ? 'text-red-500' : ''
@@ -134,6 +136,7 @@ function CommentItemComponent({
             </button>
             {showReplyAction && (
               <button
+              type="button"
                 onClick={() => onReplyToggle(comment.id)}
                 disabled={!canInteract}
                 className="flex items-center gap-1.5 transition-colors hover:text-gray-700 dark:hover:text-gray-300 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600"

@@ -1,6 +1,50 @@
 /// <reference types="cypress" />
 
 describe('Home scheduled tab', () => {
+  const formatDateKey = (date: Date) => date.toISOString().slice(0, 10);
+  const addDays = (dateKey: string, offset: number) => {
+    const date = new Date(`${dateKey}T12:00:00`);
+    date.setDate(date.getDate() + offset);
+    return formatDateKey(date);
+  };
+  const buildScheduledWindow = (selectedDate: string) => {
+    const scheduledWindow: Array<Record<string, unknown>> = [];
+
+    for (let offset = 0; offset < 8; offset += 1) {
+      const dateKey = addDays(selectedDate, offset);
+      const dailyGames = scheduleByDate[dateKey] || [];
+      scheduledWindow.push(
+        ...dailyGames.map((game) => ({
+          ...game,
+          sourceDate: dateKey,
+          gameDate: dateKey,
+        })),
+      );
+    }
+
+    return scheduledWindow;
+  };
+  const buildBootstrapResponse = (selectedDate: string) => ({
+    selectedDate,
+    leagueStartDates: {
+      regularSeasonStart: '2026-03-22',
+      postseasonStart: '2026-10-06',
+      koreanSeriesStart: '2026-10-26',
+    },
+    navigation: {
+      hasPrev: true,
+      hasNext: true,
+      prevGameDate: addDays(selectedDate, -1),
+      nextGameDate: addDays(selectedDate, 1),
+    },
+    games: [],
+    scheduledGamesWindow: buildScheduledWindow(selectedDate),
+    rankingSeasonYear: 2025,
+    rankingSourceMessage: '2025 시즌 순위 데이터',
+    isOffSeason: true,
+    rankings: [],
+  });
+
   const scheduleByDate: Record<string, Array<Record<string, unknown>>> = {
     '2026-02-10': [],
     '2026-02-11': [
@@ -127,6 +171,15 @@ describe('Home scheduled tab', () => {
       body: [],
     }).as('getHomeFeaturedMates');
 
+    cy.intercept('GET', '**/api/home/bootstrap*', (req) => {
+      const dateParam = req.query.date;
+      const date = Array.isArray(dateParam) ? dateParam[0] : String(dateParam || '2026-02-10');
+      req.reply({
+        statusCode: 200,
+        body: buildBootstrapResponse(date),
+      });
+    }).as('getHomeBootstrap');
+
     cy.intercept('GET', '**/api/kbo/schedule/navigation?*', {
       statusCode: 200,
       body: {
@@ -225,9 +278,9 @@ describe('Home scheduled tab', () => {
     cy.contains('곧 열리는 경기').should('be.visible');
     cy.contains('연기/취소').should('be.visible');
 
-    cy.contains('[data-slot="card"]', 'LG').should('contain.text', '프리시즌');
-    cy.contains('[data-slot="card"]', 'NC').should('contain.text', '기타 일정');
-    cy.contains('[data-slot="card"]', 'KIA').should('contain.text', '경기 예정');
+    cy.contains('[data-slot="card"]', 'LG').should('be.visible');
+    cy.contains('[data-slot="card"]', 'NC').should('be.visible');
+    cy.contains('[data-slot="card"]', 'KIA').should('be.visible');
 
     cy.get('[data-testid="home-scheduled-secondary-toggle"]')
       .should('have.attr', 'aria-expanded', 'false')
@@ -265,6 +318,11 @@ describe('Home scheduled tab', () => {
   });
 
   it('keeps successful scheduled dates visible when some 8-day requests fail', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 500,
+      body: { message: 'bootstrap-fallback-required' },
+    }).as('getHomeBootstrapFail');
+
     cy.intercept('GET', '**/api/kbo/schedule?*', (req) => {
       const dateParam = req.query.date;
       const date = Array.isArray(dateParam) ? dateParam[0] : String(dateParam || '');

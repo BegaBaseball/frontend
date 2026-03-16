@@ -204,6 +204,7 @@ export default function UserProfile() {
                     존재하지 않거나 삭제된 사용자일 수 있습니다.
                 </p>
                 <button
+                    type="button"
                     onClick={() => navigate(-1)}
                     className="flex items-center text-primary font-medium hover:underline"
                 >
@@ -229,6 +230,7 @@ export default function UserProfile() {
         <div className="max-w-2xl mx-auto pb-8">
             {/* Back Button */}
             <button
+                type="button"
                 onClick={() => navigate(-1)}
                 className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-200 px-4 py-4 transition-colors"
             >
@@ -310,6 +312,7 @@ export default function UserProfile() {
                         </span>
                     </div>
                     <button
+                        type="button"
                         className="text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 p-1 rounded-lg transition-colors cursor-pointer"
                         onClick={() => setUserListModal({ isOpen: true, type: 'followers', title: '팔로워' })}
                     >
@@ -322,6 +325,7 @@ export default function UserProfile() {
                         </span>
                     </button>
                     <button
+                        type="button"
                         className="text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 p-1 rounded-lg transition-colors cursor-pointer"
                         onClick={() => setUserListModal({ isOpen: true, type: 'following', title: '팔로잉' })}
                     >

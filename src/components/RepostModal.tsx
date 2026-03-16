@@ -72,10 +72,11 @@ export default function RepostModal({
                 <div className="py-2">
                     {isRepost ? (
                         isOwner && onCancelRepost ? (
-                            <button
-                                onClick={() => {
-                                    onCancelRepost();
-                                    onClose();
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onCancelRepost();
+                            onClose();
                                 }}
                                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                             >
@@ -104,10 +105,11 @@ export default function RepostModal({
                     ) : canSimpleRepost || canQuoteRepost ? (
                         <>
                             {canSimpleRepost ? (
-                                <button
-                                    onClick={handleSimpleRepost}
-                                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                                >
+                            <button
+                                type="button"
+                                onClick={handleSimpleRepost}
+                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            >
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isRepostedByMe
                                         ? 'bg-emerald-100 dark:bg-emerald-900/30'
                                         : 'bg-gray-100 dark:bg-card'
@@ -135,10 +137,11 @@ export default function RepostModal({
                             ) : null}
 
                             {canQuoteRepost ? (
-                                <button
-                                    onClick={handleQuoteRepost}
-                                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                                >
+                            <button
+                                type="button"
+                                onClick={handleQuoteRepost}
+                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            >
                                     <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-card flex items-center justify-center">
                                         <Quote className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                                     </div>
@@ -177,6 +180,7 @@ export default function RepostModal({
                 {/* 닫기 버튼 */}
                 <div className="px-4 py-3 border-t border-gray-100 dark:border-border">
                     <button
+                        type="button"
                         onClick={onClose}
                         className="w-full py-2.5 text-sm font-medium text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                     >

@@ -86,24 +86,17 @@ const stripCodeFence = (rawText: string): string => {
 
 const stripMarkdownArtifacts = (value: string): string => {
   return value
+    // Code blocks → space
     .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/###\s*/g, '')
-    .replace(/^\s*#{1,6}\s*/gm, '')
-    .replace(/^\s*[-*+]\s+/gm, '')
-    .replace(/^\s*\d+\.\s+/gm, '')
-    .replace(/!\[[^\]]*\]\([^\)]+\)/g, '')
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-    .replace(/\*\*\*(.*?)\*\*\*/g, '$1')
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/__(.*?)__/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/_(.*?)_/g, '$1')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/~~(.*?)~~/g, '$1')
-    .replace(/^>\s*/gm, '')
-    .replace(/^\|/gm, '')
+    // Structural elements (headers, lists, images, blockquotes, table separators) → remove
+    .replace(/^\s*#{1,6}\s*|^\s*[-*+]\s+|^\s*\d+\.\s+|!\[[^\]]*\]\([^)]+\)|^>\s*|^\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*$/gm, '')
+    // Links → keep text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Inline formatting (bold/italic/strikethrough/code) → keep content
+    .replace(/\*{3}(.*?)\*{3}|\*{2}(.*?)\*{2}|__(.*?)__|~~(.*?)~~|\*([^*]*)\*|_([^_]*)_|`([^`]+)`/g,
+      (_, g1, g2, g3, g4, g5, g6, g7) => g1 ?? g2 ?? g3 ?? g4 ?? g5 ?? g6 ?? g7 ?? '')
+    // Table pipes → space, collapse whitespace
     .replace(/\|/g, ' ')
-    .replace(/^\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*$/gm, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 };

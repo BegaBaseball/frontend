@@ -1269,6 +1269,36 @@
   }
 }
 
+:root[data-reduced-motion='true'] {
+  scroll-behavior: auto;
+}
+
+:root[data-reduced-motion='true'] .animate-fade-in,
+:root[data-reduced-motion='true'] .animate-fade-in-up,
+:root[data-reduced-motion='true'] .mobile-menu-container,
+:root[data-reduced-motion='true'] .landing-scroll-frame,
+:root[data-reduced-motion='true'] .auth-back-link,
+:root[data-reduced-motion='true'] .auth-home-button,
+:root[data-reduced-motion='true'] .auth-provider-button,
+:root[data-reduced-motion='true'] .landing-feature-card,
+:root[data-reduced-motion='true'] .landing-mockup-accent,
+:root[data-reduced-motion='true'] .landing-hero-panel,
+:root[data-reduced-motion='true'] .landing-cta-panel,
+:root[data-reduced-motion='true'] .btn-brand,
+:root[data-reduced-motion='true'] .btn-brand-outline,
+:root[data-reduced-motion='true'] .shiny-button,
+:root[data-reduced-motion='true'] .shiny-button::before {
+  animation: none !important;
+  transition: none !important;
+}
+
+:root[data-reduced-motion='true'] .landing-scroll-frame,
+:root[data-reduced-motion='true'] .landing-feature-card:hover,
+:root[data-reduced-motion='true'] .ds-surface-interactive:hover,
+:root[data-reduced-motion='true'] .shiny-button:hover {
+  transform: none !important;
+}
+
 /* Glow pulse for stat cards */
 @keyframes glow-pulse {
 

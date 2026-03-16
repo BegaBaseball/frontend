@@ -157,7 +157,8 @@ describe('Leaderboard page', () => {
     cy.contains('파이어원').should('be.visible');
   });
 
-  it('does not request my-rank endpoint when user is not logged in', () => {
+  it('keeps the guest leaderboard stable even if my-rank returns 401', () => {
+    cy.visit('about:blank');
     cy.clearCookies();
     cy.clearLocalStorage();
 
@@ -171,15 +172,22 @@ describe('Leaderboard page', () => {
       body: { message: 'UNAUTHORIZED' },
     }).as('getMe');
 
-    cy.visit('/leaderboard');
+    cy.visit('/leaderboard', {
+      onBeforeLoad(win) {
+        win.localStorage.clear();
+        win.sessionStorage.clear();
+        win.localStorage.removeItem('auth-storage');
+        win.localStorage.removeItem('auth-bootstrap-hint');
+      },
+    });
 
     cy.wait('@getLeaderboard');
     cy.wait('@getHotStreaks');
     cy.wait('@getRecentScores');
     cy.wait('@getPowerups');
     cy.wait('@getActivePowerups');
-    cy.get('@getMe.all').should('have.length.gte', 1);
-    cy.get('@getMyRank.all').should('have.length', 0);
+    cy.get('@getMyRank.all').should('have.length.gte', 1);
     cy.contains('야구경기 예측 결과').should('be.visible');
+    cy.get('body').should('not.contain.text', 'UNAUTHORIZED');
   });
 });
