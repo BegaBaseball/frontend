@@ -555,6 +555,54 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.get('[data-testid="coach-briefing-message"]').should('contain', reducedMotionMessage);
   });
 
+  it('shows the blinking cursor only while coach briefing is loading', () => {
+    cy.intercept('POST', '**/coach/analyze*', {
+      delay: 1800,
+      statusCode: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: buildSseResponse({
+        meta: {
+          validation_status: 'success',
+          structured_response: {
+            headline: '로딩 커서 테스트',
+            sentiment: 'neutral',
+            key_metrics: [],
+            analysis: {
+              strengths: [],
+              weaknesses: [],
+              risks: [],
+            },
+            detailed_markdown: '',
+            coach_note: '응답이 끝나면 커서가 사라져야 합니다.',
+          },
+          resolved_focus: ['recent_form'],
+          focus_signature: 'recent_form',
+          question_signature: 'auto',
+          cache_key_version: 'v3',
+          request_mode: 'auto_brief',
+          cached: false,
+          cache_state: 'HIT',
+          in_progress: false,
+        },
+      }),
+    }).as('coachAnalyzeLoadingCursor');
+
+    openPredictionPage();
+
+    cy.get('@coachAnalyzeLoadingCursor.all').should((interceptions) => {
+      expect(interceptions).to.have.length.at.least(1);
+    });
+    cy.tick(200);
+    cy.get('[data-testid="coach-briefing-message"]')
+      .next('span')
+      .should('exist');
+
+    cy.wait('@coachAnalyzeLoadingCursor');
+    cy.get('[data-testid="coach-briefing-message"]')
+      .next('span')
+      .should('not.exist');
+  });
+
 
   it('renders coach briefing card without markdown markers', () => {
     const markdownMessage = '**마크다운 테스트**에서 `요약` 결과가 노출됩니다.';

@@ -191,12 +191,12 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
     }
   };
 
-  return (
+    return (
     <Card
       className={`group relative overflow-hidden transition-all duration-200
-        ${isCardSelectable ? 'cursor-pointer hover:bg-zinc-800/40' : ''}
+        ${isCardSelectable ? 'cursor-pointer hover:bg-accent/60' : ''}
         ${featured ? 'ring-1 ring-emerald-400/30' : ''}
-        rounded-2xl border border-zinc-800 bg-[#121316] text-white flex flex-col`}
+        rounded-2xl border border-border bg-card/95 text-card-foreground flex flex-col`}
       role={isCardSelectable ? 'button' : undefined}
       tabIndex={isCardSelectable ? 0 : undefined}
       onClick={isCardSelectable ? onSelectPrediction : undefined}
@@ -207,10 +207,10 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
         {/* Header: 구장 & 시간 & 상태 */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <span className="bg-zinc-800/60 px-2 py-1 rounded border border-zinc-700/60 text-xs text-zinc-300">
+            <span className="bg-muted px-2 py-1 rounded border border-border/80 text-xs text-muted-foreground">
               {(game.stadium ?? '').replace('구장', '')}
             </span>
-            <span className="font-mono text-sm text-zinc-300">
+            <span className="font-mono text-sm text-muted-foreground">
               {game.time}
             </span>
           </div>
@@ -220,7 +220,7 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
               className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border
               ${statusCode === 'COMPLETED' ? 'text-[#2ecc71] border-[#2ecc71]/40 bg-[#2ecc71]/10' :
                 statusCode === 'LIVE' ? 'text-rose-400 border-rose-900 bg-rose-950/30' :
-                  'text-zinc-400 border-zinc-700 bg-zinc-800/50'}`}
+                  'text-muted-foreground border-border bg-secondary'}`}
             >
               {statusStyle.text}
             </span>
@@ -231,10 +231,10 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
         <div className="flex items-center justify-between px-1">
           {/* Away Team */}
           <div className="flex flex-col items-center gap-2.5 w-20">
-            <div className="w-16 h-16 flex items-center justify-center p-2 rounded-[1rem] bg-[#1a1b1e] border border-zinc-700/50">
+            <div className="w-16 h-16 flex items-center justify-center p-2 rounded-[1rem] bg-secondary border border-border/80">
               <TeamLogo team={game.awayTeam} size="full" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-sm tracking-tight text-zinc-100">
+            <span className="font-bold text-sm tracking-tight text-foreground">
               {(game.awayTeamFull ?? '').split(' ')[0]}
             </span>
           </div>
@@ -243,9 +243,9 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
         <div className="flex flex-col items-center justify-center flex-1">
             {hasOutcome ? (
               <>
-                <div className="flex items-center gap-3 font-black text-3xl sm:text-4xl tracking-widest text-white mb-2">
+                <div className="flex items-center gap-3 font-black text-3xl sm:text-4xl tracking-widest text-foreground mb-2">
                   <span>{resultScores?.away ?? '-'}</span>
-                  <span className="text-zinc-600 text-2xl sm:text-3xl pb-1">:</span>
+                  <span className="text-muted-foreground text-2xl sm:text-3xl pb-1">:</span>
                   <span>{resultScores?.home ?? '-'}</span>
                 </div>
 
@@ -286,10 +286,10 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
 
           {/* Home Team */}
           <div className="flex flex-col items-center gap-2.5 w-20">
-            <div className="w-16 h-16 flex items-center justify-center p-2 rounded-[1rem] bg-[#1a1b1e] border border-zinc-700/50">
+            <div className="w-16 h-16 flex items-center justify-center p-2 rounded-[1rem] bg-secondary border border-border/80">
               <TeamLogo team={game.homeTeam} size="full" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-sm tracking-tight text-zinc-100">
+            <span className="font-bold text-sm tracking-tight text-foreground">
               {(game.homeTeamFull ?? '').split(' ')[0]}
             </span>
           </div>
@@ -298,7 +298,7 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
         {/* Footer: 경기 정보 */}
         <div className="flex justify-center mt-5">
           {game.gameInfo ? (
-            <span className="text-xs text-zinc-400 px-3 py-1.5 rounded-md border border-zinc-800 bg-[#16171a]">
+            <span className="text-xs text-muted-foreground px-3 py-1.5 rounded-md border border-border bg-secondary">
               {game.gameInfo}
             </span>
           ) : null}

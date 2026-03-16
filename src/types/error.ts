@@ -35,4 +35,5 @@ export interface ServerErrorResponse {
 
 export interface GlobalApiErrorDetail extends ErrorData {
     responseCode?: string;
+    endpoint?: string | null;
 }

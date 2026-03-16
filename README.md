@@ -145,7 +145,7 @@ KBO 리그에 대한 모든 궁금증을 해결하세요.
 | **Database & Storage** | OCI Autonomous Database + OCI Object Storage |
 | **Container** | Docker |
 | **CI/CD** | GitHub Actions |
-| **Hosting** | AWS EC2 |
+| **Hosting** | 정적 호스팅/CDN (`dist/` artifact 배포) |
 
 ---
 
@@ -246,7 +246,7 @@ npm run test:e2e:rescue -- --spec cypress/e2e/stadium.cy.ts
 프로젝트 루트에 `.env` 파일을 생성하고 다음 변수를 설정합니다:
 ```env
 # API 서버
-VITE_API_BASE_URL=http://localhost:8080/api
+VITE_API_BASE_URL=https://api.begabaseball.xyz
 
 # 카카오 지도
 VITE_KAKAO_MAP_KEY=your_kakao_map_key
@@ -273,19 +273,22 @@ VITE_SITE_URL=https://www.begabaseball.xyz
 
 ## 🌐 배포
 
-### Docker Compose 배포
+### Docker Compose 로컬 스모크
 ```bash
 docker-compose up -d --build
 ```
 
+이 경로는 로컬 확인용입니다. 운영 배포 artifact는 아래 수동 배포 절차의 `dist/`를 기준으로 합니다.
+
 ### 수동 배포
 
-1. 기본 env 점검: `VITE_SITE_URL=https://www.begabaseball.xyz npm run seo:env:check`
-2. 릴리즈 직전 strict 점검: `VITE_SITE_URL=... VITE_GA4_MEASUREMENT_ID=... VITE_GOOGLE_SITE_VERIFICATION=... VITE_NAVER_SITE_VERIFICATION=... npm run seo:env:check:strict`
-3. 프로덕션 빌드/게이트: `npm run seo:gate`
-4. `dist` 폴더를 웹 서버에 배포
-5. SPA 라우팅 설정 (모든 경로 → index.html)
-6. SEO 점검 및 문제 해결 가이드: `/Users/mac/project/KBO_platform/task/operations/seo-checklist.md` 참조
+1. 기본 env 점검: `VITE_SITE_URL=https://www.begabaseball.xyz VITE_API_BASE_URL=https://api.begabaseball.xyz npm run seo:env:check`
+2. 릴리즈 직전 strict 점검: `VITE_SITE_URL=... VITE_API_BASE_URL=... VITE_GA4_MEASUREMENT_ID=... VITE_GOOGLE_SITE_VERIFICATION=... VITE_NAVER_SITE_VERIFICATION=... npm run seo:env:check:strict`
+3. 최종 배포 artifact 생성: `npm run build`
+4. SEO 감사까지 포함한 게이트: `npm run seo:gate`
+5. 최종 `dist/` 전체를 정적 호스팅/CDN에 배포
+6. 정적 파일 우선 서빙 후 SPA fallback이 동작하도록 라우팅 설정 (`robots.txt`, `sitemap.xml`, prerendered route HTML 보존)
+7. SEO 점검 및 문제 해결 가이드: `/Users/mac/project/KBO_platform/task/operations/seo-checklist.md` 참조
 
 ### Nginx 설정 예시
 ```nginx

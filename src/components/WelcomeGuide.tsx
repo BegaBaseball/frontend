@@ -392,6 +392,7 @@ export default function WelcomeGuide() {
               <div className="flex gap-0.5 sm:gap-1">
                 {SLIDES_DATA.map((_, index) => (
                   <button
+                    type="button"
                     key={index}
                     onClick={() => setCurrentSlide(index)}
                     className="p-1.5 sm:p-2 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-full"

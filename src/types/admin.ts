@@ -149,6 +149,7 @@ export interface AdminClientErrorAlertNotification {
   fingerprint: string;
   bucket: 'api' | 'runtime' | 'feedback';
   source: 'api' | 'runtime' | 'unhandled_rejection' | 'unknown';
+  channel: 'telegram' | 'slack';
   route: string;
   statusGroup: string;
   observedCount: number;
@@ -176,6 +177,7 @@ export interface AdminClientErrorTopFingerprint {
   latestEventId: string;
   latestOccurredAt: string;
   latestAlertSentAt: string | null;
+  latestAlertChannel: 'telegram' | 'slack' | null;
 }
 
 export interface AdminClientErrorEventSummary {

@@ -14,6 +14,10 @@ import {
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
 import api from './axios';
 
+const publicHomeRequestConfig = {
+    skipAuthSessionHandling: true,
+} as const;
+
 interface RawHotCheerPost {
     id: number;
     teamId: string;
@@ -95,6 +99,7 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
     try {
         const { data } = await api.get<Game[]>('/kbo/schedule', {
             params: { date: apiDate },
+            ...publicHomeRequestConfig,
         });
         return data;
 
@@ -108,7 +113,7 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
  */
 export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
     try {
-        const { data } = await api.get<Ranking[]>(`/kbo/rankings/${year}`);
+        const { data } = await api.get<Ranking[]>(`/kbo/rankings/${year}`, publicHomeRequestConfig);
         return data;
 
     } catch (error) {
@@ -121,7 +126,7 @@ export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
  */
 export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
     try {
-        const { data } = await api.get<LeagueStartDates>('/kbo/league-start-dates');
+        const { data } = await api.get<LeagueStartDates>('/kbo/league-start-dates', publicHomeRequestConfig);
         cacheLeagueStartDates(data);
         return data;
 
@@ -134,7 +139,7 @@ export const fetchHomeBootstrap = async (date: Date): Promise<HomeBootstrapRespo
     const apiDate = formatDateForAPI(date);
     const { data } = await api.get('/home/bootstrap', {
         params: { date: apiDate },
-        skipGlobalErrorHandler: true,
+        ...publicHomeRequestConfig,
     });
 
     if (!isBootstrapResponse(data)) {
@@ -149,7 +154,7 @@ export const fetchHomeWidgets = async (date: Date): Promise<HomeWidgetsResponse>
     const apiDate = formatDateForAPI(date);
     const { data } = await api.get('/home/widgets', {
         params: { date: apiDate },
-        skipGlobalErrorHandler: true,
+        ...publicHomeRequestConfig,
     });
 
     if (!isWidgetsResponse(data)) {
