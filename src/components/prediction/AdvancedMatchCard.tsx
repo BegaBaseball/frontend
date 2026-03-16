@@ -1075,6 +1075,7 @@ export default function AdvancedMatchCard({
             {/* Navigation Buttons (Desktop) */}
             <div className="hidden md:block">
               <button
+                type="button"
                 onClick={onPrevDate}
                 disabled={!hasPrevDate}
                 aria-label="이전 날짜 보기"
@@ -1083,6 +1084,7 @@ export default function AdvancedMatchCard({
                 <ChevronLeft size={32} />
               </button>
               <button
+                type="button"
                 onClick={onNextDate}
                 disabled={!hasNextDate}
                 aria-label="다음 날짜 보기"

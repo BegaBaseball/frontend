@@ -60,7 +60,7 @@ function InsightSection({ icon: Icon, title, items }: InsightSectionProps) {
     return (
         <motion.div variants={itemVariants} className="space-y-3 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center gap-2">
-                <Icon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                <Icon aria-hidden="true" className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{title}</h4>
             </div>
             <div className="space-y-2">
@@ -92,7 +92,7 @@ function RiskSection({ risks, isReviewMode }: { risks: CoachRiskItem[]; isReview
     return (
         <motion.div variants={itemVariants} className="space-y-4">
             <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
+                <AlertTriangle aria-hidden="true" className="h-5 w-5 text-red-500" />
                 <div>
                     <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">리스크 관리 포인트</h4>
                     <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
@@ -131,6 +131,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
             variants={containerVariants}
             initial="hidden"
             animate="visible"
+            role="article"
             className="space-y-8 pb-10"
         >
             <motion.div
@@ -146,16 +147,16 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
                 }`}>
-                    <span className={`h-2 w-2 rounded-full ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                    <span aria-hidden="true" className={`h-2 w-2 rounded-full ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
                     {isPositive ? '우세 신호' : '주의 신호'}
                 </span>
 
                 <div className="mt-5 mb-8">
                     <h3 className="mb-4 flex items-center gap-3 text-xl font-bold leading-tight text-gray-900 dark:text-white sm:text-2xl">
                         {isPositive ? (
-                            <Trophy className="h-8 w-8 shrink-0 text-emerald-500" />
+                            <Trophy aria-hidden="true" className="h-8 w-8 shrink-0 text-emerald-500" />
                         ) : (
-                            <AlertTriangle className="h-8 w-8 shrink-0 text-red-500" />
+                            <AlertTriangle aria-hidden="true" className="h-8 w-8 shrink-0 text-red-500" />
                         )}
                         <span>{analysisData.dashboard.headline}</span>
                     </h3>
@@ -178,7 +179,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                     <motion.div variants={itemVariants} className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                         <div className="mb-3 flex items-center gap-3">
                             <div className="rounded-xl bg-gray-100 p-2 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
-                                <Gavel className="h-4 w-4" />
+                                <Gavel aria-hidden="true" className="h-4 w-4" />
                             </div>
                             <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '결과 진단' : '코치 판단'}</h4>
                         </div>
@@ -191,7 +192,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                         <motion.div variants={itemVariants} className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                             <div className="mb-3 flex items-center gap-3">
                                 <div className="rounded-xl bg-gray-100 p-2 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
-                                    <Radar className="h-4 w-4" />
+                                    <Radar aria-hidden="true" className="h-4 w-4" />
                                 </div>
                                 <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '경기 요약' : '한 줄 요약'}</h4>
                             </div>
@@ -208,7 +209,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                     {criticalFactors.length > 0 && (
                         <motion.div variants={itemVariants} className="space-y-4">
                             <div className="flex items-center gap-3">
-                                <AlertTriangle className="h-5 w-5 text-red-500" />
+                                <AlertTriangle aria-hidden="true" className="h-5 w-5 text-red-500" />
                                 <div>
                                     <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '결과를 가른 변수' : '즉시 확인할 변수'}</h4>
                                     <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
@@ -227,7 +228,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                     {strategicFactors.length > 0 && (
                         <motion.div variants={itemVariants} className="space-y-4">
                             <div className="flex items-center gap-3">
-                                <CheckCircle className="h-5 w-5 text-emerald-500" />
+                                <CheckCircle aria-hidden="true" className="h-5 w-5 text-emerald-500" />
                                 <div>
                                     <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '결과로 이어진 우위 지표' : '우위 근거 지표'}</h4>
                                     <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
@@ -283,7 +284,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
             {hasDetailedReport && (
                 <motion.div variants={itemVariants} className="space-y-4 pt-2">
                     <div className="flex items-center gap-3">
-                        <BarChart3 className="h-5 w-5 text-blue-500" />
+                        <BarChart3 aria-hidden="true" className="h-5 w-5 text-blue-500" />
                         <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">상세 리포트</h4>
                     </div>
 

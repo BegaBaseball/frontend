@@ -16,6 +16,7 @@ export default function LeaderboardPage() {
   const [page, setPage] = useState(0);
 
   const isLoggedIn = useAuthStore((state) => isLoggedInUser(state.user));
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   const currentUserHandle = useAuthStore((state) => state.user?.handle);
 
   const {
@@ -26,7 +27,7 @@ export default function LeaderboardPage() {
     isLoading,
     totalPages,
     refetch,
-  } = useLeaderboard(type, page, 10, { includeMyRank: isLoggedIn });
+  } = useLeaderboard(type, page, 10, { includeMyRank: isLoggedIn && !isAuthLoading });
 
   const {
     powerups,

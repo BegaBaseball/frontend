@@ -10,6 +10,25 @@ const baseRequest = {
   request_mode: 'manual_detail' as const,
 };
 
+const buildStreamResponse = (chunks: string[]) => {
+  let chunkIndex = 0;
+
+  return new Response(new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (chunkIndex >= chunks.length) {
+        controller.close();
+        return;
+      }
+
+      controller.enqueue(new TextEncoder().encode(chunks[chunkIndex]));
+      chunkIndex += 1;
+    },
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'text/event-stream' },
+  });
+};
+
 test('analyzeTeam은 401에서 auth 전용 에러를 던진다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => (
     new Response(JSON.stringify({ detail: 'Unauthorized' }), {
@@ -72,4 +91,56 @@ test('analyzeTeam은 5xx에서 generic 분석 실패 에러를 던진다', async
       return true;
     },
   );
+});
+
+test('analyzeTeam은 SSE 이벤트 경계 뒤에는 event 타입을 message로 되돌린다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: meta\n',
+    'data: {"resolved_focus":["recent_form"]}\n',
+    '\n',
+    'data: {"delta":"경계 이후 메시지"}\n',
+    '\n',
+  ]) as never);
+
+  const response = await analyzeTeam(baseRequest);
+
+  assert.equal(response.answer, '경계 이후 메시지');
+  assert.deepEqual(response.resolved_focus, ['recent_form']);
+});
+
+test('analyzeTeam은 trailing newline 없는 마지막 meta 이벤트도 파싱한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: message\n',
+    'data: {"delta":"첫 문장"}\n',
+    '\n',
+    'event: meta\n',
+    'data: {"structured_response":{"headline":"메타 헤드라인","sentiment":"positive","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"상세 리포트","coach_note":"코치 노트"},"game_status_bucket":"COMPLETED","grounding_warnings":["근거 주의"],"resolved_focus":["recent_form"]}',
+  ]) as never);
+
+  const response = await analyzeTeam(baseRequest);
+
+  assert.equal(response.answer, '첫 문장');
+  assert.equal(response.structuredData?.headline, '메타 헤드라인');
+  assert.equal(response.structuredData?.coach_note, '코치 노트');
+  assert.equal(response.game_status_bucket, 'COMPLETED');
+  assert.deepEqual(response.grounding_warnings, ['근거 주의']);
+  assert.deepEqual(response.resolved_focus, ['recent_form']);
+});
+
+test('analyzeTeam은 trailing newline 없는 마지막 message delta를 누적한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: message\n',
+    'data: {"delta":"첫"}\n',
+    '\n',
+    'event: message\n',
+    'data: {"delta":" 문장"}',
+  ]) as never);
+
+  const streamed: string[] = [];
+  const response = await analyzeTeam(baseRequest, (chunk) => {
+    streamed.push(chunk);
+  });
+
+  assert.equal(response.answer, '첫 문장');
+  assert.deepEqual(streamed, ['첫', '첫 문장']);
 });

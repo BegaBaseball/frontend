@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import {
@@ -268,14 +268,51 @@ export default function CoachAnalysisDialog({
     const [analysisStep, setAnalysisStep] = useState<string>('');
     const [errorAction, setErrorAction] = useState<'login' | null>(null);
     const navigate = useNavigate();
+    const abortControllerRef = useRef<AbortController | null>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const isMountedRef = useRef(true);
+    const analysisRequestIdRef = useRef(0);
+
+    const clearAnalysisInterval = () => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+    };
+
+    const invalidateActiveAnalysis = () => {
+        analysisRequestIdRef.current += 1;
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+        clearAnalysisInterval();
+    };
+
+    const isActiveAnalysisRequest = (requestId: number, controller: AbortController) => (
+        isMountedRef.current
+        && analysisRequestIdRef.current === requestId
+        && abortControllerRef.current === controller
+    );
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            invalidateActiveAnalysis();
+        };
+    }, []);
 
     useEffect(() => {
         if (isOpen) {
             setSelectedTeam(getInitialTeamName(initialTeam));
             setFocus(normalizeFocusLocal(buildDefaultFocus()));
+            setLoading(false);
             setResult(null);
             setAnalysisStep('');
             setErrorAction(null);
+        } else {
+            invalidateActiveAnalysis();
+            setLoading(false);
+            setAnalysisStep('');
         }
     }, [isOpen, initialTeam, homeTeamId, awayTeamId, gameId, homePitcher, awayPitcher]);
 
@@ -339,6 +376,13 @@ export default function CoachAnalysisDialog({
     };
 
     const handleAnalyze = async () => {
+        invalidateActiveAnalysis();
+
+        const controller = new AbortController();
+        const requestId = analysisRequestIdRef.current + 1;
+        analysisRequestIdRef.current = requestId;
+        abortControllerRef.current = controller;
+
         setLoading(true);
         setAnalysisStep('감독님이 헤드셋 끼고 준비 중...');
         setResult(null);
@@ -358,12 +402,15 @@ export default function CoachAnalysisDialog({
         ];
 
         let i = 0;
-        const interval = setInterval(() => {
+        intervalRef.current = setInterval(() => {
+            if (!isActiveAnalysisRequest(requestId, controller)) {
+                return;
+            }
             if (i < steps.length) {
                 setAnalysisStep(steps[i]);
                 i++;
             } else {
-                clearInterval(interval);
+                clearAnalysisInterval();
             }
         }, 1500);
 
@@ -397,13 +444,15 @@ export default function CoachAnalysisDialog({
                     away_pitcher: awayPitcher || undefined,
                 },
             }, (currentText) => {
-                // Real-time update
+                if (!isActiveAnalysisRequest(requestId, controller)) return;
                 setResult({ answer: currentText });
-            }).then(finalResult => {
+            }, { signal: controller.signal }).then(finalResult => {
+                if (!isActiveAnalysisRequest(requestId, controller)) return;
                 setResult(finalResult);
             });
 
         } catch (error) {
+            if (!isActiveAnalysisRequest(requestId, controller)) return;
             console.error('Coach analysis failed:', error);
             const message = error instanceof Error ? error.message : String(error ?? '');
             if (isAbortError(error)) {
@@ -422,9 +471,11 @@ export default function CoachAnalysisDialog({
                 setResult({ error: '분석 중 오류가 발생했습니다.' });
             }
         } finally {
+            if (!isActiveAnalysisRequest(requestId, controller)) return;
             setLoading(false);
             setAnalysisStep('');
-            clearInterval(interval);
+            abortControllerRef.current = null;
+            clearAnalysisInterval();
         }
     };
 
@@ -434,7 +485,7 @@ export default function CoachAnalysisDialog({
         );
     };
 
-    const getAnalysisData = (): CoachAnalysisData | null => {
+    const getAnalysisData = (result: CoachAnalyzeResponse | null): CoachAnalysisData | null => {
         const isReviewMode = result?.game_status_bucket === 'COMPLETED';
         const defaultAnalysisTitle = isReviewMode ? 'AI 코치 경기 리뷰' : 'AI 코치 상세 분석';
         const defaultAnalysisMessage = isReviewMode
@@ -754,7 +805,7 @@ export default function CoachAnalysisDialog({
             };
     };
 
-    const analysisData = useMemo(() => getAnalysisData(), [result]);
+    const analysisData = useMemo(() => getAnalysisData(result), [result]);
     const selectedFocusNormalized = normalizeFocusLocal(focus);
     const resolvedFocus = normalizeFocusLocal(result?.resolved_focus || []);
     const hasFocusMeta = typeof result?.focus_signature === 'string';
@@ -908,9 +959,24 @@ export default function CoachAnalysisDialog({
                     </div>
 
                     {loading && !analysisData && (
-                        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin shrink-0 text-primary" />
-                            <span>{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>
+                        <div className="space-y-4">
+                            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin shrink-0 text-primary" />
+                                <span>{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>
+                            </div>
+                            {!result && (
+                                <div className="space-y-3 px-1">
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <motion.div
+                                            key={i}
+                                            className="h-4 rounded-lg bg-gray-200 dark:bg-gray-700"
+                                            animate={{ opacity: [0.4, 0.7, 0.4] }}
+                                            transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.15 }}
+                                            style={{ width: `${95 - i * 12}%` }}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 

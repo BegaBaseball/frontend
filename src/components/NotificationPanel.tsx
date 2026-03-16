@@ -175,6 +175,7 @@ export default function NotificationPanel() {
           <div className="flex gap-4">
             {(['ALL', 'MATE', 'CHEER'] as TabType[]).map((tab) => (
               <button
+                type="button"
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`text-xs font-bold pb-2 border-b-2 transition-colors ${activeTab === tab
@@ -186,11 +187,12 @@ export default function NotificationPanel() {
               </button>
             ))}
           </div>
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllRead}
-              className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-primary transition-colors"
-            >
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-primary transition-colors"
+              >
               <CheckCheck className="w-3 h-3" />
               모두 읽음
             </button>
@@ -258,15 +260,16 @@ export default function NotificationPanel() {
                           </div>
 
                           {/* Read Indicator Dot */}
-                          {!notification.isRead && (
-                            <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500 border-2 border-white dark:border-gray-800" />
-                          )}
+              {!notification.isRead && (
+                <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500 border-2 border-white dark:border-gray-800" />
+              )}
 
                           {/* Delete Button (Hover Only on Desktop) */}
-                          <button
-                            onClick={(e) => handleDelete(notification.id, e)}
-                            className="absolute bottom-4 right-4 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200"
-                            title="알림 삭제"
+              <button
+                type="button"
+                onClick={(e) => handleDelete(notification.id, e)}
+                className="absolute bottom-4 right-4 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200"
+                title="알림 삭제"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

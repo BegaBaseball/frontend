@@ -46,7 +46,6 @@ import type {
   AdminClientErrorDashboard,
   AdminClientErrorEventDetail,
   AdminClientErrorEventPage,
-  AdminClientErrorTopFingerprint,
 } from '../../types/admin';
 import { getApiErrorMessage } from '../../utils/errorUtils';
 import { formatDate, getTimeAgo } from '../../utils/formatters';
@@ -97,6 +96,11 @@ const sourceBadgeClass: Record<'api' | 'runtime' | 'unhandled_rejection' | 'unkn
   runtime: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
   unhandled_rejection: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30',
   unknown: 'bg-slate-700 text-slate-300 border-slate-600',
+};
+
+const channelBadgeClass: Record<'telegram' | 'slack', string> = {
+  telegram: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+  slack: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
 };
 
 const buildWindowRange = (windowKey: WindowKey) => {
@@ -400,6 +404,11 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <Badge className={bucketBadgeClass[item.bucket]}>{item.bucket.toUpperCase()}</Badge>
                   <Badge className={sourceBadgeClass[item.source]}>{item.source}</Badge>
+                  {item.latestAlertChannel ? (
+                    <Badge className={channelBadgeClass[item.latestAlertChannel]}>
+                      {item.latestAlertChannel.toUpperCase()}
+                    </Badge>
+                  ) : null}
                   <span className="text-sm font-semibold text-white">{item.count.toLocaleString()}건</span>
                 </div>
                 <p className="line-clamp-2 text-sm text-slate-200">{item.message}</p>
@@ -407,7 +416,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                   <p>route: {item.route}</p>
                   <p>fingerprint: {item.fingerprint}</p>
                   <p>최근 발생: {getTimeAgo(item.latestOccurredAt)}</p>
-                  <p>최근 Slack 알림: {item.latestAlertSentAt ? getTimeAgo(item.latestAlertSentAt) : '없음'}</p>
+                  <p>최근 알림: {item.latestAlertSentAt ? getTimeAgo(item.latestAlertSentAt) : '없음'}</p>
                 </div>
               </button>
             )) : (
@@ -620,7 +629,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
             <Siren className="h-5 w-5 text-rose-300" />
             <div>
               <h3 className="text-lg font-bold text-white">Recent Alerts</h3>
-              <p className="text-sm text-slate-400">백엔드가 Slack 웹훅으로 전송한 최근 알림 결과입니다.</p>
+              <p className="text-sm text-slate-400">백엔드가 설정된 채널로 전송한 최근 알림 결과입니다.</p>
             </div>
           </div>
 
@@ -630,6 +639,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Badge className={bucketBadgeClass[item.bucket]}>{item.bucket.toUpperCase()}</Badge>
+                    <Badge className={channelBadgeClass[item.channel]}>{item.channel.toUpperCase()}</Badge>
                     <Badge className={item.deliveryStatus === 'SENT' ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300' : 'border-red-500/30 bg-red-500/15 text-red-300'}>
                       {item.deliveryStatus}
                     </Badge>
@@ -646,7 +656,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
               </div>
             )) : (
               <div className="rounded-2xl border border-dashed border-slate-800 px-4 py-10 text-center text-sm text-slate-500">
-                최근 Slack 알림 이력이 없습니다.
+                최근 알림 이력이 없습니다.
               </div>
             )}
           </div>

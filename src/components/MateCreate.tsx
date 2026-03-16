@@ -469,6 +469,7 @@ export default function MateCreate() {
                 <p className="text-xs text-gray-500">OCR이 실패하면 같은 파일 또는 다른 파일로 다시 시도해주세요.</p>
                 {import.meta.env.DEV && (
                   <button
+                    type="button"
                     onClick={() => {
                       const testData = {
                         gameDate: '2026-05-23',
@@ -666,6 +667,7 @@ export default function MateCreate() {
                 <div className="grid grid-cols-3 gap-3 h-28">
                   {/* Home Team */}
                   <button
+                    type="button"
                     onClick={() => updateFormData({ cheeringSide: 'HOME' })}
                     className={`relative flex flex-col items-center justify-center rounded-xl transition-all duration-200 ${formData.cheeringSide === 'HOME'
                       ? 'ring-4 ring-offset-2 scale-[1.02] shadow-md'
@@ -689,6 +691,7 @@ export default function MateCreate() {
 
                   {/* Neutral */}
                   <button
+                    type="button"
                     onClick={() => updateFormData({ cheeringSide: 'NEUTRAL' })}
                     className={`flex flex-col items-center justify-center rounded-xl border-2 transition-all duration-200 ${formData.cheeringSide === 'NEUTRAL'
                       ? 'bg-gray-500 text-white ring-4 ring-gray-300 ring-offset-2 scale-[1.02] border-transparent shadow-md'
@@ -702,6 +705,7 @@ export default function MateCreate() {
 
                   {/* Away Team */}
                   <button
+                    type="button"
                     onClick={() => updateFormData({ cheeringSide: 'AWAY' })}
                     className={`relative flex flex-col items-center justify-center rounded-xl transition-all duration-200 ${formData.cheeringSide === 'AWAY'
                       ? 'ring-4 ring-offset-2 scale-[1.02] shadow-md'
@@ -731,8 +735,8 @@ export default function MateCreate() {
                 <div className="grid grid-cols-2 gap-3">
                   {Object.entries(SEAT_CATEGORIES)
                     .filter(([k]) => availableCategoryKeys.includes(k as SeatCategory))
-                    .map(([k, v]) => {
-                      const isSelected = formData.seatCategory === v.label;
+                        .map(([k, v]) => {
+                          const isSelected = formData.seatCategory === v.label;
                       const descriptions: Record<string, string> = {
                         '응원석': '치어리더와 함께 열정 응원! 🔥',
                         '테이블석': '음식을 편하게 먹을 수 있어요 🍗',
@@ -743,15 +747,16 @@ export default function MateCreate() {
                         '외야석': '홈런볼을 잡을 기회! ⚾',
                       };
 
-                      return (
-                        <button
-                          key={k}
-                          onClick={() => updateFormData({ seatCategory: isSelected ? '' : v.label })}
-                          className={`p-4 rounded-xl border-2 text-left transition-all duration-200 flex items-start gap-3 hover:shadow-sm ${isSelected
-                            ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                            : 'border-gray-100 hover:border-primary/50 bg-white dark:bg-card dark:border-border'
+                        return (
+                          <button
+                            type="button"
+                            key={k}
+                            onClick={() => updateFormData({ seatCategory: isSelected ? '' : v.label })}
+                            className={`p-4 rounded-xl border-2 text-left transition-all duration-200 flex items-start gap-3 hover:shadow-sm ${isSelected
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                              : 'border-gray-100 hover:border-primary/50 bg-white dark:bg-card dark:border-border'
                             }`}
-                        >
+                          >
                           <div className={`p-2 rounded-full text-2xl shrink-0 flex items-center justify-center w-12 h-12 ${isSelected ? 'bg-white' : 'bg-gray-50 dark:bg-secondary'}`}>
                             {SEAT_ICONS[k as SeatCategory]}
                           </div>
@@ -920,6 +925,7 @@ export default function MateCreate() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {['#열정응원🔥', '#공격때_기립🧍', '#조용한관람🤫', '#먹방진심🍗', '#유니폼필수👕', '#직관승요🧚'].map((tag) => (
                     <button
+                      type="button"
                       key={tag}
                       className="text-xs px-2 py-1 bg-gray-100 dark:bg-card rounded-md text-gray-600 dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-primary/30 hover:text-primary transition-colors"
                       onClick={() => {

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle, Minus } from 'lucide-react';
 import { CoachMetric } from '../../api/coach';
@@ -20,7 +21,7 @@ const itemVariants = {
     }
 } as const;
 
-export default function CoachMetricCard({ data }: { data: CoachMetric }) {
+function CoachMetricCard({ data }: { data: CoachMetric }) {
     const { category, name, value, description, risk_level, trend } = data;
 
     // Color Styles based on Risk Level
@@ -118,3 +119,5 @@ export default function CoachMetricCard({ data }: { data: CoachMetric }) {
         </motion.div>
     );
 }
+
+export default memo(CoachMetricCard);

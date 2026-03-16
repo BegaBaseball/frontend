@@ -89,17 +89,19 @@ const createManualRetryHandler = (requestConfig: any) => {
 const buildGlobalErrorDetail = (error: any): GlobalApiErrorDetail => {
     const parsedError = parseError(error);
     const requestMethod = (error.config?.method || 'get').toUpperCase();
+    const endpoint = normalizeRequestPath(error.config?.url) ?? null;
     const eventId = reportApiError({
         message: parsedError.message,
         statusCode: parsedError.statusCode,
         responseCode: parsedError.responseCode,
         method: requestMethod,
-        endpoint: normalizeRequestPath(error.config?.url),
+        endpoint,
         shouldReport: !shouldSkipErrorReporting(error, parsedError.responseCode),
     });
 
     return {
         ...parsedError,
+        endpoint,
         errorId: eventId,
         source: 'api',
         onRetry: parsedError.statusCode === 401 || !isManualRetryAllowed(error)

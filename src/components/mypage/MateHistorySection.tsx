@@ -56,6 +56,7 @@ export default function MateHistorySection() {
         <div className="flex gap-2 mb-6 border-b">
           {tabs.map((tab) => (
             <button
+              type="button"
               key={tab.key}
               onClick={() => setMateHistoryTab(tab.key)}
               className={`px-4 py-2 -mb-px ${

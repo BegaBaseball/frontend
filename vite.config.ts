@@ -5,9 +5,11 @@ import path from 'path';
 
 import { cloudflare } from "@cloudflare/vite-plugin";
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const proxyTarget = env.VITE_PROXY_TARGET ?? 'http://localhost:8080';
+  const enableCloudflarePlugin =
+    command !== 'serve' || env.VITE_ENABLE_CLOUDFLARE_PLUGIN === 'true';
   const helmetPackagePath = path.resolve(__dirname, 'node_modules/react-helmet-async/package.json');
   const useHelmetShim = !fs.existsSync(helmetPackagePath);
   const alias = {
@@ -77,7 +79,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     appType: 'spa',
-    plugins: [react(), cloudflare()],
+    plugins: [react(), ...(enableCloudflarePlugin ? [cloudflare()] : [])],
 
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
