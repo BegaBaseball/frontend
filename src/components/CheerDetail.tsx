@@ -610,6 +610,7 @@ export default function CheerDetail() {
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-1.5">
                                         <button
+                                            type="button"
                                             onClick={() => navigate(-1)}
                                             className="rounded-full p-1.5 -ml-2 text-slate-700 transition-colors hover:bg-black/5 sm:p-2 dark:text-slate-200 dark:hover:bg-white/10"
                                             aria-label="이전으로"
@@ -713,7 +714,11 @@ export default function CheerDetail() {
                                     {selectedPost.isOwner ? (
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <button className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-700 sm:p-2 dark:hover:bg-white/10 dark:hover:text-slate-100">
+                                                <button
+                                                    type="button"
+                                                    className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-700 sm:p-2 dark:hover:bg-white/10 dark:hover:text-slate-100"
+                                                    aria-label="게시물 메뉴"
+                                                >
                                                     <MoreVertical className="w-5 h-5" />
                                                 </button>
                                             </DropdownMenuTrigger>
@@ -730,9 +735,11 @@ export default function CheerDetail() {
                                         </DropdownMenu>
                                     ) : isLoggedIn ? (
                                         <button
+                                            type="button"
                                             onClick={() => setIsReportModalOpen(true)}
                                             className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 sm:p-2 dark:hover:bg-red-500/10 dark:hover:text-red-300"
                                             title="신고하기"
+                                            aria-label="신고하기"
                                         >
                                             <Flag className="w-5 h-5" />
                                         </button>
@@ -818,6 +825,7 @@ export default function CheerDetail() {
 
                                         <div className="mt-4 grid grid-cols-4 gap-1.5">
                                             <motion.button
+                                                type="button"
                                                 whileHover={{ y: -1 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 transition={actionButtonTransition}
@@ -835,13 +843,13 @@ export default function CheerDetail() {
                                             </motion.button>
 
                                             <motion.button
+                                                type="button"
                                                 whileHover={{ y: -1 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 transition={actionButtonTransition}
                                                 onClick={scrollToComments}
                                                 aria-label={`댓글 ${commentCount.toLocaleString()}`}
                                                 className="flex h-9 items-center justify-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 text-center text-slate-700 transition-all hover:border-sky-200 hover:bg-sky-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-10 sm:gap-1"
-                                                type="button"
                                             >
                                                 <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 sm:h-4 sm:w-4" />
                                                 <span className="text-[11px] font-bold leading-none sm:text-[13px]">{commentCount.toLocaleString()}</span>
@@ -859,6 +867,7 @@ export default function CheerDetail() {
                                             >
                                                 <PopoverTrigger asChild>
                                                     <motion.button
+                                                        type="button"
                                                         whileHover={{ y: -1 }}
                                                         whileTap={{ scale: 0.98 }}
                                                         transition={actionButtonTransition}
@@ -883,7 +892,9 @@ export default function CheerDetail() {
                                                     <div className="flex flex-col py-1">
                                                         {canCancelRepost ? (
                                                             <button
+                                                                type="button"
                                                                 onClick={handleCancelRepost}
+                                                                aria-label="리포스트 삭제"
                                                                 className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                                             >
                                                                 <Undo2 className="w-4 h-4 text-red-600 dark:text-red-400" />
@@ -899,7 +910,9 @@ export default function CheerDetail() {
                                                         ) : canSimpleRepost || canQuoteRepost ? (
                                                             <>
                                                                 <button
+                                                                    type="button"
                                                                     onClick={handleSimpleRepost}
+                                                                    aria-label="리포스트"
                                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                                 >
                                                                     <div className="flex items-center justify-center w-5 h-5">
@@ -918,24 +931,26 @@ export default function CheerDetail() {
                                                                         </span>
                                                                     </div>
                                                                 </button>
-                                                                {canQuoteRepost ? (
-                                                                    <button
-                                                                        onClick={handleQuoteRepost}
-                                                                        className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                                                                    >
-                                                                        <div className="flex items-center justify-center w-5 h-5">
-                                                                            <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                                                                                인용하기
-                                                                            </span>
-                                                                            <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                                                                                내 응원을 덧붙여 공유합니다
-                                                                            </span>
-                                                                        </div>
-                                                                    </button>
-                                                                ) : null}
+                                                            {canQuoteRepost ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleQuoteRepost}
+                                                                    aria-label="인용하기"
+                                                                    className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                                                >
+                                                                    <div className="flex items-center justify-center w-5 h-5">
+                                                                        <Edit2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                                                                            인용하기
+                                                                        </span>
+                                                                        <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                                                            내 응원을 덧붙여 공유합니다
+                                                                        </span>
+                                                                    </div>
+                                                                </button>
+                                                            ) : null}
                                                             </>
                                                         ) : (
                                                             <div className="px-4 py-3 text-sm text-gray-400 text-center">
@@ -947,6 +962,7 @@ export default function CheerDetail() {
                                             </Popover>
 
                                             <motion.button
+                                                type="button"
                                                 whileHover={{ y: -1 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 transition={actionButtonTransition}

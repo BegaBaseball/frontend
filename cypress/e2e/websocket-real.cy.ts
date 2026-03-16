@@ -17,6 +17,10 @@ describe('WebSocket real integration smoke', () => {
     const value = envVars[key];
     return typeof value === 'string' ? value : undefined;
   };
+  const getConfiguredEnvVars = (): EnvVars => {
+    const config = Cypress.config() as unknown as { env?: EnvVars };
+    return config.env && typeof config.env === 'object' ? config.env : {};
+  };
   const asPromiseLike = <T,>(chainable: Cypress.Chainable<T>): PromiseLike<T> =>
     chainable as unknown as PromiseLike<T>;
 
@@ -75,7 +79,7 @@ describe('WebSocket real integration smoke', () => {
 
   const resolveBackendBaseUrl = (): Cypress.Chainable<string | undefined> =>
     cy.wrap(null, { log: false }).then(() => {
-      const envVars = Cypress.env() as EnvVars;
+      const envVars = getConfiguredEnvVars();
       const resolvedBackendBaseUrl =
         normalizeBackendBaseUrl(getEnvString(envVars, 'BACKEND_BASE_URL'))
         || normalizeBackendBaseUrl(getEnvString(envVars, 'SMOKE_API_BASE_URL'))
@@ -370,7 +374,7 @@ describe('WebSocket real integration smoke', () => {
     let requestedBrokerURL: string | undefined;
 
     cy.wrap(null, { log: false }).then(() => {
-      const envVars = Cypress.env() as EnvVars;
+      const envVars = getConfiguredEnvVars();
       requestedBrokerURL = getEnvString(envVars, 'WS_BROKER_URL');
     });
 
@@ -387,7 +391,7 @@ describe('WebSocket real integration smoke', () => {
     let hasAuthenticatedSession = false;
 
     cy.wrap(null, { log: false }).then(() => {
-      const envVars = Cypress.env() as EnvVars;
+      const envVars = getConfiguredEnvVars();
       requestedBrokerURL = getEnvString(envVars, 'WS_BROKER_URL');
       const configuredEmail = getEnvString(envVars, 'SMOKE_LOGIN_EMAIL');
       const configuredPassword = getEnvString(envVars, 'SMOKE_LOGIN_PASSWORD');

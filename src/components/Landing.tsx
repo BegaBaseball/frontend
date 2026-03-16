@@ -12,6 +12,7 @@ import FeatureCard from './FeatureCard';
 import LaptopMockup from './LaptopMockup';
 import { OptimizedImage } from './common/OptimizedImage';
 import { Button } from './ui/button';
+import ThemeToggleButton from './ThemeToggleButton';
 import {
   CTAGroup,
   Container,
@@ -61,6 +62,38 @@ export default function Landing() {
     }
   }, [isLoggedIn, navigate]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const root = document.documentElement;
+    const syncReducedMotion = () => {
+      if (mediaQuery.matches) {
+        root.setAttribute('data-reduced-motion', 'true');
+      } else {
+        root.removeAttribute('data-reduced-motion');
+      }
+    };
+
+    syncReducedMotion();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncReducedMotion);
+      return () => {
+        mediaQuery.removeEventListener('change', syncReducedMotion);
+        root.removeAttribute('data-reduced-motion');
+      };
+    }
+
+    mediaQuery.addListener(syncReducedMotion);
+    return () => {
+      mediaQuery.removeListener(syncReducedMotion);
+      root.removeAttribute('data-reduced-motion');
+    };
+  }, []);
+
   const {
     scrollProgress,
     featureRefs,
@@ -108,6 +141,7 @@ export default function Landing() {
             </div>
 
             <div className="flex items-center gap-2">
+              <ThemeToggleButton />
               <Button
                 variant="ghost"
                 onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}

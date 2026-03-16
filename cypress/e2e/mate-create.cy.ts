@@ -256,7 +256,7 @@ describe('Mate Create Flow', () => {
     cy.contains('button', '파티 만들기').click();
     cy.contains('button', '확인').click();
     cy.wait('@createParty');
-    cy.contains('서버 오류입니다.').should('be.visible');
+    cy.contains('서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.').should('be.visible');
 
     cy.contains('button', '파티 만들기').click();
     cy.contains('button', '확인').click();

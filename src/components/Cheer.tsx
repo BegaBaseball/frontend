@@ -788,6 +788,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
 
                             {newPostCount > 0 && (
                                 <button
+                                    type="button"
                                     onClick={handleNewPostsClick}
                                     className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
                                     style={{

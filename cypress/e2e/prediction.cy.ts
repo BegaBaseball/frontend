@@ -787,6 +787,165 @@ describe('Game Prediction', () => {
         });
     });
 
+    it('should abort in-flight coach analysis when the dialog closes and keep only the rerun result after reopen', () => {
+        cy.intercept('**/api/kbo/rankings/*', {
+            statusCode: 200,
+            body: [
+                { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 104, draws: 0, winRate: '0.278', games: 80, gamesBehind: 4.0 },
+                { teamId: 'SS', teamName: '삼성 라이온즈', rank: 10, wins: 20, losses: 124, draws: 0, winRate: '0.139', games: 80, gamesBehind: 6.5 },
+            ],
+        }).as('getRankingsAbortCoach');
+
+        const firstCoachResponse = [
+            'event: message',
+            'data: {"delta":"{\\"headline\\":\\"닫기 전 요청 결과\\",\\"coach_note\\":\\"닫았다가 다시 열어도 보이면 안 됩니다.\\"}"}',
+            '',
+            'event: meta',
+            'data: {"validation_status":"success","resolved_focus":["recent_form"],"focus_signature":"recent_form","question_signature":"q:first-abort-check","cache_key_version":"v3","request_mode":"manual_detail","cached":false,"structured_response":{"headline":"닫기 전 요청 결과","sentiment":"negative","key_metrics":[],"analysis":{"summary":"닫기 전 요청은 폐기되어야 합니다.","verdict":"첫 번째 요청 폐기","strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"닫기 전 상세 리포트","coach_note":"닫았다가 다시 열어도 보이면 안 됩니다."}}',
+            '',
+            'event: done',
+            'data: [DONE]',
+            '',
+        ].join('\n');
+
+        const secondCoachResponse = [
+            'event: message',
+            'data: {"delta":"{\\"headline\\":\\"다시 연 분석 결과\\",\\"coach_note\\":\\"두 번째 요청 결과만 유지되어야 합니다.\\"}"}',
+            '',
+            'event: meta',
+            'data: {"validation_status":"success","resolved_focus":["recent_form"],"focus_signature":"recent_form","question_signature":"q:second-run-check","cache_key_version":"v3","request_mode":"manual_detail","cached":false,"structured_response":{"headline":"다시 연 분석 결과","sentiment":"positive","key_metrics":[],"analysis":{"summary":"두 번째 분석이 정상 완료되어야 합니다.","verdict":"두 번째 요청 유지","strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"두 번째 상세 리포트","coach_note":"두 번째 요청 결과만 유지되어야 합니다."}}',
+            '',
+            'event: done',
+            'data: [DONE]',
+            '',
+        ].join('\n');
+
+        openPredictionPage();
+        cy.wait('@getRankingsAbortCoach');
+        cy.wait('@getGameDetail');
+        cy.window().then((win) => {
+            cy.spy(win.console, 'error').as('consoleError');
+        });
+        cy.tick(1000);
+        cy.wait(700);
+
+        let coachAnalyzeCallCount = 0;
+        cy.intercept('POST', '**/coach/analyze*', (req) => {
+            coachAnalyzeCallCount += 1;
+            req.reply({
+                delay: coachAnalyzeCallCount === 1 ? 3000 : 1800,
+                statusCode: 200,
+                headers: { 'content-type': 'text/event-stream' },
+                body: coachAnalyzeCallCount === 1 ? firstCoachResponse : secondCoachResponse,
+            });
+        }).as('coachAnalyzeAbortOnClose');
+
+        cy.get('[data-testid="coach-analysis-open"]', { timeout: 10000 })
+            .should('be.visible')
+            .click({ force: true });
+        cy.get('[data-testid="coach-analysis-run-button"]', { timeout: 10000 })
+            .scrollIntoView()
+            .click({ force: true });
+        cy.get('@coachAnalyzeAbortOnClose.all').should('have.length', 1);
+
+        cy.get('body').type('{esc}');
+        cy.get('[data-slot="dialog-content"]').should('not.exist');
+
+        cy.get('[data-testid="coach-analysis-open"]')
+            .should('be.visible')
+            .click({ force: true });
+        cy.get('[data-slot="dialog-content"]').should('exist');
+        cy.get('[data-testid="coach-analysis-run-button"]')
+            .scrollIntoView()
+            .click({ force: true });
+        cy.get('@coachAnalyzeAbortOnClose.all').should('have.length', 2);
+
+        cy.wait(500);
+        cy.get('[data-testid="coach-analysis-run-button"]').should('be.disabled');
+
+        cy.wait(2200);
+        cy.contains('닫기 전 요청 결과').should('not.exist');
+        cy.contains('닫았다가 다시 열어도 보이면 안 됩니다.').should('not.exist');
+        cy.contains('다시 연 분석 결과').should('exist');
+        cy.contains('두 번째 요청 결과만 유지되어야 합니다.').should('exist');
+        cy.wait(1200);
+        cy.contains('닫기 전 요청 결과').should('not.exist');
+        cy.contains('닫았다가 다시 열어도 보이면 안 됩니다.').should('not.exist');
+        cy.contains('다시 연 분석 결과').should('exist');
+        cy.contains('두 번째 요청 결과만 유지되어야 합니다.').should('exist');
+
+        cy.get('@consoleError').then((spy: any) => {
+            const calls = spy.getCalls().map((call: { args: unknown[] }) => call.args.map(String).join(' '));
+            expect(calls.some((message: string) => message.includes('state update on an unmounted component'))).to.eq(false);
+            expect(calls.some((message: string) => message.includes('Coach analysis failed:'))).to.eq(false);
+        });
+    });
+
+    it('should show analysis skeletons first, then render accessible result cards on mobile', () => {
+        cy.viewport(375, 667);
+        cy.intercept('**/api/kbo/rankings/*', {
+            statusCode: 200,
+            body: [
+                { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 104, draws: 0, winRate: '0.278', games: 80, gamesBehind: 4.0 },
+                { teamId: 'SS', teamName: '삼성 라이온즈', rank: 10, wins: 20, losses: 124, draws: 0, winRate: '0.139', games: 80, gamesBehind: 6.5 },
+            ],
+        }).as('getRankingsMobileAnalysis');
+
+        const manualCoachResponse = [
+            'event: message',
+            'data: {"delta":"{\\"headline\\":\\"한화 우세, 후반 불펜 관리가 핵심\\",\\"coach_note\\":\\"초반 OPS 우세는 분명하지만 7회 이후 불펜 운용이 승부를 가를 수 있습니다.\\"}"}',
+            '',
+            'event: meta',
+            'data: {"validation_status":"success","resolved_focus":["recent_form","bullpen","starter"],"focus_signature":"recent_form+bullpen+starter","question_signature":"manual","cache_key_version":"v4","request_mode":"manual_detail","cached":false,"cache_state":"MISS_GENERATE","in_progress":false,"game_status_bucket":"PREVIEW","structured_response":{"headline":"한화 우세, 후반 불펜 관리가 핵심","sentiment":"positive","key_metrics":[{"label":"OPS 비교","value":"0.812 vs 0.744","status":"good","trend":"up","is_critical":true},{"label":"불펜 소모","value":"18% vs 31%","status":"warning","trend":"down","is_critical":false},{"label":"발표 선발","value":"문동주 vs 원태인","status":"good","trend":"neutral","is_critical":true}],"analysis":{"summary":"최근 타격 생산성과 선발 구위에서 한화가 앞서지만, 불펜 과부하가 후반 변수입니다.","verdict":"한화가 초반 주도권을 잡을 가능성이 높습니다.","strengths":["상위 타선 OPS 상승세가 뚜렷합니다."],"weaknesses":["불펜 연투 관리가 필요합니다."],"risks":[{"area":"불펜","level":1,"description":"7회 이후 필승조 투입 타이밍이 승부처입니다."}],"why_it_matters":["초반 장타 생산성이 선취점 확률을 끌어올립니다."],"swing_factors":["문동주의 초반 제구 안정 여부"],"watch_points":["7회 이전 리드 확보"],"uncertainty":["라인업 최종 확정 전까지 하위 타순 변수는 남아 있습니다."]},"detailed_markdown":"상세 리포트 본문입니다.\\n불펜 운영과 선발 구위가 핵심입니다.","coach_note":"초반 OPS 우세는 분명하지만 7회 이후 불펜 운용이 승부를 가를 수 있습니다."}}',
+            '',
+            'event: done',
+            'data: [DONE]',
+            '',
+        ].join('\n');
+
+        cy.intercept('POST', '**/coach/analyze*', (req) => {
+            req.reply({
+                delay: 1800,
+                statusCode: 200,
+                headers: { 'content-type': 'text/event-stream' },
+                body: manualCoachResponse,
+            });
+        }).as('coachAnalyzeMobileResult');
+
+        openPredictionPage();
+        cy.wait('@getRankingsMobileAnalysis');
+        cy.wait('@getGameDetail');
+        cy.tick(1000);
+        cy.wait(700);
+
+        cy.get('[data-testid="coach-analysis-open"]', { timeout: 10000 })
+            .should('be.visible')
+            .click({ force: true });
+        cy.get('[data-testid="coach-analysis-run-button"]', { timeout: 10000 })
+            .scrollIntoView()
+            .click({ force: true });
+
+        cy.get('[data-testid="coach-analysis-run-button"]').should('be.disabled');
+        cy.contains('감독님이 헤드셋 끼고 준비 중...').should('exist');
+        cy.get('[data-slot="dialog-content"]').then(($dialog) => {
+            const skeletons = Array.from($dialog[0].querySelectorAll('div')).filter((element) => {
+                const className = typeof element.className === 'string' ? element.className : '';
+                return className.includes('h-4') && className.includes('rounded-lg');
+            });
+            expect(skeletons.length).to.eq(4);
+        });
+
+        cy.wait('@coachAnalyzeMobileResult');
+        cy.contains('한화 우세, 후반 불펜 관리가 핵심', { timeout: 12000 }).should('exist');
+        cy.get('[role="article"]').should('exist');
+        cy.get('[role="article"] [aria-hidden="true"]').its('length').should('be.gte', 7);
+        cy.contains('span', '0.812 vs 0.744')
+            .invoke('attr', 'class')
+            .should('include', 'text-xl')
+            .and('include', 'sm:text-2xl')
+            .and('include', 'truncate');
+    });
+
     it('should keep only latest AI brief request after rapid game switch', () => {
         const autoCoachResponse = [
             'event: message',

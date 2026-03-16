@@ -114,7 +114,8 @@ describe('Block / Unblock Feature', () => {
         cy.wait('@getFollowCounts');
 
         cy.contains(/차단/).should('not.exist');
-        cy.contains(/메시지 \(준비중\)/).should('be.visible');
+        cy.contains('작성글 보기').should('be.visible');
+        cy.contains('메시지 기능은 준비 중입니다.').should('be.visible');
     });
 
     it('opens blocked users section from mypage navigation', () => {

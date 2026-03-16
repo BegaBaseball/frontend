@@ -5,10 +5,12 @@ declare module 'axios' {
     skipGlobalErrorHandler?: boolean;
     skipErrorReporting?: boolean;
     allowManualRetry?: boolean;
+    skipAuthSessionHandling?: boolean;
   }
   export interface AxiosRequestConfig {
     skipGlobalErrorHandler?: boolean;
     skipErrorReporting?: boolean;
     allowManualRetry?: boolean;
+    skipAuthSessionHandling?: boolean;
   }
 }

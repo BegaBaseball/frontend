@@ -390,6 +390,7 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
               </div>
             </div>
             <button
+              type="button"
               onClick={handleClose}
               className="text-white/80 hover:text-white bg-transparent border-none cursor-pointer
                          p-2 rounded-full transition-colors
@@ -512,6 +513,7 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
                           {/* Copy button - shown on hover, only for non-error bot messages */}
                           {!isStreamError && (
                             <button
+                              type="button"
                               onClick={() => handleCopyMessage(message.text, index)}
                               className="
                                 absolute -top-2 -right-2
@@ -692,6 +694,7 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
       {/* Launcher Button - 챗봇이 닫혀있을 때만 표시 */}
       {!isOpen && !autoOpen && (
           <button
+          type="button"
           onClick={() => setIsOpen(true)}
           className="fixed w-14 h-14 sm:w-16 sm:h-16 sm:min-h-[64px] sm:min-w-[64px] md:w-18 md:h-18 rounded-full bg-primary border-none
                      shadow-[0_10px_25px_rgba(0,0,0,0.3)] cursor-pointer

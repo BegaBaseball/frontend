@@ -26,7 +26,26 @@ test('fetchAdminClientErrorDashboard는 대시보드 응답을 언랩한다', as
         timeSeries: [],
         topFingerprints: [],
         recentFeedback: [],
-        recentAlerts: [],
+        recentAlerts: [
+          {
+            id: 1,
+            fingerprint: 'fp-runtime',
+            bucket: 'runtime',
+            source: 'runtime',
+            channel: 'telegram',
+            route: '/mypage',
+            statusGroup: 'none',
+            observedCount: 3,
+            thresholdCount: 3,
+            windowMinutes: 5,
+            latestEventId: 'evt-1',
+            latestMessage: 'render failed',
+            latestOccurredAt: '2026-03-13T11:00:00Z',
+            notifiedAt: '2026-03-13T11:01:00Z',
+            deliveryStatus: 'SENT',
+            failureReason: null,
+          },
+        ],
       },
     },
   }) as never);
@@ -35,6 +54,7 @@ test('fetchAdminClientErrorDashboard는 대시보드 응답을 언랩한다', as
 
   assert.equal(response.totals.api, 4);
   assert.equal(response.granularity, 'hour');
+  assert.equal(response.recentAlerts[0]?.channel, 'telegram');
 });
 
 test('fetchAdminClientErrorDashboard는 technical 5xx를 친화형 메시지로 sanitize한다', async (t) => {

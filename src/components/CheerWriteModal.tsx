@@ -304,6 +304,7 @@ export default function CheerWriteModal({
                                         <div key={preview.url} className="relative aspect-square overflow-hidden rounded-xl border border-black/10 dark:border-white/10">
                                             <img src={preview.url} alt="preview" className="h-full w-full object-cover" />
                                             <button
+                                                type="button"
                                                 onClick={() => handleRemoveFile(index)}
                                                 className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
                                             >

@@ -437,6 +437,109 @@ export async function analyzeTeam(
             let currentEvent = 'message';  // Default event type
             let buffer = '';  // Buffer for incomplete SSE lines
 
+            const handleMetaPayload = (parsed: Record<string, unknown>) => {
+                if (parsed.structured_response) {
+                    structuredData = parsed.structured_response as CoachStructuredResponse;
+                }
+                if (parsed.tool_calls) toolCalls = parsed.tool_calls as Array<unknown>;
+                if (parsed.verified !== undefined) verified = parsed.verified as boolean;
+                if (parsed.data_sources) dataSources = parsed.data_sources as Array<unknown>;
+                if (Array.isArray(parsed.resolved_focus)) resolvedFocus = parsed.resolved_focus as string[];
+                if (
+                    parsed.request_mode === 'auto_brief'
+                    || parsed.request_mode === 'manual_detail'
+                ) {
+                    requestModeFromMeta = parsed.request_mode;
+                }
+                if (typeof parsed.focus_signature === 'string') focusSignature = parsed.focus_signature;
+                if (typeof parsed.question_signature === 'string') questionSignature = parsed.question_signature;
+                if (typeof parsed.cache_key_version === 'string') cacheKeyVersion = parsed.cache_key_version;
+                if (typeof parsed.cache_state === 'string') cacheState = parsed.cache_state;
+                if (typeof parsed.in_progress === 'boolean') inProgress = parsed.in_progress;
+                if (parsed.cached !== undefined) cached = Boolean(parsed.cached);
+                if (parsed.focus_section_missing !== undefined) focusSectionMissing = Boolean(parsed.focus_section_missing);
+                if (Array.isArray(parsed.missing_focus_sections)) missingFocusSections = parsed.missing_focus_sections as string[];
+                if (
+                    parsed.generation_mode === 'deterministic_auto'
+                    || parsed.generation_mode === 'llm_manual'
+                    || parsed.generation_mode === 'evidence_fallback'
+                ) {
+                    generationMode = parsed.generation_mode;
+                }
+                if (
+                    parsed.data_quality === 'grounded'
+                    || parsed.data_quality === 'partial'
+                    || parsed.data_quality === 'insufficient'
+                ) {
+                    dataQuality = parsed.data_quality;
+                }
+                if (Array.isArray(parsed.used_evidence)) {
+                    usedEvidence = parsed.used_evidence
+                        .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+                        .map((value: string) => value.trim());
+                }
+                if (Array.isArray(parsed.grounding_warnings)) {
+                    groundingWarnings = parsed.grounding_warnings
+                        .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+                        .map((value: string) => value.trim());
+                }
+                if (Array.isArray(parsed.grounding_reasons)) {
+                    groundingReasons = parsed.grounding_reasons
+                        .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+                        .map((value: string) => value.trim());
+                }
+                if (typeof parsed.supported_fact_count === 'number' && Number.isFinite(parsed.supported_fact_count)) {
+                    supportedFactCount = parsed.supported_fact_count;
+                } else if (typeof parsed.supported_fact_count === 'string' && parsed.supported_fact_count.trim() !== '') {
+                    const normalizedCount = Number(parsed.supported_fact_count);
+                    if (Number.isFinite(normalizedCount) && normalizedCount >= 0) {
+                        supportedFactCount = normalizedCount;
+                    }
+                }
+                if (typeof parsed.game_status_bucket === 'string') {
+                    gameStatusBucket = parsed.game_status_bucket;
+                }
+            };
+
+            const processSseLine = (line: string) => {
+                const trimmedLine = line.trim();
+
+                // Empty line = SSE event boundary, reset event type per spec
+                if (trimmedLine === '') {
+                    currentEvent = 'message';
+                    return;
+                }
+
+                // Parse event type
+                if (trimmedLine.startsWith('event:')) {
+                    currentEvent = trimmedLine.slice(6).trim();
+                    return;
+                }
+
+                if (!trimmedLine.startsWith('data:')) {
+                    return;
+                }
+
+                const dataStr = trimmedLine.slice(5).trim();
+                if (dataStr === '[DONE]') return;
+
+                try {
+                    const parsed = JSON.parse(dataStr) as Record<string, unknown>;
+
+                    if (currentEvent === 'message' && typeof parsed.delta === 'string') {
+                        fullAnswer += parsed.delta;
+                        if (onStream) onStream(fullAnswer);
+                        return;
+                    }
+
+                    if (currentEvent === 'meta') {
+                        handleMetaPayload(parsed);
+                    }
+                } catch {
+                    // ignore partial json
+                }
+            };
+
             while (true) {
                 const { done, value } = await readWithTimeout(() => reader.read(), DEFAULT_STREAM_TIMEOUT_MS);
                 if (done) break;
@@ -448,97 +551,14 @@ export async function analyzeTeam(
                 buffer = lines.pop() || '';
 
                 for (const line of lines) {
-                    const trimmedLine = line.trim();
-
-                    // Parse event type
-                    if (trimmedLine.startsWith('event:')) {
-                        currentEvent = trimmedLine.slice(6).trim();
-                        continue;
-                    }
-
-                    if (trimmedLine.startsWith('data:')) {
-                        const dataStr = trimmedLine.slice(5).trim();
-                        if (dataStr === '[DONE]') continue;
-
-                        try {
-                            const parsed = JSON.parse(dataStr);
-
-                            // Handle based on event type
-                            if (currentEvent === 'message' && parsed.delta) {
-                                fullAnswer += parsed.delta;
-                                if (onStream) onStream(fullAnswer);
-                            } else if (currentEvent === 'meta') {
-                                // Capture structured_response from meta event
-                                if (parsed.structured_response) {
-                                    structuredData = parsed.structured_response;
-                                }
-                                if (parsed.tool_calls) toolCalls = parsed.tool_calls;
-                                if (parsed.verified !== undefined) verified = parsed.verified;
-                                if (parsed.data_sources) dataSources = parsed.data_sources;
-                                if (Array.isArray(parsed.resolved_focus)) resolvedFocus = parsed.resolved_focus;
-                                if (
-                                    parsed.request_mode === 'auto_brief'
-                                    || parsed.request_mode === 'manual_detail'
-                                ) {
-                                    requestModeFromMeta = parsed.request_mode;
-                                }
-                                if (typeof parsed.focus_signature === 'string') focusSignature = parsed.focus_signature;
-                                if (typeof parsed.question_signature === 'string') questionSignature = parsed.question_signature;
-                                if (typeof parsed.cache_key_version === 'string') cacheKeyVersion = parsed.cache_key_version;
-                                if (typeof parsed.cache_state === 'string') cacheState = parsed.cache_state;
-                                if (typeof parsed.in_progress === 'boolean') inProgress = parsed.in_progress;
-                                if (parsed.cached !== undefined) cached = Boolean(parsed.cached);
-                                if (parsed.focus_section_missing !== undefined) focusSectionMissing = Boolean(parsed.focus_section_missing);
-                                if (Array.isArray(parsed.missing_focus_sections)) missingFocusSections = parsed.missing_focus_sections;
-                                if (
-                                    parsed.generation_mode === 'deterministic_auto'
-                                    || parsed.generation_mode === 'llm_manual'
-                                    || parsed.generation_mode === 'evidence_fallback'
-                                ) {
-                                    generationMode = parsed.generation_mode;
-                                }
-                                if (
-                                    parsed.data_quality === 'grounded'
-                                    || parsed.data_quality === 'partial'
-                                    || parsed.data_quality === 'insufficient'
-                                ) {
-                                    dataQuality = parsed.data_quality;
-                                }
-                                if (Array.isArray(parsed.used_evidence)) {
-                                    usedEvidence = parsed.used_evidence
-                                        .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
-                                        .map((value: string) => value.trim());
-                                }
-                                if (Array.isArray(parsed.grounding_warnings)) {
-                                    groundingWarnings = parsed.grounding_warnings
-                                        .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
-                                        .map((value: string) => value.trim());
-                                }
-                                if (Array.isArray(parsed.grounding_reasons)) {
-                                    groundingReasons = parsed.grounding_reasons
-                                        .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
-                                        .map((value: string) => value.trim());
-                                }
-                                if (typeof parsed.supported_fact_count === 'number' && Number.isFinite(parsed.supported_fact_count)) {
-                                    supportedFactCount = parsed.supported_fact_count;
-                                } else if (typeof parsed.supported_fact_count === 'string' && parsed.supported_fact_count.trim() !== '') {
-                                    const normalizedCount = Number(parsed.supported_fact_count);
-                                    if (Number.isFinite(normalizedCount) && normalizedCount >= 0) {
-                                        supportedFactCount = normalizedCount;
-                                    }
-                                }
-                                if (typeof parsed.game_status_bucket === 'string') {
-                                    gameStatusBucket = parsed.game_status_bucket;
-                                }
-                            }
-
-                            // Reset event type after processing data
-                            currentEvent = 'message';
-                        } catch {
-                            // ignore partial json
-                        }
-                    }
+                    processSseLine(line);
                 }
+            }
+
+            // Process remaining buffer after stream ends, including a final event without trailing newline.
+            const remainingLines = buffer.split('\n');
+            for (const line of remainingLines) {
+                processSseLine(line);
             }
         } catch (error) {
             if (isStreamReadTimeoutError(error)) {

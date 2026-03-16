@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { clearSessionScopedQueries } from '../lib/queryClient';
 import { fetchCurrentUserProfile, logoutUser, normalizeProfileImageUrl } from '../api/auth';
+import { setPersistedAuthBootstrapHint } from '../utils/authBootstrap';
 import {
   clearStoredLoginRedirect,
   getCurrentRelativeUrl,
@@ -95,6 +96,7 @@ export const useAuthStore = create<AuthStore>()(
 
           try {
             const profile = await fetchCurrentUserProfile();
+            setPersistedAuthBootstrapHint(true);
             set({
               user: profile,
               isAuthLoading: false,
@@ -104,6 +106,7 @@ export const useAuthStore = create<AuthStore>()(
             // 401 errors are handled by interceptor (redirect to login)
             // For other errors during initial auth check, we just reset state silently to avoid modal on startup
             clearSessionScopedQueries();
+            setPersistedAuthBootstrapHint(false);
             set({
               user: null,
               isAuthLoading: false
@@ -156,6 +159,7 @@ export const useAuthStore = create<AuthStore>()(
 
       login: (email: string, name: string, profileImageUrl?: string | null, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => {
         const normalizedId = Number(id) || 0;
+        setPersistedAuthBootstrapHint(true);
 
         set({
           user: {
@@ -177,6 +181,7 @@ export const useAuthStore = create<AuthStore>()(
 
       logout: (skipServerLogout = false) => {
         clearStoredLoginRedirect();
+        setPersistedAuthBootstrapHint(false);
         if (!get().user || skipServerLogout) {
           clearSessionScopedQueries();
           set(getInitialState());
@@ -203,9 +208,12 @@ export const useAuthStore = create<AuthStore>()(
         });
       },
       reset: () =>
-        set({
-          ...getInitialState(),
-        }),
+        {
+          setPersistedAuthBootstrapHint(false);
+          return set({
+            ...getInitialState(),
+          });
+        },
 
       setFavoriteTeam: (team: string, color: string) =>
         set((state) => ({

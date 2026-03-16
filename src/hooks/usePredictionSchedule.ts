@@ -1592,6 +1592,25 @@ export const usePredictionSchedule = ({
     }
   }, [allDatesData.length, currentDateIndex, loadMoreFutureMatches]);
 
+  const goToDate = useCallback((targetDate: string) => {
+    const normalizedDate = normalizePredictionDate(targetDate);
+    if (!normalizedDate) {
+      return;
+    }
+
+    const loadedIndex = allDatesDataRef.current.findIndex((entry) => entry.date === normalizedDate);
+    if (loadedIndex !== -1) {
+      setCurrentDateIndex(loadedIndex);
+      return;
+    }
+
+    void loadPredictionDay(normalizedDate, {
+      moveToLoadedDate: true,
+      preserveVisibleDate: false,
+      requestKeySuffix: `jump:${normalizedDate}`,
+    });
+  }, [loadPredictionDay]);
+
   const currentDateGames = allDatesData[currentDateIndex]?.games || [];
   const currentDate = allDatesData[currentDateIndex]?.date || getTodayString();
   const currentGame = getCurrentGame(allDatesData, currentDateIndex, selectedGame);
@@ -1623,6 +1642,7 @@ export const usePredictionSchedule = ({
     reloadMatches,
     goToPreviousDate,
     goToNextDate,
+    goToDate,
     formatDate,
     getTomorrowString,
   };

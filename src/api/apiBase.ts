@@ -6,6 +6,8 @@ const LOOPBACK_HOSTS = new Set([
 ]);
 
 const viteEnv = import.meta.env ?? {};
+const API_BASE_DIAGNOSTIC_EVENT = 'bega:api-base-diagnostic';
+const apiBaseDiagnostics = new Set<string>();
 
 const normalizeHost = (host: string): string =>
   host
@@ -54,6 +56,37 @@ const isLoopbackHost = (host: string): boolean => LOOPBACK_HOSTS.has(host);
 
 const isLoopbackHostName = (host: string): boolean => isLoopbackHost(host);
 
+const isPublicRuntimeHost = (host: string): boolean => Boolean(host) && !isLoopbackHostName(host);
+
+const reportApiBaseDiagnostic = (
+  reason: 'missing' | 'relative' | 'same-origin' | 'invalid',
+  raw: string,
+  pageHost: string,
+  targetHost = '',
+): void => {
+  if (typeof window === 'undefined' || !isPublicRuntimeHost(pageHost)) {
+    return;
+  }
+
+  const key = [reason, raw, pageHost, targetHost].join('|');
+  if (apiBaseDiagnostics.has(key)) {
+    return;
+  }
+  apiBaseDiagnostics.add(key);
+
+  const detail = {
+    reason,
+    raw,
+    pageHost,
+    targetHost,
+    fallback: '/api',
+  };
+
+  console.error('[BEGA] API base misconfiguration detected on public host', detail);
+
+  window.dispatchEvent(new CustomEvent(API_BASE_DIAGNOSTIC_EVENT, { detail }));
+};
+
 const shouldUseRelativeApiBase = (
   pageHost: string,
   targetHost: string,
@@ -78,28 +111,32 @@ export const getApiBaseUrl = (value = viteEnv.VITE_API_BASE_URL): string => {
 
   const fallback = '/api';
   const raw = (value ?? '').trim();
+  const pageHost = typeof window !== 'undefined' ? normalizeHost(window.location.hostname) : '';
 
   if (!raw) {
+    reportApiBaseDiagnostic('missing', raw, pageHost);
     return fallback;
   }
 
   const isAbsolute = /^https?:\/\//i.test(raw);
   if (!isAbsolute) {
+    reportApiBaseDiagnostic('relative', raw, pageHost);
     return normalizeRelativePath(ensureApiPath(raw));
   }
 
   try {
     const target = new URL(raw);
-    const pageHost = typeof window !== 'undefined' ? normalizeHost(window.location.hostname) : '';
     const targetHost = normalizeHost(target.hostname);
 
     if (shouldUseRelativeApiBase(pageHost, targetHost)) {
+      reportApiBaseDiagnostic('same-origin', raw, pageHost, targetHost);
       return fallback;
     }
 
     const base = `${target.protocol}//${target.host}`;
     return `${base}${normalizeAbsoluteApiPath(target.pathname)}`;
   } catch {
+    reportApiBaseDiagnostic('invalid', raw, pageHost);
     return fallback;
   }
 };

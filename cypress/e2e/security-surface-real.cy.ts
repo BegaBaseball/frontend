@@ -14,6 +14,10 @@ describe('Security surface real smoke', () => {
     const value = envVars[key];
     return typeof value === 'string' ? value : undefined;
   };
+  const getConfiguredEnvVars = (): EnvVars => {
+    const config = Cypress.config() as unknown as { env?: EnvVars };
+    return config.env && typeof config.env === 'object' ? config.env : {};
+  };
 
   const resolveBaseOrigin = () => {
     const baseUrl = Cypress.config('baseUrl');
@@ -72,7 +76,7 @@ describe('Security surface real smoke', () => {
 
   const resolveBackendBaseUrl = (): Cypress.Chainable<string | undefined> =>
     cy.wrap(null, { log: false }).then(() => {
-      const envVars = Cypress.env() as EnvVars;
+      const envVars = getConfiguredEnvVars();
       const backendBaseUrl =
         normalizeBackendBaseUrl(getEnvString(envVars, 'BACKEND_BASE_URL'))
         || normalizeBackendBaseUrl(getEnvString(envVars, 'SMOKE_API_BASE_URL'))
@@ -225,7 +229,7 @@ describe('Security surface real smoke', () => {
 
   const loginAsNormalUser = (): Cypress.Chainable<boolean | undefined> => {
     return cy.wrap(null, { log: false }).then(() => {
-      const envVars = Cypress.env() as EnvVars;
+      const envVars = getConfiguredEnvVars();
       const configuredEmail = getEnvString(envVars, 'SMOKE_LOGIN_EMAIL');
       const configuredPassword = getEnvString(envVars, 'SMOKE_LOGIN_PASSWORD');
 

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { ErrorModalContextType, ErrorData, ErrorModalState, GlobalApiErrorDetail } from '../../types/error';
+import { shouldIgnoreGlobalApiError } from './errorModalGuards';
 
 // 1. Context 생성 (초기값은 null, 타입 지정)
 const ErrorModalContext = createContext<ErrorModalContextType | null>(null);
@@ -11,8 +12,6 @@ interface ErrorModalProviderProps {
 
 // 2. Provider 컴포넌트
 export function ErrorModalProvider({ children }: ErrorModalProviderProps) {
-    const shouldSkipServerErrorsInDev = import.meta.env.DEV
-        && import.meta.env.VITE_DISABLE_SERVER_ERROR_MODAL !== 'false';
     const initialState: ErrorModalState = {
         isOpen: false,
         message: '',
@@ -45,25 +44,12 @@ export function ErrorModalProvider({ children }: ErrorModalProviderProps) {
         const handleGlobalError = (event: Event) => {
             const customEvent = event as CustomEvent<GlobalApiErrorDetail | undefined>;
             const errorData = customEvent.detail;
-            const responseCode = errorData?.responseCode;
-            if (responseCode === 'INVALID_AUTHOR') {
+            if (shouldIgnoreGlobalApiError(errorData, window.location.pathname)) {
                 return;
             }
+
             const message = (errorData?.message || '').toString();
             const statusCode = errorData?.statusCode ?? null;
-            const normalizedMessage = message.toLowerCase();
-            const isCanceledError = statusCode === 0 && (
-                normalizedMessage.includes('canceled')
-                || normalizedMessage.includes('aborted')
-                || normalizedMessage.includes('abort')
-            );
-            if (isCanceledError) {
-                return;
-            }
-            if (shouldSkipServerErrorsInDev && statusCode !== null && statusCode >= 500) {
-                console.warn('[global-api-error] server error received, modal disabled in dev:', message);
-                return;
-            }
             openErrorModal({
                 message,
                 statusCode,
@@ -77,7 +63,7 @@ export function ErrorModalProvider({ children }: ErrorModalProviderProps) {
         return () => {
             window.removeEventListener('global-api-error', handleGlobalError);
         };
-    }, [openErrorModal, shouldSkipServerErrorsInDev]);
+    }, [openErrorModal]);
 
     const value: ErrorModalContextType = {
         ...state,
