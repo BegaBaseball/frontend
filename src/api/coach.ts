@@ -1,5 +1,6 @@
 
 import api from './axios';
+import { consumeSseStream } from './sse';
 import {
     COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS,
     DEFAULT_STREAM_TIMEOUT_MS,
@@ -7,7 +8,6 @@ import {
     CHATBOT_STREAM_TIMEOUT_ERROR,
     isStreamReadTimeoutError,
     isStreamRequestTimeoutError,
-    readWithTimeout,
     requestStream,
 } from './stream';
 
@@ -407,7 +407,7 @@ export async function analyzeTeam(
     }
 
     // Handle Streaming (SSE)
-    const reader = response.body?.getReader();
+    const responseBody = response.body;
     const decoder = new TextDecoder();
     let fullAnswer = "";
     let toolCalls: Array<unknown> = [];
@@ -432,11 +432,8 @@ export async function analyzeTeam(
     let supportedFactCount: number | undefined = undefined;
     let gameStatusBucket: string | undefined = undefined;
 
-    if (reader) {
+    if (responseBody) {
         try {
-            let currentEvent = 'message';  // Default event type
-            let buffer = '';  // Buffer for incomplete SSE lines
-
             const handleMetaPayload = (parsed: Record<string, unknown>) => {
                 if (parsed.structured_response) {
                     structuredData = parsed.structured_response as CoachStructuredResponse;
@@ -501,65 +498,31 @@ export async function analyzeTeam(
                 }
             };
 
-            const processSseLine = (line: string) => {
-                const trimmedLine = line.trim();
+            await consumeSseStream(responseBody, {
+                timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+                onEvent: ({ event, data: dataStr }) => {
+                    if (event !== 'message' && event !== 'meta') {
+                        return;
+                    }
 
-                // Empty line = SSE event boundary, reset event type per spec
-                if (trimmedLine === '') {
-                    currentEvent = 'message';
-                    return;
-                }
+                    let parsed: Record<string, unknown>;
+                    try {
+                        parsed = JSON.parse(dataStr) as Record<string, unknown>;
+                    } catch {
+                        return;
+                    }
 
-                // Parse event type
-                if (trimmedLine.startsWith('event:')) {
-                    currentEvent = trimmedLine.slice(6).trim();
-                    return;
-                }
-
-                if (!trimmedLine.startsWith('data:')) {
-                    return;
-                }
-
-                const dataStr = trimmedLine.slice(5).trim();
-                if (dataStr === '[DONE]') return;
-
-                try {
-                    const parsed = JSON.parse(dataStr) as Record<string, unknown>;
-
-                    if (currentEvent === 'message' && typeof parsed.delta === 'string') {
+                    if (event === 'message' && typeof parsed.delta === 'string') {
                         fullAnswer += parsed.delta;
                         if (onStream) onStream(fullAnswer);
                         return;
                     }
 
-                    if (currentEvent === 'meta') {
+                    if (event === 'meta') {
                         handleMetaPayload(parsed);
                     }
-                } catch {
-                    // ignore partial json
-                }
-            };
-
-            while (true) {
-                const { done, value } = await readWithTimeout(() => reader.read(), DEFAULT_STREAM_TIMEOUT_MS);
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-
-                // Keep incomplete last line in buffer
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    processSseLine(line);
-                }
-            }
-
-            // Process remaining buffer after stream ends, including a final event without trailing newline.
-            const remainingLines = buffer.split('\n');
-            for (const line of remainingLines) {
-                processSseLine(line);
-            }
+                },
+            });
         } catch (error) {
             if (isStreamReadTimeoutError(error)) {
                 throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);

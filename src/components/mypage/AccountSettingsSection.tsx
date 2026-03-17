@@ -255,7 +255,9 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
   const removeTrustedDeviceMutation = useMutation({
     mutationFn: (deviceId: number) => deleteTrustedDevice(deviceId),
     onSuccess: () => {
-      toast.success('신뢰 기기가 해제되었습니다.');
+      toast.success('신뢰 기기가 해제되었습니다.', {
+        description: '현재 로그인 세션은 유지되고, 다음 로그인부터 새 기기로 다시 감지됩니다.',
+      });
       refetchTrustedDevices();
       refetchSecurityEvents();
     },
@@ -706,7 +708,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
                 </span>
               </div>
               <p className="mb-4 text-xs text-muted-foreground">
-                로그인 성공 시 자동 등록된 기기 목록입니다. 해제하면 다음 로그인 시 새 기기로 다시 감지됩니다.
+                로그인 성공 시 자동 등록된 기기 목록입니다. 해제해도 현재 로그인 세션은 유지되며, 다음 로그인부터 새 기기로 다시 감지됩니다.
               </p>
               {isTrustedDevicesLoading ? (
                 <p className="text-xs text-muted-foreground">신뢰 기기 정보를 불러오는 중입니다.</p>

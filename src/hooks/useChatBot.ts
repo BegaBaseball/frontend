@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Message } from '../types/chatbot';
 import { buildHistoryPayload } from '../utils/chatbot';
-import { sendChatMessageStream, convertVoiceToText, RateLimitError } from '../api/chatbot';
+import { sendChatMessageStream, convertVoiceToText, RateLimitError, ChatStreamEventError } from '../api/chatbot';
 import {
   CHATBOT_STATUS_RATE_LIMIT,
   CHATBOT_STATUS_SERVICE_UNAVAILABLE,
   CHATBOT_STREAM_TIMEOUT_ERROR,
   CHATBOT_STREAM_INCOMPLETE_ERROR,
+  CHATBOT_STREAM_TEMPORARY_ERROR,
   isChatStreamStatusError,
 } from '../api/stream';
 import { useAuthSession } from '../store/authStore';
@@ -184,6 +185,17 @@ export const useChatBot = (initialOpen = false) => {
     }
   }, [messages, isOpen]);
 
+  const markLastBotMessageAsError = () => {
+    setMessages((prev) => {
+      if (prev.length === 0) return prev;
+      const lastMsg = prev[prev.length - 1];
+      if (lastMsg.sender !== 'bot') return prev;
+      return prev.map((msg, index) =>
+        index === prev.length - 1 ? { ...msg, isError: true } : msg
+      );
+    });
+  };
+
   // ========== Process Message ==========
   const processMessage = async (messageToProcess: Message) => {
     setIsTyping(true);
@@ -202,20 +214,6 @@ export const useChatBot = (initialOpen = false) => {
         (delta: string) => {
           // 서버에서 받은 청크를 버퍼에 추가
           streamingBuffer.current += delta;
-        },
-        (_error: string) => {
-          setIsTyping(false);
-          // 스트림 오류 발생 시 마지막 봇 메시지에 isError 플래그 설정
-          setMessages((prev) => {
-            if (prev.length === 0) return prev;
-            const lastMsg = prev[prev.length - 1];
-            if (lastMsg.sender === 'bot') {
-              return prev.map((msg, index) =>
-                index === prev.length - 1 ? { ...msg, isError: true } : msg
-              );
-            }
-            return prev;
-          });
         },
         (meta) => {
           // 메타데이터를 현재 봇 메시지에 저장
@@ -250,8 +248,6 @@ export const useChatBot = (initialOpen = false) => {
     } catch (error) {
       console.error('Chat Error:', error);
 
-      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
-
       if (error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
         const nextFailureCount = Math.min(failureCount + 1, 3);
         const backoffSeconds = Math.min(DEFAULT_RETRY_SECONDS * Math.pow(2, nextFailureCount - 1), MAX_BACKOFF_SECONDS);
@@ -264,51 +260,22 @@ export const useChatBot = (initialOpen = false) => {
         setRateLimitUntil(Date.now() + waitSeconds * 1000);
       } else if (isChatStreamStatusError(error, CHATBOT_STATUS_SERVICE_UNAVAILABLE)) {
         toast.error('서비스 점검 중이거나 일시적인 오류입니다.');
-        setMessages((prev) => {
-          if (prev.length === 0) return prev;
-          const lastMsg = prev[prev.length - 1];
-          if (lastMsg.sender === 'bot') {
-            return prev.map((msg, index) =>
-              index === prev.length - 1 ? { ...msg, isError: true } : msg
-            );
-          }
-          return prev;
-        });
+        markLastBotMessageAsError();
       } else if (isChatStreamStatusError(error, CHATBOT_STREAM_TIMEOUT_ERROR)) {
         toast.error('응답 시간이 초과되었습니다.');
-        setMessages((prev) => {
-          if (prev.length === 0) return prev;
-          const lastMsg = prev[prev.length - 1];
-          if (lastMsg.sender === 'bot') {
-            return prev.map((msg, index) =>
-              index === prev.length - 1 ? { ...msg, isError: true } : msg
-            );
-          }
-          return prev;
-        });
+        markLastBotMessageAsError();
       } else if (isChatStreamStatusError(error, CHATBOT_STREAM_INCOMPLETE_ERROR)) {
         toast.error('응답이 중단되었습니다. 다시 시도해주세요.');
-        setMessages((prev) => {
-          if (prev.length === 0) return prev;
-          const lastMsg = prev[prev.length - 1];
-          if (lastMsg.sender === 'bot') {
-            return prev.map((msg, index) =>
-              index === prev.length - 1 ? { ...msg, isError: true } : msg
-            );
-          }
-          return prev;
-        });
+        markLastBotMessageAsError();
+      } else if (error instanceof ChatStreamEventError || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
+        toast.error(
+          error instanceof ChatStreamEventError
+            ? error.detail || '일시적인 오류가 발생했습니다. 다시 시도해주세요.'
+            : '일시적인 오류가 발생했습니다. 다시 시도해주세요.',
+        );
+        markLastBotMessageAsError();
       } else {
-        setMessages((prev) => {
-          if (prev.length === 0) return prev;
-          const lastMsg = prev[prev.length - 1];
-          if (lastMsg.sender === 'bot') {
-            return prev.map((msg, index) =>
-              index === prev.length - 1 ? { ...msg, isError: true } : msg
-            );
-          }
-          return prev;
-        });
+        markLastBotMessageAsError();
       }
 
       if (!(error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT))) {
