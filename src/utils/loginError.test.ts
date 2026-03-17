@@ -29,3 +29,10 @@ test('oauth2_link_conflict를 사용자 안내 문구로 매핑한다', () => {
     '이미 다른 계정에 연결된 소셜 계정입니다. 다른 계정으로는 연동할 수 없습니다.',
   );
 });
+
+test('oauth2_state_store_unavailable를 사용자 안내 문구로 매핑한다', () => {
+  assert.equal(
+    getLoginQueryErrorMessage('?error=oauth2_state_store_unavailable'),
+    '로그인 상태를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.',
+  );
+});

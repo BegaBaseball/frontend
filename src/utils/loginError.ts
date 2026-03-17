@@ -28,6 +28,8 @@ export const getLoginQueryErrorMessage = (search: string): string | null => {
       return '계정 연동 처리 중 오류가 발생했습니다. 다시 시도해주세요.';
     case 'oauth2_provider_payload_invalid':
       return '소셜 로그인 응답이 올바르지 않습니다. 다시 시도해주세요.';
+    case 'oauth2_state_store_unavailable':
+      return '로그인 상태를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.';
     case 'user_not_found_after_auth':
       return '소셜 로그인 처리 후 계정을 찾지 못했습니다. 다시 시도해주세요.';
     case 'oauth2_auth_failed':
