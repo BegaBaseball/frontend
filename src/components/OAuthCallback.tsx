@@ -1,4 +1,5 @@
 // src/components/OAuthCallback.tsx
+import { AxiosError } from 'axios';
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthProfileActions } from '../store/authStore';
@@ -58,7 +59,14 @@ export default function OAuthCallback() {
         } else {
           scheduleRetryRedirect('oauth2_provider_payload_invalid');
         }
-      } catch {
+      } catch (error) {
+        const responseCode = error instanceof AxiosError
+          ? (error.response?.data as { code?: string } | undefined)?.code
+          : undefined;
+        if (responseCode === 'OAUTH2_STATE_NOT_FOUND') {
+          scheduleRetryRedirect('invalid_oauth2_request');
+          return;
+        }
         scheduleRetryRedirect('oauth2_auth_failed');
       }
     })();

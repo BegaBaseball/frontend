@@ -10,12 +10,14 @@ export const CHATBOT_STATUS_RATE_LIMIT = 'STATUS_429';
 export const CHATBOT_STATUS_SERVICE_UNAVAILABLE = 'STATUS_503';
 export const CHATBOT_STREAM_TIMEOUT_ERROR = 'STREAM_TIMEOUT';
 export const CHATBOT_STREAM_INCOMPLETE_ERROR = 'INCOMPLETE_STREAM';
+export const CHATBOT_STREAM_TEMPORARY_ERROR = 'TEMPORARY_STREAM_ERROR';
 
 export type ChatStreamStatusCode =
   | typeof CHATBOT_STATUS_RATE_LIMIT
   | typeof CHATBOT_STATUS_SERVICE_UNAVAILABLE
   | typeof CHATBOT_STREAM_TIMEOUT_ERROR
-  | typeof CHATBOT_STREAM_INCOMPLETE_ERROR;
+  | typeof CHATBOT_STREAM_INCOMPLETE_ERROR
+  | typeof CHATBOT_STREAM_TEMPORARY_ERROR;
 
 export const isChatStreamStatusError = (error: unknown, statusCode: ChatStreamStatusCode): boolean =>
   error instanceof Error && error.message === statusCode;
