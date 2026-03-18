@@ -627,6 +627,7 @@ export default function CoachBriefing({
             if (inFlightRef.current.has(requestCacheKey)) return;
 
             const controller = new AbortController();
+            let keepLoadingAfterResponse = false;
             abortRef.current = controller;
             setAiBriefing(null);
             setBriefingMeta(null);
@@ -658,9 +659,8 @@ export default function CoachBriefing({
                 .then((response) => {
                     if (!active) return;
 
-                    // in_progress 또는 FAILED_LOCKED 상태는 캐시 저장 안 함
-                    const isTransientState = response.in_progress === true ||
-                        response.cache_state === 'FAILED_LOCKED';
+                    const shouldRetry = response.in_progress === true
+                        || response.cache_state === 'FAILED_LOCKED';
 
                     const normalizedResponse = normalizeBriefing({
                         title: response.structuredData?.headline,
@@ -690,19 +690,19 @@ export default function CoachBriefing({
                       supportedFactCount: response.supported_fact_count,
                     });
 
-                    const scheduleRetryIfNeeded = (inProgress: boolean) => {
-                        if (!inProgress) {
+                    const scheduleRetryIfNeeded = (retryable: boolean) => {
+                        if (!retryable) {
                             clearRetryTimer();
                             retryCountRef.current = 0;
                             setRetryCount(0);
-                            return;
+                            return false;
                         }
 
                         const currentRetryCount = retryCountRef.current;
                         if (currentRetryCount >= MAX_COACH_RETRIES) {
                             clearRetryTimer();
                             applyFallbackBriefing(fallbackRetryMessage);
-                            return;
+                            return false;
                         }
 
                         clearRetryTimer();
@@ -720,14 +720,18 @@ export default function CoachBriefing({
                             retryCountRef.current = nextRetryCount;
                             setRetryCount(nextRetryCount);
                         }, backoffMs);
+                        return true;
                     };
 
-                    if (!isTransientState && normalizedResponse) {
+                    if (normalizedResponse && !shouldRetry) {
                         persistCoachBriefingCache(normalizedResponse, normalizedMeta);
                     }
 
-                    const inProgress = response.in_progress ?? false;
-                    scheduleRetryIfNeeded(inProgress);
+                    keepLoadingAfterResponse = scheduleRetryIfNeeded(shouldRetry);
+
+                    if (shouldRetry) {
+                        return;
+                    }
 
                     if (normalizedResponse) {
                         setAiBriefing(normalizedResponse);
@@ -764,7 +768,7 @@ export default function CoachBriefing({
                 .finally(() => {
                     inFlightRef.current.delete(requestCacheKey);
                     if (active) {
-                        setAiLoading(false);
+                        setAiLoading(keepLoadingAfterResponse);
                     }
                 });
         };
@@ -919,7 +923,7 @@ export default function CoachBriefing({
                                     key={activeTitle}
                                     initial={{ opacity: 0, y: 4 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 leading-tight tracking-tight truncate"
+                                    className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 leading-tight tracking-tight break-keep"
                                 >
                                     {activeTitle}
                                 </motion.h4>

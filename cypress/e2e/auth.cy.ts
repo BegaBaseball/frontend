@@ -85,6 +85,40 @@ describe('Authentication Flow', () => {
             });
         });
 
+        it('should return to login with a session error when profile verification fails after successful login', () => {
+            cy.fixture('user').then((user) => {
+                cy.intercept('POST', '**/api/auth/login', {
+                    statusCode: 200,
+                    body: {
+                        success: true,
+                        data: {
+                            accessToken: 'fake-jwt-token',
+                            refreshToken: 'fake-refresh-token',
+                            ...user.testUser,
+                        },
+                    },
+                }).as('loginSuccessSessionFailure');
+
+                cy.intercept('GET', '**/auth/mypage*', {
+                    statusCode: 401,
+                    body: { success: false, code: 'UNAUTHORIZED', message: 'Unauthorized' },
+                }).as('getMeAfterLoginFailure');
+
+                cy.visit('/login?redirect=%2Fprediction%3Fdate%3D2026-03-12');
+
+                cy.get('input[type="email"], input[name="email"]').type(user.testUser.email);
+                cy.get('input[type="password"], input[name="password"]').type(user.testUser.password);
+                cy.get('button[type="submit"]').click();
+
+                cy.wait('@loginSuccessSessionFailure');
+                cy.wait('@getMeAfterLoginFailure');
+                cy.location('pathname').should('eq', '/login');
+                cy.location('search').should('include', 'redirect=%2Fprediction%3Fdate%3D2026-03-12');
+                cy.location('search').should('include', 'error=auth_session_not_established');
+                cy.contains('로그인 처리 후 세션을 확인하지 못했습니다. 다시 시도해주세요.').should('be.visible');
+            });
+        });
+
         it('should preserve redirect when navigating to password reset', () => {
             cy.visit('/login?redirect=%2Fprediction%3Fdate%3D2026-03-12');
 
@@ -383,6 +417,30 @@ describe('Authentication Flow', () => {
             cy.location('search').should('include', 'date=2026-02-11');
         });
 
+        it('should return to account settings when callback status is linked', () => {
+            cy.intercept('GET', '**/api/auth/oauth2/state/state-linked', {
+                statusCode: 200,
+                body: {
+                    email: 'slugger@example.com',
+                    name: 'Slugger',
+                    role: 'ROLE_USER',
+                    profileImageUrl: null,
+                    favoriteTeam: 'LG',
+                    handle: 'slugger',
+                },
+            }).as('consumeOAuthStateLinked');
+
+            cy.visit('/oauth/callback?state=state-linked&status=linked', {
+                onBeforeLoad(win) {
+                    win.sessionStorage.setItem('pendingLoginRedirect', '/prediction?date=2026-02-11');
+                },
+            });
+
+            cy.wait('@consumeOAuthStateLinked');
+            cy.location('pathname').should('eq', '/mypage');
+            cy.location('search').should('eq', '?view=accountSettings');
+        });
+
         it('should preserve pending redirect and show a friendly error when callback state is missing', () => {
             cy.visit('/oauth/callback', {
                 onBeforeLoad(win) {
@@ -416,6 +474,41 @@ describe('Authentication Flow', () => {
             cy.location('search').should('include', 'redirect=%2Fmate%2F777%2Fchat');
             cy.location('search').should('include', 'error=oauth2_auth_failed');
             cy.contains('소셜 로그인에 실패했습니다. 다시 시도해주세요.').should('be.visible');
+        });
+
+        it('should return to login with a session error when callback profile verification fails', () => {
+            cy.clock();
+            cy.intercept('GET', '**/api/auth/oauth2/state/state-profile-failure', {
+                statusCode: 200,
+                body: {
+                    email: 'slugger@example.com',
+                    name: 'Slugger',
+                    role: 'ROLE_USER',
+                    profileImageUrl: null,
+                    favoriteTeam: 'LG',
+                    handle: 'slugger',
+                },
+            }).as('consumeOAuthStateProfileFailure');
+
+            cy.intercept('GET', '**/auth/mypage*', {
+                statusCode: 401,
+                body: { success: false, code: 'UNAUTHORIZED', message: 'Unauthorized' },
+            }).as('getMeAfterCallbackFailure');
+
+            cy.visit('/oauth/callback?state=state-profile-failure', {
+                onBeforeLoad(win) {
+                    win.sessionStorage.setItem('pendingLoginRedirect', '/mate/777/chat');
+                },
+            });
+
+            cy.wait('@consumeOAuthStateProfileFailure');
+            cy.wait('@getMeAfterCallbackFailure');
+            cy.contains('로그인 처리에 실패했습니다.').should('be.visible');
+            cy.tick(2000);
+            cy.location('pathname').should('eq', '/login');
+            cy.location('search').should('include', 'redirect=%2Fmate%2F777%2Fchat');
+            cy.location('search').should('include', 'error=auth_session_not_established');
+            cy.contains('로그인 처리 후 세션을 확인하지 못했습니다. 다시 시도해주세요.').should('be.visible');
         });
     });
 });

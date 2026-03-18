@@ -81,6 +81,15 @@ describe('Home error UX', () => {
     cy.get('@getHomeWidgets.all').should('have.length', 1);
   });
 
+  it('does not request mypage for anonymous root landing entry', () => {
+    cy.visit('/', {
+      onBeforeLoad: seedAnonymousHomeState,
+    });
+
+    cy.contains('야구를 더 스마트하게', { timeout: 15000 }).should('be.visible');
+    cy.get('@getMeAnonymous.all').should('have.length', 0);
+  });
+
   it('falls back to legacy home data when bootstrap returns 500 without looping', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 500,

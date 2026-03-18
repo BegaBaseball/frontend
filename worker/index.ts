@@ -1,0 +1,65 @@
+interface AssetsBinding {
+  fetch(input: Request | string | URL, init?: RequestInit): Promise<Response>;
+}
+
+interface Env {
+  ASSETS: AssetsBinding;
+}
+
+function shouldRedirectToCanonicalHost(url: URL): boolean {
+  return url.hostname === 'begabaseball.xyz';
+}
+
+function buildCanonicalRedirect(url: URL): Response {
+  const targetUrl = new URL(url.toString());
+  targetUrl.protocol = 'https:';
+  targetUrl.hostname = 'www.begabaseball.xyz';
+  return Response.redirect(targetUrl.toString(), 301);
+}
+
+function isApiPath(pathname: string): boolean {
+  return pathname === '/api' || pathname.startsWith('/api/');
+}
+
+function isHtmlNavigation(request: Request): boolean {
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return false;
+  }
+
+  const accept = request.headers.get('accept') ?? '';
+  return accept.includes('text/html');
+}
+
+async function serveSpaAsset(request: Request, env: Env): Promise<Response> {
+  const assetResponse = await env.ASSETS.fetch(request);
+  if (assetResponse.status !== 404 || !isHtmlNavigation(request)) {
+    return assetResponse;
+  }
+
+  const fallbackUrl = new URL('/index.html', request.url);
+  return env.ASSETS.fetch(new Request(fallbackUrl.toString(), request));
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (shouldRedirectToCanonicalHost(url)) {
+      return buildCanonicalRedirect(url);
+    }
+
+    if (isApiPath(url.pathname)) {
+      return new Response(null, { status: 404 });
+    }
+
+    return serveSpaAsset(request, env);
+  },
+};
+
+export {
+  buildCanonicalRedirect,
+  isApiPath,
+  isHtmlNavigation,
+  serveSpaAsset,
+  shouldRedirectToCanonicalHost,
+};

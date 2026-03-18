@@ -46,3 +46,45 @@ test('sendChatMessageStream rejects when SSE error event is received', async (t)
     },
   );
 });
+
+test('sendChatMessageStream normalizes meta payload into shared AI shapes', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: meta\n',
+    'data: {"verified":true,"cached":true,"intent":"team_summary","strategy":"rag_v3","style":"compact","data_sources":[{"title":"KBO","url":"https://example.com/source"}],"tool_calls":[{"tool_name":"document_query","parameters":{"team":"KIA"}}]}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  let metaPayload: {
+    verified: boolean;
+    cached?: boolean;
+    intent?: string;
+    strategy?: string;
+    style: string;
+    dataSources: Array<{ title: string; url?: string; content?: string }>;
+    toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
+  } | null = null;
+
+  await sendChatMessageStream(
+    { question: '테스트 질문', history: null },
+    () => undefined,
+    (meta) => {
+      metaPayload = meta;
+    },
+  );
+
+  assert.notEqual(metaPayload, null);
+  assert.equal(metaPayload?.verified, true);
+  assert.equal(metaPayload?.cached, true);
+  assert.equal(metaPayload?.intent, 'team_summary');
+  assert.equal(metaPayload?.strategy, 'rag_v3');
+  assert.equal(metaPayload?.style, 'compact');
+  assert.deepEqual(metaPayload?.dataSources, [
+    { title: 'KBO', url: 'https://example.com/source', content: undefined },
+  ]);
+  assert.deepEqual(metaPayload?.toolCalls, [
+    { toolName: 'document_query', parameters: { team: 'KIA' } },
+  ]);
+});
