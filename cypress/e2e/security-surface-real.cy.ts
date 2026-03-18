@@ -116,21 +116,22 @@ describe('Security surface real smoke', () => {
           return;
         }
 
+        const healthUrl = buildBackendUrl(backendBaseUrl, '/actuator/health');
+
         try {
           const response = await (cy.request({
             method: 'GET',
-            url: buildBackendUrl(backendBaseUrl, '/actuator/health'),
+            url: healthUrl,
             failOnStatusCode: false,
           }) as unknown as Promise<Cypress.Response<unknown>>);
 
           if (!isBackendHealthResponse(response)) {
-            cy.log('Skipping security-surface-real: /actuator/health did not return backend JSON payload.');
-            this.skip();
+            const contentType = String(response.headers['content-type'] || 'unknown');
+            throw new Error(`backend health endpoint did not return JSON payload (status=${response.status}, content-type=${contentType}, url=${healthUrl})`);
           }
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : String(error);
-          cy.log(`Skipping security-surface-real: backend health check failed (${message}).`);
-          this.skip();
+          throw new Error(`security-surface-real backend health check failed (${message})`);
         }
       });
   });

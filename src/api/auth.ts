@@ -443,6 +443,9 @@ export interface OAuth2StateData {
  * OAuth2 로그인 state에서 사용자 정보를 조회합니다 (일회성).
  */
 export const consumeOAuth2State = async (stateId: string): Promise<OAuth2StateData> => {
-  const response = await api.get<OAuth2StateData>(`/auth/oauth2/state/${stateId}`);
+  const response = await api.get<OAuth2StateData>(`/auth/oauth2/state/${stateId}`, {
+    skipGlobalErrorHandler: true,
+    skipAuthSessionHandling: true,
+  });
   return response.data;
 };
