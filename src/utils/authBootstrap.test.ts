@@ -55,9 +55,29 @@ test('익명 홈 진입은 persisted auth hint가 없으면 공개 홈 모드로
   );
 });
 
+test('익명 루트 진입은 persisted auth hint가 없으면 공개 홈 모드로 남긴다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+    }),
+    'public-home',
+  );
+});
+
 test('persisted auth hint가 있으면 홈에서 deferred revalidation을 유지한다', () => {
   assert.equal(
     resolveAuthBootstrapMode('/home', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: true,
+    }),
+    'defer',
+  );
+});
+
+test('persisted auth hint가 있으면 루트에서 deferred revalidation을 유지한다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/', {
       isLoggedIn: false,
       hasPersistedAuthHint: true,
     }),

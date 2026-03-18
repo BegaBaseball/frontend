@@ -100,6 +100,9 @@ test('analyzeTeam은 SSE 이벤트 경계 뒤에는 event 타입을 message로 �
     '\n',
     'data: {"delta":"경계 이후 메시지"}\n',
     '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
   ]) as never);
 
   const response = await analyzeTeam(baseRequest);
@@ -108,13 +111,40 @@ test('analyzeTeam은 SSE 이벤트 경계 뒤에는 event 타입을 message로 �
   assert.deepEqual(response.resolved_focus, ['recent_form']);
 });
 
-test('analyzeTeam은 trailing newline 없는 마지막 meta 이벤트도 파싱한다', async (t) => {
+test('analyzeTeam은 SSE error 이벤트를 분석 실패로 승격한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: meta\n',
+    'data: {"request_mode":"manual_detail"}\n',
+    '\n',
+    'event: error\n',
+    'data: {"code":"coach_internal_error","message":"분석 중 오류가 발생했습니다."}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'REQUEST_FAILED');
+      assert.equal(error.message, '분석 중 오류가 발생했습니다.');
+      return true;
+    },
+  );
+});
+
+test('analyzeTeam은 trailing newline 없는 마지막 done 이벤트도 파싱한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: message\n',
     'data: {"delta":"첫 문장"}\n',
     '\n',
     'event: meta\n',
-    'data: {"structured_response":{"headline":"메타 헤드라인","sentiment":"positive","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"상세 리포트","coach_note":"코치 노트"},"game_status_bucket":"COMPLETED","grounding_warnings":["근거 주의"],"resolved_focus":["recent_form"]}',
+    'data: {"structured_response":{"headline":"메타 헤드라인","sentiment":"positive","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"상세 리포트","coach_note":"코치 노트"},"game_status_bucket":"COMPLETED","grounding_warnings":["근거 주의"],"resolved_focus":["recent_form"]}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]',
   ]) as never);
 
   const response = await analyzeTeam(baseRequest);
@@ -127,13 +157,54 @@ test('analyzeTeam은 trailing newline 없는 마지막 meta 이벤트도 파싱�
   assert.deepEqual(response.resolved_focus, ['recent_form']);
 });
 
-test('analyzeTeam은 trailing newline 없는 마지막 message delta를 누적한다', async (t) => {
+test('analyzeTeam은 AI 메타의 tool_calls와 data_sources를 정규화한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: meta\n',
+    'data: {"tool_calls":[{"tool_name":"database_query","parameters":{"team":"LG"}}],"data_sources":[{"title":"KBO 기록실","url":"https://example.com/kbo"}]}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  const response = await analyzeTeam(baseRequest);
+
+  assert.deepEqual(response.tool_calls, [
+    { toolName: 'database_query', parameters: { team: 'LG' } },
+  ]);
+  assert.deepEqual(response.data_sources, [
+    { title: 'KBO 기록실', url: 'https://example.com/kbo', content: undefined },
+  ]);
+});
+
+test('analyzeTeam은 DONE 없이 종료된 스트림을 분석 실패로 처리한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: message\n',
+    'data: {"delta":"중간 응답"}\n',
+    '\n',
+  ]) as never);
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'REQUEST_FAILED');
+      assert.equal(error.message, '분석 중 오류가 발생했습니다.');
+      return true;
+    },
+  );
+});
+
+test('analyzeTeam은 message delta를 누적하고 done으로 종료한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: message\n',
     'data: {"delta":"첫"}\n',
     '\n',
     'event: message\n',
-    'data: {"delta":" 문장"}',
+    'data: {"delta":" 문장"}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]',
   ]) as never);
 
   const streamed: string[] = [];
