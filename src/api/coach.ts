@@ -1,13 +1,16 @@
 
+import { AiDataSource, AiStreamMetaPayload, AiToolCall } from '../types/ai';
 import api from './axios';
+import { normalizeAiDataSources, normalizeAiToolCalls } from './aiMeta';
+import { consumeSseStream } from './sse';
 import {
     COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS,
     DEFAULT_STREAM_TIMEOUT_MS,
     getStreamRetryDelayMs,
+    CHATBOT_STREAM_INCOMPLETE_ERROR,
     CHATBOT_STREAM_TIMEOUT_ERROR,
     isStreamReadTimeoutError,
     isStreamRequestTimeoutError,
-    readWithTimeout,
     requestStream,
 } from './stream';
 
@@ -152,9 +155,9 @@ export interface CoachAnalyzeResponse {
     request_mode?: CoachRequestMode;
     raw_answer?: string;  // For debugging
     answer?: string;
-    tool_calls?: Array<unknown>;
+    tool_calls?: AiToolCall[];
     verified?: boolean;
-    data_sources?: Array<unknown>;
+    data_sources?: AiDataSource[];
     error?: string;
     structuredData?: CoachStructuredResponse;  // Parsed response from meta event
     resolved_focus?: string[];
@@ -221,6 +224,9 @@ export class CoachAnalyzeError extends Error {
 
 export const isCoachAnalyzeError = (error: unknown): error is CoachAnalyzeError =>
     error instanceof CoachAnalyzeError;
+
+const createCoachRequestFailedError = (message = '분석 중 오류가 발생했습니다.'): CoachAnalyzeError =>
+    new CoachAnalyzeError('REQUEST_FAILED', message);
 
 function isAbortLikeError(error: unknown): boolean {
     if (error instanceof DOMException && error.name === 'AbortError') {
@@ -407,12 +413,11 @@ export async function analyzeTeam(
     }
 
     // Handle Streaming (SSE)
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
+    const responseBody = response.body;
     let fullAnswer = "";
-    let toolCalls: Array<unknown> = [];
+    let toolCalls: AiToolCall[] = [];
     let verified = false;
-    let dataSources: Array<unknown> = [];
+    let dataSources: AiDataSource[] = [];
     let structuredData: CoachStructuredResponse | undefined = undefined;
     let resolvedFocus: string[] | undefined = undefined;
     let focusSignature: string | undefined = undefined;
@@ -432,18 +437,15 @@ export async function analyzeTeam(
     let supportedFactCount: number | undefined = undefined;
     let gameStatusBucket: string | undefined = undefined;
 
-    if (reader) {
+    if (responseBody) {
         try {
-            let currentEvent = 'message';  // Default event type
-            let buffer = '';  // Buffer for incomplete SSE lines
-
-            const handleMetaPayload = (parsed: Record<string, unknown>) => {
+            const handleMetaPayload = (parsed: AiStreamMetaPayload & Record<string, unknown>) => {
                 if (parsed.structured_response) {
                     structuredData = parsed.structured_response as CoachStructuredResponse;
                 }
-                if (parsed.tool_calls) toolCalls = parsed.tool_calls as Array<unknown>;
+                if (parsed.tool_calls) toolCalls = normalizeAiToolCalls(parsed.tool_calls);
                 if (parsed.verified !== undefined) verified = parsed.verified as boolean;
-                if (parsed.data_sources) dataSources = parsed.data_sources as Array<unknown>;
+                if (parsed.data_sources) dataSources = normalizeAiDataSources(parsed.data_sources);
                 if (Array.isArray(parsed.resolved_focus)) resolvedFocus = parsed.resolved_focus as string[];
                 if (
                     parsed.request_mode === 'auto_brief'
@@ -501,68 +503,49 @@ export async function analyzeTeam(
                 }
             };
 
-            const processSseLine = (line: string) => {
-                const trimmedLine = line.trim();
+            const { sawDone } = await consumeSseStream(responseBody, {
+                timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+                onEvent: ({ event, data: dataStr }) => {
+                    if (event !== 'message' && event !== 'meta' && event !== 'error') {
+                        return;
+                    }
 
-                // Empty line = SSE event boundary, reset event type per spec
-                if (trimmedLine === '') {
-                    currentEvent = 'message';
-                    return;
-                }
+                    let parsed: AiStreamMetaPayload & Record<string, unknown>;
+                    try {
+                        parsed = JSON.parse(dataStr) as AiStreamMetaPayload & Record<string, unknown>;
+                    } catch {
+                        return;
+                    }
 
-                // Parse event type
-                if (trimmedLine.startsWith('event:')) {
-                    currentEvent = trimmedLine.slice(6).trim();
-                    return;
-                }
-
-                if (!trimmedLine.startsWith('data:')) {
-                    return;
-                }
-
-                const dataStr = trimmedLine.slice(5).trim();
-                if (dataStr === '[DONE]') return;
-
-                try {
-                    const parsed = JSON.parse(dataStr) as Record<string, unknown>;
-
-                    if (currentEvent === 'message' && typeof parsed.delta === 'string') {
+                    if (event === 'message' && typeof parsed.delta === 'string') {
                         fullAnswer += parsed.delta;
                         if (onStream) onStream(fullAnswer);
                         return;
                     }
 
-                    if (currentEvent === 'meta') {
+                    if (event === 'meta') {
                         handleMetaPayload(parsed);
+                        return;
                     }
-                } catch {
-                    // ignore partial json
-                }
-            };
 
-            while (true) {
-                const { done, value } = await readWithTimeout(() => reader.read(), DEFAULT_STREAM_TIMEOUT_MS);
-                if (done) break;
+                    if (event === 'error') {
+                        const publicMessage = typeof parsed.message === 'string' && parsed.message.trim() !== ''
+                            ? parsed.message
+                            : '분석 중 오류가 발생했습니다.';
+                        throw createCoachRequestFailedError(publicMessage);
+                    }
+                },
+            });
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-
-                // Keep incomplete last line in buffer
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    processSseLine(line);
-                }
-            }
-
-            // Process remaining buffer after stream ends, including a final event without trailing newline.
-            const remainingLines = buffer.split('\n');
-            for (const line of remainingLines) {
-                processSseLine(line);
+            if (!sawDone) {
+                throw new Error(CHATBOT_STREAM_INCOMPLETE_ERROR);
             }
         } catch (error) {
             if (isStreamReadTimeoutError(error)) {
                 throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
+            }
+            if (error instanceof Error && error.message === CHATBOT_STREAM_INCOMPLETE_ERROR) {
+                throw createCoachRequestFailedError();
             }
             if (isAbortLikeError(error)) {
                 throw error instanceof Error ? error : new DOMException('aborted', 'AbortError');

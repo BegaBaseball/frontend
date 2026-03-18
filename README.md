@@ -145,7 +145,7 @@ KBO 리그에 대한 모든 궁금증을 해결하세요.
 | **Database & Storage** | OCI Autonomous Database + OCI Object Storage |
 | **Container** | Docker |
 | **CI/CD** | GitHub Actions |
-| **Hosting** | 정적 호스팅/CDN (`dist/` artifact 배포) |
+| **Hosting** | Cloudflare Workers Static Assets + CDN |
 
 ---
 
@@ -245,8 +245,13 @@ npm run test:e2e:rescue -- --spec cypress/e2e/stadium.cy.ts
 
 프로젝트 루트에 `.env` 파일을 생성하고 다음 변수를 설정합니다:
 ```env
-# API 서버
-VITE_API_BASE_URL=https://api.begabaseball.xyz
+# 로컬 same-origin / Vite proxy
+VITE_API_BASE_URL=/api
+VITE_PROXY_TARGET=http://localhost:8080
+
+# 공개 빌드/배포
+# API origin만 지정하세요. 런타임이 `${origin}/api`로 정규화합니다.
+# VITE_API_BASE_URL=https://api.begabaseball.xyz
 
 # 카카오 지도
 VITE_KAKAO_MAP_KEY=your_kakao_map_key
@@ -262,7 +267,8 @@ VITE_SITE_URL=https://www.begabaseball.xyz
 
 | 변수명 | 설명 | 필수 |
 |:---|:---|:---:|
-| `VITE_API_BASE_URL` | Spring Boot 백엔드 API 주소 | ✅ |
+| `VITE_API_BASE_URL` | 로컬은 `/api`, 공개 빌드는 `https://api...` 형태의 API origin | ✅ |
+| `VITE_PROXY_TARGET` | 로컬 `npm run dev`에서 `/api` 프록시가 바라볼 백엔드 origin | 로컬 권장 |
 | `VITE_KAKAO_MAP_KEY` | 카카오 지도 JavaScript 키 | ✅ |
 | `VITE_SITE_URL` | canonical/sitemap 기준 URL | ✅ |
 | `VITE_GA4_MEASUREMENT_ID` | GA4 측정 ID | 선택 |
@@ -278,7 +284,20 @@ VITE_SITE_URL=https://www.begabaseball.xyz
 docker-compose up -d --build
 ```
 
-이 경로는 로컬 확인용입니다. 운영 배포 artifact는 아래 수동 배포 절차의 `dist/`를 기준으로 합니다.
+이 경로는 로컬 확인용입니다. 운영 배포는 Cloudflare `wrangler deploy` 기준이며, worker 번들과 client asset은 `npm run build`에서 함께 생성됩니다.
+
+### Cloudflare 배포
+
+1. 기본 env 점검: `VITE_SITE_URL=https://www.begabaseball.xyz VITE_API_BASE_URL=https://api.begabaseball.xyz npm run seo:env:check`
+2. 릴리즈 직전 strict 점검: `VITE_SITE_URL=... VITE_API_BASE_URL=... VITE_GA4_MEASUREMENT_ID=... VITE_GOOGLE_SITE_VERIFICATION=... VITE_NAVER_SITE_VERIFICATION=... npm run seo:env:check:strict`
+3. Cloudflare 로컬 확인: `npm run preview:cloudflare`
+4. 운영 배포: `npm run deploy:cloudflare`
+5. 배포 후 `https://begabaseball.xyz`가 `https://www.begabaseball.xyz`로 `301` 되는지, `/api/*`가 SPA로 떨어지지 않는지, OAuth2 스모크가 통과하는지 확인
+
+핵심 구성:
+
+- canonical redirect / SPA fallback worker: [worker/index.ts](/Users/mac/project/KBO_platform/bega_frontend/worker/index.ts)
+- Cloudflare 배포 설정: [wrangler.jsonc](/Users/mac/project/KBO_platform/bega_frontend/wrangler.jsonc)
 
 ### 수동 배포
 
@@ -286,7 +305,7 @@ docker-compose up -d --build
 2. 릴리즈 직전 strict 점검: `VITE_SITE_URL=... VITE_API_BASE_URL=... VITE_GA4_MEASUREMENT_ID=... VITE_GOOGLE_SITE_VERIFICATION=... VITE_NAVER_SITE_VERIFICATION=... npm run seo:env:check:strict`
 3. 최종 배포 artifact 생성: `npm run build`
 4. SEO 감사까지 포함한 게이트: `npm run seo:gate`
-5. 최종 `dist/` 전체를 정적 호스팅/CDN에 배포
+5. Cloudflare를 사용하지 않는 예외 경로에서만 최종 `dist/` 산출물을 별도 호스팅/CDN에 배포
 6. 정적 파일 우선 서빙 후 SPA fallback이 동작하도록 라우팅 설정 (`robots.txt`, `sitemap.xml`, prerendered route HTML 보존)
 7. SEO 점검 및 문제 해결 가이드: `/Users/mac/project/KBO_platform/task/operations/seo-checklist.md` 참조
 

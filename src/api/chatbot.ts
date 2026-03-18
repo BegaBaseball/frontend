@@ -1,7 +1,10 @@
-import { ChatRequest, VoiceResponse } from '../types/chatbot';
+import { ChatMeta, ChatRequest, VoiceResponse } from '../types/chatbot';
+import { AiStreamMetaPayload } from '../types/ai';
 import { getMockRateLimitSeconds } from '../mock/chatbotRateLimitMock';
 import { isAxiosError } from 'axios';
 import api from './axios';
+import { normalizeAiStreamMeta } from './aiMeta';
+import { consumeSseStream } from './sse';
 import {
   DEFAULT_STREAM_TIMEOUT_MS,
   DEFAULT_STREAM_TIMEOUT_RETRY_ATTEMPTS,
@@ -9,9 +12,9 @@ import {
   CHATBOT_STATUS_SERVICE_UNAVAILABLE,
   CHATBOT_STREAM_TIMEOUT_ERROR,
   CHATBOT_STREAM_INCOMPLETE_ERROR,
+  CHATBOT_STREAM_TEMPORARY_ERROR,
   isStreamReadTimeoutError,
   isStreamRequestTimeoutError,
-  readWithTimeout,
   getStreamRetryDelayMs,
   requestStream,
 } from './stream';
@@ -27,6 +30,18 @@ export class RateLimitError extends Error {
     super(CHATBOT_STATUS_RATE_LIMIT);
     this.name = 'RateLimitError';
     this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+export class ChatStreamEventError extends Error {
+  detail?: string;
+  eventCode?: string;
+
+  constructor(eventCode?: string, detail?: string) {
+    super(CHATBOT_STREAM_TEMPORARY_ERROR);
+    this.name = 'ChatStreamEventError';
+    this.detail = detail;
+    this.eventCode = eventCode;
   }
 }
 
@@ -52,19 +67,11 @@ const parseRetryAfterSeconds = (retryAfterHeader: string | null): number | null 
 export async function sendChatMessageStream(
   data: ChatRequest,
   onDelta: (delta: string) => void,
-  onError: (error: string) => void,
-  onMeta?: (meta: {
-    verified: boolean;
-    cached?: boolean;
-    intent?: string;
-    strategy?: string;
-    dataSources: Array<{ title: string; url?: string; content?: string }>;
-    toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
-  }) => void
+  onMeta?: (meta: ChatMeta) => void
 ): Promise<void> {
   const MAX_RETRIES = DEFAULT_STREAM_TIMEOUT_RETRY_ATTEMPTS;
   const READ_TIMEOUT_MS = DEFAULT_STREAM_TIMEOUT_MS;
-  const mockMode = import.meta.env.VITE_MOCK_CHATBOT_RATE_LIMIT;
+  const mockMode = import.meta.env?.VITE_MOCK_CHATBOT_RATE_LIMIT;
   const mockSeconds = getMockRateLimitSeconds(mockMode);
 
   if (mockSeconds !== null) {
@@ -141,85 +148,51 @@ export async function sendChatMessageStream(
     throw new Error('Failed to connect to server after retries.');
   }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder('utf-8');
-  let buffer = '';
-  let currentEvent = 'message';
-
-  // Read timeout is enforced by readWithTimeout() around each reader.read() call.
-
-  let streamCompleted = false;
-
-  while (true) {
-    try {
-      const { done, value } = await readWithTimeout(() => reader.read(), READ_TIMEOUT_MS);
-
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (line.startsWith('event:')) {
-          currentEvent = line.substring(6).trim();
-        } else if (line.startsWith('data:')) {
-          const dataString = line.substring(5).trim();
-          if (dataString === '[DONE]') {
-            streamCompleted = true;
-            break;
-          }
-
-          try {
-            const parsed = JSON.parse(dataString);
-            if (currentEvent === 'message' && parsed.delta) {
-              onDelta(parsed.delta);
-            } else if (currentEvent === 'error') {
-              onError(parsed.message || '알 수 없는 오류');
-              return; // Stop processing on error
-            } else if (currentEvent === 'meta' && onMeta) {
-              onMeta({
-                verified: parsed.verified ?? false,
-                cached: parsed.cached ?? false,
-                intent: parsed.intent,
-                strategy: parsed.strategy,
-                dataSources: (parsed.data_sources || []).map((s: { title?: string; url?: string; content?: string }) => ({
-                  title: s.title || 'Unknown',
-                  url: s.url,
-                  content: s.content,
-                })),
-                toolCalls: (parsed.tool_calls || []).map((t: { tool_name?: string; parameters?: Record<string, unknown> }) => ({
-                  toolName: t.tool_name || 'unknown',
-                  parameters: t.parameters || {},
-                })),
-              });
-            }
-            currentEvent = 'message';
-          } catch (parseError) {
-            const preview = line.length > 160 ? `${line.slice(0, 160)}...` : line;
-            console.warn('Failed to parse SSE data:', {
-              previewLength: line.length,
-              preview,
-              parseErrorName: parseError instanceof Error ? parseError.name : 'ParseError',
-            });
-          }
+  try {
+    const { sawDone } = await consumeSseStream(response.body, {
+      timeoutMs: READ_TIMEOUT_MS,
+      onEvent: ({ event, data }) => {
+        let parsed: AiStreamMetaPayload & {
+          delta?: string;
+          message?: string;
+          detail?: string;
+        };
+        try {
+          parsed = JSON.parse(data);
+        } catch (parseError) {
+          const preview = data.length > 160 ? `${data.slice(0, 160)}...` : data;
+          console.warn('Failed to parse SSE data:', {
+            previewLength: data.length,
+            preview,
+            parseErrorName: parseError instanceof Error ? parseError.name : 'ParseError',
+          });
+          return;
         }
-      }
-      if (streamCompleted) break;
-    } catch (error: unknown) {
-      // Clean up reader
-      await reader.cancel();
 
-      if (isStreamReadTimeoutError(error)) {
-        throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
-      }
-      throw error;
+        if (event === 'message' && parsed.delta) {
+          onDelta(parsed.delta);
+        } else if (event === 'error') {
+          throw new ChatStreamEventError(
+            parsed.message,
+            parsed.detail || '일시적인 오류가 발생했습니다. 다시 시도해주세요.',
+          );
+        } else if (event === 'meta' && onMeta) {
+          onMeta({
+            ...normalizeAiStreamMeta(parsed),
+            style: typeof parsed.style === 'string' ? parsed.style : 'markdown',
+          });
+        }
+      },
+    });
+
+    if (!sawDone) {
+      throw new Error(CHATBOT_STREAM_INCOMPLETE_ERROR);
     }
-  }
-
-  // 스트림이 [DONE] 시그널 없이 종료된 경우 (서버 비정상 종료 등)
-  if (!streamCompleted) {
-    throw new Error(CHATBOT_STREAM_INCOMPLETE_ERROR);
+  } catch (error: unknown) {
+    if (isStreamReadTimeoutError(error)) {
+      throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
+    }
+    throw error;
   }
 }
 

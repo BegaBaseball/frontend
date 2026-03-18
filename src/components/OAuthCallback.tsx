@@ -1,4 +1,5 @@
 // src/components/OAuthCallback.tsx
+import { AxiosError } from 'axios';
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthProfileActions } from '../store/authStore';
@@ -7,10 +8,12 @@ import { consumeOAuth2State } from '../api/auth';
 import LoadingSpinner from './LoadingSpinner';
 import { Button } from './ui/button';
 import {
-  buildLoginPathWithError,
-  getStoredLoginRedirect,
-  resolvePostLoginRedirect,
-} from '../utils/loginRedirect';
+  AUTH_SESSION_NOT_ESTABLISHED_ERROR_CODE,
+  buildAuthSessionFailureLoginPath,
+  resolveOAuthCompletionPath,
+  resolveOAuthErrorCode,
+} from '../utils/authFlow';
+import { buildLoginPathWithError, getStoredLoginRedirect } from '../utils/loginRedirect';
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
@@ -24,6 +27,7 @@ export default function OAuthCallback() {
   useEffect(() => {
     let redirectTimer: number | null = null;
     const state = searchParams.get('state');
+    const status = searchParams.get('status');
     const getRetryLoginPath = (nextErrorCode?: string | null) =>
       buildLoginPathWithError(nextErrorCode, pendingLoginRedirect || getStoredLoginRedirect());
     const scheduleRetryRedirect = (nextErrorCode: string) => {
@@ -43,23 +47,31 @@ export default function OAuthCallback() {
 
     (async () => {
       try {
-          const data = await consumeOAuth2State(state);
-          const { email, name, handle } = data;
+        const data = await consumeOAuth2State(state);
+        const { email, name, handle } = data;
 
         if (email && name) {
-          await fetchProfileAndAuthenticate();
-          const normalizedHandle = (handle || '').trim();
-          const fallbackPath = normalizedHandle
-            ? `/mypage/${normalizedHandle.startsWith('@') ? normalizedHandle : `@${normalizedHandle}`}`
-            : '/mypage';
-          const redirectPath = resolvePostLoginRedirect(null, pendingLoginRedirect, fallbackPath);
+          const didAuthenticate = await fetchProfileAndAuthenticate();
+          const redirectPath = resolveOAuthCompletionPath({
+            didAuthenticate,
+            status,
+            pendingRedirect: pendingLoginRedirect,
+            handle,
+          });
+          if (!didAuthenticate) {
+            scheduleRetryRedirect(AUTH_SESSION_NOT_ESTABLISHED_ERROR_CODE);
+            return;
+          }
           clearPendingLoginRedirect();
           navigate(redirectPath, { replace: true });
         } else {
           scheduleRetryRedirect('oauth2_provider_payload_invalid');
         }
-      } catch {
-        scheduleRetryRedirect('oauth2_auth_failed');
+      } catch (error) {
+        const responseCode = error instanceof AxiosError
+          ? (error.response?.data as { code?: string } | undefined)?.code
+          : undefined;
+        scheduleRetryRedirect(resolveOAuthErrorCode(responseCode));
       }
     })();
 
@@ -71,7 +83,9 @@ export default function OAuthCallback() {
   }, [clearPendingLoginRedirect, fetchProfileAndAuthenticate, navigate, pendingLoginRedirect, searchParams]);
 
   if (errorCode) {
-    const retryLoginPath = buildLoginPathWithError(errorCode, pendingLoginRedirect || getStoredLoginRedirect());
+    const retryLoginPath = errorCode === AUTH_SESSION_NOT_ESTABLISHED_ERROR_CODE
+      ? buildAuthSessionFailureLoginPath(pendingLoginRedirect || getStoredLoginRedirect())
+      : buildLoginPathWithError(errorCode, pendingLoginRedirect || getStoredLoginRedirect());
 
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center transition-colors duration-200">
