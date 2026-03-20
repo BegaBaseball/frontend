@@ -21,7 +21,16 @@ const appTree = renderPerf.enabled && renderPerf.onReactRender ? (
   <App />
 );
 
-createRoot(document.getElementById("root")!).render(
+const rootEl = document.getElementById("root")!;
+
+// Remove HTML shell loader once React takes over
+const shellLoader = document.getElementById('app-shell-loader');
+if (shellLoader) {
+  shellLoader.style.opacity = '0';
+  setTimeout(() => shellLoader.remove(), 200);
+}
+
+createRoot(rootEl).render(
   <RootMode>
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
