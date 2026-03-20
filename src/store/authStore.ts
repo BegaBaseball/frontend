@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { clearSessionScopedQueries } from '../lib/queryClient';
-import { fetchCurrentUserProfile, logoutUser, normalizeProfileImageUrl } from '../api/auth';
+import * as authApi from '../api/auth';
 import { setPersistedAuthBootstrapHint } from '../utils/authBootstrap';
 import {
   clearStoredLoginRedirect,
@@ -26,6 +26,12 @@ const clearLegacyAuthTokenStorage = () => {
 };
 
 clearLegacyAuthTokenStorage();
+
+export const authStoreApi = {
+  fetchCurrentUserProfile: authApi.fetchCurrentUserProfile,
+  logoutUser: authApi.logoutUser,
+  normalizeProfileImageUrl: authApi.normalizeProfileImageUrl,
+};
 
 interface User {
   id: number;
@@ -56,7 +62,7 @@ interface AuthState {
 }
 
 interface AuthActions {
-  fetchProfileAndAuthenticate: () => Promise<void>;
+  fetchProfileAndAuthenticate: () => Promise<boolean>;
   setUserProfile: (profile: Partial<Omit<User, 'id'>> & { email: string; name: string }) => void;
   deductCheerPoints: (amount: number) => void; // Added action
   login: (email: string, name: string, profileImageUrl?: string | null, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => void;
@@ -78,7 +84,7 @@ const getInitialState = (): AuthState => ({
   pendingLoginRedirect: null,
 });
 
-let pendingAuthProfileRequest: Promise<void> | null = null;
+let pendingAuthProfileRequest: Promise<boolean> | null = null;
 let pendingLogoutRequest: Promise<void> | null = null;
 
 export const useAuthStore = create<AuthStore>()(
@@ -91,16 +97,17 @@ export const useAuthStore = create<AuthStore>()(
           return pendingAuthProfileRequest;
         }
 
-        const request = (async () => {
+        const request = (async (): Promise<boolean> => {
           set({ isAuthLoading: true });
 
           try {
-            const profile = await fetchCurrentUserProfile();
+            const profile = await authStoreApi.fetchCurrentUserProfile();
             setPersistedAuthBootstrapHint(true);
             set({
               user: profile,
               isAuthLoading: false,
             });
+            return true;
 
           } catch (error) {
             // 401 errors are handled by interceptor (redirect to login)
@@ -111,12 +118,13 @@ export const useAuthStore = create<AuthStore>()(
               user: null,
               isAuthLoading: false
             });
+            return false;
           }
         })();
 
         pendingAuthProfileRequest = request;
         try {
-          await request;
+          return await request;
         } finally {
           pendingAuthProfileRequest = null;
         }
@@ -138,7 +146,7 @@ export const useAuthStore = create<AuthStore>()(
           return {
             user: {
               ...mergedProfile,
-              profileImageUrl: normalizeProfileImageUrl(profile.profileImageUrl),
+              profileImageUrl: authStoreApi.normalizeProfileImageUrl(profile.profileImageUrl),
             },
           };
         });
@@ -167,7 +175,7 @@ export const useAuthStore = create<AuthStore>()(
             email: email,
             name: name,
             // ... (keep existing)
-            profileImageUrl: normalizeProfileImageUrl(profileImageUrl),
+            profileImageUrl: authStoreApi.normalizeProfileImageUrl(profileImageUrl),
             role: role,
             favoriteTeam: favoriteTeam || '없음',
             cheerPoints: cheerPoints || 0,
@@ -190,7 +198,7 @@ export const useAuthStore = create<AuthStore>()(
 
           clearSessionScopedQueries();
           if (!pendingLogoutRequest) {
-            pendingLogoutRequest = logoutUser()
+            pendingLogoutRequest = authStoreApi.logoutUser()
               .then(() => {
                 // ignore response
               })

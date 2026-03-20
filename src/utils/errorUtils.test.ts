@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getApiErrorMessage, parseError } from './errorUtils';
+import { getApiErrorMessage, getDuplicateCommentErrorMessage, parseError } from './errorUtils';
 
 test('parseError는 raw 500 기술 문구를 사용자 친화형 메시지로 바꾼다', () => {
   const parsed = parseError({
@@ -44,4 +44,14 @@ test('getApiErrorMessage는 일반 Error의 기술 문구에서 호출부 fallba
 test('getApiErrorMessage는 일반 Error의 사용자 메시지를 유지한다', () => {
   const message = getApiErrorMessage(new Error('이메일 또는 비밀번호가 일치하지 않습니다.'), 'fallback');
   assert.equal(message, '이메일 또는 비밀번호가 일치하지 않습니다.');
+});
+
+test('getDuplicateCommentErrorMessage는 DUPLICATE_COMMENT를 전용 문구로 바꾼다', () => {
+  const message = getDuplicateCommentErrorMessage({
+    status: 409,
+    data: { code: 'DUPLICATE_COMMENT', message: '중복된 댓글입니다.' },
+    message: 'Conflict',
+  }, 'fallback');
+
+  assert.equal(message, '이미 같은 댓글이 등록되었습니다. 잠시 후 다시 시도해주세요.');
 });

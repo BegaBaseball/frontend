@@ -1,14 +1,19 @@
 
+import { AiDataSource, AiStreamMetaPayload, AiToolCall } from '../types/ai';
 import api from './axios';
+import { normalizeAiDataSources, normalizeAiToolCalls } from './aiMeta';
 import { consumeSseStream } from './sse';
 import {
     COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS,
     DEFAULT_STREAM_TIMEOUT_MS,
     getStreamRetryDelayMs,
+    CHATBOT_STREAM_INCOMPLETE_ERROR,
     CHATBOT_STREAM_TIMEOUT_ERROR,
+    isStreamAbortError,
     isStreamReadTimeoutError,
     isStreamRequestTimeoutError,
     requestStream,
+    waitForStreamDelay,
 } from './stream';
 
 const COACH_ANALYZE_ENDPOINT = '/ai/coach/analyze';
@@ -152,9 +157,9 @@ export interface CoachAnalyzeResponse {
     request_mode?: CoachRequestMode;
     raw_answer?: string;  // For debugging
     answer?: string;
-    tool_calls?: Array<unknown>;
+    tool_calls?: AiToolCall[];
     verified?: boolean;
-    data_sources?: Array<unknown>;
+    data_sources?: AiDataSource[];
     error?: string;
     structuredData?: CoachStructuredResponse;  // Parsed response from meta event
     resolved_focus?: string[];
@@ -222,19 +227,8 @@ export class CoachAnalyzeError extends Error {
 export const isCoachAnalyzeError = (error: unknown): error is CoachAnalyzeError =>
     error instanceof CoachAnalyzeError;
 
-function isAbortLikeError(error: unknown): boolean {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-        return true;
-    }
-    if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-            return true;
-        }
-        const message = error.message.toLowerCase();
-        return message.includes('aborterror') || message.includes('aborted');
-    }
-    return String(error ?? '').toLowerCase().includes('abort');
-}
+const createCoachRequestFailedError = (message = '분석 중 오류가 발생했습니다.'): CoachAnalyzeError =>
+    new CoachAnalyzeError('REQUEST_FAILED', message);
 
 const isCoachRequestMode = (requestMode: AnalyzeRequest['request_mode']): requestMode is CoachRequestMode => (
     requestMode === 'auto_brief' || requestMode === 'manual_detail'
@@ -343,7 +337,7 @@ export async function analyzeTeam(
             if (request.status >= 500 && request.status < 600) {
                 if (attempt < MAX_RETRIES) {
                     const delay = getStreamRetryDelayMs(attempt);
-                    await new Promise(resolve => setTimeout(resolve, delay));
+                    await waitForStreamDelay(delay, options?.signal);
                     continue;
                 }
             }
@@ -351,7 +345,7 @@ export async function analyzeTeam(
             response = request;
             break;
         } catch (error) {
-            if (isAbortLikeError(error)) {
+            if (isStreamAbortError(error)) {
                 throw error instanceof Error ? error : new DOMException('aborted', 'AbortError');
             }
 
@@ -364,7 +358,7 @@ export async function analyzeTeam(
 
             if (isStreamRequestTimeoutError(error) || error instanceof TypeError) {
                 const delay = getStreamRetryDelayMs(attempt);
-                await new Promise(resolve => setTimeout(resolve, delay));
+                await waitForStreamDelay(delay, options?.signal);
                 continue;
             }
 
@@ -408,11 +402,10 @@ export async function analyzeTeam(
 
     // Handle Streaming (SSE)
     const responseBody = response.body;
-    const decoder = new TextDecoder();
     let fullAnswer = "";
-    let toolCalls: Array<unknown> = [];
+    let toolCalls: AiToolCall[] = [];
     let verified = false;
-    let dataSources: Array<unknown> = [];
+    let dataSources: AiDataSource[] = [];
     let structuredData: CoachStructuredResponse | undefined = undefined;
     let resolvedFocus: string[] | undefined = undefined;
     let focusSignature: string | undefined = undefined;
@@ -434,13 +427,13 @@ export async function analyzeTeam(
 
     if (responseBody) {
         try {
-            const handleMetaPayload = (parsed: Record<string, unknown>) => {
+            const handleMetaPayload = (parsed: AiStreamMetaPayload & Record<string, unknown>) => {
                 if (parsed.structured_response) {
                     structuredData = parsed.structured_response as CoachStructuredResponse;
                 }
-                if (parsed.tool_calls) toolCalls = parsed.tool_calls as Array<unknown>;
+                if (parsed.tool_calls) toolCalls = normalizeAiToolCalls(parsed.tool_calls);
                 if (parsed.verified !== undefined) verified = parsed.verified as boolean;
-                if (parsed.data_sources) dataSources = parsed.data_sources as Array<unknown>;
+                if (parsed.data_sources) dataSources = normalizeAiDataSources(parsed.data_sources);
                 if (Array.isArray(parsed.resolved_focus)) resolvedFocus = parsed.resolved_focus as string[];
                 if (
                     parsed.request_mode === 'auto_brief'
@@ -498,16 +491,17 @@ export async function analyzeTeam(
                 }
             };
 
-            await consumeSseStream(responseBody, {
+            const { sawDone } = await consumeSseStream(responseBody, {
                 timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+                signal: options?.signal,
                 onEvent: ({ event, data: dataStr }) => {
-                    if (event !== 'message' && event !== 'meta') {
+                    if (event !== 'message' && event !== 'meta' && event !== 'error') {
                         return;
                     }
 
-                    let parsed: Record<string, unknown>;
+                    let parsed: AiStreamMetaPayload & Record<string, unknown>;
                     try {
-                        parsed = JSON.parse(dataStr) as Record<string, unknown>;
+                        parsed = JSON.parse(dataStr) as AiStreamMetaPayload & Record<string, unknown>;
                     } catch {
                         return;
                     }
@@ -520,14 +514,29 @@ export async function analyzeTeam(
 
                     if (event === 'meta') {
                         handleMetaPayload(parsed);
+                        return;
+                    }
+
+                    if (event === 'error') {
+                        const publicMessage = typeof parsed.message === 'string' && parsed.message.trim() !== ''
+                            ? parsed.message
+                            : '분석 중 오류가 발생했습니다.';
+                        throw createCoachRequestFailedError(publicMessage);
                     }
                 },
             });
+
+            if (!sawDone) {
+                throw new Error(CHATBOT_STREAM_INCOMPLETE_ERROR);
+            }
         } catch (error) {
             if (isStreamReadTimeoutError(error)) {
                 throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
             }
-            if (isAbortLikeError(error)) {
+            if (error instanceof Error && error.message === CHATBOT_STREAM_INCOMPLETE_ERROR) {
+                throw createCoachRequestFailedError();
+            }
+            if (isStreamAbortError(error)) {
                 throw error instanceof Error ? error : new DOMException('aborted', 'AbortError');
             }
             const errorLike = error instanceof Error ? error : undefined;

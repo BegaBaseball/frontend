@@ -109,6 +109,16 @@ test('공개 호스트에서 절대 API base가 주어지면 외부 API origin�
   assert.equal(consoleError.mock.callCount(), 0);
 });
 
+test('공개 호스트에서 /api가 포함된 절대 API base는 중복 없이 유지한다', (t) => {
+  installWindow('www.begabaseball.xyz');
+  const consoleError = t.mock.method(console, 'error', () => {});
+
+  const apiBaseUrl = getApiBaseUrl('https://api.begabaseball.xyz/api');
+
+  assert.equal(apiBaseUrl, 'https://api.begabaseball.xyz/api');
+  assert.equal(consoleError.mock.callCount(), 0);
+});
+
 test('loopback 호스트에서는 동일 origin 절대 API base를 /api로 축약한다', (t) => {
   installWindow('127.0.0.1');
   const consoleError = t.mock.method(console, 'error', () => {});

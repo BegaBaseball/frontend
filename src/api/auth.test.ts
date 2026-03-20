@@ -61,7 +61,7 @@ test('getLinkToken은 API 에러 메시지를 래핑한다', async (t) => {
 test('requestPasswordReset은 서버의 generic 성공 메시지를 그대로 반환한다', async (t) => {
   let capturedPayload: unknown;
 
-  t.mock.method(api, 'post', async (_url, payload) => {
+  t.mock.method(api, 'post', async (_url: string, payload: unknown) => {
     capturedPayload = payload;
     return ({
       data: {
@@ -86,7 +86,7 @@ test('requestPasswordReset은 서버의 generic 성공 메시지를 그대로 �
 test('requestPasswordReset은 안전하지 않은 redirect를 payload에서 제거한다', async (t) => {
   let capturedPayload: unknown;
 
-  t.mock.method(api, 'post', async (_url, payload) => {
+  t.mock.method(api, 'post', async (_url: string, payload: unknown) => {
     capturedPayload = payload;
     return ({
       data: {
@@ -108,16 +108,21 @@ test('requestPasswordReset은 안전하지 않은 redirect를 payload에서 제�
 });
 
 test('consumeOAuth2State는 state 소비 응답을 반환한다', async (t) => {
-  t.mock.method(api, 'get', async () => ({
-    data: {
-      email: 'player@example.com',
-      name: 'Slugger',
-      role: 'ROLE_USER',
-      profileImageUrl: null,
-      favoriteTeam: 'LG',
-      handle: 'slugger',
-    },
-  }) as never);
+  let capturedConfig: unknown;
+
+  t.mock.method(api, 'get', async (_url: string, config: unknown) => {
+    capturedConfig = config;
+    return ({
+      data: {
+        email: 'player@example.com',
+        name: 'Slugger',
+        role: 'ROLE_USER',
+        profileImageUrl: null,
+        favoriteTeam: 'LG',
+        handle: 'slugger',
+      },
+    }) as never;
+  });
 
   const response = await consumeOAuth2State('state-success');
 
@@ -128,6 +133,10 @@ test('consumeOAuth2State는 state 소비 응답을 반환한다', async (t) => {
     profileImageUrl: null,
     favoriteTeam: 'LG',
     handle: 'slugger',
+  });
+  assert.deepEqual(capturedConfig, {
+    skipGlobalErrorHandler: true,
+    skipAuthSessionHandling: true,
   });
 });
 
@@ -225,7 +234,7 @@ test('signupUser는 정책 조회 timeout을 단계별 메시지로 바꾼다', 
 test('signupUser는 가입 제출 timeout을 단계별 메시지로 바꾸고 긴 timeout을 사용한다', async (t) => {
   let capturedOptions: unknown;
 
-  t.mock.method(api, 'post', async (_url, _payload, options) => {
+  t.mock.method(api, 'post', async (_url: string, _payload: unknown, options: unknown) => {
     capturedOptions = options;
     throw new AxiosError('timeout of 20000ms exceeded', 'ECONNABORTED');
   });

@@ -27,9 +27,11 @@ import {
 } from '../../api/profile';
 import { getSocialLoginUrl, getLinkToken } from '../../api/auth';
 import { useAuthAccessActions } from '../../store/authStore';
+import { useAuthRedirectState } from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '../../utils/errorUtils';
+import { ACCOUNT_SETTINGS_REDIRECT_PATH } from '../../utils/authFlow';
 import { type DeviceSessionItem, type SecurityEventItem, type TrustedDeviceItem } from '../../types/profile';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import VerificationRequiredDialog from '../VerificationRequiredDialog';
@@ -114,6 +116,7 @@ const getSessionIcon = (deviceType?: string) => {
 export default function AccountSettingsSection({ userProvider, hasPassword = true }: AccountSettingsSectionProps) {
   const navigate = useNavigate();
   const { logout } = useAuthAccessActions();
+  const { setPendingLoginRedirect } = useAuthRedirectState();
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [password, setPassword] = useState('');
@@ -302,6 +305,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
     setIsLinking(true);
     try {
       const { linkToken } = await getLinkToken();
+      setPendingLoginRedirect(ACCOUNT_SETTINGS_REDIRECT_PATH);
       const targetUrl = getSocialLoginUrl(provider, { mode: 'link', linkToken });
       window.location.href = targetUrl;
     } catch (error: unknown) {

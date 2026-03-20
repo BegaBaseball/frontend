@@ -6,8 +6,9 @@ import { useAuthAuthenticationActions } from '../store/authStore';
 import { validateLoginField, validateLoginForm } from '../utils/validation';
 import { LoginFormData } from '../types/auth';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { resolveLoginCompletionPath } from '../utils/authFlow';
 import { getLoginQueryErrorMessage } from '../utils/loginError';
-import { resolvePostLoginRedirect, sanitizeLoginRedirect } from '../utils/loginRedirect';
+import { sanitizeLoginRedirect } from '../utils/loginRedirect';
 import { useAuthRedirectState } from '../store/authStore';
 
 const SAVED_EMAIL_KEY = 'savedEmail';
@@ -89,6 +90,7 @@ export const useLoginForm = () => {
     setIsLoading(true);
 
     try {
+      const queryRedirect = new URLSearchParams(location.search).get('redirect');
       const response = await loginUser({
         email: formData.email,
         password: formData.password,
@@ -113,13 +115,14 @@ export const useLoginForm = () => {
         response.data.handle ?? undefined
       );
 
-      await fetchProfileAndAuthenticate();
-      const redirectTarget = resolvePostLoginRedirect(
-        new URLSearchParams(location.search).get('redirect'),
-        pendingLoginRedirect,
-      );
+      const didAuthenticate = await fetchProfileAndAuthenticate();
+      const redirectTarget = resolveLoginCompletionPath({
+        didAuthenticate,
+        queryRedirect,
+        pendingRedirect: pendingLoginRedirect,
+      });
       clearPendingLoginRedirect();
-      navigate(redirectTarget);
+      navigate(redirectTarget, { replace: !didAuthenticate });
     } catch (err: unknown) {
       console.error('로그인 실패:', err);
       setError(getApiErrorMessage(err, '로그인에 실패했습니다. 다시 시도해주세요.'));

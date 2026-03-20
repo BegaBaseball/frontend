@@ -9,6 +9,7 @@ import {
   CHATBOT_STREAM_INCOMPLETE_ERROR,
   CHATBOT_STREAM_TEMPORARY_ERROR,
   isChatStreamStatusError,
+  isStreamAbortError,
 } from '../api/stream';
 import { useAuthSession } from '../store/authStore';
 import { toast } from 'sonner';
@@ -82,6 +83,9 @@ export const useChatBot = (initialOpen = false) => {
   // ========== Typing Effect Logic ==========
   const streamingBuffer = useRef<string>('');
   const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activeBotMessageIdRef = useRef<string | null>(null);
+  const activeStreamAbortControllerRef = useRef<AbortController | null>(null);
+  const activeRequestSeqRef = useRef(0);
 
   useEffect(() => {
     // 20ms 마다 버퍼에서 글자를 꺼내서 화면에 표시
@@ -96,9 +100,21 @@ export const useChatBot = (initialOpen = false) => {
         setMessages((prev) => {
           if (prev.length === 0) return prev;
 
+          const activeBotMessageId = activeBotMessageIdRef.current;
+          if (activeBotMessageId) {
+            let updated = false;
+            const nextMessages = prev.map((msg) => {
+              if (msg.id !== activeBotMessageId || msg.sender !== 'bot') {
+                return msg;
+              }
+              updated = true;
+              return { ...msg, text: msg.text + char };
+            });
+            return updated ? nextMessages : prev;
+          }
+
           // 마지막 메시지가 봇 메시지인지 확인하고 업데이트
           const lastMsg = prev[prev.length - 1];
-
           if (lastMsg.sender === 'bot') {
             return prev.map((msg, index) =>
               index === prev.length - 1 ? { ...msg, text: msg.text + char } : msg
@@ -196,48 +212,180 @@ export const useChatBot = (initialOpen = false) => {
     });
   };
 
+  const markBotMessageAsError = (botMessageId?: string | null) => {
+    if (!botMessageId) {
+      markLastBotMessageAsError();
+      return;
+    }
+
+    flushStreamingBuffer(botMessageId);
+    setMessages((prev) => prev.map((msg) => (
+      msg.id === botMessageId && msg.sender === 'bot'
+        ? { ...msg, isError: true, cancelled: false }
+        : msg
+    )));
+  };
+
+  const flushStreamingBuffer = (botMessageId?: string | null) => {
+    if (!streamingBuffer.current) {
+      return;
+    }
+
+    const bufferedText = streamingBuffer.current;
+    streamingBuffer.current = '';
+
+    setMessages((prev) => {
+      if (prev.length === 0) return prev;
+
+      if (botMessageId) {
+        let updated = false;
+        const nextMessages = prev.map((msg) => {
+          if (msg.id !== botMessageId || msg.sender !== 'bot') {
+            return msg;
+          }
+          updated = true;
+          return { ...msg, text: msg.text + bufferedText };
+        });
+        if (updated) {
+          return nextMessages;
+        }
+      }
+
+      const lastMsg = prev[prev.length - 1];
+      if (lastMsg.sender !== 'bot') {
+        return prev;
+      }
+
+      return prev.map((msg, index) =>
+        index === prev.length - 1 ? { ...msg, text: msg.text + bufferedText } : msg
+      );
+    });
+  };
+
+  const markBotMessageAsCancelled = (botMessageId?: string | null) => {
+    if (!botMessageId) {
+      return;
+    }
+
+    flushStreamingBuffer(botMessageId);
+    setMessages((prev) => {
+      let foundBotMessage = false;
+      const nextMessages = prev.map((msg) => {
+        if (msg.id !== botMessageId || msg.sender !== 'bot') {
+          return msg;
+        }
+        foundBotMessage = true;
+        return {
+          ...msg,
+          text: msg.text.trim().length > 0 ? msg.text : '응답을 취소했습니다.',
+          cancelled: true,
+          isError: false,
+        };
+      });
+
+      if (foundBotMessage) {
+        return nextMessages;
+      }
+
+      return [...prev, {
+        id: botMessageId,
+        text: '응답을 취소했습니다.',
+        sender: 'bot',
+        timestamp: new Date(),
+        cancelled: true,
+        isError: false,
+      }];
+    });
+  };
+
+  const abortActiveStream = () => {
+    const controller = activeStreamAbortControllerRef.current;
+    const activeBotMessageId = activeBotMessageIdRef.current;
+
+    if (!controller || controller.signal.aborted) {
+      return false;
+    }
+
+    activeRequestSeqRef.current += 1;
+    markBotMessageAsCancelled(activeBotMessageId);
+    setIsProcessing(false);
+    setIsTyping(false);
+
+    controller.abort(new DOMException('chat stream cancelled', 'AbortError'));
+    activeStreamAbortControllerRef.current = null;
+    activeBotMessageIdRef.current = null;
+    return true;
+  };
+
   // ========== Process Message ==========
   const processMessage = async (messageToProcess: Message) => {
     setIsTyping(true);
+    flushStreamingBuffer(activeBotMessageIdRef.current);
 
     // 현재 전송 중인 질문(마지막 유저 메시지)은 history가 아닌 question 파라미터로 전달됨.
     // slice(0, -1)로 제외하여 첫 번째 질문 시 history=null → 캐시 저장 가능 조건 충족.
     const conversationForHistory = messages.slice(0, -1);
     const historyPayload = buildHistoryPayload(conversationForHistory);
+    const botMessageId = createMessageId();
+    const streamAbortController = new AbortController();
+    const requestSeq = activeRequestSeqRef.current + 1;
+
+    activeRequestSeqRef.current = requestSeq;
+    activeBotMessageIdRef.current = botMessageId;
+    activeStreamAbortControllerRef.current = streamAbortController;
 
     try {
       // 봇 응답을 위한 빈 메시지 추가
-      setMessages((prev) => [...prev, { id: createMessageId(), text: '', sender: 'bot', timestamp: new Date() }]);
+      setMessages((prev) => {
+        if (prev.some((msg) => msg.id === botMessageId && msg.sender === 'bot')) {
+          return prev;
+        }
+        return [...prev, {
+          id: botMessageId,
+          text: '',
+          sender: 'bot',
+          timestamp: new Date(),
+          cancelled: false,
+        }];
+      });
 
       await sendChatMessageStream(
         { question: messageToProcess.text, history: historyPayload },
         (delta: string) => {
+          if (activeRequestSeqRef.current !== requestSeq) {
+            return;
+          }
           // 서버에서 받은 청크를 버퍼에 추가
           streamingBuffer.current += delta;
         },
         (meta) => {
+          if (activeRequestSeqRef.current !== requestSeq) {
+            return;
+          }
+          const isCancelledMeta = meta.cancelled === true || meta.finish_reason === 'cancelled';
+          const isMetaError = meta.error === 'temporary_generation_issue' || meta.finish_reason === 'error';
+
           // 메타데이터를 현재 봇 메시지에 저장
           setMessages((prev) => {
             if (prev.length === 0) return prev;
-            const lastMsg = prev[prev.length - 1];
-            if (lastMsg.sender === 'bot') {
-              return prev.map((msg, index) =>
-                index === prev.length - 1
-                  ? {
-                    ...msg,
-                    verified: meta.verified,
-                    cached: meta.cached,
-                    intent: meta.intent,
-                    strategy: meta.strategy,
-                    citations: meta.dataSources,
-                    toolCalls: meta.toolCalls,
-                  }
-                  : msg
-              );
-            }
-            return prev;
+            return prev.map((msg) => (
+              msg.id === botMessageId && msg.sender === 'bot'
+                ? {
+                  ...msg,
+                  verified: meta.verified,
+                  cached: meta.cached,
+                  intent: meta.intent,
+                  strategy: meta.strategy,
+                  citations: meta.dataSources,
+                  toolCalls: meta.toolCalls,
+                  cancelled: isCancelledMeta ? true : msg.cancelled,
+                  isError: isMetaError ? true : msg.isError,
+                }
+                : msg
+            ));
           });
-        }
+        },
+        { signal: streamAbortController.signal },
       );
 
       setFailureCount(0);
@@ -248,7 +396,11 @@ export const useChatBot = (initialOpen = false) => {
     } catch (error) {
       console.error('Chat Error:', error);
 
-      if (error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
+      if (isStreamAbortError(error)) {
+        // abort 시점에 placeholder bot 메시지가 아직 커밋되지 않았을 수 있어
+        // catch 경로에서도 취소 상태를 한 번 더 확정한다.
+        markBotMessageAsCancelled(botMessageId);
+      } else if (error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
         const nextFailureCount = Math.min(failureCount + 1, 3);
         const backoffSeconds = Math.min(DEFAULT_RETRY_SECONDS * Math.pow(2, nextFailureCount - 1), MAX_BACKOFF_SECONDS);
         const retryAfterSeconds = error instanceof RateLimitError ? error.retryAfterSeconds : DEFAULT_RETRY_SECONDS;
@@ -260,28 +412,35 @@ export const useChatBot = (initialOpen = false) => {
         setRateLimitUntil(Date.now() + waitSeconds * 1000);
       } else if (isChatStreamStatusError(error, CHATBOT_STATUS_SERVICE_UNAVAILABLE)) {
         toast.error('서비스 점검 중이거나 일시적인 오류입니다.');
-        markLastBotMessageAsError();
+        markBotMessageAsError(botMessageId);
       } else if (isChatStreamStatusError(error, CHATBOT_STREAM_TIMEOUT_ERROR)) {
         toast.error('응답 시간이 초과되었습니다.');
-        markLastBotMessageAsError();
+        markBotMessageAsError(botMessageId);
       } else if (isChatStreamStatusError(error, CHATBOT_STREAM_INCOMPLETE_ERROR)) {
         toast.error('응답이 중단되었습니다. 다시 시도해주세요.');
-        markLastBotMessageAsError();
+        markBotMessageAsError(botMessageId);
       } else if (error instanceof ChatStreamEventError || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
         toast.error(
           error instanceof ChatStreamEventError
             ? error.detail || '일시적인 오류가 발생했습니다. 다시 시도해주세요.'
             : '일시적인 오류가 발생했습니다. 다시 시도해주세요.',
         );
-        markLastBotMessageAsError();
+        markBotMessageAsError(botMessageId);
       } else {
-        markLastBotMessageAsError();
+        markBotMessageAsError(botMessageId);
       }
 
-      if (!(error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT))) {
+      if (
+        !isStreamAbortError(error)
+        && !(error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT))
+      ) {
         setInputMessage(pendingMessage);
       }
     } finally {
+      if (activeStreamAbortControllerRef.current === streamAbortController) {
+        activeStreamAbortControllerRef.current = null;
+        activeBotMessageIdRef.current = null;
+      }
       // 스트리밍 연결이 끊어지면 처리 상태 해제
       setIsProcessing(false);
       // 안전장치: 스트리밍 종료 시 즉시 로딩 상태 해제
@@ -302,10 +461,20 @@ export const useChatBot = (initialOpen = false) => {
   // ========== Send Message ==========
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (rateLimitActive && rateLimitCountdown > 0) return;
-    if (!inputMessage.trim()) return;
+    const submittedInput = e.currentTarget instanceof HTMLFormElement
+      ? new FormData(e.currentTarget).get('message')
+      : null;
+    const trimmedInput = typeof submittedInput === 'string'
+      ? submittedInput.trim()
+      : inputMessage.trim();
 
-    const trimmedInput = inputMessage.trim();
+    if (rateLimitActive && rateLimitCountdown > 0) return;
+    if (!trimmedInput) return;
+
+    if (isProcessing) {
+      abortActiveStream();
+    }
+
     setPendingMessage(trimmedInput);
     sessionStorage.setItem('last_pending_msg', trimmedInput);
 
@@ -347,6 +516,19 @@ export const useChatBot = (initialOpen = false) => {
     if (!pendingMessage.trim()) return;
     setInputMessage(pendingMessage);
   };
+
+  const handleCancelStream = () => {
+    if (!isProcessing && !activeStreamAbortControllerRef.current) {
+      return;
+    }
+    abortActiveStream();
+  };
+
+  useEffect(() => {
+    return () => {
+      abortActiveStream();
+    };
+  }, []);
 
   // ========== Voice Recording ==========
   const handleMicClick = async () => {
@@ -419,6 +601,7 @@ export const useChatBot = (initialOpen = false) => {
     handleSendMessage,
     handleRetrySend,
     handleRestorePendingMessage,
+    handleCancelStream,
     handleMicClick,
   };
 };

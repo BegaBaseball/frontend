@@ -441,7 +441,7 @@ const main = async () => {
       return { status: 'ok' };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
-      const wrappedError = new Error(`SKIP_REAL_SMOKE: backend unavailable at ${API_BASE}. ${reason}`);
+      const wrappedError = new Error(`backend unavailable at ${API_BASE}. ${reason}`);
       wrappedError.diagnostics = buildDiagnostics(error, {
         step: 'backend-health',
         method: 'GET',
