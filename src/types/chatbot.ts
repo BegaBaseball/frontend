@@ -6,6 +6,7 @@ export interface Message {
   sender: 'user' | 'bot';
   timestamp: Date;
   isError?: boolean;
+  cancelled?: boolean;
   isSystem?: boolean;
   // Metadata for enhanced UI
   verified?: boolean;

@@ -276,15 +276,152 @@ const runLocalWithoutVerify = (environment = envWithCache) => {
   return status ?? 1;
 };
 
+const LOCAL_DOCKER_REWRITE_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1']);
+const DOCKER_BACKEND_ENV_KEYS = new Set([
+  'BACKEND_BASE_URL',
+  'SMOKE_API_BASE_URL',
+  'CYPRESS_BACKEND_BASE_URL',
+  'FRONTEND_API_BASE_URL',
+  'VITE_API_BASE_URL',
+]);
+
+const normalizeDockerReachableUrl = (value) => {
+  if (!value || typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+
+  try {
+    const parsed = new URL(candidate);
+    if (!LOCAL_DOCKER_REWRITE_HOSTS.has(parsed.hostname)) {
+      return `${parsed.protocol}//${parsed.host}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+
+    const rewrittenHost = parsed.port
+      ? `host.docker.internal:${parsed.port}`
+      : 'host.docker.internal';
+    return `${parsed.protocol}//${rewrittenHost}${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return undefined;
+  }
+};
+
+const rewriteConfigForDocker = (configValue, hostUrl) => configValue
+  .split(',')
+  .map((entry) => {
+    const separatorIndex = entry.indexOf('=');
+    if (separatorIndex < 0) {
+      return entry;
+    }
+
+    const key = entry.slice(0, separatorIndex).trim();
+    if (key !== 'baseUrl') {
+      return entry;
+    }
+
+    return `baseUrl=${hostUrl}`;
+  })
+  .join(',');
+
+const rewriteEnvForDocker = (envValue, dockerBackendUrl) => envValue
+  .split(',')
+  .map((entry) => {
+    const separatorIndex = entry.indexOf('=');
+    if (separatorIndex < 0) {
+      return entry;
+    }
+
+    const key = entry.slice(0, separatorIndex).trim();
+    const value = entry.slice(separatorIndex + 1);
+    if (!DOCKER_BACKEND_ENV_KEYS.has(key)) {
+      return entry;
+    }
+
+    const rewritten = dockerBackendUrl || normalizeDockerReachableUrl(value);
+    return rewritten ? `${key}=${rewritten}` : entry;
+  })
+  .join(',');
+
+const hasDockerBackendEnv = (args) => args.some((arg, index) => {
+  if (arg === '--env' && args[index + 1]) {
+    return args[index + 1]
+      .split(',')
+      .some((entry) => DOCKER_BACKEND_ENV_KEYS.has(entry.split('=')[0]?.trim()));
+  }
+
+  if (arg.startsWith('--env=')) {
+    return arg
+      .slice('--env='.length)
+      .split(',')
+      .some((entry) => DOCKER_BACKEND_ENV_KEYS.has(entry.split('=')[0]?.trim()));
+  }
+
+  return false;
+});
+
+const rewriteArgsForDocker = (args, hostUrl, dockerBackendUrl) => {
+  const rewrittenArgs = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '--config' && args[index + 1]) {
+      rewrittenArgs.push(arg, rewriteConfigForDocker(args[index + 1], hostUrl));
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--config=')) {
+      rewrittenArgs.push(`--config=${rewriteConfigForDocker(arg.slice('--config='.length), hostUrl)}`);
+      continue;
+    }
+
+    if (arg === '--env' && args[index + 1]) {
+      rewrittenArgs.push(arg, rewriteEnvForDocker(args[index + 1], dockerBackendUrl));
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--env=')) {
+      rewrittenArgs.push(`--env=${rewriteEnvForDocker(arg.slice('--env='.length), dockerBackendUrl)}`);
+      continue;
+    }
+
+    rewrittenArgs.push(arg);
+  }
+
+  if (dockerBackendUrl && !hasDockerBackendEnv(rewrittenArgs)) {
+    rewrittenArgs.push('--env', `BACKEND_BASE_URL=${dockerBackendUrl}`);
+  }
+
+  return rewrittenArgs;
+};
+
 const runDocker = () => {
   const image = process.env.CYPRESS_DOCKER_IMAGE
     || (installedCypressVersion ? `cypress/included:${installedCypressVersion}` : 'cypress/included:15.9.0');
-  const hostUrl = process.env.CYPRESS_DOCKER_BASE_URL || 'http://host.docker.internal:5176';
+  const hostUrl = normalizeDockerReachableUrl(process.env.CYPRESS_DOCKER_BASE_URL || 'http://host.docker.internal:5176')
+    || 'http://host.docker.internal:5176';
+  const dockerBackendUrl = normalizeDockerReachableUrl(
+    process.env.CYPRESS_DOCKER_BACKEND_BASE_URL
+      || process.env.BACKEND_BASE_URL
+      || process.env.CYPRESS_BACKEND_BASE_URL
+      || process.env.SMOKE_API_BASE_URL
+      || process.env.FRONTEND_API_BASE_URL
+      || process.env.VITE_API_BASE_URL,
+  );
   if (commandMode !== 'run') {
     console.log('\nDocker fallback supports run mode only.');
     process.exit(1);
   }
 
+  const dockerCypressArgs = rewriteArgsForDocker(cypressArgs, hostUrl, dockerBackendUrl);
   const dockerArgs = [
     'run',
     '--rm',
@@ -296,14 +433,16 @@ const runDocker = () => {
     '/e2e',
     '-e',
     `CYPRESS_baseUrl=${hostUrl}`,
+    ...(dockerBackendUrl ? ['-e', `CYPRESS_BACKEND_BASE_URL=${dockerBackendUrl}`] : []),
     image,
     'npx',
     'cypress',
     'run',
-    ...cypressArgs,
+    ...dockerCypressArgs,
   ];
 
-  const hasConfig = cypressArgs.includes('--config');
+  const hasConfig = dockerCypressArgs.includes('--config')
+    || dockerCypressArgs.some((arg) => arg.startsWith('--config='));
   const argsWithHostBaseUrl = hasConfig
     ? dockerArgs
     : [

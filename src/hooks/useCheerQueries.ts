@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery, InfiniteData } from '@tanstack/react-query';
 import * as cheerApi from '../api/cheerApi';
-import { PostImageDto, FetchPostsParams, SearchPostsParams, PageResponse, CheerPost } from '../api/cheerApi';
+import { FetchPostsParams, SearchPostsParams, PageResponse, CheerPost } from '../api/cheerApi';
 import { CHEER_KEYS } from './cheerQueryKeys';
 import { parseError } from '../utils/errorUtils';
 import { toast } from 'sonner';
@@ -364,8 +364,8 @@ export const useCheerSearch = (params: SearchPostsParams) => {
 
 export const useCheerHotPosts = () => {
     return useQuery({
-        queryKey: CHEER_KEYS.hot(),
-        queryFn: () => cheerApi.fetchHotPosts(),
+        queryKey: [...CHEER_KEYS.hot(), 'HYBRID'],
+        queryFn: () => cheerApi.fetchHotPosts({ algorithm: 'HYBRID' }),
     });
 };
 

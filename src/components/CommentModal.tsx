@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Smile } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import TextareaAutosize from 'react-textarea-autosize';
+import { toast } from 'sonner';
 import {
     Dialog,
     DialogContent,
@@ -9,7 +11,7 @@ import {
     DialogTitle,
 } from './ui/dialog';
 import { Button } from './ui/button';
-import { useAuthProfileSnapshot } from '../store/authStore';
+import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { CheerPost, createComment } from '../api/cheerApi';
 import TeamLogo from './TeamLogo';
 import { ProfileAvatar } from './ui/ProfileAvatar';
@@ -17,6 +19,8 @@ import { TEAM_DATA } from '../constants/teams';
 import { useTheme } from '../hooks/useTheme';
 import { useRef, useEffect } from 'react';
 import LazyEmojiPicker from './LazyEmojiPicker';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import { getDuplicateCommentErrorMessage } from '../utils/errorUtils';
 
 interface CommentModalProps {
     isOpen: boolean;
@@ -31,6 +35,8 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
         userProfileImageUrl,
         userFavoriteTeam,
     } = useAuthProfileSnapshot();
+    const { isLoggedIn } = useAuthSession();
+    const navigate = useNavigate();
     const { theme, resolvedTheme } = useTheme();
     const isDarkMode = resolvedTheme === 'dark' || theme === 'dark';
     const queryClient = useQueryClient();
@@ -49,12 +55,15 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
         : null;
 
     const commentMutation = useMutation({
-        mutationFn: () => createComment(resolvedPostId, content),
+        mutationFn: () => createComment(resolvedPostId, content.trim()),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['cheer-posts'] });
             queryClient.invalidateQueries({ queryKey: ['cheer-comments', resolvedPostId] });
             setContent('');
             onClose();
+        },
+        onError: (error) => {
+            toast.error(getDuplicateCommentErrorMessage(error, '댓글 작성에 실패했습니다.'));
         },
     });
 
@@ -77,6 +86,10 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
     };
 
     const handleSubmit = () => {
+        if (!isLoggedIn) {
+            navigate(buildLoginPath(getCurrentRelativeUrl()));
+            return;
+        }
         if (!content.trim() || commentMutation.isPending) return;
         commentMutation.mutate();
     };
@@ -87,7 +100,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
         <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
             <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none rounded-none sm:rounded-xl bg-white dark:bg-card">
                 <DialogHeader className="px-4 py-3 border-b border-[#EFF3F4] dark:border-border flex flex-row items-center justify-between">
-                    <DialogTitle className="text-lg font-bold">답글 남기기</DialogTitle>
+                    <DialogTitle className="text-lg font-bold">댓글 남기기</DialogTitle>
                 </DialogHeader>
 
                 <div className="p-4">
@@ -120,7 +133,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                             </div>
                             <p className="text-[15px] text-slate-700 dark:text-gray-200 line-clamp-3 mb-2">{post.content}</p>
                             <div className="text-[14px] text-slate-400">
-                                <span className="text-indigo-500 font-medium">@{post.authorHandle || post.author}</span> 님에게 답글 남기는 중
+                                <span className="text-indigo-500 font-medium">@{post.authorHandle || post.author}</span> 님에게 댓글 남기는 중
                             </div>
                         </div>
                     </div>
@@ -160,7 +173,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                         <div className="flex-1 min-w-0">
                             <TextareaAutosize
                                 autoFocus
-                                placeholder="내 답글을 게시하세요"
+                                placeholder="내 댓글을 게시하세요"
                                 className="w-full resize-none border-none bg-transparent text-[19px] leading-relaxed text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none focus:ring-0 min-h-[120px]"
                                 minRows={3}
                                 maxRows={10}
@@ -193,7 +206,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                                     disabled={!content.trim() || commentMutation.isPending}
                                     className="rounded-full px-6 font-bold bg-indigo-500 hover:bg-indigo-600 text-white shadow-md transition-all"
                                 >
-                                    {commentMutation.isPending ? '답글 중...' : '답글'}
+                                    {commentMutation.isPending ? '댓글 중...' : '댓글'}
                                 </Button>
                             </div>
                         </div>
