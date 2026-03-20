@@ -7,6 +7,7 @@ export interface SseEvent {
 
 export interface ConsumeSseStreamOptions {
   timeoutMs: number;
+  signal?: AbortSignal;
   onEvent: (event: SseEvent) => void | Promise<void>;
 }
 
@@ -54,6 +55,9 @@ export async function consumeSseStream(
   };
 
   while (true) {
+    if (options.signal?.aborted) {
+      throw options.signal.reason ?? new DOMException('aborted', 'AbortError');
+    }
     const { done, value } = await readWithTimeout(() => reader.read(), options.timeoutMs);
     if (done) break;
 

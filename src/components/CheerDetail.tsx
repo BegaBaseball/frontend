@@ -6,7 +6,6 @@ import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { parseError } from '../utils/errorUtils';
 import {
     ArrowLeft,
     Bookmark,
@@ -62,6 +61,7 @@ import {
     toRgba,
 } from '../utils/teamColors';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import { getDuplicateCommentErrorMessage, parseError } from '../utils/errorUtils';
 
 const detailDateFormatter = new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'long',
@@ -300,6 +300,7 @@ export default function CheerDetail() {
         }
 
         const trimmed = commentText.trim();
+        const draft = commentText;
         const optimisticId = Date.now() * -1;
         const targetPostId = resolvedPostId ?? selectedPost.id;
         const optimisticComment = {
@@ -334,7 +335,9 @@ export default function CheerDetail() {
         } catch (e) {
             setComments((prev) => prev.filter((comment) => comment.id !== optimisticId));
             setCommentCount((prev) => Math.max(0, prev - 1));
-            toast.error(parseError(e).message || '댓글 작성 실패');
+            setCommentText(draft);
+            const parsed = parseError(e);
+            toast.error(getDuplicateCommentErrorMessage(e, parsed.message || '댓글 작성 실패'));
         } finally {
             setSendingComment(false);
         }

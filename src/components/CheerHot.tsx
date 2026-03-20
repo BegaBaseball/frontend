@@ -5,8 +5,8 @@ import CheerCard from './CheerCard';
 
 export default function CheerHot() {
     const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: ['cheer-hot', 'TIME_DECAY'],
-        queryFn: () => fetchHotPosts({ page: 0, size: 5, algorithm: 'TIME_DECAY' }),
+        queryKey: ['cheer-hot', 'HYBRID'],
+        queryFn: () => fetchHotPosts({ page: 0, size: 5, algorithm: 'HYBRID' }),
         staleTime: 3 * 60 * 1000,
         gcTime: 10 * 60 * 1000,
     });

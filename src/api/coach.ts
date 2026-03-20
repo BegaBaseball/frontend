@@ -9,9 +9,11 @@ import {
     getStreamRetryDelayMs,
     CHATBOT_STREAM_INCOMPLETE_ERROR,
     CHATBOT_STREAM_TIMEOUT_ERROR,
+    isStreamAbortError,
     isStreamReadTimeoutError,
     isStreamRequestTimeoutError,
     requestStream,
+    waitForStreamDelay,
 } from './stream';
 
 const COACH_ANALYZE_ENDPOINT = '/ai/coach/analyze';
@@ -228,20 +230,6 @@ export const isCoachAnalyzeError = (error: unknown): error is CoachAnalyzeError 
 const createCoachRequestFailedError = (message = '분석 중 오류가 발생했습니다.'): CoachAnalyzeError =>
     new CoachAnalyzeError('REQUEST_FAILED', message);
 
-function isAbortLikeError(error: unknown): boolean {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-        return true;
-    }
-    if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-            return true;
-        }
-        const message = error.message.toLowerCase();
-        return message.includes('aborterror') || message.includes('aborted');
-    }
-    return String(error ?? '').toLowerCase().includes('abort');
-}
-
 const isCoachRequestMode = (requestMode: AnalyzeRequest['request_mode']): requestMode is CoachRequestMode => (
     requestMode === 'auto_brief' || requestMode === 'manual_detail'
 );
@@ -349,7 +337,7 @@ export async function analyzeTeam(
             if (request.status >= 500 && request.status < 600) {
                 if (attempt < MAX_RETRIES) {
                     const delay = getStreamRetryDelayMs(attempt);
-                    await new Promise(resolve => setTimeout(resolve, delay));
+                    await waitForStreamDelay(delay, options?.signal);
                     continue;
                 }
             }
@@ -357,7 +345,7 @@ export async function analyzeTeam(
             response = request;
             break;
         } catch (error) {
-            if (isAbortLikeError(error)) {
+            if (isStreamAbortError(error)) {
                 throw error instanceof Error ? error : new DOMException('aborted', 'AbortError');
             }
 
@@ -370,7 +358,7 @@ export async function analyzeTeam(
 
             if (isStreamRequestTimeoutError(error) || error instanceof TypeError) {
                 const delay = getStreamRetryDelayMs(attempt);
-                await new Promise(resolve => setTimeout(resolve, delay));
+                await waitForStreamDelay(delay, options?.signal);
                 continue;
             }
 
@@ -505,6 +493,7 @@ export async function analyzeTeam(
 
             const { sawDone } = await consumeSseStream(responseBody, {
                 timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+                signal: options?.signal,
                 onEvent: ({ event, data: dataStr }) => {
                     if (event !== 'message' && event !== 'meta' && event !== 'error') {
                         return;
@@ -547,7 +536,7 @@ export async function analyzeTeam(
             if (error instanceof Error && error.message === CHATBOT_STREAM_INCOMPLETE_ERROR) {
                 throw createCoachRequestFailedError();
             }
-            if (isAbortLikeError(error)) {
+            if (isStreamAbortError(error)) {
                 throw error instanceof Error ? error : new DOMException('aborted', 'AbortError');
             }
             const errorLike = error instanceof Error ? error : undefined;
