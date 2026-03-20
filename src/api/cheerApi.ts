@@ -568,7 +568,7 @@ export async function uploadPostImages(
         skipGlobalErrorHandler: true, // 직접 에러 처리 (글 작성 실패 메시지 커스텀)
         ...requestConfig,
     });
-    return response.data; // 업로드된 이미지 URL 목록 반환
+    return normalizeUploadedImageUrls(response.data); // legacy string[] and List<PostImageDto> both supported
 }
 
 // 이미지 삭제
@@ -600,6 +600,32 @@ export interface PostImageDto {
     isThumbnail: boolean;
     url: string; // Added field
 }
+
+const normalizeUploadedImageUrls = (data: unknown): string[] => {
+    if (!Array.isArray(data)) {
+        return [];
+    }
+
+    return data
+        .map((item): string | null => {
+            if (typeof item === 'string') {
+                return item.trim() || null;
+            }
+
+            if (item && typeof item === 'object') {
+                const candidate = item as Partial<PostImageDto> & { url?: unknown };
+                if (typeof candidate.url === 'string' && candidate.url.trim()) {
+                    return candidate.url.trim();
+                }
+                if (typeof candidate.storagePath === 'string' && candidate.storagePath.trim()) {
+                    return candidate.storagePath.trim();
+                }
+            }
+
+            return null;
+        })
+        .filter((url): url is string => Boolean(url));
+};
 
 // 게시글 이미지 목록 조회 (ID 포함)
 export async function fetchPostImages(postId: number): Promise<PostImageDto[]> {

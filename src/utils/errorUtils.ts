@@ -75,6 +75,14 @@ const getDefaultErrorMessage = (type: ErrorType, statusCode: number | null, fall
     return fallback || '문제가 발생했습니다. 다시 시도해주세요.';
 };
 
+export const getDuplicateCommentErrorMessage = (error: unknown, fallback = '댓글 작성에 실패했습니다.'): string => {
+    const parsed = parseError(error);
+    if (parsed.responseCode === 'DUPLICATE_COMMENT') {
+        return '이미 같은 댓글이 등록되었습니다. 잠시 후 다시 시도해주세요.';
+    }
+    return parsed.message || fallback;
+};
+
 const resolveUserFacingMessage = (
     type: ErrorType,
     statusCode: number | null,

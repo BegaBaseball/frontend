@@ -25,7 +25,8 @@ import {
 } from './ui/popover';
 import { toast } from 'sonner';
 import { getRepostPolicyDecision } from '../utils/repostPolicy';
-import { useAuthProfileSnapshot } from '../store/authStore';
+import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
+import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 interface CheerCardProps {
     post: CheerPost;
@@ -40,6 +41,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         userId: currentUserId,
         userHandle: currentUserHandle,
     } = useAuthProfileSnapshot();
+    const { isLoggedIn } = useAuthSession();
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
     const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
     const [isPopoverOpen, setIsPopoverOpen] = useState(false); // New state for manually closing popover if needed
@@ -49,6 +51,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         if (!imageUrl) return null;
         if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
         return imageUrl;
+    };
+
+    const redirectToLogin = () => {
+        navigate(buildLoginPath(getCurrentRelativeUrl()));
     };
 
     // Use a ref-like derived value OR helper function defined inside the component
@@ -115,6 +121,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
     const handleLikeClick = (event: React.MouseEvent) => {
         event.stopPropagation();
+        if (!isLoggedIn) {
+            redirectToLogin();
+            return;
+        }
         setLikeAnimating(true);
         // toggleLike(post.id);
         toggleLikeMutation.mutate(actionPostId);
@@ -126,6 +136,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
     const handleBookmarkClick = (event: React.MouseEvent) => {
         event.stopPropagation();
+        if (!isLoggedIn) {
+            redirectToLogin();
+            return;
+        }
         toggleBookmarkMutation.mutate(actionPostId);
     };
 
@@ -143,6 +157,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
     const handleCommentClick = (event: React.MouseEvent) => {
         event.stopPropagation();
+        if (!isLoggedIn) {
+            redirectToLogin();
+            return;
+        }
         setCommentAnimating(true);
         setIsCommentModalOpen(true);
         if (commentTimerRef.current) window.clearTimeout(commentTimerRef.current);
@@ -155,6 +173,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     // const handleRepostClick = ... (replaced by PopoverTrigger)
 
     const handleSimpleRepost = () => {
+        if (!isLoggedIn) {
+            redirectToLogin();
+            return;
+        }
         if (!canSimpleRepost) {
             toast.error(repostUnavailableMessage);
             return;
@@ -171,6 +193,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     };
 
     const handleQuoteRepost = () => {
+        if (!isLoggedIn) {
+            redirectToLogin();
+            return;
+        }
         if (!canQuoteRepost) {
             toast.error(quoteUnavailableMessage);
             return;
@@ -180,6 +206,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     };
 
     const handleCancelRepost = () => {
+        if (!isLoggedIn) {
+            redirectToLogin();
+            return;
+        }
         setIsPopoverOpen(false);
         cancelRepostMutation.mutate(post.id);
     };

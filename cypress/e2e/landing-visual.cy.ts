@@ -60,7 +60,6 @@ const visitLanding = (options?: { reducedMotion?: boolean }) => {
     },
   });
 
-  cy.wait('@getSessionProfile');
   cy.getBySel('landing-page').should('be.visible');
   cy.contains('야구를 더').should('be.visible');
 };

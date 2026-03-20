@@ -24,4 +24,7 @@ export const normalizeAiStreamMeta = (
   strategy: payload.strategy,
   dataSources: normalizeAiDataSources(payload.data_sources),
   toolCalls: normalizeAiToolCalls(payload.tool_calls),
+  finish_reason: payload.finish_reason,
+  cancelled: payload.cancelled,
+  error: payload.error,
 });

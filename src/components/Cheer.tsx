@@ -402,7 +402,7 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                         }
                     }));
 
-                    throw new Error('Image upload failed');
+                    throw new Error('IMAGE_UPLOAD_FAILED');
                 }
             }
             return { created, uploadedUrls, uploadFailed: false };
@@ -482,6 +482,8 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
             const parsedError = parseError(_error);
             if (parsedError.type === 'AUTH' || parsedError.responseCode === 'INVALID_AUTHOR') {
                 redirectToLogin(true);
+            } else if (_error instanceof Error && _error.message === 'IMAGE_UPLOAD_FAILED') {
+                return;
             } else {
                 toast.error(parsedError.message || '게시글 등록에 실패했습니다.');
             }

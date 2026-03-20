@@ -17,6 +17,9 @@ export interface AiStreamMetaPayload {
   style?: string;
   data_sources?: Array<{ title?: string; url?: string; content?: string }>;
   tool_calls?: Array<{ tool_name?: string; parameters?: Record<string, unknown> }>;
+  finish_reason?: string;
+  cancelled?: boolean;
+  error?: string;
 }
 
 export interface AiStreamMeta {
@@ -26,4 +29,7 @@ export interface AiStreamMeta {
   strategy?: string;
   dataSources: AiDataSource[];
   toolCalls: AiToolCall[];
+  finish_reason?: string;
+  cancelled?: boolean;
+  error?: string;
 }
