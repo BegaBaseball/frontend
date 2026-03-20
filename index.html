@@ -6,6 +6,26 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>BEGA - 야구 플랫폼</title>
 
+    <!-- External resource preconnect hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://api.begabaseball.xyz">
+
+    <!-- Non-blocking font loading (moved from index.css @import to avoid render blocking) -->
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+          media="print" onload="this.media='all'">
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+    </noscript>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css"
+          media="print" onload="this.media='all'">
+    <noscript>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css">
+    </noscript>
+
     <style>
       /* FOUC 방지: 다크모드일 때 CSS 로드 전 즉시 배경색 적용 */
       html.dark body {
@@ -97,6 +117,7 @@
         root.classList.add(theme);
 
         // 배경색 즉시 적용으로 깜빡임 최소화
+        const bgColor = theme === 'dark' ? '#020617' : '#ffffff';
         if (theme === 'dark') {
           document.body && (document.body.style.backgroundColor = '#020617');
           root.style.backgroundColor = '#020617';
@@ -105,6 +126,12 @@
             document.body.style.backgroundColor = '#ffffff';
           }
           root.style.backgroundColor = '';
+        }
+
+        // 앱 셸 로더 배경색을 테마에 맞게 즉시 업데이트
+        var loader = document.getElementById('app-shell-loader');
+        if (loader) {
+          loader.style.backgroundColor = bgColor;
         }
 
         // 구형 키의 유효 값이 있으면 신규 키로 정합성 보정 후 정리
@@ -126,7 +153,13 @@
   </head>
 
   <body>
-    <div id="root"><!-- SEO_ROOT_SLOT --></div>
+    <div id="root">
+      <!-- SEO_ROOT_SLOT -->
+      <div id="app-shell-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background-color:#020617;z-index:9999;transition:opacity 0.2s ease;">
+        <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.12);border-top-color:#3b82f6;border-radius:50%;animation:shell-spin 0.7s linear infinite;"></div>
+      </div>
+      <style>@keyframes shell-spin{to{transform:rotate(360deg)}}</style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
