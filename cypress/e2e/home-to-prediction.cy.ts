@@ -188,4 +188,45 @@ describe('Home to Prediction deep link', () => {
         cy.contains(/LG(\s*트윈스)?/).should('be.visible');
         cy.contains(/한화(\s*이글스)?/).should('be.visible');
     });
+
+    it('keeps seeded game data visible while background detail refresh is running', () => {
+        cy.intercept('GET', /\/api\/matches\/(?!day$|range$|bounds$)[^/?#]+(?:\?.*)?$/, {
+            delay: 2500,
+            statusCode: 200,
+            body: {
+                gameId: `${todayCompact}HHLG0`,
+                gameDate: today,
+                startTime: '18:30',
+                stadium: '대전 한화생명 이글스파크',
+                homeTeam: 'HH',
+                awayTeam: 'LG',
+                gameStatus: 'SCHEDULED',
+                homePitcher: '류현진',
+                awayPitcher: '임찬규'
+            }
+        }).as('getDelayedGameDetail');
+
+        cy.viewport(1280, 720);
+        cy.visit('/home', {
+            onBeforeLoad: (win) => {
+                seedAuthState(win);
+            },
+        });
+        cy.window().then((win) => {
+            seedAuthState(win);
+        });
+        cy.setCookie('Authorization', fakeToken);
+        cy.wait('@getMe');
+        cy.wait('@getHomeBootstrapCustom');
+
+        cy.contains('[data-slot="card"]', '한화')
+            .should('contain.text', 'LG')
+            .click();
+
+        cy.url().should('include', '/prediction');
+        cy.get('[data-testid="prediction-detail-refresh-indicator"]', { timeout: 10000 }).should('be.visible');
+        cy.contains(/LG(\s*트윈스)?/).should('be.visible');
+        cy.contains(/한화(\s*이글스)?/).should('be.visible');
+        cy.wait('@getDelayedGameDetail');
+    });
 });

@@ -155,11 +155,12 @@
   <body>
     <div id="root">
       <!-- SEO_ROOT_SLOT -->
-      <div id="app-shell-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background-color:#020617;z-index:9999;transition:opacity 0.2s ease;">
-        <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.12);border-top-color:#3b82f6;border-radius:50%;animation:shell-spin 0.7s linear infinite;"></div>
-      </div>
-      <style>@keyframes shell-spin{to{transform:rotate(360deg)}}</style>
     </div>
+    <!-- #root 밖에 위치: React DOM 조정 시 제거되지 않아 0.2s 페이드가 완전히 완료됨 -->
+    <div id="app-shell-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background-color:#020617;z-index:9999;transition:opacity 0.2s ease;">
+      <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.12);border-top-color:#3b82f6;border-radius:50%;animation:shell-spin 0.7s linear infinite;"></div>
+    </div>
+    <style>@keyframes shell-spin{to{transform:rotate(360deg)}}</style>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

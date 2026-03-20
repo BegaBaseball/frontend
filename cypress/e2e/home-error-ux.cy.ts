@@ -147,6 +147,63 @@ describe('Home error UX', () => {
     cy.contains('KBO LEAGUE').should('be.visible');
   });
 
+  it('starts legacy fallback when bootstrap is delayed past the threshold', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      delay: 4500,
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrapDelayed');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: {
+        hotCheerPosts: [],
+        featuredMates: [],
+      },
+    }).as('getHomeWidgets');
+
+    cy.intercept('GET', '**/api/kbo/league-start-dates', {
+      statusCode: 200,
+      body: {
+        regularSeasonStart: '2026-03-22',
+        postseasonStart: '2026-10-06',
+        koreanSeriesStart: '2026-10-26',
+      },
+    }).as('getLegacyLeagueDates');
+
+    cy.intercept('GET', '**/api/kbo/schedule/navigation?*', {
+      statusCode: 200,
+      body: {
+        hasPrev: true,
+        hasNext: true,
+        prevGameDate: '2026-03-15',
+        nextGameDate: '2026-03-17',
+      },
+    }).as('getLegacyNavigation');
+
+    cy.intercept('GET', '**/api/kbo/schedule?*', {
+      statusCode: 200,
+      body: [],
+    }).as('getLegacyScheduleDelayed');
+
+    cy.intercept('GET', '**/api/kbo/rankings/*', {
+      statusCode: 200,
+      body: [],
+    }).as('getLegacyRankings');
+
+    cy.visit('/home', {
+      onBeforeLoad: seedAnonymousHomeState,
+    });
+
+    cy.wait('@getLegacyLeagueDates');
+    cy.wait('@getLegacyNavigation');
+    cy.wait('@getLegacyRankings');
+    cy.contains('경기가 없는 날입니다.', { timeout: 15000 }).should('be.visible');
+    cy.contains('서버 연결에 문제가 있습니다.').should('not.exist');
+    cy.wait('@getHomeBootstrapDelayed');
+    cy.get('@getHomeBootstrapDelayed.all').should('have.length', 1);
+  });
+
   it('falls back to legacy widget data when widgets returns 500 without breaking the page', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,

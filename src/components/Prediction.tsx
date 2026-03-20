@@ -39,6 +39,7 @@ export default function Prediction() {
     userVote,
     currentGameDetail,
     currentGameDetailLoading,
+    currentGameDetailRefreshing,
     isAuthLoading,
     allDatesData,
     currentDateIndex,
@@ -270,7 +271,7 @@ export default function Prediction() {
   const isPastRetryLoading = pastRangeLoadState === 'loading';
   const isFutureRetryLoading = futureRangeLoadState === 'loading';
   const isVoteRetryLoading = voteStatusLoading;
-  const isDetailRetryLoading = currentGameDetailLoading;
+  const isDetailRetryLoading = currentGameDetailLoading || currentGameDetailRefreshing;
 
   const renderRetryLabel = (isLoading: boolean, label: string) => (
     <span className="inline-flex items-center gap-1.5">
@@ -753,88 +754,57 @@ export default function Prediction() {
                     <>
                       {/* Advanced Game Card */}
                       {currentGame && (
-                        currentGameDetailError ? (
-                          <Card
-                            data-testid="prediction-render-fallback-card"
-                            className="overflow-hidden border border-amber-200/70 shadow-lg bg-amber-50/80 dark:border-amber-700/40 dark:bg-amber-900/20 dark:shadow-xl transition-colors duration-300 mb-4 rounded-2xl"
-                          >
-                            <div className="p-4 md:p-5 space-y-4">
-                              <div>
-                                <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">경기 상세를 불러오지 못했습니다.</h3>
-                                <p className="text-sm text-amber-800/90 dark:text-amber-100/80 mt-1">
-                                  {currentGame.awayTeam} - {currentGame.homeTeam} · {formatDate(currentDate)} · {gameStatus.statusLabel}
-                                </p>
-                                <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-2">{currentGameDetailError}</p>
-                              </div>
+                        <AdvancedMatchCard
+                          key={currentGame.gameId}
+                          game={currentGame}
+                          gameDetail={currentGameDetail}
+                          gameDetailLoading={currentGameDetailLoading}
+                          gameDetailRefreshing={currentGameDetailRefreshing}
+                          gameDetailError={currentGameDetailError}
+                          gameDetailActions={currentGameDetailError ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={isDetailRetryLoading}
+                                data-testid="prediction-detail-error-retry-btn"
+                                className="min-h-10 border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-400/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
+                                onClick={() => reloadCurrentGameDetail({ emitRetryEvent: true })}
+                              >
+                                {renderRetryLabel(isDetailRetryLoading, '다시 시도')}
+                              </Button>
+                              <Link
+                                to={predictionRecoveryPath}
+                                className="min-h-10 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
+                              >
+                                예측으로 돌아가기
+                              </Link>
+                            </>
+                          ) : null}
+                          userVote={userVote[currentGameId!] || null}
+                          votePercentages={votePercentages}
+                          isVoteOpen={gameStatus.isVoteOpen}
+                          statusLabel={gameStatus.statusLabel}
+                          statusCode={statusCode}
+                          onVote={(team) => handleVote(team, currentGame, gameStatus.isVoteOpen)}
+                          onPrevDate={goToPreviousDate}
+                          onNextDate={goToNextDate}
+                          hasPrevDate={canMovePrevDate}
+                          hasNextDate={canMoveNextDate}
+                          coachBriefing={(
+                            <CoachBriefing
+                              game={currentGame}
+                              gameDetail={currentGameDetail}
+                              seasonContext={seasonContext}
+                              isPastGame={isPastGame}
+                              isFutureGame={isFutureGame}
+                              requestMode={coachBriefingPolicy.requestMode}
+                              autoEnabled={shouldAutoRequestCoachBriefing}
+                              forceManual={coachBriefingPolicy.forceManual}
+                            />
 
-                              <div className="grid grid-cols-2 gap-3">
-                                <Button
-                                  onClick={() => handleVote('away', currentGame, gameStatus.isVoteOpen)}
-                                  disabled={!gameStatus.isVoteOpen}
-                                  className="min-h-10"
-                                >
-                                  {currentGame.awayTeam} 승
-                                </Button>
-                                <Button
-                                  onClick={() => handleVote('home', currentGame, gameStatus.isVoteOpen)}
-                                  disabled={!gameStatus.isVoteOpen}
-                                  className="min-h-10"
-                                >
-                                  {currentGame.homeTeam} 승
-                                </Button>
-                              </div>
-
-                              <div className="flex flex-col sm:flex-row gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={isDetailRetryLoading}
-                                  data-testid="prediction-render-fallback-retry-btn"
-                                  className="min-h-10 border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-400/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
-                                  onClick={() => reloadCurrentGameDetail({ emitRetryEvent: true })}
-                                >
-                                  {renderRetryLabel(isDetailRetryLoading, '다시 시도')}
-                                </Button>
-                                <Link
-                                  to={predictionRecoveryPath}
-                                  className="min-h-10 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
-                                >
-                                  예측으로 돌아가기
-                                </Link>
-                              </div>
-                            </div>
-                          </Card>
-                        ) : (
-                          <AdvancedMatchCard
-                            key={currentGame.gameId}
-                            game={currentGame}
-                            gameDetail={currentGameDetail}
-                            gameDetailLoading={currentGameDetailLoading}
-                            userVote={userVote[currentGameId!] || null}
-                            votePercentages={votePercentages}
-                            isVoteOpen={gameStatus.isVoteOpen}
-                            statusLabel={gameStatus.statusLabel}
-                            statusCode={statusCode}
-                            onVote={(team) => handleVote(team, currentGame, gameStatus.isVoteOpen)}
-                            onPrevDate={goToPreviousDate}
-                            onNextDate={goToNextDate}
-                            hasPrevDate={canMovePrevDate}
-                            hasNextDate={canMoveNextDate}
-                            coachBriefing={(
-                              <CoachBriefing
-                                game={currentGame}
-                                gameDetail={currentGameDetail}
-                                seasonContext={seasonContext}
-                                isPastGame={isPastGame}
-                                isFutureGame={isFutureGame}
-                                requestMode={coachBriefingPolicy.requestMode}
-                                autoEnabled={shouldAutoRequestCoachBriefing}
-                                forceManual={coachBriefingPolicy.forceManual}
-                              />
-
-                            )}
-                          />
-                        )
+                          )}
+                        />
                       )}
                     </>
                   ) : (
