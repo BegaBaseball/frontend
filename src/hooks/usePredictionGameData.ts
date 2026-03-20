@@ -17,6 +17,7 @@ import {
   PREDICTION_OFFLINE_TOAST_MESSAGE,
   PREDICTION_PARTIAL_REASON_TOTAL_VOTES_MISSING,
   getPredictionCopyKey,
+  hasRenderableGameDetail,
   hasInningScoreData,
   isCancelLikeError,
   mapPredictionErrorCode,
@@ -77,6 +78,8 @@ export const usePredictionGameData = ({
   const currentGameDetailState = currentGameId ? gameDetails[currentGameId] : null;
   const currentGameDetail = currentGameDetailState?.data ?? null;
   const currentGameDetailLoading = currentGameDetailState?.status === 'loading';
+  const currentGameDetailRefreshing = currentGameDetailState?.isBackgroundRefreshing === true;
+  const currentGameDetailHasRenderableData = hasRenderableGameDetail(currentGameDetailState);
   const currentGameDetailError = currentGameDetailState?.error || null;
   const currentDateVoteState = currentGameId ? voteStatusState[currentGameId] : null;
   const voteStatusError = currentDateVoteState?.error || null;
@@ -143,6 +146,8 @@ export const usePredictionGameData = ({
             status: 'ready',
             error: undefined,
             isSeeded: false,
+            isBackgroundRefreshing: true,
+            hasRenderableData: true,
           },
         };
       }
@@ -154,6 +159,8 @@ export const usePredictionGameData = ({
           data: previousState?.data ?? null,
           error: undefined,
           isSeeded: false,
+          isBackgroundRefreshing: false,
+          hasRenderableData: hasRenderableGameDetail(previousState),
         },
       };
     });
@@ -170,6 +177,8 @@ export const usePredictionGameData = ({
           data: detail,
           error: undefined,
           isSeeded: false,
+          isBackgroundRefreshing: false,
+          hasRenderableData: true,
         },
       }));
       emitFlowEvent('onResultSuccess', 'RESULT', {
@@ -191,8 +200,10 @@ export const usePredictionGameData = ({
               [gameId]: {
                 ...previousState,
                 status: 'ready',
-                error: undefined,
+                error: parsedError.message || '경기 상세를 불러오지 못했습니다.',
                 isSeeded: false,
+                isBackgroundRefreshing: false,
+                hasRenderableData: true,
               },
             };
           }
@@ -205,6 +216,8 @@ export const usePredictionGameData = ({
               data: previousState?.data ?? null,
               error: parsedError.message || '경기 상세를 불러오지 못했습니다.',
               isSeeded: false,
+              isBackgroundRefreshing: false,
+              hasRenderableData: hasRenderableGameDetail(previousState),
             },
           };
         });
@@ -217,6 +230,8 @@ export const usePredictionGameData = ({
           status: 'error',
           data: prev[gameId]?.data ?? null,
           error: parsedError.message || '경기 상세를 불러오지 못했습니다.',
+          isBackgroundRefreshing: false,
+          hasRenderableData: hasRenderableGameDetail(prev[gameId]),
         },
       }));
       emitFlowEvent('onResultRenderFail', 'ERROR', {
@@ -704,13 +719,16 @@ export const usePredictionGameData = ({
         toastKey: 'run_retry_started',
       });
     }
+    const hasExistingData = hasRenderableGameDetail(gameDetails[nextCurrentGameId]);
     setGameDetails((prev) => ({
       ...prev,
       [nextCurrentGameId]: {
-        status: 'idle',
+        status: hasExistingData ? 'ready' : 'idle',
         data: prev[nextCurrentGameId]?.data ?? null,
         error: undefined,
         isSeeded: false,
+        isBackgroundRefreshing: hasExistingData,
+        hasRenderableData: hasRenderableGameDetail(prev[nextCurrentGameId]),
       },
     }));
     const requestId = ++detailRequestRef.current;
@@ -719,8 +737,10 @@ export const usePredictionGameData = ({
     }
     const abortController = new AbortController();
     detailAbortRef.current = abortController;
-    void loadGameDetail(nextCurrentGameId, requestId, abortController.signal);
-  }, [emitFlowEvent, getCurrentGameId, loadGameDetail]);
+    void loadGameDetail(nextCurrentGameId, requestId, abortController.signal, {
+      backgroundRefresh: hasExistingData,
+    });
+  }, [emitFlowEvent, gameDetails, getCurrentGameId, loadGameDetail]);
 
   const primeGameDetail = useCallback((gameId: string, detail: GameDetail) => {
     setGameDetails((prev) => ({
@@ -730,6 +750,8 @@ export const usePredictionGameData = ({
         data: detail,
         error: undefined,
         isSeeded: true,
+        isBackgroundRefreshing: false,
+        hasRenderableData: true,
       },
     }));
   }, []);
@@ -794,6 +816,8 @@ export const usePredictionGameData = ({
     gameDetails,
     currentGameDetail,
     currentGameDetailLoading,
+    currentGameDetailRefreshing,
+    currentGameDetailHasRenderableData,
     currentGameDetailError,
     loadVoteStatus,
     reloadVoteStatus,
