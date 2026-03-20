@@ -323,6 +323,8 @@ export const usePrediction = () => {
     userVote,
     currentGameDetail: gameData.currentGameDetail,
     currentGameDetailLoading: gameData.currentGameDetailLoading,
+    currentGameDetailRefreshing: gameData.currentGameDetailRefreshing,
+    currentGameDetailHasRenderableData: gameData.currentGameDetailHasRenderableData,
     currentGameDetailError: gameData.currentGameDetailError,
     reloadCurrentVoteStatus: gameData.reloadCurrentVoteStatus,
     reloadCurrentGameDetail: gameData.reloadCurrentGameDetail,

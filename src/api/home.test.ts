@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 
 import api from './axios';
 import {
+  buildHomeLoadState,
   fetchGamesData,
   fetchHomeBootstrap,
   fetchHomeWidgets,
   fetchLeagueStartDates,
   fetchRankingsData,
+  shouldShowHomeConnectionError,
 } from './home';
 
 test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 세션 처리만 건너뛴다', async (t) => {
@@ -97,4 +99,32 @@ test('공개 홈 보조 데이터 요청도 세션 처리만 건너뛴다', asyn
     assert.equal(config?.skipAuthSessionHandling, true);
     assert.equal('skipGlobalErrorHandler' in (config ?? {}), false);
   });
+});
+
+test('buildHomeLoadState는 레거시 폴백 timeout 상태를 구조화한다', () => {
+  const state = buildHomeLoadState('legacy-fallback', { timedOut: true });
+
+  assert.deepEqual(state, {
+    source: 'legacy-fallback',
+    isFallback: true,
+    timedOut: true,
+  });
+});
+
+test('shouldShowHomeConnectionError는 모든 핵심 섹션이 실패한 경우에만 true를 반환한다', () => {
+  assert.equal(shouldShowHomeConnectionError({
+    leagueStartDates: false,
+    navigation: true,
+    games: false,
+    scheduledGames: false,
+    rankings: false,
+  }), false);
+
+  assert.equal(shouldShowHomeConnectionError({
+    leagueStartDates: false,
+    navigation: false,
+    games: false,
+    scheduledGames: false,
+    rankings: false,
+  }), true);
 });
