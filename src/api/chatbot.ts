@@ -13,10 +13,12 @@ import {
   CHATBOT_STREAM_TIMEOUT_ERROR,
   CHATBOT_STREAM_INCOMPLETE_ERROR,
   CHATBOT_STREAM_TEMPORARY_ERROR,
+  isStreamAbortError,
   isStreamReadTimeoutError,
   isStreamRequestTimeoutError,
   getStreamRetryDelayMs,
   requestStream,
+  waitForStreamDelay,
 } from './stream';
 
 const buildAiStreamPath = (path: string): string => `/ai${path.startsWith('/') ? path : `/${path}`}`;
@@ -67,7 +69,8 @@ const parseRetryAfterSeconds = (retryAfterHeader: string | null): number | null 
 export async function sendChatMessageStream(
   data: ChatRequest,
   onDelta: (delta: string) => void,
-  onMeta?: (meta: ChatMeta) => void
+  onMeta?: (meta: ChatMeta) => void,
+  options?: { signal?: AbortSignal },
 ): Promise<void> {
   const MAX_RETRIES = DEFAULT_STREAM_TIMEOUT_RETRY_ATTEMPTS;
   const READ_TIMEOUT_MS = DEFAULT_STREAM_TIMEOUT_MS;
@@ -91,6 +94,7 @@ export async function sendChatMessageStream(
         },
         body: JSON.stringify(data),
         timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+        signal: options?.signal,
       });
 
       if (response.ok) {
@@ -118,10 +122,14 @@ export async function sendChatMessageStream(
 
       // Backoff delay: 1s, 2s, 4s...
       const delay = getStreamRetryDelayMs(attempt);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await waitForStreamDelay(delay, options?.signal);
 
     } catch (error) {
       if (error instanceof RateLimitError) {
+        throw error;
+      }
+
+      if (isStreamAbortError(error)) {
         throw error;
       }
 
@@ -130,7 +138,7 @@ export async function sendChatMessageStream(
           throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
         }
         const delay = getStreamRetryDelayMs(attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await waitForStreamDelay(delay, options?.signal);
         continue;
       }
 
@@ -140,7 +148,7 @@ export async function sendChatMessageStream(
       }
       // Backoff delay
       const delay = getStreamRetryDelayMs(attempt);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await waitForStreamDelay(delay, options?.signal);
     }
   }
 
@@ -151,6 +159,7 @@ export async function sendChatMessageStream(
   try {
     const { sawDone } = await consumeSseStream(response.body, {
       timeoutMs: READ_TIMEOUT_MS,
+      signal: options?.signal,
       onEvent: ({ event, data }) => {
         let parsed: AiStreamMetaPayload & {
           delta?: string;
@@ -189,6 +198,9 @@ export async function sendChatMessageStream(
       throw new Error(CHATBOT_STREAM_INCOMPLETE_ERROR);
     }
   } catch (error: unknown) {
+    if (isStreamAbortError(error)) {
+      throw error;
+    }
     if (isStreamReadTimeoutError(error)) {
       throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
     }

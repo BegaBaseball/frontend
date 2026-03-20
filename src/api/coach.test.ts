@@ -215,3 +215,30 @@ test('analyzeTeam은 message delta를 누적하고 done으로 종료한다', asy
   assert.equal(response.answer, '첫 문장');
   assert.deepEqual(streamed, ['첫', '첫 문장']);
 });
+
+test('analyzeTeam은 explicit abort를 timeout이나 generic failure로 바꾸지 않는다', async (t) => {
+  let delivered = false;
+
+  t.mock.method(globalThis, 'fetch', async (_input, init) => buildStreamResponse([
+    'event: message\n',
+    'data: {"delta":"첫 문장"}\n',
+    '\n',
+  ]) as never);
+
+  const controller = new AbortController();
+  const streamPromise = analyzeTeam(
+    baseRequest,
+    () => {
+      if (!delivered) {
+        delivered = true;
+        controller.abort(new DOMException('manual abort', 'AbortError'));
+      }
+    },
+    { signal: controller.signal },
+  );
+
+  await assert.rejects(
+    () => streamPromise,
+    (error) => error instanceof DOMException && error.name === 'AbortError',
+  );
+});

@@ -1,12 +1,12 @@
 import chatBotIcon from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { Badge } from './ui/badge';
-import { X, Send, Check, Copy, BrainCircuit, ChevronRight, ChevronDown, Zap } from 'lucide-react';
+import { X, Send, Check, Copy, BrainCircuit, ChevronRight, ChevronDown, Zap, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChatBot } from '../hooks/useChatBot';
 import { useAuthSession } from '../store/authStore';
 import { useIsMobile } from '../hooks/use-mobile';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
@@ -152,6 +152,7 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
     handleSendMessage,
     handleRetrySend,
     handleRestorePendingMessage,
+    handleCancelStream,
   } = useChatBot(autoOpen);
 
   const [isClosing, setIsClosing] = useState(false);
@@ -162,6 +163,7 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
   const recentTypingHintsRef = useRef<string[]>([]);
   const previousTypingCategoryRef = useRef<string | null>(null);
   const isRateLimited = rateLimitActive && rateLimitCountdown > 0;
+  const isSendDisabled = isRateLimited || (!isProcessing && !inputMessage.trim());
 
   useEffect(() => {
     if (autoOpen) {
@@ -217,6 +219,10 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
       return;
     }
 
+    if (isProcessing) {
+      handleCancelStream();
+    }
+
     setIsClosing(true);
     clearCloseTimer();
     closeTimerRef.current = window.setTimeout(() => {
@@ -248,6 +254,15 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
     } catch {
       // clipboard API not available (e.g. non-HTTPS)
     }
+  };
+
+  const handleInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
   };
 
   // 모바일에서 챗봇 열릴 때 body 스크롤 방지
@@ -433,6 +448,7 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
                   if (message.sender === 'bot' && !message.text) return null;
 
                   const isStreamError = message.sender === 'bot' && message.isError === true;
+                  const isCancelled = message.sender === 'bot' && message.cancelled === true;
 
                   return (
                     <div
@@ -446,6 +462,8 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
                               py-2.5 px-4 rounded-2xl
                               ${isStreamError
                                 ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700/40'
+                                : isCancelled
+                                  ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-700/40'
                                 : 'bg-gray-100 dark:bg-secondary/80 text-gray-900 dark:text-white border border-gray-300 dark:border-white/10'
                               }
                             `}
@@ -456,6 +474,11 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
                                 : message.text}
                             </ReactMarkdown>
                             <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                              {isCancelled && (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-1.5 py-0.5 dark:bg-amber-400/10 dark:border-amber-400/30 dark:text-amber-200">
+                                  응답 취소됨
+                                </span>
+                              )}
                               {message.cached && (
                                 <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5 dark:bg-amber-400/10 dark:border-amber-400/30 dark:text-amber-400">
                                   <Zap className="w-2.5 h-2.5" />
@@ -474,7 +497,7 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
                             </div>
                           )}
                           {/* Tool Disclosure - AI가 사용한 도구 목록 */}
-                          {!isStreamError && (() => {
+                          {!isStreamError && !isCancelled && (() => {
                             const visibleTools = (message.toolCalls ?? []).filter(
                               tc => TOOL_NAME_KO[tc.toolName] !== null && TOOL_NAME_KO[tc.toolName] !== undefined
                             );
@@ -598,21 +621,36 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
                 </label>
                 <input
                   id="chatbot-message-input"
+                  name="message"
+                  data-testid="chatbot-message-input"
                   ref={inputRef}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={handleInputKeyDown}
                   placeholder={isProcessing ? '답변을 기다리는 중...' : '메시지를 입력하세요...'}
                   inputMode="text"
                   autoComplete="off"
                   className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white text-sm py-2 px-1
                              placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
+                {isProcessing && (
+                  <button
+                    type="button"
+                    onClick={handleCancelStream}
+                    className="bg-amber-500 text-white border-none rounded-xl p-2 transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center hover:bg-amber-600"
+                    aria-label="응답 취소"
+                    data-testid="chatbot-cancel-button"
+                  >
+                    <Square className="w-4 h-4 fill-current" />
+                  </button>
+                )}
                 <button
                   type="submit"
-                  disabled={isProcessing || isRateLimited || !inputMessage.trim()}
+                  disabled={isSendDisabled}
+                  data-testid="chatbot-send-button"
                   className={`
                     bg-primary text-white border-none rounded-xl p-2
-                    ${(isProcessing || isRateLimited || !inputMessage.trim()) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-[#3d7f6f]'}
+                    ${isSendDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-[#3d7f6f]'}
                     transition-colors
                     min-w-[40px] min-h-[40px] flex items-center justify-center
                   `}

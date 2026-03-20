@@ -14,9 +14,23 @@ describe('Security surface real smoke', () => {
     const value = envVars[key];
     return typeof value === 'string' ? value : undefined;
   };
-  const getConfiguredEnvVars = (): EnvVars => {
+  const getConfiguredEnvVars = (): Cypress.Chainable<EnvVars> => {
     const config = Cypress.config() as unknown as { env?: EnvVars };
-    return config.env && typeof config.env === 'object' ? config.env : {};
+    const configuredEnv =
+      config.env && typeof config.env === 'object' ? config.env : {};
+    return cy.env<EnvVars>([
+      'BACKEND_BASE_URL',
+      'SMOKE_API_BASE_URL',
+      'CYPRESS_BASE_URL',
+      'CYPRESS_BACKEND_BASE_URL',
+      'VITE_API_BASE_URL',
+      'FRONTEND_API_BASE_URL',
+      'SMOKE_LOGIN_EMAIL',
+      'SMOKE_LOGIN_PASSWORD',
+    ]).then((runtimeEnv) => ({
+      ...configuredEnv,
+      ...(runtimeEnv && typeof runtimeEnv === 'object' ? runtimeEnv : {}),
+    }));
   };
 
   const resolveBaseOrigin = () => {
@@ -75,8 +89,7 @@ describe('Security surface real smoke', () => {
   };
 
   const resolveBackendBaseUrl = (): Cypress.Chainable<string | undefined> =>
-    cy.wrap(null, { log: false }).then(() => {
-      const envVars = getConfiguredEnvVars();
+    getConfiguredEnvVars().then((envVars) => {
       const backendBaseUrl =
         normalizeBackendBaseUrl(getEnvString(envVars, 'BACKEND_BASE_URL'))
         || normalizeBackendBaseUrl(getEnvString(envVars, 'SMOKE_API_BASE_URL'))
@@ -108,7 +121,7 @@ describe('Security surface real smoke', () => {
 
   before(function () {
     return resolveBackendBaseUrl()
-      .then(async (backendBaseUrl) => {
+      .then(function (backendBaseUrl) {
         if (!backendBaseUrl) {
           cy.log('Skipping security-surface-real: BACKEND_BASE_URL is not available or backend is not reachable.');
           cy.log('Set BACKEND_BASE_URL, CYPRESS_BACKEND_BASE_URL, SMOKE_API_BASE_URL, VITE_API_BASE_URL, or FRONTEND_API_BASE_URL for execution.');
@@ -117,22 +130,16 @@ describe('Security surface real smoke', () => {
         }
 
         const healthUrl = buildBackendUrl(backendBaseUrl, '/actuator/health');
-
-        try {
-          const response = await (cy.request({
-            method: 'GET',
-            url: healthUrl,
-            failOnStatusCode: false,
-          }) as unknown as Promise<Cypress.Response<unknown>>);
-
+        return cy.request({
+          method: 'GET',
+          url: healthUrl,
+          failOnStatusCode: false,
+        }).then((response) => {
           if (!isBackendHealthResponse(response)) {
             const contentType = String(response.headers['content-type'] || 'unknown');
             throw new Error(`backend health endpoint did not return JSON payload (status=${response.status}, content-type=${contentType}, url=${healthUrl})`);
           }
-        } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : String(error);
-          throw new Error(`security-surface-real backend health check failed (${message})`);
-        }
+        });
       });
   });
 
@@ -229,8 +236,7 @@ describe('Security surface real smoke', () => {
   };
 
   const loginAsNormalUser = (): Cypress.Chainable<boolean | undefined> => {
-    return cy.wrap(null, { log: false }).then(() => {
-      const envVars = getConfiguredEnvVars();
+    return getConfiguredEnvVars().then((envVars) => {
       const configuredEmail = getEnvString(envVars, 'SMOKE_LOGIN_EMAIL');
       const configuredPassword = getEnvString(envVars, 'SMOKE_LOGIN_PASSWORD');
 

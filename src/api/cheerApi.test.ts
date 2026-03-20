@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import api from './axios';
-import { fetchComments, fetchPosts } from './cheerApi';
+import { fetchComments, fetchPosts, uploadPostImages } from './cheerApi';
 
 test('fetchPosts는 공개 응답에서 authorId 없이 cheer post를 정규화한다', async (t) => {
   t.mock.method(api, 'get', async () => ({
@@ -84,4 +84,34 @@ test('fetchComments는 공개 응답에서 authorEmail 없이 댓글을 정규�
 
   assert.equal(comment?.authorHandle, '@commenter');
   assert.equal(Object.prototype.hasOwnProperty.call(comment ?? {}, 'authorEmail'), false);
+});
+
+test('uploadPostImages는 string[]와 PostImageDto[] 응답을 모두 URL 배열로 정규화한다', async (t) => {
+  const responses = [
+    {
+      data: [
+        {
+          id: 1,
+          storagePath: 'images/1.webp',
+          mimeType: 'image/webp',
+          bytes: 1234,
+          isThumbnail: false,
+          url: 'https://cdn.example.com/1.webp',
+        },
+      ],
+    },
+    {
+      data: ['https://cdn.example.com/legacy-1.webp', 'https://cdn.example.com/legacy-2.webp'],
+    },
+  ];
+
+  let callIndex = 0;
+  t.mock.method(api, 'post', async () => responses[callIndex++] as never);
+
+  const file = new File(['hello'], 'hello.png', { type: 'image/png' });
+  const first = await uploadPostImages(1, [file]);
+  const second = await uploadPostImages(1, [file]);
+
+  assert.deepEqual(first, ['https://cdn.example.com/1.webp']);
+  assert.deepEqual(second, ['https://cdn.example.com/legacy-1.webp', 'https://cdn.example.com/legacy-2.webp']);
 });
