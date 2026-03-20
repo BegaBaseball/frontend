@@ -1,8 +1,16 @@
-/* Google Font for Retro Leaderboard */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+/* Fonts are loaded non-blocking via <link> tags in index.html */
 
-/* Korean Pixel Font for better readability */
-@import url('https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css');
+/* Override font-display for CDN-loaded Galmuri (jsDelivr doesn't set swap by default) */
+@font-face {
+  font-family: 'Galmuri11';
+  font-display: swap;
+  src: local('Galmuri11');
+}
+@font-face {
+  font-family: 'Galmuri9';
+  font-display: swap;
+  src: local('Galmuri9');
+}
 
 @tailwind base;
 @tailwind components;
