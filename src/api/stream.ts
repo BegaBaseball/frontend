@@ -44,6 +44,41 @@ export class StreamReadTimeoutError extends Error {
 export const isStreamReadTimeoutError = (error: unknown): boolean =>
   error instanceof Error && error.name === STREAM_READ_TIMEOUT_ERROR_NAME;
 
+export const isStreamAbortError = (error: unknown): boolean => {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return true;
+  }
+  if (error instanceof Error) {
+    if (error.name === 'AbortError') {
+      return true;
+    }
+    const message = error.message.toLowerCase();
+    return message.includes('aborterror') || message.includes('aborted');
+  }
+  return String(error ?? '').toLowerCase().includes('abort');
+};
+
+export const waitForStreamDelay = (delayMs: number, signal?: AbortSignal): Promise<void> => {
+  if (signal?.aborted) {
+    return Promise.reject(signal.reason ?? new DOMException('aborted', 'AbortError'));
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, delayMs);
+
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', onAbort);
+      reject(signal?.reason ?? new DOMException('aborted', 'AbortError'));
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+};
+
 export const readWithTimeout = async <T>(
   read: () => Promise<T>,
   timeoutMs: number,

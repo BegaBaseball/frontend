@@ -9,10 +9,12 @@ import {
   StreamReadTimeoutError,
   buildStreamApiUrl,
   getStreamRetryDelayMs,
+  isStreamAbortError,
   readWithTimeout,
   requestStream,
   isStreamRequestTimeoutError,
   isStreamReadTimeoutError,
+  waitForStreamDelay,
 } from './stream';
 
 test('buildStreamApiUrl normalizes double slashes and leading slash path', () => {
@@ -62,6 +64,37 @@ test('isStreamRequestTimeoutError detects request timeout errors', () => {
   assert.equal(isStreamRequestTimeoutError(timeoutError), true);
   assert.equal(isStreamRequestTimeoutError(nativeTimeoutError), true);
   assert.equal(isStreamRequestTimeoutError(otherError), false);
+});
+
+test('isStreamAbortError detects DOM abort errors', () => {
+  assert.equal(isStreamAbortError(new DOMException('manual abort', 'AbortError')), true);
+  assert.equal(isStreamAbortError(new Error('other')), false);
+});
+
+test('waitForStreamDelay rejects immediately when signal is already aborted', async () => {
+  const controller = new AbortController();
+  controller.abort(new DOMException('manual abort', 'AbortError'));
+
+  await assert.rejects(
+    () => waitForStreamDelay(10, controller.signal),
+    (error) => error instanceof DOMException && error.name === 'AbortError',
+  );
+});
+
+test('waitForStreamDelay rejects when signal aborts during delay', async () => {
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => {
+    controller.abort(new DOMException('manual abort', 'AbortError'));
+  }, 5);
+
+  try {
+    await assert.rejects(
+      () => waitForStreamDelay(30, controller.signal),
+      (error) => error instanceof DOMException && error.name === 'AbortError',
+    );
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
 });
 
 test('requestStream transforms request-timeout into StreamRequestTimeoutError', async () => {

@@ -7,6 +7,10 @@ const AUTH_BOOTSTRAP_SKIPPED_PATHS = new Set([
   '/password/reset/confirm',
   '/account/deletion/recovery',
 ]);
+const AUTH_BOOTSTRAP_PUBLIC_HOME_PATHS = new Set([
+  '/',
+  '/home',
+]);
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
@@ -65,7 +69,7 @@ export const resolveAuthBootstrapMode = (
     return 'skip';
   }
 
-  if (normalizedPathname === '/home') {
+  if (AUTH_BOOTSTRAP_PUBLIC_HOME_PATHS.has(normalizedPathname)) {
     return options.isLoggedIn || options.hasPersistedAuthHint ? 'defer' : 'public-home';
   }
 

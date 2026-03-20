@@ -32,6 +32,8 @@ export const getLoginQueryErrorMessage = (search: string): string | null => {
       return '로그인 상태를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.';
     case 'user_not_found_after_auth':
       return '소셜 로그인 처리 후 계정을 찾지 못했습니다. 다시 시도해주세요.';
+    case 'auth_session_not_established':
+      return '로그인 처리 후 세션을 확인하지 못했습니다. 다시 시도해주세요.';
     case 'oauth2_auth_failed':
       return '소셜 로그인에 실패했습니다. 다시 시도해주세요.';
     default:

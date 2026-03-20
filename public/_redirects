@@ -1,0 +1,3 @@
+# Path-based asset redirects belong here.
+# Host-level canonical redirects such as begabaseball.xyz -> www.begabaseball.xyz
+# must be configured with a Cloudflare Redirect Rule or Bulk Redirect.

@@ -107,8 +107,9 @@
     "prebuild": "npm run log:audit:strict && npm run seo:env:check",
     "cwv:baseline": "node scripts/cwv-baseline.mjs --json reports/cwv-baseline.json --markdown reports/cwv-baseline.md",
     "build": "npm run build:base && npm run seo:prerender && npm run seo:sitemap",
-    "preview": "npm run preview:pages",
-    "preview:pages": "npm run build && wrangler dev",
+    "preview": "npm run preview:cloudflare",
+    "preview:pages": "npm run preview:cloudflare",
+    "preview:cloudflare": "npm run build && wrangler dev",
     "qa:landing": "node scripts/landing-qa.mjs",
     "qa:auth": "node scripts/auth-qa.mjs",
     "cy:doctor": "node scripts/cypress-doctor.mjs",
@@ -144,6 +145,7 @@
     "test:seo": "node --import tsx --test \"src/seo/**/*.test.ts\"",
     "test:unit": "node --import tsx --test \"src/**/*.test.ts\"",
     "deploy": "npm run build:artifact",
-    "deploy:pages": "npm run build && wrangler deploy"
+    "deploy:pages": "npm run deploy:cloudflare",
+    "deploy:cloudflare": "npm run build && wrangler deploy"
   }
 }

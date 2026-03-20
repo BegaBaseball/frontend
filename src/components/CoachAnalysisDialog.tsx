@@ -105,6 +105,31 @@ type ParsedCoachAnalysisData = {
     uncertainty?: unknown[];
 };
 
+type ParsedStructuredCoachPayload = {
+    headline?: string;
+    sentiment?: 'positive' | 'negative' | 'neutral';
+    detailed_markdown?: string;
+    coach_note?: string;
+    analysis?: {
+        summary?: string;
+        verdict?: string;
+        strengths?: string[];
+        weaknesses?: string[];
+        risks?: CoachRiskItem[];
+        why_it_matters?: string[];
+        swing_factors?: string[];
+        watch_points?: string[];
+        uncertainty?: string[];
+    };
+    key_metrics?: Array<{
+        label: string;
+        value: string;
+        status: 'good' | 'warning' | 'danger';
+        trend: 'up' | 'down' | 'neutral';
+        is_critical?: boolean;
+    }>;
+};
+
 const deriveMetricCategory = (label: string): string => {
     if (label.includes('선발')) return '선발';
     if (label.includes('불펜')) return '불펜';
@@ -194,6 +219,76 @@ const normalizeRiskItems = (risks?: Array<unknown> | null): CoachRiskItem[] => {
     });
 
     return resolved;
+};
+
+const parseStructuredCoachPayload = (raw: string): ParsedStructuredCoachPayload | null => {
+    try {
+        const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```/) || raw.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            return null;
+        }
+
+        const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return null;
+        }
+        return parsed as ParsedStructuredCoachPayload;
+    } catch {
+        return null;
+    }
+};
+
+const resolvePreferredText = (primary?: string, secondary?: string): string | undefined => {
+    const primaryValue = typeof primary === 'string' ? primary.trim() : '';
+    const secondaryValue = typeof secondary === 'string' ? secondary.trim() : '';
+    if (!secondaryValue) {
+        return primaryValue || undefined;
+    }
+    if (!primaryValue) {
+        return secondaryValue;
+    }
+    return secondaryValue.length > primaryValue.length ? secondaryValue : primaryValue;
+};
+
+const resolvePreferredList = <T,>(primary?: T[], secondary?: T[]): T[] | undefined => {
+    if (Array.isArray(secondary) && secondary.length > 0) {
+        return secondary;
+    }
+    if (Array.isArray(primary) && primary.length > 0) {
+        return primary;
+    }
+    return undefined;
+};
+
+const mergeStructuredCoachPayload = (
+    primary: CoachAnalyzeResponse['structuredData'],
+    fallback?: ParsedStructuredCoachPayload | null,
+): ParsedStructuredCoachPayload | null => {
+    if (!primary) {
+        return fallback || null;
+    }
+    if (!fallback) {
+        return primary;
+    }
+
+    return {
+        headline: resolvePreferredText(primary.headline, fallback.headline),
+        sentiment: fallback.sentiment || primary.sentiment,
+        detailed_markdown: resolvePreferredText(primary.detailed_markdown, fallback.detailed_markdown),
+        coach_note: resolvePreferredText(primary.coach_note, fallback.coach_note),
+        key_metrics: resolvePreferredList(primary.key_metrics, fallback.key_metrics),
+        analysis: {
+            summary: resolvePreferredText(primary.analysis?.summary, fallback.analysis?.summary),
+            verdict: resolvePreferredText(primary.analysis?.verdict, fallback.analysis?.verdict),
+            strengths: resolvePreferredList(primary.analysis?.strengths, fallback.analysis?.strengths) || [],
+            weaknesses: resolvePreferredList(primary.analysis?.weaknesses, fallback.analysis?.weaknesses) || [],
+            risks: resolvePreferredList(primary.analysis?.risks, fallback.analysis?.risks) || [],
+            why_it_matters: resolvePreferredList(primary.analysis?.why_it_matters, fallback.analysis?.why_it_matters),
+            swing_factors: resolvePreferredList(primary.analysis?.swing_factors, fallback.analysis?.swing_factors),
+            watch_points: resolvePreferredList(primary.analysis?.watch_points, fallback.analysis?.watch_points),
+            uncertainty: resolvePreferredList(primary.analysis?.uncertainty, fallback.analysis?.uncertainty),
+        },
+    };
 };
 
 const ANALYSIS_LOADING_FALLBACK_MESSAGE = 'AI 코치 분석을 시작합니다.';
@@ -708,7 +803,11 @@ export default function CoachAnalysisDialog({
         }
 
         if (result?.structuredData) {
-            const structured = result.structuredData;
+            const rawPayload = parseStructuredCoachPayload(result?.raw_answer || result?.answer || '');
+            const structured = mergeStructuredCoachPayload(result.structuredData, rawPayload);
+            if (!structured) {
+                return null;
+            }
             return buildAnalysisData({
                 headline: structured.headline || defaultAnalysisTitle,
                 sentiment: normalizeSentiment(structured.sentiment),
@@ -724,52 +823,23 @@ export default function CoachAnalysisDialog({
         const raw = result?.raw_answer || result?.answer || '';
 
         try {
-            const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```/) || raw.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-                if (parsed && typeof parsed === 'object') {
-                    if (parsed.dashboard) {
-                        return normalizeCoachAnalysisData(parsed as ParsedCoachAnalysisData);
-                    }
+            const parsedPayload = parseStructuredCoachPayload(raw);
+            if (parsedPayload && parsedPayload.headline) {
+                return buildAnalysisData({
+                    headline: parsedPayload.headline || defaultAnalysisTitle,
+                    sentiment: normalizeSentiment(parsedPayload.sentiment),
+                    keyMetrics: parsedPayload.key_metrics?.map((metric) => ({
+                        ...metric,
+                        is_critical: Boolean(metric.is_critical),
+                    })),
+                    analysis: parsedPayload.analysis,
+                    detailedMarkdown: parsedPayload.detailed_markdown,
+                    coachNote: parsedPayload.coach_note,
+                });
+            }
 
-                    if (parsed.headline) {
-                        const parsedPayload = parsed as {
-                            headline?: string;
-                            sentiment?: 'positive' | 'negative' | 'neutral';
-                            detailed_markdown?: string;
-                            coach_note?: string;
-                            analysis?: {
-                                summary?: string;
-                                verdict?: string;
-                                strengths?: string[];
-                                weaknesses?: string[];
-                                risks?: CoachRiskItem[];
-                                why_it_matters?: string[];
-                                swing_factors?: string[];
-                                watch_points?: string[];
-                                uncertainty?: string[];
-                            };
-                            key_metrics?: Array<{
-                                label: string;
-                                value: string;
-                                status: 'good' | 'warning' | 'danger';
-                                trend: 'up' | 'down' | 'neutral';
-                                is_critical?: boolean;
-                            }>;
-                        };
-                        return buildAnalysisData({
-                            headline: parsedPayload.headline || defaultAnalysisTitle,
-                            sentiment: normalizeSentiment(parsedPayload.sentiment),
-                            keyMetrics: parsedPayload.key_metrics?.map((metric) => ({
-                                ...metric,
-                                is_critical: Boolean(metric.is_critical),
-                            })),
-                            analysis: parsedPayload.analysis,
-                            detailedMarkdown: parsedPayload.detailed_markdown,
-                            coachNote: parsedPayload.coach_note,
-                        });
-                    }
-                }
+            if (parsedPayload && 'dashboard' in (parsedPayload as ParsedCoachAnalysisData)) {
+                return normalizeCoachAnalysisData(parsedPayload as ParsedCoachAnalysisData);
             }
         } catch (error) {
             console.warn('Fallback JSON parse failed', error);
