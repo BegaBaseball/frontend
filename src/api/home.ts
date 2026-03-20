@@ -14,6 +14,22 @@ import {
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
 import api from './axios';
 
+export type HomeLoadSource = 'bootstrap' | 'legacy-fallback';
+
+export interface HomeLoadState {
+    source: HomeLoadSource;
+    isFallback: boolean;
+    timedOut: boolean;
+}
+
+export interface HomeCoreLoadSuccessState {
+    leagueStartDates: boolean;
+    navigation: boolean;
+    games: boolean;
+    scheduledGames: boolean;
+    rankings: boolean;
+}
+
 const publicHomeRequestConfig = {
     skipAuthSessionHandling: true,
 } as const;
@@ -89,6 +105,19 @@ const isWidgetsResponse = (value: unknown): value is { hotCheerPosts: RawHotChee
     const candidate = value as Record<string, unknown>;
     return Array.isArray(candidate.hotCheerPosts) && Array.isArray(candidate.featuredMates);
 };
+
+export const buildHomeLoadState = (
+    source: HomeLoadSource,
+    options: { timedOut?: boolean } = {},
+): HomeLoadState => ({
+    source,
+    isFallback: source === 'legacy-fallback',
+    timedOut: options.timedOut === true,
+});
+
+export const shouldShowHomeConnectionError = (
+    state: HomeCoreLoadSuccessState,
+): boolean => !Object.values(state).some(Boolean);
 
 /**
  * 특정 날짜의 경기 데이터 조회

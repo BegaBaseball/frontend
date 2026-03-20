@@ -19,7 +19,14 @@ import ScheduledGameCard from './ScheduledGameCard';
 import WelcomeGuide from './WelcomeGuide';
 import AdSlot from './ads/AdSlot';
 import api from '../api/axios';
-import { fetchHomeBootstrap, fetchHomeWidgets } from '../api/home';
+import {
+    buildHomeLoadState,
+    fetchHomeBootstrap,
+    fetchHomeWidgets,
+    shouldShowHomeConnectionError,
+    type HomeCoreLoadSuccessState,
+    type HomeLoadState,
+} from '../api/home';
 import {
     partitionScheduledGames,
     shouldAutoSwitchToScheduled,
@@ -131,6 +138,36 @@ const TEAM_RANKING_CARD_HEIGHT_CLASS = HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS;
 const PUBLIC_HOME_REQUEST_CONFIG = {
     skipAuthSessionHandling: true,
 } as const;
+const HOME_BOOTSTRAP_LEGACY_FALLBACK_DELAY_MS = 3000;
+
+interface HomeNavigationState {
+    prev: string | null;
+    next: string | null;
+    hasPrev: boolean;
+    hasNext: boolean;
+}
+
+interface HomeRankingSnapshotState {
+    rankingSeasonYear: number;
+    rankingSourceMessage: string;
+    isOffSeason: boolean;
+    rankings: Ranking[];
+}
+
+interface HomeRequestResult<T> {
+    data: T;
+    succeeded: boolean;
+}
+
+interface HomeLoadSnapshot {
+    leagueStartDates: LeagueStartDates;
+    navigation: HomeNavigationState;
+    games: Game[];
+    scheduledGames: Game[];
+    rankingSnapshot: HomeRankingSnapshotState;
+    success: HomeCoreLoadSuccessState;
+    loadState: HomeLoadState;
+}
 
 const buildHomeRequestErrorContext = (error: unknown, endpoint: string, date: Date) => {
     const fallback = {
@@ -154,6 +191,18 @@ const buildHomeRequestErrorContext = (error: unknown, endpoint: string, date: Da
         message: error.message,
     };
 };
+
+const buildHomeNavigationState = (data?: {
+    prevGameDate?: string | null;
+    nextGameDate?: string | null;
+    hasPrev?: boolean;
+    hasNext?: boolean;
+} | null): HomeNavigationState => ({
+    prev: data?.prevGameDate ?? null,
+    next: data?.nextGameDate ?? null,
+    hasPrev: data?.hasPrev ?? Boolean(data?.prevGameDate),
+    hasNext: data?.hasNext ?? Boolean(data?.nextGameDate),
+});
 
 const GameCardSkeleton = () => (
     <Card
@@ -803,20 +852,459 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
-    const loadLegacyHomeData = useCallback(async (date: Date) => {
-        const startDates = await loadLeagueStartDates();
-        const seasonYear = resolveRankingSeasonYear(date, startDates);
+    const applyHomeSnapshot = useCallback((date: Date, snapshot: HomeLoadSnapshot) => {
+        const normalizedScheduledGames = snapshot.scheduledGames.map((game) => ({
+            ...game,
+            sourceDate: game.sourceDate || game.gameDate || formatDateForAPI(date),
+            leagueBadge: game.leagueBadge || resolveLeagueBadge(game.leagueType),
+        }));
 
-        await Promise.allSettled([
-            loadGamesData(date),
-            loadNavigationData(date),
-            loadScheduledGamesData(date),
-            loadRankingsData(seasonYear, { baseDate: date, startDates }),
+        cacheLeagueStartDates(snapshot.leagueStartDates);
+        setLeagueStartDates(snapshot.leagueStartDates);
+        setNavInfo(snapshot.navigation);
+        setGames(snapshot.games);
+
+        if (!hasUserChangedTabRef.current) {
+            const { primary: upcomingScheduled } = partitionScheduledGames(normalizedScheduledGames);
+            if (snapshot.games.length > 0) {
+                const firstType = snapshot.games[0].leagueType;
+                if (firstType === 'POSTSEASON') setActiveLeagueTab('postseason');
+                else if (firstType === 'KOREAN_SERIES') setActiveLeagueTab('koreanseries');
+                else setActiveLeagueTab('regular');
+            } else if (upcomingScheduled.length > 0) {
+                setActiveLeagueTab('scheduled');
+            }
+        }
+
+        setScheduledGames(normalizedScheduledGames);
+        setRankingSeasonYear(snapshot.rankingSnapshot.rankingSeasonYear);
+        setRankingSourceMessage(snapshot.rankingSnapshot.rankingSourceMessage);
+        setIsOffSeason(snapshot.rankingSnapshot.isOffSeason);
+        setRankings(snapshot.rankingSnapshot.rankings);
+        const showConnectionError = shouldShowHomeConnectionError(snapshot.success);
+
+        setIsLoading(false);
+        setIsGamesError(!snapshot.success.games);
+        setIsScheduledLoading(false);
+        setIsScheduledError(!snapshot.success.scheduledGames);
+        setIsRankingsLoading(false);
+        setRankingsError(!snapshot.success.rankings);
+        setConnectionError(showConnectionError);
+
+        console.info('[HomeLoad]', {
+            event: 'home_load_completed',
+            selectedDate: formatDateForAPI(date),
+            source: snapshot.loadState.source,
+            isFallback: snapshot.loadState.isFallback,
+            timedOut: snapshot.loadState.timedOut,
+            success: snapshot.success,
+        });
+
+        if (showConnectionError) {
+            console.warn('[HomeLoad]', {
+                event: 'home_load_all_sections_failed',
+                selectedDate: formatDateForAPI(date),
+                source: snapshot.loadState.source,
+                timedOut: snapshot.loadState.timedOut,
+                success: snapshot.success,
+            });
+        }
+    }, []);
+
+    const buildBootstrapHomeSnapshot = (date: Date, timedOut: boolean, data: Awaited<ReturnType<typeof fetchHomeBootstrap>>): HomeLoadSnapshot => ({
+        leagueStartDates: data.leagueStartDates,
+        navigation: buildHomeNavigationState(data.navigation),
+        games: data.games,
+        scheduledGames: data.scheduledGamesWindow.map((game) => ({
+            ...game,
+            sourceDate: game.sourceDate || game.gameDate || formatDateForAPI(date),
+            leagueBadge: game.leagueBadge || resolveLeagueBadge(game.leagueType),
+        })),
+        rankingSnapshot: {
+            rankingSeasonYear: data.rankingSeasonYear,
+            rankingSourceMessage: data.rankingSourceMessage,
+            isOffSeason: data.isOffSeason,
+            rankings: data.rankings,
+        },
+        success: {
+            leagueStartDates: true,
+            navigation: true,
+            games: true,
+            scheduledGames: true,
+            rankings: true,
+        },
+        loadState: buildHomeLoadState('bootstrap', { timedOut }),
+    });
+
+    const buildLegacyFailureSnapshot = (date: Date, timedOut: boolean): HomeLoadSnapshot => {
+        const fallbackDates = leagueStartDates ?? fallbackLeagueStartDates;
+        return {
+            leagueStartDates: fallbackDates,
+            navigation: {
+                prev: null,
+                next: null,
+                hasPrev: true,
+                hasNext: true,
+            },
+            games: [],
+            scheduledGames: [],
+            rankingSnapshot: {
+                rankingSeasonYear: resolveRankingSeasonYear(date, fallbackDates),
+                rankingSourceMessage: '순위 조회 중 문제가 발생했습니다.',
+                isOffSeason: isOffSeasonByDate(date, fallbackDates),
+                rankings: [],
+            },
+            success: {
+                leagueStartDates: false,
+                navigation: false,
+                games: false,
+                scheduledGames: false,
+                rankings: false,
+            },
+            loadState: buildHomeLoadState('legacy-fallback', { timedOut }),
+        };
+    };
+
+    const requestLegacyLeagueStartDates = async (date: Date): Promise<HomeRequestResult<LeagueStartDates>> => {
+        const fallbackDates = getFallbackLeagueStartDates();
+
+        try {
+            const { data } = await api.get<LeagueStartDates>('/kbo/league-start-dates', {
+                ...PUBLIC_HOME_REQUEST_CONFIG,
+            });
+            cacheLeagueStartDates(data);
+            return {
+                data,
+                succeeded: true,
+            };
+        } catch (error) {
+            console.error(
+                '[HomeLegacy] Error loading league dates:',
+                buildHomeRequestErrorContext(error, '/kbo/league-start-dates', date),
+                error,
+            );
+            return {
+                data: fallbackDates,
+                succeeded: false,
+            };
+        }
+    };
+
+    const requestLegacyNavigationData = async (date: Date): Promise<HomeRequestResult<HomeNavigationState>> => {
+        const apiDate = formatDateForAPI(date);
+
+        try {
+            const { data } = await api.get<{
+                prevGameDate?: string | null;
+                nextGameDate?: string | null;
+                hasPrev?: boolean;
+                hasNext?: boolean;
+            }>('/kbo/schedule/navigation', {
+                params: { date: apiDate },
+                ...PUBLIC_HOME_REQUEST_CONFIG,
+            });
+
+            return {
+                data: buildHomeNavigationState(data),
+                succeeded: true,
+            };
+        } catch (error) {
+            console.error(
+                '[HomeLegacy] Error loading schedule navigation:',
+                buildHomeRequestErrorContext(error, '/kbo/schedule/navigation', date),
+                error,
+            );
+            return {
+                data: {
+                    prev: null,
+                    next: null,
+                    hasPrev: true,
+                    hasNext: true,
+                },
+                succeeded: false,
+            };
+        }
+    };
+
+    const requestLegacyGamesData = async (date: Date): Promise<HomeRequestResult<Game[]>> => {
+        const apiDate = formatDateForAPI(date);
+
+        try {
+            const { data } = await api.get<Game[]>('/kbo/schedule', {
+                params: { date: apiDate },
+                ...PUBLIC_HOME_REQUEST_CONFIG,
+            });
+
+            return {
+                data,
+                succeeded: true,
+            };
+        } catch (error) {
+            console.error(
+                '[HomeLegacy] Error loading games:',
+                buildHomeRequestErrorContext(error, '/kbo/schedule', date),
+                error,
+            );
+            return {
+                data: [],
+                succeeded: false,
+            };
+        }
+    };
+
+    const requestLegacyScheduledGamesData = async (baseDate: Date): Promise<HomeRequestResult<Game[]>> => {
+        try {
+            const dates = getDateWindow(baseDate, 8);
+            const responses = await Promise.allSettled(dates.map(async (targetDate) => {
+                const apiDate = formatDateForAPI(targetDate);
+                const { data: dailyGames } = await api.get<Game[]>('/kbo/schedule', {
+                    params: { date: apiDate },
+                    ...PUBLIC_HOME_REQUEST_CONFIG,
+                });
+
+                return dailyGames.map((game) => ({
+                    ...game,
+                    sourceDate: apiDate,
+                    leagueBadge: resolveLeagueBadge(game.leagueType),
+                }));
+            }));
+
+            const merged: Game[] = [];
+            let fulfilledCount = 0;
+
+            responses.forEach((result) => {
+                if (result.status === 'fulfilled') {
+                    fulfilledCount += 1;
+                    merged.push(...result.value);
+                    return;
+                }
+
+                console.error('[HomeLegacy] Error loading scheduled day:', result.reason);
+            });
+
+            merged.sort((left, right) => {
+                const dateCompare = (left.sourceDate || '').localeCompare(right.sourceDate || '');
+                if (dateCompare !== 0) return dateCompare;
+                const timeCompare = (left.time || '').localeCompare(right.time || '');
+                if (timeCompare !== 0) return timeCompare;
+                return left.gameId.localeCompare(right.gameId);
+            });
+
+            return {
+                data: merged,
+                succeeded: fulfilledCount > 0,
+            };
+        } catch (error) {
+            console.error(
+                '[HomeLegacy] Error loading scheduled games window:',
+                buildHomeRequestErrorContext(error, '/kbo/schedule-window', baseDate),
+                error,
+            );
+            return {
+                data: [],
+                succeeded: false,
+            };
+        }
+    };
+
+    const requestLegacyRankingSnapshot = async (
+        date: Date,
+        startDates: LeagueStartDates,
+    ): Promise<HomeRequestResult<HomeRankingSnapshotState>> => {
+        const seasonYear = resolveRankingSeasonYear(date, startDates);
+        const shouldFallbackToPrevious = isOffSeasonByDate(date, startDates);
+
+        const buildFailure = (): HomeRankingSnapshotState => ({
+            rankingSeasonYear: seasonYear,
+            rankingSourceMessage: '순위 조회 중 문제가 발생했습니다.',
+            isOffSeason: shouldFallbackToPrevious,
+            rankings: [],
+        });
+
+        const requestRankings = async (targetSeasonYear: number): Promise<Ranking[]> => {
+            const response = await api.get<Ranking[]>(`/kbo/rankings/${targetSeasonYear}`, PUBLIC_HOME_REQUEST_CONFIG);
+            return response.data;
+        };
+
+        try {
+            const rankingsData = await requestRankings(seasonYear);
+
+            if (rankingsData.length > 0) {
+                return {
+                    data: {
+                        rankingSeasonYear: seasonYear,
+                        rankingSourceMessage: `${seasonYear} 시즌 순위 데이터`,
+                        isOffSeason: shouldFallbackToPrevious,
+                        rankings: rankingsData,
+                    },
+                    succeeded: true,
+                };
+            }
+
+            if (!shouldFallbackToPrevious) {
+                return {
+                    data: {
+                        rankingSeasonYear: seasonYear,
+                        rankingSourceMessage: `${seasonYear} 시즌 데이터가 아직 집계되지 않았습니다.`,
+                        isOffSeason: false,
+                        rankings: [],
+                    },
+                    succeeded: true,
+                };
+            }
+
+            const previousSeasonYear = seasonYear - 1;
+
+            try {
+                const fallbackData = await requestRankings(previousSeasonYear);
+                if (fallbackData.length > 0) {
+                    return {
+                        data: {
+                            rankingSeasonYear: previousSeasonYear,
+                            rankingSourceMessage: `${previousSeasonYear} 시즌 순위 데이터`,
+                            isOffSeason: true,
+                            rankings: fallbackData,
+                        },
+                        succeeded: true,
+                    };
+                }
+
+                return {
+                    data: {
+                        rankingSeasonYear: previousSeasonYear,
+                        rankingSourceMessage: '현재 시즌과 전시즌(전년도) 데이터가 없습니다.',
+                        isOffSeason: true,
+                        rankings: [],
+                    },
+                    succeeded: true,
+                };
+            } catch (fallbackError) {
+                console.error(
+                    '[HomeLegacy] Error loading fallback rankings:',
+                    buildHomeRequestErrorContext(fallbackError, `/kbo/rankings/${previousSeasonYear}`, date),
+                    fallbackError,
+                );
+                return {
+                    data: buildFailure(),
+                    succeeded: false,
+                };
+            }
+        } catch (error) {
+            console.error(
+                '[HomeLegacy] Error loading rankings:',
+                buildHomeRequestErrorContext(error, `/kbo/rankings/${seasonYear}`, date),
+                error,
+            );
+
+            if (!shouldFallbackToPrevious) {
+                return {
+                    data: buildFailure(),
+                    succeeded: false,
+                };
+            }
+
+            const previousSeasonYear = seasonYear - 1;
+            try {
+                const fallbackData = await requestRankings(previousSeasonYear);
+                if (fallbackData.length > 0) {
+                    return {
+                        data: {
+                            rankingSeasonYear: previousSeasonYear,
+                            rankingSourceMessage: `${previousSeasonYear} 시즌 순위 데이터`,
+                            isOffSeason: true,
+                            rankings: fallbackData,
+                        },
+                        succeeded: true,
+                    };
+                }
+
+                return {
+                    data: {
+                        rankingSeasonYear: previousSeasonYear,
+                        rankingSourceMessage: '현재 시즌과 전시즌(전년도) 데이터가 없습니다.',
+                        isOffSeason: true,
+                        rankings: [],
+                    },
+                    succeeded: true,
+                };
+            } catch (fallbackError) {
+                console.error(
+                    '[HomeLegacy] Error loading previous season rankings:',
+                    buildHomeRequestErrorContext(fallbackError, `/kbo/rankings/${previousSeasonYear}`, date),
+                    fallbackError,
+                );
+                return {
+                    data: buildFailure(),
+                    succeeded: false,
+                };
+            }
+        }
+    };
+
+    const loadLegacyHomeData = useCallback(async (
+        date: Date,
+        options: { timedOut?: boolean } = {},
+    ): Promise<HomeLoadSnapshot> => {
+        const [leagueStartDatesResult, navigationResult, gamesResult, scheduledResult] = await Promise.all([
+            requestLegacyLeagueStartDates(date),
+            requestLegacyNavigationData(date),
+            requestLegacyGamesData(date),
+            requestLegacyScheduledGamesData(date),
         ]);
-    }, [loadLeagueStartDates]);
+        const rankingResult = await requestLegacyRankingSnapshot(date, leagueStartDatesResult.data);
+
+        return {
+            leagueStartDates: leagueStartDatesResult.data,
+            navigation: navigationResult.data,
+            games: gamesResult.data,
+            scheduledGames: scheduledResult.data,
+            rankingSnapshot: rankingResult.data,
+            success: {
+                leagueStartDates: leagueStartDatesResult.succeeded,
+                navigation: navigationResult.succeeded,
+                games: gamesResult.succeeded,
+                scheduledGames: scheduledResult.succeeded,
+                rankings: rankingResult.succeeded,
+            },
+            loadState: buildHomeLoadState('legacy-fallback', { timedOut: options.timedOut }),
+        };
+    }, []);
 
     const loadHomeBootstrap = useCallback(async (date: Date) => {
         const requestId = ++bootstrapRequestIdRef.current;
+        let timedOut = false;
+        let didResolve = false;
+        let timeoutId: number | null = null;
+        let legacyPromise: Promise<HomeLoadSnapshot> | null = null;
+
+        const applySnapshotIfCurrent = (snapshot: HomeLoadSnapshot) => {
+            if (requestId !== bootstrapRequestIdRef.current || didResolve) {
+                return false;
+            }
+
+            didResolve = true;
+            applyHomeSnapshot(date, snapshot);
+            return true;
+        };
+
+        const startLegacyLoad = () => {
+            if (legacyPromise) {
+                return legacyPromise;
+            }
+
+            legacyPromise = loadLegacyHomeData(date, { timedOut })
+                .catch((legacyError) => {
+                    console.error('[HomeLegacy] Legacy fallback also failed:', legacyError);
+                    return buildLegacyFailureSnapshot(date, timedOut);
+                })
+                .then((snapshot) => {
+                    applySnapshotIfCurrent(snapshot);
+                    return snapshot;
+                });
+
+            return legacyPromise;
+        };
+
         setIsLoading(true);
         setIsGamesError(false);
         setIsScheduledLoading(true);
@@ -827,48 +1315,35 @@ export default function Home({ onNavigate }: HomeProps) {
         matchLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
         scheduledLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
 
-        try {
-            const data = await fetchHomeBootstrap(date);
-            if (requestId !== bootstrapRequestIdRef.current) {
+        timeoutId = window.setTimeout(() => {
+            if (requestId !== bootstrapRequestIdRef.current || didResolve) {
                 return;
             }
 
-            cacheLeagueStartDates(data.leagueStartDates);
-            setLeagueStartDates(data.leagueStartDates);
-            setNavInfo({
-                prev: data.navigation.prevGameDate ?? null,
-                next: data.navigation.nextGameDate ?? null,
-                hasPrev: Boolean(data.navigation.hasPrev),
-                hasNext: Boolean(data.navigation.hasNext),
-            });
-            setGames(data.games);
-            applyDefaultLeagueTab(data.games);
-            setScheduledGames(data.scheduledGamesWindow);
-            setRankingSeasonYear(data.rankingSeasonYear);
-            setRankingSourceMessage(data.rankingSourceMessage);
-            setIsOffSeason(data.isOffSeason);
-            setRankings(data.rankings);
-            setIsLoading(false);
-            setIsScheduledLoading(false);
-            setIsRankingsLoading(false);
-            setConnectionError(false);
+            timedOut = true;
+            void startLegacyLoad();
+        }, HOME_BOOTSTRAP_LEGACY_FALLBACK_DELAY_MS);
+
+        try {
+            const data = await fetchHomeBootstrap(date);
+            applySnapshotIfCurrent(buildBootstrapHomeSnapshot(date, timedOut, data));
         } catch (error) {
             if (requestId !== bootstrapRequestIdRef.current) {
                 return;
             }
+
             console.error(
                 '[HomeBootstrap] Error loading bootstrap:',
                 buildHomeRequestErrorContext(error, '/home/bootstrap', date),
                 error,
             );
-            try {
-                await loadLegacyHomeData(date);
-            } catch (legacyError) {
-                console.error('[HomeLegacy] Legacy fallback also failed:', legacyError);
-                setConnectionError(true);
+            await startLegacyLoad();
+        } finally {
+            if (timeoutId !== null) {
+                window.clearTimeout(timeoutId);
             }
         }
-    }, [loadLegacyHomeData]);
+    }, [applyHomeSnapshot, buildLegacyFailureSnapshot, loadLegacyHomeData]);
 
     const loadHotCheerPostsLegacy = useCallback(async (requestId: number) => {
         try {
@@ -1009,7 +1484,7 @@ export default function Home({ onNavigate }: HomeProps) {
         if ('requestIdleCallback' in window) {
             widgetsIdleCallbackRef.current = (window as any).requestIdleCallback(run, { timeout: 1500 });
         } else {
-            widgetsTimeoutRef.current = globalThis.setTimeout(run, 800);
+            widgetsTimeoutRef.current = window.setTimeout(run, 800);
         }
 
         return clearScheduledWidgetLoad;

@@ -1179,7 +1179,7 @@ describe('Game Prediction', () => {
         cy.contains('button', '예측으로 돌아가기').should('be.visible');
     });
 
-    it('should keep current prediction date and game when detail fallback returns to prediction', () => {
+    it('should keep current prediction date and game when detail refresh fails', () => {
         rangeSchedulePayload = [
             {
                 ...defaultRangeSchedulePayload[0],
@@ -1197,7 +1197,7 @@ describe('Game Prediction', () => {
 
         openPredictionPage({ path: '/prediction?gameId=20240510LGLK0&date=2026-02-04' });
         cy.wait('@getGameDetailFailure');
-        cy.get('[data-testid="prediction-render-fallback-card"]').should('be.visible');
+        cy.get('[data-testid="prediction-detail-error-banner"]').should('be.visible');
         cy.contains('예측으로 돌아가기').click();
         cy.location('pathname').should('eq', '/prediction');
         cy.location('search').should('include', 'date=2026-02-04');
@@ -1360,7 +1360,7 @@ describe('Game Prediction', () => {
         cy.get('[data-testid="prediction-partial-result-notice"]').should('not.exist');
     });
 
-    it('should show text fallback card when detail render fails', () => {
+    it('should keep the current card visible when detail render fails', () => {
         cy.intercept('GET', '**/api/matches/*', (req) => {
             if (req.url.includes('/api/matches/range') || req.url.includes('/api/matches/day') || req.url.includes('/api/matches/bounds')) {
                 return;
@@ -1377,6 +1377,9 @@ describe('Game Prediction', () => {
         openPredictionPage({ captureFlowEvents: true });
 
         cy.wait('@getGameDetailFail');
+        cy.get('[data-testid="prediction-detail-error-banner"]').should('be.visible');
+        cy.contains(/한화(\s*이글스)?/).should('be.visible');
+        cy.contains(/삼성(\s*라이온즈)?/).should('be.visible');
         cy.contains(/전력분석실|승부예측|순위예측/, { timeout: 10000 }).should('exist');
     });
 

@@ -3,7 +3,7 @@ import styled, { keyframes, css } from 'styled-components';
 import { LayoutGroup, motion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { TrendingUp, ChevronLeft, ChevronRight, AlertTriangle, Clock3 } from 'lucide-react';
+import { TrendingUp, ChevronLeft, ChevronRight, AlertTriangle, Clock3, Loader2 } from 'lucide-react';
 import TeamLogo from '../TeamLogo';
 import {
   Game,
@@ -20,6 +20,9 @@ interface AdvancedMatchCardProps {
   game: Game;
   gameDetail?: GameDetail | null;
   gameDetailLoading?: boolean;
+  gameDetailRefreshing?: boolean;
+  gameDetailError?: string | null;
+  gameDetailActions?: ReactNode;
   userVote: 'home' | 'away' | null;
   votePercentages: { homePercentage: number; awayPercentage: number; totalVotes: number };
   isVoteOpen: boolean;
@@ -710,6 +713,9 @@ export default function AdvancedMatchCard({
   game,
   gameDetail,
   gameDetailLoading = false,
+  gameDetailRefreshing = false,
+  gameDetailError = null,
+  gameDetailActions,
   userVote,
   votePercentages,
   isVoteOpen,
@@ -859,6 +865,8 @@ export default function AdvancedMatchCard({
       : statusLabel;
   const cheeringCaption = isScheduledLayout ? '사전 응원/예측 참여수' : '실시간 팬 응원 참여수';
   const isScoreboardLoading = gameDetailLoading && !hasDetailedScores;
+  const isDetailBusy = gameDetailLoading || gameDetailRefreshing;
+  const shouldShowMatchEnvironmentLoading = isDetailBusy && !attendanceLabel && !weatherLabel && !gameTimeLabel;
 
   const cheeringTotal = totalVotes;
   const awayVotes = cheeringTotal === 0
@@ -972,7 +980,7 @@ export default function AdvancedMatchCard({
     [groupedSummary]
   );
 
-  const matchEnvironmentSection = !gameDetailLoading && (attendanceLabel || weatherLabel || gameTimeLabel) ? (
+  const matchEnvironmentSection = (attendanceLabel || weatherLabel || gameTimeLabel || shouldShowMatchEnvironmentLoading) ? (
     <section>
       <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
         <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
@@ -981,15 +989,21 @@ export default function AdvancedMatchCard({
       <div className="grid grid-cols-3 gap-3 rounded-xl border border-gray-100 dark:border-border bg-white dark:bg-secondary/40 px-4 py-3 text-[13px]">
         <div>
           <p className="text-[12px] text-gray-400 dark:text-gray-300">관중</p>
-          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{attendanceLabel || '정보 없음'}</p>
+          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
+            {attendanceLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
+          </p>
         </div>
         <div>
           <p className="text-[12px] text-gray-400 dark:text-gray-300">날씨</p>
-          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{weatherLabel || '정보 없음'}</p>
+          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
+            {weatherLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
+          </p>
         </div>
         <div>
           <p className="text-[12px] text-gray-400 dark:text-gray-300">경기시간</p>
-          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{gameTimeLabel || '정보 없음'}</p>
+          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
+            {gameTimeLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
+          </p>
         </div>
       </div>
     </section>
@@ -1166,6 +1180,44 @@ export default function AdvancedMatchCard({
           </div>
 
           <div className="space-y-6 px-4 py-6">
+            {(gameDetailError || isDetailBusy) && (
+              <div
+                data-testid={gameDetailError ? 'prediction-detail-error-banner' : 'prediction-detail-refresh-indicator'}
+                className={`flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm ${
+                  gameDetailError
+                    ? 'border-amber-200 bg-amber-50/90 text-amber-900 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-100'
+                    : 'border-sky-200 bg-sky-50/90 text-sky-900 dark:border-sky-700/40 dark:bg-sky-900/20 dark:text-sky-100'
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  {gameDetailError ? (
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  ) : (
+                    <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold">
+                      {gameDetailError
+                        ? '일부 경기 상세 정보를 불러오지 못했습니다.'
+                        : gameDetailRefreshing
+                          ? '최신 경기 정보를 다시 불러오는 중입니다.'
+                          : '경기 상세 정보를 불러오는 중입니다.'}
+                    </p>
+                    {gameDetailError ? (
+                      <p className="mt-1 text-xs opacity-90">{gameDetailError}</p>
+                    ) : (
+                      <p className="mt-1 text-xs opacity-80">기존 기록은 유지한 채 가능한 정보부터 갱신합니다.</p>
+                    )}
+                  </div>
+                </div>
+                {gameDetailError && gameDetailActions ? (
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    {gameDetailActions}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
             {isScoreboardLoading && (
               <div className="text-center text-xs text-gray-500 dark:text-gray-300">경기 정보를 불러오는 중입니다...</div>
             )}
@@ -1310,7 +1362,7 @@ export default function AdvancedMatchCard({
               </section>
             )}
 
-            {!gameDetailLoading && !isPostponedOrCancelled && (
+            {!isPostponedOrCancelled && (
               <section>
                 <GaugeContainer>
                   <GaugeHeader>
@@ -1363,29 +1415,27 @@ export default function AdvancedMatchCard({
               </section>
             )}
 
-            {!gameDetailLoading && (
-              <section>
-                <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
-                  선발 투수
+            <section>
+              <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
+                선발 투수
+              </div>
+              <div className="flex items-center rounded-xl border border-gray-100 dark:border-border bg-gray-50 dark:bg-secondary/40 px-4 py-4 shadow-sm">
+                <div className="flex-1 text-center">
+                  <p className="text-xs font-semibold" style={{ color: awayColor }}>
+                    {awayTeamName}
+                  </p>
+                  <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{awayPitcherName}</p>
                 </div>
-                <div className="flex items-center rounded-xl border border-gray-100 dark:border-border bg-gray-50 dark:bg-secondary/40 px-4 py-4 shadow-sm">
-                  <div className="flex-1 text-center">
-                    <p className="text-xs font-semibold" style={{ color: awayColor }}>
-                      {awayTeamName}
-                    </p>
-                    <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{awayPitcherName}</p>
-                  </div>
-                  <div className="h-8 w-px bg-gray-200 dark:bg-border" />
-                  <div className="flex-1 text-center">
-                    <p className="text-xs font-semibold" style={{ color: homeColor }}>
-                      {homeTeamName}
-                    </p>
-                    <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{homePitcherName}</p>
-                  </div>
+                <div className="h-8 w-px bg-gray-200 dark:bg-border" />
+                <div className="flex-1 text-center">
+                  <p className="text-xs font-semibold" style={{ color: homeColor }}>
+                    {homeTeamName}
+                  </p>
+                  <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{homePitcherName}</p>
                 </div>
-              </section>
-            )}
+              </div>
+            </section>
 
             {!gameDetailLoading && !isPostponedOrCancelled && coachBriefing}
 

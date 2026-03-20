@@ -25,6 +25,8 @@ export type GameDetailRequestState = {
   data: GameDetail | null;
   error?: string;
   isSeeded?: boolean;
+  isBackgroundRefreshing?: boolean;
+  hasRenderableData?: boolean;
 };
 
 export type RangeLoadState = 'idle' | 'ready' | 'loading' | 'end' | 'error';
@@ -237,6 +239,16 @@ export const isCancelLikeError = (error: unknown): boolean => {
     )
   );
 };
+
+export const hasRenderableGameDetail = (
+  state?: Pick<GameDetailRequestState, 'data' | 'hasRenderableData'> | null
+): boolean => Boolean(state?.hasRenderableData || state?.data);
+
+export const shouldShowPredictionDetailFallback = (options: {
+  detailError?: string | null;
+  hasRenderableData: boolean;
+  hasCurrentGame: boolean;
+}): boolean => Boolean(options.detailError && !options.hasRenderableData && !options.hasCurrentGame);
 
 export const isRangeResultCanceled = (error?: {
   message?: string;
