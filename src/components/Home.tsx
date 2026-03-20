@@ -244,6 +244,7 @@ export default function Home({ onNavigate }: HomeProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [isGamesError, setIsGamesError] = useState(false);
     const [isRankingsLoading, setIsRankingsLoading] = useState(true);
+    const [connectionError, setConnectionError] = useState(false);
 
     const [activeLeagueTab, setActiveLeagueTab] = useState<LeagueTab>('regular');
     const [scheduledGames, setScheduledGames] = useState<Game[]>([]);
@@ -822,6 +823,7 @@ export default function Home({ onNavigate }: HomeProps) {
         setIsScheduledError(false);
         setIsRankingsLoading(true);
         setRankingsError(false);
+        setConnectionError(false);
         matchLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
         scheduledLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
 
@@ -849,6 +851,7 @@ export default function Home({ onNavigate }: HomeProps) {
             setIsLoading(false);
             setIsScheduledLoading(false);
             setIsRankingsLoading(false);
+            setConnectionError(false);
         } catch (error) {
             if (requestId !== bootstrapRequestIdRef.current) {
                 return;
@@ -858,7 +861,12 @@ export default function Home({ onNavigate }: HomeProps) {
                 buildHomeRequestErrorContext(error, '/home/bootstrap', date),
                 error,
             );
-            await loadLegacyHomeData(date);
+            try {
+                await loadLegacyHomeData(date);
+            } catch (legacyError) {
+                console.error('[HomeLegacy] Legacy fallback also failed:', legacyError);
+                setConnectionError(true);
+            }
         }
     }, [loadLegacyHomeData]);
 
@@ -1125,6 +1133,25 @@ export default function Home({ onNavigate }: HomeProps) {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-300 pb-20">
             <WelcomeGuide />
+
+            {connectionError && (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+                    <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-700/50 rounded-xl px-4 py-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+                            서버 연결에 문제가 있습니다. 백엔드 서비스 상태를 확인해주세요.
+                        </p>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setConnectionError(false); void loadHomeBootstrap(selectedDate); }}
+                            className="ml-auto shrink-0 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                        >
+                            <RefreshCw className="w-4 h-4 mr-1" /> 재시도
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
 
