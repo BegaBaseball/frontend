@@ -171,6 +171,15 @@ export default defineConfig(({ mode, command }) => {
         },
       },
     },
+    environments: enableCloudflarePlugin ? {
+      client: {
+        build: {
+          // Keep the client HTML at dist/index.html so SEO post-processing
+          // and the final Cloudflare deploy artifact use the same root.
+          outDir: 'dist',
+        },
+      },
+    } : undefined,
 
     server: {
       host: '0.0.0.0',
