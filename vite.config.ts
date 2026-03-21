@@ -177,6 +177,8 @@ export default defineConfig(({ mode, command }) => {
           // Keep the client HTML at dist/index.html so SEO post-processing
           // and the final Cloudflare deploy artifact use the same root.
           outDir: 'dist',
+          // Preserve the worker bundle written just before the client build.
+          emptyOutDir: false,
         },
       },
     } : undefined,
