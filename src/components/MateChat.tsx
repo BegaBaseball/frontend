@@ -695,6 +695,7 @@ export default function MateChat() {
   const flowLabel = getPartyFlowLabel(selectedParty.status);
   const canAccessCheckIn = ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(selectedParty.status);
   const headerTitle = isHost ? '호스트 채팅' : '메이트 채팅';
+  const heroHeading = isHost ? '채팅과 체크인 조율' : '호스트와 만남 조율 채팅';
   const headerDescription = isHost
     ? '승인된 참여자와 만날 시간, 전달 방식, 체크인 준비를 한 곳에서 조율합니다.'
     : '호스트와 만날 시간과 장소를 조율하고 체크인 전까지 필요한 정보를 정리합니다.';
@@ -737,30 +738,30 @@ export default function MateChat() {
         className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
       />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-4 pb-6 sm:px-6 lg:px-8">
         <div className="mb-4">
           <Button
             variant="ghost"
             onClick={() => navigate(isHost ? `/mate/${id}/manage` : `/mate/${id}`)}
-            className="mb-2"
+            className="mb-2 -ml-2"
           >
             <ChevronLeft className="mr-2 h-4 w-4" />
             뒤로
           </Button>
 
           <Card className={`p-0 ${mateHeroCardClass}`}>
-            <div className="border-b border-gray-200/70 bg-[linear-gradient(135deg,_rgba(22,163,74,0.12),_rgba(255,255,255,0.92)_55%,_rgba(22,163,74,0.04))] px-6 py-6 dark:border-border/70 dark:bg-[linear-gradient(135deg,_rgba(16,185,129,0.18),_rgba(10,15,20,0.94)_58%,_rgba(16,185,129,0.08))]">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                <div className="flex min-w-0 gap-4">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10">
+            <div className="border-b border-gray-200/70 bg-[linear-gradient(135deg,_rgba(22,163,74,0.12),_rgba(255,255,255,0.92)_55%,_rgba(22,163,74,0.04))] px-5 py-5 dark:border-border/70 dark:bg-[linear-gradient(135deg,_rgba(16,185,129,0.18),_rgba(10,15,20,0.94)_58%,_rgba(16,185,129,0.08))] sm:px-6 sm:py-6">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex min-w-0 gap-3 sm:gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10 sm:h-16 sm:w-16">
                     <TeamLogo teamId={selectedParty.teamId} size="md" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
                       {headerTitle}
                     </p>
-                    <h1 className="mt-2 text-3xl font-black tracking-tight text-gray-900 dark:text-white">
-                      대화가 열린 이유를 먼저 보여주는 채팅
+                    <h1 className="mt-2 text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+                      {heroHeading}
                     </h1>
                     <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
                       {headerDescription}
@@ -820,10 +821,10 @@ export default function MateChat() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
                     <Button
                       variant="outline"
-                      className="border-primary text-primary hover:bg-primary/10"
+                      className="w-full justify-center border-primary text-primary hover:bg-primary/10 sm:w-auto"
                       onClick={() => navigate(`/mate/${id}`)}
                     >
                       상세 보기
@@ -831,7 +832,7 @@ export default function MateChat() {
                     {isHost && (
                       <Button
                         variant="outline"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-border dark:text-gray-200 dark:hover:bg-secondary"
+                        className="w-full justify-center border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-border dark:text-gray-200 dark:hover:bg-secondary sm:w-auto"
                         onClick={() => navigate(`/mate/${id}/manage`)}
                       >
                         신청 관리
@@ -840,7 +841,7 @@ export default function MateChat() {
                     {canAccessCheckIn && (
                       <Button
                         variant="outline"
-                        className="border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950/30"
+                        className="w-full justify-center border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950/30 sm:w-auto"
                         onClick={() => navigate(`/mate/${id}/checkin`)}
                       >
                         <ArrowRightCircle className="mr-2 h-4 w-4" />
@@ -885,7 +886,7 @@ export default function MateChat() {
           </Alert>
         )}
 
-        <Card className={`mt-4 flex-1 overflow-hidden p-4 ${mateSectionCardClass}`} data-testid="mate-chat-shell">
+        <Card className={`mt-4 flex-1 overflow-hidden p-3 sm:p-4 ${mateSectionCardClass}`} data-testid="mate-chat-shell">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
@@ -906,7 +907,7 @@ export default function MateChat() {
             </Badge>
           </div>
 
-          <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4" style={{ minHeight: '420px' }}>
+          <ScrollArea ref={scrollAreaRef} className="min-h-[360px] flex-1 pr-2 sm:min-h-[420px] sm:pr-4">
             {groupedMessages.length === 0 ? (
               <ChatEmptyState
                 icon={Users}
@@ -937,7 +938,7 @@ export default function MateChat() {
                           >
                             <div
                               className={cn(
-                                'flex max-w-[78%] flex-col',
+                                'flex max-w-[84%] flex-col sm:max-w-[78%]',
                                 isMyMessage ? 'items-end' : 'items-start',
                               )}
                             >
@@ -983,7 +984,7 @@ export default function MateChat() {
           </ScrollArea>
         </Card>
 
-        <Card className={`mt-4 p-4 ${mateSectionCardClass}`}>
+        <Card className={`mt-4 p-3 sm:p-4 ${mateSectionCardClass}`}>
           {imagePreviewUrl && (
             <div className="relative mb-3 h-24 w-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 dark:border-border dark:bg-secondary/80">
               <img src={imagePreviewUrl} alt="Preview" className="h-full w-full object-cover" />
@@ -1032,13 +1033,13 @@ export default function MateChat() {
               value={messageText}
               onChange={(event) => setMessageText(event.target.value)}
               placeholder={isConnected ? '메시지를 입력하세요...' : '연결 재시도 중... (전송은 가능합니다)'}
-              className="flex-1"
+              className="min-w-0 flex-1"
               disabled={isUploadingImage}
             />
             <Button
               type="submit"
               disabled={(!messageText.trim() && !selectedImage) || isUploadingImage}
-              className="bg-primary px-6 text-white"
+              className="shrink-0 bg-primary px-4 text-white sm:px-6"
             >
               {isUploadingImage ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

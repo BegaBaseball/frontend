@@ -7,13 +7,14 @@ export interface Game {
     gameStatusKr: string;
     gameInfo: string;
     leagueType: 'REGULAR' | 'POSTSEASON' | 'KOREAN_SERIES' | 'OFFSEASON' | 'PRE' | 'PRESEASON' | string;
+    winner?: string;
     homeTeam: string;
     homeTeamFull: string;
     awayTeam: string;
     awayTeamFull: string;
     gameDate?: string;
-    homeScore?: number;
-    awayScore?: number;
+    homeScore?: number | string;
+    awayScore?: number | string;
     sourceDate?: string;
     leagueBadge?: string;
 }

@@ -290,7 +290,10 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
 
         <div className="flex flex-wrap items-center gap-3">
           <Select value={windowKey} onValueChange={(value: WindowKey) => setWindowKey(value)}>
-            <SelectTrigger className="w-[150px] rounded-xl border-slate-700 bg-slate-800/70 text-slate-100">
+            <SelectTrigger
+              data-testid="admin-client-errors-window-trigger"
+              className="w-[150px] rounded-xl border-slate-700 bg-slate-800/70 text-slate-100"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="border-slate-700 bg-slate-800 text-slate-100">
@@ -303,6 +306,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           <Button
             type="button"
             variant="outline"
+            data-testid="admin-client-errors-refresh"
             onClick={() => void handleRefresh()}
             className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100 hover:bg-slate-700"
           >
@@ -441,7 +445,10 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           <Select value={filters.bucket} onValueChange={(value: EventFilters['bucket']) => setFilters((prev) => ({ ...prev, bucket: value }))}>
-            <SelectTrigger className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100">
+            <SelectTrigger
+              data-testid="admin-client-errors-bucket-trigger"
+              className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100"
+            >
               <SelectValue placeholder="Bucket" />
             </SelectTrigger>
             <SelectContent className="border-slate-700 bg-slate-800 text-slate-100">
@@ -452,7 +459,10 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           </Select>
 
           <Select value={filters.source} onValueChange={(value: EventFilters['source']) => setFilters((prev) => ({ ...prev, source: value }))}>
-            <SelectTrigger className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100">
+            <SelectTrigger
+              data-testid="admin-client-errors-source-trigger"
+              className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100"
+            >
               <SelectValue placeholder="Source" />
             </SelectTrigger>
             <SelectContent className="border-slate-700 bg-slate-800 text-slate-100">
@@ -464,7 +474,10 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           </Select>
 
           <Select value={filters.statusGroup} onValueChange={(value: EventFilters['statusGroup']) => setFilters((prev) => ({ ...prev, statusGroup: value }))}>
-            <SelectTrigger className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100">
+            <SelectTrigger
+              data-testid="admin-client-errors-status-trigger"
+              className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100"
+            >
               <SelectValue placeholder="Status Group" />
             </SelectTrigger>
             <SelectContent className="border-slate-700 bg-slate-800 text-slate-100">
@@ -476,6 +489,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           </Select>
 
           <Input
+            data-testid="admin-client-errors-route-filter"
             value={filters.route}
             onChange={(event) => setFilters((prev) => ({ ...prev, route: event.target.value }))}
             placeholder="Route filter"
@@ -483,6 +497,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           />
 
           <Input
+            data-testid="admin-client-errors-fingerprint-filter"
             value={filters.fingerprint}
             onChange={(event) => setFilters((prev) => ({ ...prev, fingerprint: event.target.value }))}
             placeholder="Fingerprint"
@@ -492,6 +507,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <Input
+              data-testid="admin-client-errors-search-filter"
               value={filters.search}
               onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
               placeholder="message / route / eventId"
@@ -552,6 +568,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                       <Button
                         type="button"
                         variant="ghost"
+                        data-testid={`admin-client-errors-detail-${event.eventId}`}
                         onClick={() => void handleOpenDetail(event.eventId)}
                         className="rounded-xl text-slate-200 hover:bg-slate-800 hover:text-white"
                       >
@@ -672,7 +689,10 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           }
         }}
       >
-        <DialogContent className="max-h-[85vh] overflow-y-auto border-slate-700 bg-slate-950 text-slate-100 sm:max-w-4xl">
+        <DialogContent
+          data-testid="admin-client-errors-detail-dialog"
+          className="max-h-[85vh] overflow-y-auto border-slate-700 bg-slate-950 text-slate-100 sm:max-w-4xl"
+        >
           <DialogHeader>
             <DialogTitle className="text-white">Client Error Detail</DialogTitle>
             <DialogDescription className="text-slate-400">

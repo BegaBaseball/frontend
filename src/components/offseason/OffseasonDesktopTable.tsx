@@ -41,7 +41,7 @@ export function OffseasonDesktopTable({
                 </div>
             </div>
 
-            <Table className="w-full border-separate [border-spacing:0_10px]">
+            <Table className="min-w-[860px] border-separate [border-spacing:0_10px] sm:min-w-full">
                 <TableHeader className="sticky top-0 z-20 bg-transparent">
                     <TableRow className="border-none hover:bg-transparent">
                         <TableHead className="h-auto w-[140px] px-2 py-0">

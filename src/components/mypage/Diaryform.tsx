@@ -597,6 +597,7 @@ function DiaryEditMode({
             type="file"
             accept="image/*"
             onChange={(e) => handleTicketScan(e.target.files)}
+            data-testid="diary-ticket-scan-input"
             className="hidden"
             disabled={isScanning}
           />
@@ -717,6 +718,7 @@ function DiaryEditMode({
                   accept="image/*"
                   multiple
                   onChange={(e) => handlePhotoUpload(e.target.files, 'DIARY_UPLOAD')}
+                  data-testid="diary-photo-upload-input"
                   className="hidden"
                 />
               </label>
@@ -944,6 +946,7 @@ function DiaryEditMode({
               type="button"
               variant="outline"
               onClick={() => handleSeatViewSelectionSkip()}
+              data-testid="diary-seat-view-skip-button"
               disabled={seatViewSelectionState.submitting}
             >
               이번엔 공유 안 함
@@ -951,6 +954,7 @@ function DiaryEditMode({
             <Button
               type="button"
               onClick={() => handleSeatViewSelectionConfirm()}
+              data-testid="diary-seat-view-submit-button"
               disabled={seatViewSelectionState.submitting}
             >
               {seatViewSelectionState.submitting ? '제출 중...' : '선택한 사진 제출'}
