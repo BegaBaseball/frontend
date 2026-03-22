@@ -347,7 +347,7 @@ export default function MateCheckIn() {
   };
 
   return (
-    <div className={`${matePageShellClass} pb-32 lg:pb-10`}>
+    <div className={`${matePageShellClass} pb-40 lg:pb-10`}>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.10),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_48%)]" />
       <img
         src={grassDecor}
@@ -359,7 +359,7 @@ export default function MateCheckIn() {
         <Button
           variant="ghost"
           onClick={() => navigate(`/mate/${id}`)}
-          className="mb-4"
+          className="mb-3 -ml-2 sm:mb-4"
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
           뒤로
@@ -368,17 +368,17 @@ export default function MateCheckIn() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
             <Card className={`p-0 ${mateHeroCardClass}`}>
-              <div className="border-b border-gray-200/70 bg-[linear-gradient(135deg,_rgba(22,163,74,0.12),_rgba(255,255,255,0.92)_55%,_rgba(22,163,74,0.04))] px-6 py-6 dark:border-border/70 dark:bg-[linear-gradient(135deg,_rgba(16,185,129,0.18),_rgba(10,15,20,0.94)_58%,_rgba(16,185,129,0.08))] sm:px-8">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex min-w-0 gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10">
+              <div className="border-b border-gray-200/70 bg-[linear-gradient(135deg,_rgba(22,163,74,0.12),_rgba(255,255,255,0.92)_55%,_rgba(22,163,74,0.04))] px-5 py-5 dark:border-border/70 dark:bg-[linear-gradient(135deg,_rgba(16,185,129,0.18),_rgba(10,15,20,0.94)_58%,_rgba(16,185,129,0.08))] sm:px-8 sm:py-6">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex min-w-0 gap-3 sm:gap-4">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10 sm:h-16 sm:w-16">
                       <TeamLogo teamId={selectedParty.teamId} size="md" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
                         Arrival Status
                       </p>
-                      <h1 className="mt-2 text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                      <h1 className="mt-2 text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
                         체크인
                       </h1>
                       <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
@@ -482,7 +482,7 @@ export default function MateCheckIn() {
             )}
 
             {!isCheckedIn ? (
-              <Card className={`p-6 ${mateSectionCardClass}`}>
+              <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
@@ -538,7 +538,7 @@ export default function MateCheckIn() {
                 </div>
               </Card>
             ) : (
-              <Card className={`p-6 ${mateSectionCardClass}`}>
+              <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
@@ -577,7 +577,7 @@ export default function MateCheckIn() {
               </Card>
             )}
 
-            <Card className={`p-6 ${mateSectionCardClass}`} data-testid="checkin-progress-card">
+            <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`} data-testid="checkin-progress-card">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
@@ -621,7 +621,7 @@ export default function MateCheckIn() {
               </div>
             </Card>
 
-            <Card className={`p-6 ${mateSectionCardClass}`}>
+            <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
@@ -634,7 +634,7 @@ export default function MateCheckIn() {
                 </div>
                 <Button
                   variant="outline"
-                  className="w-fit border-primary text-primary hover:bg-primary/10"
+                  className="w-full border-primary text-primary hover:bg-primary/10 sm:w-fit"
                   onClick={() => navigate(`/mate/${id}/chat`)}
                 >
                   <ArrowRightCircle className="mr-2 h-4 w-4" />
@@ -831,31 +831,32 @@ export default function MateCheckIn() {
         {primaryMobileAction && (
           <div
             className={`${mateMobileBarClass} lg:hidden`}
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
           >
-            <div className="mx-auto flex max-w-6xl items-center gap-2">
-              <div className="min-w-0 flex-1">
+            <div className="mx-auto max-w-6xl">
+              <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
                   체크인 요약
                 </p>
-                <p className="mt-1 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
                   {checkedInCount}/{totalParticipants}명 체크인 완료
                 </p>
               </div>
-              <Button
-                onClick={secondaryMobileAction.onClick}
-                variant="outline"
-                className="border-primary text-primary hover:bg-primary/10"
-              >
-                {secondaryMobileAction.label}
-              </Button>
-              <Button
-                onClick={primaryMobileAction.onClick}
-                disabled={primaryMobileAction.disabled}
-                className={primaryMobileAction.className}
-              >
-                {primaryMobileAction.label}
-              </Button>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                <Button
+                  onClick={secondaryMobileAction.onClick}
+                  variant="outline"
+                  className="w-full border-primary text-primary hover:bg-primary/10 sm:flex-1"
+                >
+                  {secondaryMobileAction.label}
+                </Button>
+                <Button
+                  onClick={primaryMobileAction.onClick}
+                  disabled={primaryMobileAction.disabled}
+                  className={cn('w-full sm:flex-1', primaryMobileAction.className)}
+                >
+                  {primaryMobileAction.label}
+                </Button>
+              </div>
             </div>
           </div>
         )}

@@ -1,14 +1,11 @@
-import { useCallback, useEffect, useMemo, type ReactNode, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, type ReactNode, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { TrendingUp, ChevronLeft, ChevronRight, Coins, LineChart, Gamepad2, Loader2, ShieldAlert, Target, Flame, CheckCircle2, Hash } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import RankingPrediction from './RankingPrediction';
-import ComboAnimation from './retro/ComboAnimation';
 import AdvancedMatchCard from './prediction/AdvancedMatchCard';
 import PredictionErrorOverlay from './prediction/PredictionErrorOverlay';
-import CoachBriefing from './CoachBriefing';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePrediction } from '../hooks/usePrediction';
 import { useRankingsData } from '../api/home';
@@ -24,6 +21,9 @@ import {
 
 const TOTAL_SEASON_GAMES = 144;
 const ACCURACY_GAUGE_CIRCUMFERENCE = 2 * Math.PI * 56;
+const RankingPrediction = lazy(() => import('./RankingPrediction'));
+const ComboAnimation = lazy(() => import('./retro/ComboAnimation'));
+const CoachBriefing = lazy(() => import('./CoachBriefing'));
 
 export default function Prediction() {
   const {
@@ -79,11 +79,46 @@ export default function Prediction() {
   } = usePrediction();
 
   const { userCheerPoints = 0 } = useAuthProfileSnapshot();
+  const [supplementalReady, setSupplementalReady] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'ranking') {
+      setSupplementalReady(true);
+      return;
+    }
+
+    let timeoutId: number | null = null;
+    let idleId: number | null = null;
+    let settled = false;
+    const markReady = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      setSupplementalReady(true);
+    };
+
+    if ('requestIdleCallback' in window) {
+      idleId = (window as any).requestIdleCallback(markReady, { timeout: 1500 });
+    }
+    timeoutId = window.setTimeout(markReady, 900);
+
+    return () => {
+      if (idleId !== null && 'cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [activeTab]);
+
+  const shouldLoadSupplementalData = supplementalReady || activeTab === 'ranking';
 
   const { data: predictionStats } = useQuery({
     queryKey: ['prediction-stats-me'],
     queryFn: fetchMyPredictionStats,
-    enabled: isLoggedIn,
+    enabled: isLoggedIn && shouldLoadSupplementalData,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -104,7 +139,9 @@ export default function Prediction() {
     return Number.isNaN(parsed.getTime()) ? new Date().getFullYear() : parsed.getFullYear();
   }, [currentDate]);
 
-  const { data: rankings = [] } = useRankingsData(seasonYear);
+  const { data: rankings = [] } = useRankingsData(seasonYear, {
+    enabled: shouldLoadSupplementalData,
+  });
 
   // 현재 경기 정보
   const currentGame = currentDateGames.length > 0 ? currentDateGames[selectedGame] : null;
@@ -232,6 +269,17 @@ export default function Prediction() {
 
     if ((nextCandidate?.games.length || 0) > 0) {
       return { date: nextCandidate!.date, isPast: false };
+    }
+
+    const previousKnownEmpty = previousCandidate !== null && previousCandidate.games.length === 0;
+    const nextKnownEmpty = nextCandidate !== null && nextCandidate.games.length === 0;
+
+    if (previousKnownEmpty && currentDayNavigationMeta.nextDate) {
+      return { date: currentDayNavigationMeta.nextDate, isPast: false };
+    }
+
+    if (nextKnownEmpty && currentDayNavigationMeta.prevDate) {
+      return { date: currentDayNavigationMeta.prevDate, isPast: true };
     }
 
     if (currentDayNavigationMeta.prevDate) {
@@ -792,17 +840,20 @@ export default function Prediction() {
                           hasPrevDate={canMovePrevDate}
                           hasNextDate={canMoveNextDate}
                           coachBriefing={(
-                            <CoachBriefing
-                              game={currentGame}
-                              gameDetail={currentGameDetail}
-                              seasonContext={seasonContext}
-                              isPastGame={isPastGame}
-                              isFutureGame={isFutureGame}
-                              requestMode={coachBriefingPolicy.requestMode}
-                              autoEnabled={shouldAutoRequestCoachBriefing}
-                              forceManual={coachBriefingPolicy.forceManual}
-                            />
-
+                            shouldLoadSupplementalData ? (
+                              <Suspense fallback={null}>
+                                <CoachBriefing
+                                  game={currentGame}
+                                  gameDetail={currentGameDetail}
+                                  seasonContext={seasonContext}
+                                  isPastGame={isPastGame}
+                                  isFutureGame={isFutureGame}
+                                  requestMode={coachBriefingPolicy.requestMode}
+                                  autoEnabled={shouldAutoRequestCoachBriefing}
+                                  forceManual={coachBriefingPolicy.forceManual}
+                                />
+                              </Suspense>
+                            ) : null
                           )}
                         />
                       )}
@@ -904,7 +955,18 @@ export default function Prediction() {
                     나만의 드림팀 순위를 완성하고 친구들과 공유해보세요!
                   </p>
                 </Card>
-                <RankingPrediction />
+                <Suspense
+                  fallback={(
+                    <Card className="p-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
+                      <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        순위 예측 화면을 준비하고 있습니다.
+                      </div>
+                    </Card>
+                  )}
+                >
+                  <RankingPrediction />
+                </Suspense>
               </motion.div>
             )}
           </AnimatePresence>
@@ -912,7 +974,7 @@ export default function Prediction() {
       </div>
 
       {/* 내 예측 통계 패널 (컴팩트 위젯 버전) */}
-      {isLoggedIn && predictionStats && (
+      {isLoggedIn && shouldLoadSupplementalData && predictionStats && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
           <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
             {/* 콤팩트해진 헤더 */}
@@ -1016,7 +1078,11 @@ export default function Prediction() {
         </div>
       )}
 
-      <ComboAnimation />
+      {shouldLoadSupplementalData ? (
+        <Suspense fallback={null}>
+          <ComboAnimation />
+        </Suspense>
+      ) : null}
     </div >
   );
 }

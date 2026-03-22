@@ -1,13 +1,15 @@
 /// <reference types="cypress" />
 
+export {};
+
 declare global {
     namespace Cypress {
         interface Chainable {
             /**
              * Custom command to login programmatically using a fixture user.
-             * @param userType 'user' (default) or 'admin'
+             * @param userType 'user' (default), 'admin', or 'superAdmin'
              */
-            login(userType?: 'user' | 'admin'): Chainable<void>;
+            login(userType?: 'user' | 'admin' | 'superAdmin'): Chainable<void>;
 
             /**
              * Custom command to setup default API mocks.
@@ -82,7 +84,11 @@ Cypress.Commands.add('mockPublicFollowCounts', (handle: string, body = defaultFo
 
 Cypress.Commands.add('login', (userType = 'user') => {
     cy.fixture('user').then((users) => {
-        const user = userType === 'admin' ? users.adminUser : users.testUser;
+        const user = userType === 'admin'
+            ? users.adminUser
+            : userType === 'superAdmin'
+                ? users.superAdminUser
+                : users.testUser;
         const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
         // Zustant store persistence structure
@@ -90,7 +96,7 @@ Cypress.Commands.add('login', (userType = 'user') => {
             state: {
                 user: user,
                 isLoggedIn: true,
-                isAdmin: user.role === 'ROLE_ADMIN'
+                isAdmin: user.role === 'ROLE_ADMIN' || user.role === 'ROLE_SUPER_ADMIN'
             },
             version: 0
         };

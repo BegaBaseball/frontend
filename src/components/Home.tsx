@@ -22,7 +22,8 @@ import api from '../api/axios';
 import {
     buildHomeLoadState,
     fetchHomeBootstrap,
-    fetchHomeWidgets,
+    getHomeWidgetsQueryOptions,
+    HOME_WIDGETS_QUERY_KEY,
     shouldShowHomeConnectionError,
     type HomeCoreLoadSuccessState,
     type HomeLoadState,
@@ -33,54 +34,13 @@ import {
     type LeagueTab,
 } from '../utils/predictionHomeLogic';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
-import { fetchHotPosts, CheerPost } from '../api/cheerApi';
-import { fetchAllParties } from '../api/mate';
-import type { FeaturedMateCard } from '../types/home';
+import type { CheerPost } from '../api/cheerApi';
+import type { FeaturedMateCard, Game, Ranking, LeagueStartDates, HomeProps } from '../types/home';
 import { formatTimeAgo } from '../utils/time';
 import { getFullTeamName, TEAM_NAME_TO_ID, TEAM_ID_TO_CODE } from '../constants/teams';
+import { queryClient } from '../lib/queryClient';
 
-// --- Types ---
-interface Game {
-    gameId: string;
-    time: string;
-    stadium: string;
-    gameStatus: string;
-    gameStatusKr: string;
-    gameInfo: string;
-    leagueType: 'REGULAR' | 'POSTSEASON' | 'KOREAN_SERIES' | 'OFFSEASON' | 'PRE' | 'PRESEASON' | string;
-    winner?: string;
-    homeTeam: string;
-    homeTeamFull: string;
-    awayTeam: string;
-    awayTeamFull: string;
-    gameDate?: string;
-    homeScore?: number | string;
-    awayScore?: number | string;
-    sourceDate?: string;
-    leagueBadge?: string;
-}
-
-interface Ranking {
-    rank: number;
-    teamId: string;
-    teamName: string;
-    wins: number;
-    losses: number;
-    draws: number;
-    winRate: string;
-    games: number;
-    shortName?: string;
-}
-
-interface LeagueStartDates {
-    regularSeasonStart: string;
-    postseasonStart: string;
-    koreanSeriesStart: string;
-}
-
-interface HomeProps {
-    onNavigate?: (page: string) => void;
-}
+// Types are imported from '../types/home'
 
 
 // --- Initial Values ---
@@ -1345,59 +1305,16 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     }, [applyHomeSnapshot, buildLegacyFailureSnapshot, loadLegacyHomeData]);
 
-    const loadHotCheerPostsLegacy = useCallback(async (requestId: number) => {
-        try {
-            const cheerRes = await fetchHotPosts(
-                { page: 0, size: 5, algorithm: 'HYBRID' },
-                { skipAuthSessionHandling: true },
-            );
-            if (requestId !== widgetsRequestIdRef.current) {
-                return;
-            }
-            setHotCheerPosts(cheerRes.content.slice(0, 3));
-            setHotCheerError(null);
-        } catch (err) {
-            if (requestId !== widgetsRequestIdRef.current) {
-                return;
-            }
-            console.error('[Widget] Error loading Hot Cheer:', err);
-            setHotCheerPosts([]);
-            setHotCheerError('인기 응원글을 불러오지 못했습니다.');
-        } finally {
-            if (requestId === widgetsRequestIdRef.current) {
-                setIsHotCheerLoading(false);
-            }
-        }
-    }, []);
-
-    const loadFeaturedMatesLegacy = useCallback(async (requestId: number) => {
-        try {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const mateData = await fetchAllParties({ skipAuthSessionHandling: true });
-            const upcomingMates = mateData
-                .filter(p => new Date(`${p.gameDate}T12:00:00`) >= today)
-                .filter(p => p.status === 'PENDING')
-                .slice(0, 4);
-
-            if (requestId !== widgetsRequestIdRef.current) {
-                return;
-            }
-
-            setFeaturedMates(upcomingMates);
-            setFeaturedMatesError(null);
-        } catch (err) {
-            if (requestId !== widgetsRequestIdRef.current) {
-                return;
-            }
-            console.error('[Widget] Error loading Mates:', err);
-            setFeaturedMates([]);
-            setFeaturedMatesError('직관 메이트 목록을 불러오지 못했습니다.');
-        } finally {
-            if (requestId === widgetsRequestIdRef.current) {
-                setIsFeaturedMatesLoading(false);
-            }
-        }
+    const applyHomeWidgetsData = useCallback((data: {
+        hotCheerPosts: CheerPost[];
+        featuredMates: FeaturedMateCard[];
+    }) => {
+        setHotCheerPosts(data.hotCheerPosts);
+        setFeaturedMates(data.featuredMates);
+        setHotCheerError(null);
+        setFeaturedMatesError(null);
+        setIsHotCheerLoading(false);
+        setIsFeaturedMatesLoading(false);
     }, []);
 
     const loadHomeWidgets = useCallback(async (date: Date) => {
@@ -1408,15 +1325,12 @@ export default function Home({ onNavigate }: HomeProps) {
         setFeaturedMatesError(null);
 
         try {
-            const data = await fetchHomeWidgets(date);
+            const data = await queryClient.fetchQuery(getHomeWidgetsQueryOptions(date));
             if (requestId !== widgetsRequestIdRef.current) {
                 return;
             }
 
-            setHotCheerPosts(data.hotCheerPosts);
-            setFeaturedMates(data.featuredMates);
-            setIsHotCheerLoading(false);
-            setIsFeaturedMatesLoading(false);
+            applyHomeWidgetsData(data);
         } catch (err) {
             if (requestId !== widgetsRequestIdRef.current) {
                 return;
@@ -1427,12 +1341,14 @@ export default function Home({ onNavigate }: HomeProps) {
                 buildHomeRequestErrorContext(err, '/home/widgets', date),
                 err,
             );
-            await Promise.allSettled([
-                loadHotCheerPostsLegacy(requestId),
-                loadFeaturedMatesLegacy(requestId),
-            ]);
+            setHotCheerPosts([]);
+            setFeaturedMates([]);
+            setHotCheerError('인기 응원글을 불러오지 못했습니다.');
+            setFeaturedMatesError('직관 메이트 목록을 불러오지 못했습니다.');
+            setIsHotCheerLoading(false);
+            setIsFeaturedMatesLoading(false);
         }
-    }, [loadFeaturedMatesLegacy, loadHotCheerPostsLegacy]);
+    }, [applyHomeWidgetsData]);
 
     const handleTabChange = (value: string) => {
         const tabValue = value as LeagueTab;
@@ -1472,6 +1388,16 @@ export default function Home({ onNavigate }: HomeProps) {
         setIsFeaturedMatesLoading(true);
         setFeaturedMatesError(null);
 
+        const cachedWidgets = queryClient.getQueryData<{
+            hotCheerPosts: CheerPost[];
+            featuredMates: FeaturedMateCard[];
+        }>(HOME_WIDGETS_QUERY_KEY(dateKey));
+        if (cachedWidgets) {
+            lastWidgetsDateKeyRef.current = dateKey;
+            applyHomeWidgetsData(cachedWidgets);
+            return clearScheduledWidgetLoad;
+        }
+
         const run = () => {
             if (lastWidgetsDateKeyRef.current === dateKey) {
                 return;
@@ -1488,7 +1414,7 @@ export default function Home({ onNavigate }: HomeProps) {
         }
 
         return clearScheduledWidgetLoad;
-    }, [loadHomeWidgets, selectedDate]);
+    }, [applyHomeWidgetsData, loadHomeWidgets, selectedDate]);
     useEffect(() => {
         setIsSecondarySectionExpanded(false);
     }, [selectedDate]);
@@ -1920,7 +1846,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                         더보기 <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>
-                                <Card className={`p-4 bg-white dark:bg-card border border-zinc-200 dark:border-zinc-800 shadow-sm ${HOME_DASHBOARD_CARD_HEIGHT_CLASS} overflow-hidden lg:overflow-y-auto relative`}>
+                                <Card className={`p-4 bg-white dark:bg-card border border-zinc-200 dark:border-zinc-800 shadow-sm ${HOME_DASHBOARD_CARD_HEIGHT_CLASS} overflow-y-auto relative`}>
                                     {isHotCheerLoading ? (
                                         <div className="space-y-4 flex flex-col justify-center h-full">
                                             <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
@@ -1989,7 +1915,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                         더보기 <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>
-                                <Card className={`p-4 bg-white dark:bg-card border border-zinc-200 dark:border-zinc-800 shadow-sm ${HOME_DASHBOARD_CARD_HEIGHT_CLASS} overflow-hidden lg:overflow-y-auto relative`}>
+                                <Card className={`p-4 bg-white dark:bg-card border border-zinc-200 dark:border-zinc-800 shadow-sm ${HOME_DASHBOARD_CARD_HEIGHT_CLASS} overflow-y-auto relative`}>
                                     {isFeaturedMatesLoading ? (
                                         <div className="space-y-4 flex flex-col justify-center h-full">
                                             <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
@@ -2161,6 +2087,11 @@ export default function Home({ onNavigate }: HomeProps) {
                                                         <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-none tracking-tight tabular-nums">
                                                             {team.winRate}
                                                         </span>
+                                                        {team.gamesBehind != null && (
+                                                            <span className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 tabular-nums w-7 text-center">
+                                                                {team.rank === 1 ? '-' : team.gamesBehind % 1 === 0 ? team.gamesBehind.toFixed(0) : team.gamesBehind.toFixed(1)}
+                                                            </span>
+                                                        )}
                                                         <span className="flex items-center gap-1.5 text-[12px] sm:text-[13px] font-semibold text-zinc-700 dark:text-zinc-300 whitespace-nowrap tabular-nums">
                                                             <span className="text-zinc-900 dark:text-zinc-200">{team.wins}승</span>
                                                             <span className="text-zinc-500 dark:text-zinc-300">·</span>

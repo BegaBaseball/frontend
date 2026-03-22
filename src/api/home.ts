@@ -16,6 +16,9 @@ import api from './axios';
 
 export type HomeLoadSource = 'bootstrap' | 'legacy-fallback';
 
+export const HOME_WIDGETS_QUERY_KEY = (dateKey: string) => ['home', 'widgets', dateKey] as const;
+export const HOME_RANKINGS_QUERY_KEY = (year: number) => ['rankings', year] as const;
+
 export interface HomeLoadState {
     source: HomeLoadSource;
     isFallback: boolean;
@@ -196,6 +199,16 @@ export const fetchHomeWidgets = async (date: Date): Promise<HomeWidgetsResponse>
     };
 };
 
+export const getHomeWidgetsQueryOptions = (date: Date) => {
+    const dateKey = formatDateForAPI(date);
+    return {
+        queryKey: HOME_WIDGETS_QUERY_KEY(dateKey),
+        queryFn: () => fetchHomeWidgets(date),
+        staleTime: 5 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
+    } as const;
+};
+
 // ✅ React Query 훅 추가
 export const useLeagueStartDates = () => {
     return useQuery({
@@ -218,11 +231,12 @@ export const useGamesData = (date: Date) => {
     });
 };
 
-export const useRankingsData = (year: number) => {
+export const useRankingsData = (year: number, options: { enabled?: boolean } = {}) => {
     return useQuery({
-        queryKey: ['rankings', year], // 연도별로 캐싱
+        queryKey: HOME_RANKINGS_QUERY_KEY(year), // 연도별로 캐싱
         queryFn: () => fetchRankingsData(year),
         staleTime: 30 * 60 * 1000, // 30분 (순위는 자주 안 바뀜)
         gcTime: 60 * 60 * 1000, // 1시간
+        enabled: options.enabled ?? true,
     });
 };

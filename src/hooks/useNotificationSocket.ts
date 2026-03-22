@@ -7,13 +7,21 @@ import { NotificationData } from '../types/notification';
 import { SERVER_BASE_URL } from '../constants/config';
 import { NOTIFICATION_SOCKET_DESTINATION } from '../utils/socketDestinations';
 
-export const useNotificationSocket = () => {
+export const useNotificationSocket = (enabled = true) => {
     const { isLoggedIn, userId } = useAuthSession();
     const { fetchProfileAndAuthenticate } = useAuthProfileActions();
     const addNotification = useNotificationStore((state) => state.addNotification);
     const clientRef = useRef<Client | null>(null);
 
     useEffect(() => {
+        if (!enabled) {
+            if (clientRef.current) {
+                clientRef.current.deactivate();
+                clientRef.current = null;
+            }
+            return;
+        }
+
         // 로그인이 안되어 있거나 유저 정보가 없으면 연결하지 않음
         if (!isLoggedIn) {
             if (clientRef.current) {
@@ -96,5 +104,5 @@ export const useNotificationSocket = () => {
                 clientRef.current = null;
             }
         };
-    }, [isLoggedIn, userId, addNotification, fetchProfileAndAuthenticate]); // isLoggedIn/userId 변경 시(로그인/로그아웃) 재실행
+    }, [enabled, isLoggedIn, userId, addNotification, fetchProfileAndAuthenticate]); // isLoggedIn/userId 변경 시(로그인/로그아웃) 재실행
 };
