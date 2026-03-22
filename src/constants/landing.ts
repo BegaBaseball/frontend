@@ -13,6 +13,7 @@ export const LANDING_FEATURES: Feature[] = [
     title: 'KBO 경기일정 및 홈',
     description: '실시간 경기 정보, 스토브리그 소식을 확인하세요',
     image: homeScreenshot,
+    mobileImage: '/landing-mobile/mobile-home-final.png',
     guide: [
       '홈 화면에서 오늘의 경기 일정 확인',
       'KBO LIVE로 실시간 경기 현황 체크',
@@ -24,6 +25,7 @@ export const LANDING_FEATURES: Feature[] = [
     title: '응원석',
     description: '마이팀 설정으로 필터링하여 우리 팀 소식만 모아보세요',
     image: screenshot2,
+    mobileImage: '/landing-mobile/mobile-cheer-final.png',
     guide: [
       '마이팀 설정 후 우리 팀 게시글만 필터링',
       '응원 글 작성 및 다른 팬들과 소통',
@@ -35,6 +37,7 @@ export const LANDING_FEATURES: Feature[] = [
     title: '구장 가이드',
     description: '야구장 내부 맛집, 배달존 및 근처 편의점, 주차장 정보 제공',
     image: screenshot3,
+    mobileImage: '/landing-mobile/mobile-stadium.png',
     guide: [
       '구장 선택 후 카테고리별 정보 확인',
       '맛집, 배달존, 편의점, 주차장 정보 제공',
@@ -46,6 +49,7 @@ export const LANDING_FEATURES: Feature[] = [
     title: '전력분석실',
     description: '전력 분석과 승부 예측으로 경기를 더 재미있게 즐기세요',
     image: predictionScreenshot,
+    mobileImage: predictionScreenshot,
     guide: [
       '스토브리그 시즌: 순위 예측 활성화',
       '시즌 중: 승부 예측 활성화',
@@ -57,6 +61,7 @@ export const LANDING_FEATURES: Feature[] = [
     title: '같이가요',
     description: '직관메이트를 구하고 함께 야구를 즐기세요',
     image: mateScreenshot1,
+    mobileImage: mateScreenshot1,
     guide: [
       '내가 호스트인 파티: 신청 관리 → 승인/거절 → 채팅방 소통',
       '참여 신청한 파티: 승인 대기 → 승인 후 채팅 가능',
@@ -68,6 +73,7 @@ export const LANDING_FEATURES: Feature[] = [
     title: '다이어리',
     description: '개인화된 페이지에서 나만의 야구 다이어리를 작성하세요',
     image: diaryScreenshot,
+    mobileImage: diaryScreenshot,
     guide: [
       '직관 기록과 경기 후기 작성',
       '사진과 메모로 추억 저장',

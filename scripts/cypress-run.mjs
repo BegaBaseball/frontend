@@ -18,6 +18,10 @@ const enableSelfHeal = rawArgs.includes('--self-heal')
   || process.env.CYPRESS_SELF_HEAL === '1';
 const requestTopLevelVersion = rawArgs.includes('--version') || rawArgs.includes('-v');
 const commandMode = isOpen ? 'open' : 'run';
+const hasExplicitSpecArg = rawArgs.some((arg) => arg === '--spec' || arg.startsWith('--spec='));
+const excludedDefaultSpecs = new Set([
+  'cypress/e2e/chatbot-real.cy.ts',
+]);
 
 const canWriteDirectory = (directory) => {
   try {
@@ -28,6 +32,34 @@ const canWriteDirectory = (directory) => {
   }
 };
 
+const collectSpecFiles = (directory, prefix = '') => {
+  if (!existsSync(directory)) {
+    return [];
+  }
+
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const nextPrefix = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const nextPath = join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      return collectSpecFiles(nextPath, nextPrefix);
+    }
+
+    return [nextPrefix];
+  });
+};
+
+const resolveDefaultSpecList = () => {
+  const specDirectory = resolve(projectRoot, 'cypress/e2e');
+  const specFiles = collectSpecFiles(specDirectory)
+    .filter((file) => /\.cy\.(js|jsx|ts|tsx)$/.test(file))
+    .map((file) => `cypress/e2e/${file.replace(/\\/g, '/')}`)
+    .filter((file) => !excludedDefaultSpecs.has(file))
+    .sort();
+
+  return specFiles.length > 0 ? specFiles.join(',') : null;
+};
+
 const cypressArgs = rawArgs
   .filter((arg) => arg !== '--docker')
   .filter((arg) => arg !== '--auto-docker')
@@ -35,6 +67,11 @@ const cypressArgs = rawArgs
   .filter((arg) => arg !== '--skip-verify')
   .filter((arg) => arg !== '--self-heal')
   .filter((arg) => arg !== '--global-cache');
+
+const defaultSpecList = hasExplicitSpecArg ? null : resolveDefaultSpecList();
+if (defaultSpecList) {
+  cypressArgs.push('--spec', defaultSpecList);
+}
 
 const installedCypressVersion = (() => {
   const versionFile = resolve(projectRoot, 'node_modules/cypress/package.json');

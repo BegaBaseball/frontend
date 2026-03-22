@@ -94,12 +94,16 @@ describe('Game Prediction', () => {
 
     const openPredictionPage = (options: {
         captureFlowEvents?: boolean;
+        captureAuthEvents?: boolean;
         seedAuth?: boolean;
+        persistedAuthHint?: boolean;
         path?: string;
     } = {}) => {
         const {
             captureFlowEvents = false,
+            captureAuthEvents = false,
             seedAuth = true,
+            persistedAuthHint = false,
             path = '/prediction',
         } = options;
         const fakeToken = 'prediction-spec-token';
@@ -132,17 +136,8 @@ describe('Game Prediction', () => {
             onBeforeLoad(win) {
                 win.sessionStorage.clear();
                 win.localStorage.clear();
-                win.addEventListener('auth-session-expired', (event) => {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                }, true);
-
-                if (seedAuth) {
-                    seedAuthState(win);
-                }
-
-                if (!captureFlowEvents) {
-                    return;
+                if (persistedAuthHint) {
+                    win.localStorage.setItem('auth-bootstrap-hint', '1');
                 }
 
                 const typedWin = win as Window & {
@@ -152,7 +147,45 @@ describe('Game Prediction', () => {
                         meta?: Record<string, unknown>;
                     }>;
                     __predictionFlowEventHandler?: (evt: Event) => void;
+                    __predictionAuthEvents?: Array<{
+                        eventName: 'auth-session-expired' | 'global-api-error';
+                        detail?: Record<string, unknown>;
+                    }>;
+                    __predictionGlobalApiErrorHandler?: (evt: Event) => void;
                 };
+
+                win.addEventListener('auth-session-expired', (event) => {
+                    if (captureAuthEvents) {
+                        typedWin.__predictionAuthEvents?.push({
+                            eventName: 'auth-session-expired',
+                        });
+                    }
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                }, true);
+
+                if (seedAuth) {
+                    seedAuthState(win);
+                }
+
+                if (captureAuthEvents) {
+                    typedWin.__predictionAuthEvents = [];
+                    if (typedWin.__predictionGlobalApiErrorHandler) {
+                        typedWin.removeEventListener('global-api-error', typedWin.__predictionGlobalApiErrorHandler);
+                    }
+                    typedWin.__predictionGlobalApiErrorHandler = (evt: Event) => {
+                        const detail = (evt as CustomEvent<Record<string, unknown> | undefined>).detail;
+                        typedWin.__predictionAuthEvents?.push({
+                            eventName: 'global-api-error',
+                            detail,
+                        });
+                    };
+                    typedWin.addEventListener('global-api-error', typedWin.__predictionGlobalApiErrorHandler);
+                }
+
+                if (!captureFlowEvents) {
+                    return;
+                }
 
                 if (typedWin.__predictionFlowEventHandler) {
                     typedWin.removeEventListener('prediction-flow:event', typedWin.__predictionFlowEventHandler);
@@ -445,9 +478,11 @@ describe('Game Prediction', () => {
             body: autoCoachResponse,
         }).as('coachAnalyzePostseason');
 
-        openPredictionPage();
+        openPredictionPage({ path: '/prediction?gameId=20260601HHSS0&date=2026-06-01' });
 
+        cy.wait('@getGameDetailPostseason');
         cy.wait('@getRankingsPostseason');
+        cy.tick(1000);
         cy.wait('@coachAnalyzePostseason').then((interception) => {
             const body = parseCoachRequestBody(interception.request.body);
             const leagueContext = body.league_context as Record<string, unknown> | undefined;
@@ -1151,7 +1186,7 @@ describe('Game Prediction', () => {
         cy.get('[data-testid="vote-home-btn"]').should('not.exist');
     });
 
-    it('should keep prediction schedule public when auth check fails (401)', () => {
+    it('should keep prediction schedule public without issuing an auth bootstrap request', () => {
         cy.clearCookie('Authorization');
         cy.clearLocalStorage('auth-storage');
         cy.clearLocalStorage('accessToken');
@@ -1161,10 +1196,47 @@ describe('Game Prediction', () => {
         }).as('getMeUnauthorized');
 
         openPredictionPage({ seedAuth: false });
-        cy.wait('@getMeUnauthorized');
         cy.contains('한화 이글스').should('be.visible');
+        cy.contains('button', '로그인').should('be.visible');
         cy.contains('로그인 필요').should('not.exist');
         cy.get('@getUserVotes.all').should('have.length', 0);
+        cy.get('@getMeUnauthorized.all').should('have.length', 0);
+    });
+
+    it('should keep prediction schedule public when deferred auth bootstrap returns 401', () => {
+        cy.clearCookie('Authorization');
+        cy.clearLocalStorage('auth-storage');
+        cy.clearLocalStorage('accessToken');
+        cy.clearLocalStorage('auth-bootstrap-hint');
+        cy.intercept('**/api/auth/mypage*', {
+            statusCode: 401,
+            body: { message: 'Unauthorized' },
+        }).as('getMeUnauthorized');
+
+        openPredictionPage({
+            seedAuth: false,
+            persistedAuthHint: true,
+            captureAuthEvents: true,
+        });
+
+        cy.contains('한화 이글스').should('be.visible');
+        cy.contains('button', '로그인').should('be.visible');
+        cy.contains('로그인 필요').should('not.exist');
+        cy.get('@getUserVotes.all').should('have.length', 0);
+        cy.wait('@getMeUnauthorized');
+        cy.get('@getMeUnauthorized.all').then((interceptions) => {
+            expect(interceptions).to.have.length(1);
+        });
+        cy.window().then((win) => {
+            const typedWin = win as Window & {
+                __predictionAuthEvents?: Array<{
+                    eventName: 'auth-session-expired' | 'global-api-error';
+                    detail?: Record<string, unknown>;
+                }>;
+            };
+
+            expect(typedWin.__predictionAuthEvents ?? []).to.deep.equal([]);
+        });
     });
 
     it('should show error card when /api/matches/range fails', () => {

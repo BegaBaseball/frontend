@@ -423,7 +423,7 @@ export default function OffSeasonList() {
                             onReset={resetFilters}
                         />
                     ) : (
-                        <Card className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                        <Card className="overflow-visible rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:overflow-hidden">
                             <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4 dark:border-zinc-800">
                                 <div className="space-y-1">
                                     <p className="text-sm font-black tracking-tight text-zinc-900 dark:text-zinc-50">
@@ -443,12 +443,16 @@ export default function OffSeasonList() {
                             {isMobile ? (
                                 <OffseasonMobileCards movements={filteredList} onSelect={openMovementDetail} />
                             ) : (
-                                <OffseasonDesktopTable
-                                    movements={filteredList}
-                                    sortOrder={sortOrder}
-                                    onSortChange={setSortOrder}
-                                    onSelect={openMovementDetail}
-                                />
+                                <div className="overflow-x-auto">
+                                    <div className="min-w-[860px]">
+                                        <OffseasonDesktopTable
+                                            movements={filteredList}
+                                            sortOrder={sortOrder}
+                                            onSortChange={setSortOrder}
+                                            onSelect={openMovementDetail}
+                                        />
+                                    </div>
+                                </div>
                             )}
                         </Card>
                     )}

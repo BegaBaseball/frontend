@@ -28,6 +28,7 @@ import {
   loadMateApplyDraft,
   saveMateApplyDraft,
 } from '../utils/mateApplyDraft';
+import { mateMobileBarClass } from '../utils/mateFlowUi';
 
 const sanitizeUserFacingMessage = (message: string, fallback: string): string => {
   const trimmed = message.trim();
@@ -316,7 +317,7 @@ export default function MateApply() {
         className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
       />
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-36 lg:pb-8 relative z-10">
+      <div className="relative z-10 mx-auto max-w-3xl px-4 py-6 pb-44 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">
         <Button
           variant="ghost"
           onClick={() => {
@@ -325,20 +326,20 @@ export default function MateApply() {
             }
             navigate(`/mate/${id}`);
           }}
-          className="mb-4"
+          className="mb-3 -ml-2 sm:mb-4"
         >
           <ChevronLeft className="w-4 h-4 mr-2" />
           뒤로
         </Button>
 
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary dark:border-primary/30 dark:bg-primary/10">
             {flowBadgeLabel}
           </Badge>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-primary">
+          <h1 className="mt-3 text-2xl font-black tracking-tight text-primary sm:text-3xl">
             {isSelling ? '티켓 구매' : '파티 참여 신청'}
           </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-300">
+          <p className="mt-2 max-w-2xl text-sm text-gray-600 dark:text-gray-300 sm:text-base">
             {flowDescription}
           </p>
         </div>
@@ -350,35 +351,41 @@ export default function MateApply() {
           </Alert>
         )}
 
-        <Card className={`p-6 mb-6 ${sectionCardClass}`}>
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-gray-50/90 px-4 py-3 dark:border-border/70 dark:bg-secondary/70">
-                <TeamLogo teamId={selectedParty.homeTeam} size="md" />
-                <span className="text-lg font-black italic text-primary">VS</span>
-                <TeamLogo teamId={selectedParty.awayTeam} size="md" />
+        <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
+          <div className="flex flex-col gap-4 sm:gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200/80 bg-gray-50/90 px-3 py-3 dark:border-border/70 dark:bg-secondary/70 sm:w-auto sm:gap-3 sm:px-4">
+                <div className="h-10 w-10 shrink-0 sm:h-12 sm:w-12">
+                  <TeamLogo teamId={selectedParty.homeTeam} size="full" />
+                </div>
+                <span className="text-base font-black italic text-primary sm:text-lg">VS</span>
+                <div className="h-10 w-10 shrink-0 sm:h-12 sm:w-12">
+                  <TeamLogo teamId={selectedParty.awayTeam} size="full" />
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-black text-primary">
+              <div className="min-w-0">
+                <h3 className="text-base font-black leading-tight text-primary sm:text-lg">
                   {selectedParty.stadium}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                   {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime.substring(0, 5)}
                 </p>
               </div>
             </div>
-            <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-right dark:border-primary/20 dark:bg-primary/10">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
-                {summaryAmountLabel}
-              </p>
-              <p className="mt-2 text-2xl font-black text-primary">
-                {primaryAmount.toLocaleString()}원
-              </p>
+            <div className="w-full rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-left dark:border-primary/20 dark:bg-primary/10 sm:w-auto sm:min-w-[170px] sm:text-right">
+              <div className="flex items-center justify-between gap-4 sm:block">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                  {summaryAmountLabel}
+                </p>
+                <p className="text-xl font-black text-primary sm:mt-2 sm:text-2xl">
+                  {primaryAmount.toLocaleString()}원
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
-            <div className={`${insetPanelClass} p-3`}>
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
+            <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">좌석</p>
               <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">{selectedParty.section}</p>
             </div>
@@ -386,7 +393,7 @@ export default function MateApply() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">호스트</p>
               <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{selectedParty.hostName}</p>
             </div>
-            <div className={`${insetPanelClass} p-3`}>
+            <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">신뢰 신호</p>
               <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryTrustLabel}</p>
             </div>
@@ -398,7 +405,7 @@ export default function MateApply() {
         </Card>
 
         {!isSelling && (
-          <Card className={`p-6 mb-6 ${sectionCardClass}`}>
+          <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
             <div className="flex items-center gap-2 mb-4">
               <MessageSquare className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-primary">소개 메시지</h3>
@@ -424,8 +431,8 @@ export default function MateApply() {
         )}
 
         {!isSelling && (
-          <Card className={`p-6 mb-6 ${sectionCardClass}`}>
-            <div className="flex items-center gap-2 mb-4">
+          <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
               <Ticket className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-primary">티켓 인증 (선택)</h3>
               {ticketVerified && (
@@ -441,13 +448,13 @@ export default function MateApply() {
 
             {ticketVerified ? (
               <div className="space-y-3">
-                <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
                   <div className="mb-2 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-green-600" />
                     <span className="font-medium text-green-700 dark:text-green-400">티켓 인증 완료</span>
                   </div>
                   {ticketInfo && (
-                    <div className="space-y-1 text-sm text-green-600">
+                    <div className="space-y-1.5 text-sm text-green-600 dark:text-green-300">
                       {ticketInfo.date && <p>📅 {ticketInfo.date}</p>}
                       {ticketInfo.stadium && <p>🏟️ {ticketInfo.stadium}</p>}
                       {(ticketInfo.section || ticketInfo.row || ticketInfo.seat) && (
@@ -466,7 +473,7 @@ export default function MateApply() {
               </div>
             ) : (
               <div
-                className={`rounded-2xl border-2 border-dashed p-6 text-center transition-colors ${isScanning
+                className={`rounded-2xl border-2 border-dashed p-5 text-center transition-colors sm:p-6 ${isScanning
                   ? 'border-primary bg-slate-50 dark:bg-card/60'
                   : 'border-slate-300 dark:border-border hover:border-primary hover:bg-slate-50 dark:hover:bg-secondary'
                   }`}
@@ -498,13 +505,13 @@ export default function MateApply() {
           </Card>
         )}
 
-        <Card className={`p-6 mb-6 ${sectionCardClass}`}>
+          <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
           <div className="flex items-center gap-2 mb-4">
             <CreditCard className="w-5 h-5 text-primary" />
             <h3 className="font-bold text-primary">거래 기준 금액</h3>
           </div>
 
-          <div className={`${insetPanelClass} p-4`}>
+          <div className={`${insetPanelClass} p-4 sm:p-5`}>
             {!isSelling && (
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -586,16 +593,13 @@ export default function MateApply() {
         </Card>
       </div>
 
-      <div
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/90 bg-white/95 px-4 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:border-border dark:bg-card/95 lg:hidden"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
-      >
-        <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <div className="min-w-0 flex-1">
+      <div className={`${mateMobileBarClass} lg:hidden`}>
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2.5 sm:gap-3">
+          <div className="min-w-0 flex-1 basis-[180px]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
               {summaryAmountLabel}
             </p>
-            <p className="mt-1 truncate text-lg font-black text-primary">
+            <p className="mt-1 text-lg font-black text-primary">
               {primaryAmount.toLocaleString()}원
             </p>
             {!isSelling && !isSubmitReady && (
@@ -607,7 +611,7 @@ export default function MateApply() {
           <Button
             onClick={handleSubmit}
             disabled={!isSubmitReady || isSubmitting}
-            className="min-w-[150px] bg-primary text-white"
+            className="w-full bg-primary text-white sm:w-auto sm:min-w-[150px]"
             size="lg"
           >
             {submitLabel}

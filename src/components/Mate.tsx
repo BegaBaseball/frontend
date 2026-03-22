@@ -284,7 +284,7 @@ export default function Mate() {
   );
 
   const renderPagination = () => (
-    <div className="flex items-center justify-center gap-4 mt-10 mb-8">
+    <div className="mt-10 mb-8 flex items-center justify-center gap-2 sm:gap-4">
       <Button
         variant="outline"
         className="border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] text-gray-700 dark:text-zinc-300 hover:bg-primary/15 hover:text-primary-foreground"
@@ -369,9 +369,9 @@ export default function Mate() {
         className="group relative cursor-pointer overflow-hidden rounded-[24px] border border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 dark:hover:border-white/20 hover:shadow-[0_8px_30px_rgba(15,23,42,0.12)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] flex flex-col"
         onClick={() => handlePartyClick(party)}
       >
-        <div className="p-4 flex-1 flex flex-col">
+        <div className="flex flex-1 flex-col p-4">
           {/* Header Badges */}
-          <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="flex items-center gap-1.5 border-gray-200/80 bg-primary/5 dark:border-white/10 text-gray-700 dark:text-zinc-300 px-2.5 py-1">
                 <span className="font-mono text-[11px]">{formatGameDate(party.gameDate)}</span>
@@ -386,9 +386,9 @@ export default function Mate() {
 
           {/* Main Title & Price */}
           <div className="mb-5">
-            <div className="flex justify-between items-start gap-4 mb-1">
-              <h3 className="text-[22px] font-black text-gray-900 dark:text-white tracking-tight line-clamp-1">{zoneName}</h3>
-              <span className="text-xl font-bold text-gray-900 dark:text-white shrink-0">
+            <div className="mb-1 flex flex-col items-start gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+              <h3 className="line-clamp-2 text-[20px] font-black tracking-tight text-gray-900 dark:text-white sm:line-clamp-1 sm:text-[22px]">{zoneName}</h3>
+              <span className="shrink-0 text-lg font-bold text-gray-900 dark:text-white sm:text-xl">
                 {amount.toLocaleString()}
                 <span className="text-sm font-medium text-gray-500 dark:text-zinc-500 ml-0.5">원</span>
               </span>
@@ -397,16 +397,16 @@ export default function Mate() {
           </div>
 
           {/* VS Block (간결하게 변경) */}
-          <div className="flex items-center justify-between bg-gray-100 dark:bg-black/30 rounded-2xl p-3.5 mb-5 border border-gray-200 dark:border-white/5">
-            <div className="flex flex-col items-center gap-2 w-[40%]">
-              <TeamLogo teamId={party.homeTeam} size={44} className="drop-shadow-md" />
+          <div className="mb-5 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100 p-3 dark:border-white/5 dark:bg-black/30 sm:rounded-2xl sm:p-3.5">
+            <div className="flex w-[40%] flex-col items-center gap-1.5 sm:gap-2">
+              <TeamLogo teamId={party.homeTeam} size={40} className="drop-shadow-md" />
               <span className="text-[12px] font-bold text-gray-700 dark:text-zinc-300 truncate w-full text-center">
                 {resolveTeamDisplayName(party.homeTeam)}
               </span>
             </div>
             <div className="text-sm font-black italic text-primary bg-primary/5 px-2 py-1 rounded">VS</div>
-            <div className="flex flex-col items-center gap-2 w-[40%]">
-              <TeamLogo teamId={party.awayTeam} size={44} className="drop-shadow-md" />
+            <div className="flex w-[40%] flex-col items-center gap-1.5 sm:gap-2">
+              <TeamLogo teamId={party.awayTeam} size={40} className="drop-shadow-md" />
               <span className="text-[12px] font-bold text-gray-700 dark:text-zinc-300 truncate w-full text-center">
                 {resolveTeamDisplayName(party.awayTeam)}
               </span>
@@ -414,7 +414,7 @@ export default function Mate() {
           </div>
 
           {/* Info Rows (아이콘 기반) */}
-          <div className="grid grid-cols-2 gap-y-2.5 gap-x-2 px-1 mb-4">
+          <div className="mb-4 grid grid-cols-1 gap-x-2 gap-y-2.5 px-1 min-[360px]:grid-cols-2">
             <div className="flex items-center gap-2 text-[13px]">
               <Shield className={`w-4 h-4 ${party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'}`} />
               <span className={party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'}>{ticketTrustLabel}</span>
@@ -435,8 +435,8 @@ export default function Mate() {
           </div>
 
           {/* Bottom Host Area */}
-          <div className="mt-auto pt-3 border-t border-gray-200 dark:border-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="mt-auto flex flex-col gap-3 border-t border-gray-200 pt-3 dark:border-white/5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex w-full items-center gap-3 sm:w-auto">
               <ProfileAvatar
                 src={hostAvatarSrc}
                 alt={party.hostName}
@@ -446,7 +446,7 @@ export default function Mate() {
                 className="ring-1 ring-gray-200 dark:ring-white/10"
               />
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-gray-900 dark:text-zinc-200 flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-zinc-200">
                   {party.hostName} {hostBadgeIcon}
                 </span>
                 <span className="text-[11px] text-gray-500 dark:text-zinc-500">상세 정보 확인</span>
@@ -454,8 +454,9 @@ export default function Mate() {
             </div>
 
             {/* Progress Bar */}
-              <div className="w-20">
-              <div className="mb-1.5 flex justify-end text-[11px] font-bold text-primary">
+            <div className="w-full sm:w-20">
+              <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold text-primary sm:justify-end">
+                <span className="text-gray-500 dark:text-zinc-500 sm:hidden">모집 진행</span>
                 {progressPercent}%
               </div>
               <div className="h-1.5 w-full bg-gray-200 dark:bg-black/50 rounded-full overflow-hidden">
@@ -470,10 +471,10 @@ export default function Mate() {
 
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-[#0a0a0a] transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:pb-6 lg:px-8">
         
         {/* 헤더 영역 */}
-        <div className="mb-7 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div className="mb-6 flex flex-col gap-3 md:mb-7 md:flex-row md:items-end md:justify-between md:gap-4">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-zinc-500 mb-1">
               Mate Flow
@@ -482,18 +483,18 @@ export default function Mate() {
               직관 메이트 찾기
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsGuideOpen(!isGuideOpen)}
-              className="text-gray-500 dark:text-zinc-400 hover:text-primary-foreground hover:bg-primary/15 rounded-full px-4"
+              className="flex-1 rounded-full px-4 text-gray-500 hover:bg-primary/15 hover:text-primary-foreground dark:text-zinc-400 sm:flex-none"
             >
               {isGuideOpen ? '가이드 닫기' : '이용 가이드'}
             </Button>
             <Button
               onClick={() => navigate('/mate/create')}
-              className="rounded-full px-5 bg-primary text-primary-foreground font-bold hover:bg-primary-hover shadow-lg"
+              className="flex-1 justify-center rounded-full bg-primary px-5 font-bold text-primary-foreground shadow-lg hover:bg-primary-hover sm:flex-none"
             >
               <Plus className="w-5 h-5 mr-1" strokeWidth={2.5} />
               파티 만들기
@@ -503,9 +504,9 @@ export default function Mate() {
 
         {/* 이용 가이드 (Toggle) */}
         {isGuideOpen && (
-            <Card className="mb-7 animate-in slide-in-from-top-2 border border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] p-5 shadow-lg">
-            <div className="flex justify-between items-start">
-              <div>
+            <Card className="mb-7 animate-in slide-in-from-top-2 border border-gray-200/80 bg-white p-4 shadow-lg dark:border-white/10 dark:bg-[#16181c] sm:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
               <h3 className="mb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-primary" /> 안전한 직관을 위한 체크포인트
                 </h3>
@@ -637,12 +638,12 @@ export default function Mate() {
 
         {/* 탭 네비게이션 */}
         <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setCurrentPage(0); }} className="mb-6">
-          <TabsList className="bg-white dark:bg-[#16181c] border border-gray-200/70 dark:border-white/5 p-1.5 rounded-2xl mb-6 inline-flex relative h-auto">
+          <TabsList className="relative mb-6 inline-flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl border border-gray-200/70 bg-white p-1.5 scrollbar-hide dark:border-white/5 dark:bg-[#16181c]">
             {['all', 'recruiting', 'matched', 'selling'].map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab}
-            className="relative rounded-xl px-5 py-2.5 text-sm font-medium transition-colors duration-300 data-[state=active]:text-primary-foreground text-gray-500 dark:text-zinc-400 bg-transparent"
+            className="relative shrink-0 rounded-xl bg-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors duration-300 data-[state=active]:text-primary-foreground dark:text-zinc-400 sm:px-5"
               >
                 {activeTab === tab && (
                   <motion.span

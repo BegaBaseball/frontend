@@ -277,6 +277,10 @@
 }
 
 @layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -846,6 +850,21 @@
       linear-gradient(180deg, hsl(var(--background)) 0%, #f7faf8 100%);
   }
 
+  .dark .landing-hero-backdrop {
+    background: #000000 !important;
+  }
+
+  .dark .landing-hero-panel {
+    background: #000000 !important;
+    border: 1px solid hsl(var(--border)) !important;
+    box-shadow: none !important;
+  }
+
+  .dark .landing-hero-panel::after {
+    background: transparent !important;
+    filter: none !important;
+  }
+
   .landing-hero-panel {
     position: relative;
     overflow: hidden;
@@ -968,6 +987,13 @@
     box-shadow: var(--surface-shadow);
   }
 
+  :root.dark .landing-feature-guide,
+  .dark .landing-feature-guide {
+    background: hsl(var(--card));
+    border-color: hsl(var(--border));
+    box-shadow: var(--surface-shadow);
+  }
+
   .landing-step-badge {
     display: inline-flex;
     align-items: center;
@@ -1003,8 +1029,9 @@
   }
 
   .landing-scroll-frame {
-    transform: translateY(var(--landing-scroll-offset, 0px));
-    transition: transform 100ms linear;
+    transform: translate3d(0, var(--landing-scroll-offset, 0px), 0);
+    will-change: transform;
+    transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .landing-mockup-screen {

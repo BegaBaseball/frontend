@@ -6,14 +6,17 @@ export default function LaptopMockup({
   activeFeature,
   features,
   scrollProgress,
+  scrollDistance,
   laptopRef
 }: LaptopMockupProps) {
+  const scrollOffset = `${scrollProgress * scrollDistance}px`;
+
   return (
     <div
       ref={laptopRef}
       className="landing-scroll-frame sticky top-28"
       data-testid="landing-laptop-mockup"
-      style={{ '--landing-scroll-offset': `${scrollProgress * 130}px` } as CSSProperties}
+      style={{ '--landing-scroll-offset': scrollOffset } as CSSProperties}
     >
       <div className="landing-mockup-shell">
         <div className="landing-mockup-accent" />

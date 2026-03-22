@@ -16,7 +16,7 @@ export const mateSubtlePanelClass =
   'rounded-xl border border-dashed border-gray-200 bg-white/80 dark:border-border/70 dark:bg-card/70';
 
 export const mateMobileBarClass =
-  'fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/90 bg-white/95 px-4 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:border-border dark:bg-card/95';
+  'fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/90 bg-white/95 px-4 pt-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:border-border dark:bg-card/95 min-h-[74px] pb-[calc(env(safe-area-inset-bottom)+0.75rem)]';
 
 export const getPartyStatusMeta = (status: PartyStatus): { label: string; className: string } => {
   switch (status) {
