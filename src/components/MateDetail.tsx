@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import SeatViewGallery from './SeatViewGallery';
 import QRCode from 'react-qr-code';
 import { toast } from 'sonner';
@@ -67,10 +68,11 @@ import {
   stripHashtags,
 } from '../utils/mate';
 import ReviewDialog from './ReviewDialog';
-import type { CancelReasonType, PartyReview, Application } from '../types/mate';
+import type { CancelReasonType, Application } from '../types/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
-import { resolveQrRefreshDelayMs } from '../utils/qrRefresh';
+import { QR_REFRESH_LEAD_MS, resolveQrRefreshDelayMs } from '../utils/qrRefresh';
 import { getRefundPolicyMessage } from '../utils/paymentStatus';
+import { mateMobileBarClass } from '../utils/mateFlowUi';
 
 export default function MateDetail() {
   const navigate = useNavigate();
@@ -88,9 +90,8 @@ export default function MateDetail() {
     userId: currentUserId,
     userHandle: currentUserHandle,
   } = useAuthProfileSnapshot();
+  const queryClient = useQueryClient();
 
-  const [myApplication, setMyApplication] = useState<Application | null>(null);
-  const [applications, setApplications] = useState<Application[]>([]);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isConvertingToSale, setIsConvertingToSale] = useState(false);
   const [showSaleDialog, setShowSaleDialog] = useState(false);
@@ -103,15 +104,52 @@ export default function MateDetail() {
   const [qrSessionExpiresAt, setQrSessionExpiresAt] = useState<string | null>(null);
   const [isQrLoading, setIsQrLoading] = useState(false);
   const [qrSessionError, setQrSessionError] = useState<string | null>(null);
+  const [isDocumentVisible, setIsDocumentVisible] = useState(() => (
+    typeof document === 'undefined' ? true : document.visibilityState === 'visible'
+  ));
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false); // For Seat View toggle
   const [showZoneDetails, setShowZoneDetails] = useState(false);
   const [showHostProfile, setShowHostProfile] = useState(false);
-  const [reviews, setReviews] = useState<PartyReview[]>([]);
   const [reviewTarget, setReviewTarget] = useState<{ handle: string; name: string } | null>(null);
   const missingPartyRedirectRef = useRef<string | null>(null);
   const selectedPartyId = selectedParty?.id;
   const selectedPartyStatus = selectedParty?.status;
+  const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
+  const partyReviewsQuery = useQuery({
+    queryKey: ['mate-party-reviews', selectedPartyId],
+    queryFn: () => api.getPartyReviews(selectedPartyId!),
+    enabled: Boolean(selectedPartyId && selectedPartyStatus === 'COMPLETED'),
+    retry: false,
+    staleTime: 60 * 1000,
+  });
+  const myApplicationQuery = useQuery({
+    queryKey: ['mate-party-my-application', selectedPartyId, currentUserId],
+    queryFn: async () => {
+      try {
+        return await api.getMyApplicationByParty(selectedPartyId!);
+      } catch (error) {
+        if (getApiErrorStatus(error) === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    enabled: Boolean(selectedPartyId && currentUserId),
+    retry: false,
+    staleTime: 30 * 1000,
+  });
+  const hostApplicationsQuery = useQuery({
+    queryKey: ['mate-party-applications', selectedPartyId],
+    queryFn: () => api.getApplicationsByParty(selectedPartyId!),
+    enabled: Boolean(selectedPartyId && isHost),
+    staleTime: 30 * 1000,
+  });
+  const reviews = useMemo(() => (
+    Array.isArray(partyReviewsQuery.data) ? partyReviewsQuery.data : []
+  ), [partyReviewsQuery.data]);
+  const myApplication = myApplicationQuery.data ?? null;
+  const applications = hostApplicationsQuery.data ?? [];
 
   useEffect(() => {
     if (partyStatusCode !== 404 || !id || selectedParty) {
@@ -131,65 +169,26 @@ export default function MateDetail() {
     return () => window.clearTimeout(redirectTimer);
   }, [id, navigate, partyStatusCode, selectedParty]);
 
-  // COMPLETED 파티의 리뷰 목록 가져오기
   useEffect(() => {
-    if (!selectedParty || selectedParty.status !== 'COMPLETED') return;
-    api.getPartyReviews(selectedParty.id)
-      .then((data) => setReviews(Array.isArray(data) ? data : []))
-      .catch((err: unknown) => {
-        const status = getApiErrorStatus(err);
-        if (status !== 403) {
-          toast.error('리뷰 정보를 불러오는데 실패했습니다.');
-        }
-      });
-  }, [selectedPartyId, selectedPartyStatus]);
+    if (partyReviewsQuery.error && getApiErrorStatus(partyReviewsQuery.error) !== 403) {
+      toast.error('리뷰 정보를 불러오는데 실패했습니다.');
+    }
+  }, [partyReviewsQuery.error]);
 
-  // 내 신청 정보 가져오기
   useEffect(() => {
-    if (!selectedParty || !currentUserId) return;
+    if (typeof document === 'undefined') {
+      return;
+    }
 
-    const fetchMyApplication = async () => {
-      try {
-        const myApp = await api.getMyApplicationByParty(selectedParty.id);
-        setMyApplication(myApp);
-      } catch (error: unknown) {
-        if (getApiErrorStatus(error) === 404) {
-          try {
-            const applicationsData = await api.getMyApplications();
-            const fallback = applicationsData.find((app: Application) =>
-              String(app.partyId) === String(selectedParty.id)
-            );
-            setMyApplication(fallback ?? null);
-            return;
-          } catch (fallbackError) {
-            console.error('내 신청 정보 fallback 조회 실패:', fallbackError);
-          }
-        }
-        console.error('내 신청 정보 가져오기 실패:', error);
-      }
+    const handleVisibilityChange = () => {
+      setIsDocumentVisible(document.visibilityState === 'visible');
     };
 
-    fetchMyApplication();
-  }, [selectedPartyId, currentUserId]);
-
-  // 파티 신청 목록 가져오기 (호스트인 경우)
-  useEffect(() => {
-    if (!selectedParty || !currentUserId) return;
-
-    const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
-    if (!isHost) return;
-
-    const fetchApplications = async () => {
-      try {
-        const data = await api.getApplicationsByParty(selectedParty.id);
-        setApplications(data);
-      } catch (error) {
-        console.error('신청 목록 가져오기 실패:', error);
-      }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-
-    fetchApplications();
-  }, [selectedPartyId, selectedParty?.hostHandle, selectedParty?.hostId, currentUserHandle, currentUserId]);
+  }, []);
 
   const isGameTomorrow = () => {
     if (!selectedParty) return false;
@@ -242,9 +241,12 @@ export default function MateDetail() {
           result.feeCharged,
         ),
       });
-      setMyApplication(null);
       const updatedParty = await api.getPartyById(selectedParty.id);
       setSelectedParty(mapBackendPartyToFrontend(updatedParty));
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: ['mate-party-my-application', selectedParty.id, currentUserId] }),
+        queryClient.invalidateQueries({ queryKey: ['mate-party-applications', selectedParty.id] }),
+      ]);
     } catch (error: unknown) {
       console.error('신청 취소 중 오류:', error);
       toast.error(getApiErrorMessage(error, '신청 취소 중 오류가 발생했습니다.'));
@@ -271,7 +273,6 @@ export default function MateDetail() {
     },
   ];
 
-  const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
   const isApproved = myApplication?.isApproved || false;
   const canAccessCheckIn = Boolean(selectedParty) &&
     (isHost || isApproved) &&
@@ -290,14 +291,47 @@ export default function MateDetail() {
     return new URL(path, window.location.origin).toString();
   }, [id, selectedParty?.id]);
 
-  const fetchQrSession = useCallback(async (isMountedRef: { current: boolean }) => {
-    if (selectedPartyId === undefined) return;
+  const scheduleNextQrRefresh = useCallback((
+    isMountedRef: { current: boolean },
+    expiresAt: string | null,
+  ) => {
+    if (refreshTimerRef.current !== null) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    if (!isMountedRef.current || !isDocumentVisible || selectedPartyId === undefined || !canAccessCheckIn) {
+      return;
+    }
+
+    const delay = resolveQrRefreshDelayMs(expiresAt, Date.now());
+    refreshTimerRef.current = setTimeout(() => {
+      if (!isMountedRef.current || typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+      void fetchQrSession(isMountedRef, true);
+    }, delay);
+  }, [canAccessCheckIn, isDocumentVisible, selectedPartyId]);
+
+  const fetchQrSession = useCallback(async (
+    isMountedRef: { current: boolean },
+    force: boolean = false,
+  ) => {
+    if (selectedPartyId === undefined || !canAccessCheckIn || !isDocumentVisible) return;
+    if (!force && qrCheckInUrl && qrSessionExpiresAt) {
+      const parsedExpiresAtMs = Date.parse(qrSessionExpiresAt);
+      if (!Number.isNaN(parsedExpiresAtMs) && parsedExpiresAtMs - Date.now() > QR_REFRESH_LEAD_MS) {
+        scheduleNextQrRefresh(isMountedRef, qrSessionExpiresAt);
+        return;
+      }
+    }
     setIsQrLoading(true);
     try {
       const qrSession = await api.createCheckInQrSession({ partyId: selectedPartyId });
       if (!isMountedRef.current) return;
 
       setQrCheckInUrl(qrSession.checkinUrl || fallbackCheckInUrl);
+      setQrSessionError(null);
       const expiresAt = qrSession.expiresAt ?? null;
       const parsedExpiresAtMs = expiresAt ? Date.parse(expiresAt) : Number.NaN;
       const isValidExpiresAt = expiresAt ? !Number.isNaN(parsedExpiresAtMs) : false;
@@ -305,16 +339,7 @@ export default function MateDetail() {
         console.warn('[MateDetail] Invalid QR session expiresAt:', expiresAt);
       }
       setQrSessionExpiresAt(isValidExpiresAt ? expiresAt : null);
-
-      const delay = resolveQrRefreshDelayMs(expiresAt, Date.now());
-      if (refreshTimerRef.current !== null) {
-        clearTimeout(refreshTimerRef.current);
-      }
-      refreshTimerRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
-          void fetchQrSession(isMountedRef);
-        }
-      }, delay);
+      scheduleNextQrRefresh(isMountedRef, isValidExpiresAt ? expiresAt : null);
     } catch (error: unknown) {
       if (!isMountedRef.current) return;
       console.error('QR 세션 발급 실패:', error);
@@ -325,7 +350,15 @@ export default function MateDetail() {
         setIsQrLoading(false);
       }
     }
-  }, [selectedPartyId, fallbackCheckInUrl]);
+  }, [
+    canAccessCheckIn,
+    fallbackCheckInUrl,
+    isDocumentVisible,
+    qrCheckInUrl,
+    qrSessionExpiresAt,
+    scheduleNextQrRefresh,
+    selectedPartyId,
+  ]);
 
   useEffect(() => {
     const isMountedRef = { current: true };
@@ -339,7 +372,7 @@ export default function MateDetail() {
       refreshTimerRef.current = null;
     }
 
-    if (selectedPartyId === undefined || !canAccessCheckIn) {
+    if (selectedPartyId === undefined || !canAccessCheckIn || !isDocumentVisible) {
       setIsQrLoading(false);
       return () => {
         isMountedRef.current = false;
@@ -355,7 +388,7 @@ export default function MateDetail() {
         refreshTimerRef.current = null;
       }
     };
-  }, [selectedPartyId, canAccessCheckIn, fallbackCheckInUrl, fetchQrSession]);
+  }, [selectedPartyId, canAccessCheckIn, fallbackCheckInUrl, fetchQrSession, isDocumentVisible]);
 
   const qrCodeValue = useMemo(() => qrCheckInUrl || fallbackCheckInUrl, [qrCheckInUrl, fallbackCheckInUrl]);
 
@@ -750,11 +783,11 @@ export default function MateDetail() {
         />
 
         <div className="max-w-3xl mx-auto px-4 py-6 relative z-10">
-          <div className="mb-4 flex items-center justify-between">
-            <Button variant="ghost" className="pl-0 hover:bg-transparent" onClick={() => navigate('/mate')}>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <Button variant="ghost" className="pl-0 text-sm hover:bg-transparent sm:text-base" onClick={() => navigate('/mate')}>
               <ChevronLeft className="w-5 h-5 mr-1" /> 목록으로
             </Button>
-            <Button variant="outline" size="sm" onClick={handleShare}>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={handleShare}>
               <Share2 className="w-4 h-4 mr-1.5" />
               공유
             </Button>
@@ -780,42 +813,42 @@ export default function MateDetail() {
               <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
 
               {/* Date & Place Badge (Scoreboard Style) */}
-              <div className="relative z-10 flex justify-center mb-8">
-                <div className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-md px-5 py-2 rounded-full border border-white/20 shadow-lg">
+              <div className="relative z-10 mb-6 flex justify-center sm:mb-8">
+                <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-2xl border border-white/20 bg-black/30 px-4 py-2 text-center shadow-lg backdrop-blur-md sm:flex-nowrap sm:gap-3 sm:rounded-full sm:px-5">
                   <span className="font-mono font-bold tracking-wider">
                     {formatGameDate(selectedParty.gameDate)}
                   </span>
-                  <div className="w-px h-3 bg-white/40"></div>
+                  <span className="hidden text-white/60 sm:inline">•</span>
                   <span className="font-mono font-bold">
                     {selectedParty.gameTime.substring(0, 5)}
                   </span>
-                  <div className="w-px h-3 bg-white/40"></div>
-                  <span className="font-bold flex items-center gap-1">
+                  <span className="hidden text-white/60 sm:inline">•</span>
+                  <span className="w-full break-keep text-xs font-bold sm:w-auto sm:text-sm">
                     {selectedParty.stadium}
                   </span>
                 </div>
               </div>
 
               {/* Main Matchup */}
-              <div className="relative z-10 flex justify-between items-center max-w-lg mx-auto">
-                <div className="flex flex-col items-center gap-3 transform hover:scale-105 transition-transform">
-                  <div className="bg-white p-3 rounded-full shadow-lg">
-                    <TeamLogo teamId={selectedParty.homeTeam} size={80} />
+              <div className="relative z-10 mx-auto grid max-w-lg grid-cols-[1fr_auto_1fr] items-start gap-3 sm:items-center sm:gap-6">
+                <div className="flex min-w-0 flex-col items-center gap-2 text-center transform transition-transform hover:scale-105 sm:gap-3">
+                  <div className="rounded-full bg-white p-2 shadow-lg sm:p-3">
+                    <TeamLogo teamId={selectedParty.homeTeam} size={72} />
                   </div>
-                  <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
+                  <span className="break-keep text-lg font-black tracking-tight shadow-black drop-shadow-md sm:text-2xl">
                     {resolveTeamDisplayName(selectedParty.homeTeam) || selectedParty.homeTeam}
                   </span>
                 </div>
 
                 <div className="flex flex-col items-center">
-                  <span className="text-4xl font-black italic text-white/90 drop-shadow-xl" style={{ fontFamily: 'Georgia, serif' }}>VS</span>
+                  <span className="text-3xl font-black italic text-white/90 drop-shadow-xl sm:text-4xl" style={{ fontFamily: 'Georgia, serif' }}>VS</span>
                 </div>
 
-                <div className="flex flex-col items-center gap-3 transform hover:scale-105 transition-transform">
-                  <div className="bg-white p-3 rounded-full shadow-lg">
-                    <TeamLogo teamId={selectedParty.awayTeam} size={80} />
+                <div className="flex min-w-0 flex-col items-center gap-2 text-center transform transition-transform hover:scale-105 sm:gap-3">
+                  <div className="rounded-full bg-white p-2 shadow-lg sm:p-3">
+                    <TeamLogo teamId={selectedParty.awayTeam} size={72} />
                   </div>
-                  <span className="font-black text-2xl tracking-tight shadow-black drop-shadow-md">
+                  <span className="break-keep text-lg font-black tracking-tight shadow-black drop-shadow-md sm:text-2xl">
                     {resolveTeamDisplayName(selectedParty.awayTeam) || selectedParty.awayTeam}
                   </span>
                 </div>
@@ -823,7 +856,7 @@ export default function MateDetail() {
             </div>
 
             {/* Ticket Body */}
-            <div className="bg-white dark:bg-card/95 p-6 md:p-8 border-t-4 border-dashed border-gray-200 dark:border-border relative">
+            <div className="bg-white dark:bg-card/95 p-5 sm:p-6 md:p-8 border-t-4 border-dashed border-gray-200 dark:border-border relative">
               {/* Punch Holes for Ticket realism */}
               <div className="absolute -left-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
               <div className="absolute -right-4 top-[-10px] w-8 h-8 bg-gray-50 dark:bg-background rounded-full"></div>
@@ -831,7 +864,7 @@ export default function MateDetail() {
               <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
                 {/* Seat Info with Visualization */}
                 <div className="flex-1 text-center md:text-left">
-                  <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                  <div className="mb-2 flex flex-wrap items-center justify-center gap-2 md:justify-start">
                     {currentZone ? (
                       <div className="group relative">
                         <Badge
@@ -905,10 +938,10 @@ export default function MateDetail() {
                       />
                     </div>
                   )}
-                  <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-2">
+                  <h2 className="mb-2 text-2xl font-black text-gray-900 dark:text-gray-100 sm:text-3xl">
                     {selectedParty.section}
                   </h2>
-                  <div className="flex items-center justify-center md:justify-start gap-4 text-gray-500 dark:text-gray-300">
+                  <div className="flex flex-wrap items-center justify-center gap-3 text-gray-500 dark:text-gray-300 md:justify-start md:gap-4">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
                       <span>{selectedParty.currentParticipants}/{selectedParty.maxParticipants}명</span>
@@ -930,12 +963,12 @@ export default function MateDetail() {
                 </div>
 
                 {/* QR Code - 모바일: 중앙 정렬 / 데스크톱: 우측 구분선 포함 */}
-                <div className="flex flex-col items-center md:border-l md:border-gray-200 md:dark:border-border/80 md:pl-8">
-                  <div className="bg-white dark:bg-secondary/80 p-3 rounded-2xl border border-gray-200 dark:border-border/70 shadow-sm dark:shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
+                <div className="mt-2 flex flex-col items-center md:mt-0 md:border-l md:border-gray-200 md:dark:border-border/80 md:pl-8">
+                  <div className="w-28 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm dark:border-border/70 dark:bg-secondary/80 dark:shadow-[0_10px_24px_rgba(0,0,0,0.35)] sm:w-[132px]">
                     <QRCode
                       value={qrCodeValue}
                       size={132}
-                      style={{ width: 132, height: 132 }}
+                      style={{ width: '100%', maxWidth: 132, height: 'auto' }}
                       viewBox={`0 0 256 256`}
                       fgColor="#1a1a1a"
                       bgColor="#ffffff"
@@ -972,7 +1005,7 @@ export default function MateDetail() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">{summaryAmountLabel}</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryAmount.toLocaleString()}원</p>
               </div>
-              <div className={`${insetPanelClass} p-3`}>
+              <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">취소 규칙</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryPolicyText}</p>
               </div>
@@ -1036,19 +1069,19 @@ export default function MateDetail() {
                 </div>
               </Card>
 
-              <Card className={`p-6 ${sectionCardClass}`}>
+              <Card className={`p-5 sm:p-6 ${sectionCardClass}`}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-start gap-4 sm:items-center">
                     <ProfileAvatar
                       src={selectedParty.hostProfileImageUrl ?? undefined}
                       alt={selectedParty.hostName}
                       fallbackName={selectedParty.hostName}
-                      width={96}
-                      height={96}
+                      width={80}
+                      height={80}
                       showRing
                       ringClassName="p-1 bg-white/95 dark:bg-secondary/90 border border-white/60 dark:border-white/10 shadow-lg"
                     />
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">Host Trust</p>
                       <button
                         type="button"
@@ -1072,7 +1105,7 @@ export default function MateDetail() {
                       </div>
                     </div>
                   </div>
-                  <Button variant="outline" className="border-primary text-primary hover:bg-primary/10" onClick={() => setShowHostProfile(true)}>
+                  <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10 sm:w-auto" onClick={() => setShowHostProfile(true)}>
                     프로필 보기
                   </Button>
                 </div>
@@ -1258,12 +1291,9 @@ export default function MateDetail() {
           </div>
 
           {primaryMobileAction && (
-            <div
-              className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/90 bg-white/95 px-4 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:border-border dark:bg-card/95 lg:hidden"
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
-            >
-              <div className="mx-auto flex max-w-3xl items-center gap-2">
-                <div className="min-w-0 flex-1">
+            <div data-testid="mate-mobile-action-bar" className={`${mateMobileBarClass} lg:hidden`}>
+              <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2">
+                <div className="min-w-0 flex-[1_1_100%] sm:flex-1">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
                     {actionContext.eyebrow}
                   </p>
@@ -1276,7 +1306,7 @@ export default function MateDetail() {
                     onClick={secondaryMobileAction.onClick}
                     disabled={secondaryMobileAction.disabled}
                     variant={secondaryMobileAction.variant ?? 'outline'}
-                    className={`min-w-[104px] ${getMobileActionClass(secondaryMobileAction.key)}`}
+                    className={`flex-1 sm:flex-none sm:min-w-[104px] ${getMobileActionClass(secondaryMobileAction.key)}`}
                   >
                     {secondaryMobileAction.label}
                   </Button>
@@ -1285,7 +1315,7 @@ export default function MateDetail() {
                   onClick={primaryMobileAction.onClick}
                   disabled={primaryMobileAction.disabled}
                   variant={primaryMobileAction.key === 'manage' || primaryMobileAction.key === 'apply' || primaryMobileAction.key === 'chat' ? 'default' : (primaryMobileAction.variant ?? 'outline')}
-                  className={`min-w-[124px] ${primaryMobileAction.disabled ? 'bg-gray-300 text-gray-500 dark:bg-secondary/80 dark:text-gray-400' : getMobileActionClass(primaryMobileAction.key)}`}
+                  className={`flex-1 sm:flex-none sm:min-w-[124px] ${primaryMobileAction.disabled ? 'bg-gray-300 text-gray-500 dark:bg-secondary/80 dark:text-gray-400' : getMobileActionClass(primaryMobileAction.key)}`}
                 >
                   {primaryMobileAction.label}
                 </Button>
@@ -1305,9 +1335,7 @@ export default function MateDetail() {
             partyId={selectedParty.id}
             reviewee={reviewTarget}
             onSuccess={() => {
-              api.getPartyReviews(selectedParty.id)
-                .then((data) => setReviews(Array.isArray(data) ? data : []))
-                .catch((err) => console.error('리뷰 목록 갱신 실패:', err));
+              void queryClient.invalidateQueries({ queryKey: ['mate-party-reviews', selectedParty.id] });
             }}
           />
         )}

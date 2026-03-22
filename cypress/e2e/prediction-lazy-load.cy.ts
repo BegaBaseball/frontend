@@ -644,7 +644,6 @@ describe('Prediction Public Access', () => {
         }).as('getGuestMatchDay');
 
         openPredictionPageAsGuest();
-        cy.wait('@getGuestSession');
         cy.wait('@getGuestMatchDay');
         cy.wait('@getGuestMatchDay');
         cy.wait('@getGuestMatchDay');
@@ -653,6 +652,7 @@ describe('Prediction Public Access', () => {
         cy.wrap(null).then(() => {
             expect(requestedDates).to.have.members([today, previousDate, nextDate]);
             expect(myVotesCallCount).to.equal(0);
+            cy.get('@getGuestSession.all').should('have.length', 0);
             cy.get('@getGuestUserVoteLazy.all').should('have.length', 0);
         });
     });

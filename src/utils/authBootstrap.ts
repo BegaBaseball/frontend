@@ -10,6 +10,7 @@ const AUTH_BOOTSTRAP_SKIPPED_PATHS = new Set([
 const AUTH_BOOTSTRAP_PUBLIC_HOME_PATHS = new Set([
   '/',
   '/home',
+  '/prediction',
 ]);
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;

@@ -273,6 +273,7 @@ const showUsage = () => {
   console.log('Usage: npm run test:e2e [-- --spec path/to/spec]');
   console.log('Examples:');
   console.log('  npm run test:e2e -- --spec cypress/e2e/prediction.cy.ts');
+  console.log('  npm run test:e2e:prediction:rescue');
   console.log('  npm run test:e2e -- --docker');
   console.log('  npm run test:e2e -- --auto-docker');
   console.log('  npm run test:e2e -- --host localhost --port 4173 --spec cypress/e2e/mypage.cy.ts');
@@ -336,6 +337,7 @@ try {
     if (!useDocker && !useAutoDocker) {
       console.log('\nPrimary Cypress execution failed.');
       console.log('Attempting auto-docker fallback (if Docker is available).');
+      console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
       const rescueStatus = runCypressWithFallback(
         buildCypressCommandArgs('cy:run:rescue', cypressArgsWithBaseUrl),
       );
@@ -359,6 +361,7 @@ try {
     if (!useDocker && !useAutoDocker) {
       console.log('\nPrimary Cypress execution failed.');
       console.log('Attempting auto-docker fallback (if Docker is available).');
+      console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
       const rescueStatus = runCypressWithFallback(
         buildCypressCommandArgs('cy:run:rescue', cypressArgsWithBaseUrl),
       );
@@ -390,6 +393,7 @@ try {
 
     if (!useDocker && !useAutoDocker) {
       console.log('Primary execution failed. Trying auto-docker fallback.');
+      console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
       const rescueStatus = runCypressWithFallback(
         buildCypressCommandArgs('cy:run:rescue', cypressArgsWithBaseUrl),
       );

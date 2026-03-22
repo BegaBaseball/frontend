@@ -1,13 +1,9 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
-import { Bell, LogOut, ShieldAlert, Menu, X, Map, Users, Megaphone, LineChart } from 'lucide-react';
-import { useUIStore } from '../store/uiStore';
+import { LogOut, ShieldAlert, Menu, X, Map, Users, Megaphone, LineChart } from 'lucide-react';
 import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useNotificationStore } from '../store/notificationStore';
-import { getChatUnreadCounts } from '../api/mate';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { useTheme } from '../hooks/useTheme';
 import ThemeToggleButton from './ThemeToggleButton';
@@ -15,9 +11,13 @@ import ThemeToggleButton from './ThemeToggleButton';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
-const NotificationPanel = lazy(() => import('./NotificationPanel'));
+const NavbarNotificationControls = lazy(() => import('./NavbarNotificationControls'));
 
-export default function Navbar() {
+type NavbarProps = {
+  authenticatedShell?: boolean;
+};
+
+export default function Navbar({ authenticatedShell = true }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, resolvedTheme } = useTheme();
@@ -25,13 +25,10 @@ export default function Navbar() {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
-  const setIsNotificationOpen = useUIStore((state) => state.setIsNotificationOpen);
   const { isLoggedIn } = useAuthSession();
   const { userHandle, userName, userRole } = useAuthProfileSnapshot();
   const { logout } = useAuthAccessActions();
   const isAdmin = isAdminRole(userRole);
-  const notifications = useNotificationStore((state) => state.notifications);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const shouldShowMobileMenuThemeToggle = !isDesktop && isMenuOpen;
   const shouldShowTopThemeToggle = !shouldShowMobileMenuThemeToggle;
@@ -42,10 +39,9 @@ export default function Navbar() {
   const userProfilePath = userHandle
     ? `/mypage/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}`
     : '/mypage';
-  const unreadCount = notifications.reduce((count, notification) => (!notification.isRead ? count + 1 : count), 0);
-  const prefetchPredictionPage = useCallback(() => {
+  const prefetchPredictionPage = () => {
     void import('./Prediction');
-  }, []);
+  };
 
   // 안 읽은 채팅 메시지 수 (폴링 - 탭 비활성 시 중지)
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
@@ -54,15 +50,22 @@ export default function Navbar() {
   const preMenuFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!authenticatedShell || !isLoggedIn) {
       setChatUnreadCount(0);
       return;
     }
 
+    let cancelled = false;
     const checkChatUnread = async () => {
       try {
+        const { getChatUnreadCounts } = await import('../api/mate');
+        if (cancelled) {
+          return;
+        }
         const count = await getChatUnreadCounts();
-        setChatUnreadCount(count);
+        if (!cancelled) {
+          setChatUnreadCount(count);
+        }
       } catch (error) {
         // 백그라운드 폴링이므로 에러 무시
       }
@@ -89,12 +92,17 @@ export default function Navbar() {
     if (!document.hidden) startPolling();
 
     return () => {
+      cancelled = true;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (interval) clearInterval(interval);
     };
-  }, [isLoggedIn, location.pathname]); // 경로 변경 시(채팅 뷰 진입/이탈 등) 즉각 업데이트
+  }, [authenticatedShell, isLoggedIn, location.pathname]); // 경로 변경 시(채팅 뷰 진입/이탈 등) 즉각 업데이트
 
   useEffect(() => {
+    if (!authenticatedShell) {
+      return;
+    }
+
     const handleChatUnreadUpdated = (event: Event) => {
       const customEvent = event as CustomEvent<{ count?: number }>;
       const count = customEvent.detail?.count;
@@ -107,9 +115,8 @@ export default function Navbar() {
     return () => {
       window.removeEventListener(CHAT_UNREAD_UPDATED_EVENT, handleChatUnreadUpdated as EventListener);
     };
-  }, []);
-
-
+  }, [authenticatedShell]);
+  
   // 페이지 이동 시 모바일 메뉴 닫기
   useEffect(() => {
     setIsMenuOpen(false);
@@ -169,27 +176,6 @@ export default function Navbar() {
       document.body.style.overflow = prevBodyOverflow;
     };
   }, [isMenuOpen]);
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      return;
-    }
-
-    if ('requestIdleCallback' in window) {
-      const idleId = (window as any).requestIdleCallback(() => {
-        prefetchPredictionPage();
-      }, { timeout: 1500 });
-
-      return () => (window as any).cancelIdleCallback(idleId);
-    }
-
-    const timeoutId = setTimeout(() => {
-      prefetchPredictionPage();
-    }, 1200);
-
-    return () => clearTimeout(timeoutId);
-  }, [isLoggedIn, prefetchPredictionPage]);
-
 
   const handleLogout = () => {
     logout();
@@ -286,82 +272,10 @@ export default function Navbar() {
 
 
             {/* 알림 버튼 - 모바일 메뉴 열렸을 때 숨김 */}
-            {!shouldHideNotificationInMenuOverlay && (
-              <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className={navIconToggleClass}
-                    aria-label={`알림${unreadCount > 0 ? ` (읽지 않은 알림 ${unreadCount}개)` : ''}`}
-                    aria-expanded={isNotificationOpen}
-                    aria-haspopup="menu"
-                    aria-controls="global-notification-popover"
-                  >
-                    <span
-                      className={unreadCount > 0 ? 'inline-flex animate-pulse' : 'inline-flex'}
-                    >
-                      <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-primary dark:text-primary-light' : ''}`} />
-                    </span>
-
-                    {/* 개선된 알림 배지 */}
-                    {unreadCount > 0 && (
-                      <span className="absolute top-1.5 right-1.5 flex h-4 w-4">
-                        {/* 1. 핑(Ping) 애니메이션: 새 알림이 있음을 생동감 있게 표현 */}
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-
-                        {/* 2. 실제 배지: 배경색과 분리되는 테두리(ring) 추가 */}
-                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-background items-center justify-center">
-                          <span className="text-[10px] font-bold text-white leading-none">
-                            {unreadCount > 9 ? '9+' : unreadCount}
-                          </span>
-                        </span>
-                      </span>
-                    )}
-                  </button>
-                </PopoverTrigger>
-
-                <PopoverContent
-                  id="global-notification-popover"
-                  className="w-auto p-0 border-none shadow-none bg-transparent"
-                  align="end"
-                  sideOffset={8}
-                >
-                  <div
-                    className="
-                      w-[calc(100vw-32px)] mr-4 
-                      sm:w-96 sm:mr-0
-                      overflow-hidden rounded-xl
-                      bg-white dark:bg-card 
-                      border border-gray-200 dark:border-border 
-                      shadow-xl
-                      animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200
-                    "
-                  >
-                    <div className="p-4 border-b border-gray-200 dark:border-border bg-gray-50/50 dark:bg-secondary/70 flex justify-between items-center">
-                      <h3 className="font-bold text-sm text-primary dark:text-primary-light">
-                        알림
-                      </h3>
-                      {unreadCount > 0 && (
-                        <span className="text-xs text-muted-foreground dark:text-gray-300">
-                          {unreadCount}개의 읽지 않은 알림
-                        </span>
-                      )}
-                    </div>
-                    {/* 최대 높이 제한 및 스크롤 추가 */}
-                    <div className="max-h-[60vh] overflow-y-auto">
-                      <Suspense
-                        fallback={
-                          <div className="flex min-h-[300px] items-center justify-center text-sm text-muted-foreground">
-                            알림을 불러오는 중...
-                          </div>
-                        }
-                      >
-                        <NotificationPanel />
-                      </Suspense>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+            {authenticatedShell && !shouldHideNotificationInMenuOverlay && (
+              <Suspense fallback={null}>
+                <NavbarNotificationControls buttonClassName={navIconToggleClass} />
+              </Suspense>
             )}
 
             {/* 4. 데스크톱 유저 버튼들 (중요: md:flex) */}
@@ -567,7 +481,7 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-                <Button
+              <Button
                 type="button"
                 onClick={() => {
                   setIsMenuOpen(false);

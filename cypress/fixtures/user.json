@@ -22,5 +22,17 @@
         "profileImageUrl": null,
         "hasPassword": true,
         "bio": "Admin here."
+    },
+    "superAdminUser": {
+        "id": 3,
+        "email": "superadmin@example.com",
+        "password": "superadminpassword",
+        "name": "SuperAdminUser",
+        "handle": "@superadmin",
+        "role": "ROLE_SUPER_ADMIN",
+        "favoriteTeam": "LG",
+        "profileImageUrl": null,
+        "hasPassword": true,
+        "bio": "Super admin here."
     }
 }

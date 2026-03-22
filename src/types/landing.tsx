@@ -5,6 +5,7 @@ export interface Feature {
   title: string;
   description: string;
   image: string;
+  mobileImage?: string;
   guide: string[];
 }
 
@@ -21,5 +22,6 @@ export interface LaptopMockupProps {
   activeFeature: number;
   features: Feature[];
   scrollProgress: number;
+  scrollDistance: number;
   laptopRef: React.RefObject<HTMLDivElement | null>;
 }

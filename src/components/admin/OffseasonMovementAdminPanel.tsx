@@ -646,6 +646,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
             <Button
               type="button"
               onClick={() => void loadMovements()}
+              data-testid="admin-offseason-refresh"
               disabled={loading}
               className="bg-emerald-500 text-slate-950 hover:bg-emerald-400"
             >
@@ -697,6 +698,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <Input
+              data-testid="admin-offseason-search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="선수명, 요약, 계약 조건, 출처 검색"
@@ -704,7 +706,10 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
             />
           </div>
           <Select value={sectionFilter} onValueChange={setSectionFilter}>
-            <SelectTrigger className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl">
+            <SelectTrigger
+              data-testid="admin-offseason-section-trigger"
+              className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl"
+            >
               <SelectValue placeholder="구분 전체" />
             </SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
@@ -717,7 +722,10 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
             </SelectContent>
           </Select>
           <Select value={teamFilter} onValueChange={setTeamFilter}>
-            <SelectTrigger className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl">
+            <SelectTrigger
+              data-testid="admin-offseason-team-trigger"
+              className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl"
+            >
               <SelectValue placeholder="팀 전체" />
             </SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
@@ -731,21 +739,23 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
           </Select>
           <Input
             type="date"
+            data-testid="admin-offseason-from-date"
             value={fromDate}
             onChange={(event) => setFromDate(event.target.value)}
             className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl"
           />
           <Input
             type="date"
+            data-testid="admin-offseason-to-date"
             value={toDate}
             onChange={(event) => setToDate(event.target.value)}
             className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl"
           />
           <div className="flex gap-2">
-            <Button type="button" onClick={() => void loadMovements()} className="bg-sky-500 text-slate-950 hover:bg-sky-400">
+            <Button type="button" data-testid="admin-offseason-apply-filters" onClick={() => void loadMovements()} className="bg-sky-500 text-slate-950 hover:bg-sky-400">
               조회
             </Button>
-            <Button type="button" variant="outline" onClick={resetFilters} className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800">
+            <Button type="button" data-testid="admin-offseason-reset-filters" variant="outline" onClick={resetFilters} className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800">
               초기화
             </Button>
           </div>
@@ -764,6 +774,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
             <input
               ref={csvInputRef}
               type="file"
+              data-testid="admin-offseason-csv-input"
               accept=".csv,text/csv"
               className="hidden"
               onChange={(event) => void handleCsvImport(event)}
@@ -771,6 +782,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
             <Button
               type="button"
               variant="outline"
+              data-testid="admin-offseason-download-template"
               onClick={downloadCsvTemplate}
               className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
             >
@@ -780,6 +792,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
             <Button
               type="button"
               variant="outline"
+              data-testid="admin-offseason-import-csv"
               onClick={() => csvInputRef.current?.click()}
               disabled={importingCsv}
               className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
@@ -789,6 +802,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
             </Button>
             <Button
               type="button"
+              data-testid="admin-offseason-open-create"
               onClick={openCreateDialog}
               className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 hover:from-emerald-400 hover:to-cyan-400"
             >
@@ -961,6 +975,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                         <Button
                           variant="ghost"
                           size="sm"
+                          data-testid={`admin-offseason-edit-${movement.id}`}
                           onClick={() => openEditDialog(movement)}
                           className="text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-300"
                         >
@@ -969,6 +984,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                         <Button
                           variant="ghost"
                           size="sm"
+                          data-testid={`admin-offseason-delete-${movement.id}`}
                           onClick={() => setDeleteTarget(movement)}
                           className="text-slate-400 hover:bg-red-500/10 hover:text-red-300"
                         >
@@ -994,7 +1010,10 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-slate-800 bg-slate-950 text-slate-100 sm:max-w-4xl">
+        <DialogContent
+          data-testid="admin-offseason-dialog"
+          className="max-h-[90vh] overflow-y-auto border-slate-800 bg-slate-950 text-slate-100 sm:max-w-4xl"
+        >
           <DialogHeader>
             <DialogTitle>{editingMovement ? '스토브리그 이동 수정' : '스토브리그 이동 추가'}</DialogTitle>
             <DialogDescription className="text-slate-400">
@@ -1008,6 +1027,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">이동 날짜</p>
                 <Input
                   type="date"
+                  data-testid="admin-offseason-movement-date"
                   value={formData.movementDate}
                   onChange={(event) => updateField('movementDate', event.target.value)}
                   className="bg-slate-900 border-slate-700 text-slate-100"
@@ -1016,7 +1036,10 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">구분</p>
                 <Select value={formData.section} onValueChange={(value) => updateField('section', value)}>
-                  <SelectTrigger className="bg-slate-900 border-slate-700 text-slate-100">
+                  <SelectTrigger
+                    data-testid="admin-offseason-dialog-section-trigger"
+                    className="bg-slate-900 border-slate-700 text-slate-100"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
@@ -1031,7 +1054,10 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">팀 코드</p>
                 <Select value={formData.teamCode} onValueChange={(value) => updateField('teamCode', value)}>
-                  <SelectTrigger className="bg-slate-900 border-slate-700 text-slate-100">
+                  <SelectTrigger
+                    data-testid="admin-offseason-dialog-team-trigger"
+                    className="bg-slate-900 border-slate-700 text-slate-100"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
@@ -1046,6 +1072,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">선수명</p>
                 <Input
+                  data-testid="admin-offseason-player-name"
                   value={formData.playerName}
                   onChange={(event) => updateField('playerName', event.target.value)}
                   className="bg-slate-900 border-slate-700 text-slate-100"
@@ -1058,6 +1085,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">요약</p>
                 <Textarea
+                  data-testid="admin-offseason-summary"
                   value={formData.summary}
                   onChange={(event) => updateField('summary', event.target.value)}
                   className="min-h-[96px] bg-slate-900 border-slate-700 text-slate-100"
@@ -1067,6 +1095,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">상세 메모</p>
                 <Textarea
+                  data-testid="admin-offseason-details"
                   value={formData.details}
                   onChange={(event) => updateField('details', event.target.value)}
                   className="min-h-[96px] bg-slate-900 border-slate-700 text-slate-100"
@@ -1077,6 +1106,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">계약 기간</p>
                   <Input
+                    data-testid="admin-offseason-contract-term"
                     value={formData.contractTerm}
                     onChange={(event) => updateField('contractTerm', event.target.value)}
                     className="bg-slate-950 border-slate-700 text-slate-100"
@@ -1086,6 +1116,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">계약 규모</p>
                   <Input
+                    data-testid="admin-offseason-contract-value"
                     value={formData.contractValue}
                     onChange={(event) => updateField('contractValue', event.target.value)}
                     className="bg-slate-950 border-slate-700 text-slate-100"
@@ -1095,6 +1126,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">옵션</p>
                   <Input
+                    data-testid="admin-offseason-option-details"
                     value={formData.optionDetails}
                     onChange={(event) => updateField('optionDetails', event.target.value)}
                     className="bg-slate-950 border-slate-700 text-slate-100"
@@ -1111,7 +1143,10 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                   value={formData.counterpartyTeam || NONE_VALUE}
                   onValueChange={(value) => updateField('counterpartyTeam', value === NONE_VALUE ? '' : value)}
                 >
-                  <SelectTrigger className="bg-slate-900 border-slate-700 text-slate-100">
+                  <SelectTrigger
+                    data-testid="admin-offseason-counterparty-trigger"
+                    className="bg-slate-900 border-slate-700 text-slate-100"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
@@ -1127,6 +1162,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">반대급부</p>
                 <Input
+                  data-testid="admin-offseason-counterparty-details"
                   value={formData.counterpartyDetails}
                   onChange={(event) => updateField('counterpartyDetails', event.target.value)}
                   className="bg-slate-900 border-slate-700 text-slate-100"
@@ -1136,6 +1172,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">출처명</p>
                 <Input
+                  data-testid="admin-offseason-source-label"
                   value={formData.sourceLabel}
                   onChange={(event) => updateField('sourceLabel', event.target.value)}
                   className="bg-slate-900 border-slate-700 text-slate-100"
@@ -1146,6 +1183,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">발표 시각</p>
                 <Input
                   type="datetime-local"
+                  data-testid="admin-offseason-announced-at"
                   value={formData.announcedAt}
                   onChange={(event) => updateField('announcedAt', event.target.value)}
                   className="bg-slate-900 border-slate-700 text-slate-100"
@@ -1157,6 +1195,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">출처 URL</p>
                 <Input
+                  data-testid="admin-offseason-source-url"
                   value={formData.sourceUrl}
                   onChange={(event) => updateField('sourceUrl', event.target.value)}
                   className="bg-slate-900 border-slate-700 text-slate-100"
@@ -1183,12 +1222,13 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
             <Button
               type="button"
               variant="outline"
+              data-testid="admin-offseason-dialog-cancel"
               onClick={() => setDialogOpen(false)}
               className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
             >
               취소
             </Button>
-            <Button type="button" onClick={() => void handleSubmit()} disabled={submitting} className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
+            <Button type="button" data-testid="admin-offseason-dialog-submit" onClick={() => void handleSubmit()} disabled={submitting} className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
               {submitting ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -1206,7 +1246,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
       </Dialog>
 
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent className="border-slate-800 bg-slate-950 text-slate-100">
+        <AlertDialogContent data-testid="admin-offseason-delete-dialog" className="border-slate-800 bg-slate-950 text-slate-100">
           <AlertDialogHeader>
             <AlertDialogTitle>스토브리그 이동 삭제</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-400">
@@ -1220,6 +1260,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               취소
             </AlertDialogCancel>
             <AlertDialogAction
+              data-testid="admin-offseason-delete-confirm"
               onClick={() => void handleDelete()}
               className="bg-red-500 text-white hover:bg-red-400"
             >
