@@ -1,23 +1,52 @@
+import { lazy, Suspense, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import { useNotificationSocket } from '../hooks/useNotificationSocket';
-import { Toaster } from './ui/sonner';
+const AuthenticatedLayoutChrome = lazy(() => import('./AuthenticatedLayoutChrome'));
 
-export default function Layout() {
-  // WebSocket 연결 관리
-  useNotificationSocket();
+const isLoadTraceEnabled = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
 
-  // Navbar는 이제 useLocation 등을 사용하여 현재 페이지를 자체적으로 결정할 수 있습니다.
-  // 또는 필요에 따라 currentPage prop을 전달할 수도 있습니다.
+  return new URLSearchParams(window.location.search).get('traceLoad') === '1';
+};
+
+const traceLoadEvent = (label: string) => {
+  if (!isLoadTraceEnabled()) {
+    return;
+  }
+
+  const now = performance.now().toFixed(2);
+  performance.mark(`load-order:${label}`);
+  console.info(`[load-order][${now}ms] ${label}`);
+};
+
+type LayoutProps = {
+  authenticated?: boolean;
+};
+
+export default function Layout({ authenticated = true }: LayoutProps) {
+  useEffect(() => {
+    traceLoadEvent(`Layout mount authenticated=${authenticated}`);
+
+    return () => {
+      traceLoadEvent(`Layout unmount authenticated=${authenticated}`);
+    };
+  }, [authenticated]);
+
   return (
     <>
-      <Navbar />
+      <Navbar authenticatedShell={authenticated} />
       <main className="min-h-screen bg-background text-foreground transition-colors duration-200">
         <Outlet /> {/* 자식 라우트 컴포넌트가 렌더링될 위치 */}
       </main>
       <Footer />
-      <Toaster />
+      {authenticated && (
+        <Suspense fallback={null}>
+          <AuthenticatedLayoutChrome />
+        </Suspense>
+      )}
     </>
   );
 }

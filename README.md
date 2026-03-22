@@ -239,6 +239,29 @@ npm run cy:run:heal -- --spec cypress/e2e/stadium.cy.ts --config baseUrl=http://
 npm run test:e2e:rescue -- --spec cypress/e2e/stadium.cy.ts
 ```
 
+### Diary / Admin / AI E2E 실행
+```bash
+# 개별 deterministic spec
+npm run test:e2e:diary:dev
+npm run test:e2e:admin:dev
+npm run test:e2e:ai:dev
+
+# 커버리지 확장 묶음 실행
+npm run test:e2e:coverage:dev
+```
+
+### Real AI 챗봇 smoke 실행
+```bash
+# 필수: 실제 백엔드 기준 URL
+BACKEND_BASE_URL=http://localhost:8080 npm run test:e2e:ai:real
+
+# 선택: 기존 계정을 그대로 사용할 때
+BACKEND_BASE_URL=http://localhost:8080 \
+SMOKE_LOGIN_EMAIL=qa@example.com \
+SMOKE_LOGIN_PASSWORD=Test1234! \
+npm run test:e2e:ai:real
+```
+
 ---
 
 ## ⚙️ 환경 변수

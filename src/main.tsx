@@ -27,7 +27,17 @@ const rootEl = document.getElementById("root")!;
 const shellLoader = document.getElementById('app-shell-loader');
 if (shellLoader) {
   shellLoader.style.opacity = '0';
+  shellLoader.style.pointerEvents = 'none';
   setTimeout(() => shellLoader.remove(), 200);
+}
+
+// Register service worker for PWA support
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // SW registration failed — app continues normally
+    });
+  });
 }
 
 createRoot(rootEl).render(

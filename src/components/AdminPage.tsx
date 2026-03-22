@@ -785,6 +785,7 @@ export default function AdminPage() {
               <TabsList className="grid w-full grid-cols-3 gap-1 rounded-xl bg-slate-800/50 p-1 sm:grid-cols-5 xl:grid-cols-9">
                 <TabsTrigger
                   value="users"
+                  data-testid="admin-tab-users"
                   className="rounded-lg data-[state=active]:bg-amber-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/25 transition-all duration-300"
                 >
                   <Users className="w-4 h-4 mr-2" />
@@ -806,6 +807,7 @@ export default function AdminPage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="reports"
+                  data-testid="admin-tab-reports"
                   className="rounded-lg data-[state=active]:bg-red-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 transition-all duration-300"
                 >
                   <Search className="w-4 h-4 mr-2" />
@@ -813,6 +815,7 @@ export default function AdminPage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="clientErrors"
+                  data-testid="admin-tab-client-errors"
                   className="rounded-lg data-[state=active]:bg-rose-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-rose-500/25 transition-all duration-300"
                 >
                   <Bug className="w-4 h-4 mr-2" />
@@ -820,6 +823,7 @@ export default function AdminPage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="seatViews"
+                  data-testid="admin-tab-seat-views"
                   className="rounded-lg data-[state=active]:bg-teal-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-teal-500/25 transition-all duration-300"
                 >
                   <Camera className="w-4 h-4 mr-2" />
@@ -827,6 +831,7 @@ export default function AdminPage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="offseason"
+                  data-testid="admin-tab-offseason"
                   className="rounded-lg data-[state=active]:bg-emerald-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/25 transition-all duration-300"
                 >
                   <Newspaper className="w-4 h-4 mr-2" />
@@ -834,6 +839,7 @@ export default function AdminPage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="stadiums"
+                  data-testid="admin-tab-stadiums"
                   className="rounded-lg data-[state=active]:bg-violet-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/25 transition-all duration-300"
                 >
                   <MapPin className="w-4 h-4 mr-2" />
@@ -841,6 +847,7 @@ export default function AdminPage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="ai"
+                  data-testid="admin-tab-ai"
                   className="rounded-lg data-[state=active]:bg-fuchsia-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-lg data-[state=active]:shadow-fuchsia-500/25 transition-all duration-300"
                 >
                   <Bot className="w-4 h-4 mr-2" />
@@ -856,6 +863,7 @@ export default function AdminPage() {
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                   <Input
                     placeholder="이메일 또는 이름으로 검색..."
+                    data-testid="admin-users-search"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-12 bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-xl focus:ring-amber-500 focus:border-amber-500 transition-all"
@@ -959,7 +967,10 @@ export default function AdminPage() {
                                       setRoleChangeReason('');
                                     }}
                                   >
-                                    <SelectTrigger className="w-[120px] bg-slate-800/60 border-slate-700 text-slate-200 text-xs h-8 rounded-lg focus:ring-amber-500 focus:border-amber-500">
+                                    <SelectTrigger
+                                      data-testid={`admin-user-role-trigger-${user.id}`}
+                                      className="w-[120px] bg-slate-800/60 border-slate-700 text-slate-200 text-xs h-8 rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                                    >
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
@@ -1244,6 +1255,7 @@ export default function AdminPage() {
               <div className="mb-4 grid grid-cols-1 md:grid-cols-6 gap-2">
                 <select
                   value={reportFilters.status}
+                  data-testid="admin-reports-status-filter"
                   onChange={(e) => updateReportFilters({ status: e.target.value })}
                   className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
                 >
@@ -1255,6 +1267,7 @@ export default function AdminPage() {
                 </select>
                 <select
                   value={reportFilters.reason}
+                  data-testid="admin-reports-reason-filter"
                   onChange={(e) => updateReportFilters({ reason: e.target.value })}
                   className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
                 >
@@ -1281,6 +1294,7 @@ export default function AdminPage() {
                 />
                 <Button
                   variant="outline"
+                  data-testid="admin-reports-reset-filters"
                   className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
                   onClick={resetReportFilters}
                 >
@@ -1336,6 +1350,7 @@ export default function AdminPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                data-testid={`admin-report-detail-${report.id}`}
                                 className="text-slate-300 hover:text-white hover:bg-slate-700"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1347,6 +1362,7 @@ export default function AdminPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                data-testid={`admin-report-take-down-${report.id}`}
                                 className="text-red-300 hover:text-red-200 hover:bg-red-500/10"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1358,6 +1374,7 @@ export default function AdminPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                data-testid={`admin-report-dismiss-${report.id}`}
                                 className="text-slate-300 hover:text-white hover:bg-slate-700"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1384,6 +1401,7 @@ export default function AdminPage() {
               <div className="mb-4 grid grid-cols-1 md:grid-cols-5 gap-2">
                 <select
                   value={seatViewFilters.moderationStatus}
+                  data-testid="admin-seat-views-status-filter"
                   onChange={(e) => updateSeatViewFilters({ moderationStatus: e.target.value })}
                   className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
                 >
@@ -1393,6 +1411,7 @@ export default function AdminPage() {
                   <option value="REJECTED">REJECTED</option>
                 </select>
                 <Input
+                  data-testid="admin-seat-views-stadium-filter"
                   value={seatViewFilters.stadium}
                   onChange={(e) => updateSeatViewFilters({ stadium: e.target.value })}
                   placeholder="구장명 필터"
@@ -1400,6 +1419,7 @@ export default function AdminPage() {
                 />
                 <select
                   value={seatViewFilters.aiSuggestedLabel}
+                  data-testid="admin-seat-views-ai-filter"
                   onChange={(e) => updateSeatViewFilters({ aiSuggestedLabel: e.target.value })}
                   className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
                 >
@@ -1411,6 +1431,7 @@ export default function AdminPage() {
                 </select>
                 <select
                   value={seatViewFilters.adminLabel}
+                  data-testid="admin-seat-views-admin-filter"
                   onChange={(e) => updateSeatViewFilters({ adminLabel: e.target.value })}
                   className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
                 >
@@ -1422,6 +1443,7 @@ export default function AdminPage() {
                 </select>
                 <select
                   value={seatViewFilters.ticketVerified}
+                  data-testid="admin-seat-views-ticket-filter"
                   onChange={(e) => updateSeatViewFilters({ ticketVerified: e.target.value })}
                   className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
                 >
@@ -1431,6 +1453,7 @@ export default function AdminPage() {
                 </select>
                 <Button
                   variant="outline"
+                  data-testid="admin-seat-views-reset-filters"
                   className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
                   onClick={resetSeatViewFilters}
                 >
@@ -1510,6 +1533,7 @@ export default function AdminPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                data-testid={`admin-seat-view-detail-${seatView.id}`}
                                 className="text-slate-300 hover:text-white hover:bg-slate-700"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1521,6 +1545,7 @@ export default function AdminPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                data-testid={`admin-seat-view-approve-${seatView.id}`}
                                 className="text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/10"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1565,7 +1590,10 @@ export default function AdminPage() {
                     onValueChange={(val) => setSelectedStadiumId(val)}
                     disabled={stadiumsLoading}
                   >
-                    <SelectTrigger className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl focus:ring-violet-500 focus:border-violet-500">
+                    <SelectTrigger
+                      data-testid="admin-stadium-select-trigger"
+                      className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl focus:ring-violet-500 focus:border-violet-500"
+                    >
                       <SelectValue placeholder={stadiumsLoading ? '로딩 중...' : '구장을 선택하세요'} />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
@@ -1580,6 +1608,7 @@ export default function AdminPage() {
                 </div>
                 <Button
                   onClick={openCreateDialog}
+                  data-testid="admin-stadium-add-place"
                   disabled={!selectedStadiumId}
                   className="bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/25 rounded-xl"
                 >
@@ -1655,6 +1684,7 @@ export default function AdminPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  data-testid={`admin-place-edit-${place.id}`}
                                   onClick={() => openEditDialog(place)}
                                   className="text-slate-400 hover:text-violet-400 hover:bg-violet-500/10 rounded-lg transition-all duration-200"
                                 >
@@ -1664,6 +1694,7 @@ export default function AdminPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  data-testid={`admin-place-delete-${place.id}`}
                                   onClick={() => setDeletingPlaceId(place.id)}
                                   className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                                 >
@@ -1698,6 +1729,7 @@ export default function AdminPage() {
                         type="button"
                         variant="ghost"
                         onClick={loadReleasePresets}
+                        data-testid="admin-ai-refresh-presets"
                         disabled={releasePresetsLoading}
                         className="text-slate-300 hover:bg-fuchsia-500/10 hover:text-fuchsia-200"
                       >
@@ -1713,7 +1745,10 @@ export default function AdminPage() {
                           onValueChange={handleReleaseScenarioChange}
                           disabled={releasePresetsLoading || releasePresets.length === 0}
                         >
-                          <SelectTrigger className="bg-slate-800/60 border-slate-700 text-slate-100 rounded-xl">
+                          <SelectTrigger
+                            data-testid="admin-ai-scenario-trigger"
+                            className="bg-slate-800/60 border-slate-700 text-slate-100 rounded-xl"
+                          >
                             <SelectValue placeholder={releasePresetsLoading ? '프리셋 로딩 중...' : '시나리오 선택'} />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
@@ -1766,6 +1801,7 @@ export default function AdminPage() {
                       <Button
                         type="button"
                         onClick={handleReleaseDraftGenerate}
+                        data-testid="admin-ai-generate-draft"
                         disabled={releaseDraftLoading || releasePresetsLoading || !releaseSelectedScenario}
                         className="w-full bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white hover:from-fuchsia-600 hover:to-pink-700 shadow-lg shadow-fuchsia-500/20"
                       >
@@ -1822,6 +1858,7 @@ export default function AdminPage() {
                         type="button"
                         variant="ghost"
                         onClick={loadReleaseEvalCases}
+                        data-testid="admin-ai-refresh-eval-cases"
                         disabled={releaseEvalCasesLoading}
                         className="text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-200"
                       >
@@ -1841,7 +1878,10 @@ export default function AdminPage() {
                           }}
                           disabled={releaseEvalCasesLoading || releaseScenarioEvalCases.length === 0}
                         >
-                          <SelectTrigger className="bg-slate-800/60 border-slate-700 text-slate-100 rounded-xl">
+                          <SelectTrigger
+                            data-testid="admin-ai-eval-case-trigger"
+                            className="bg-slate-800/60 border-slate-700 text-slate-100 rounded-xl"
+                          >
                             <SelectValue
                               placeholder={
                                 releaseEvalCasesLoading
@@ -1888,6 +1928,7 @@ export default function AdminPage() {
                       <Button
                         type="button"
                         onClick={handleReleaseEvaluate}
+                        data-testid="admin-ai-run-eval"
                         disabled={releaseEvaluationLoading || !releaseDraftResult || !releaseSelectedCaseId}
                         className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20"
                       >
@@ -1911,6 +1952,7 @@ export default function AdminPage() {
                         type="button"
                         variant="ghost"
                         onClick={loadReleaseArtifacts}
+                        data-testid="admin-ai-refresh-artifacts"
                         disabled={releaseArtifactsLoading}
                         className="text-slate-300 hover:bg-sky-500/10 hover:text-sky-200"
                       >
@@ -1958,6 +2000,7 @@ export default function AdminPage() {
                                 <Button
                                   type="button"
                                   variant="outline"
+                                  data-testid={`admin-ai-load-artifact-${artifact.artifact_id}`}
                                   onClick={() => handleReleaseArtifactLoad(artifact.artifact_id)}
                                   disabled={isBusy}
                                   className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
@@ -1968,6 +2011,7 @@ export default function AdminPage() {
                                 <Button
                                   type="button"
                                   variant="outline"
+                                  data-testid={`admin-ai-download-markdown-${artifact.artifact_id}`}
                                   onClick={() => handleReleaseArtifactDownload(artifact.artifact_id, 'markdown')}
                                   disabled={isBusy}
                                   className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
@@ -1978,6 +2022,7 @@ export default function AdminPage() {
                                 <Button
                                   type="button"
                                   variant="outline"
+                                  data-testid={`admin-ai-download-json-${artifact.artifact_id}`}
                                   onClick={() => handleReleaseArtifactDownload(artifact.artifact_id, 'json')}
                                   disabled={isBusy}
                                   className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
@@ -2670,6 +2715,7 @@ export default function AdminPage() {
             <div className="px-1 pb-2">
               <label className="block text-sm text-slate-400 mb-1">변경 사유 (선택)</label>
               <Input
+                data-testid="admin-role-change-reason"
                 placeholder="역할 변경 사유를 입력하세요..."
                 value={roleChangeReason}
                 onChange={(e) => setRoleChangeReason(e.target.value)}
@@ -2679,12 +2725,14 @@ export default function AdminPage() {
 
             <AlertDialogFooter>
               <AlertDialogCancel
+                data-testid="admin-role-change-cancel"
                 className="bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
                 onClick={() => setPendingRoleChange(null)}
               >
                 취소
               </AlertDialogCancel>
               <AlertDialogAction
+                data-testid="admin-role-change-confirm"
                 className={
                   pendingRoleChange?.targetRole === 'ROLE_ADMIN'
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/25'

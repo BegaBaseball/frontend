@@ -5,8 +5,8 @@ interface ProfileAvatarProps {
   alt: string;
   fallbackName?: string;
   size?: 'sm' | 'md' | 'lg';
-  width?: 24 | 32 | 40 | 48 | 64 | 96;
-  height?: 24 | 32 | 40 | 48 | 64 | 96;
+  width?: 24 | 32 | 40 | 48 | 64 | 80 | 96;
+  height?: 24 | 32 | 40 | 48 | 64 | 80 | 96;
   srcSet?: string;
   sizes?: string;
   className?: string;
