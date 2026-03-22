@@ -101,7 +101,13 @@ describe('Prediction Coach Briefing Regression', () => {
     return lines.join('\n');
   };
 
-  const openPredictionPage = ({ reducedMotion = false }: { reducedMotion?: boolean } = {}) => {
+  const openPredictionPage = ({
+    reducedMotion = false,
+    path = '/prediction',
+  }: {
+    reducedMotion?: boolean;
+    path?: string;
+  } = {}) => {
     const fakeToken = 'coach-briefing-test-token';
     const authState = {
       state: {
@@ -128,7 +134,7 @@ describe('Prediction Coach Briefing Regression', () => {
       win.localStorage.setItem('bega_dont_show_guide', 'true');
     };
 
-    cy.visit('/prediction', {
+    cy.visit(path, {
       onBeforeLoad: (win: Window) => {
         seedAuthState(win);
         win.addEventListener('auth-session-expired', (event) => {
@@ -323,7 +329,7 @@ describe('Prediction Coach Briefing Regression', () => {
       });
     }).as('coachAnalyzeRetry');
 
-    openPredictionPage();
+    openPredictionPage({ path: '/prediction?gameId=20260601HHSS0&date=2026-06-01' });
 
     cy.tick(2000);
     cy.wait('@coachAnalyzeRetry');

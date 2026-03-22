@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import {
   isAdminRole,
   useAuthAccessActions,
@@ -12,7 +12,6 @@ import {
 } from './store/authStore';
 import Layout from './components/Layout';
 import ScrollToTop from './components/ScrollToTop';
-import { LoginRequiredDialog } from './components/LoginRequiredDialog';
 import { ErrorModalProvider } from './components/contexts/ErrorModalContext';
 import { ConfirmDialogProvider } from './components/contexts/ConfirmDialogContext';
 import GlobalErrorDialog from './components/GlobalErrorDialog';
@@ -20,7 +19,6 @@ import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { installGlobalErrorListeners, setClientErrorReporterUserContext } from './utils/clientErrorReporter';
 import { hasPersistedAuthBootstrapHint, resolveAuthBootstrapMode } from './utils/authBootstrap';
-import chatBotIcon from './assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { buildLoginPath } from './utils/loginRedirect';
 
 // DEV-only chaos hook: ErrorBoundary를 테스트하기 위한 의도적 렌더링 에러
@@ -41,6 +39,11 @@ const SignUp = lazy(() => import('./components/SignUp'));
 const PasswordReset = lazy(() => import('./components/PasswordReset'));
 const PasswordResetConfirm = lazy(() => import('./components/PasswordResetConfirm'));
 const AccountDeletionRecovery = lazy(() => import('./components/AccountDeletionRecovery'));
+const LoginRequiredDialog = lazy(() =>
+  import('./components/LoginRequiredDialog').then((module) => ({
+    default: module.LoginRequiredDialog,
+  }))
+);
 const StadiumGuide = lazy(() => import('./components/StadiumGuide'));
 const Prediction = lazy(() => import('./components/Prediction'));
 const Cheer = lazy(() => import('./components/Cheer'));
@@ -64,10 +67,28 @@ const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./components/OAuthCallback'));
 const TestError = lazy(() => import('./components/TestError')); // Test Purpose Only
-const ChatBot = lazy(() => import('./components/ChatBot'));
+const NotFound = lazy(() => import('./components/NotFound'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 
 const PREDICTION_GAME_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+const isLoadTraceEnabled = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return new URLSearchParams(window.location.search).get('traceLoad') === '1';
+};
+
+const traceLoadEvent = (label: string) => {
+  if (!isLoadTraceEnabled()) {
+    return;
+  }
+
+  const now = performance.now().toFixed(2);
+  performance.mark(`load-order:${label}`);
+  console.info(`[load-order][${now}ms] ${label}`);
+};
 
 const isValidPredictionDate = (value: string): boolean => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -235,6 +256,20 @@ function AdminRoute() {
 function RootEntryRoute() {
   const { isLoggedIn, isAuthLoading } = useAuthSession();
 
+  useEffect(() => {
+    if (isAuthLoading) {
+      traceLoadEvent('RootEntryRoute:authLoading');
+      return;
+    }
+
+    if (isLoggedIn) {
+      traceLoadEvent('RootEntryRoute:redirectHome');
+      return;
+    }
+
+    traceLoadEvent('RootEntryRoute:landing');
+  }, [isAuthLoading, isLoggedIn]);
+
   if (isAuthLoading) {
     return (
       <LoadingSpinner
@@ -259,7 +294,14 @@ export default function App() {
   const { logout, requireLogin } = useAuthAccessActions();
   const { showLoginRequiredDialog, setShowLoginRequiredDialog } = useAuthDialogState();
   const { pendingLoginRedirect, clearPendingLoginRedirect } = useAuthRedirectState();
-  const [isChatBotRequested, setIsChatBotRequested] = useState(false);
+
+  useEffect(() => {
+    traceLoadEvent('App mount');
+
+    return () => {
+      traceLoadEvent('App unmount');
+    };
+  }, []);
 
   useEffect(() => {
     setClientErrorReporterUserContext({ userId });
@@ -339,7 +381,7 @@ export default function App() {
                 {/* Landing & ServiceInfo - Layout 없이 독립 페이지 */}
                 <Route path="/" element={<RootEntryRoute />} />
                 {/* Layout 포함 라우트 */}
-                <Route element={<Layout />}>
+                <Route element={<Layout authenticated={false} />}>
                   {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
                   <Route path="/home" element={<Home />} />
                   <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()} />} />
@@ -355,6 +397,9 @@ export default function App() {
                   <Route path="/leaderboard" element={<LeaderboardPage />} />
                   <Route path="/stadium" element={<StadiumGuide />} />
                   <Route path="/prediction" element={<Prediction />} />
+                </Route>
+
+                <Route element={<Layout authenticated={true} />}>
                   {/* 로그인 필요한 라우트 */}
                   <Route element={<ProtectedRoute />}>
                     <Route path="/mate/:id" element={<MateDetail />} />
@@ -380,59 +425,25 @@ export default function App() {
               {import.meta.env.DEV && <Route path="/test/error" element={<TestError />} />}
 
                 {/* 404 처리 */}
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
-            {isChatBotRequested ? (
+            <GlobalErrorDialog />
+            {showLoginRequiredDialog && (
               <Suspense fallback={null}>
-                <ChatBot
-                  autoOpen
-                  onClosed={() => setIsChatBotRequested(false)}
+                <LoginRequiredDialog
+                  open={showLoginRequiredDialog}
+                  onOpenChange={(open) => {
+                    if (!open) {
+                      clearPendingLoginRedirect();
+                    }
+                    setShowLoginRequiredDialog(open);
+                  }}
+                  onCancel={clearPendingLoginRedirect}
+                  redirectPath={pendingLoginRedirect}
                 />
               </Suspense>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setIsChatBotRequested(true)}
-                className="fixed z-[9999] h-14 w-14
-                           sm:h-16 sm:w-16 sm:min-h-[64px] sm:min-w-[64px]
-                           md:h-18 md:w-18
-                           rounded-full bg-primary text-white shadow-lg
-                           p-0.5
-                           border-none
-                           inline-flex items-center justify-center overflow-hidden transition-all duration-200
-                           focus:outline-none focus-visible:outline-none focus:ring-0
-                           active:bg-primary active:text-white
-                           touch-action-manipulation
-                           bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))]
-                           md:bottom-[calc(1.25rem+env(safe-area-inset-bottom))] md:right-[calc(1.25rem+env(safe-area-inset-right))]"
-                aria-label="챗봇 열기"
-                style={{ WebkitTapHighlightColor: 'transparent' }}
-              >
-                <span className="h-14 w-14 rounded-full bg-primary grid place-items-center p-0.5">
-                  <img
-                    src={chatBotIcon}
-                    alt=""
-                    className="pointer-events-none block h-13 w-13 rounded-full object-contain object-center"
-                    aria-hidden="true"
-                    loading="eager"
-                    decoding="async"
-                  />
-                </span>
-              </button>
             )}
-            <GlobalErrorDialog />
-            <LoginRequiredDialog
-              open={showLoginRequiredDialog}
-              onOpenChange={(open) => {
-                if (!open) {
-                  clearPendingLoginRedirect();
-                }
-                setShowLoginRequiredDialog(open);
-              }}
-              onCancel={clearPendingLoginRedirect}
-              redirectPath={pendingLoginRedirect}
-            />
           </BrowserRouter>
         </ConfirmDialogProvider>
       </ErrorModalProvider>

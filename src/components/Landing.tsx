@@ -50,11 +50,37 @@ const FOOTER_SECTIONS = [
   },
 ] as const;
 
+const isLoadTraceEnabled = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return new URLSearchParams(window.location.search).get('traceLoad') === '1';
+};
+
+const traceLoadEvent = (label: string) => {
+  if (!isLoadTraceEnabled()) {
+    return;
+  }
+
+  const now = performance.now().toFixed(2);
+  performance.mark(`load-order:${label}`);
+  console.info(`[load-order][${now}ms] ${label}`);
+};
+
 export default function Landing() {
   const [activeFeature, setActiveFeature] = useState(0);
   const [expandedFeature, setExpandedFeature] = useState<number | null>(null);
   const navigate = useNavigate();
   const { isLoggedIn } = useAuthSession();
+
+  useEffect(() => {
+    traceLoadEvent('Landing mount');
+
+    return () => {
+      traceLoadEvent('Landing unmount');
+    };
+  }, []);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -96,6 +122,7 @@ export default function Landing() {
 
   const {
     scrollProgress,
+    scrollDistance,
     featureRefs,
     laptopRef,
     featuresContainerRef,
@@ -224,7 +251,7 @@ export default function Landing() {
                 <div className="landing-device-notch" />
 
                 <div className="landing-device-screen">
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+                  <div className="landing-device-screen-content absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
                     <OptimizedImage
                       src={begaCharacter}
                       alt="BEGA Character"
@@ -232,10 +259,10 @@ export default function Landing() {
                       priority={true}
                     />
                     <div>
-                      <h2 className="landing-wordmark text-3xl text-white sm:text-4xl">
+                      <h2 className="landing-wordmark text-3xl sm:text-4xl">
                         BEGA
                       </h2>
-                      <p className="landing-brand-caption mt-2 text-white/80 sm:text-sm">
+                      <p className="landing-brand-caption mt-2 sm:text-sm">
                         Baseball Guide
                       </p>
                     </div>
@@ -244,7 +271,6 @@ export default function Landing() {
               </div>
 
               <div className="landing-device-base" />
-              <div className="landing-device-shadow" />
             </div>
           </MockupFrame>
         </Container>
@@ -290,6 +316,7 @@ export default function Landing() {
                 activeFeature={activeFeature}
                 features={LANDING_FEATURES}
                 scrollProgress={scrollProgress}
+                scrollDistance={scrollDistance}
                 laptopRef={laptopRef}
               />
             </div>

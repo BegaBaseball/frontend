@@ -8,6 +8,7 @@ const HISTORY_MESSAGE_LIMIT = 8;
 export const buildHistoryPayload = (conversation: Message[]) => {
   const trimmed = conversation
     .filter((msg) => !msg.isSystem)
+    .filter((msg) => msg.status === 'COMPLETED')
     .filter((msg) => msg.text && msg.text.trim().length > 0)
     .slice(-HISTORY_MESSAGE_LIMIT);
 

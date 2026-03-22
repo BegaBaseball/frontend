@@ -60,7 +60,8 @@ describe('Home to Prediction deep link', () => {
     };
 
     beforeEach(() => {
-        (cy as any).login('user');
+        cy.clearCookies();
+        cy.clearLocalStorage();
         (cy as any).mockAPI();
 
         cy.intercept('GET', '**/api/home/bootstrap*', {

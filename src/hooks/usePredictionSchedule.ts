@@ -217,6 +217,8 @@ export const usePredictionSchedule = ({
   const currentDateIndexRef = useRef(0);
   const dayNavigationByDateRef = useRef<Record<string, MatchDayNavigationMeta>>({});
   const dayRequestInFlightRef = useRef<Map<string, Promise<MatchDayResult>>>(new Map());
+  const adjacentPrefetchTimeoutRef = useRef<number | null>(null);
+  const adjacentPrefetchIdleCallbackRef = useRef<number | null>(null);
 
   const goToPredictionRecovery = useCallback((options?: {
     currentDate?: string | null;
@@ -363,7 +365,8 @@ export const usePredictionSchedule = ({
   const buildCachedDayResult = useCallback((targetDate: string): MatchDayResult | null => {
     const normalizedDate = normalizeDateKey(targetDate) || targetDate;
     const meta = dayNavigationByDateRef.current[normalizedDate];
-    if (!meta) {
+    const cachedEntry = allDatesDataRef.current.find((entry) => entry.date === normalizedDate);
+    if (!meta || !cachedEntry) {
       return null;
     }
 
@@ -371,7 +374,7 @@ export const usePredictionSchedule = ({
       ok: true,
       data: {
         date: normalizedDate,
-        games: allDatesDataRef.current.find((entry) => entry.date === normalizedDate)?.games || [],
+        games: cachedEntry.games || [],
         prevDate: meta.prevDate,
         nextDate: meta.nextDate,
         hasPrev: meta.hasPrev,
@@ -529,6 +532,44 @@ export const usePredictionSchedule = ({
       });
     }
   }, [loadPredictionDay]);
+
+  const clearScheduledAdjacentPrefetch = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (adjacentPrefetchIdleCallbackRef.current !== null && 'cancelIdleCallback' in window) {
+      (window as any).cancelIdleCallback(adjacentPrefetchIdleCallbackRef.current);
+      adjacentPrefetchIdleCallbackRef.current = null;
+    }
+    if (adjacentPrefetchTimeoutRef.current !== null) {
+      window.clearTimeout(adjacentPrefetchTimeoutRef.current);
+      adjacentPrefetchTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scheduleAdjacentPrefetch = useCallback((anchorDate: string) => {
+    if (typeof window === 'undefined') {
+      prefetchAdjacentDays(anchorDate);
+      return;
+    }
+
+    clearScheduledAdjacentPrefetch();
+    const run = () => {
+      adjacentPrefetchIdleCallbackRef.current = null;
+      adjacentPrefetchTimeoutRef.current = null;
+      prefetchAdjacentDays(anchorDate);
+    };
+
+    if ('requestIdleCallback' in window) {
+      adjacentPrefetchIdleCallbackRef.current = (window as any).requestIdleCallback(run, {
+        timeout: 1200,
+      });
+      return;
+    }
+
+    adjacentPrefetchTimeoutRef.current = window.setTimeout(run, 650);
+  }, [clearScheduledAdjacentPrefetch, prefetchAdjacentDays]);
 
   const fetchMatchRangeWindow = useCallback(async (request: MatchRangeLoadRequest) => {
     const rangeWindow = buildPredictionRangeWindow({
@@ -696,7 +737,7 @@ export const usePredictionSchedule = ({
 
         const visibleDate = moveToLoadedFuture ? (result.data.date || anchorMeta.nextDate) : navigationAnchorDate;
         syncRangeStateFromDates(allDatesDataRef.current, visibleDate);
-        prefetchAdjacentDays(visibleDate);
+        scheduleAdjacentPrefetch(visibleDate);
         console.info('[prediction.day.load]', {
           direction: 'future',
           result: 'success',
@@ -911,7 +952,7 @@ export const usePredictionSchedule = ({
     getLatestBoundDate,
     isLoggedIn,
     loadPredictionDay,
-    prefetchAdjacentDays,
+    scheduleAdjacentPrefetch,
     restoreFutureRangeLoadState,
     setCanLoadMoreFutureState,
     setFutureRangeEnd,
@@ -987,7 +1028,7 @@ export const usePredictionSchedule = ({
 
         const visibleDate = moveToLoadedPast ? (result.data.date || anchorMeta.prevDate) : navigationAnchorDate;
         syncRangeStateFromDates(allDatesDataRef.current, visibleDate);
-        prefetchAdjacentDays(visibleDate);
+        scheduleAdjacentPrefetch(visibleDate);
         console.info('[prediction.day.load]', {
           direction: 'past',
           result: 'success',
@@ -1137,7 +1178,7 @@ export const usePredictionSchedule = ({
     getEarliestBoundDate,
     isLoggedIn,
     loadPredictionDay,
-    prefetchAdjacentDays,
+    scheduleAdjacentPrefetch,
     restorePastRangeLoadState,
     setPastRangeEnd,
     setPastRangeError,
@@ -1229,7 +1270,7 @@ export const usePredictionSchedule = ({
         setCurrentDateIndex(resolveInitialPredictionDateIndex(normalizedDates, initialAnchorDate));
         syncRangeStateFromDates(normalizedDates, initialAnchorDate);
       }
-      prefetchAdjacentDays(initialAnchorDate);
+      scheduleAdjacentPrefetch(initialAnchorDate);
     } catch (error) {
       if (isCancelLikeError(error)) {
         return;
@@ -1267,7 +1308,7 @@ export const usePredictionSchedule = ({
     emitFlowEvent,
     hydrateMatchBounds,
     loadPredictionDay,
-    prefetchAdjacentDays,
+    scheduleAdjacentPrefetch,
     setCanLoadMoreFutureState,
     setCanLoadMorePastState,
     showPredictionErrorOverlay,
@@ -1417,10 +1458,12 @@ export const usePredictionSchedule = ({
       requestKeySuffix: `hydrate:current:${visibleDate}`,
     }).then((result) => {
       if (result.ok) {
-        prefetchAdjacentDays(visibleDate);
+        scheduleAdjacentPrefetch(visibleDate);
       }
     });
-  }, [allDatesData, currentDateIndex, loadPredictionDay, prefetchAdjacentDays]);
+  }, [allDatesData, currentDateIndex, loadPredictionDay, scheduleAdjacentPrefetch]);
+
+  useEffect(() => clearScheduledAdjacentPrefetch, [clearScheduledAdjacentPrefetch]);
 
   const visibleDateKey = allDatesData[currentDateIndex]?.date || '';
   useEffect(() => {

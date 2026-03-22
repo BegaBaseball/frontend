@@ -202,6 +202,7 @@ export default function MyPage() {
                     </Button>
                     <Button
                       onClick={handleToggleStats}
+                      data-testid="mypage-toggle-stats"
                       className="h-9 px-2.5 gap-1 text-xs flex items-center justify-center whitespace-nowrap bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary w-32"
                     >
                       <BarChart3 className="w-4 h-4 flex-shrink-0" />
@@ -307,6 +308,7 @@ export default function MyPage() {
                   </Button>
                   <Button
                     onClick={handleToggleStats}
+                    data-testid="mypage-toggle-stats"
                     className="flex items-center justify-center gap-1.5 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 px-3 whitespace-nowrap text-xs"
                   >
                     <BarChart3 className="w-4 h-4 flex-shrink-0" />
