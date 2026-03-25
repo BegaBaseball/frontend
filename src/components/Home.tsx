@@ -1,5 +1,4 @@
-import axios from 'axios';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Calendar as CalendarIcon, Trophy, ChevronLeft, ChevronRight,
@@ -13,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Calendar as CalendarComponent } from './ui/calendar';
 import { Skeleton } from './ui/skeleton';
-import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
+import TeamLogo from './TeamLogo';
 import GameCard from './GameCard';
 import ScheduledGameCard from './ScheduledGameCard';
 import WelcomeGuide from './WelcomeGuide';
@@ -34,45 +33,29 @@ import {
     type LeagueTab,
 } from '../utils/predictionHomeLogic';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
+import { buildDisplayableRankings, groupGamesBySourceDate, partitionGamesByLeague } from '../utils/homeDashboard';
 import type { CheerPost } from '../api/cheerApi';
 import type { FeaturedMateCard, Game, Ranking, LeagueStartDates, HomeProps } from '../types/home';
 import { formatTimeAgo } from '../utils/time';
-import { getFullTeamName, TEAM_NAME_TO_ID, TEAM_ID_TO_CODE } from '../constants/teams';
 import { queryClient } from '../lib/queryClient';
+import {
+    getInitialRankingSeasonYear,
+    isOffSeasonByDate,
+    resolveRankingSeasonYear,
+    getSeasonShortLabel,
+    toLocalMiddayDate,
+    formatHomeDate,
+    formatSourceDateLabel,
+} from '../utils/homeSeasonLogic';
+import { getRankingDisplayName, getMateTeamDisplayName, resolveLeagueBadge } from '../utils/homeTeamNameResolution';
+import { buildHomeRequestErrorContext, buildHomeNavigationState } from '../utils/homeErrorContext';
+import type { HomeNavigationState } from '../utils/homeErrorContext';
+import { GameCardSkeleton, ScheduledGameCardSkeleton } from './home/GameCardSkeleton';
 
 // Types are imported from '../types/home'
 
 
 // --- Initial Values ---
-const getInitialRankingSeasonYear = (date: Date, fallbackStartDates: LeagueStartDates): number => {
-    const targetDate = new Date(date);
-    targetDate.setHours(12, 0, 0, 0);
-
-    if (Number.isNaN(targetDate.getTime())) {
-        return targetDate.getFullYear();
-    }
-
-    const month = targetDate.getMonth() + 1;
-    const day = targetDate.getDate();
-
-    const regularSeasonStartDate = new Date(fallbackStartDates.regularSeasonStart);
-
-    if (Number.isNaN(regularSeasonStartDate.getTime())) {
-        return month >= 11 || month <= 2 || (month === 3 && day < 22)
-            ? targetDate.getFullYear() - 1
-            : targetDate.getFullYear();
-    }
-
-    const regularSeasonStartThisYear = new Date(regularSeasonStartDate);
-    regularSeasonStartThisYear.setFullYear(targetDate.getFullYear());
-    regularSeasonStartThisYear.setHours(12, 0, 0, 0);
-
-    const isBeforeRegularStart = targetDate < regularSeasonStartThisYear;
-
-    return month >= 11 || month <= 2 || isBeforeRegularStart
-        ? targetDate.getFullYear() - 1
-        : targetDate.getFullYear();
-};
 
 
 // --- Helpers ---
@@ -87,25 +70,20 @@ const HOME_DASHBOARD_RANKING_DIVIDER_COUNT = HOME_DASHBOARD_TEAM_COUNT - 1;
 // Desktop ranking/cheer/mate cards are aligned to 10 rows:
 // 52px(row) * 10 + 9px(dividers) = 529px
 const HOME_DASHBOARD_MOBILE_CARD_HEIGHT_PX = 260;
-const HOME_DASHBOARD_MOBILE_CARD_HEIGHT_CLASS = `h-[${HOME_DASHBOARD_MOBILE_CARD_HEIGHT_PX}px]`;
 const HOME_DASHBOARD_RANKING_ROW_HEIGHT_PX = 52;
 const HOME_DASHBOARD_CARD_DESKTOP_HEIGHT_PX =
     HOME_DASHBOARD_RANKING_ROW_HEIGHT_PX * HOME_DASHBOARD_TEAM_COUNT + HOME_DASHBOARD_RANKING_DIVIDER_COUNT;
-const HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS = `lg:h-[${HOME_DASHBOARD_CARD_DESKTOP_HEIGHT_PX}px]`;
-const HOME_DASHBOARD_RANKING_ROW_CLASS = `lg:h-[${HOME_DASHBOARD_RANKING_ROW_HEIGHT_PX}px] lg:min-h-[${HOME_DASHBOARD_RANKING_ROW_HEIGHT_PX}px]`;
+// Tailwind JIT scans source as text — dynamic template literals won't be detected.
+// Use static strings so the classes are generated correctly.
+const HOME_DASHBOARD_MOBILE_CARD_HEIGHT_CLASS = "h-[260px]";
+const HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS = "lg:h-[529px]";
+const HOME_DASHBOARD_RANKING_ROW_CLASS = "lg:h-[52px] lg:min-h-[52px]";
 const HOME_DASHBOARD_CARD_HEIGHT_CLASS = `${HOME_DASHBOARD_MOBILE_CARD_HEIGHT_CLASS} ${HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS}`;
 const TEAM_RANKING_CARD_HEIGHT_CLASS = HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS;
 const PUBLIC_HOME_REQUEST_CONFIG = {
     skipAuthSessionHandling: true,
 } as const;
 const HOME_BOOTSTRAP_LEGACY_FALLBACK_DELAY_MS = 3000;
-
-interface HomeNavigationState {
-    prev: string | null;
-    next: string | null;
-    hasPrev: boolean;
-    hasNext: boolean;
-}
 
 interface HomeRankingSnapshotState {
     rankingSeasonYear: number;
@@ -129,87 +107,7 @@ interface HomeLoadSnapshot {
     loadState: HomeLoadState;
 }
 
-const buildHomeRequestErrorContext = (error: unknown, endpoint: string, date: Date) => {
-    const fallback = {
-        endpoint,
-        selectedDate: formatDateForAPI(date),
-        status: null,
-        responseCode: null,
-        errorName: error instanceof Error ? error.name : 'UnknownError',
-        message: error instanceof Error ? error.message : 'Unknown error',
-    };
 
-    if (!axios.isAxiosError(error)) {
-        return fallback;
-    }
-
-    return {
-        ...fallback,
-        status: error.response?.status ?? null,
-        responseCode: error.response?.data?.code ?? null,
-        errorName: error.name,
-        message: error.message,
-    };
-};
-
-const buildHomeNavigationState = (data?: {
-    prevGameDate?: string | null;
-    nextGameDate?: string | null;
-    hasPrev?: boolean;
-    hasNext?: boolean;
-} | null): HomeNavigationState => ({
-    prev: data?.prevGameDate ?? null,
-    next: data?.nextGameDate ?? null,
-    hasPrev: data?.hasPrev ?? Boolean(data?.prevGameDate),
-    hasNext: data?.hasNext ?? Boolean(data?.nextGameDate),
-});
-
-const GameCardSkeleton = () => (
-    <Card
-        className={`overflow-hidden ${GAME_CARD_MIN_HEIGHT} rounded-2xl border border-slate-200/90 dark:border-white/12 shadow-sm bg-gradient-to-b from-white via-white to-slate-50 dark:from-secondary/80 dark:via-secondary/70 dark:to-secondary/55`}
-    >
-        <CardContent className="p-6 h-full flex flex-col justify-between">
-            <div className="flex justify-between items-center mb-4">
-                <Skeleton className="h-4 w-1/3 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
-                <Skeleton className="h-6 w-12 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
-            </div>
-            <div className="flex justify-between items-center py-2">
-                <Skeleton className="h-14 w-14 rounded-2xl bg-slate-200/80 dark:bg-slate-700/80" />
-                <Skeleton className="h-8 w-16 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
-                <Skeleton className="h-14 w-14 rounded-2xl bg-slate-200/80 dark:bg-slate-700/80" />
-            </div>
-            <div className="pt-2">
-                <Skeleton className="h-4 w-5/6 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
-            </div>
-        </CardContent>
-    </Card>
-);
-
-const ScheduledGameCardSkeleton = () => (
-    <Card
-        className={`overflow-hidden ${SCHEDULED_GAME_CARD_MIN_HEIGHT} rounded-2xl border border-slate-200/90 dark:border-white/12 shadow-sm bg-gradient-to-b from-white via-white to-slate-50 dark:from-secondary/80 dark:via-secondary/70 dark:to-secondary/55`}
-    >
-        <CardContent className="p-4 h-full flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2">
-                <Skeleton className="h-6 w-24 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
-                <Skeleton className="h-5 w-20 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
-            </div>
-            <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-100 bg-gray-50/90 px-3 py-2 dark:border-border/80 dark:bg-secondary/70">
-                    <Skeleton className="h-8 w-24 rounded-xl bg-slate-200/80 dark:bg-slate-700/80" />
-                    <Skeleton className="h-3.5 w-8 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
-                    <Skeleton className="h-8 w-24 rounded-xl bg-slate-200/80 dark:bg-slate-700/80" />
-                </div>
-                <div className="space-y-1.5">
-                    <Skeleton className="h-4 w-16 rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
-                    <Skeleton className="h-5 w-full rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
-                    <Skeleton className="h-5 w-full rounded-full bg-slate-200/80 dark:bg-slate-700/80" />
-                </div>
-            </div>
-            <Skeleton className="h-9 w-full rounded-xl bg-slate-200/80 dark:bg-slate-700/80" />
-        </CardContent>
-    </Card>
-);
 
 export default function Home({ onNavigate }: HomeProps) {
     const navigate = useNavigate();
@@ -273,14 +171,6 @@ export default function Home({ onNavigate }: HomeProps) {
     const scheduledLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
 
     // --- Helpers ---
-    const formatDate = (date: Date) => {
-        const days = ['일', '월', '화', '수', '목', '금', '토'];
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        const dayOfWeek = days[date.getDay()];
-        return `${year}.${month}.${day} (${dayOfWeek})`;
-    };
 
     const clampLoadingCount = (value: number) => (
         Math.max(MIN_LOADING_CARD_COUNT, Math.min(LOADING_CARD_COUNT_MAX, value))
@@ -295,203 +185,7 @@ export default function Home({ onNavigate }: HomeProps) {
         });
     };
 
-    const toLocalMiddayDate = (value: string): Date => {
-        const parsed = new Date(`${value}T12:00:00`);
-        if (Number.isNaN(parsed.getTime())) {
-            const fallback = new Date(value);
-            fallback.setHours(12, 0, 0, 0);
-            return fallback;
-        }
-        return parsed;
-    };
 
-    const isOffSeasonByDate = (baseDate = new Date(), startDates = leagueStartDates): boolean => {
-        const targetDate = new Date(baseDate);
-        targetDate.setHours(12, 0, 0, 0);
-
-        if (Number.isNaN(targetDate.getTime())) {
-            return false;
-        }
-
-        if (!startDates) {
-            const month = targetDate.getMonth() + 1;
-            const day = targetDate.getDate();
-            return month >= 11 || month <= 2 || (month === 3 && day < 22);
-        }
-
-        const regularSeasonStart = new Date(startDates.regularSeasonStart);
-        regularSeasonStart.setHours(12, 0, 0, 0);
-
-        if (Number.isNaN(regularSeasonStart.getTime())) {
-            const month = targetDate.getMonth() + 1;
-            const day = targetDate.getDate();
-            return month >= 11 || month <= 2 || (month === 3 && day < 22);
-        }
-
-        const seasonStartDateThisYear = new Date(regularSeasonStart);
-        seasonStartDateThisYear.setFullYear(targetDate.getFullYear());
-        seasonStartDateThisYear.setHours(12, 0, 0, 0);
-
-        const month = targetDate.getMonth() + 1;
-        const isBeforeRegularStart = targetDate < seasonStartDateThisYear;
-
-        return month >= 11 || month <= 2 || isBeforeRegularStart;
-    };
-
-    const resolveRankingSeasonYear = (baseDate = new Date(), startDates = leagueStartDates): number => {
-        const targetDate = new Date(baseDate);
-        targetDate.setHours(12, 0, 0, 0);
-
-        if (Number.isNaN(targetDate.getTime())) {
-            return targetDate.getFullYear();
-        }
-
-        return isOffSeasonByDate(targetDate, startDates)
-            ? targetDate.getFullYear() - 1
-            : targetDate.getFullYear();
-    };
-
-    const getSeasonShortLabel = (year: number): string => String(year).slice(-2);
-
-    const getRankingDisplayName = (teamId: string, teamName: string): string => {
-        const normalizedTeamId = (teamId || '').trim().toUpperCase();
-        const normalizedTeamName = (teamName || '').trim();
-
-        if (normalizedTeamId) {
-            const mappedById = getFullTeamName(normalizedTeamId);
-            if (mappedById) {
-                return mappedById;
-            }
-        }
-
-        if (normalizedTeamName) {
-            const mappedTeamIdByName = TEAM_NAME_TO_ID[normalizedTeamName] || TEAM_NAME_TO_ID[normalizedTeamName.toUpperCase()];
-            if (mappedTeamIdByName) {
-                const mappedByName = getFullTeamName(mappedTeamIdByName);
-                if (mappedByName) {
-                    return mappedByName;
-                }
-            }
-
-            const normalizedTeamNameUpper = normalizedTeamName.toUpperCase();
-            const mappedByName = getFullTeamName(normalizedTeamNameUpper);
-            if (mappedByName && normalizedTeamName !== mappedByName) {
-                return mappedByName;
-            }
-
-            if (/[가-힣]/.test(normalizedTeamName)) {
-                return normalizedTeamName;
-            }
-        }
-
-        const normalizedTeamNameForCode = normalizedTeamName.toUpperCase();
-        const isAllCapsCode = /^[A-Z]{2,10}$/.test(normalizedTeamNameForCode);
-        if (isAllCapsCode) {
-            const mappedByNameCode = getFullTeamName(normalizedTeamNameForCode);
-            return mappedByNameCode || (normalizedTeamId || normalizedTeamName);
-        }
-
-        return normalizedTeamName || normalizedTeamId;
-    };
-
-    const getMateTeamDisplayName = (teamName: string): string => {
-        const normalizedTeamName = (teamName || '').trim();
-        if (!normalizedTeamName) return '';
-        const normalizedTeamNameLower = normalizedTeamName.toLowerCase();
-
-        const resolvedTeamName = resolveTeamDisplayName(normalizedTeamName);
-        if (resolvedTeamName && resolvedTeamName !== normalizedTeamName) {
-            return resolvedTeamName;
-        }
-
-        const directMapped = getFullTeamName(normalizedTeamName);
-        if (directMapped && directMapped !== normalizedTeamName) {
-            return directMapped;
-        }
-
-        const mappedTeamId = TEAM_NAME_TO_ID[normalizedTeamName] || TEAM_NAME_TO_ID[normalizedTeamName.toUpperCase()];
-        if (mappedTeamId) {
-            return getFullTeamName(mappedTeamId);
-        }
-
-        const mappedTeamIdByCode = TEAM_ID_TO_CODE[normalizedTeamName.toLowerCase()];
-        if (mappedTeamIdByCode) {
-            return getFullTeamName(mappedTeamIdByCode);
-        }
-
-        const normalizedWithoutSpace = normalizedTeamName.replace(/\s+/g, '');
-        const mappedByNoSpace = getFullTeamName(normalizedWithoutSpace);
-        if (mappedByNoSpace && mappedByNoSpace !== normalizedWithoutSpace) {
-            return mappedByNoSpace;
-        }
-
-        const normalizedWithoutSpaceLower = normalizedWithoutSpace.toLowerCase();
-        const mappedTeamIdByNoSpaceCode = TEAM_ID_TO_CODE[normalizedWithoutSpaceLower];
-        if (mappedTeamIdByNoSpaceCode) {
-            return getFullTeamName(mappedTeamIdByNoSpaceCode);
-        }
-
-        const normalizedByTokens = normalizedTeamName.toLowerCase().split(/[^a-z가-힣0-9]+/).filter(Boolean);
-        const candidateTeamEntries = [
-            ...normalizedByTokens,
-            normalizedTeamNameLower,
-            normalizedWithoutSpaceLower,
-        ];
-
-        for (const candidate of candidateTeamEntries) {
-            for (const [alias, teamId] of Object.entries(TEAM_NAME_TO_ID)) {
-                const aliasLower = alias.toLowerCase();
-                if (candidate.includes(aliasLower) || aliasLower.includes(candidate)) {
-                    const mapped = getFullTeamName(teamId);
-                    if (mapped) {
-                        return mapped;
-                    }
-                }
-            }
-
-            const mappedCodeByAlias = TEAM_ID_TO_CODE[candidate];
-            if (mappedCodeByAlias) {
-                return getFullTeamName(mappedCodeByAlias);
-            }
-        }
-
-        const alphaOnly = normalizedTeamNameLower.replace(/[^a-z]/g, '');
-        for (const [codeAlias, teamId] of Object.entries(TEAM_ID_TO_CODE)) {
-            if (!codeAlias) continue;
-            if (alphaOnly.includes(codeAlias)) {
-                return getFullTeamName(teamId);
-            }
-        }
-
-        return normalizedTeamName;
-    };
-
-    const resolveLeagueBadge = (leagueType?: string): string => {
-        const normalized = (leagueType || '').toUpperCase();
-
-        switch (normalized) {
-            case 'REGULAR':
-                return '정규시즌';
-            case 'POSTSEASON':
-                return '포스트시즌';
-            case 'KOREAN_SERIES':
-                return '한국시리즈';
-            case 'PRE':
-            case 'PRESEASON':
-                return '프리시즌';
-            case 'OFFSEASON':
-                return '기타 일정';
-            default:
-                return '예정 일정';
-        }
-    };
-
-    const formatSourceDateLabel = (sourceDate?: string): string => {
-        if (!sourceDate) return '날짜 미정';
-        const date = new Date(`${sourceDate}T12:00:00`);
-        if (Number.isNaN(date.getTime())) return sourceDate;
-        return formatDate(date);
-    };
 
     const normalizePredictionDate = (value?: string): string => {
         const fallback = formatDateForAPI(selectedDate);
@@ -549,7 +243,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     const clearScheduledWidgetLoad = () => {
         if (widgetsIdleCallbackRef.current !== null && 'cancelIdleCallback' in window) {
-            (window as any).cancelIdleCallback(widgetsIdleCallbackRef.current);
+            window.cancelIdleCallback(widgetsIdleCallbackRef.current);
             widgetsIdleCallbackRef.current = null;
         }
         if (widgetsTimeoutRef.current !== null) {
@@ -1370,19 +1064,21 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
+    const selectedDateKey = useMemo(() => formatDateForAPI(selectedDate), [selectedDate]);
+
     useEffect(() => {
-        const dateKey = formatDateForAPI(selectedDate);
+        const dateKey = selectedDateKey;
         if (lastBootstrapDateKeyRef.current === dateKey) {
             return;
         }
 
         lastBootstrapDateKeyRef.current = dateKey;
         void loadHomeBootstrap(selectedDate);
-    }, [loadHomeBootstrap, selectedDate]);
+    }, [loadHomeBootstrap, selectedDate, selectedDateKey]);
 
     useEffect(() => {
         clearScheduledWidgetLoad();
-        const dateKey = formatDateForAPI(selectedDate);
+        const dateKey = selectedDateKey;
         setIsHotCheerLoading(true);
         setHotCheerError(null);
         setIsFeaturedMatesLoading(true);
@@ -1408,53 +1104,40 @@ export default function Home({ onNavigate }: HomeProps) {
         };
 
         if ('requestIdleCallback' in window) {
-            widgetsIdleCallbackRef.current = (window as any).requestIdleCallback(run, { timeout: 1500 });
+            widgetsIdleCallbackRef.current = window.requestIdleCallback(run, { timeout: 1500 });
         } else {
             widgetsTimeoutRef.current = window.setTimeout(run, 800);
         }
 
         return clearScheduledWidgetLoad;
-    }, [applyHomeWidgetsData, loadHomeWidgets, selectedDate]);
+    }, [applyHomeWidgetsData, loadHomeWidgets, selectedDate, selectedDateKey]);
     useEffect(() => {
         setIsSecondarySectionExpanded(false);
     }, [selectedDate]);
-
-    const regularSeasonGames = games.filter(g => g.leagueType === 'REGULAR');
-    const postSeasonGames = games.filter(g => g.leagueType === 'POSTSEASON');
-    const koreanSeriesGames = games.filter(g => g.leagueType === 'KOREAN_SERIES');
+    const { regularSeasonGames, postSeasonGames, koreanSeriesGames } = useMemo(
+        () => partitionGamesByLeague(games),
+        [games],
+    );
     const {
         primary: scheduledPrimaryGames,
         secondary: scheduledSecondaryGames,
         excluded: liveOrFinishedScheduledGames,
-    } = partitionScheduledGames(scheduledGames);
-    const groupGamesBySourceDate = (targetGames: Game[]) => {
-        const grouped = targetGames.reduce<Record<string, Game[]>>((acc, game) => {
-            const key = game.sourceDate || formatDateForAPI(selectedDate);
-            if (!acc[key]) acc[key] = [];
-            acc[key].push(game);
-            return acc;
-        }, {});
-
-        return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
-    };
-
-    const displayableRankings = rankings.reduce<Array<Ranking & { displayName: string }>>((acc, team) => {
-        const teamId = (team.teamId || '').trim().toUpperCase();
-        if (!teamId) {
-            return acc;
-        }
-
-        if (acc.some((value) => value.teamId === teamId)) {
-            return acc;
-        }
-
-        acc.push({
-            ...team,
-            teamId,
-            displayName: getRankingDisplayName(teamId, team.teamName),
-        });
-        return acc;
-    }, []);
+    } = useMemo(
+        () => partitionScheduledGames(scheduledGames),
+        [scheduledGames],
+    );
+    const scheduledPrimaryGamesBySourceDate = useMemo(
+        () => groupGamesBySourceDate(scheduledPrimaryGames, selectedDateKey),
+        [scheduledPrimaryGames, selectedDateKey],
+    );
+    const scheduledSecondaryGamesBySourceDate = useMemo(
+        () => groupGamesBySourceDate(scheduledSecondaryGames, selectedDateKey),
+        [scheduledSecondaryGames, selectedDateKey],
+    );
+    const displayableRankings = useMemo(
+        () => buildDisplayableRankings(rankings, getRankingDisplayName),
+        [rankings],
+    );
     const displayedRankings = displayableRankings.slice(0, HOME_DASHBOARD_TEAM_COUNT);
     const rankingDataVisibilityMessage = displayableRankings.length === 0 && rankings.length > 0
         ? '순위 데이터에서 정규 팀이 아닌 항목이 감지되어 표시 가능한 팀 순위가 없습니다.'
@@ -1592,7 +1275,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
                     <div className="flex flex-col items-center min-w-[140px]">
                         <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-1">
-                            {formatDate(selectedDate)}
+                            {formatHomeDate(selectedDate)}
                         </h2>
                         <Button variant="link" size="sm" onClick={() => setShowCalendar(true)} className="text-xs text-primary dark:text-emerald-400 h-auto p-0 font-bold hover:underline opacity-80 hover:opacity-100 transition-opacity">
                             <CalendarDays className="w-3 h-3 mr-1" /> 날짜 변경
@@ -1741,7 +1424,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                                             {scheduledPrimaryGames.length}건
                                                         </span>
                                                     </div>
-                                                    {groupGamesBySourceDate(scheduledPrimaryGames).map(([sourceDate, groupedGames]) => (
+                                                    {scheduledPrimaryGamesBySourceDate.map(([sourceDate, groupedGames]) => (
                                                         <div key={`scheduled-primary-${sourceDate}`} className="space-y-3">
                                                             <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
                                                                 {formatSourceDateLabel(sourceDate)}
@@ -1784,7 +1467,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                                         </div>
                                                     </div>
                                                     {isSecondarySectionExpanded ? (
-                                                        groupGamesBySourceDate(scheduledSecondaryGames).map(([sourceDate, groupedGames]) => (
+                                                        scheduledSecondaryGamesBySourceDate.map(([sourceDate, groupedGames]) => (
                                                             <div key={`scheduled-secondary-${sourceDate}`} className="space-y-3">
                                                                 <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
                                                                     {formatSourceDateLabel(sourceDate)}
@@ -1824,7 +1507,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 <AdSlot
                     slotId="home_mid_1"
                     pageType="home"
-                    contentId={formatDateForAPI(selectedDate)}
+                    contentId={selectedDateKey}
                     creativeType="sponsor_card"
                     minHeight={164}
                 />

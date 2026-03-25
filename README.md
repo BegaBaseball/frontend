@@ -46,6 +46,7 @@
 - [아키텍처](#-아키텍처)
 - [프로젝트 구조](#-프로젝트-구조)
 - [시작하기](#-시작하기)
+- [QA](#-qa)
 - [환경 변수](#-환경-변수)
 - [배포](#-배포)
 - [관련 저장소](#-관련-저장소)
@@ -261,6 +262,35 @@ SMOKE_LOGIN_EMAIL=qa@example.com \
 SMOKE_LOGIN_PASSWORD=Test1234! \
 npm run test:e2e:ai:real
 ```
+
+---
+
+## 🧪 QA
+
+### Prediction 모바일 회귀
+```bash
+# 대표 smoke 세트
+npm run qa:prediction:mobile:smoke
+
+# 전체 상태 회귀
+npm run qa:prediction:mobile
+```
+
+- `smoke`는 `match`, `ranking`, `ranking-save-dialog`, `ranking-saved`, `detail-error`를 대상으로 PR 검증용으로 사용합니다.
+- `full`은 `ranking-ready`, `ranking-ended`, `empty`까지 포함한 8개 상태를 검증합니다.
+- 결과 요약은 `/Users/mac/project/KBO_platform/output/playwright/prediction-mobile-regression-summary.md`에, 상세 캡처는 `/Users/mac/project/KBO_platform/output/playwright/prediction-mobile/`에 저장됩니다.
+- GitHub Actions smoke workflow는 [frontend-prediction-mobile-qa.yml](/Users/mac/project/KBO_platform/.github/workflows/frontend-prediction-mobile-qa.yml)을 사용합니다.
+
+### Mate 모바일 회귀
+```bash
+# 대표 smoke 세트
+npm run qa:mate:mobile:smoke
+
+# 전체 mate 모바일 회귀
+npm run qa:mate:mobile
+```
+
+- 결과 요약은 `/Users/mac/project/KBO_platform/output/playwright/mate-mobile-regression-summary.md`에 저장됩니다.
 
 ---
 

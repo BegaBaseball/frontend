@@ -15,7 +15,6 @@ import { Game as HomeGame } from '../types/home';
 import { motion } from 'framer-motion';
 import TeamLogo from './TeamLogo';
 import CheerCard from './CheerCard';
-import CheerBattleBanner from './CheerBattleBanner';
 import CheerHot from './CheerHot';
 import CheerWriteModal, { CheerWritePayload } from './CheerWriteModal';
 import AdSlot from './ads/AdSlot';
@@ -804,25 +803,6 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                 </button>
                             )}
 
-                            {/* CheerBattle Banner - only shown when a valid game with gameId exists */}
-                            {featuredGame?.gameId &&
-                                featuredGame.gameStatus !== 'OFFSEASON' &&
-                                featuredGame.homeTeam &&
-                                featuredGame.awayTeam && (
-                                    <ErrorBoundary
-                                        fallback={(
-                                            <div className="mx-4 mt-4 mb-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
-                                                실시간 응원 배틀을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
-                                            </div>
-                                        )}
-                                    >
-                                        <CheerBattleBanner
-                                            gameId={featuredGame.gameId}
-                                            homeTeamId={featuredGame.homeTeam}
-                                            awayTeamId={featuredGame.awayTeam}
-                                        />
-                                    </ErrorBoundary>
-                                )}
 
                             <section
                                 className={cn(

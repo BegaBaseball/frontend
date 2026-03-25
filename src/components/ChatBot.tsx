@@ -23,7 +23,7 @@ import remarkGfm from 'remark-gfm';
 import { useChatBot } from '../hooks/useChatBot';
 import { useAuthSession } from '../store/authStore';
 import { useIsMobile } from '../hooks/use-mobile';
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { memo, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { ChatFavoriteItem, Message } from '../types/chatbot';
@@ -148,6 +148,164 @@ const pickTypingHint = (phase: TypingPhase, recentHints: string[], previousCateg
   return { category: selectedGroup.category, text: fallback };
 };
 
+type ConversationMessageProps = {
+  message: Message;
+  index: number;
+  isExpanded: boolean;
+  isCopied: boolean;
+  onCopyMessage: (text: string, index: number) => void;
+  onToggleToolCalls: (index: number) => void;
+  onFavoriteToggle: (message: Message, event: MouseEvent<HTMLButtonElement>) => void;
+};
+
+const ChatConversationMessage = memo(function ChatConversationMessage({
+  message,
+  index,
+  isExpanded,
+  isCopied,
+  onCopyMessage,
+  onToggleToolCalls,
+  onFavoriteToggle,
+}: ConversationMessageProps) {
+  if (message.sender === 'bot' && !message.text) return null;
+
+  const isStreamError = message.sender === 'bot' && message.isError === true;
+  const isCancelled = message.sender === 'bot' && message.cancelled === true;
+  const isFavoritable = message.sender === 'bot' && message.status === 'COMPLETED' && !message.isSystem;
+
+  return (
+    <div
+      key={message.id ?? index}
+      className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+    >
+      {message.sender === 'bot' ? (
+        <div className="group relative max-w-[85%]">
+          <div
+            className={`
+              py-2.5 px-4 rounded-2xl
+              ${isStreamError
+                ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700/40'
+                : isCancelled
+                  ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-700/40'
+                  : 'bg-gray-100 dark:bg-secondary/80 text-gray-900 dark:text-white border border-gray-300 dark:border-white/10'
+              }
+            `}
+          >
+            <ReactMarkdown remarkPlugins={[remarkGfm]} className="text-sm prose dark:prose-invert max-w-none">
+              {isStreamError
+                ? '응답 중 오류가 발생했습니다. 다시 시도해주세요.'
+                : message.text}
+            </ReactMarkdown>
+            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+              {isCancelled && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-1.5 py-0.5 dark:bg-amber-400/10 dark:border-amber-400/30 dark:text-amber-200">
+                  응답 취소됨
+                </span>
+              )}
+              {message.cached && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5 dark:bg-amber-400/10 dark:border-amber-400/30 dark:text-amber-400">
+                  <Zap className="w-2.5 h-2.5" />
+                  빠른 응답
+                </span>
+              )}
+              {message.favorite && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5 dark:bg-emerald-400/10 dark:border-emerald-400/30 dark:text-emerald-200">
+                  <Star className="w-2.5 h-2.5 fill-current" />
+                  즐겨찾기
+                </span>
+              )}
+              <p className="text-[11px] text-gray-500 dark:text-gray-300 m-0">
+                {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          </div>
+          {message.strategy === 'llm_knowledge_db_unavailable' && (
+            <div className="mt-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700 dark:border-orange-700/40 dark:bg-orange-900/20 dark:text-orange-300">
+              ⚠️ 현재 통계 DB에 일시적으로 접근할 수 없어 일반 지식 기반으로 답변드렸습니다. 수치는 부정확할 수 있습니다.
+            </div>
+          )}
+          {!isStreamError && !isCancelled && (() => {
+            const visibleTools = (message.toolCalls ?? []).filter(
+              (tc) => TOOL_NAME_KO[tc.toolName] !== null && TOOL_NAME_KO[tc.toolName] !== undefined,
+            );
+            if (visibleTools.length === 0) return null;
+            return (
+              <div className="mt-1.5 ml-1">
+                <button
+                  type="button"
+                  onClick={() => onToggleToolCalls(index)}
+                  className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`} />
+                  AI 검색 도구 {visibleTools.length}개
+                </button>
+                {isExpanded && (
+                  <ul className="mt-1 space-y-0.5 list-none p-0 m-0">
+                    {visibleTools.map((tc, toolIndex) => {
+                      const label = TOOL_NAME_KO[tc.toolName];
+                      const params = formatToolParams(tc.parameters);
+                      return (
+                        <li key={toolIndex} className="flex items-start gap-1 text-[10px] text-gray-500 dark:text-gray-400">
+                          <span className="mt-0.5 shrink-0">╰</span>
+                          <span>
+                            <span className="font-medium text-gray-600 dark:text-gray-300">{label}</span>
+                            {params && <span className="text-gray-400 dark:text-gray-500 ml-1">{params}</span>}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            );
+          })()}
+          {!isStreamError && (
+            <div className="absolute -top-2 -right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              {isFavoritable && (
+                <button
+                  type="button"
+                  onClick={(event) => { void onFavoriteToggle(message, event); }}
+                  data-testid="chatbot-message-favorite-toggle"
+                  data-message-server-id={message.serverId ?? ''}
+                  className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-sm text-gray-400 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  aria-label={message.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                  title={message.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                >
+                  <Star className={`w-3 h-3 ${message.favorite ? 'fill-current text-amber-500' : ''}`} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => onCopyMessage(message.text, index)}
+                className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-sm text-gray-400 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                aria-label="메시지 복사"
+                title="복사"
+              >
+                {isCopied
+                  ? <Check className="w-3 h-3 text-green-500" />
+                  : <Copy className="w-3 h-3" />
+                }
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="py-2.5 px-4 rounded-2xl max-w-[85%] bg-primary text-white">
+          <p className="m-0 text-sm">{message.text}</p>
+          <p className="mt-1 text-[11px] text-white/70">
+            {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}, (prev, next) => (
+  prev.message === next.message
+  && prev.index === next.index
+  && prev.isExpanded === next.isExpanded
+  && prev.isCopied === next.isCopied
+));
+
 export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
   const { isLoggedIn } = useAuthSession();
   const isMobile = useIsMobile();
@@ -206,7 +364,12 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
       const next = new Set(prev);
       next.has(index) ? next.delete(index) : next.add(index);
       return next;
-    });
+}, (prevProps, nextProps) => (
+  prevProps.message === nextProps.message
+  && prevProps.index === nextProps.index
+  && prevProps.isExpanded === nextProps.isExpanded
+  && prevProps.isCopied === nextProps.isCopied
+));
   };
 
   const rateLimitCopy = (() => {
@@ -433,140 +596,18 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
 
   const renderConversationMessages = () => (
     <>
-      {messages.map((message, index) => {
-        if (message.sender === 'bot' && !message.text) return null;
-
-        const isStreamError = message.sender === 'bot' && message.isError === true;
-        const isCancelled = message.sender === 'bot' && message.cancelled === true;
-        const isFavoritable = message.sender === 'bot' && message.status === 'COMPLETED' && !message.isSystem;
-
-        return (
-          <div
-            key={message.id ?? index}
-            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            {message.sender === 'bot' ? (
-              <div className="group relative max-w-[85%]">
-                <div
-                  className={`
-                    py-2.5 px-4 rounded-2xl
-                    ${isStreamError
-                      ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700/40'
-                      : isCancelled
-                        ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-700/40'
-                        : 'bg-gray-100 dark:bg-secondary/80 text-gray-900 dark:text-white border border-gray-300 dark:border-white/10'
-                    }
-                  `}
-                >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} className="text-sm prose dark:prose-invert max-w-none">
-                    {isStreamError
-                      ? '응답 중 오류가 발생했습니다. 다시 시도해주세요.'
-                      : message.text}
-                  </ReactMarkdown>
-                  <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                    {isCancelled && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-1.5 py-0.5 dark:bg-amber-400/10 dark:border-amber-400/30 dark:text-amber-200">
-                        응답 취소됨
-                      </span>
-                    )}
-                    {message.cached && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5 dark:bg-amber-400/10 dark:border-amber-400/30 dark:text-amber-400">
-                        <Zap className="w-2.5 h-2.5" />
-                        빠른 응답
-                      </span>
-                    )}
-                    {message.favorite && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5 dark:bg-emerald-400/10 dark:border-emerald-400/30 dark:text-emerald-200">
-                        <Star className="w-2.5 h-2.5 fill-current" />
-                        즐겨찾기
-                      </span>
-                    )}
-                    <p className="text-[11px] text-gray-500 dark:text-gray-300 m-0">
-                      {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
-                {message.strategy === 'llm_knowledge_db_unavailable' && (
-                  <div className="mt-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700 dark:border-orange-700/40 dark:bg-orange-900/20 dark:text-orange-300">
-                    ⚠️ 현재 통계 DB에 일시적으로 접근할 수 없어 일반 지식 기반으로 답변드렸습니다. 수치는 부정확할 수 있습니다.
-                  </div>
-                )}
-                {!isStreamError && !isCancelled && (() => {
-                  const visibleTools = (message.toolCalls ?? []).filter(
-                    tc => TOOL_NAME_KO[tc.toolName] !== null && TOOL_NAME_KO[tc.toolName] !== undefined,
-                  );
-                  if (visibleTools.length === 0) return null;
-                  const isExpanded = expandedToolCalls.has(index);
-                  return (
-                    <div className="mt-1.5 ml-1">
-                      <button
-                        type="button"
-                        onClick={() => toggleToolCalls(index)}
-                        className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                      >
-                        <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`} />
-                        AI 검색 도구 {visibleTools.length}개
-                      </button>
-                      {isExpanded && (
-                        <ul className="mt-1 space-y-0.5 list-none p-0 m-0">
-                          {visibleTools.map((tc, toolIndex) => {
-                            const label = TOOL_NAME_KO[tc.toolName];
-                            const params = formatToolParams(tc.parameters);
-                            return (
-                              <li key={toolIndex} className="flex items-start gap-1 text-[10px] text-gray-500 dark:text-gray-400">
-                                <span className="mt-0.5 shrink-0">╰</span>
-                                <span>
-                                  <span className="font-medium text-gray-600 dark:text-gray-300">{label}</span>
-                                  {params && <span className="text-gray-400 dark:text-gray-500 ml-1">{params}</span>}
-                                </span>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  );
-                })()}
-                {!isStreamError && (
-                  <div className="absolute -top-2 -right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                    {isFavoritable && (
-                      <button
-                        type="button"
-                        onClick={(event) => { void handleFavoriteToggleClick(message, event); }}
-                        data-testid="chatbot-message-favorite-toggle"
-                        className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-sm text-gray-400 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        aria-label={message.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
-                        title={message.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
-                      >
-                        <Star className={`w-3 h-3 ${message.favorite ? 'fill-current text-amber-500' : ''}`} />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleCopyMessage(message.text, index)}
-                      className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-sm text-gray-400 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      aria-label="메시지 복사"
-                      title="복사"
-                    >
-                      {copiedIndex === index
-                        ? <Check className="w-3 h-3 text-green-500" />
-                        : <Copy className="w-3 h-3" />
-                      }
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="py-2.5 px-4 rounded-2xl max-w-[85%] bg-primary text-white">
-                <p className="m-0 text-sm">{message.text}</p>
-                <p className="mt-1 text-[11px] text-white/70">
-                  {message.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {messages.map((message, index) => (
+        <ChatConversationMessage
+          key={message.id ?? index}
+          message={message}
+          index={index}
+          isExpanded={expandedToolCalls.has(index)}
+          isCopied={copiedIndex === index}
+          onCopyMessage={handleCopyMessage}
+          onToggleToolCalls={toggleToolCalls}
+          onFavoriteToggle={handleFavoriteToggleClick}
+        />
+      ))}
       {isTyping && (
         <div className="flex justify-start">
           <div className="chatbot-typing-text text-sm text-zinc-500 dark:text-zinc-300 leading-6" aria-live="polite">
@@ -738,6 +779,7 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
       {/* Chat Window - 모바일: 전체화면 / 데스크톱: 우측하단 팝업 */}
       {isOpen && (
         <div
+          data-testid="chatbot-panel"
           className={`
             ${isClosing ? 'animate-fade-out-down' : 'animate-fade-in-up'}
             fixed flex flex-col overflow-hidden
@@ -999,6 +1041,7 @@ export default function ChatBot({ autoOpen = false, onClosed }: ChatBotProps) {
       {!isOpen && !autoOpen && (
           <button
           type="button"
+          data-testid="chatbot-launcher"
           onClick={() => setIsOpen(true)}
           className="fixed w-14 h-14 sm:w-16 sm:h-16 sm:min-h-[64px] sm:min-w-[64px] md:w-18 md:h-18 rounded-full bg-primary border-none
                      shadow-[0_10px_25px_rgba(0,0,0,0.3)] cursor-pointer

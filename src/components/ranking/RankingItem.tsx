@@ -1,5 +1,5 @@
 // components/ranking/RankingItem.tsx
-import { useRef } from 'react';
+import React, { useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { Button } from '../ui/button';
 import { X, GripVertical } from 'lucide-react';
@@ -7,12 +7,12 @@ import TeamLogo from '../TeamLogo';
 import { RankingItemProps } from '../../types/ranking';
 import { PLAYOFF_TEAMS } from '../../constants/ranking';
 
-export default function RankingItem({ 
-  team, 
-  index, 
-  alreadySaved, 
+const RankingItem = React.memo(function RankingItem({
+  team,
+  index,
+  alreadySaved,
   onRemove,
-  onMove 
+  onMove
 }: RankingItemProps) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -87,4 +87,6 @@ export default function RankingItem({
       </div>
     </div>
   );
-}
+});
+
+export default RankingItem;

@@ -499,10 +499,7 @@ export const resolveCoachBriefingPolicy = ({
     canCallAI &&
     isCoachStateEnabledForAuto,
   );
-  const autoEnabled = Boolean(
-    autoWindow &&
-    (isPostseasonGame || isMeaningfulGame),
-  );
+  const autoEnabled = autoWindow;
   const forceManual = Boolean(isScheduledGame && !autoEnabled);
 
   return {
