@@ -97,6 +97,7 @@ describe('Game Prediction', () => {
         captureAuthEvents?: boolean;
         seedAuth?: boolean;
         persistedAuthHint?: boolean;
+        waitForScheduleRange?: boolean;
         path?: string;
     } = {}) => {
         const {
@@ -104,6 +105,7 @@ describe('Game Prediction', () => {
             captureAuthEvents = false,
             seedAuth = true,
             persistedAuthHint = false,
+            waitForScheduleRange = true,
             path = '/prediction',
         } = options;
         const fakeToken = 'prediction-spec-token';
@@ -205,7 +207,9 @@ describe('Game Prediction', () => {
             cy.setCookie('Authorization', fakeToken);
         }
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
-        cy.wait('@getScheduleRange');
+        if (waitForScheduleRange) {
+            cy.wait('@getScheduleRange');
+        }
     };
 
     const installSubmitVote = (delayMs = 0) => {
@@ -221,22 +225,14 @@ describe('Game Prediction', () => {
     };
 
     beforeEach(() => {
-        cy.visit('about:blank');
-        cy.window().then((win) => {
-            win.sessionStorage.clear();
-            win.sessionStorage.removeItem('prediction:run-session:v1');
-            win.sessionStorage.removeItem('prediction:run-session');
-            win.localStorage.removeItem('kbo-theme');
-            win.localStorage.removeItem('prediction:run-session');
-            win.localStorage.removeItem('prediction:run-session:v1');
-        });
-        (cy as any).login('user');
+        cy.clearCookies();
+        cy.clearLocalStorage();
         (cy as any).mockAPI();
 
         // Force date to 2026-02-03 12:00:00 KST (approx)
         // Using UTC date that results in the same date string for getTodayString
         const now = new Date('2026-02-03T12:00:00').getTime();
-        cy.clock(now, ['Date', 'setTimeout', 'clearTimeout']); // mock Date and timers for deterministic execution
+        cy.clock(now, ['Date', 'setTimeout', 'clearTimeout']).as('predictionClock'); // mock Date and timers for deterministic execution
 
         rangeSchedulePayload = defaultRangeSchedulePayload.map((item) => ({
             ...item,
@@ -1099,7 +1095,7 @@ describe('Game Prediction', () => {
             });
         }).as('coachAnalyzeSingleFlight');
 
-        openPredictionPage();
+        openPredictionPage({ waitForScheduleRange: false });
         cy.wait('@getGameDetail');
         cy.tick(2000);
         cy.wait('@getRankingsSingleFlight');
@@ -1195,6 +1191,7 @@ describe('Game Prediction', () => {
             body: { message: 'Unauthorized' },
         }).as('getMeUnauthorized');
 
+        cy.get('@predictionClock').invoke('restore');
         openPredictionPage({ seedAuth: false });
         cy.contains('한화 이글스').should('be.visible');
         cy.contains('button', '로그인').should('be.visible');
@@ -1213,6 +1210,7 @@ describe('Game Prediction', () => {
             body: { message: 'Unauthorized' },
         }).as('getMeUnauthorized');
 
+        cy.get('@predictionClock').invoke('restore');
         openPredictionPage({
             seedAuth: false,
             persistedAuthHint: true,

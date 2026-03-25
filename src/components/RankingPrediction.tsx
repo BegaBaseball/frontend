@@ -85,14 +85,14 @@ export default function RankingPrediction() {
   // 예측 불가 기간 UI
   if (!isPredictionPeriod) {
     return (
-      <div className="text-center py-20">
-        <h2 className="text-2xl font-bold mb-4 text-primary">
+      <Card className="rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-10 text-center shadow-sm dark:bg-card dark:border-border sm:px-8 sm:py-16">
+        <h2 className="mb-3 text-2xl font-bold text-primary">
           순위 예측 종료
         </h2>
-        <p className="text-gray-600">
+        <p className="mx-auto max-w-sm text-sm leading-relaxed text-gray-600 dark:text-gray-300 sm:text-base">
           순위 예측은 11월 1일부터 5월 31일까지 가능합니다.
         </p>
-      </div>
+      </Card>
     );
   }
 

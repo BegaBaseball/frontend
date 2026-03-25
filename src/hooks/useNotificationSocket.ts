@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 
-import { useAuthProfileActions, useAuthSession } from '../store/authStore';
+import { useAuthSession } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { NotificationData } from '../types/notification';
 import { SERVER_BASE_URL } from '../constants/config';
@@ -9,7 +9,6 @@ import { NOTIFICATION_SOCKET_DESTINATION } from '../utils/socketDestinations';
 
 export const useNotificationSocket = (enabled = true) => {
     const { isLoggedIn, userId } = useAuthSession();
-    const { fetchProfileAndAuthenticate } = useAuthProfileActions();
     const addNotification = useNotificationStore((state) => state.addNotification);
     const clientRef = useRef<Client | null>(null);
 
@@ -63,8 +62,6 @@ export const useNotificationSocket = (enabled = true) => {
                     try {
                         const notification: NotificationData = JSON.parse(message.body);
                         addNotification(notification);
-                        // 알림 수신 시 사용자 정보(포인트 등) 최신화
-                        fetchProfileAndAuthenticate();
                     } catch (error) {
                         console.error('Failed to parse notification:', error);
                     }
@@ -104,5 +101,5 @@ export const useNotificationSocket = (enabled = true) => {
                 clientRef.current = null;
             }
         };
-    }, [enabled, isLoggedIn, userId, addNotification, fetchProfileAndAuthenticate]); // isLoggedIn/userId 변경 시(로그인/로그아웃) 재실행
+    }, [enabled, isLoggedIn, userId, addNotification]); // isLoggedIn/userId 변경 시(로그인/로그아웃) 재실행
 };

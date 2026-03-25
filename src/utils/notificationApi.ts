@@ -81,7 +81,7 @@ const request = async <T = unknown>(endpoint: string, options?: RequestInit, bas
         'Content-Type': 'application/json',
         ...headers,
       },
-      signal: options?.signal as any,
+      signal: options?.signal ?? undefined,
     });
 
     return response.status === 204 ? ({} as T) : (response.data as unknown as T);

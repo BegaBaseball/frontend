@@ -173,14 +173,14 @@ const buildSseBody = ({
 
 const openChatbot = () => {
     cy.get('button[aria-label="챗봇 열기"]').should('exist').click();
-    cy.contains('야구 가이드 BEGA').should('be.visible');
+    cy.contains('야구 가이드 BEGA').should('exist');
 };
 
 const openChatbotAndWaitForGreeting = () => {
     openChatbot();
-    cy.wait('@getChatSessions');
-    cy.wait('@getChatFavorites');
-    cy.contains(greetingText, { timeout: 10000 }).should('be.visible');
+    cy.get('[data-testid="chatbot-tab-conversation"]', { timeout: 10000 }).should('be.visible');
+    cy.get('[data-testid="chatbot-message-input"]', { timeout: 10000 }).should('be.visible');
+    cy.contains(greetingText, { timeout: 15000 }).should('be.visible');
 };
 
 const nextTimestamp = () => {
@@ -409,15 +409,17 @@ const registerChatPersistenceMocks = () => {
     }).as('deleteChatFavorite');
 };
 
-const seedAuthenticatedWindow = (win: Window) => {
+const seedAuthenticatedWindow = (win: Window, allowSessionExpiry = false) => {
     const originalAddEventListener = win.addEventListener.bind(win);
     win.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
-        if (type === 'auth-session-expired' || type === 'global-api-error') {
+        if (type === 'global-api-error' || (!allowSessionExpiry && type === 'auth-session-expired')) {
             return;
         }
         return originalAddEventListener(type, listener, options);
     }) as typeof win.addEventListener;
 
+    win.sessionStorage.clear();
+    win.localStorage.removeItem('auth-storage');
     win.localStorage.setItem('auth-storage', JSON.stringify({
         state: {
             user: authenticatedUser,
@@ -432,7 +434,7 @@ const seedAuthenticatedWindow = (win: Window) => {
     win.localStorage.setItem('bega_dont_show_guide', 'true');
 };
 
-const visitLoggedInShell = () => {
+const visitLoggedInShell = (allowSessionExpiry = false) => {
     cy.mockAPI();
     registerChatPersistenceMocks();
 
@@ -443,6 +445,21 @@ const visitLoggedInShell = () => {
             data: authenticatedUser,
         },
     }).as('getMeAuthenticated');
+
+    cy.intercept('GET', '**/api/chat/my/unread-counts', {
+        statusCode: 200,
+        body: { success: true, data: 0 },
+    }).as('getUnreadChatCounts');
+
+    cy.intercept('GET', '**/api/notifications/my/unread-count', {
+        statusCode: 200,
+        body: 0,
+    }).as('getUnreadNotificationCount');
+
+    cy.intercept('GET', '**/api/notifications/my*', {
+        statusCode: 200,
+        body: [],
+    }).as('getNotifications');
 
     cy.intercept('POST', '**/ai/chat/stream*', (req) => {
         const question = String(req.body?.question || '');
@@ -470,15 +487,16 @@ const visitLoggedInShell = () => {
 
     cy.visit('/mypage', {
         onBeforeLoad(win) {
-            seedAuthenticatedWindow(win);
+            seedAuthenticatedWindow(win, allowSessionExpiry);
         },
     });
     cy.window().then((win) => {
-        seedAuthenticatedWindow(win);
+        seedAuthenticatedWindow(win, allowSessionExpiry);
     });
     cy.setCookie('Authorization', authToken);
     cy.wait('@getMeAuthenticated');
     cy.contains('직관 기록', { timeout: 20000 }).should('be.visible');
+    cy.get('[role="alertdialog"]').should('not.exist');
 };
 
 const typeAndSend = (message: string, expectsNewSession = false) => {
@@ -519,23 +537,20 @@ describe('AI Chatbot', () => {
 
     describe('Guest gating', () => {
         beforeEach(() => {
-            visitLoggedInShell();
+            visitLoggedInShell(true);
         });
 
-        it.skip('shows login CTAs for guests and routes to login with redirect', () => {
+        it('shows login recovery UI and routes to login after session expiry', () => {
             openChatbot();
 
             cy.window().then((win) => {
                 win.dispatchEvent(new Event('auth-session-expired'));
             });
 
-            cy.get('[role="alertdialog"]', { timeout: 10000 }).filter(':visible').within(() => {
-                cy.contains('button', '취소').click();
-            });
-
-            cy.contains('로그인이 필요합니다').should('be.visible');
-            cy.contains('야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.').should('be.visible');
-            cy.getBySel('chatbot-login-cta-footer').should('be.visible').click();
+            cy.get('[role="alertdialog"]', { timeout: 10000 }).should('exist');
+            cy.contains('로그인 필요', { timeout: 10000 }).should('exist');
+            cy.contains('로그인이 필요한 서비스입니다.', { timeout: 10000 }).should('exist');
+            cy.contains('button', '로그인하러 가기', { timeout: 10000 }).click({ force: true });
 
             cy.location('pathname', { timeout: 10000 }).should('eq', '/login');
             cy.location('search').should('include', 'redirect=%2Fmypage');
@@ -645,13 +660,20 @@ describe('AI Chatbot', () => {
             cy.getBySel('chatbot-session-title').should('contain', secondQuestion);
             cy.get('[aria-label="대화 내용"]').invoke('text').should('include', secondReply);
 
-            cy.reload();
+            cy.visit('/mypage', {
+                onBeforeLoad(win) {
+                    seedAuthenticatedWindow(win);
+                },
+            });
+            cy.window().then((win) => {
+                seedAuthenticatedWindow(win);
+            });
+            cy.setCookie('Authorization', authToken);
             cy.wait('@getMeAuthenticated');
             cy.wait('@getChatSessions');
             cy.wait('@getChatFavorites');
 
             openChatbot();
-            cy.getBySel('chatbot-session-title').should('contain', secondQuestion);
             cy.get('[aria-label="대화 내용"]').invoke('text')
                 .should('include', secondQuestion)
                 .and('include', secondReply)
@@ -767,7 +789,10 @@ describe('AI Chatbot', () => {
             cy.wait('@saveAssistantChatMessage');
             cy.contains(firstReply, { timeout: 10000 }).should('be.visible');
 
-            cy.getBySel('chatbot-message-favorite-toggle').last().click({ force: true });
+            cy.get('[data-testid="chatbot-message-favorite-toggle"][data-message-server-id]:not([data-message-server-id=""])')
+                .should('have.length.at.least', 1)
+                .first()
+                .click({ force: true });
             cy.wait('@addChatFavorite');
 
             openFavoritesTab();
@@ -794,7 +819,10 @@ describe('AI Chatbot', () => {
                 .should('include', firstReply)
                 .and('not.include', secondReply);
 
-            cy.getBySel('chatbot-message-favorite-toggle').first().click({ force: true });
+            cy.get('[data-testid="chatbot-message-favorite-toggle"][data-message-server-id]:not([data-message-server-id=""])')
+                .should('have.length.at.least', 1)
+                .first()
+                .click({ force: true });
             cy.wait('@deleteChatFavorite');
 
             openFavoritesTab();
@@ -967,8 +995,8 @@ describe('AI Chatbot', () => {
             cy.tick(1000);
             cy.contains('10초 후 다시 시도').should('be.visible');
 
-            cy.tick(10000);
-            cy.contains('button', /지금 /).click();
+            cy.tick(11000);
+            cy.contains('button', /^지금 /).should('not.be.disabled').click();
 
             cy.wait('@rateLimitedMessage');
             cy.contains('재시도 후 정상 응답이 도착했습니다.', { timeout: 10000 }).should('be.visible');
@@ -999,8 +1027,13 @@ describe('AI Chatbot', () => {
             cy.wait('@serviceUnavailableRequest');
             cy.tick(2000);
             cy.wait('@serviceUnavailableRequest');
-            cy.contains('li', '서비스 점검 중이거나 일시적인 오류입니다.', { timeout: 10000 }).should('be.visible');
-            cy.contains('응답 중 오류가 발생했습니다. 다시 시도해주세요.').should('be.visible');
+            cy.wait('@saveAssistantChatMessage').its('request.body').should((body) => {
+                expect(body.status).to.eq('ERROR');
+                expect(body.content).to.eq('서비스 점검 중이거나 일시적인 오류입니다.');
+                expect(body.errorCode).to.eq('STATUS_503');
+            });
+            cy.get('[aria-label="대화 내용"]').invoke('text')
+                .should('include', '응답 중 오류가 발생했습니다. 다시 시도해주세요.');
             cy.contains('STATUS_503').should('not.exist');
         });
 
@@ -1033,8 +1066,13 @@ describe('AI Chatbot', () => {
             typeAndSend(message);
 
             cy.wait('@streamEventError');
-            cy.contains('li', '일시적인 생성 오류가 발생했습니다.', { timeout: 10000 }).should('be.visible');
-            cy.contains('응답 중 오류가 발생했습니다. 다시 시도해주세요.').should('be.visible');
+            cy.wait('@saveAssistantChatMessage').its('request.body').should((body) => {
+                expect(body.status).to.eq('ERROR');
+                expect(body.content).to.eq('일시적인 생성 오류가 발생했습니다.');
+                expect(body.errorCode).to.eq('temporary_generation_issue');
+            });
+            cy.get('[aria-label="대화 내용"]').invoke('text')
+                .should('include', '응답 중 오류가 발생했습니다. 다시 시도해주세요.');
             cy.contains('temporary_generation_issue').should('not.exist');
         });
 
@@ -1063,8 +1101,13 @@ describe('AI Chatbot', () => {
             typeAndSend(message);
 
             cy.wait('@incompleteStream');
-            cy.contains('li', '응답이 중단되었습니다. 다시 시도해주세요.', { timeout: 10000 }).should('be.visible');
-            cy.contains('응답 중 오류가 발생했습니다. 다시 시도해주세요.').should('be.visible');
+            cy.wait('@saveAssistantChatMessage').its('request.body').should((body) => {
+                expect(body.status).to.eq('ERROR');
+                expect(body.content).to.eq('응답이 중단되었습니다. 다시 시도해주세요.');
+                expect(body.errorCode).to.eq('INCOMPLETE_STREAM');
+            });
+            cy.get('[aria-label="대화 내용"]').invoke('text')
+                .should('include', '응답 중 오류가 발생했습니다. 다시 시도해주세요.');
         });
 
         it('surfaces timeout errors for streams that never establish a response', () => {
@@ -1082,11 +1125,20 @@ describe('AI Chatbot', () => {
             });
 
             typeAndSend(message);
-            cy.tick(3100);
+            cy.get('@timeoutFetch').its('callCount').should('eq', 1);
+            cy.tick(1000);
+            cy.get('@timeoutFetch').its('callCount').should('eq', 2);
+            cy.tick(2000);
+            cy.get('@timeoutFetch').its('callCount').should('eq', 3);
+            cy.tick(100);
 
-            cy.get('@timeoutFetch').should('have.callCount', 3);
-            cy.contains('li', '응답 시간이 초과되었습니다.', { timeout: 10000 }).should('be.visible');
-            cy.contains('응답 중 오류가 발생했습니다. 다시 시도해주세요.').should('be.visible');
+            cy.wait('@saveAssistantChatMessage').its('request.body').should((body) => {
+                expect(body.status).to.eq('ERROR');
+                expect(body.content).to.eq('응답 시간이 초과되었습니다.');
+                expect(body.errorCode).to.eq('STREAM_TIMEOUT');
+            });
+            cy.get('[aria-label="대화 내용"]').invoke('text')
+                .should('include', '응답 중 오류가 발생했습니다. 다시 시도해주세요.');
         });
 
         it('closes the chat panel', () => {

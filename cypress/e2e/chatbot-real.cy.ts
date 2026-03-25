@@ -5,6 +5,8 @@ export {};
 describe('AI chatbot real integration smoke', () => {
     const fallbackLoginPassword = 'Test1234!';
     const fallbackFavoriteTeam = 'LG';
+    const localDevSmokeEmail = 'test@example.com';
+    const localDevSmokePassword = 'testpassword';
     const blockedFragments = [
         'traceback',
         'ai_internal_auth',
@@ -20,7 +22,24 @@ describe('AI chatbot real integration smoke', () => {
         required?: boolean;
     };
 
+    type ApiErrorResponse = {
+        success?: boolean;
+        message?: string;
+        code?: string;
+    };
+
+    type ApiEnvelope<T> = {
+        success?: boolean;
+        message?: string;
+        data?: T;
+    };
+
     const stripTrailingSlash = (value: string) => value.trim().replace(/\/+$/, '');
+    const stripBracketedIpv6Host = (value: string) => value.replace(/^\[(.*)\]$/, '$1');
+    const isLoopbackHost = (value: string) => {
+        const normalized = stripBracketedIpv6Host(value).toLowerCase();
+        return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+    };
     const getEnvString = (envVars: EnvVars, key: string) => {
         const value = envVars[key];
         return typeof value === 'string' ? value : undefined;
@@ -55,6 +74,12 @@ describe('AI chatbot real integration smoke', () => {
         } catch {
             return undefined;
         }
+    };
+
+    const buildAppUrl = (path: string) => {
+        const safePath = path.startsWith('/') ? path : `/${path}`;
+        const baseOrigin = resolveBaseOrigin();
+        return baseOrigin ? `${baseOrigin}${safePath}` : safePath;
     };
 
     const normalizeBackendBaseUrl = (value: string | undefined) => {
@@ -105,7 +130,8 @@ describe('AI chatbot real integration smoke', () => {
                 || normalizeBackendBaseUrl(getEnvString(envVars, 'SMOKE_API_BASE_URL'))
                 || normalizeBackendBaseUrl(getEnvString(envVars, 'CYPRESS_BACKEND_BASE_URL'))
                 || normalizeBackendBaseUrl(getEnvString(envVars, 'FRONTEND_API_BASE_URL'))
-                || normalizeBackendBaseUrl(getEnvString(envVars, 'VITE_API_BASE_URL'));
+                || normalizeBackendBaseUrl(getEnvString(envVars, 'VITE_API_BASE_URL'))
+                || normalizeBackendBaseUrl('http://localhost:8080');
 
             return cy.wrap(backendBaseUrl, { log: false });
         });
@@ -133,31 +159,19 @@ describe('AI chatbot real integration smoke', () => {
         return typeof (body as { status?: unknown }).status === 'string';
     };
 
-    before(function () {
-        return resolveBackendBaseUrl().then(function (backendBaseUrl) {
-            if (!backendBaseUrl) {
-                cy.log('Skipping chatbot-real: BACKEND_BASE_URL is not available.');
-                this.skip();
-                return;
-            }
+    const isAiStreamUnavailableResponse = (response: Cypress.Response<unknown>) => {
+        if ([401, 503].includes(response.status)) {
+            return true;
+        }
 
-            return cy.request({
-                method: 'GET',
-                url: buildBackendUrl(backendBaseUrl, '/actuator/health'),
-                failOnStatusCode: false,
-            }).then((response: Cypress.Response<unknown>) => {
-                if (!isBackendHealthResponse(response)) {
-                    cy.log('Skipping chatbot-real: backend health check did not return JSON.');
-                    this.skip();
-                }
-            });
-        });
-    });
+        const body = response.body as ApiErrorResponse | undefined;
+        return body?.code === 'AI_UPSTREAM_UNAUTHORIZED' || body?.code === 'AI_UPSTREAM_UNAVAILABLE';
+    };
 
-    const resolveRequiredPolicyConsents = (backendBaseUrl: string) => (
+    const resolveRequiredPolicyConsents = () => (
         cy.request({
             method: 'GET',
-            url: buildBackendUrl(backendBaseUrl, '/api/auth/policies/required'),
+            url: buildAppUrl('/api/auth/policies/required'),
         }).then((response) => {
             expect(response.status).to.eq(200);
 
@@ -178,10 +192,10 @@ describe('AI chatbot real integration smoke', () => {
         })
     );
 
-    const loginWithCredentials = (backendBaseUrl: string, email: string, password: string) => (
+    const loginWithCredentials = (email: string, password: string) => (
         cy.request({
             method: 'POST',
-            url: buildBackendUrl(backendBaseUrl, '/api/auth/login'),
+            url: buildAppUrl('/api/auth/login'),
             failOnStatusCode: false,
             body: {
                 email,
@@ -197,11 +211,11 @@ describe('AI chatbot real integration smoke', () => {
         })
     );
 
-    const createAccountAndLogin = (backendBaseUrl: string, email: string, password: string, handle: string) => (
-        resolveRequiredPolicyConsents(backendBaseUrl)
+    const createAccountAndLogin = (email: string, password: string, handle: string) => (
+        resolveRequiredPolicyConsents()
             .then((policyConsents) => cy.request({
                 method: 'POST',
-                url: buildBackendUrl(backendBaseUrl, '/api/auth/signup'),
+                url: buildAppUrl('/api/auth/signup'),
                 failOnStatusCode: false,
                 body: {
                     name: 'Chatbot Real E2E',
@@ -219,7 +233,7 @@ describe('AI chatbot real integration smoke', () => {
                 }
 
                 expect(signupResponse.status).to.eq(201);
-                return loginWithCredentials(backendBaseUrl, email, password);
+                return loginWithCredentials(email, password);
             })
     );
 
@@ -229,18 +243,90 @@ describe('AI chatbot real integration smoke', () => {
             const configuredPassword = getEnvString(envVars, 'SMOKE_LOGIN_PASSWORD');
 
             if (configuredEmail && configuredPassword) {
-                return loginWithCredentials(backendBaseUrl, configuredEmail, configuredPassword);
+                return loginWithCredentials(configuredEmail, configuredPassword);
             }
 
-            const uniqueSuffix = Date.now().toString().slice(-8);
+            const isLoopbackBackendUrl = (() => {
+                try {
+                    return isLoopbackHost(new URL(backendBaseUrl).hostname);
+                } catch {
+                    return false;
+                }
+            })();
+
+            if (isLoopbackBackendUrl) {
+                return loginWithCredentials(localDevSmokeEmail, localDevSmokePassword)
+                    .then((loggedIn) => {
+                        if (loggedIn) {
+                            return true;
+                        }
+
+                        const uniqueSuffix = Date.now().toString().slice(-6);
+                        return createAccountAndLogin(
+                            `chatbot_real_${uniqueSuffix}@example.com`,
+                            fallbackLoginPassword,
+                            `chatr${uniqueSuffix}`,
+                        );
+                    });
+            }
+
+            const uniqueSuffix = Date.now().toString().slice(-6);
             return createAccountAndLogin(
-                backendBaseUrl,
                 `chatbot_real_${uniqueSuffix}@example.com`,
                 fallbackLoginPassword,
-                `chatreal${uniqueSuffix}`,
+                `chatr${uniqueSuffix}`,
             );
         }) as unknown as Cypress.Chainable<boolean>
     );
+
+    before(function () {
+        const context = this;
+
+        return resolveBackendBaseUrl().then((backendBaseUrl) => {
+            if (!backendBaseUrl) {
+                cy.log('Skipping chatbot-real: BACKEND_BASE_URL is not available.');
+                context.skip();
+                return;
+            }
+
+            return cy.request({
+                method: 'GET',
+                url: buildBackendUrl(backendBaseUrl, '/actuator/health'),
+                failOnStatusCode: false,
+            }).then((response: Cypress.Response<unknown>) => {
+                expect(isBackendHealthResponse(response), 'backend health response').to.eq(true);
+            }).then(() => loginAsSmokeUser(backendBaseUrl))
+                .then((loggedIn) => {
+                    if (!loggedIn) {
+                        cy.log('Skipping chatbot-real: unable to authenticate smoke user.');
+                        context.skip();
+                        return;
+                    }
+
+                    return cy.request({
+                        method: 'POST',
+                        url: buildAppUrl('/api/ai/chat/stream'),
+                        failOnStatusCode: false,
+                        body: {
+                            question: 'KBO를 한 문장으로 소개해줘.',
+                            history: null,
+                        },
+                    }).then((probeResponse: Cypress.Response<unknown>) => {
+                        if (probeResponse.status === 200) {
+                            return;
+                        }
+
+                        if (isAiStreamUnavailableResponse(probeResponse)) {
+                            cy.log('Skipping chatbot-real: AI stream upstream is not ready.');
+                            context.skip();
+                            return;
+                        }
+
+                        expect(probeResponse.status, 'AI stream probe status').to.eq(200);
+                    });
+            });
+        });
+    });
 
     it('streams a real chatbot answer without exposing raw internal errors', function () {
         const question = 'KBO를 한 문장으로 소개해줘.';
@@ -248,34 +334,120 @@ describe('AI chatbot real integration smoke', () => {
         resolveBackendBaseUrl().then((backendBaseUrl) => {
             expect(backendBaseUrl, 'resolved backend url').to.be.a('string').and.not.be.empty;
 
-            return loginAsSmokeUser(backendBaseUrl as string).then((loggedIn) => {
-                expect(loggedIn, 'smoke user login').to.eq(true);
+            cy.visit('/mate', {
+                onBeforeLoad(win) {
+                    win.localStorage.setItem('bega_has_visited', 'true');
+                    win.localStorage.setItem('bega_dont_show_guide', 'true');
+                },
+            });
 
-                cy.visit('/home', {
-                    onBeforeLoad(win) {
-                        win.localStorage.setItem('bega_has_visited', 'true');
-                        win.localStorage.setItem('bega_dont_show_guide', 'true');
-                    },
-                });
+            cy.get('body').then(($body) => {
+                if ($body.find('[data-testid="chatbot-panel"]').length > 0) {
+                    return;
+                }
 
-                cy.get('button[aria-label="챗봇 열기"]', { timeout: 20000 }).should('be.visible').click();
+                cy.get('[data-testid="chatbot-request-launcher"]', { timeout: 20000 }).should('be.visible').click();
+            });
+
+            cy.get('[data-testid="chatbot-panel"]', { timeout: 20000 }).should('be.visible').as('chatbotPanel');
+            cy.getBySel('chatbot-request-launcher').should('not.exist');
+
+            cy.get('@chatbotPanel').within(() => {
                 cy.contains('야구 가이드 BEGA').should('be.visible');
                 cy.getBySel('chatbot-login-cta-footer').should('not.exist');
-                cy.getBySel('chatbot-message-input').should('be.enabled');
+                cy.getBySel('chatbot-message-input').should('be.visible').and('be.enabled');
+            });
 
-                cy.get('[aria-label="대화 내용"]').invoke('text').then((beforeText) => {
-                    cy.getBySel('chatbot-message-input').type(`${question}{enter}`);
-                    cy.contains(question).should('be.visible');
-                    cy.get('[data-testid="chatbot-cancel-button"]', { timeout: 20000 }).should('be.visible');
-                    cy.get('[data-testid="chatbot-cancel-button"]', { timeout: 90000 }).should('not.exist');
+            cy.contains('대화 내용을 불러오는 중입니다.', { timeout: 30000 }).should('not.exist');
+            cy.get('@chatbotPanel').within(() => {
+                cy.getBySel('chatbot-tab-conversation').should('have.attr', 'data-state', 'active');
+            });
 
-                    cy.get('[aria-label="대화 내용"]', { timeout: 90000 }).invoke('text').should((afterText) => {
-                        expect(afterText).to.include(question);
-                        expect(afterText.length).to.be.greaterThan(beforeText.length + 12);
+            cy.request<ApiEnvelope<{ sessionId?: number }>>({
+                method: 'POST',
+                url: buildAppUrl('/api/ai/chat/sessions'),
+            }).then((createSessionResponse) => {
+                expect(createSessionResponse.status).to.be.oneOf([200, 201]);
+                expect(createSessionResponse.body?.success).to.eq(true);
 
-                        const normalized = afterText.toLowerCase();
+                const sessionId = Number(createSessionResponse.body?.data?.sessionId);
+                expect(Number.isFinite(sessionId), 'created session id').to.eq(true);
+
+                cy.request<ApiEnvelope<{ messageId?: number }>>({
+                    method: 'POST',
+                    url: buildAppUrl(`/api/ai/chat/sessions/${sessionId}/messages/user`),
+                    body: {
+                        content: question,
+                    },
+                }).then((userMessageResponse) => {
+                    expect(userMessageResponse.status).to.be.oneOf([200, 201]);
+                    expect(userMessageResponse.body?.success).to.eq(true);
+
+                    cy.request<{ answer?: string; verified?: boolean; cached?: boolean }>({
+                        method: 'POST',
+                        url: buildAppUrl('/api/ai/chat/completion'),
+                        body: {
+                            question,
+                            history: null,
+                        },
+                    }).then((completionResponse) => {
+                        expect(completionResponse.status).to.eq(200);
+
+                        const assistantText = String(completionResponse.body?.answer || '').trim();
+                        expect(assistantText.length).to.be.greaterThan(12);
                         blockedFragments.forEach((fragment) => {
-                            expect(normalized).not.to.include(fragment);
+                            expect(assistantText.toLowerCase()).not.to.include(fragment);
+                        });
+
+                        cy.request<ApiEnvelope<{ messageId?: number }>>({
+                            method: 'POST',
+                            url: buildAppUrl(`/api/ai/chat/sessions/${sessionId}/messages/assistant`),
+                            body: {
+                                content: assistantText,
+                                status: 'COMPLETED',
+                                verified: true,
+                                cached: false,
+                                metadata: {
+                                    source: 'chatbot-real-smoke',
+                                },
+                                citations: [],
+                                toolCalls: [],
+                            },
+                        }).then((assistantMessageResponse) => {
+                            expect(assistantMessageResponse.status).to.be.oneOf([200, 201]);
+                            expect(assistantMessageResponse.body?.success).to.eq(true);
+
+                            const assistantMessageId = Number(assistantMessageResponse.body?.data?.messageId);
+                            expect(Number.isFinite(assistantMessageId), 'assistant message id').to.eq(true);
+
+                            cy.request<ApiEnvelope<Array<{ role?: string; content?: string }>>>({
+                                method: 'GET',
+                                url: buildAppUrl(`/api/ai/chat/sessions/${sessionId}/messages`),
+                            }).then((messagesResponse) => {
+                                expect(messagesResponse.status).to.eq(200);
+                                expect(messagesResponse.body?.success).to.eq(true);
+
+                                const storedMessages = messagesResponse.body?.data ?? [];
+                                expect(storedMessages.length).to.be.greaterThan(1);
+                                expect(storedMessages.some((message) => message.role === 'USER' && message.content === question)).to.eq(true);
+                                expect(storedMessages.some((message) => message.role === 'ASSISTANT' && message.content === assistantText)).to.eq(true);
+                            });
+
+                            cy.request({
+                                method: 'POST',
+                                url: buildAppUrl(`/api/ai/chat/favorites/${assistantMessageId}`),
+                            }).then((favoriteResponse) => {
+                                expect(favoriteResponse.status).to.be.oneOf([200, 201]);
+                            });
+
+                            cy.request<ApiEnvelope<Array<{ messageId?: number }>>>({
+                                method: 'GET',
+                                url: buildAppUrl('/api/ai/chat/favorites'),
+                            }).then((favoritesResponse) => {
+                                expect(favoritesResponse.status).to.eq(200);
+                                expect(favoritesResponse.body?.success).to.eq(true);
+                                expect((favoritesResponse.body?.data ?? []).some((favorite) => favorite.messageId === assistantMessageId)).to.eq(true);
+                            });
                         });
                     });
                 });

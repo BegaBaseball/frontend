@@ -204,7 +204,7 @@ describe('Home error UX', () => {
     cy.get('@getHomeBootstrapDelayed.all').should('have.length', 1);
   });
 
-  it('falls back to legacy widget data when widgets returns 500 without breaking the page', () => {
+  it('surfaces widget errors when widgets returns 500 without breaking the page', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,
       body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
@@ -215,78 +215,18 @@ describe('Home error UX', () => {
       body: { message: 'forced-widgets-failure' },
     }).as('getHomeWidgetsFailure');
 
-    cy.intercept('GET', '**/api/cheer/posts/hot*', {
-      statusCode: 200,
-      body: {
-        content: [
-          {
-            id: 91,
-            teamId: 'LG',
-            author: '테스트 작성자',
-            authorHandle: '@fallback',
-            content: '홈 fallback 인기글',
-            createdAt: '2026-03-16T04:30:00Z',
-            comments: 2,
-            likes: 3,
-            bookmarkCount: 0,
-            views: 12,
-            isHot: true,
-            isBookmarked: false,
-            isOwner: false,
-            repostCount: 0,
-            repostedByMe: false,
-            postType: 'NORMAL',
-            imageUrls: [],
-          },
-        ],
-        last: true,
-        totalPages: 1,
-        totalElements: 1,
-        size: 5,
-        number: 0,
-      },
-    }).as('getLegacyHotPosts');
-
-    cy.intercept('GET', '**/api/parties?page=0&size=1000*', {
-      statusCode: 200,
-      body: [
-        {
-          id: 301,
-          hostId: 701,
-          hostName: '메이트 호스트',
-          hostBadge: 'NEW',
-          hostAverageRating: 4.5,
-          hostReviewCount: 3,
-          teamId: 'LG',
-          gameDate: '2026-03-20',
-          gameTime: '18:30',
-          stadium: '잠실야구장',
-          homeTeam: 'LG',
-          awayTeam: 'LT',
-          section: '1루석',
-          maxParticipants: 4,
-          currentParticipants: 1,
-          description: '홈 fallback 메이트',
-          ticketVerified: false,
-          status: 'PENDING',
-          ticketPrice: 22000,
-          createdAt: '2026-03-16T04:30:00Z',
-        },
-      ],
-    }).as('getLegacyFeaturedMates');
-
     cy.visit('/home', {
       onBeforeLoad: seedAnonymousHomeState,
     });
 
     cy.wait('@getHomeBootstrap');
     cy.wait('@getHomeWidgetsFailure');
-    cy.wait('@getLegacyHotPosts');
-    cy.wait('@getLegacyFeaturedMates');
-
-    cy.contains('홈 fallback 인기글', { timeout: 15000 }).should('be.visible');
-    cy.contains('LG 트윈스 vs 롯데 자이언츠').should('be.visible');
-    cy.get('@getHomeWidgetsFailure.all').should('have.length', 1);
+    cy.contains('인기 응원글을 불러오지 못했습니다.', { timeout: 15000 }).should('be.visible');
+    cy.contains('직관 메이트 목록을 불러오지 못했습니다.').should('be.visible');
+    cy.contains('button', '다시 시도').should('be.visible');
+    cy.get('@getHomeWidgetsFailure.all').then((requests) => {
+      expect(requests.length).to.be.within(1, 2);
+    });
     cy.contains('KBO LEAGUE').should('be.visible');
   });
 

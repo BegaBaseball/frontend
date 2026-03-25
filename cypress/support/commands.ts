@@ -104,6 +104,7 @@ Cypress.Commands.add('login', (userType = 'user') => {
         const seedAuthState = (win: Window) => {
             win.localStorage.setItem('auth-storage', JSON.stringify(authState));
             win.localStorage.setItem('accessToken', fakeToken);
+            win.localStorage.setItem('auth-bootstrap-hint', '1');
             win.localStorage.setItem('bega_has_visited', 'true');
             win.localStorage.setItem('bega_dont_show_guide', 'true');
         };
@@ -149,6 +150,7 @@ Cypress.Commands.add('login', (userType = 'user') => {
                 seedAuthState(win);
             },
         });
+        cy.wait('@sessionGetMe');
         cy.window().then((win) => {
             seedAuthState(win);
         });

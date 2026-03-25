@@ -1,6 +1,36 @@
 /// <reference types="cypress" />
 
 describe('Notification Panel', () => {
+    const bootstrapAuthenticatedWindow = (win: Window) => {
+        const originalAddEventListener = win.addEventListener.bind(win);
+        win.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+            if (type === 'auth-session-expired' || type === 'global-api-error') {
+                return;
+            }
+            return originalAddEventListener(type, listener, options);
+        }) as typeof win.addEventListener;
+        win.localStorage.setItem('auth-storage', JSON.stringify({
+            state: {
+                user: {
+                    id: 123,
+                    email: 'test@example.com',
+                    name: 'TestUser',
+                    handle: '@testuser',
+                    favoriteTeam: 'HH',
+                    role: 'ROLE_USER',
+                    hasPassword: true,
+                    profileImageUrl: null,
+                },
+                isLoggedIn: true,
+                isAdmin: false,
+            },
+            version: 0,
+        }));
+        win.localStorage.setItem('accessToken', 'fake-access-token');
+        win.localStorage.setItem('bega_has_visited', 'true');
+        win.localStorage.setItem('bega_dont_show_guide', 'true');
+    };
+
     const normalizeNotifications = (payload: unknown): Array<{ isRead: boolean }> => {
         if (!Array.isArray(payload)) {
             const wrapped = (payload as { data?: unknown })?.data;
@@ -66,26 +96,43 @@ describe('Notification Panel', () => {
     ]);
 
     beforeEach(() => {
-        cy.login('user');
         cy.mockAPI();
+        cy.intercept('GET', '**/api/auth/mypage*', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    id: 123,
+                    email: 'test@example.com',
+                    name: 'TestUser',
+                    handle: 'testuser',
+                    favoriteTeam: 'HH',
+                    role: 'ROLE_USER',
+                    hasPassword: true,
+                    profileImageUrl: null,
+                },
+            },
+        }).as('getMeInitial');
+
+        cy.visit('/mypage', {
+            onBeforeLoad: bootstrapAuthenticatedWindow,
+        });
+        cy.wait('@getMeInitial');
+        cy.contains('TestUser', { timeout: 15000 }).should('be.visible');
     });
 
     it('shows unread badge count on bell icon', () => {
         const { notifications } = createNotifications();
+        const unreadCount = notifications.filter((notification) => !notification.isRead).length;
 
         cy.intercept('GET', '**/api/notifications/my', {
             statusCode: 200,
             body: notifications,
         }).as('getNotifications');
 
-        cy.visit('/home');
         cy.get('button[aria-label^="알림"]').click();
-        cy.wait('@getNotifications').then((interception) => {
-            const unreadNotifications = interception.response?.body;
-            const unreadCount = getUnreadCountFromNotifications(unreadNotifications);
-
-            cy.get('button[aria-label^="알림"]').find('span').contains(`${unreadCount}`).should('be.visible');
-        });
+        cy.contains('파티 신청 접수').should('be.visible');
+        cy.get('button[aria-label^="알림"]').find('span').contains(`${unreadCount}`).should('be.visible');
     });
 
     it('opens notification panel and renders notification list', () => {
@@ -96,7 +143,6 @@ describe('Notification Panel', () => {
             body: notifications,
         }).as('getNotifications');
 
-        cy.visit('/home');
         cy.get('button[aria-label^="알림"]').click();
         cy.wait('@getNotifications');
 
@@ -120,7 +166,6 @@ describe('Notification Panel', () => {
             body: notifications,
         }).as('getNotifications');
 
-        cy.visit('/home');
         cy.get('button[aria-label^="알림"]').click();
         cy.wait('@getNotifications');
 
@@ -150,11 +195,10 @@ describe('Notification Panel', () => {
             body: { success: true },
         }).as('readOne');
 
-        cy.visit('/home');
         cy.get('button[aria-label^="알림"]').click();
         cy.wait('@getNotifications');
 
-        cy.contains(/모두 읽음|전체 읽음|모두 읽기|전체 확인/i).click();
+        cy.contains('button', /모두 읽음|전체 읽음|모두 읽기|전체 확인/i).click({ force: true });
         cy.wait('@readOne');
     });
 });

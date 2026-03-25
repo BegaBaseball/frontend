@@ -79,17 +79,19 @@ const shouldSkipAuthSessionHandling = (requestConfig: any): boolean =>
     requestConfig?.skipAuthSessionHandling === true;
 
 const createManualRetryHandler = (requestConfig: any) => {
-    return () => api({
-        ...requestConfig,
-        headers: requestConfig?.headers ? { ...requestConfig.headers } : undefined,
-        signal: undefined,
-    });
+    return async () => {
+        await api({
+            ...requestConfig,
+            headers: requestConfig?.headers ? { ...requestConfig.headers } : undefined,
+            signal: undefined,
+        });
+    };
 };
 
 const buildGlobalErrorDetail = (error: any): GlobalApiErrorDetail => {
     const parsedError = parseError(error);
     const requestMethod = (error.config?.method || 'get').toUpperCase();
-    const endpoint = normalizeRequestPath(error.config?.url) ?? null;
+    const endpoint = normalizeRequestPath(error.config?.url);
     const eventId = reportApiError({
         message: parsedError.message,
         statusCode: parsedError.statusCode,

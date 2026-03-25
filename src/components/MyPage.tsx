@@ -349,9 +349,9 @@ export default function MyPage() {
               email={email}
               savedFavoriteTeam={savedFavoriteTeam}
               userRole={user?.role}
-              userProvider={(user as any)?.provider}
+              userProvider={user?.provider}
               initialBio={user?.bio}
-              hasPassword={(user as any)?.hasPassword}
+              hasPassword={user?.hasPassword}
               activeSection={
                 viewMode === 'accountSettings'
                   ? 'accountSettings'
@@ -378,7 +378,7 @@ export default function MyPage() {
             <PasswordChangeSection
               onCancel={() => setViewMode('editProfile')}
               onSuccess={() => setViewMode('diary')}
-              hasPassword={(user as any)?.hasPassword}
+              hasPassword={user?.hasPassword}
             />
           )
         }

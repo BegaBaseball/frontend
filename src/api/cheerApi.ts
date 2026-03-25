@@ -632,13 +632,3 @@ export async function fetchPostImages(postId: number): Promise<PostImageDto[]> {
     const response = await api.get(`/cheer/posts/${postId}/images`);
     return response.data;
 }
-// Cheer Battle Status
-export interface CheerBattleStatus {
-    stats: Record<string, number>;
-    myVote: string | null;
-}
-
-export async function getCheerBattleStatus(gameId: string): Promise<CheerBattleStatus> {
-    const response = await api.get(`/cheer/battle/${gameId}/status`);
-    return response.data;
-}

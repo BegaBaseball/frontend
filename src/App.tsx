@@ -181,18 +181,18 @@ const AuthBootstrap = () => {
         useAuthStore.setState({ isAuthLoading: false });
       }
 
-      let timeoutId: number | undefined;
+      let timeoutId: ReturnType<typeof globalThis.setTimeout> | undefined;
       let idleId: number | undefined;
 
       if ('requestIdleCallback' in window) {
-        idleId = (window as any).requestIdleCallback(runBootstrap, { timeout: 1500 });
+        idleId = window.requestIdleCallback(runBootstrap, { timeout: 1500 });
       } else {
         timeoutId = globalThis.setTimeout(runBootstrap, 800);
       }
 
       return () => {
         if (idleId !== undefined && 'cancelIdleCallback' in window) {
-          (window as any).cancelIdleCallback(idleId);
+          window.cancelIdleCallback(idleId);
         }
         if (timeoutId !== undefined) {
           globalThis.clearTimeout(timeoutId);

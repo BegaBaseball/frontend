@@ -99,13 +99,13 @@ export default function Prediction() {
     };
 
     if ('requestIdleCallback' in window) {
-      idleId = (window as any).requestIdleCallback(markReady, { timeout: 1500 });
+      idleId = window.requestIdleCallback(markReady, { timeout: 1500 });
     }
     timeoutId = window.setTimeout(markReady, 900);
 
     return () => {
       if (idleId !== null && 'cancelIdleCallback' in window) {
-        (window as any).cancelIdleCallback(idleId);
+        window.cancelIdleCallback(idleId);
       }
       if (timeoutId !== null) {
         window.clearTimeout(timeoutId);
@@ -706,15 +706,15 @@ export default function Prediction() {
             {/* Leaderboard Link */}
             <Link
               to="/leaderboard"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full hover:border-emerald-400/60 transition-colors group shadow-sm dark:bg-card dark:border-border dark:hover:border-emerald-400/70 dark:shadow-md"
+              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm transition-colors hover:border-emerald-400/60 group dark:bg-card dark:border-border dark:hover:border-emerald-400/70 dark:shadow-md sm:px-3"
             >
               <Gamepad2 className="w-4 h-4 text-slate-500 group-hover:text-emerald-600 dark:text-gray-300 dark:group-hover:text-emerald-300 transition-colors" />
               <span className="text-sm font-semibold text-slate-600 dark:text-gray-200 hidden sm:inline">랭킹</span>
             </Link>
             {isLoggedIn && (
-              <div className="flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full shadow-sm dark:bg-emerald-900/40 dark:border-emerald-800/40 dark:shadow-md">
+              <div className="flex md:hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 shadow-sm dark:bg-emerald-900/40 dark:border-emerald-800/40 dark:shadow-md sm:px-3">
                 <Coins className="w-4 h-4 text-emerald-700 fill-emerald-700 dark:text-emerald-200 dark:fill-emerald-200" />
-                <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-100 tabular-nums">
+                <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-100 tabular-nums sm:text-sm">
                   {userCheerPoints.toLocaleString()} P
                 </span>
               </div>
@@ -726,10 +726,10 @@ export default function Prediction() {
 
         {/* Seat View CTA */}
         {isLoggedIn && (
-          <div className="flex justify-end mb-1">
+          <div className="mb-2 flex justify-start sm:justify-end">
             <Link
               to="/mypage"
-              className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
+              className="inline-flex max-w-full items-center gap-1 text-[11px] leading-relaxed text-emerald-600 hover:underline dark:text-emerald-400 sm:text-xs"
             >
               📸 다이어리 시야 사진 공유 → 리더보드 +50P
             </Link>
@@ -986,10 +986,10 @@ export default function Prediction() {
             </div>
 
             {/* 메인 콘텐츠 (flex 기반으로 콘텐츠 묶기) */}
-            <div className="p-5 sm:p-6 flex flex-row items-center justify-start sm:justify-center gap-6 sm:gap-12 overflow-x-auto">
+            <div className="grid grid-cols-2 gap-3.5 p-4 sm:flex sm:flex-row sm:items-center sm:justify-center sm:gap-12 sm:p-6">
 
               {/* 왼쪽: 미니 원형 게이지 */}
-              <div className="flex flex-col items-center justify-center shrink-0">
+              <div className="col-span-2 flex flex-col items-center justify-center pb-1 sm:col-span-1 sm:shrink-0 sm:pb-0">
                 <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-1.5">
                   <svg
                     className="w-full h-full transform -rotate-90 absolute top-0 left-0"
@@ -1028,15 +1028,15 @@ export default function Prediction() {
               <div className="hidden sm:block w-px h-16 bg-slate-200 dark:bg-slate-700/50 shrink-0" />
 
               {/* 오른쪽: 스탯 그룹 */}
-              <div className="flex items-center gap-6 sm:gap-10 shrink-0">
+              <div className="col-span-2 grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-10 sm:shrink-0">
 
                 {/* 총 예측 */}
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-0.5 min-w-0">
+                <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
                   <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                     <Hash className="w-3.5 h-3.5" />
                     <span className="text-[11px] sm:text-xs font-semibold">총 예측</span>
                   </div>
-                  <div className="flex items-baseline gap-0.5">
+                  <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
                     <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">
                       {predictionStats.totalPredictions}
                     </span>
@@ -1045,12 +1045,12 @@ export default function Prediction() {
                 </div>
 
                 {/* 적중 */}
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-0.5 min-w-0">
+                <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
                   <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span className="text-[11px] sm:text-xs font-semibold">적중</span>
                   </div>
-                  <div className="flex items-baseline gap-0.5">
+                  <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
                     <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">
                       {predictionStats.correctPredictions}
                     </span>
@@ -1059,12 +1059,12 @@ export default function Prediction() {
                 </div>
 
                 {/* 연속 적중 */}
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-0.5 min-w-0">
+                <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
                   <div className="flex items-center gap-1 text-orange-600 dark:text-orange-500">
                     <Flame className="w-3.5 h-3.5" />
                     <span className="text-[11px] sm:text-xs font-semibold">연속 적중</span>
                   </div>
-                  <div className="flex items-baseline gap-0.5">
+                  <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
                     <span className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums leading-none">
                       {predictionStats.streak}
                     </span>
