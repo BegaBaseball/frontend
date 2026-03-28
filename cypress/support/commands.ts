@@ -14,7 +14,7 @@ declare global {
             /**
              * Custom command to setup default API mocks.
              */
-            mockAPI(): Chainable<void>;
+            mockAPI(options?: { skipRankings?: boolean }): Chainable<void>;
 
             /**
              * Custom command to select by data-testid.
@@ -164,7 +164,7 @@ Cypress.Commands.add('login', (userType = 'user') => {
     });
 });
 
-Cypress.Commands.add('mockAPI', () => {
+Cypress.Commands.add('mockAPI', (options: { skipRankings?: boolean } = {}) => {
     // Mock reissue usage in mockAPI
     cy.intercept('**/auth/reissue*', {
         statusCode: 200,
@@ -274,10 +274,6 @@ Cypress.Commands.add('mockAPI', () => {
             },
             games: [],
             scheduledGamesWindow: [],
-            rankingSeasonYear: 2025,
-            rankingSourceMessage: '2025 시즌 순위 데이터',
-            isOffSeason: true,
-            rankings: [],
         },
     }).as('getHomeBootstrap');
 
@@ -286,6 +282,12 @@ Cypress.Commands.add('mockAPI', () => {
         body: {
             hotCheerPosts: [],
             featuredMates: [],
+            rankingSnapshot: {
+                rankingSeasonYear: 2025,
+                rankingSourceMessage: '2025 시즌 순위 데이터',
+                isOffSeason: true,
+                rankings: [],
+            },
         },
     }).as('getHomeWidgets');
 
@@ -336,10 +338,17 @@ Cypress.Commands.add('mockAPI', () => {
         });
     }).as('getMatches');
 
-    cy.intercept('**/api/kbo/rankings/*', {
-        statusCode: 200,
-        body: []
-    }).as('getRankings');
+    if (!options.skipRankings) {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
+            statusCode: 200,
+            body: {
+                rankingSeasonYear: 2026,
+                rankingSourceMessage: '2026 시즌 데이터가 아직 집계되지 않았습니다.',
+                isOffSeason: false,
+                rankings: [],
+            }
+        }).as('getRankings');
+    }
 
     // Navbar Mocks
     cy.intercept('**/api/notifications/my', {

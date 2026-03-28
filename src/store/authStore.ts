@@ -27,6 +27,20 @@ const clearLegacyAuthTokenStorage = () => {
 
 clearLegacyAuthTokenStorage();
 
+const extractHttpStatus = (error: unknown): number | undefined => {
+  if (!error || typeof error !== 'object' || !('response' in (error as Record<string, unknown>))) {
+    return undefined;
+  }
+
+  const response = (error as { response?: { status?: number } }).response;
+  return response && typeof response.status === 'number' ? response.status : undefined;
+};
+
+const shouldKeepBootstrapHintOnError = (error: unknown): boolean => {
+  const status = extractHttpStatus(error);
+  return status === undefined || status >= 500;
+};
+
 export const authStoreApi = {
   fetchCurrentUserProfile: authApi.fetchCurrentUserProfile,
   logoutUser: authApi.logoutUser,
@@ -113,7 +127,9 @@ export const useAuthStore = create<AuthStore>()(
             // 401 errors are handled by interceptor (redirect to login)
             // For other errors during initial auth check, we just reset state silently to avoid modal on startup
             clearSessionScopedQueries();
-            setPersistedAuthBootstrapHint(false);
+            if (!shouldKeepBootstrapHintOnError(error)) {
+              setPersistedAuthBootstrapHint(false);
+            }
             set({
               user: null,
               isAuthLoading: false

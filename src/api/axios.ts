@@ -17,11 +17,20 @@ const api = axios.create({
 
 let reissueInFlight: Promise<void> | null = null;
 let hasSessionExpired = false;
+const isAuthTraceEnabled = (): boolean => import.meta.env.DEV;
+
+const traceAuthEvent = (label: string) => {
+    if (!isAuthTraceEnabled()) {
+        return;
+    }
+
+    const now = performance.now().toFixed(2);
+    console.debug(`[auth-axios][${now}ms] ${label}`);
+};
 
 const skipReissueRequestPaths = [
     '/auth/login',
     '/auth/signup',
-    '/auth/mypage',
     '/auth/reissue',
     '/auth/logout',
 ];
@@ -118,11 +127,16 @@ api.interceptors.response.use(
         const requestUrl = response.config?.url || '';
         if (requestUrl.includes('/auth/login') || requestUrl.includes('/auth/reissue') || requestUrl.includes('/auth/mypage')) {
             hasSessionExpired = false;
+            traceAuthEvent(`Session recovered by ${requestUrl}`);
         }
         return response;
     },
     async (error) => {
         const originalRequest = error.config;
+        const requestUrl = originalRequest?.url || '';
+        const requestMethod = (originalRequest?.method || 'get').toUpperCase();
+        const responseStatus = error.response?.status;
+        const skipAuthSessionHandling = shouldSkipAuthSessionHandling(originalRequest);
         const responseCode = error.response?.data?.code;
         const errorMessage = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
         const isCancelError = axios.isCancel(error)
@@ -130,6 +144,10 @@ api.interceptors.response.use(
             || error?.name === 'AbortError'
             || error?.name === 'CanceledError'
             || errorMessage.includes('canceled');
+
+        traceAuthEvent(
+          `Interceptor error ${requestMethod} ${requestUrl} status=${responseStatus ?? 'n/a'} code=${responseCode ?? 'n/a'} retry=${Boolean(originalRequest?._retry)} skipAuthSessionHandling=${skipAuthSessionHandling}`,
+        );
 
         if (isCancelError) {
             return Promise.reject(error);
@@ -151,14 +169,17 @@ api.interceptors.response.use(
 
             if (skipReissueRequestPaths.some((path) => originalRequest.url?.includes(path))) {
                 hasSessionExpired = false;
+                traceAuthEvent(`Skip reissue for ${requestUrl}`);
                 return Promise.reject(error);
             }
 
             originalRequest._retry = true;
             if (!reissueInFlight) {
+                traceAuthEvent(`Start reissue for ${requestUrl}`);
                 reissueInFlight = axios.post(`${API_BASE_URL}/auth/reissue`, {}, { withCredentials: true, skipGlobalErrorHandler: true, skipErrorReporting: true })
                     .then(() => {
                         hasSessionExpired = false;
+                        traceAuthEvent('Reissue succeeded');
                     })
                     .finally(() => {
                         reissueInFlight = null;
@@ -169,10 +190,12 @@ api.interceptors.response.use(
                 await reissueInFlight;
 
                 // 재발급 성공 시 원래 요청 재시도
+                traceAuthEvent(`Reissue completed, retrying ${requestUrl}`);
                 return api(originalRequest);
             } catch (reissueError) {
                 // 재발급 실패 시 (Refresh Token 만료 등)
-                if (shouldSkipAuthSessionHandling(originalRequest)) {
+                if (skipAuthSessionHandling) {
+                    traceAuthEvent(`Skip auth-session-expired for ${requestUrl} due skipAuthSessionHandling=true`);
                     return Promise.reject(reissueError);
                 }
 
@@ -185,7 +208,8 @@ api.interceptors.response.use(
                 return Promise.reject(reissueError);
             }
         } else if (error.response?.status === 401) {
-            if (shouldSkipAuthSessionHandling(originalRequest)) {
+            if (skipAuthSessionHandling) {
+                traceAuthEvent(`Skip auth-session-expired for ${requestUrl} due skipAuthSessionHandling=true`);
                 return Promise.reject(error);
             }
 
@@ -203,6 +227,7 @@ api.interceptors.response.use(
                 hasSessionExpired = true;
                 console.error('Session invalid. Please login again.');
                 window.dispatchEvent(new CustomEvent('auth-session-expired'));
+                traceAuthEvent(`auth-session-expired dispatched for ${requestUrl}`);
             }
         }
 

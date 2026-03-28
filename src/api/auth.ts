@@ -150,6 +150,7 @@ const normalizeAuthProfile = (payload: RawAuthProfileResponse): AuthProfile => {
 export const fetchCurrentUserProfile = async (): Promise<AuthProfile> => {
   const response = await api.get<RawAuthProfileResponse>('/auth/mypage', {
     skipGlobalErrorHandler: true,
+    skipAuthSessionHandling: true,
   });
   return normalizeAuthProfile(response.data);
 };

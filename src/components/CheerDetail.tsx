@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion, Variants } from 'framer-motion';
 import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
@@ -67,35 +66,6 @@ const detailDateFormatter = new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'long',
     timeStyle: 'short',
 });
-const commentListVariants: Variants = {
-    hidden: { opacity: 0.95 },
-    show: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.04,
-            delayChildren: 0.02,
-        },
-    },
-};
-const commentItemVariants: Variants = {
-    hidden: { opacity: 0, y: 8 },
-    show: {
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
-    },
-};
-const detailMotion = {
-    articleEnter: {
-        initial: { opacity: 0, y: 10 },
-        animate: { opacity: 1, y: 0 },
-    },
-    shortEnter: {
-        initial: { opacity: 0, y: 6 },
-        animate: { opacity: 1, y: 0 },
-    },
-};
-const actionButtonTransition = { type: 'spring' as const, stiffness: 360, damping: 22 };
 
 const blendHexColors = (baseHex: string, mixHex: string, mixWeight: number) => {
     const base = hexToRgb(normalizeHexColor(baseHex));
@@ -588,28 +558,15 @@ export default function CheerDetail() {
     return (
         <div className="min-h-screen bg-slate-50 pb-24 sm:pb-20 dark:bg-background">
             <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6 lg:px-8">
-                <motion.article
-                    initial={detailMotion.articleEnter.initial}
-                    animate={detailMotion.articleEnter.animate}
-                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                <article
                     className="relative mt-4 overflow-hidden rounded-[24px] border bg-white shadow-[0_20px_60px_-44px_rgba(15,23,42,0.42)] dark:bg-slate-950"
                     style={primaryBorderStyle}
                 >
                     <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: detailAccent }} />
 
                     <div className="relative px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
-                        <motion.div
-                            initial={detailMotion.shortEnter.initial}
-                            animate={detailMotion.shortEnter.animate}
-                            transition={{ duration: 0.3, delay: 0.02, ease: [0.22, 1, 0.36, 1] }}
-                            className="flex flex-col gap-4"
-                        >
-                            <motion.div
-                                initial={detailMotion.shortEnter.initial}
-                                animate={detailMotion.shortEnter.animate}
-                                transition={{ duration: 0.26, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
-                                className="flex items-start justify-between gap-4"
-                            >
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-1.5">
                                         <button
@@ -748,39 +705,32 @@ export default function CheerDetail() {
                                         </button>
                                     ) : null}
                                 </div>
-                            </motion.div>
+                            </div>
 
-                            <AnimatePresence>
-                                {isRepost && originalEmbeddedPost && (
-                                    <motion.div
-                                        key="repost-context"
-                                        initial={{ opacity: 0, y: -4, height: 0 }}
-                                        animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                        exit={{ opacity: 0, y: -4, height: 0 }}
-                                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                                        className="rounded-[20px] border p-3.5 backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4"
-                                        style={{
-                                            ...primaryBorderStyle,
-                                            ...surfaceTintStyle,
-                                        }}
-                                    >
-                                        <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: detailAccent }}>
-                                            {isQuoteRepost ? <Quote className="h-3.5 w-3.5" /> : <Repeat2 className="h-3.5 w-3.5" />}
-                                            <span>
-                                                {isSimpleRepost
-                                                    ? '원본 글의 반응과 댓글이 그대로 연결됩니다.'
-                                                    : '인용된 원문을 함께 확인할 수 있습니다.'}
-                                            </span>
-                                        </div>
-                                        {isQuoteRepost ? (
-                                            <EmbeddedPost
-                                                post={originalEmbeddedPost}
-                                                className="mt-4 bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-900"
-                                            />
-                                        ) : null}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                            {isRepost && originalEmbeddedPost && (
+                                <div
+                                    className="rounded-[20px] border p-3.5 backdrop-blur-sm transition-colors dark:border-white/10 dark:bg-white/[0.03] sm:p-4"
+                                    style={{
+                                        ...primaryBorderStyle,
+                                        ...surfaceTintStyle,
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: detailAccent }}>
+                                        {isQuoteRepost ? <Quote className="h-3.5 w-3.5" /> : <Repeat2 className="h-3.5 w-3.5" />}
+                                        <span>
+                                            {isSimpleRepost
+                                                ? '원본 글의 반응과 댓글이 그대로 연결됩니다.'
+                                                : '인용된 원문을 함께 확인할 수 있습니다.'}
+                                        </span>
+                                    </div>
+                                    {isQuoteRepost ? (
+                                        <EmbeddedPost
+                                            post={originalEmbeddedPost}
+                                            className="mt-4 bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-900"
+                                        />
+                                    ) : null}
+                                </div>
+                            )}
 
                             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_196px]">
                                 <div className="min-w-0">
@@ -827,15 +777,12 @@ export default function CheerDetail() {
                                         )}
 
                                         <div className="mt-4 grid grid-cols-4 gap-1.5">
-                                            <motion.button
+                                            <button
                                                 type="button"
-                                                whileHover={{ y: -1 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                transition={actionButtonTransition}
                                                 onClick={toggleLike}
                                                 aria-label={`좋아요 ${interactionLikeCount.toLocaleString()}`}
                                                 className={cn(
-                                                    'flex h-9 items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all sm:h-10 sm:gap-1',
+                                                    'flex h-9 items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all duration-150 hover:-translate-y-px active:scale-[0.98] sm:h-10 sm:gap-1',
                                                     interactionLikedByMe
                                                         ? 'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300'
                                                         : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:bg-slate-950'
@@ -843,20 +790,17 @@ export default function CheerDetail() {
                                             >
                                                 <Heart className={cn('h-3.5 w-3.5 flex-shrink-0 sm:h-4 sm:w-4', interactionLikedByMe && 'fill-current')} />
                                                 <span className="text-[11px] font-bold leading-none sm:text-[13px]">{interactionLikeCount.toLocaleString()}</span>
-                                            </motion.button>
+                                            </button>
 
-                                            <motion.button
+                                            <button
                                                 type="button"
-                                                whileHover={{ y: -1 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                transition={actionButtonTransition}
                                                 onClick={scrollToComments}
                                                 aria-label={`댓글 ${commentCount.toLocaleString()}`}
-                                                className="flex h-9 items-center justify-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 text-center text-slate-700 transition-all hover:border-sky-200 hover:bg-sky-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-10 sm:gap-1"
+                                                className="flex h-9 items-center justify-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 text-center text-slate-700 transition-all duration-150 hover:-translate-y-px hover:border-sky-200 hover:bg-sky-50 active:scale-[0.98] dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-10 sm:gap-1"
                                             >
                                                 <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 sm:h-4 sm:w-4" />
                                                 <span className="text-[11px] font-bold leading-none sm:text-[13px]">{commentCount.toLocaleString()}</span>
-                                            </motion.button>
+                                            </button>
 
                                             <Popover
                                                 open={isRepostPopoverOpen}
@@ -869,13 +813,10 @@ export default function CheerDetail() {
                                                 }}
                                             >
                                                 <PopoverTrigger asChild>
-                                                    <motion.button
+                                                    <button
                                                         type="button"
-                                                        whileHover={{ y: -1 }}
-                                                        whileTap={{ scale: 0.98 }}
-                                                        transition={actionButtonTransition}
                                                         className={cn(
-                                                            'flex h-9 items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all sm:h-10 sm:gap-1',
+                                                            'flex h-9 items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all duration-150 hover:-translate-y-px active:scale-[0.98] sm:h-10 sm:gap-1',
                                                             repostButtonActive
                                                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300'
                                                                 : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-emerald-500/20 dark:hover:bg-emerald-500/10'
@@ -885,7 +826,7 @@ export default function CheerDetail() {
                                                     >
                                                         <Repeat2 className="h-3.5 w-3.5 flex-shrink-0 sm:h-4 sm:w-4" />
                                                         <span className="text-[11px] font-bold leading-none sm:text-[13px]">{repostCount.toLocaleString()}</span>
-                                                    </motion.button>
+                                                    </button>
                                                 </PopoverTrigger>
                                                 <PopoverContent
                                                     className="w-56 p-0"
@@ -964,15 +905,12 @@ export default function CheerDetail() {
                                                 </PopoverContent>
                                             </Popover>
 
-                                            <motion.button
+                                            <button
                                                 type="button"
-                                                whileHover={{ y: -1 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                transition={actionButtonTransition}
                                                 onClick={toggleBookmark}
                                                 aria-label={`북마크 ${interactionBookmarkCount.toLocaleString()}`}
                                                 className={cn(
-                                                    'flex h-9 items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all sm:h-10 sm:gap-1',
+                                                    'flex h-9 items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all duration-150 hover:-translate-y-px active:scale-[0.98] sm:h-10 sm:gap-1',
                                                     interactionBookmarked
                                                         ? 'border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300'
                                                         : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-amber-500/20 dark:hover:bg-amber-500/10'
@@ -982,7 +920,7 @@ export default function CheerDetail() {
                                                 <span className="text-[11px] font-bold leading-none sm:text-[13px]">
                                                     {interactionBookmarkCount.toLocaleString()}
                                                 </span>
-                                            </motion.button>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -992,9 +930,9 @@ export default function CheerDetail() {
                                         className="rounded-[18px] border bg-white/85 p-3 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80"
                                         style={primaryBorderStyle}
                                     >
-                                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: detailAccent }}>
+                                        <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: detailAccent }}>
                                             응원 현황
-                                        </p>
+                                        </div>
                                         <div
                                             className="mt-2.5 rounded-[14px] border px-2.5 py-2"
                                             style={{
@@ -1038,13 +976,10 @@ export default function CheerDetail() {
                                     </div>
                                 </aside>
                             </div>
-                        </motion.div>
+                        </div>
 
-                        <motion.div
+                        <div
                             ref={commentsSectionRef}
-                            initial={detailMotion.shortEnter.initial}
-                            animate={detailMotion.shortEnter.animate}
-                            transition={{ duration: 0.26, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
                             className="mt-4 border-t border-slate-200/70 pt-4 dark:border-white/10"
                         >
                             <div className="mb-3">
@@ -1198,19 +1133,14 @@ export default function CheerDetail() {
                                             className="mb-4"
                                         />
                                     ) : null}
-                                    <motion.div
+                                    <div
                                         role="list"
                                         aria-label="댓글 목록"
                                         className="space-y-2"
-                                        variants={commentListVariants}
-                                        initial="hidden"
-                                        animate="show"
                                     >
                                         {comments.flatMap((comment, index) => [
-                                            <motion.div
+                                            <div
                                                 key={comment.id}
-                                                variants={commentItemVariants}
-                                                layout
                                                 role="listitem"
                                                 className="rounded-[18px] border border-slate-200 bg-white/85 px-3 py-2.5 shadow-sm dark:border-white/10 dark:bg-slate-900/80"
                                             >
@@ -1233,7 +1163,7 @@ export default function CheerDetail() {
                                                     onDelete={handleCommentDelete}
                                                     userHandle={authUserHandle}
                                                 />
-                                            </motion.div>,
+                                            </div>,
                                             index === 2 ? (
                                                 <AdSlot
                                                     key="cheer-detail-1"
@@ -1249,12 +1179,12 @@ export default function CheerDetail() {
                                                 />
                                             ) : null,
                                         ])}
-                                    </motion.div>
+                                    </div>
                                 </>
                             )}
-                        </motion.div>
+                        </div>
                     </div>
-                </motion.article>
+                </article>
                 <ReportModal
                     postId={parsedPostId}
                     isOpen={isReportModalOpen}

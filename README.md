@@ -339,13 +339,13 @@ docker-compose up -d --build
 
 이 경로는 로컬 확인용입니다. 운영 배포는 Cloudflare `wrangler deploy` 기준이며, worker 번들과 client asset은 `npm run build`에서 함께 생성됩니다.
 
-### Cloudflare 배포
+### Cloudflare Worker 배포
 
 1. 기본 env 점검: `VITE_SITE_URL=https://www.begabaseball.xyz VITE_API_BASE_URL=https://api.begabaseball.xyz npm run seo:env:check`
 2. 릴리즈 직전 strict 점검: `VITE_SITE_URL=... VITE_API_BASE_URL=... VITE_GA4_MEASUREMENT_ID=... VITE_GOOGLE_SITE_VERIFICATION=... VITE_NAVER_SITE_VERIFICATION=... npm run seo:env:check:strict`
 3. Cloudflare 로컬 확인: `npm run preview:cloudflare`
-4. 운영 배포: `npm run deploy:cloudflare`
-5. 배포 후 `https://begabaseball.xyz`가 `https://www.begabaseball.xyz`로 `301` 되는지, `/api/*`가 SPA로 떨어지지 않는지, OAuth2 스모크가 통과하는지 확인
+4. 운영 배포: `CLOUDFLARE_API_TOKEN=... npm run deploy:cloudflare`
+5. 배포 후 `https://begabaseball.xyz`가 `https://www.begabaseball.xyz`로 `301` 되는지, `*.pages.dev`가 `404`로 차단되는지, `/api/*`가 SPA로 떨어지지 않는지, `x-vercel-*` 응답 헤더가 사라졌는지, OAuth2 스모크가 통과하는지 확인
 
 핵심 구성:
 

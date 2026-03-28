@@ -85,7 +85,7 @@ test('persisted auth hint가 있으면 홈에서 deferred revalidation을 유지
   );
 });
 
-test('persisted auth hint가 있으면 prediction에서 deferred revalidation을 유지한다', () => {
+test('persisted auth hint가 있으면 prediction에서도 deferred revalidation을 유지한다', () => {
   assert.equal(
     resolveAuthBootstrapMode('/prediction', {
       isLoggedIn: false,

@@ -12,7 +12,6 @@ import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotP
 import { fetchTeamFranchiseMetadata } from '../api/teamFranchiseApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
-import { motion } from 'framer-motion';
 import TeamLogo from './TeamLogo';
 import CheerCard from './CheerCard';
 import CheerHot from './CheerHot';
@@ -758,30 +757,23 @@ export default function Cheer({ openComposerOnMount = false }: CheerProps) {
                                     {feedTabs.map((tab) => {
                                         const isActive = activeFeedTab === tab.key;
                                         return (
-                                            <motion.button
+                                            <button
                                                 key={tab.key}
                                                 type="button"
                                                 onClick={() => setActiveFeedTab(tab.key)}
-                                                whileHover={{ y: -1 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                                                 className={cn(
                                                     'relative px-4 py-2 min-h-11 flex items-center text-[14px] font-semibold rounded-full transition-all duration-200',
                                                     isActive
                                                         ? 'text-[#0F172A] dark:text-gray-100'
-                                                        : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-gray-300 dark:hover:bg-secondary dark:hover:text-white'
+                                                        : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-gray-300 dark:hover:bg-secondary dark:hover:text-white active:scale-[0.98]'
                                                 )}
                                                 style={isActive ? { color: teamAccent } : undefined}
                                             >
                                                 {isActive && (
-                                                    <motion.span
-                                                        layoutId="cheer-feed-tab-indicator"
-                                                        className="absolute inset-0 rounded-full bg-white dark:bg-card shadow-sm border border-black/5 dark:border-border"
-                                                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                                                    />
+                                                    <span className="absolute inset-0 rounded-full bg-white dark:bg-card shadow-sm border border-black/5 dark:border-border" />
                                                 )}
                                                 <span className="relative z-10">{tab.label}</span>
-                                            </motion.button>
+                                            </button>
                                         );
                                     })}
                                 </div>
