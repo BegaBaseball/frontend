@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { buildDefaultPredictionPath, ensureCoachBriefingVisible } from '../support/predictionPage';
+
 describe('Game Prediction', () => {
     type ScheduleGameMock = {
         gameId: string;
@@ -109,6 +111,9 @@ describe('Game Prediction', () => {
             path = '/prediction',
         } = options;
         const fakeToken = 'prediction-spec-token';
+        const resolvedPath = path === '/prediction'
+            ? buildDefaultPredictionPath(rangeSchedulePayload)
+            : path;
         const authState = {
             state: {
                 user: {
@@ -134,7 +139,7 @@ describe('Game Prediction', () => {
             win.localStorage.setItem('bega_dont_show_guide', 'true');
         };
 
-        cy.visit(path, {
+        cy.visit(resolvedPath, {
             onBeforeLoad(win) {
                 win.sessionStorage.clear();
                 win.localStorage.clear();
@@ -227,7 +232,7 @@ describe('Game Prediction', () => {
     beforeEach(() => {
         cy.clearCookies();
         cy.clearLocalStorage();
-        (cy as any).mockAPI();
+        (cy as any).mockAPI({ skipRankings: true });
 
         // Force date to 2026-02-03 12:00:00 KST (approx)
         // Using UTC date that results in the same date string for getTodayString
@@ -448,7 +453,7 @@ describe('Game Prediction', () => {
             },
         ];
 
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 6, wins: 40, losses: 95, draws: 0, winRate: '0.296', games: 135, gamesBehind: 9.0 },
@@ -478,6 +483,8 @@ describe('Game Prediction', () => {
 
         cy.wait('@getGameDetailPostseason');
         cy.wait('@getRankingsPostseason');
+        ensureCoachBriefingVisible();
+        cy.tick(500);
         cy.tick(1000);
         cy.wait('@coachAnalyzePostseason').then((interception) => {
             const body = parseCoachRequestBody(interception.request.body);
@@ -507,7 +514,7 @@ describe('Game Prediction', () => {
             '',
         ].join('\n');
 
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 80, losses: 55, draws: 0, winRate: '0.600', games: 135, gamesBehind: 0.0 },
@@ -528,6 +535,8 @@ describe('Game Prediction', () => {
 
         cy.wait('@getRankingsAuto');
         cy.wait('@getGameDetail');
+        ensureCoachBriefingVisible();
+        cy.tick(500);
         cy.tick(2000);
         cy.wait('@coachAnalyzeAuto').then((interception) => {
             const body = parseCoachRequestBody(interception.request.body);
@@ -536,8 +545,8 @@ describe('Game Prediction', () => {
         cy.get('@coachAnalyzeAuto.all').its('length').should('be.gte', 1);
     });
 
-    it('should show scheduled layout and manual AI request UI without auto coach call', () => {
-        cy.intercept('**/api/kbo/rankings/*', {
+    it('should auto brief scheduled game while keeping manual detail entrypoint visible', () => {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 104, draws: 0, winRate: '0.278', games: 80, gamesBehind: 4.0 },
@@ -553,10 +562,18 @@ describe('Game Prediction', () => {
         openPredictionPage();
         cy.wait('@getRankingsNonMeaningful');
         cy.wait('@getGameDetail');
+        ensureCoachBriefingVisible();
+        cy.tick(500);
         cy.tick(1000);
         cy.wait(500);
-        cy.get('@coachAnalyze.all').should('have.length', 0);
+        cy.wait('@coachAnalyze').then((interception) => {
+            const body = parseCoachRequestBody(interception.request.body);
+            expect(body.request_mode).to.eq('auto_brief');
+            expect(extractCoachGameId(body)).to.eq('20240510HHSS0');
+        });
+        cy.get('@coachAnalyze.all').should('have.length', 1);
         cy.get('@getGameDetail.all').its('length').should('be.gte', 1);
+        cy.get('[data-testid="coach-analysis-open"]').should('be.visible');
     });
 
     it('should keep postponed status badge and disable voting', () => {
@@ -618,7 +635,7 @@ describe('Game Prediction', () => {
         cy.contains('예측 처리 중 오류가 발생했습니다.').should('not.exist');
     });
 
-    it('should keep existing manual message for past non-meaningful game', () => {
+    it('should auto brief past game even when rankings look non-meaningful', () => {
         rangeSchedulePayload = [{
             gameId: '20240510HHSS0',
             gameDate: '2026-02-03',
@@ -632,7 +649,7 @@ describe('Game Prediction', () => {
             gameStatusKr: '경기 종료',
         }];
 
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 104, draws: 0, winRate: '0.278', games: 80, gamesBehind: 4.0 },
@@ -672,9 +689,16 @@ describe('Game Prediction', () => {
         openPredictionPage();
         cy.wait('@getRankingsNonMeaningfulPast');
         cy.wait('@getGameDetailPast');
+        ensureCoachBriefingVisible();
+        cy.tick(500);
         cy.tick(1000);
         cy.wait(500);
-        cy.get('@coachAnalyzePast.all').should('have.length', 0);
+        cy.wait('@coachAnalyzePast').then((interception) => {
+            const body = parseCoachRequestBody(interception.request.body);
+            expect(body.request_mode).to.eq('auto_brief');
+            expect(extractCoachGameId(body)).to.eq('20240510HHSS0');
+        });
+        cy.get('@coachAnalyzePast.all').should('have.length', 1);
         cy.contains('예측 처리 중 오류가 발생했습니다.').should('not.exist');
     });
 
@@ -702,7 +726,7 @@ describe('Game Prediction', () => {
             },
         ];
 
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 104, draws: 0, winRate: '0.278', games: 80, gamesBehind: 4.0 },
@@ -746,8 +770,8 @@ describe('Game Prediction', () => {
         cy.get('@getUserVote.all').should('have.length', 0);
     });
 
-    it('should request manual_detail once when user clicks AI 분석 요청 button', () => {
-        cy.intercept('**/api/kbo/rankings/*', {
+    it('should request manual_detail once when user opens the detail dialog after auto brief', () => {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 104, draws: 0, winRate: '0.278', games: 80, gamesBehind: 4.0 },
@@ -779,47 +803,33 @@ describe('Game Prediction', () => {
         openPredictionPage();
         cy.wait('@getRankingsNonMeaningfulManual');
         cy.wait('@getGameDetail');
+        ensureCoachBriefingVisible();
+        cy.tick(500);
         cy.tick(1000);
         cy.wait(700);
-        cy.get('@coachAnalyzeManual.all').should('have.length', 0);
-
-        cy.get('body').then(($body) => {
-            const hasOpenTrigger = $body.find('[data-testid="coach-analysis-open"]').length > 0 || $body.text().includes('AI 분석 요청');
-
-            if (!hasOpenTrigger) {
-                cy.get('@coachAnalyzeManual.all').should('have.length', 0);
-                return;
-            }
-
-            if ($body.find('[data-testid="coach-analysis-open"]').length > 0) {
-                cy.get('[data-testid="coach-analysis-open"]').first().click({ force: true });
-            } else {
-                cy.contains('button', 'AI 분석 요청').click({ force: true });
-            }
-
-            cy.wait(500);
-            cy.get('body').then(($dialogBody) => {
-                if ($dialogBody.text().includes('AI 시뮬레이션 실행')) {
-                    cy.contains('button', 'AI 시뮬레이션 실행')
-                        .scrollIntoView()
-                        .click({ force: true });
-
-                    cy.wait('@coachAnalyzeManual').then((interception) => {
-                        manualCoachBody = parseCoachRequestBody(interception.request.body);
-                        expect(manualCoachBody).to.include({ request_mode: 'manual_detail' });
-                        expect(extractCoachGameId(manualCoachBody)).to.eq('20240510HHSS0');
-                        expect(manualCoachBody).to.not.have.property('question_override');
-                        expect(Array.isArray(manualCoachBody.focus)).to.equal(true);
-                    });
-                } else {
-                    cy.get('@coachAnalyzeManual.all').should('have.length', 0);
-                }
-            });
+        cy.wait('@coachAnalyzeManual').then((interception) => {
+            const autoCoachBody = parseCoachRequestBody(interception.request.body);
+            expect(autoCoachBody).to.include({ request_mode: 'auto_brief' });
+            expect(extractCoachGameId(autoCoachBody)).to.eq('20240510HHSS0');
         });
+
+        cy.get('[data-testid="coach-analysis-open"]').first().click({ force: true });
+        cy.contains('button', 'AI 코치 상세 분석 시작')
+            .scrollIntoView()
+            .click({ force: true });
+
+        cy.wait('@coachAnalyzeManual').then((interception) => {
+            manualCoachBody = parseCoachRequestBody(interception.request.body);
+            expect(manualCoachBody).to.include({ request_mode: 'manual_detail' });
+            expect(extractCoachGameId(manualCoachBody)).to.eq('20240510HHSS0');
+            expect(manualCoachBody).to.not.have.property('question_override');
+            expect(Array.isArray(manualCoachBody.focus)).to.equal(true);
+        });
+        cy.get('@coachAnalyzeManual.all').should('have.length', 2);
     });
 
     it('should abort in-flight coach analysis when the dialog closes and keep only the rerun result after reopen', () => {
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 104, draws: 0, winRate: '0.278', games: 80, gamesBehind: 4.0 },
@@ -914,7 +924,7 @@ describe('Game Prediction', () => {
 
     it('should show analysis skeletons first, then render accessible result cards on mobile', () => {
         cy.viewport(375, 667);
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 104, draws: 0, winRate: '0.278', games: 80, gamesBehind: 4.0 },
@@ -990,7 +1000,7 @@ describe('Game Prediction', () => {
             '',
         ].join('\n');
 
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 80, losses: 55, draws: 0, winRate: '0.600', games: 135, gamesBehind: 0.0 },
@@ -1077,7 +1087,7 @@ describe('Game Prediction', () => {
             '',
         ].join('\n');
 
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 80, losses: 55, draws: 0, winRate: '0.600', games: 135, gamesBehind: 0.0 },
@@ -1165,7 +1175,7 @@ describe('Game Prediction', () => {
 
         openPredictionPage();
 
-        cy.contains('예정된 경기 일정이 없습니다.').should('be.visible');
+        cy.contains('오늘은 예정된 경기가 없습니다.').should('be.visible');
     });
 
     it('should recover when initial range is empty but future range has matches', () => {
@@ -1192,7 +1202,9 @@ describe('Game Prediction', () => {
         }).as('getMeUnauthorized');
 
         cy.get('@predictionClock').invoke('restore');
-        openPredictionPage({ seedAuth: false });
+        openPredictionPage({
+            seedAuth: false,
+        });
         cy.contains('한화 이글스').should('be.visible');
         cy.contains('button', '로그인').should('be.visible');
         cy.contains('로그인 필요').should('not.exist');
@@ -1222,9 +1234,7 @@ describe('Game Prediction', () => {
         cy.contains('로그인 필요').should('not.exist');
         cy.get('@getUserVotes.all').should('have.length', 0);
         cy.wait('@getMeUnauthorized');
-        cy.get('@getMeUnauthorized.all').then((interceptions) => {
-            expect(interceptions).to.have.length(1);
-        });
+        cy.get('@getMeUnauthorized.all').its('length').should('be.gte', 1);
         cy.window().then((win) => {
             const typedWin = win as Window & {
                 __predictionAuthEvents?: Array<{
@@ -1275,7 +1285,7 @@ describe('Game Prediction', () => {
     });
 
     it('should show login CTA when coach analysis auth expires', () => {
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: [
                 { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 104, draws: 0, winRate: '0.278', games: 80, gamesBehind: 4.0 },

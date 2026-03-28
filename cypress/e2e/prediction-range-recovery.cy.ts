@@ -98,7 +98,7 @@ describe('Prediction Range Recovery', () => {
             body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
         }).as('getVoteStatusRecovery');
 
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: baseRankings,
         }).as('getRankingsRecovery');
@@ -169,7 +169,7 @@ describe('Prediction Range Recovery', () => {
         });
         cy.clock(new Date('2026-02-22T12:00:00').getTime(), ['Date']);
         cy.login('user');
-        cy.mockAPI();
+        cy.mockAPI({ skipRankings: true });
         interceptPredictionCommon();
     });
 

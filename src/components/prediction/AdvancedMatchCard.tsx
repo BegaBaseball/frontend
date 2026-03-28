@@ -1,6 +1,4 @@
 import React, { Fragment, ReactNode, useState, useEffect, useRef, useMemo } from 'react';
-import styled, { keyframes, css } from 'styled-components';
-import { motion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { TrendingUp, ChevronLeft, ChevronRight, AlertTriangle, Clock3, Loader2 } from 'lucide-react';
@@ -27,7 +25,6 @@ import {
   formatTime,
   toNumericScore,
 } from '../../utils/inningScoreParser';
-import type { InningRow } from '../../utils/inningScoreParser';
 import { VotePercentageGauge } from './VotePercentageGauge';
 import { GameSummaryTimeline } from './GameSummaryTimeline';
 
@@ -51,36 +48,9 @@ interface AdvancedMatchCardProps {
   coachBriefing?: ReactNode;
 }
 
-const popIn = keyframes`
-  0% { transform: scale(0.8); opacity: 0; }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); opacity: 1; }
-`;
-
-const DetailWrapper = styled.div`
-  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
-`;
-
-const MetaBadge = styled.div`
-  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
-`;
-
-const TeamLogoBox = styled.div`
-  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
-`;
-
-const ScoreBox = styled.div<{ $visible: boolean }>`
-  opacity: ${(props) => (props.$visible ? 1 : 0)};
-  transform: ${(props) => (props.$visible ? 'scale(1)' : 'scale(0.8)')};
-  animation: ${(props) =>
-    props.$visible
-      ? css`${popIn} 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s backwards`
-      : 'none'};
-  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
-  will-change: transform, opacity;
-`;
-
-
+const surfaceTransitionStyle = {
+  transition: 'background-color 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease',
+};
 
 const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   game,
@@ -102,7 +72,6 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   coachBriefing,
 }: AdvancedMatchCardProps) {
   const { homePercentage, awayPercentage, totalVotes } = votePercentages;
-  const hasVoteResults = totalVotes > 0;
   const { theme, resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark'
     || theme === 'dark'
@@ -114,6 +83,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   const [isVisible, setIsVisible] = useState(false);
   const scoreBoxRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const inningPointerStartXRef = useRef<number | null>(null);
 
   useEffect(() => {
     setInningPage(0);
@@ -284,14 +254,36 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
     };
   }, [awayAnimatedScore, homeAnimatedScore, game.gameId, isVisible]);
 
-  const handleInningDragEnd = (_event: unknown, info: { offset: { x: number } }) => {
+  const handleInningSwipeOffset = (offsetX: number) => {
     if (!hasExtraInnings) return;
-    if (info.offset.x < -50 && inningPage === 0) {
+    if (offsetX < -50 && inningPage === 0) {
       setInningPage(1);
     }
-    if (info.offset.x > 50 && inningPage === 1) {
+    if (offsetX > 50 && inningPage === 1) {
       setInningPage(0);
     }
+  };
+
+  const handleInningPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    inningPointerStartXRef.current = event.clientX;
+  };
+
+  const handleInningPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (inningPointerStartXRef.current == null) {
+      return;
+    }
+
+    const offsetX = event.clientX - inningPointerStartXRef.current;
+    inningPointerStartXRef.current = null;
+    handleInningSwipeOffset(offsetX);
+  };
+
+  const clearInningPointerStart = () => {
+    inningPointerStartXRef.current = null;
   };
 
   const summaryGroups = useMemo(() => (gameDetail?.summary || []).reduce(
@@ -458,7 +450,10 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
           </div>
         )}
 
-        <DetailWrapper className="mt-4 md:mt-6 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-border dark:bg-card dark:shadow-md">
+        <div
+          className="mt-4 md:mt-6 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-border dark:bg-card dark:shadow-md"
+          style={surfaceTransitionStyle}
+        >
           <div
             className="relative overflow-hidden rounded-t-2xl px-3.5 pt-10 pb-8 text-white sm:px-4 sm:pt-12 sm:pb-10"
             style={{
@@ -489,7 +484,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
 
             <div className="relative flex justify-center">
               {showStatusBadge && (
-                <MetaBadge
+                <div
                   data-testid="prediction-status-badge"
                   className={`absolute top-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold backdrop-blur ${
                     isCancelledStatus
@@ -498,6 +493,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                         ? 'bg-amber-500/30 text-amber-50 border border-amber-100/40'
                         : 'bg-emerald-500/30 text-emerald-50 border border-emerald-100/40'
                   }`}
+                  style={surfaceTransitionStyle}
                 >
                   {isPostponedOrCancelled ? (
                     <AlertTriangle className="h-3.5 w-3.5" />
@@ -505,9 +501,12 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                     <Clock3 className="h-3.5 w-3.5" />
                   )}
                   {scheduledStateLabel}
-                </MetaBadge>
+                </div>
               )}
-              <MetaBadge className={`absolute ${showStatusBadge ? 'top-8' : 'top-0'} max-w-[calc(100%-1.75rem)] rounded-full bg-black/30 px-2.5 py-1 text-[11px] font-semibold leading-tight backdrop-blur sm:px-3 sm:text-sm`}>
+              <div
+                className={`absolute ${showStatusBadge ? 'top-8' : 'top-0'} max-w-[calc(100%-1.75rem)] rounded-full bg-black/30 px-2.5 py-1 text-[11px] font-semibold leading-tight backdrop-blur sm:px-3 sm:text-sm`}
+                style={surfaceTransitionStyle}
+              >
                 <span className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
                   {matchMetaParts.length > 0 ? matchMetaParts.map((part, index) => (
                     <Fragment key={`${part}-${index}`}>
@@ -516,22 +515,31 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                     </Fragment>
                   )) : '경기 정보'}
                 </span>
-              </MetaBadge>
+              </div>
             </div>
             <div className={`relative flex items-end justify-between gap-2.5 sm:gap-3 ${showStatusBadge ? 'mt-14' : 'mt-9 sm:mt-10'}`}>
               <div className="flex w-[29%] flex-col items-center text-center sm:w-[30%]">
-                <TeamLogoBox className="flex h-12 w-12 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)] sm:h-14 sm:w-14">
+                <div
+                  className="flex h-12 w-12 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)] sm:h-14 sm:w-14"
+                  style={surfaceTransitionStyle}
+                >
                   <TeamLogo team={game.awayTeam} size={40} className="h-10 w-10 sm:h-11 sm:w-11" />
-                </TeamLogoBox>
+                </div>
                 <div className="mt-2 text-[13px] font-semibold leading-tight sm:text-sm">
                   {awayTeamName}
                 </div>
                 <div className="text-[10px] text-white/80">AWAY</div>
               </div>
-              <ScoreBox
+              <div
                 ref={scoreBoxRef}
-                $visible={isVisible}
                 className="relative -mb-2 w-[42%] rounded-xl border border-white/50 bg-white/80 px-2.5 py-2.5 text-center text-gray-900 shadow-2xl backdrop-blur-md dark:border-white/20 dark:bg-black/30 dark:text-white sm:w-[40%] sm:px-3 sm:py-3"
+                style={{
+                  ...surfaceTransitionStyle,
+                  opacity: isVisible ? 1 : 0,
+                  transform: isVisible ? 'scale(1)' : 'scale(0.92)',
+                  transition: 'opacity 350ms ease-out, transform 350ms cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease',
+                  willChange: 'transform, opacity',
+                }}
               >
                 {isScheduledLayout ? (
                   <div className="flex flex-col items-center justify-center gap-1.5">
@@ -556,11 +564,14 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                     ) : null}
                   </>
                 )}
-              </ScoreBox>
+              </div>
               <div className="flex w-[29%] flex-col items-center text-center sm:w-[30%]">
-                <TeamLogoBox className="flex h-12 w-12 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)] sm:h-14 sm:w-14">
+                <div
+                  className="flex h-12 w-12 items-center justify-center text-xl font-black drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)] sm:h-14 sm:w-14"
+                  style={surfaceTransitionStyle}
+                >
                   <TeamLogo team={game.homeTeam} size={40} className="h-10 w-10 sm:h-11 sm:w-11" />
-                </TeamLogoBox>
+                </div>
                 <div className="mt-2 text-[13px] font-semibold leading-tight sm:text-sm">
                   {homeTeamName}
                 </div>
@@ -647,14 +658,16 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 </div>
                 <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-border bg-white dark:bg-secondary/40">
                   {hasExtraInnings ? (
-                    <div className="overflow-hidden">
-                      <motion.div
-                        drag="x"
-                        dragConstraints={{ left: 0, right: 0 }}
-                        onDragEnd={handleInningDragEnd}
-                        animate={{ x: inningPage === 0 ? '0%' : '-100%' }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        className="flex"
+                    <div
+                      className="overflow-hidden"
+                      onPointerDown={handleInningPointerDown}
+                      onPointerUp={handleInningPointerUp}
+                      onPointerCancel={clearInningPointerStart}
+                      style={{ touchAction: 'pan-y' }}
+                    >
+                      <div
+                        className="flex transition-transform duration-300 ease-out"
+                        style={{ transform: `translateX(-${inningPage * 100}%)` }}
                       >
                         {[regularInningCols, extraInningCols].map((cols, index) => (
                           <div key={index} className="min-w-full px-3 py-3">
@@ -699,11 +712,14 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                             </table>
                           </div>
                         ))}
-                      </motion.div>
+                      </div>
                       <div className="mt-3 flex justify-center gap-2">
                         {[0, 1].map((page) => (
-                          <span
+                          <button
+                            type="button"
                             key={page}
+                            aria-label={page === 0 ? '정규 이닝 보기' : '연장 이닝 보기'}
+                            onClick={() => setInningPage(page)}
                             className={`h-2 w-2 rounded-full ${inningPage === page ? 'bg-gray-800 dark:bg-gray-100' : 'bg-gray-200 dark:bg-border'}`}
                           />
                         ))}
@@ -812,7 +828,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
             )}
             {matchEnvironmentSection}
           </div>
-        </DetailWrapper>
+        </div>
       </div>
     </Card>
   );

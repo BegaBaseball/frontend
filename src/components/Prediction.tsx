@@ -1,36 +1,22 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, type ReactNode, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { TrendingUp, ChevronLeft, ChevronRight, Coins, LineChart, Gamepad2, Loader2, ShieldAlert, Target, Flame, CheckCircle2, Hash } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import AdvancedMatchCard from './prediction/AdvancedMatchCard';
+import { TrendingUp, Coins, LineChart, Gamepad2, Loader2 } from 'lucide-react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import PredictionErrorOverlay from './prediction/PredictionErrorOverlay';
-import { AnimatePresence, motion } from 'framer-motion';
 import { usePrediction } from '../hooks/usePrediction';
-import { useRankingsData } from '../api/home';
-import { fetchMyPredictionStats } from '../api/prediction';
 import { useAuthProfileSnapshot } from '../store/authStore';
-import { buildPredictionRecoveryPath } from '../utils/predictionDeepLink';
-import {
-  formatDate,
-  calculateVotePercentages,
-  getGameStatus,
-  resolveCoachBriefingPolicy,
-} from '../utils/prediction';
+import { buildPredictionRecoveryPath, type PredictionLocationState } from '../utils/predictionDeepLink';
 
-const TOTAL_SEASON_GAMES = 144;
-const ACCURACY_GAUGE_CIRCUMFERENCE = 2 * Math.PI * 56;
-const RankingPrediction = lazy(() => import('./RankingPrediction'));
-const ComboAnimation = lazy(() => import('./retro/ComboAnimation'));
-const CoachBriefing = lazy(() => import('./CoachBriefing'));
+const PredictionMatchTab = lazy(() => import('./prediction/PredictionMatchTab'));
+const PredictionRankingTab = lazy(() => import('./prediction/PredictionRankingTab'));
+const PredictionAnimatedSections = lazy(() => import('./PredictionAnimatedSections'));
 
 export default function Prediction() {
   const {
     activeTab,
     setActiveTab,
-    selectedGame,
-    setSelectedGame,
+    currentGame,
     currentDateGames,
     currentDate,
     loading,
@@ -79,174 +65,71 @@ export default function Prediction() {
   } = usePrediction();
 
   const { userCheerPoints = 0 } = useAuthProfileSnapshot();
-  const [supplementalReady, setSupplementalReady] = useState(false);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const [hasEnteredMatchDetail, setHasEnteredMatchDetail] = useState(false);
+  const [hasVisitedRankingTab, setHasVisitedRankingTab] = useState(activeTab === 'ranking');
+  const [rankingFeatureReady, setRankingFeatureReady] = useState(activeTab === 'ranking');
+  const currentGameId = currentGame?.gameId;
+
+  const locationState = location.state as PredictionLocationState;
+  const deepLinkGameId = useMemo(() => {
+    const queryGameId = searchParams.get('gameId')?.trim() || '';
+    const stateGameId = (locationState?.gameId || '').trim();
+    const stateSeedGameId = (locationState?.game?.gameId || '').trim();
+
+    return queryGameId || stateGameId || stateSeedGameId;
+  }, [locationState?.game?.gameId, locationState?.gameId, searchParams]);
+  const isDeepLinkMatchSelection = useMemo(() => {
+    if (!deepLinkGameId || !currentGameId) {
+      return false;
+    }
+
+    return currentGameId === deepLinkGameId;
+  }, [currentGameId, deepLinkGameId]);
+
+  useEffect(() => {
+    if (isDeepLinkMatchSelection) {
+      setHasEnteredMatchDetail(true);
+    }
+  }, [isDeepLinkMatchSelection]);
 
   useEffect(() => {
     if (activeTab === 'ranking') {
-      setSupplementalReady(true);
+      setHasVisitedRankingTab(true);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'ranking') {
+      return;
+    }
+
+    if (rankingFeatureReady) {
       return;
     }
 
     let timeoutId: number | null = null;
-    let idleId: number | null = null;
-    let settled = false;
-    const markReady = () => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      setSupplementalReady(true);
-    };
-
-    if ('requestIdleCallback' in window) {
-      idleId = window.requestIdleCallback(markReady, { timeout: 1500 });
-    }
-    timeoutId = window.setTimeout(markReady, 900);
+    timeoutId = window.setTimeout(() => {
+      setRankingFeatureReady(true);
+    }, 180);
 
     return () => {
-      if (idleId !== null && 'cancelIdleCallback' in window) {
-        window.cancelIdleCallback(idleId);
-      }
       if (timeoutId !== null) {
         window.clearTimeout(timeoutId);
       }
     };
-  }, [activeTab]);
+  }, [activeTab, rankingFeatureReady]);
 
-  const shouldLoadSupplementalData = supplementalReady || activeTab === 'ranking';
+  const handleEnterMatchDetail = useCallback(() => {
+    setHasEnteredMatchDetail(true);
+  }, []);
 
-  const { data: predictionStats } = useQuery({
-    queryKey: ['prediction-stats-me'],
-    queryFn: fetchMyPredictionStats,
-    enabled: isLoggedIn && shouldLoadSupplementalData,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const accuracyPercent = useMemo(() => {
-    if (!predictionStats || !Number.isFinite(predictionStats.accuracy)) {
-      return 0;
-    }
-    return Math.max(0, Math.min(100, predictionStats.accuracy));
-  }, [predictionStats]);
-  const [animatedAccuracyPercent, setAnimatedAccuracyPercent] = useState(0);
-
-  useEffect(() => {
-    setAnimatedAccuracyPercent(accuracyPercent);
-  }, [accuracyPercent]);
-
-  const seasonYear = useMemo(() => {
-    const parsed = new Date(currentDate);
-    return Number.isNaN(parsed.getTime()) ? new Date().getFullYear() : parsed.getFullYear();
-  }, [currentDate]);
-
-  const { data: rankings = [] } = useRankingsData(seasonYear, {
-    enabled: shouldLoadSupplementalData,
-  });
-
-  // 현재 경기 정보
-  const currentGame = currentDateGames.length > 0 ? currentDateGames[selectedGame] : null;
-  const currentGameId = currentGame?.gameId;
+  const shouldRenderMatchCard = (hasEnteredMatchDetail || isDeepLinkMatchSelection) && Boolean(currentGameId);
   const predictionRecoveryPath = buildPredictionRecoveryPath({
     currentDate,
     currentGameId,
   });
-
-  const rankingByTeamId = useMemo(() => {
-    const map = new Map<string, { rank: number; gamesBehind?: number; games: number }>();
-    rankings.forEach((team) => {
-      map.set(team.teamId, {
-        rank: team.rank,
-        gamesBehind: team.gamesBehind,
-        games: team.games,
-      });
-    });
-    return map;
-  }, [rankings]);
-
-  const buildTeamContext = (teamId?: string) => {
-    if (!teamId) return null;
-    const ranking = rankingByTeamId.get(teamId);
-    if (!ranking || ranking.gamesBehind == null) return null;
-    const remainingGames = Math.max(0, TOTAL_SEASON_GAMES - ranking.games);
-    if (!Number.isFinite(remainingGames)) return null;
-    return {
-      rank: ranking.rank,
-      gamesBehind: ranking.gamesBehind,
-      remainingGames,
-    };
-  };
-
-  const seasonContext = useMemo(() => {
-    const homeSeasonContext = currentGame ? buildTeamContext(currentGame.homeTeam) : null;
-    const awaySeasonContext = currentGame ? buildTeamContext(currentGame.awayTeam) : null;
-    const canCallAI = !!homeSeasonContext && !!awaySeasonContext;
-    const maxGamesBehind = canCallAI
-      ? Math.max(homeSeasonContext.gamesBehind, awaySeasonContext.gamesBehind)
-      : null;
-    const minRemainingGames = canCallAI
-      ? Math.min(homeSeasonContext.remainingGames, awaySeasonContext.remainingGames)
-      : null;
-    const isPostseasonGame = currentGame?.leagueType === 'POST';
-    const isMeaningfulGame = !!canCallAI &&
-      ((maxGamesBehind != null && maxGamesBehind <= 2) || (minRemainingGames != null && minRemainingGames <= 20));
-
-    return {
-      home: homeSeasonContext,
-      away: awaySeasonContext,
-      isPostseasonGame,
-      canCallAI,
-      isMeaningfulGame,
-      maxGamesBehind,
-      minRemainingGames,
-    };
-  }, [currentGame?.homeTeam, currentGame?.awayTeam, currentGame?.leagueType, currentGame?.gameId, rankingByTeamId]);
-
-  // 투표 현황 계산
-  const currentVotes = currentGameId ? votes[currentGameId] || { home: 0, away: 0 } : { home: 0, away: 0 };
-  const votePercentages = calculateVotePercentages(
-    currentVotes.home,
-    currentVotes.away
-  );
-
-  // 경기 상태 확인
-  const gameStatus = getGameStatus(currentGame, new Date(), {
-    gameStatus: currentGameDetail?.gameStatus,
-    gameDate: currentGameDetail?.gameDate || currentGame?.gameDate || currentDate,
-    startTime: currentGameDetail?.startTime || null,
-  });
-  const { isPastGame, isFutureGame, isToday, statusCode } = gameStatus;
-  const isScheduledGame = statusCode === 'SCHEDULED';
-  const isAutoBriefEligibleGameState =
-    statusCode === 'SCHEDULED' || statusCode === 'LIVE' || statusCode === 'COMPLETED';
-  const hasSelectedGame = Boolean(currentGame);
-
-  // AI 브리핑 호출 정책 입력값(가시성/디버그용)
-  const coachBriefingPolicyInput = useMemo(
-    () => ({
-      hasSelectedGame,
-      canCallAI: !!seasonContext?.canCallAI,
-      isScheduledGame,
-      isCoachStateEnabledForAuto: hasSelectedGame && isAutoBriefEligibleGameState,
-      isPostseasonGame: !!seasonContext?.isPostseasonGame,
-      isMeaningfulGame: !!seasonContext?.isMeaningfulGame,
-    }),
-    [
-      hasSelectedGame,
-      isAutoBriefEligibleGameState,
-      seasonContext?.canCallAI,
-      seasonContext?.isPostseasonGame,
-      seasonContext?.isMeaningfulGame,
-      isScheduledGame,
-    ],
-  );
-
-  const coachBriefingPolicy = useMemo(
-    () => resolveCoachBriefingPolicy(coachBriefingPolicyInput),
-    [coachBriefingPolicyInput]
-  );
-
-  const shouldAutoRequestCoachBriefing =
-    coachBriefingPolicy.autoEnabled && coachBriefingPolicy.requestMode === 'auto_brief';
 
   const showRunProgressBanner = isRunInProgress && !isRunBannerDismissed;
   const canMovePrevDate = currentDateIndex > 0 || canLoadMorePast;
@@ -319,7 +202,6 @@ export default function Prediction() {
   const isPastRetryLoading = pastRangeLoadState === 'loading';
   const isFutureRetryLoading = futureRangeLoadState === 'loading';
   const isVoteRetryLoading = voteStatusLoading;
-  const isDetailRetryLoading = currentGameDetailLoading || currentGameDetailRefreshing;
 
   const renderRetryLabel = (isLoading: boolean, label: string) => (
     <span className="inline-flex items-center gap-1.5">
@@ -690,6 +572,92 @@ export default function Prediction() {
   }
 
   const topNotice = activeTab === 'match' ? getTopNotice(futureRangeNotice) : null;
+  const shouldRenderAnimatedSections = activeTab === 'ranking' || hasVisitedRankingTab;
+  const matchChildren = (
+    <Suspense
+      fallback={(
+        <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
+          <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            경기 화면을 준비하고 있습니다.
+          </div>
+        </Card>
+      )}
+    >
+      <PredictionMatchTab
+        currentDateGames={currentDateGames}
+        currentDate={currentDate}
+        currentGame={currentGame}
+        currentGameId={currentGameId}
+        currentGameDetail={currentGameDetail}
+        currentGameDetailLoading={currentGameDetailLoading}
+        currentGameDetailRefreshing={currentGameDetailRefreshing}
+        currentGameDetailError={currentGameDetailError}
+        userVote={userVote}
+        votes={votes}
+        isLoggedIn={isLoggedIn}
+        isAuthLoading={isAuthLoading}
+        shouldRenderMatchCard={shouldRenderMatchCard}
+        predictionRecoveryPath={predictionRecoveryPath}
+        canMovePrevDate={canMovePrevDate}
+        canMoveNextDate={canMoveNextDate}
+        isDetailRetryLoading={currentGameDetailLoading || currentGameDetailRefreshing}
+        nearestNavigationDate={nearestNavigationDate}
+        isToday={new Date(currentDate).toDateString() === new Date().toDateString()}
+        onEnterMatchDetail={handleEnterMatchDetail}
+        onVote={handleVote}
+        onPrevDate={goToPreviousDate}
+        onNextDate={goToNextDate}
+        onNearestNavigation={handleNearestNavigation}
+        reloadCurrentGameDetail={reloadCurrentGameDetail}
+      />
+    </Suspense>
+  );
+  const rankingChildren = (
+    rankingFeatureReady ? (
+      <Suspense
+        fallback={(
+          <Card className="p-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
+            <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              순위 예측 화면을 준비하고 있습니다.
+            </div>
+          </Card>
+        )}
+      >
+        <PredictionRankingTab isLoggedIn={isLoggedIn} />
+      </Suspense>
+    ) : (
+      <Card className="p-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
+        <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          순위 예측 화면을 준비하고 있습니다.
+        </div>
+      </Card>
+    )
+  );
+
+  const panelContent = (
+    shouldRenderAnimatedSections ? (
+      <Suspense fallback={activeTab === 'match' ? matchChildren : rankingChildren}>
+        <PredictionAnimatedSections
+          activeTab={activeTab}
+          topNotice={topNotice}
+          matchChildren={matchChildren}
+          rankingChildren={rankingChildren}
+        />
+      </Suspense>
+    ) : (
+      <div className="relative">
+        {topNotice && (
+          <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center sm:justify-end">
+            {topNotice.content}
+          </div>
+        )}
+        {activeTab === 'match' ? matchChildren : rankingChildren}
+      </div>
+    )
+  );
 
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
@@ -740,349 +708,35 @@ export default function Prediction() {
         <div className="flex flex-col gap-2.5 mb-4 md:mb-5 md:flex-row md:items-center">
           {/* Mode Tabs (Left) */}
           <div className="relative flex w-full max-w-sm overflow-hidden p-1 bg-white/80 border border-slate-200/70 rounded-xl shadow-sm dark:bg-card dark:border-border dark:shadow-md md:w-fit">
-            <motion.span
+            <span
               className="pointer-events-none absolute left-1 top-1 bottom-1 w-[calc(50%-0.25rem)] rounded-lg bg-emerald-900 shadow-sm dark:bg-emerald-700 z-0"
-              initial={false}
-              animate={{ x: activeTab === 'match' ? 0 : '100%' }}
-              transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+              style={{ transform: activeTab === 'match' ? 'translateX(0)' : 'translateX(100%)' }}
             />
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('match')}
-                  className={`relative z-10 w-1/2 px-3 min-h-10 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'match'
-                    ? 'text-white'
-                    : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
-                }`}
+            <button
+              type="button"
+              onClick={() => setActiveTab('match')}
+              className={`relative z-10 w-1/2 px-3 min-h-10 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'match'
+                ? 'text-white'
+                : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
+            }`}
             >
               <span className="relative z-10">승부예측</span>
             </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('ranking')}
-                  className={`relative z-10 w-1/2 px-3 min-h-10 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'ranking'
-                    ? 'text-white'
-                    : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
-                }`}
+            <button
+              type="button"
+              onClick={() => setActiveTab('ranking')}
+              className={`relative z-10 w-1/2 px-3 min-h-10 rounded-lg transition-colors text-xs sm:text-sm font-bold ${activeTab === 'ranking'
+                ? 'text-white'
+                : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
+            }`}
             >
               <span className="relative z-10">순위예측</span>
             </button>
           </div>
-
-
         </div>
 
-        <div className="relative">
-          <AnimatePresence initial={false} mode="wait">
-            {topNotice && (
-              <motion.div
-                key={`top-notice-${topNotice.kind}`}
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center sm:justify-end"
-              >
-                {topNotice.content}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence mode="wait" initial={false}>
-            {activeTab === 'match' ? (
-              <motion.div
-                key="match"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-              >
-                {/* Date Navigation & Content Wrapper */}
-                <div className="w-full">
-                  {currentDateGames.length > 0 ? (
-                    <>
-                      {/* Advanced Game Card */}
-                      {currentGame && (
-                        <AdvancedMatchCard
-                          key={currentGame.gameId}
-                          game={currentGame}
-                          gameDetail={currentGameDetail}
-                          gameDetailLoading={currentGameDetailLoading}
-                          gameDetailRefreshing={currentGameDetailRefreshing}
-                          gameDetailError={currentGameDetailError}
-                          gameDetailActions={currentGameDetailError ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={isDetailRetryLoading}
-                                data-testid="prediction-detail-error-retry-btn"
-                                className="min-h-10 border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-400/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
-                                onClick={() => reloadCurrentGameDetail({ emitRetryEvent: true })}
-                              >
-                                {renderRetryLabel(isDetailRetryLoading, '다시 시도')}
-                              </Button>
-                              <Link
-                                to={predictionRecoveryPath}
-                                className="min-h-10 px-3 inline-flex items-center justify-center rounded-md border border-amber-300/70 text-amber-900 hover:bg-amber-100 dark:border-amber-300/60 dark:text-amber-100 dark:hover:bg-amber-800/30"
-                              >
-                                예측으로 돌아가기
-                              </Link>
-                            </>
-                          ) : null}
-                          userVote={userVote[currentGameId!] || null}
-                          votePercentages={votePercentages}
-                          isVoteOpen={gameStatus.isVoteOpen}
-                          statusLabel={gameStatus.statusLabel}
-                          statusCode={statusCode}
-                          onVote={(team) => handleVote(team, currentGame, gameStatus.isVoteOpen)}
-                          onPrevDate={goToPreviousDate}
-                          onNextDate={goToNextDate}
-                          hasPrevDate={canMovePrevDate}
-                          hasNextDate={canMoveNextDate}
-                          coachBriefing={(
-                            shouldLoadSupplementalData ? (
-                              <Suspense fallback={null}>
-                                <CoachBriefing
-                                  game={currentGame}
-                                  gameDetail={currentGameDetail}
-                                  seasonContext={seasonContext}
-                                  isPastGame={isPastGame}
-                                  isFutureGame={isFutureGame}
-                                  requestMode={coachBriefingPolicy.requestMode}
-                                  autoEnabled={shouldAutoRequestCoachBriefing}
-                                  forceManual={coachBriefingPolicy.forceManual}
-                                />
-                              </Suspense>
-                            ) : null
-                          )}
-                        />
-                      )}
-                    </>
-                  ) : (
-                    <Card className="relative p-4 sm:p-6 md:p-7 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[170px] sm:min-h-[210px] md:min-h-[250px] rounded-2xl">
-                      {/* Navigation Buttons for Empty State */}
-                      <div className="hidden md:block">
-                        <button
-                          type="button"
-                          onClick={goToPreviousDate}
-                          disabled={!canMovePrevDate}
-                          aria-label="이전 날짜 보기"
-                          className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
-                        >
-                          <ChevronLeft size={36} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={goToNextDate}
-                          disabled={!canMoveNextDate}
-                          aria-label="다음 날짜 보기"
-                          className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
-                        >
-                          <ChevronRight size={36} />
-                        </button>
-                      </div>
-
-                      <div className="bg-slate-100 dark:bg-card p-4 rounded-full mb-4">
-                        <TrendingUp className="w-8 h-8 text-slate-400 dark:text-gray-300" />
-                      </div>
-                      <div className="mb-4">
-                        <p className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-1">
-                          {formatDate(currentDate)}
-                        </p>
-                      </div>
-                      <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
-                        {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
-                      </h3>
-                      <p className="text-slate-500 dark:text-gray-300">
-                        {nearestNavigationDate
-                          ? `가장 가까운 경기일은 ${formatDate(nearestNavigationDate.date)}입니다. ${nearestNavigationDate.isPast ? '이전' : '다음'} 날짜로 이동해 확인해보세요!`
-                          : '다른 날짜를 확인해보세요!'}
-                      </p>
-                      {nearestNavigationDate && handleNearestNavigation ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          data-testid="prediction-empty-nearest-date-btn"
-                          className="mt-3 min-h-10 border-emerald-200 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-200 dark:hover:bg-emerald-500/10"
-                          onClick={handleNearestNavigation}
-                        >
-                          {nearestNavigationDate.isPast ? '가장 가까운 이전 경기 보기' : '가장 가까운 다음 경기 보기'}
-                        </Button>
-                      ) : null}
-                    </Card>
-                  )}
-                </div>
-
-
-                {/* Mobile Navigation (Bottom) */}
-                <div className="flex md:hidden items-center justify-between mt-3 px-4">
-                  <button
-                    type="button"
-                    onClick={goToPreviousDate}
-                    disabled={!canMovePrevDate}
-                    aria-label="이전 날짜 보기"
-                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
-                  >
-                    <ChevronLeft size={24} className="text-emerald-600 dark:text-emerald-300" />
-                  </button>
-                  <span className="font-medium text-slate-900 dark:text-gray-100">
-                    {formatDate(currentDate)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={goToNextDate}
-                    disabled={!canMoveNextDate}
-                    aria-label="다음 날짜 보기"
-                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
-                  >
-                    <ChevronRight size={24} className="text-emerald-600 dark:text-emerald-300" />
-                  </button>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="ranking"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-              >
-                <Card className="p-4 mb-4 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
-                  <h3 className="text-xl font-semibold text-slate-900 dark:text-gray-100 mb-2">
-                    {new Date().getFullYear()} 시즌 순위 예측
-                  </h3>
-                  <p className="text-slate-600 dark:text-gray-300">
-                    나만의 드림팀 순위를 완성하고 친구들과 공유해보세요!
-                  </p>
-                </Card>
-                <Suspense
-                  fallback={(
-                    <Card className="p-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
-                      <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        순위 예측 화면을 준비하고 있습니다.
-                      </div>
-                    </Card>
-                  )}
-                >
-                  <RankingPrediction />
-                </Suspense>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {panelContent}
       </div>
-
-      {/* 내 예측 통계 패널 (컴팩트 위젯 버전) */}
-      {isLoggedIn && shouldLoadSupplementalData && predictionStats && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
-          <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
-            {/* 콤팩트해진 헤더 */}
-            <div className="bg-slate-50/50 dark:bg-slate-950/50 px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Target className="w-4 h-4 text-indigo-500" />
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">나의 예측 퍼포먼스</h3>
-              </div>
-            </div>
-
-            {/* 메인 콘텐츠 (flex 기반으로 콘텐츠 묶기) */}
-            <div className="grid grid-cols-2 gap-3.5 p-4 sm:flex sm:flex-row sm:items-center sm:justify-center sm:gap-12 sm:p-6">
-
-              {/* 왼쪽: 미니 원형 게이지 */}
-              <div className="col-span-2 flex flex-col items-center justify-center pb-1 sm:col-span-1 sm:shrink-0 sm:pb-0">
-                <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-1.5">
-                  <svg
-                    className="w-full h-full transform -rotate-90 absolute top-0 left-0"
-                    viewBox="0 0 128 128"
-                    preserveAspectRatio="xMidYMid meet"
-                  >
-                    <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="14" fill="transparent" className="text-slate-100 dark:text-slate-800" />
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
-                      stroke="currentColor"
-                      strokeWidth="14"
-                      fill="transparent"
-                      strokeDasharray={ACCURACY_GAUGE_CIRCUMFERENCE}
-                      strokeDashoffset={
-                        ACCURACY_GAUGE_CIRCUMFERENCE - (animatedAccuracyPercent / 100) * ACCURACY_GAUGE_CIRCUMFERENCE
-                      }
-                      strokeLinecap="round"
-                      className="text-indigo-500 dark:text-indigo-400 transition-all duration-1200 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                    />
-                  </svg>
-
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[52%] flex items-baseline gap-0.5">
-                    <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none">
-                      {animatedAccuracyPercent.toFixed(1)}
-                    </span>
-                    <span className="text-[10px] sm:text-xs font-bold text-slate-400 leading-none">%</span>
-                  </div>
-                </div>
-
-                <p className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 leading-none">전체 적중률</p>
-              </div>
-
-              {/* 중앙 구분선 (모바일에서도 항상 표시되도록 변경) */}
-              <div className="hidden sm:block w-px h-16 bg-slate-200 dark:bg-slate-700/50 shrink-0" />
-
-              {/* 오른쪽: 스탯 그룹 */}
-              <div className="col-span-2 grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-10 sm:shrink-0">
-
-                {/* 총 예측 */}
-                <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
-                  <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                    <Hash className="w-3.5 h-3.5" />
-                    <span className="text-[11px] sm:text-xs font-semibold">총 예측</span>
-                  </div>
-                  <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
-                    <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">
-                      {predictionStats.totalPredictions}
-                    </span>
-                    <span className="text-[10px] sm:text-xs font-medium text-slate-400">회</span>
-                  </div>
-                </div>
-
-                {/* 적중 */}
-                <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
-                  <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span className="text-[11px] sm:text-xs font-semibold">적중</span>
-                  </div>
-                  <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
-                    <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">
-                      {predictionStats.correctPredictions}
-                    </span>
-                    <span className="text-[10px] sm:text-xs font-medium text-slate-400">회</span>
-                  </div>
-                </div>
-
-                {/* 연속 적중 */}
-                <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
-                  <div className="flex items-center gap-1 text-orange-600 dark:text-orange-500">
-                    <Flame className="w-3.5 h-3.5" />
-                    <span className="text-[11px] sm:text-xs font-semibold">연속 적중</span>
-                  </div>
-                  <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
-                    <span className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums leading-none">
-                      {predictionStats.streak}
-                    </span>
-                    <span className="text-[10px] sm:text-xs font-bold text-orange-500/70">연</span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {shouldLoadSupplementalData ? (
-        <Suspense fallback={null}>
-          <ComboAnimation />
-        </Suspense>
-      ) : null}
     </div >
   );
 }

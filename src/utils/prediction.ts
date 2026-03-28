@@ -1,7 +1,7 @@
 // utils/prediction.ts
 import { Game, DateGames } from '../types/prediction';
 import { DAYS_OF_WEEK } from '../constants/prediction';
-import { TEAM_DATA } from '../constants/teams';
+import { TEAM_DATA, TEAM_NAME_TO_ID } from '../constants/teams';
 
 export const COACH_BRIEFING_DISPLAY_TITLE = 'AI 분석 리포트';
 export const COACH_BRIEFING_DISPLAY_MESSAGE = 'AI 분석 내용을 준비하지 못했습니다.';
@@ -64,11 +64,85 @@ export interface CoachBriefingPolicy {
   requestMode: CoachRequestMode;
 }
 
+export interface CoachBriefingLeagueSnapshot {
+  rank: number;
+  gamesBehind: number;
+  remainingGames: number;
+}
+
+export interface CoachBriefingRequestDescriptorInput {
+  game: Game | null;
+  requestMode: CoachRequestMode;
+  focus: string[];
+  requestSeasonYear?: number;
+  requestLeagueTypeCode?: number;
+  homePitcherName?: string;
+  awayPitcherName?: string;
+  homeSeasonContext?: CoachBriefingLeagueSnapshot | null;
+  awaySeasonContext?: CoachBriefingLeagueSnapshot | null;
+}
+
+export interface CoachBriefingAnalyzePayload {
+  home_team_id: string;
+  away_team_id: string;
+  league_context: {
+    season?: number | string;
+    season_year?: number;
+    game_date?: string;
+    league_type?: string;
+    league_type_code?: number;
+    round?: string;
+    stage_label?: string;
+    game_no?: number;
+    series_game_no?: number;
+    home_pitcher?: string;
+    away_pitcher?: string;
+    home?: CoachBriefingLeagueSnapshot | null;
+    away?: CoachBriefingLeagueSnapshot | null;
+  };
+  focus: string[];
+  request_mode: CoachRequestMode;
+  game_id: string;
+}
+
+export interface CoachBriefingRequestDescriptor {
+  requestFingerprint: string;
+  requestCacheKey: string;
+  requestPayload: CoachBriefingAnalyzePayload;
+}
+
+export interface CoachBriefingDataQualityNotice {
+  message: string;
+  reasons: string[];
+}
+
 const DEFAULT_COACH_BRIEFING_PARSE_OPTIONS = {
   fallbackTitle: COACH_BRIEFING_DISPLAY_TITLE,
   fallbackMessage: COACH_BRIEFING_DISPLAY_MESSAGE,
   fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
 };
+
+const COACH_BRIEFING_GROUNDING_REASON_ORDER = [
+  'missing_starters',
+  'missing_lineups',
+  'missing_summary',
+  'missing_metadata',
+  'missing_game_context',
+  'missing_series_context',
+] as const;
+
+const COACH_BRIEFING_GROUNDING_REASON_LABELS: Record<string, string> = {
+  missing_starters: '선발 미발표',
+  missing_lineups: '라인업 미발표',
+  missing_summary: '경기 요약 부족',
+  missing_metadata: '경기 메타데이터 부족',
+  missing_game_context: '기본 경기 정보 부족',
+  missing_series_context: '시리즈 맥락 부족',
+};
+
+const COACH_BRIEFING_DATA_QUALITY_MESSAGE =
+  '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.';
+const COACH_BRIEFING_GENERIC_REASON_LABEL = '실데이터 근거가 제한적입니다.';
 
 const stripCodeFence = (rawText: string): string => {
   const jsonFenceMatch = rawText.match(/```json\n([\s\S]*?)```/i);
@@ -506,6 +580,127 @@ export const resolveCoachBriefingPolicy = ({
     autoEnabled,
     forceManual,
     requestMode: autoEnabled ? 'auto_brief' : 'manual_detail',
+  };
+};
+
+const serializeCoachBriefingLeagueSnapshot = (
+  snapshot?: CoachBriefingLeagueSnapshot | null,
+): string => {
+  if (!snapshot) {
+    return 'na';
+  }
+
+  return [
+    snapshot.rank,
+    snapshot.gamesBehind,
+    snapshot.remainingGames,
+  ].join('/');
+};
+
+export const buildCoachBriefingRequestDescriptor = ({
+  game,
+  requestMode,
+  focus,
+  requestSeasonYear,
+  requestLeagueTypeCode,
+  homePitcherName,
+  awayPitcherName,
+  homeSeasonContext,
+  awaySeasonContext,
+}: CoachBriefingRequestDescriptorInput): CoachBriefingRequestDescriptor | null => {
+  if (!game?.gameId || !game.homeTeam || !game.awayTeam) {
+    return null;
+  }
+
+  const homeTeamName = TEAM_DATA[game.homeTeam]?.fullName || game.homeTeam;
+  const awayTeamName = TEAM_DATA[game.awayTeam]?.fullName || game.awayTeam;
+  const homeTeamId = TEAM_NAME_TO_ID[homeTeamName] || game.homeTeam;
+  const awayTeamId = TEAM_NAME_TO_ID[awayTeamName] || game.awayTeam;
+  const normalizedFocus = focus.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+  const requestPayload: CoachBriefingAnalyzePayload = {
+    home_team_id: homeTeamId,
+    away_team_id: awayTeamId,
+    league_context: {
+      season: game.seasonId,
+      season_year: requestSeasonYear,
+      game_date: game.gameDate,
+      league_type: game.leagueType,
+      league_type_code: requestLeagueTypeCode,
+      round: game.postSeasonSeries,
+      stage_label: game.postSeasonSeries,
+      game_no: game.seriesGameNo,
+      series_game_no: game.seriesGameNo,
+      home_pitcher: homePitcherName,
+      away_pitcher: awayPitcherName,
+      home: homeSeasonContext,
+      away: awaySeasonContext,
+    },
+    focus: normalizedFocus,
+    request_mode: requestMode,
+    game_id: game.gameId,
+  };
+
+  const requestFingerprint = [
+    requestPayload.game_id,
+    requestPayload.home_team_id,
+    requestPayload.away_team_id,
+    requestPayload.league_context.season ?? 'na',
+    requestPayload.league_context.season_year ?? 'na',
+    requestPayload.league_context.game_date ?? 'na',
+    requestPayload.league_context.league_type ?? 'na',
+    requestPayload.league_context.league_type_code ?? 'na',
+    requestPayload.league_context.round ?? 'na',
+    requestPayload.league_context.stage_label ?? 'na',
+    requestPayload.league_context.game_no ?? 'na',
+    requestPayload.league_context.series_game_no ?? 'na',
+    requestPayload.league_context.home_pitcher ?? 'na',
+    requestPayload.league_context.away_pitcher ?? 'na',
+    serializeCoachBriefingLeagueSnapshot(requestPayload.league_context.home),
+    serializeCoachBriefingLeagueSnapshot(requestPayload.league_context.away),
+    requestPayload.request_mode,
+    requestPayload.focus.join('+') || 'na',
+  ].join(':');
+
+  return {
+    requestFingerprint,
+    requestCacheKey: requestFingerprint,
+    requestPayload,
+  };
+};
+
+export const getCoachBriefingGroundingReasonLabels = (
+  codes?: string[] | null,
+): string[] => {
+  const normalizedCodes = Array.isArray(codes)
+    ? codes.filter((code): code is string => typeof code === 'string' && code.length > 0)
+    : [];
+
+  const orderedLabels = COACH_BRIEFING_GROUNDING_REASON_ORDER
+    .map((code) => (
+      normalizedCodes.includes(code)
+        ? COACH_BRIEFING_GROUNDING_REASON_LABELS[code]
+        : null
+    ))
+    .filter((value): value is string => Boolean(value));
+
+  const dedupedLabels = Array.from(new Set(orderedLabels));
+  return dedupedLabels.length > 0
+    ? dedupedLabels
+    : [COACH_BRIEFING_GENERIC_REASON_LABEL];
+};
+
+export const getCoachBriefingDataQualityNotice = (
+  dataQuality?: string | null,
+  groundingReasons?: string[] | null,
+): CoachBriefingDataQualityNotice | null => {
+  if (dataQuality !== 'partial' && dataQuality !== 'insufficient') {
+    return null;
+  }
+
+  return {
+    message: COACH_BRIEFING_DATA_QUALITY_MESSAGE,
+    reasons: getCoachBriefingGroundingReasonLabels(groundingReasons),
   };
 };
 

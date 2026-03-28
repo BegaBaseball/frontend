@@ -1,5 +1,4 @@
 import { memo } from 'react';
-import { motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle, Minus } from 'lucide-react';
 import { CoachMetric } from '../../api/coach';
 
@@ -8,18 +7,6 @@ const trendLabel: Record<CoachMetric['trend'], string> = {
     down: '하락',
     neutral: '보통',
 };
-
-const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            duration: 0.5,
-            ease: "easeOut"
-        }
-    }
-} as const;
 
 function CoachMetricCard({ data }: { data: CoachMetric }) {
     const { category, name, value, description, risk_level, trend } = data;
@@ -64,8 +51,7 @@ function CoachMetricCard({ data }: { data: CoachMetric }) {
     const statusLabel = risk_level === 0 ? '주의 변수' : risk_level === 1 ? '경계 구간' : '우세 근거';
 
     return (
-        <motion.div
-            variants={itemVariants}
+        <div
             className={`relative flex h-full flex-col overflow-hidden rounded-2xl border ${styles.border} ${styles.bg} p-5`}
         >
             <div className={`pointer-events-none absolute top-0 right-0 h-24 w-24 rounded-full opacity-10 blur-2xl ${styles.dot}`} />
@@ -116,7 +102,7 @@ function CoachMetricCard({ data }: { data: CoachMetric }) {
                     </p>
                 </div>
             )}
-        </motion.div>
+        </div>
     );
 }
 
