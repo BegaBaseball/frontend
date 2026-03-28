@@ -11,16 +11,14 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Progress } from './ui/progress';
 import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Ticket, Loader2 } from 'lucide-react';
-import { useMateStore } from '../store/mateStore';
 import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
-import { api, ApiError } from '../utils/api';
+import { api, getApiErrorStatus } from '../utils/api';
 import { TEAMS } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
-import { AxiosError } from 'axios';
 import { useMateCreateMachine, type MatchInfo } from '../hooks/useMateCreateMachine';
 import { SEAT_CATEGORIES, SeatCategory, KBO_STADIUMS } from '../utils/stadiumData';
 import { SEAT_ICONS } from '../utils/seatIcons';
@@ -46,7 +44,11 @@ export default function MateCreate() {
     submitErrorStatus,
     errorType,
     createdPartyId,
+    formData,
+    formErrors,
     uploadTicket,
+    updateFormData,
+    setFormError,
     goNext,
     goPrev,
     loadMatches,
@@ -56,27 +58,53 @@ export default function MateCreate() {
     reset,
     retry,
   } = useMateCreateMachine();
-  const formData = useMateStore((state) => state.formData);
-  const formErrors = useMateStore((state) => state.formErrors);
-  const updateFormData = useMateStore((state) => state.updateFormData);
-  const setFormError = useMateStore((state) => state.setFormError);
-  const { userId: authUserId } = useAuthSession();
+  const { isAuthLoading, userId: currentUserId } = useAuthSession();
   const { logout } = useAuthAccessActions();
 
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const lastSubmitErrorRef = useRef('');
   const loadedMatchDateRef = useRef('');
 
   const redirectToLogin = (replace = false) => {
-    setCurrentUserId(null);
     logout(true);
     navigate(buildLoginPath(getCurrentRelativeUrl()), replace ? { replace: true } : undefined);
   };
 
   useEffect(() => {
-    void fetchCurrentUser();
-  }, [authUserId]);
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!currentUserId) {
+      redirectToLogin(true);
+      return;
+    }
+
+    if (!requireSocialVerification) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const verifySocialAccount = async () => {
+      try {
+        const socialResult = await api.checkSocialVerified(currentUserId);
+        if (isMounted && socialResult.data === false) {
+          setShowVerificationDialog(true);
+        }
+      } catch (error: unknown) {
+        if (getApiErrorStatus(error) === 401) {
+          redirectToLogin(true);
+        }
+      }
+    };
+
+    void verifySocialAccount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUserId, isAuthLoading, requireSocialVerification]);
 
   // Price Automation
   useEffect(() => {
@@ -91,42 +119,6 @@ export default function MateCreate() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 });
   }, [createStep]);
-
-
-  const fetchCurrentUser = async () => {
-    try {
-      let id = authUserId ?? null;
-
-      if (!id) {
-        const userData = await api.getCurrentUser();
-        id = userData.data.id;
-      }
-
-      if (!id) {
-        throw new Error('사용자 ID를 확인할 수 없습니다.');
-      }
-
-      setCurrentUserId(id);
-
-      // 소셜 연동 여부 확인 - 미연동 시 알림
-      if (requireSocialVerification) {
-        try {
-          const socialResult = await api.checkSocialVerified(id);
-          if (socialResult.data === false) {
-            setShowVerificationDialog(true);
-          }
-        } catch {
-          // 확인 실패 시 무시 (나중에 제출 시 다시 체크됨)
-        }
-      }
-    } catch (error: unknown) {
-      console.error('사용자 정보 가져오기 실패:', error);
-      if ((error instanceof AxiosError && error.response?.status === 401) ||
-        (error instanceof ApiError && error.status === 401)) {
-        redirectToLogin(true);
-      }
-    }
-  };
 
   const handleDescriptionChange = (text: string) => {
     updateFormData({ description: text });
@@ -144,7 +136,6 @@ export default function MateCreate() {
   const handleBack = () => {
     if (createStep === 1) {
       reset();
-      setCurrentUserId(null);
       navigate('/mate');
     } else {
       goPrev();

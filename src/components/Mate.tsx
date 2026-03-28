@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { KBO_STADIUMS, SEAT_CATEGORIES, SeatCategory } from '../utils/stadiumData';
 import { SEAT_ICONS } from '../utils/seatIcons';
 import { Sun, Cloud, CloudRain } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -27,8 +27,17 @@ import LoadingSpinner from './LoadingSpinner';
 import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { Input } from './ui/input';
 import { ProfileAvatar } from './ui/ProfileAvatar';
-import { api } from '../utils/api';
-import { mapBackendPartyToFrontend, formatGameDate, formatHostAverageRating, getDayOfWeek, getHostAverageRating } from '../utils/mate';
+import {
+  getMatePartyListQueryOptions,
+} from '../hooks/mateQueryOptions';
+import { seedMatePartyQueryData } from '../hooks/mateQueryCache';
+import {
+  buildMateRouteLocationState,
+  formatGameDate,
+  formatHostAverageRating,
+  getDayOfWeek,
+  getHostAverageRating,
+} from '../utils/mate';
 import { Party, PartyStatus, BadgeType } from '../types/mate';
 import { useDebounce } from '../hooks/useDebounce';
 import { MATE_SEARCH_DEBOUNCE_MS } from '../utils/constants';
@@ -54,7 +63,7 @@ const isLegacyHostAvatarUrl = (url?: string) => {
 
 export default function Mate() {
   const navigate = useNavigate();
-  const setSelectedParty = useMateStore((state) => state.setSelectedParty);
+  const queryClient = useQueryClient();
   const searchQuery = useMateStore((state) => state.searchQuery);
   const setSearchQuery = useMateStore((state) => state.setSearchQuery);
   const { userFavoriteTeam: favoriteTeam } = useAuthProfileSnapshot();
@@ -122,17 +131,11 @@ export default function Mate() {
     return sectionName;
   };
 
-  const [parties, setParties] = useState<Party[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const requestIdRef = useRef(0);
   const filterSignatureRef = useRef<string | null>(null);
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const [activeTab, setActiveTab] = useState('all');
   const [brokenHostAvatarIds] = useState<Set<number>>(new Set());
 
@@ -145,80 +148,52 @@ export default function Mate() {
     selling: 'SELLING',
   };
   const selectedStatus = tabToStatusMap[activeTab];
+  const dateKey = selectedDate ? toDateString(selectedDate) : '';
+  const teamIdFilter = myTeamOnly && favoriteTeamId ? favoriteTeamId : undefined;
+  const normalizedSearchQuery = debouncedInput.trim();
+  const filterSignature = [
+    normalizedSearchQuery,
+    dateKey,
+    selectedStatus ?? '',
+    teamIdFilter ?? '',
+  ].join('|');
+  const shouldResetPage =
+    filterSignatureRef.current !== null
+    && filterSignatureRef.current !== filterSignature
+    && currentPage !== 0;
+  const queryPage = shouldResetPage ? 0 : currentPage;
 
   useEffect(() => {
-    const controller = new AbortController();
-    const dateKey = selectedDate ? toDateString(selectedDate) : '';
-    const teamKey = myTeamOnly && favoriteTeamId ? favoriteTeamId : '';
-    const filterSignature = [
-      debouncedInput.trim(),
-      dateKey,
-      selectedStatus ?? '',
-      teamKey,
-    ].join('|');
-
-    if (
-      filterSignatureRef.current !== null
-      && filterSignatureRef.current !== filterSignature
-      && currentPage !== 0
-    ) {
-      filterSignatureRef.current = filterSignature;
-      setCurrentPage(0);
-      return () => {
-        controller.abort();
-      };
+    if (filterSignatureRef.current === filterSignature) {
+      return;
     }
 
     filterSignatureRef.current = filterSignature;
+    if (currentPage !== 0) {
+      setCurrentPage(0);
+    }
+  }, [currentPage, filterSignature]);
 
-    const fetchParties = async () => {
-      const requestId = ++requestIdRef.current;
-      setIsLoading(true);
-      setFetchError(false);
-      try {
-        const dateStr = selectedDate ? toDateString(selectedDate) : undefined;
-        const teamIdFilter = myTeamOnly && favoriteTeamId ? favoriteTeamId : undefined;
-        const effectiveQuery = debouncedInput.trim();
-        const data = await api.getParties(
-          teamIdFilter,
-          undefined,
-          currentPage,
-          pageSize,
-          selectedStatus,
-          effectiveQuery || undefined,
-          dateStr,
-          controller.signal,
-        );
-
-        if (requestId !== requestIdRef.current) return;
-
-        const mappedParties = data.content.map(mapBackendPartyToFrontend);
-        setParties(mappedParties);
-        setTotalPages(data.totalPages);
-      } catch (error) {
-        if (requestId !== requestIdRef.current) return;
-        const isAbortError =
-          (error instanceof DOMException && error.name === 'AbortError')
-          || (error instanceof Error && error.name === 'AbortError');
-        if (isAbortError) return;
-        console.error('파티 목록 불러오기 오류:', error);
-        setFetchError(true);
-      } finally {
-        if (requestId === requestIdRef.current) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void fetchParties();
-    return () => {
-      controller.abort();
-    };
-  }, [currentPage, debouncedInput, selectedDate, selectedStatus, retryCount, myTeamOnly, favoriteTeamId]);
+  const partyListQuery = useQuery({
+    ...getMatePartyListQueryOptions({
+      teamId: teamIdFilter,
+      page: queryPage,
+      size: pageSize,
+      status: selectedStatus,
+      searchQuery: normalizedSearchQuery || undefined,
+      gameDate: dateKey || undefined,
+    }),
+  });
+  const parties = partyListQuery.data?.content ?? [];
+  const totalPages = partyListQuery.data?.totalPages ?? 0;
+  const isLoading = partyListQuery.isPending && !partyListQuery.data;
+  const fetchError = Boolean(partyListQuery.error) && !partyListQuery.data;
 
   const handlePartyClick = (party: Party) => {
-    setSelectedParty(party);
-    navigate(`/mate/${party.id}`);
+    seedMatePartyQueryData(queryClient, party);
+    navigate(`/mate/${party.id}`, {
+      state: buildMateRouteLocationState(party),
+    });
   };
 
   const getBadgeIcon = (badge: BadgeType) => {
@@ -289,19 +264,19 @@ export default function Mate() {
         variant="outline"
         className="border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] text-gray-700 dark:text-zinc-300 hover:bg-primary/15 hover:text-primary-foreground"
         onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-        disabled={currentPage === 0}
+        disabled={queryPage === 0}
         size="sm"
       >
         <ChevronLeft className="w-4 h-4 mr-1" />이전
       </Button>
       <span className="text-sm font-medium text-gray-500 dark:text-zinc-400">
-        {currentPage + 1} <span className="text-gray-600 dark:text-zinc-600 mx-1">/</span> {totalPages}
+        {queryPage + 1} <span className="text-gray-600 dark:text-zinc-600 mx-1">/</span> {totalPages}
       </span>
       <Button
         variant="outline"
         className="border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] text-gray-700 dark:text-zinc-300 hover:bg-primary/15 hover:text-primary-foreground"
         onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
-        disabled={currentPage === totalPages - 1}
+        disabled={queryPage >= totalPages - 1}
         size="sm"
       >
         다음<ChevronRight className="w-4 h-4 ml-1" />
@@ -579,7 +554,10 @@ export default function Mate() {
               type="text"
               placeholder="팀명, 구장, 좌석으로 검색 (예: 삼성 블루존)"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                setCurrentPage(0);
+              }}
               className="pl-11 h-12 bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder-zinc-500 rounded-2xl focus:ring-1 focus:ring-primary/40 focus:border-primary/50 transition-all"
             />
           </div>
@@ -646,12 +624,7 @@ export default function Mate() {
             className="relative shrink-0 rounded-xl bg-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors duration-300 data-[state=active]:text-primary-foreground dark:text-zinc-400 sm:px-5"
               >
                 {activeTab === tab && (
-                  <motion.span
-                    layoutId="activeTabMate"
-                    className="absolute inset-0 bg-primary rounded-xl shadow-sm"
-                    initial={false}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
+                  <span className="absolute inset-0 rounded-xl bg-primary shadow-sm" />
                 )}
                 <span className="relative z-10">
                   {tab === 'all' && '전체'}
@@ -673,7 +646,13 @@ export default function Mate() {
               <AlertCircle className="w-10 h-10 mx-auto mb-3 text-primary" />
               <p className="text-gray-900 dark:text-zinc-200 font-medium">파티 목록을 불러오지 못했습니다</p>
               <p className="text-gray-500 dark:text-zinc-500 text-sm mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
-              <Button variant="outline" className="mt-5 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15" onClick={() => setRetryCount((c) => c + 1)}>
+              <Button
+                variant="outline"
+                className="mt-5 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
+                onClick={() => {
+                  void partyListQuery.refetch();
+                }}
+              >
                 <RefreshCw className="w-4 h-4 mr-2" /> 다시 시도
               </Button>
             </div>
@@ -681,14 +660,14 @@ export default function Mate() {
             <>
               {['all', 'recruiting', 'matched', 'selling'].map((tab) => (
                 <TabsContent key={tab} value={tab} className="space-y-4 m-0">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+                  <div className="transition-opacity duration-200">
                     {parties.length === 0 ? renderEmptyState(tab as keyof typeof emptyMessagesByTab) : (
                       <>
                         {renderPartyGrid(parties)}
                         {totalPages > 1 && renderPagination()}
                       </>
                     )}
-                  </motion.div>
+                  </div>
                 </TabsContent>
               ))}
             </>

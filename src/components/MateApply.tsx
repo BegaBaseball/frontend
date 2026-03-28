@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
@@ -9,7 +10,10 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
 import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle, Ticket, CheckCircle, Loader2 } from 'lucide-react';
-import { useMateStore } from '../store/mateStore';
+import {
+  setMatePartyMyApplicationQueryData,
+  updateMatePartyApplicationsQueryData,
+} from '../hooks/mateQueryCache';
 import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
@@ -29,6 +33,7 @@ import {
   saveMateApplyDraft,
 } from '../utils/mateApplyDraft';
 import { mateMobileBarClass } from '../utils/mateFlowUi';
+import { validateMateApplyMessage } from '../utils/mateValidation';
 
 const sanitizeUserFacingMessage = (message: string, fallback: string): string => {
   const trimmed = message.trim();
@@ -42,13 +47,13 @@ const sanitizeUserFacingMessage = (message: string, fallback: string): string =>
 };
 
 export default function MateApply() {
-  const validateMessage = useMateStore((state) => state.validateMessage);
-  const { userId: authUserId } = useAuthSession();
+  const { isAuthLoading, userId: currentUserId } = useAuthSession();
   const { logout } = useAuthAccessActions();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const {
-    party: selectedParty,
+    party,
     isLoading: isPartyLoading,
     isRevalidating: isPartyRevalidating,
     error: partyError,
@@ -56,7 +61,6 @@ export default function MateApply() {
 
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [ticketVerified, setTicketVerified] = useState(false);
   const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
@@ -66,7 +70,6 @@ export default function MateApply() {
   const previousPartyIdRef = useRef<string | null>(null);
 
   const redirectToLogin = (replace = false) => {
-    setCurrentUserId(null);
     logout(true);
     navigate(buildLoginPath(getCurrentRelativeUrl()), replace ? { replace: true } : undefined);
   };
@@ -126,37 +129,11 @@ export default function MateApply() {
     });
   }, [id, isDraftHydrated, message, ticketInfo, ticketVerified]);
 
-  // 현재 사용자 정보 가져오기
-  useEffect(() => {
-    if (authUserId) {
-      setCurrentUserId(authUserId);
-      return;
-    }
-
-    const fetchUser = async () => {
-      try {
-        const userData = await api.getCurrentUser();
-        setCurrentUserId(userData.data.id);
-      } catch (error) {
-        if ((error instanceof AxiosError && error.response?.status === 401) ||
-          (error instanceof ApiError && error.status === 401)) {
-          redirectToLogin(true);
-          return;
-        }
-
-        console.error('사용자 정보 가져오기 실패:', error);
-        toast.error('사용자 정보를 불러오지 못했습니다.');
-      }
-    };
-
-    void fetchUser();
-  }, [authUserId]);
-
-  if (isPartyLoading && !selectedParty) {
+  if (isAuthLoading || (isPartyLoading && !party)) {
     return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." fullScreen />;
   }
 
-  if (partyError || !selectedParty) {
+  if (partyError || !party) {
     return (
       <div className="flex justify-center items-center h-screen bg-background dark:bg-background transition-colors duration-200">
         <OptimizedImage
@@ -174,9 +151,9 @@ export default function MateApply() {
     );
   }
 
-  const isSelling = selectedParty.status === 'SELLING';
-  const ticketAmount = selectedParty.ticketPrice || 0;
-  const sellingPrice = selectedParty.price || 0;
+  const isSelling = party.status === 'SELLING';
+  const ticketAmount = party.ticketPrice || 0;
+  const sellingPrice = party.price || 0;
   const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
   const insetPanelClass = 'rounded-2xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
   const primaryAmount = isSelling ? sellingPrice : ticketAmount;
@@ -205,7 +182,7 @@ export default function MateApply() {
     ];
   const isSubmitReady = isSelling || message.length >= 10;
   const summaryAmountLabel = isSelling ? '구매 신청 금액' : '거래 기준 금액';
-  const summaryTrustLabel = selectedParty.ticketVerified ? '호스트 티켓 인증' : '티켓 인증 확인 전';
+  const summaryTrustLabel = party.ticketVerified ? '호스트 티켓 인증' : '티켓 인증 확인 전';
 
   // 티켓 인증 핸들러
   const handleTicketUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,7 +209,7 @@ export default function MateApply() {
         setTicketVerified(true);
 
         // 경기 정보 매치 경고
-        if (result.date && result.date !== selectedParty.gameDate) {
+        if (result.date && result.date !== party.gameDate) {
           toast.warning('티켓의 날짜가 파티의 경기 날짜와 다릅니다. 확인해주세요.');
         }
 
@@ -258,7 +235,7 @@ export default function MateApply() {
     }
 
     if (!isSelling) {
-      const validationError = validateMessage(message);
+      const validationError = validateMateApplyMessage(message);
       if (validationError) {
         toast.warning(validationError);
         return;
@@ -274,8 +251,8 @@ export default function MateApply() {
         throw new Error('판매 가격 정보가 올바르지 않습니다.');
       }
 
-      await api.createApplication({
-        partyId: selectedParty.id,
+      const createdApplication = await api.createApplication({
+        partyId: party.id,
         message: applyMessage,
         verificationToken: isSelling ? null : ticketInfo?.verificationToken ?? null,
         ticketVerified: isSelling ? false : ticketVerified,
@@ -285,10 +262,16 @@ export default function MateApply() {
       if (id) {
         clearMateApplyDraft(id);
       }
+      setMatePartyMyApplicationQueryData(queryClient, party.id, currentUserId, createdApplication);
+      updateMatePartyApplicationsQueryData(queryClient, party.id, (applications) => (
+        applications.some((application) => application.id === createdApplication.id)
+          ? applications
+          : [createdApplication, ...applications]
+      ));
       toast.success(isSelling
         ? '구매 신청이 접수되었습니다. 호스트 승인 후 직거래로 진행됩니다.'
         : '참여 신청이 접수되었습니다.');
-      navigate(`/mate/${selectedParty.id}`);
+      navigate(`/mate/${party.id}`);
     } catch (error: unknown) {
       if ((error instanceof AxiosError && error.response?.status === 401) ||
         (error instanceof ApiError && error.status === 401)) {
@@ -356,19 +339,19 @@ export default function MateApply() {
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200/80 bg-gray-50/90 px-3 py-3 dark:border-border/70 dark:bg-secondary/70 sm:w-auto sm:gap-3 sm:px-4">
                 <div className="h-10 w-10 shrink-0 sm:h-12 sm:w-12">
-                  <TeamLogo teamId={selectedParty.homeTeam} size="full" />
+                  <TeamLogo teamId={party.homeTeam} size="full" />
                 </div>
                 <span className="text-base font-black italic text-primary sm:text-lg">VS</span>
                 <div className="h-10 w-10 shrink-0 sm:h-12 sm:w-12">
-                  <TeamLogo teamId={selectedParty.awayTeam} size="full" />
+                  <TeamLogo teamId={party.awayTeam} size="full" />
                 </div>
               </div>
               <div className="min-w-0">
                 <h3 className="text-base font-black leading-tight text-primary sm:text-lg">
-                  {selectedParty.stadium}
+                  {party.stadium}
                 </h3>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                  {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime.substring(0, 5)}
+                  {formatGameDate(party.gameDate)} {party.gameTime.substring(0, 5)}
                 </p>
               </div>
             </div>
@@ -387,11 +370,11 @@ export default function MateApply() {
           <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
             <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">좌석</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">{selectedParty.section}</p>
+              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">{party.section}</p>
             </div>
             <div className={`${insetPanelClass} p-3`}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">호스트</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{selectedParty.hostName}</p>
+              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{party.hostName}</p>
             </div>
             <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">신뢰 신호</p>

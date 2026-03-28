@@ -216,4 +216,192 @@ describe('Mate execution flow UI', () => {
     cy.contains('지금 해야 할 일').should('be.visible');
     cy.contains('동행 참여자').should('be.visible');
   });
+
+  it('reuses the cached party across detail, manage, chat, and check-in routes', () => {
+    const party = buildParty({
+      id: 940,
+      hostId: 123,
+      currentParticipants: 2,
+      status: 'MATCHED',
+    });
+    const pendingApplication = buildApplication({
+      id: 601,
+      partyId: 940,
+      applicantName: '대기 신청자',
+      isApproved: false,
+      isRejected: false,
+    });
+    const approvedApplication = buildApplication({
+      id: 602,
+      partyId: 940,
+      applicantName: '승인 참여자',
+      isApproved: true,
+      isRejected: false,
+      responseDeadline: undefined,
+    });
+
+    cy.intercept('GET', '**/api/parties/940*', {
+      statusCode: 200,
+      body: party,
+    }).as('getRouteParty');
+    cy.intercept('GET', '**/api/applications/party/940/mine', {
+      statusCode: 404,
+      body: {},
+    }).as('getMyApplication');
+    cy.intercept('GET', '**/api/applications/party/940*', {
+      statusCode: 200,
+      body: [pendingApplication, approvedApplication],
+    }).as('getPartyApplications');
+    cy.intercept('POST', '**/api/checkin/qr-session', {
+      statusCode: 201,
+      body: {
+        sessionId: 'session-940',
+        partyId: 940,
+        expiresAt: '2026-03-21T11:30:00Z',
+        checkinUrl: `${Cypress.config('baseUrl')}/mate/940/checkin?sessionId=session-940`,
+      },
+    }).as('createCheckInQrSession');
+    cy.intercept('GET', '**/api/chat/party/940*', {
+      statusCode: 200,
+      body: [],
+    }).as('getChatMessages');
+    cy.intercept('POST', '**/api/chat/party/940/read', {
+      statusCode: 200,
+      body: {},
+    }).as('markChatRead');
+    cy.intercept('GET', '**/api/checkin/party/940*', {
+      statusCode: 200,
+      body: [],
+    }).as('getCheckIns');
+    cy.intercept('GET', '**/api/diary/seat-views*', {
+      statusCode: 200,
+      body: [],
+    }).as('getSeatViews');
+
+    let baselinePartyRequestCount = 0;
+
+    cy.visit('/mate/940');
+    cy.wait('@getRouteParty');
+    cy.wait('@getPartyApplications');
+    cy.wait('@createCheckInQrSession');
+    cy.get('@getRouteParty.all').then((calls) => {
+      baselinePartyRequestCount = calls.length;
+      expect(baselinePartyRequestCount).to.be.greaterThan(0);
+    });
+
+    cy.contains('button', '신청 관리 (1)').click();
+    cy.contains('Host Control').should('be.visible');
+    cy.get('@getRouteParty.all').should((calls) => {
+      expect(calls).to.have.length(baselinePartyRequestCount);
+    });
+
+    cy.contains('button', '채팅방 입장').first().click();
+    cy.wait('@getChatMessages');
+    cy.contains('채팅과 체크인 조율').should('be.visible');
+    cy.get('@getRouteParty.all').should((calls) => {
+      expect(calls).to.have.length(baselinePartyRequestCount);
+    });
+
+    cy.contains('button', '체크인').click();
+    cy.wait('@getCheckIns');
+    cy.contains('Arrival Status').should('be.visible');
+    cy.get('@getRouteParty.all').should((calls) => {
+      expect(calls).to.have.length(baselinePartyRequestCount);
+    });
+  });
+
+  it('loads the chat route directly and recovers after refresh without router state', () => {
+    const party = buildParty({
+      id: 941,
+      hostId: 123,
+      currentParticipants: 2,
+      status: 'MATCHED',
+    });
+
+    cy.intercept('GET', '**/api/parties/941*', {
+      statusCode: 200,
+      body: party,
+    }).as('getDirectChatParty');
+    cy.intercept('GET', '**/api/chat/party/941*', {
+      statusCode: 200,
+      body: [],
+    }).as('getDirectChatMessages');
+    cy.intercept('POST', '**/api/chat/party/941/read', {
+      statusCode: 200,
+      body: {},
+    }).as('markDirectChatRead');
+
+    cy.visit('/mate/941/chat');
+    cy.wait('@getDirectChatParty');
+    cy.wait('@getDirectChatMessages');
+    cy.contains('채팅과 체크인 조율').should('be.visible');
+
+    cy.reload();
+    cy.wait('@getDirectChatParty');
+    cy.wait('@getDirectChatMessages');
+    cy.contains('채팅과 체크인 조율').should('be.visible');
+  });
+
+  it('loads the manage route directly and recovers after refresh without router state', () => {
+    const party = buildParty({
+      id: 942,
+      hostId: 123,
+      currentParticipants: 2,
+      status: 'MATCHED',
+    });
+    const pendingApplication = buildApplication({
+      id: 701,
+      partyId: 942,
+      applicantName: '직접 진입 신청자',
+      isApproved: false,
+      isRejected: false,
+    });
+
+    cy.intercept('GET', '**/api/parties/942*', {
+      statusCode: 200,
+      body: party,
+    }).as('getDirectManageParty');
+    cy.intercept('GET', '**/api/applications/party/942*', {
+      statusCode: 200,
+      body: [pendingApplication],
+    }).as('getDirectManageApplications');
+
+    cy.visit('/mate/942/manage');
+    cy.wait('@getDirectManageParty');
+    cy.wait('@getDirectManageApplications');
+    cy.contains('Host Control').should('be.visible');
+
+    cy.reload();
+    cy.wait('@getDirectManageParty');
+    cy.wait('@getDirectManageApplications');
+    cy.contains('Host Control').should('be.visible');
+  });
+
+  it('loads the check-in route directly and recovers after refresh without router state', () => {
+    const party = buildParty({
+      id: 943,
+      hostId: 123,
+      currentParticipants: 2,
+      status: 'CHECKED_IN',
+    });
+
+    cy.intercept('GET', '**/api/parties/943*', {
+      statusCode: 200,
+      body: party,
+    }).as('getDirectCheckInParty');
+    cy.intercept('GET', '**/api/checkin/party/943*', {
+      statusCode: 200,
+      body: [],
+    }).as('getDirectCheckIns');
+
+    cy.visit('/mate/943/checkin?sessionId=session-943');
+    cy.wait('@getDirectCheckInParty');
+    cy.wait('@getDirectCheckIns');
+    cy.contains('Arrival Status').should('be.visible');
+
+    cy.reload();
+    cy.wait('@getDirectCheckInParty');
+    cy.wait('@getDirectCheckIns');
+    cy.contains('Arrival Status').should('be.visible');
+  });
 });

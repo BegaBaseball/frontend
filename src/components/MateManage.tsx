@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -33,10 +34,18 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Textarea } from './ui/textarea';
+import { normalizeMateParty } from '../api/mate';
+import { getMatePartyApplicationsQueryOptions } from '../hooks/mateQueryOptions';
+import {
+  removeMatePartyFromCollections,
+  removeMatePartyQueries,
+  syncMatePartyQueryData,
+  updateMatePartyApplicationQueryData,
+  updateMatePartyCollectionQueryData,
+} from '../hooks/mateQueryCache';
 import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { useAuthAccessActions, useAuthProfileSnapshot } from '../store/authStore';
-import { useMateStore } from '../store/mateStore';
-import { Application, BadgeType } from '../types/mate';
+import { useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
+import { BadgeType } from '../types/mate';
 import { cn } from '../lib/utils';
 import { api, getApiErrorStatus } from '../utils/api';
 import { getApiErrorMessage } from '../utils/errorUtils';
@@ -52,6 +61,7 @@ import {
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
 import { formatGameDate, isPartyHostedByUser } from '../utils/mate';
+import { validateMateDescription } from '../utils/mateValidation';
 
 type SummaryItemProps = {
   icon: LucideIcon;
@@ -104,26 +114,16 @@ export default function MateManage() {
   const { id } = useParams<{ id: string }>();
   const { confirm } = useConfirmDialog();
   const {
-    party: selectedParty,
+    party,
     isLoading: isPartyLoading,
     isRevalidating: isPartyRevalidating,
     error: partyError,
   } = useMatePartyFromRoute(id);
-  const validateDescription = useMateStore((state) => state.validateDescription);
-  const updateParty = useMateStore((state) => state.updateParty);
-  const { userId: authUserId, userHandle: authUserHandle } = useAuthProfileSnapshot();
+  const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
+  const { isAuthLoading, userId: currentUserId } = useAuthSession();
   const { logout, requireLogin } = useAuthAccessActions();
+  const queryClient = useQueryClient();
 
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserHandle, setCurrentUserHandle] = useState<string | null>(null);
-  const [userLoading, setUserLoading] = useState(true);
-  const [userLoadError, setUserLoadError] = useState<string | null>(null);
-  const [userRetryCount, setUserRetryCount] = useState(0);
-  const [isHostAccessDenied, setIsHostAccessDenied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -136,83 +136,53 @@ export default function MateManage() {
   const [applicationActionError, setApplicationActionError] = useState('');
 
   useEffect(() => {
-    if (authUserId) {
-      setCurrentUserId(authUserId);
-      setCurrentUserHandle(authUserHandle ?? null);
-      setUserLoadError(null);
-      setUserLoading(false);
+    if (isAuthLoading || currentUserId !== null) {
       return;
     }
 
-    const fetchCurrentUser = async () => {
-      try {
-        setUserLoading(true);
-        setUserLoadError(null);
-        const userData = await api.getCurrentUser();
-        setCurrentUserId(userData.data.id);
-        setCurrentUserHandle(userData.data.handle ?? null);
-      } catch (error: unknown) {
-        console.error('사용자 정보 가져오기 실패:', error);
-        if (getApiErrorStatus(error) === 401) {
-          logout(true);
-          requireLogin();
-        }
-        setUserLoadError('사용자 정보를 불러오지 못했습니다.');
-      } finally {
-        setUserLoading(false);
-      }
-    };
+    logout(true);
+    requireLogin();
+  }, [currentUserId, isAuthLoading, logout, requireLogin]);
 
-    void fetchCurrentUser();
-  }, [authUserHandle, authUserId, logout, requireLogin, userRetryCount]);
-
-  useEffect(() => {
-    if (!selectedParty || !currentUserId) {
-      return;
-    }
-
-    if (!isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle })) {
-      return;
-    }
-
-    const fetchApplications = async () => {
-      setIsLoading(true);
-      setFetchError(false);
-      setIsHostAccessDenied(false);
-      try {
-        const data = await api.getApplicationsByParty(selectedParty.id);
-        setApplications(data);
-      } catch (error: unknown) {
-        console.error('신청 목록 불러오기 오류:', error);
-        if (getApiErrorStatus(error) === 403) {
-          setIsHostAccessDenied(true);
-          setApplicationActionError('호스트만 신청 목록을 조회할 수 있습니다.');
-          setApplications([]);
-          return;
-        }
-        setFetchError(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void fetchApplications();
-  }, [currentUserHandle, currentUserId, retryCount, selectedParty]);
-
-  const refetchApplications = async () => {
-    if (!selectedParty) {
-      return;
-    }
-    const data = await api.getApplicationsByParty(selectedParty.id);
-    setApplications(data);
-  };
+  const isHost = party
+    ? isPartyHostedByUser(party, { id: currentUserId, handle: currentUserHandle })
+    : false;
+  const applicationsQuery = useQuery({
+    ...(party?.id != null
+      ? getMatePartyApplicationsQueryOptions(party.id)
+      : getMatePartyApplicationsQueryOptions('unknown')),
+    enabled: Boolean(party?.id && currentUserId && isHost),
+  });
+  const applications = applicationsQuery.data ?? [];
+  const isLoading = applicationsQuery.isPending;
+  const isHostAccessDenied = getApiErrorStatus(applicationsQuery.error) === 403;
+  const fetchError = Boolean(applicationsQuery.error) && !isHostAccessDenied;
 
   const handleApprove = async (applicationId: string | number) => {
     setApplicationActionError('');
     try {
-      await api.approveApplication(applicationId);
+      const approvedApplication = await api.approveApplication(applicationId);
+      updateMatePartyApplicationQueryData(
+        queryClient,
+        party!.id,
+        approvedApplication.id,
+        () => approvedApplication,
+      );
+      updateMatePartyCollectionQueryData(queryClient, party!.id, (currentParty) => {
+        const nextParticipants = Math.min(
+          currentParty.maxParticipants,
+          currentParty.currentParticipants + 1,
+        );
+
+        return {
+          ...currentParty,
+          currentParticipants: nextParticipants,
+          status: nextParticipants >= currentParty.maxParticipants
+            ? 'MATCHED'
+            : currentParty.status,
+        };
+      });
       toast.success('신청이 승인되었습니다!');
-      await refetchApplications();
     } catch (error: unknown) {
       console.error('신청 승인 중 오류:', error);
       const errorMessage = getApiErrorMessage(error, '신청 승인에 실패했습니다.');
@@ -224,9 +194,14 @@ export default function MateManage() {
   const handleReject = async (applicationId: string | number) => {
     setApplicationActionError('');
     try {
-      await api.rejectApplication(applicationId);
+      const rejectedApplication = await api.rejectApplication(applicationId);
+      updateMatePartyApplicationQueryData(
+        queryClient,
+        party!.id,
+        rejectedApplication.id,
+        () => rejectedApplication,
+      );
       toast.success('신청이 거절되었습니다.');
-      await refetchApplications();
     } catch (error: unknown) {
       console.error('신청 거절 중 오류:', error);
       const errorMessage = getApiErrorMessage(error, '신청 거절에 실패했습니다.');
@@ -236,7 +211,11 @@ export default function MateManage() {
   };
 
   const handleDeleteParty = async () => {
-    if (!selectedParty || !currentUserId) {
+    if (!party || !currentUserId) {
+      if (!currentUserId) {
+        logout(true);
+        requireLogin();
+      }
       return;
     }
 
@@ -269,7 +248,9 @@ export default function MateManage() {
 
     setIsDeleting(true);
     try {
-      await api.deleteParty(selectedParty.id);
+      await api.deleteParty(party.id);
+      removeMatePartyFromCollections(queryClient, party.id);
+      removeMatePartyQueries(queryClient, party.id);
       toast.success('파티가 삭제되었습니다.');
       navigate('/mate');
     } catch (error: unknown) {
@@ -289,34 +270,34 @@ export default function MateManage() {
   };
 
   const handleStartEdit = () => {
-    if (!selectedParty) {
+    if (!party) {
       return;
     }
 
     setEditForm({
-      section: selectedParty.section,
-      maxParticipants: selectedParty.maxParticipants,
-      ticketPrice: selectedParty.ticketPrice || 0,
-      description: selectedParty.description,
+      section: party.section,
+      maxParticipants: party.maxParticipants,
+      ticketPrice: party.ticketPrice || 0,
+      description: party.description,
     });
     setDescriptionError('');
     setIsEditing(true);
   };
 
   const handleSaveEdit = async () => {
-    if (!selectedParty) {
+    if (!party) {
       return;
     }
 
-    const error = validateDescription(editForm.description);
+    const error = validateMateDescription(editForm.description);
     if (error) {
       setDescriptionError(error);
       return;
     }
 
     try {
-      await api.updateParty(selectedParty.id, editForm);
-      updateParty(selectedParty.id, editForm);
+      const updatedParty = await api.updateParty(party.id, editForm);
+      syncMatePartyQueryData(queryClient, normalizeMateParty(updatedParty));
       toast.success('파티 정보가 수정되었습니다.');
       setDescriptionError('');
       setIsEditing(false);
@@ -356,11 +337,11 @@ export default function MateManage() {
     return null;
   };
 
-  if (isPartyLoading && !selectedParty) {
+  if (isAuthLoading || (isPartyLoading && !party)) {
     return <LoadingSpinner text="파티 정보를 불러오는 중..." fullScreen />;
   }
 
-  if (partyError || !selectedParty) {
+  if (partyError || !party) {
     return (
       <div className={matePageShellClass}>
         <img
@@ -385,70 +366,9 @@ export default function MateManage() {
     );
   }
 
-  if (userLoading) {
-    return (
-      <div className={matePageShellClass}>
-        <img
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
-        />
-        <div className="relative z-10 mx-auto flex min-h-screen max-w-4xl items-center px-4 py-10 sm:px-6 lg:px-8">
-          <LoadingSpinner text="호스트 권한을 확인하는 중..." fullScreen={false} />
-        </div>
-      </div>
-    );
-  }
-
-  if (userLoadError) {
-    return (
-      <div className={matePageShellClass}>
-        <img
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
-        />
-        <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-          <Card className={`p-6 ${mateSectionCardClass}`}>
-            <Alert className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/25">
-              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              <AlertDescription className="text-red-700 dark:text-red-300">
-                {userLoadError}
-              </AlertDescription>
-            </Alert>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => setUserRetryCount((count) => count + 1)}>
-                다시 시도
-              </Button>
-              <Button onClick={() => navigate('/mate')}>목록으로 이동</Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   if (!currentUserId) {
-    return (
-      <div className={matePageShellClass}>
-        <img
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
-        />
-        <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-          <Card className={`p-6 ${mateSectionCardClass}`}>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>사용자 정보를 확인할 수 없습니다.</AlertDescription>
-            </Alert>
-          </Card>
-        </div>
-      </div>
-    );
+    return null;
   }
-
-  const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
 
   if (!isHost || isHostAccessDenied) {
     return (
@@ -476,14 +396,14 @@ export default function MateManage() {
     );
   }
 
-  const statusMeta = getPartyStatusMeta(selectedParty.status);
-  const hostBadgeMeta = getBadgeMeta(selectedParty.hostBadge);
+  const statusMeta = getPartyStatusMeta(party.status);
+  const hostBadgeMeta = getBadgeMeta(party.hostBadge);
   const pendingApplications = applications.filter((app) => !app.isApproved && !app.isRejected);
   const approvedApplications = applications.filter((app) => app.isApproved);
   const rejectedApplications = applications.filter((app) => app.isRejected);
-  const canEdit = selectedParty.status === 'PENDING' && approvedApplications.length === 0;
-  const canReviewCheckIn = approvedApplications.length > 0 || ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(selectedParty.status);
-  const flowLabel = getPartyFlowLabel(selectedParty.status);
+  const canEdit = party.status === 'PENDING' && approvedApplications.length === 0;
+  const canReviewCheckIn = approvedApplications.length > 0 || ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(party.status);
+  const flowLabel = getPartyFlowLabel(party.status);
   const responseSummary = pendingApplications.length > 0 ? `${pendingApplications.length}건` : '없음';
   const nextStepSummary = pendingApplications.length > 0
     ? '대기 신청 검토'
@@ -526,8 +446,8 @@ export default function MateManage() {
     {
       icon: Ticket,
       label: '티켓 상태',
-      value: selectedParty.ticketVerified ? '호스트 인증 완료' : '티켓 인증 전',
-      detail: selectedParty.ticketVerified ? '상세페이지와 동일한 신뢰 배지가 노출됩니다.' : '참여자에게 인증 배지가 아직 보이지 않습니다.',
+      value: party.ticketVerified ? '호스트 인증 완료' : '티켓 인증 전',
+      detail: party.ticketVerified ? '상세페이지와 동일한 신뢰 배지가 노출됩니다.' : '참여자에게 인증 배지가 아직 보이지 않습니다.',
     },
     {
       icon: CheckCircle,
@@ -707,7 +627,7 @@ export default function MateManage() {
               title="신청 목록을 불러오지 못했습니다"
               description="네트워크 연결을 확인한 뒤 다시 시도해주세요. 목록과 상세는 유지되고 신청 관리 데이터만 다시 불러옵니다."
             />
-            <Button variant="outline" className="mt-4 w-fit" onClick={() => setRetryCount((count) => count + 1)}>
+            <Button variant="outline" className="mt-4 w-fit" onClick={() => void applicationsQuery.refetch()}>
               <RefreshCw className="mr-1.5 h-4 w-4" />
               다시 시도
             </Button>
@@ -743,7 +663,7 @@ export default function MateManage() {
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex min-w-0 gap-3 sm:gap-4">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10 sm:h-16 sm:w-16">
-                      <TeamLogo teamId={selectedParty.teamId} size="md" />
+                      <TeamLogo teamId={party.teamId} size="md" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
@@ -762,7 +682,7 @@ export default function MateManage() {
                         <Badge className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
                           {flowLabel}
                         </Badge>
-                        {selectedParty.ticketVerified && (
+                        {party.ticketVerified && (
                           <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                             <span className="flex items-center gap-1">
                               <Ticket className="h-3.5 w-3.5" />
@@ -786,7 +706,7 @@ export default function MateManage() {
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">일정</p>
                           <p className="mt-1 font-medium text-gray-900 dark:text-white">
-                            {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime}
+                            {formatGameDate(party.gameDate)} {party.gameTime}
                           </p>
                         </div>
                       </div>
@@ -795,9 +715,9 @@ export default function MateManage() {
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
                           <p className="mt-1 font-medium text-gray-900 dark:text-white">
-                            {selectedParty.stadium}
+                            {party.stadium}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-300">{selectedParty.section}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">{party.section}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
@@ -805,7 +725,7 @@ export default function MateManage() {
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">참여 현황</p>
                           <p className="mt-1 font-medium text-gray-900 dark:text-white">
-                            {selectedParty.currentParticipants}/{selectedParty.maxParticipants}명
+                            {party.currentParticipants}/{party.maxParticipants}명
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-300">승인 {approvedApplications.length}명, 대기 {pendingApplications.length}건</p>
                         </div>
@@ -899,10 +819,10 @@ export default function MateManage() {
                       const nextDescription = event.target.value;
                       setEditForm({ ...editForm, description: nextDescription });
                       if (descriptionError) {
-                        setDescriptionError(validateDescription(nextDescription));
+                        setDescriptionError(validateMateDescription(nextDescription));
                       }
                     }}
-                    onBlur={() => setDescriptionError(validateDescription(editForm.description))}
+                    onBlur={() => setDescriptionError(validateMateDescription(editForm.description))}
                     className={cn(descriptionError && 'border-red-400 focus-visible:ring-red-200')}
                   />
                   {descriptionError && (
