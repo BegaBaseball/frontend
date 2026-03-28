@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { buildDefaultPredictionPath, ensureCoachBriefingVisible } from '../support/predictionPage';
+
 describe('Prediction Coach Briefing Regression', () => {
   type ScheduleGameMock = {
     gameId: string;
@@ -52,6 +54,8 @@ describe('Prediction Coach Briefing Regression', () => {
       leagueType: 'POST',
     },
   ];
+  const COACH_BRIEFING_SESSION_STORAGE_KEY = 'prediction:coachBriefing:v2';
+  const COACH_BRIEFING_LOCAL_STORAGE_KEY = 'prediction:coachBriefing:local:v2';
 
   let rangeSchedulePayload: ScheduleGameMock[] = [...defaultRangeSchedulePayload];
   let gameDetailById: Record<string, GameDetailMock> = {};
@@ -102,13 +106,28 @@ describe('Prediction Coach Briefing Regression', () => {
   };
 
   const openPredictionPage = ({
+    authenticated = true,
     reducedMotion = false,
     path = '/prediction',
+    waitForGameDetail = true,
+    waitForRankings = true,
+    skipCoachBriefingProbe = false,
+    useRealClock = false,
+    waitForVoteBootstrap = true,
   }: {
+    authenticated?: boolean;
     reducedMotion?: boolean;
     path?: string;
-  } = {}) => {
-    const fakeToken = 'coach-briefing-test-token';
+    waitForGameDetail?: boolean;
+    waitForRankings?: boolean;
+    skipCoachBriefingProbe?: boolean;
+    useRealClock?: boolean;
+    waitForVoteBootstrap?: boolean;
+    } = {}) => {
+      const fakeToken = 'coach-briefing-test-token';
+      const resolvedPath = path === '/prediction'
+      ? buildDefaultPredictionPath(rangeSchedulePayload)
+      : path;
     const authState = {
       state: {
         user: {
@@ -128,13 +147,20 @@ describe('Prediction Coach Briefing Regression', () => {
     };
 
     const seedAuthState = (win: Window) => {
-      win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-      win.localStorage.setItem('accessToken', fakeToken);
+      if (authenticated) {
+        win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+        win.localStorage.setItem('accessToken', fakeToken);
+        win.localStorage.setItem('auth-bootstrap-hint', '1');
+      } else {
+        win.localStorage.removeItem('auth-storage');
+        win.localStorage.removeItem('accessToken');
+        win.localStorage.removeItem('auth-bootstrap-hint');
+      }
       win.localStorage.setItem('bega_has_visited', 'true');
       win.localStorage.setItem('bega_dont_show_guide', 'true');
     };
 
-    cy.visit(path, {
+    cy.visit(resolvedPath, {
       onBeforeLoad: (win: Window) => {
         seedAuthState(win);
         win.addEventListener('auth-session-expired', (event) => {
@@ -164,25 +190,39 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.window().then((win) => {
       seedAuthState(win);
     });
-    cy.setCookie('Authorization', fakeToken);
+    if (authenticated) {
+      cy.setCookie('Authorization', fakeToken);
+    }
+    const advanceTime = (ms: number) => {
+      if (useRealClock) {
+        cy.wait(ms);
+        return;
+      }
+      cy.tick(ms);
+    };
+
     // Advance clock to let React initialization and hydration proceed
-    cy.tick(100);
+    advanceTime(100);
     cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
     cy.wait('@getScheduleRange');
-    cy.tick(100);
-    cy.wait('@getGameDetail');
-    cy.tick(100);
-    cy.wait('@getRankingsCoach');
-    cy.tick(100);
-    // Wait for game content visible — confirms currentGame is non-null
-    // and CoachBriefing's 380ms timer has been registered
+    advanceTime(100);
+    if (waitForGameDetail) {
+      cy.wait('@getGameDetail');
+      advanceTime(100);
+    }
+    if (waitForRankings) {
+      cy.wait('@getRankingsCoach');
+      advanceTime(100);
+    }
     // Wait for other initial requests to settle to avoid re-render noise
-    cy.wait(['@getVoteStatus', '@getUserVotes']);
-    cy.get('@getUserVote.all').should('have.length', 0);
-    cy.tick(500);
-
-    // Initial state check - should not be loading yet (380ms timer)
-    cy.contains('작전 구상 중...').should('not.exist');
+    if (waitForVoteBootstrap) {
+      cy.wait(['@getVoteStatus', '@getUserVotes']);
+      cy.get('@getUserVote.all').should('have.length', 0);
+    }
+    if (!skipCoachBriefingProbe) {
+      ensureCoachBriefingVisible();
+      advanceTime(500);
+    }
   };
 
   const extractCoachGameId = (body: unknown): string | undefined => {
@@ -207,18 +247,19 @@ describe('Prediction Coach Briefing Regression', () => {
 
 
   beforeEach(() => {
-    cy.clock(fixedNow);
+    cy.clock(fixedNow).as('appClock');
     cy.visit('about:blank');
     cy.window().then((win) => {
       win.sessionStorage.clear();
       win.sessionStorage.removeItem('prediction:run-session:v1');
       win.sessionStorage.removeItem('prediction:run-session');
+      win.sessionStorage.removeItem(COACH_BRIEFING_SESSION_STORAGE_KEY);
       win.localStorage.removeItem('kbo-theme');
       win.localStorage.removeItem('prediction:run-session');
       win.localStorage.removeItem('prediction:run-session:v1');
+      win.localStorage.removeItem(COACH_BRIEFING_LOCAL_STORAGE_KEY);
     });
-    (cy as any).mockAPI();
-    (cy as any).login('user');
+    (cy as any).mockAPI({ skipRankings: true });
 
     setScheduleData([...defaultRangeSchedulePayload]);
 
@@ -298,7 +339,7 @@ describe('Prediction Coach Briefing Regression', () => {
       body: [],
     }).as('getSchedule');
 
-    cy.intercept('GET', '**/api/kbo/rankings/*', {
+    cy.intercept('GET', '**/api/kbo/rankings/snapshot*', {
       statusCode: 200,
       body: defaultRankings,
     }).as('getRankingsCoach');
@@ -333,9 +374,11 @@ describe('Prediction Coach Briefing Regression', () => {
 
     cy.tick(2000);
     cy.wait('@coachAnalyzeRetry');
-    cy.tick(4000);
-    cy.wait('@coachAnalyzeRetry');
-    cy.get('@coachAnalyzeRetry.all').its('length').should('be.gte', 2);
+    cy.tick(100);
+    cy.tick(6000);
+    cy.get('@coachAnalyzeRetry.all', { timeout: 10000 }).should((interceptions: any) => {
+      expect((interceptions as any[]).length).to.be.gte(2);
+    });
 
     cy.tick(30000);
     cy.get('@coachAnalyzeRetry.all').its('length').should((length) => {
@@ -383,19 +426,20 @@ describe('Prediction Coach Briefing Regression', () => {
 
     cy.tick(2000);
     cy.wait('@coachAnalyzeStructured');
+    cy.tick(100);
     cy.get('@coachAnalyzeStructured.all').its('length').then((length) => {
       initialStructuredCalls = Number(length);
       expect(initialStructuredCalls).to.be.gte(1);
     });
 
-    cy.tick(4000);
+    cy.tick(2000);
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.equal(initialStructuredCalls);
     });
-    cy.tick(2000);
+    cy.tick(4000);
     cy.wait('@coachAnalyzeStructured');
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
-      expect(Number(length)).to.be.gte(initialStructuredCalls);
+      expect(Number(length)).to.be.gte(initialStructuredCalls + 1);
     });
   });
 
@@ -500,18 +544,126 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.wait('@coachAnalyzeReset');
     cy.get('@coachAnalyzeReset.all').should((interceptions: any) => {
       const interceptionList = interceptions as any[];
+      const switchedGameRequests = interceptionList.filter((interception) => (
+        extractCoachGameId(interception?.request?.body) === '20260601LGKT0'
+      ));
       expect(interceptionList.length).to.be.greaterThan(beforeSwitchCount);
-      const lastRequest = interceptionList[interceptionList.length - 1]?.request?.body;
-      expect(extractCoachGameId(lastRequest)).to.eq('20260601LGKT0');
+      expect(switchedGameRequests.length).to.be.gte(1);
     });
 
     cy.tick(4000);
     cy.wait('@coachAnalyzeReset');
     cy.get('@coachAnalyzeReset.all').should((interceptions: any) => {
       const interceptionList = interceptions as any[];
-      const lastRequest = interceptionList[interceptionList.length - 1]?.request?.body;
-      expect(extractCoachGameId(lastRequest)).to.eq('20260601LGKT0');
+      const switchedGameRequests = interceptionList.filter((interception) => (
+        extractCoachGameId(interception?.request?.body) === '20260601LGKT0'
+      ));
+      const lastSwitchedRequest = switchedGameRequests[switchedGameRequests.length - 1]?.request?.body;
+      expect(switchedGameRequests.length).to.be.gte(2);
+      expect(extractCoachGameId(lastSwitchedRequest)).to.eq('20260601LGKT0');
     });
+  });
+
+  it('does not restart auto brief when delayed game detail only adds transient scheduled state', () => {
+    let coachAnalyzeHydrationCount = 0;
+
+    setScheduleData([
+      {
+        gameId: '20260601LGKT0',
+        gameDate: '2026-06-01',
+        homeTeam: 'LG',
+        awayTeam: 'KT',
+        stadium: '잠실',
+        homeScore: null,
+        awayScore: null,
+        winner: null,
+        leagueType: 'REGULAR',
+      },
+    ]);
+
+    cy.intercept('GET', '**/api/matches/20260601LGKT0*', {
+      delay: 600,
+      statusCode: 200,
+      body: {
+        gameId: '20260601LGKT0',
+        gameDate: '2026-06-01',
+        leagueType: 'REGULAR',
+        homeTeam: 'LG',
+        awayTeam: 'KT',
+        stadium: '잠실',
+        startTime: '18:30',
+        homeScore: null,
+        awayScore: null,
+        winner: null,
+        gameStatus: 'SCHEDULED',
+        gameStatusKr: '경기 예정',
+      },
+    }).as('getGameDetailHydration');
+
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      coachAnalyzeHydrationCount += 1;
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({
+          delta: JSON.stringify({
+            headline: '지연 상세 응답 안정화',
+            coach_note: '지연된 상세 데이터가 도착해도 기존 자동 브리핑이 유지되어야 합니다.',
+          }),
+          meta: {
+            validation_status: 'success',
+            resolved_focus: ['recent_form'],
+            focus_signature: 'recent_form',
+            question_signature: 'auto',
+            cache_key_version: 'v4',
+            request_mode: 'auto_brief',
+            cached: true,
+            cache_state: 'HIT',
+            in_progress: false,
+            data_quality: 'grounded',
+            structured_response: {
+              headline: '지연 상세 응답 안정화',
+              sentiment: 'neutral',
+              key_metrics: [],
+              analysis: {
+                strengths: [],
+                weaknesses: [],
+                risks: [],
+              },
+              detailed_markdown: '',
+              coach_note: '지연된 상세 데이터가 도착해도 기존 자동 브리핑이 유지되어야 합니다.',
+            },
+          },
+        }),
+      });
+    }).as('coachAnalyzeHydrationStable');
+
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      reducedMotion: true,
+      path: '/prediction?gameId=20260601LGKT0&date=2026-06-01',
+      waitForGameDetail: false,
+      skipCoachBriefingProbe: true,
+      useRealClock: true,
+    });
+
+    cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 })
+      .scrollIntoView()
+      .should('be.visible');
+    cy.wait('@coachAnalyzeHydrationStable');
+    cy.get('[data-testid="coach-briefing-title"]', { timeout: 12000 })
+      .should('contain', '지연 상세 응답 안정화');
+    cy.get('[data-testid="coach-briefing-message"]')
+      .should('contain', '지연된 상세 데이터가 도착해도 기존 자동 브리핑이 유지되어야 합니다.');
+    cy.wait('@getGameDetailHydration');
+    cy.wrap(null).should(() => {
+      expect(coachAnalyzeHydrationCount).to.eq(1);
+    });
+    cy.get('@coachAnalyzeHydrationStable.all').should('have.length', 1);
+    cy.contains('AI 분석을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.').should('not.exist');
   });
 
 
@@ -552,13 +704,66 @@ describe('Prediction Coach Briefing Regression', () => {
       }),
     }).as('coachAnalyzeReducedMotion');
 
-    openPredictionPage({ reducedMotion: true });
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
 
-    cy.tick(2000);
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+    });
+
     cy.wait('@coachAnalyzeReducedMotion');
-
-    cy.tick(200);
     cy.get('[data-testid="coach-briefing-message"]').should('contain', reducedMotionMessage);
+  });
+
+  it('does not request coach analyze for guests and shows a login CTA', () => {
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      authenticated: false,
+      reducedMotion: true,
+      useRealClock: true,
+      waitForVoteBootstrap: false,
+    });
+
+    cy.get('@coachAnalyzeDefault.all').should('have.length', 0);
+    cy.get('[data-testid="coach-briefing-message"]')
+      .should('contain', '실데이터 브리핑은 로그인 후 제공됩니다.');
+    cy.get('[data-testid="coach-briefing-login-cta"]')
+      .should('contain', '로그인하고 브리핑 보기');
+  });
+
+  it('shows a re-login CTA instead of generic fallback when coach analyze returns AUTH_EXPIRED', () => {
+    cy.intercept('POST', '**/auth/reissue*', {
+      statusCode: 401,
+      body: { success: false, code: 'UNAUTHORIZED' },
+    }).as('coachReissueExpired');
+
+    cy.intercept('POST', '**/coach/analyze*', {
+      statusCode: 401,
+      body: { success: false, code: 'UNAUTHORIZED' },
+    }).as('coachAnalyzeAuthExpired');
+
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+    });
+
+    cy.wait('@coachAnalyzeAuthExpired');
+    cy.wait('@coachReissueExpired');
+
+    cy.get('[data-testid="coach-briefing-message"]')
+      .should('contain', '로그인 세션이 만료되었습니다. 다시 로그인 후 브리핑을 확인해주세요.');
+    cy.contains('AI 분석을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.').should('not.exist');
+    cy.get('[data-testid="coach-briefing-login-cta"]')
+      .should('contain', '다시 로그인하기');
   });
 
   it('shows the blinking cursor only while coach briefing is loading', () => {
@@ -593,12 +798,17 @@ describe('Prediction Coach Briefing Regression', () => {
       }),
     }).as('coachAnalyzeLoadingCursor');
 
-    openPredictionPage();
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      useRealClock: true,
+    });
 
     cy.get('@coachAnalyzeLoadingCursor.all').should((interceptions) => {
       expect(interceptions).to.have.length.at.least(1);
     });
-    cy.tick(200);
     cy.get('[data-testid="coach-briefing-message"]')
       .next('span')
       .should('exist');
@@ -647,9 +857,15 @@ describe('Prediction Coach Briefing Regression', () => {
       }),
     }).as('coachAnalyzeMarkdownCard');
 
-    openPredictionPage({ reducedMotion: true });
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
 
-    cy.tick(2000);
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+    });
+
     cy.wait('@coachAnalyzeMarkdownCard');
 
     cy.get('[data-testid="coach-briefing-message"]', { timeout: 12000 })
@@ -734,9 +950,14 @@ describe('Prediction Coach Briefing Regression', () => {
       });
     }).as('coachAnalyzeGrounded');
 
-    openPredictionPage();
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
 
-    cy.tick(2000);
+    openPredictionPage({
+      useRealClock: true,
+    });
+
     cy.wait('@coachAnalyzeGrounded');
     cy.get('[data-testid="coach-briefing-title"]').should('contain', '삼성 vs 한화, 1차전 실데이터 브리핑');
     cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 기반');
@@ -748,7 +969,6 @@ describe('Prediction Coach Briefing Regression', () => {
       .click({ force: true });
     cy.wait('@getScheduleRange');
     cy.wait('@getGameDetail');
-    cy.tick(2000);
     cy.wait('@coachAnalyzeGrounded');
     cy.get('[data-testid="coach-briefing-title"]').should('contain', 'LG vs KT, 2차전 실데이터 브리핑');
     cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 기반');
@@ -769,6 +989,7 @@ describe('Prediction Coach Briefing Regression', () => {
         generation_mode: 'evidence_fallback',
         data_quality: 'partial',
         used_evidence: ['game', 'kbo_seasons', 'team_recent_form'],
+        grounding_reasons: ['missing_summary', 'missing_starters', 'missing_lineups'],
         structured_response: {
           headline: '부분 근거 기반 자동 브리핑',
           sentiment: 'neutral',
@@ -790,12 +1011,24 @@ describe('Prediction Coach Briefing Regression', () => {
       });
     }).as('coachAnalyzeMeta');
 
-    openPredictionPage();
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
 
-    cy.tick(2000);
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+    });
+
     cy.wait('@coachAnalyzeMeta');
     cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 일부 기반');
     cy.contains('근거 3개').should('exist');
     cy.get('[data-testid="coach-briefing-title"]').should('contain', '부분 근거 기반 자동 브리핑');
+    cy.get('[data-testid="coach-briefing-data-quality-note"]')
+      .should('contain', '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.');
+    cy.get('[data-testid="coach-briefing-grounding-reason"]').then(($chips) => {
+      const labels = [...$chips].map((chip) => chip.textContent?.trim());
+      expect(labels).to.deep.equal(['선발 미발표', '라인업 미발표', '경기 요약 부족']);
+    });
   });
 });

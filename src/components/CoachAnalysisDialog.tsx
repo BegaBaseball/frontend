@@ -24,7 +24,6 @@ import {
 } from '../api/coach';
 import { TEAM_LIST, TEAM_NAME_TO_ID, getRandomTeamName, TEAM_DATA } from '../constants/teams';
 import TeamLogo from './TeamLogo';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
     COACH_BRIEFING_DISPLAY_MESSAGE,
     COACH_BRIEFING_MANUAL_HINT,
@@ -296,8 +295,9 @@ const ANALYSIS_LOADING_FALLBACK_MESSAGE = 'AI 코치 분석을 시작합니다.'
 // Subcomponents transferred to separate files.
 
 // --- Main Component ---
-interface CoachAnalysisDialogProps {
+export interface CoachAnalysisDialogProps {
     trigger?: ReactNode;
+    defaultOpen?: boolean;
     initialTeam?: string;
     homeTeamId?: string;
     awayTeamId?: string;
@@ -313,6 +313,7 @@ interface CoachAnalysisDialogProps {
 
 export default function CoachAnalysisDialog({
     trigger,
+    defaultOpen = false,
     initialTeam,
     homeTeamId,
     awayTeamId,
@@ -355,7 +356,7 @@ export default function CoachAnalysisDialog({
         return Array.from(new Set(defaults));
     };
 
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(defaultOpen);
     const [selectedTeam, setSelectedTeam] = useState<string>(getInitialTeamName(initialTeam));
     const [focus, setFocus] = useState<string[]>(buildDefaultFocus());
     const [loading, setLoading] = useState(false);
@@ -891,7 +892,10 @@ export default function CoachAnalysisDialog({
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-white dark:bg-secondary border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-0">
+            <DialogContent
+                data-testid="coach-analysis-dialog"
+                className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-white dark:bg-secondary border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-0"
+            >
             <DialogHeader className="p-4 sm:p-6 shrink-0 bg-white dark:bg-black/30 border-b border-gray-100 dark:border-gray-800">
                     <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
                         AI 코치 상세 분석
@@ -905,11 +909,7 @@ export default function CoachAnalysisDialog({
 
                 <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 space-y-7 sm:space-y-8 bg-gray-50/60 dark:bg-black/40 relative">
                     {/* Team Selection Section */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-6"
-                    >
+                    <div className="space-y-6">
                         <div className="flex items-center justify-between px-1">
                             <Label className="text-sm font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
@@ -920,10 +920,9 @@ export default function CoachAnalysisDialog({
                             {selectableTeamNames.map((teamName) => {
                                 const isSelected = selectedTeam === teamName;
                                 return (
-                                    <motion.button
+                                    <button
                                         key={teamName}
                                         type="button"
-                                        whileTap={{ scale: 0.98 }}
                                         disabled={loading}
                                         onClick={() => {
                                             if (loading) return;
@@ -935,7 +934,7 @@ export default function CoachAnalysisDialog({
                                                 ? 'bg-white dark:bg-card border-primary/30 shadow-sm ring-2 ring-primary'
                                                 : 'bg-white dark:bg-card/50 border-gray-100 dark:border-border hover:border-gray-200 dark:hover:border-gray-700'
                                             }
-                                            ${loading ? 'opacity-60 cursor-not-allowed' : ''}
+                                            ${loading ? 'opacity-60 cursor-not-allowed' : 'active:scale-[0.98]'}
                                         `}
                                     >
                                         <div className="w-10 h-10 sm:w-12 sm:h-12 mb-2 sm:mb-3 relative flex items-center justify-center">
@@ -944,19 +943,14 @@ export default function CoachAnalysisDialog({
                                         <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-gray-500'}`}>
                                             {teamName}
                                         </span>
-                                    </motion.button>
+                                    </button>
                                 );
                             })}
                         </div>
-                    </motion.div>
+                    </div>
 
                     {/* Focus Points Section */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="space-y-6"
-                    >
+                    <div className="space-y-6">
                         <Label className="text-sm font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2 px-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
                             분석 집중 항목
@@ -965,7 +959,7 @@ export default function CoachAnalysisDialog({
                             {focusOptions.map((opt) => {
                                 const isActive = focus.includes(opt.id);
                                 return (
-                                    <motion.button
+                                    <button
                                         key={opt.id}
                                         type="button"
                                         disabled={loading}
@@ -979,7 +973,7 @@ export default function CoachAnalysisDialog({
                                                 ? 'bg-white dark:bg-emerald-950/10 border-primary/30 shadow-sm ring-1 ring-primary'
                                                 : 'bg-white dark:bg-card/50 border-gray-100 dark:border-border hover:border-gray-200 dark:hover:border-gray-700'
                                             }
-                                            ${loading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
+                                            ${loading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer active:scale-[0.99]'}
                                         `}
                                     >
                                         <div className={`p-2.5 sm:p-3 rounded-xl transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-secondary text-gray-500'}`}>
@@ -993,11 +987,11 @@ export default function CoachAnalysisDialog({
                                                 {opt.desc}
                                             </p>
                                         </div>
-                                    </motion.button>
+                                    </button>
                                 );
                             })}
                         </div>
-                    </motion.div>
+                    </div>
 
                     {/* Action Button Section */}
                     <div className="p-1">
@@ -1014,9 +1008,13 @@ export default function CoachAnalysisDialog({
                                         {analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}
                                     </span>
                                     <span className="ml-auto flex min-w-[34px] justify-end gap-1 text-white/85" aria-hidden="true">
-                                        <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0 }} className="h-1.5 w-1.5 rounded-full bg-white" />
-                                        <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }} className="h-1.5 w-1.5 rounded-full bg-white" />
-                                        <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }} className="h-1.5 w-1.5 rounded-full bg-white" />
+                                        {[0, 150, 300].map((delay) => (
+                                            <span
+                                                key={delay}
+                                                className="h-1.5 w-1.5 rounded-full bg-white animate-pulse"
+                                                style={{ animationDelay: `${delay}ms` }}
+                                            />
+                                        ))}
                                     </span>
                                 </div>
                             ) : (
@@ -1037,11 +1035,9 @@ export default function CoachAnalysisDialog({
                             {!result && (
                                 <div className="space-y-3 px-1">
                                     {[1, 2, 3, 4].map((i) => (
-                                        <motion.div
+                                        <div
                                             key={i}
-                                            className="h-4 rounded-lg bg-gray-200 dark:bg-gray-700"
-                                            animate={{ opacity: [0.4, 0.7, 0.4] }}
-                                            transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.15 }}
+                                            className="h-4 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse"
                                             style={{ width: `${95 - i * 12}%` }}
                                         />
                                     ))}
@@ -1050,13 +1046,9 @@ export default function CoachAnalysisDialog({
                         </div>
                     )}
 
-                    {/* Results Presentation (AnimatePresence for smooth swap) */}
+                    {/* Results Presentation */}
                     {hasFocusMeta && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="rounded-2xl border border-emerald-200/50 dark:border-emerald-900/30 bg-emerald-50/70 dark:bg-emerald-950/10 p-4 space-y-2"
-                        >
+                        <div className="rounded-2xl border border-emerald-200/50 dark:border-emerald-900/30 bg-emerald-50/70 dark:bg-emerald-950/10 p-4 space-y-2">
                             <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                                 이번 분석 기준 focus
                             </p>
@@ -1086,20 +1078,14 @@ export default function CoachAnalysisDialog({
                                     일부 focus 섹션이 누락되어 다음 재생성에서 보강될 수 있습니다.
                                 </p>
                             )}
-                        </motion.div>
+                        </div>
                     )}
-                    <AnimatePresence mode="wait">
-                        {analysisData && (
-                            <CoachAnalysisResultView analysisData={analysisData} />
-                        )}
-                    </AnimatePresence>
+                    {analysisData && (
+                        <CoachAnalysisResultView analysisData={analysisData} />
+                    )}
 
                     {result?.error && !analysisData && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="rounded-2xl border border-red-200/60 dark:border-red-900/40 bg-red-50/80 dark:bg-red-950/20 p-4"
-                        >
+                        <div className="rounded-2xl border border-red-200/60 dark:border-red-900/40 bg-red-50/80 dark:bg-red-950/20 p-4">
                             <p className="text-sm font-semibold text-red-700 dark:text-red-300">
                                 {result.error}
                             </p>
@@ -1114,7 +1100,7 @@ export default function CoachAnalysisDialog({
                                     로그인하기
                                 </Button>
                             )}
-                        </motion.div>
+                        </div>
                     )}
                 </div>
             </DialogContent>

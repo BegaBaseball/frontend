@@ -3,10 +3,57 @@ import test from 'node:test';
 import {
   COACH_BRIEFING_DISPLAY_MESSAGE,
   COACH_BRIEFING_MANUAL_HINT,
+  buildCoachBriefingRequestDescriptor,
   CoachRequestMode,
+  getCoachBriefingDataQualityNotice,
+  getCoachBriefingGroundingReasonLabels,
   parseAiBriefing,
   resolveCoachBriefingPolicy,
 } from './prediction';
+import type { Game } from '../types/prediction';
+
+const buildCoachBriefingDescriptor = ({
+  game,
+  requestMode = 'auto_brief',
+  focus = ['recent_form'],
+  requestSeasonYear = 2026,
+  requestLeagueTypeCode = 0,
+  homePitcherName = '발표 전',
+  awayPitcherName = '발표 전',
+  homeSeasonContext = { rank: 2, gamesBehind: 1.5, remainingGames: 18 },
+  awaySeasonContext = { rank: 7, gamesBehind: 6.5, remainingGames: 18 },
+}: {
+  game?: Partial<Game>;
+  requestMode?: CoachRequestMode;
+  focus?: string[];
+  requestSeasonYear?: number;
+  requestLeagueTypeCode?: number;
+  homePitcherName?: string;
+  awayPitcherName?: string;
+  homeSeasonContext?: { rank: number; gamesBehind: number; remainingGames: number } | null;
+  awaySeasonContext?: { rank: number; gamesBehind: number; remainingGames: number } | null;
+} = {}) => buildCoachBriefingRequestDescriptor({
+  game: {
+    gameId: '20260324WOLG0',
+    gameDate: '2026-03-24',
+    homeTeam: 'LG',
+    awayTeam: 'WO',
+    stadium: '잠실',
+    seasonId: 265,
+    leagueType: 'REGULAR',
+    postSeasonSeries: 'REGULAR',
+    seriesGameNo: 1,
+    ...game,
+  },
+  requestMode,
+  focus,
+  requestSeasonYear,
+  requestLeagueTypeCode,
+  homePitcherName,
+  awayPitcherName,
+  homeSeasonContext,
+  awaySeasonContext,
+});
 
 test('CoachRequestMode는 auto_brief/manual_detail 두 값만 허용한다', () => {
   const supportedModes: CoachRequestMode[] = ['auto_brief', 'manual_detail'];
@@ -150,6 +197,73 @@ test('parseAiBriefing: 빈 응답은 fallback 텍스트를 반환한다', () => 
   assert.equal(normalized.message, COACH_BRIEFING_DISPLAY_MESSAGE);
 });
 
+test('buildCoachBriefingRequestDescriptor: 점수 변화는 fingerprint를 바꾸지 않는다', () => {
+  const withoutScores = buildCoachBriefingDescriptor({
+    game: {
+      homeScore: undefined,
+      awayScore: undefined,
+    },
+  });
+  const withScores = buildCoachBriefingDescriptor({
+    game: {
+      homeScore: 7,
+      awayScore: 2,
+      winner: 'LG',
+    },
+  });
+
+  assert.ok(withoutScores);
+  assert.ok(withScores);
+  assert.equal(withoutScores.requestFingerprint, withScores.requestFingerprint);
+});
+
+test('buildCoachBriefingRequestDescriptor: 선발/순위 컨텍스트/focus/mode가 바뀌면 fingerprint를 갱신한다', () => {
+  const baseline = buildCoachBriefingDescriptor();
+  const pitcherChanged = buildCoachBriefingDescriptor({
+    homePitcherName: '임찬규',
+  });
+  const seasonContextChanged = buildCoachBriefingDescriptor({
+    homeSeasonContext: { rank: 1, gamesBehind: 0, remainingGames: 18 },
+  });
+  const focusAndModeChanged = buildCoachBriefingDescriptor({
+    requestMode: 'manual_detail',
+    focus: ['matchup', 'recent_form'],
+  });
+
+  assert.ok(baseline);
+  assert.ok(pitcherChanged);
+  assert.ok(seasonContextChanged);
+  assert.ok(focusAndModeChanged);
+  assert.notEqual(baseline.requestFingerprint, pitcherChanged.requestFingerprint);
+  assert.notEqual(baseline.requestFingerprint, seasonContextChanged.requestFingerprint);
+  assert.notEqual(baseline.requestFingerprint, focusAndModeChanged.requestFingerprint);
+});
+
+test('getCoachBriefingGroundingReasonLabels: 지원되는 코드만 지정 순서의 한국어 라벨로 정리한다', () => {
+  const labels = getCoachBriefingGroundingReasonLabels([
+    'missing_summary',
+    'missing_starters',
+    'unknown_reason',
+    'missing_lineups',
+    'missing_summary',
+  ]);
+
+  assert.deepEqual(labels, [
+    '선발 미발표',
+    '라인업 미발표',
+    '경기 요약 부족',
+  ]);
+});
+
+test('getCoachBriefingDataQualityNotice: 알 수 없는 코드만 있으면 generic 안내로 축약한다', () => {
+  const notice = getCoachBriefingDataQualityNotice('partial', ['unsupported_reason']);
+
+  assert.deepEqual(notice, {
+    message: '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.',
+    reasons: ['실데이터 근거가 제한적입니다.'],
+  });
+});
+
 test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 반환한다', () => {
   const postseasonPolicy = resolveCoachBriefingPolicy({
     canCallAI: true,
@@ -169,9 +283,9 @@ test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 
     isMeaningfulGame: false,
   });
 
-  assert.equal(scheduledNonMeaningful.autoEnabled, false);
-  assert.equal(scheduledNonMeaningful.forceManual, true);
-  assert.equal(scheduledNonMeaningful.requestMode, 'manual_detail');
+  assert.equal(scheduledNonMeaningful.autoEnabled, true);
+  assert.equal(scheduledNonMeaningful.forceManual, false);
+  assert.equal(scheduledNonMeaningful.requestMode, 'auto_brief');
 
   const meaningfulPolicy = resolveCoachBriefingPolicy({
     canCallAI: true,
