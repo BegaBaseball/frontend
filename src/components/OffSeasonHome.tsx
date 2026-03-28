@@ -10,6 +10,8 @@ import { getTeamKoreanName } from '../utils/teamNames';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api/axios';
+import { fetchRankingSnapshot } from '../api/rankings';
+import type { Ranking } from '../types/home';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
@@ -20,17 +22,6 @@ interface AwardData {
   playerName: string;
   team: string;
   stats: string;
-}
-
-interface Ranking {
-  rank: number;
-  teamId: string;
-  teamName: string;
-  wins: number;
-  losses: number;
-  draws: number;
-  winRate: string;
-  games: number;
 }
 
 interface OffseasonMetadata {
@@ -68,7 +59,7 @@ const fetchOffseasonHomeData = async (): Promise<OffseasonHomeData> => {
   const [movementsResponse, metadataResponse, rankingsResponse] = await Promise.allSettled([
     api.get<OffseasonMovement[]>('/kbo/offseason/movements'),
     api.get<OffseasonMetadata>('/kbo/offseason/metadata', { params: { year: OFFSEASON_METADATA_YEAR } }),
-    api.get<Ranking[]>(`/kbo/rankings/${OFFSEASON_RANKING_YEAR}`),
+    fetchRankingSnapshot({ seasonYear: OFFSEASON_RANKING_YEAR }),
   ]);
 
   if (movementsResponse.status === 'rejected') {
@@ -88,7 +79,7 @@ const fetchOffseasonHomeData = async (): Promise<OffseasonHomeData> => {
   return {
     movements: movementsResponse.status === 'fulfilled' ? movementsResponse.value.data : [],
     awards: metadata.awards,
-    rankings: rankingsResponse.status === 'fulfilled' ? rankingsResponse.value.data : [],
+    rankings: rankingsResponse.status === 'fulfilled' ? rankingsResponse.value.rankings : [],
   };
 };
 
@@ -115,7 +106,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
   const navigate = useNavigate();
   const isLargeScreen = useMediaQuery('(min-width: 1024px)');
   const { data, isLoading } = useQuery<OffseasonHomeData>({
-    queryKey: ['offseason-home'],
+    queryKey: ['offseason-home', OFFSEASON_RANKING_YEAR],
     queryFn: fetchOffseasonHomeData,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,

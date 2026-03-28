@@ -6,9 +6,12 @@ import {
   buildHomeLoadState,
   fetchGamesData,
   fetchHomeBootstrap,
+  fetchHomeRankingSnapshot,
   fetchHomeWidgets,
   fetchLeagueStartDates,
-  fetchRankingsData,
+  getHomeBootstrapQueryOptions,
+  getHomeRankingSnapshotQueryOptions,
+  getHomeWidgetsQueryOptions,
   shouldShowHomeConnectionError,
 } from './home';
 
@@ -33,10 +36,6 @@ test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 세션 처�
         },
         games: [],
         scheduledGamesWindow: [],
-        rankingSeasonYear: 2025,
-        rankingSourceMessage: '2025 시즌 순위 데이터',
-        isOffSeason: true,
-        rankings: [],
       },
     } as never;
   });
@@ -48,7 +47,7 @@ test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 세션 처�
   assert.equal('skipGlobalErrorHandler' in (requestConfig ?? {}), false);
 });
 
-test('fetchHomeWidgets은 공개 위젯 요청으로 세션 처리만 건너뛴다', async (t) => {
+test('fetchHomeWidgets은 공개 위젯 요청으로 세션 처리만 건너뛰고 seasonYear를 전달한다', async (t) => {
   let requestConfig: Record<string, unknown> | undefined;
 
   t.mock.method(api, 'get', async (_path: string, config?: Record<string, unknown>) => {
@@ -56,17 +55,93 @@ test('fetchHomeWidgets은 공개 위젯 요청으로 세션 처리만 건너뛴�
     return {
       data: {
         hotCheerPosts: [],
-        featuredMates: [],
+        featuredMates: [{
+          id: 12,
+          hostId: 5,
+          hostHandle: '@mate-host',
+          teamId: 'LG',
+          stadium: '잠실야구장',
+          gameDate: '2026-03-16',
+          gameTime: '18:30',
+          section: '1루 내야',
+          currentParticipants: 1,
+          maxParticipants: 4,
+          status: 'PENDING',
+          description: '같이 응원해요',
+          homeTeam: 'LG',
+          awayTeam: 'SS',
+          ticketPrice: 15000,
+        }],
+        rankingSnapshot: {
+          rankingSeasonYear: 2025,
+          rankingSourceMessage: '2025 시즌 순위 데이터',
+          isOffSeason: true,
+          rankings: [],
+        },
       },
     } as never;
   });
 
-  const response = await fetchHomeWidgets(new Date('2026-03-16T12:00:00'));
+  const response = await fetchHomeWidgets(new Date('2026-03-16T12:00:00'), 2025);
 
   assert.deepEqual(response.hotCheerPosts, []);
-  assert.deepEqual(response.featuredMates, []);
+  assert.equal(response.featuredMates[0]?.stadium, '잠실야구장');
+  assert.equal(response.featuredMates[0]?.section, '1루 내야');
+  assert.equal(response.featuredMates[0]?.hostHandle, '@mate-host');
+  assert.equal(response.rankingSnapshot.rankingSeasonYear, 2025);
   assert.equal(requestConfig?.skipAuthSessionHandling, true);
+  assert.deepEqual(requestConfig?.params, { date: '2026-03-16', seasonYear: 2025 });
   assert.equal('skipGlobalErrorHandler' in (requestConfig ?? {}), false);
+});
+
+test('fetchHomeRankingSnapshot은 순위 스냅샷 전용 엔드포인트를 사용한다', async (t) => {
+  let requestPath = '';
+  let requestConfig: Record<string, unknown> | undefined;
+
+  t.mock.method(api, 'get', async (path: string, config?: Record<string, unknown>) => {
+    requestPath = path;
+    requestConfig = config;
+    return {
+      data: {
+        rankingSeasonYear: 2025,
+        rankingSourceMessage: '2025 시즌 순위 데이터',
+        isOffSeason: false,
+        rankings: [],
+      },
+    } as never;
+  });
+
+  const response = await fetchHomeRankingSnapshot(new Date('2026-03-16T12:00:00'), 2025);
+
+  assert.equal(requestPath, '/kbo/rankings/snapshot');
+  assert.equal(response.rankingSeasonYear, 2025);
+  assert.equal(requestConfig?.skipAuthSessionHandling, true);
+  assert.deepEqual(requestConfig?.params, { date: '2026-03-16', seasonYear: 2025 });
+});
+
+test('getHomeWidgetsQueryOptions는 auto와 explicit seasonYear를 서로 다른 캐시 키로 분리한다', () => {
+  const date = new Date('2026-03-16T12:00:00');
+
+  assert.deepEqual(getHomeWidgetsQueryOptions(date).queryKey, ['home', 'widgets', '2026-03-16', 'auto']);
+  assert.deepEqual(getHomeWidgetsQueryOptions(date, 2025).queryKey, ['home', 'widgets', '2026-03-16', 2025]);
+});
+
+test('getHomeBootstrapQueryOptions는 날짜별 bootstrap 캐시 키를 사용한다', () => {
+  const date = new Date('2026-03-16T12:00:00');
+
+  assert.deepEqual(
+    getHomeBootstrapQueryOptions(date).queryKey,
+    ['home', 'bootstrap', '2026-03-16'],
+  );
+});
+
+test('getHomeRankingSnapshotQueryOptions는 date+seasonYear 기준으로 ranking snapshot 캐시 키를 공유한다', () => {
+  const date = new Date('2026-03-16T12:00:00');
+
+  assert.deepEqual(
+    getHomeRankingSnapshotQueryOptions(date, 2025).queryKey,
+    ['ranking-snapshot', '2026-03-16', 2025],
+  );
 });
 
 test('공개 홈 보조 데이터 요청도 세션 처리만 건너뛴다', async (t) => {
@@ -91,10 +166,9 @@ test('공개 홈 보조 데이터 요청도 세션 처리만 건너뛴다', asyn
   });
 
   await fetchGamesData(new Date('2026-03-16T12:00:00'));
-  await fetchRankingsData(2026);
   await fetchLeagueStartDates();
 
-  assert.equal(observedConfigs.length, 3);
+  assert.equal(observedConfigs.length, 2);
   observedConfigs.forEach((config) => {
     assert.equal(config?.skipAuthSessionHandling, true);
     assert.equal('skipGlobalErrorHandler' in (config ?? {}), false);
@@ -117,7 +191,6 @@ test('shouldShowHomeConnectionError는 모든 핵심 섹션이 실패한 경우�
     navigation: true,
     games: false,
     scheduledGames: false,
-    rankings: false,
   }), false);
 
   assert.equal(shouldShowHomeConnectionError({
@@ -125,6 +198,5 @@ test('shouldShowHomeConnectionError는 모든 핵심 섹션이 실패한 경우�
     navigation: false,
     games: false,
     scheduledGames: false,
-    rankings: false,
   }), true);
 });
