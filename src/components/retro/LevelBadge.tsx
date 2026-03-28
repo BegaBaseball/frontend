@@ -1,133 +1,55 @@
-import styled, { css, keyframes } from 'styled-components';
-import { fonts, crispText, textOutline } from './RetroTheme';
-
 type RankTier = 'ROOKIE' | 'MINOR_LEAGUER' | 'MAJOR_LEAGUER' | 'HALL_OF_FAME';
 
+const retroDisplay = "'Press Start 2P', monospace";
+const retroText = "'Galmuri11', 'Galmuri9', sans-serif";
+const textOutline =
+  '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
+
+const levelBadgeStyles = `
+  @keyframes retroLevelBadgeShine {
+    0% { transform: translateX(-140%); }
+    100% { transform: translateX(220%); }
+  }
+
+  @keyframes retroLevelBadgeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+  }
+`;
+
 const rankThemes: Record<RankTier, {
-  bg: string;
+  background: string;
   border: string;
   color: string;
   icon: string;
   glow?: string;
 }> = {
   ROOKIE: {
-    bg: 'linear-gradient(180deg, #2a4a2a 0%, #1a3a1a 100%)',
+    background: 'linear-gradient(180deg, #2a4a2a 0%, #1a3a1a 100%)',
     border: '#4a8a4a',
     color: '#8fc98f',
     icon: '⚾',
   },
   MINOR_LEAGUER: {
-    bg: 'linear-gradient(180deg, #2a2a4a 0%, #1a1a3a 100%)',
+    background: 'linear-gradient(180deg, #2a2a4a 0%, #1a1a3a 100%)',
     border: '#4a4a8a',
     color: '#8f8fc9',
     icon: '⭐',
   },
   MAJOR_LEAGUER: {
-    bg: 'linear-gradient(180deg, #4a2a2a 0%, #3a1a1a 100%)',
+    background: 'linear-gradient(180deg, #4a2a2a 0%, #3a1a1a 100%)',
     border: '#8a4a4a',
     color: '#c98f8f',
     icon: '🔥',
   },
   HALL_OF_FAME: {
-    bg: 'linear-gradient(180deg, #4a4a2a 0%, #3a3a1a 100%)',
+    background: 'linear-gradient(180deg, #4a4a2a 0%, #3a3a1a 100%)',
     border: '#ffd700',
     color: '#ffd700',
     icon: '👑',
-    glow: 'rgba(255,215,0,0.3)',
+    glow: 'rgba(255, 215, 0, 0.3)',
   },
 };
-
-const shine = keyframes`
-  0% { background-position: -100px; }
-  40%, 100% { background-position: 200px; }
-`;
-
-const float = keyframes`
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-`;
-
-const Badge = styled.div<{ $rank: RankTier }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: ${props => rankThemes[props.$rank].bg};
-  border: 2px solid ${props => rankThemes[props.$rank].border};
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-
-  ${props => props.$rank === 'HALL_OF_FAME' && css`
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(
-        90deg,
-        transparent 0%,
-        transparent 40%,
-        rgba(255,215,0,0.3) 50%,
-        transparent 60%,
-        transparent 100%
-      );
-      background-size: 200px 100%;
-      animation: ${shine} 3s infinite linear;
-    }
-    box-shadow:
-      0 0 10px rgba(255,215,0,0.3),
-      0 0 20px rgba(255,215,0,0.2);
-  `}
-
-  .icon {
-    font-size: 16px;
-    ${props => props.$rank === 'HALL_OF_FAME' && css`
-      animation: ${float} 2s ease-in-out infinite;
-    `}
-  }
-
-  .level {
-    font-family: ${fonts.retroDisplay};
-    font-size: 11px;
-    color: ${props => rankThemes[props.$rank].color};
-    position: relative;
-    z-index: 1;
-    ${crispText}
-  }
-
-  .title {
-    font-family: ${fonts.retroText};
-    font-size: 9px;
-    color: ${props => rankThemes[props.$rank].color};
-    opacity: 0.9;
-    position: relative;
-    z-index: 1;
-    letter-spacing: -0.3px;
-    ${crispText}
-    ${textOutline}
-  }
-`;
-
-const CompactBadge = styled.div<{ $rank: RankTier }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: ${props => rankThemes[props.$rank].bg};
-  border: 2px solid ${props => rankThemes[props.$rank].border};
-  border-radius: 3px;
-  font-family: ${fonts.retroDisplay};
-  font-size: 8px;
-  color: ${props => rankThemes[props.$rank].color};
-  ${crispText}
-
-  ${props => props.$rank === 'HALL_OF_FAME' && css`
-    box-shadow: 0 0 6px rgba(255,215,0,0.3);
-  `}
-`;
 
 interface LevelBadgeProps {
   level: number;
@@ -161,25 +83,101 @@ export default function LevelBadge({
   const rank = getRankTier(level);
   const theme = rankThemes[rank];
   const formattedLevel = level.toString().padStart(2, '0');
+  const hallOfFame = rank === 'HALL_OF_FAME';
 
   if (compact) {
     return (
-      <CompactBadge $rank={rank} className={className}>
+      <div
+        className={className}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '4px 8px',
+          background: theme.background,
+          border: `2px solid ${theme.border}`,
+          borderRadius: '3px',
+          fontFamily: retroDisplay,
+          fontSize: '8px',
+          color: theme.color,
+          imageRendering: 'pixelated',
+          boxShadow: hallOfFame ? '0 0 6px rgba(255,215,0,0.3)' : undefined,
+        }}
+      >
         <span>{theme.icon}</span>
         <span>LV.{formattedLevel}</span>
-      </CompactBadge>
+      </div>
     );
   }
 
   return (
-    <Badge $rank={rank} className={className}>
-      <span className="icon">{theme.icon}</span>
-      <div className="flex flex-col">
-        <span className="level">LV.{formattedLevel}</span>
+    <div
+      className={className}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '8px 14px',
+        background: theme.background,
+        border: `2px solid ${theme.border}`,
+        borderRadius: '4px',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: hallOfFame
+          ? '0 0 10px rgba(255,215,0,0.3), 0 0 20px rgba(255,215,0,0.2)'
+          : undefined,
+      }}
+    >
+      <style>{levelBadgeStyles}</style>
+      {hallOfFame && (
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(90deg, transparent 0%, transparent 40%, rgba(255,215,0,0.3) 50%, transparent 60%, transparent 100%)',
+            pointerEvents: 'none',
+            animation: 'retroLevelBadgeShine 3s linear infinite',
+          }}
+        />
+      )}
+      <span
+        style={{
+          fontSize: '16px',
+          position: 'relative',
+          zIndex: 1,
+          animation: hallOfFame ? 'retroLevelBadgeFloat 2s ease-in-out infinite' : undefined,
+        }}
+      >
+        {theme.icon}
+      </span>
+      <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
+        <span
+          style={{
+            fontFamily: retroDisplay,
+            fontSize: '11px',
+            color: theme.color,
+            imageRendering: 'pixelated',
+          }}
+        >
+          LV.{formattedLevel}
+        </span>
         {showTitle && (
-          <span className="title">{getRankTitleKo(rank)}</span>
+          <span
+            style={{
+              fontFamily: retroText,
+              fontSize: '9px',
+              color: theme.color,
+              opacity: 0.9,
+              letterSpacing: '-0.3px',
+              textShadow: textOutline,
+              imageRendering: 'pixelated',
+            }}
+          >
+            {getRankTitleKo(rank)}
+          </span>
         )}
       </div>
-    </Badge>
+    </div>
   );
 }

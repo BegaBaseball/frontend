@@ -1,360 +1,128 @@
 import { useState } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { AnimatePresence, motion } from 'framer-motion';
-import {
-  fonts,
-  crispText,
-} from './RetroTheme';
 import LeaderboardRow, { LeaderboardEntry } from './LeaderboardRow';
 import NewsTicker, { TickerMessage } from './NewsTicker';
 import PowerUpInventory from './PowerUpInventory';
-import type { UserLeaderboardStats, PowerupInventory } from '../../api/leaderboard';
+import type {
+  UserLeaderboardStats,
+  PowerupInventory as PowerupInventoryState,
+} from '../../api/leaderboard';
 
 import mascotRight from '../../assets/images/mascot_v3.png';
 import stadiumBg from '../../assets/images/stadium_bg.png';
 
-// ==========================================
-// KEYFRAMES
-// ==========================================
-const float = keyframes`
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-`;
+const retroDisplay = "'Press Start 2P', monospace";
+const retroText = "'Galmuri11', 'Galmuri9', sans-serif";
+const textOutline =
+  '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
 
-const blink = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-`;
-
-// ==========================================
-// STYLED COMPONENTS
-// ==========================================
-
-const StadiumContainer = styled.div`
-  min-height: 100vh;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-family: ${fonts.retroText};
-  background: url(${stadiumBg}) no-repeat center center fixed;
-  background-size: cover;
-  image-rendering: pixelated;
-`;
-
-const ContentOverlay = styled.div`
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 60px;
-  position: relative;
-  z-index: 10;
-`;
-
-const TitleWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 30px;
-  margin-bottom: 50px;
-  z-index: 30;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 30px;
-  }
-`;
-
-const Title = styled.h1`
-  font-family: ${fonts.retroText}; 
-  font-size: 52px;
-  color: #fff;
-  text-align: center;
-  text-shadow: 
-    4px 4px 0 #000,
-    -4px -4px 0 #000,
-    4px -4px 0 #000,
-    -4px 4px 0 #000;
-  margin: 0;
-  ${crispText}
-  z-index: 20; 
-  
-  @media (max-width: 768px) {
-    font-size: 36px;
-  }
-`;
-
-const ScoreboardWrapper = styled.div`
-  width: 90%;
-  max-width: 800px;
-  position: relative;
-`;
-
-const ScoreboardBox = styled.div`
-  width: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  border: 4px solid #fff;
-  border-radius: 8px;
-  outline: 4px solid #000;
-  box-shadow: 10px 10px 20px rgba(0,0,0,0.5);
-  position: relative;
-  z-index: 20;
-  padding: 4px;
-`;
-
-const ScoreboardInner = styled.div`
-  border: 2px solid #fff;
-  border-radius: 6px;
-  padding: 10px;
-  background: transparent;
-  min-height: 500px;
-  display: flex;
-  flex-direction: column;
-`;
-
-const TableHeader = styled.div`
-  display: grid;
-  grid-template-columns: 60px 1fr 100px 80px;
-  padding: 12px 16px;
-  border-bottom: 2px solid #fff;
-  margin-bottom: 20px;
-  gap: 10px;
-
-  span {
-    color: #fff;
-    font-family: ${fonts.retroDisplay};
-    font-size: 14px;
-    letter-spacing: 1px;
-    ${crispText}
-    text-shadow: 2px 2px 0 #000;
+const retroLeaderboardStyles = `
+  @keyframes retroLeaderboardFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
   }
 
-  span:nth-child(3), span:nth-child(4) {
-    text-align: right;
+  @keyframes retroLeaderboardBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
 
-  @media (max-width: 640px) {
-    grid-template-columns: 50px 1fr 80px;
-    span:last-child { display: none; }
+  .retro-leaderboard-title-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 50px;
+    z-index: 30;
   }
-`;
 
-const CharacterFrame = styled.div`
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  border: 4px solid #fff;
-  background-color: #87ceeb;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-  position: relative;
-  overflow: hidden;
-  z-index: 30;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  animation: ${float} 4s ease-in-out infinite reverse;
-
-  @media (max-width: 768px) {
+  .retro-leaderboard-character-frame {
     width: 100px;
     height: 100px;
+    border-radius: 9999px;
+    border: 4px solid #fff;
+    background-color: #87ceeb;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+    z-index: 30;
+    image-rendering: pixelated;
+    animation: retroLeaderboardFloat 4s ease-in-out infinite reverse;
   }
-`;
 
-const CharacterSprite = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  transform: scale(1.5); 
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  object-position: center 20%; 
-`;
+  .retro-leaderboard-character-sprite {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: scale(1.5);
+    image-rendering: pixelated;
+    object-position: center 20%;
+  }
 
-const ButtonGroup = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 20px;
-  width: 100%;
-  position: relative;
-  padding-bottom: 10px;
-`;
+  .retro-leaderboard-action-button {
+    background: #000;
+    color: #fff;
+    border: 2px solid #fff;
+    padding: 12px 24px;
+    font-family: ${retroText};
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 #000;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+    border-radius: 4px;
+    text-shadow: ${textOutline};
+    image-rendering: pixelated;
+  }
 
-const RetroActionButton = styled.button`
-  background: #000;
-  color: #fff;
-  border: 2px solid #fff;
-  padding: 12px 24px;
-  font-family: ${fonts.retroText}; 
-  font-size: 16px; 
-  cursor: pointer;
-  box-shadow: 4px 4px 0 #000;
-  transition: transform 0.1s;
-  ${crispText}
-  border-radius: 4px;
-
-  &:hover {
+  .retro-leaderboard-action-button:hover {
     transform: translate(-2px, -2px);
     box-shadow: 6px 6px 0 #000;
     color: #ffff00;
     border-color: #ffff00;
   }
 
-  &:active {
+  .retro-leaderboard-action-button:active {
     transform: translate(2px, 2px);
     box-shadow: 2px 2px 0 #000;
   }
-`;
 
-const LoadingText = styled.div`
-  color: #fff;
-  text-align: center;
-  padding: 40px;
-  font-size: 18px;
-  animation: ${blink} 1s infinite;
-  text-shadow: 2px 2px 0 #000;
-  background: rgba(50, 50, 50, 0.8);
-  border-radius: 8px;
-  margin: auto;
-  min-width: 300px;
-  font-family: ${fonts.retroText};
-`;
-
-const EmptyStateContainer = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-`;
-
-const EmptyStateBox = styled.div`
-  background: rgba(0, 0, 0, 0.4);
-  padding: 40px 60px;
-  border-radius: 12px;
-  color: #fff;
-  font-size: 18px;
-  font-family: ${fonts.retroText};
-  text-shadow: 2px 2px 0 #000;
-  animation: ${blink} 1.5s infinite;
-  ${crispText}
-`;
-
-// New Styled Components for Rules Overlay
-const InfoText = styled.div`
-  font-family: ${fonts.retroText};
-  font-size: 12px;
-  color: #ccc;
-  margin-top: 10px;
-  margin-bottom: 15px;
-  text-align: center;
-  ${crispText}
-  text-shadow: 1px 1px 0 #000;
-  width: 100%;
-`;
-
-const MigrationStatsPanel = styled.div`
-  width: 90%;
-  max-width: 800px;
-  margin: 0 auto 20px auto;
-  padding: 14px;
-  border: 3px solid #00ff00;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.5);
-  box-shadow: 0 0 14px rgba(0, 255, 0, 0.2);
-  position: relative;
-`;
-
-const MigrationStatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  .retro-leaderboard-loading,
+  .retro-leaderboard-empty {
+    animation: retroLeaderboardBlink 1.2s infinite;
+  }
 
   @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
+    .retro-leaderboard-title-wrapper {
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .retro-leaderboard-title {
+      font-size: 36px;
+    }
+
+    .retro-leaderboard-stat-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 640px) {
+    .retro-leaderboard-header {
+      grid-template-columns: 50px minmax(0, 1fr) 80px;
+      padding: 12px 8px;
+    }
+
+    .retro-leaderboard-streak-header {
+      display: none;
+    }
+
+    .retro-leaderboard-button-group {
+      flex-direction: column;
+      gap: 12px;
+    }
   }
 `;
 
-const MigrationStatCard = styled.div`
-  border: 2px solid #00b800;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.35);
-  padding: 10px;
-  text-align: center;
-
-  .label {
-    color: #66ff66;
-    font-size: 11px;
-    font-family: ${fonts.retroText};
-    margin-bottom: 6px;
-    ${crispText}
-  }
-
-  .value {
-    font-size: 20px;
-    font-family: ${fonts.retroDisplay};
-    color: #fff;
-    ${crispText}
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
-  }
-`;
-
-const RulesOverlay = styled(motion.div)`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.9);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  border-radius: 8px;
-`;
-
-const RulesTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  color: #fff;
-  font-family: ${fonts.retroText};
-  font-size: 14px;
-  margin-bottom: 20px;
-
-  th, td {
-    border: 2px solid #fff;
-    padding: 10px;
-    text-align: center;
-    ${crispText}
-  }
-
-  th {
-    background: #333;
-    color: #ffd700;
-  }
-`;
-
-const CloseButton = styled.button`
-  background: red;
-  color: white;
-  border: 2px solid white;
-  padding: 8px 16px;
-  font-family: ${fonts.retroText};
-  cursor: pointer;
-  box-shadow: 4px 4px 0 #000;
-  
-  &:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #000; }
-  &:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
-`;
-
-// ==========================================
-// TYPES & PROPS
-// ==========================================
 type LeaderboardType = 'season' | 'monthly' | 'weekly';
 
 interface RetroLeaderboardProps {
@@ -362,7 +130,7 @@ interface RetroLeaderboardProps {
   userStats?: UserLeaderboardStats | null;
   tickerMessages?: TickerMessage[];
   hotStreaks?: LeaderboardEntry[];
-  powerups?: PowerupInventory;
+  powerups?: PowerupInventoryState;
   activePowerups?: string[];
   isLoading?: boolean;
   currentUserHandle?: string;
@@ -375,9 +143,6 @@ interface RetroLeaderboardProps {
   totalPages?: number;
 }
 
-// ==========================================
-// MAIN COMPONENT
-// ==========================================
 export default function RetroLeaderboard({
   leaderboard,
   userStats,
@@ -385,18 +150,14 @@ export default function RetroLeaderboard({
   hotStreaks = [],
   powerups = { MAGIC_BAT: 0, GOLDEN_GLOVE: 0, SCOUTER: 0 },
   activePowerups = [],
+  onRefresh,
+  onPredict,
   onUsePowerup,
   isLoading = false,
   currentUserHandle,
-  onTypeChange,
-  onPageChange,
-  onRefresh,
-  onMyScore,
-  onPredict,
-  totalPages = 5,
 }: RetroLeaderboardProps) {
-
   const [showRules, setShowRules] = useState(false);
+
   const hasPredictionStats = !!(
     userStats &&
     ((userStats.accuracy ?? 0) > 0 ||
@@ -404,193 +165,420 @@ export default function RetroLeaderboard({
       (userStats.totalPredictions ?? 0) > 0 ||
       (userStats.correctPredictions ?? 0) > 0)
   );
-  const predictionAccuracy = hasPredictionStats && typeof userStats.accuracy === 'number'
+
+  const predictionAccuracy = hasPredictionStats && typeof userStats?.accuracy === 'number'
     ? `${userStats.accuracy.toFixed(1)}%`
     : '-';
-  const predictionStreak = hasPredictionStats && typeof userStats.currentStreak === 'number'
+  const predictionStreak = hasPredictionStats && typeof userStats?.currentStreak === 'number'
     ? `${userStats.currentStreak}연승`
     : '-';
-  const predictionTotal = hasPredictionStats && typeof userStats.totalPredictions === 'number'
+  const predictionTotal = hasPredictionStats && typeof userStats?.totalPredictions === 'number'
     ? `${userStats.totalPredictions.toLocaleString()}회`
     : '-';
-  const predictionCorrect = hasPredictionStats && typeof userStats.correctPredictions === 'number'
+  const predictionCorrect = hasPredictionStats && typeof userStats?.correctPredictions === 'number'
     ? `${userStats.correctPredictions.toLocaleString()}회`
     : '-';
 
   const displayLeaderboard = leaderboard ?? [];
 
   return (
-    <StadiumContainer>
-      <ContentOverlay>
-        <TitleWrapper>
-          <Title>야구경기 예측 결과</Title>
-          <CharacterFrame>
-            <CharacterSprite src={mascotRight} alt="Mascot" />
-          </CharacterFrame>
-        </TitleWrapper>
+    <div
+      style={{
+        minHeight: '100vh',
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        fontFamily: retroText,
+        backgroundImage: `url(${stadiumBg})`,
+        backgroundPosition: 'center',
+        backgroundSize: 'cover',
+        backgroundAttachment: 'fixed',
+        imageRendering: 'pixelated',
+      }}
+    >
+      <style>{retroLeaderboardStyles}</style>
+
+      <div
+        style={{
+          width: '100%',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          paddingTop: '60px',
+          position: 'relative',
+          zIndex: 10,
+        }}
+      >
+        <div className="retro-leaderboard-title-wrapper">
+          <h1
+            className="retro-leaderboard-title"
+            style={{
+              fontFamily: retroText,
+              fontSize: '52px',
+              color: '#fff',
+              textAlign: 'center',
+              textShadow: '4px 4px 0 #000, -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000',
+              margin: 0,
+              imageRendering: 'pixelated',
+              zIndex: 20,
+            }}
+          >
+            야구경기 예측 결과
+          </h1>
+          <div className="retro-leaderboard-character-frame">
+            <img className="retro-leaderboard-character-sprite" src={mascotRight} alt="Mascot" />
+          </div>
+        </div>
 
         <NewsTicker messages={tickerMessages} />
 
-        <MigrationStatsPanel>
-          <MigrationStatsGrid>
-            <MigrationStatCard>
-              <div className="label">적중률</div>
-              <div className="value">{predictionAccuracy}</div>
-            </MigrationStatCard>
-            <MigrationStatCard>
-              <div className="label">연승</div>
-              <div className="value">{predictionStreak}</div>
-            </MigrationStatCard>
-            <MigrationStatCard>
-              <div className="label">누적 예측</div>
-              <div className="value">{predictionTotal}</div>
-            </MigrationStatCard>
-            <MigrationStatCard>
-              <div className="label">적중 횟수</div>
-              <div className="value">{predictionCorrect}</div>
-            </MigrationStatCard>
-          </MigrationStatsGrid>
-        </MigrationStatsPanel>
+        <div
+          style={{
+            width: '90%',
+            maxWidth: '800px',
+            margin: '0 auto 20px',
+            padding: '14px',
+            border: '3px solid #00ff00',
+            borderRadius: '4px',
+            background: 'rgba(0, 0, 0, 0.5)',
+            boxShadow: '0 0 14px rgba(0, 255, 0, 0.2)',
+            position: 'relative',
+          }}
+        >
+          <div className="retro-leaderboard-stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '10px' }}>
+            {[
+              ['적중률', predictionAccuracy],
+              ['연승', predictionStreak],
+              ['누적 예측', predictionTotal],
+              ['적중 횟수', predictionCorrect],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                style={{
+                  border: '2px solid #00b800',
+                  borderRadius: '4px',
+                  background: 'rgba(0, 0, 0, 0.35)',
+                  padding: '10px',
+                  textAlign: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    color: '#66ff66',
+                    fontSize: '11px',
+                    fontFamily: retroText,
+                    marginBottom: '6px',
+                    imageRendering: 'pixelated',
+                  }}
+                >
+                  {label}
+                </div>
+                <div
+                  style={{
+                    fontSize: '20px',
+                    fontFamily: retroDisplay,
+                    color: '#fff',
+                    textShadow: '0 0 8px rgba(255, 255, 255, 0.35)',
+                    imageRendering: 'pixelated',
+                  }}
+                >
+                  {value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-        <ScoreboardWrapper>
-          <ScoreboardBox>
-            <ScoreboardInner>
-              <AnimatePresence>
-                {showRules && (
-                  <RulesOverlay
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
+        <div style={{ width: '90%', maxWidth: '800px', position: 'relative' }}>
+          <div
+            style={{
+              width: '100%',
+              background: 'rgba(0, 0, 0, 0.7)',
+              border: '4px solid #fff',
+              borderRadius: '8px',
+              outline: '4px solid #000',
+              boxShadow: '10px 10px 20px rgba(0,0,0,0.5)',
+              position: 'relative',
+              zIndex: 20,
+              padding: '4px',
+            }}
+          >
+            <div
+              style={{
+                border: '2px solid #fff',
+                borderRadius: '6px',
+                padding: '10px',
+                minHeight: '500px',
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+              }}
+            >
+              {showRules && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(0, 0, 0, 0.9)',
+                    zIndex: 50,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px',
+                    borderRadius: '8px',
+                  }}
+                >
+                  <h2
+                    style={{
+                      color: '#ffd700',
+                      fontFamily: retroText,
+                      margin: '0 0 20px',
+                      textShadow: '2px 2px 0 #000',
+                    }}
                   >
-                    <h2 style={{ color: '#ffd700', fontFamily: fonts.retroText, marginBottom: '20px', textShadow: '2px 2px 0 #000' }}>
-                      점수 산정 규칙
-                    </h2>
-                    <RulesTable>
-                      <thead>
-                        <tr>
-                          <th>항목</th>
-                          <th>점수</th>
+                    점수 산정 규칙
+                  </h2>
+                  <table
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      color: '#fff',
+                      fontFamily: retroText,
+                      fontSize: '14px',
+                      marginBottom: '20px',
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        <th style={{ border: '2px solid #fff', padding: '10px', textAlign: 'center', background: '#333', color: '#ffd700' }}>항목</th>
+                        <th style={{ border: '2px solid #fff', padding: '10px', textAlign: 'center', background: '#333', color: '#ffd700' }}>점수</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ['승리팀 적중', '+100점'],
+                        ['연승 보너스', '기본점수 × 연승'],
+                        ['이변 예측 (UPSET)', '+50점'],
+                        ['퍼펙트 데이', '+200점'],
+                        ['📸 좌석 시야 공유', '+50점 (첫 기여 +100점)'],
+                      ].map(([label, value]) => (
+                        <tr key={label}>
+                          <td style={{ border: '2px solid #fff', padding: '10px', textAlign: 'center' }}>{label}</td>
+                          <td style={{ border: '2px solid #fff', padding: '10px', textAlign: 'center' }}>{value}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>승리팀 적중</td>
-                          <td>+100점</td>
-                        </tr>
-                        <tr>
-                          <td>연승 보너스</td>
-                          <td>기본점수 × 연승</td>
-                        </tr>
-                        <tr>
-                          <td>이변 예측 (UPSET)</td>
-                          <td>+50점</td>
-                        </tr>
-                        <tr>
-                          <td>퍼펙트 데이</td>
-                          <td>+200점</td>
-                        </tr>
-                        <tr>
-                          <td>📸 좌석 시야 공유</td>
-                          <td>+50점 (첫 기여 +100점)</td>
-                        </tr>
-                      </tbody>
-                    </RulesTable>
-                    <p style={{ color: '#aaa', fontSize: '12px', fontFamily: fonts.retroText, marginBottom: '20px', textAlign: 'center' }}>
-                      * 연승이 끊기면 연승 보너스는 초기화됩니다.<br />
-                      * 파워업 아이템 사용 시 추가 배율이 적용됩니다.<br />
-                      * 다이어리에서 좌석 시야 사진을 올리면 포인트를 획득합니다.
-                    </p>
-                    <CloseButton onClick={() => setShowRules(false)}>닫기</CloseButton>
-                  </RulesOverlay>
-                )}
-              </AnimatePresence>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p
+                    style={{
+                      color: '#aaa',
+                      fontSize: '12px',
+                      fontFamily: retroText,
+                      margin: '0 0 20px',
+                      textAlign: 'center',
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    * 연승이 끊기면 연승 보너스는 초기화됩니다.
+                    <br />
+                    * 파워업 아이템 사용 시 추가 배율이 적용됩니다.
+                    <br />
+                    * 다이어리에서 좌석 시야 사진을 올리면 포인트를 획득합니다.
+                  </p>
+                  <button
+                    type="button"
+                    className="retro-leaderboard-action-button"
+                    onClick={() => setShowRules(false)}
+                    style={{ background: 'red' }}
+                  >
+                    닫기
+                  </button>
+                </div>
+              )}
 
-              <TableHeader>
-                <span>RANK</span>
-                <span>PLAYER</span>
-                <span>SCORE</span>
-                <span>STREAK</span>
-              </TableHeader>
+              <div
+                className="retro-leaderboard-header"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '60px minmax(0, 1fr) 100px 80px',
+                  padding: '12px 16px',
+                  borderBottom: '2px solid #fff',
+                  marginBottom: '20px',
+                  gap: '10px',
+                }}
+              >
+                {['RANK', 'PLAYER', 'SCORE'].map((label, index) => (
+                  <span
+                    key={label}
+                    style={{
+                      color: '#fff',
+                      fontFamily: retroDisplay,
+                      fontSize: '14px',
+                      letterSpacing: '1px',
+                      textShadow: '2px 2px 0 #000',
+                      textAlign: index === 2 ? 'right' : 'left',
+                      imageRendering: 'pixelated',
+                    }}
+                  >
+                    {label}
+                  </span>
+                ))}
+                <span
+                  className="retro-leaderboard-streak-header"
+                  style={{
+                    color: '#fff',
+                    fontFamily: retroDisplay,
+                    fontSize: '14px',
+                    letterSpacing: '1px',
+                    textShadow: '2px 2px 0 #000',
+                    textAlign: 'right',
+                    imageRendering: 'pixelated',
+                  }}
+                >
+                  STREAK
+                </span>
+              </div>
 
               {isLoading ? (
-                <EmptyStateContainer>
-                  <EmptyStateBox>로딩중...</EmptyStateBox>
-                </EmptyStateContainer>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                  <div
+                    className="retro-leaderboard-loading"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.4)',
+                      padding: '40px 60px',
+                      borderRadius: '12px',
+                      color: '#fff',
+                      fontSize: '18px',
+                      fontFamily: retroText,
+                      textShadow: '2px 2px 0 #000',
+                      imageRendering: 'pixelated',
+                    }}
+                  >
+                    로딩중...
+                  </div>
+                </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                  <AnimatePresence mode="popLayout">
-                    {displayLeaderboard.map((entry, index) => (
-                      <LeaderboardRow
-                        key={entry.handle ?? `${entry.userName}-${entry.rank ?? index + 1}`}
-                        rank={entry.rank ?? index + 1}
-                        entry={entry}
-                        isCurrentUser={Boolean(currentUserHandle && entry.handle && entry.handle === currentUserHandle)}
-                      />
-                    ))}
-                  </AnimatePresence>
+                  {displayLeaderboard.map((entry, index) => (
+                    <LeaderboardRow
+                      key={entry.handle ?? `${entry.userName}-${entry.rank ?? index + 1}`}
+                      rank={entry.rank ?? index + 1}
+                      entry={entry}
+                      isCurrentUser={Boolean(currentUserHandle && entry.handle && entry.handle === currentUserHandle)}
+                    />
+                  ))}
                   {displayLeaderboard.length === 0 && (
-                    <EmptyStateContainer>
-                      <EmptyStateBox>데이터가 없습니다</EmptyStateBox>
-                    </EmptyStateContainer>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                      <div
+                        className="retro-leaderboard-empty"
+                        style={{
+                          background: 'rgba(0, 0, 0, 0.4)',
+                          padding: '40px 60px',
+                          borderRadius: '12px',
+                          color: '#fff',
+                          fontSize: '18px',
+                          fontFamily: retroText,
+                          textShadow: '2px 2px 0 #000',
+                          imageRendering: 'pixelated',
+                        }}
+                      >
+                        데이터가 없습니다
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
-            </ScoreboardInner>
+            </div>
 
-            <ButtonGroup>
-              <RetroActionButton onClick={onRefresh}>
+            <div
+              className="retro-leaderboard-button-group"
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '20px',
+                marginTop: '20px',
+                width: '100%',
+                position: 'relative',
+                paddingBottom: '10px',
+              }}
+            >
+              <button type="button" className="retro-leaderboard-action-button" onClick={onRefresh}>
                 새로고침
-              </RetroActionButton>
-              <RetroActionButton onClick={() => setShowRules(true)}>
+              </button>
+              <button type="button" className="retro-leaderboard-action-button" onClick={() => setShowRules(true)}>
                 규칙 확인
-              </RetroActionButton>
-              <RetroActionButton onClick={onPredict}>
+              </button>
+              <button type="button" className="retro-leaderboard-action-button" onClick={onPredict}>
                 예측하기
-              </RetroActionButton>
-            </ButtonGroup>
+              </button>
+            </div>
 
-            <InfoText>* 모든 점수는 경기 종료 후 30분 이내에 집계됩니다.</InfoText>
-
-          </ScoreboardBox>
-
-        </ScoreboardWrapper>
+            <div
+              style={{
+                fontFamily: retroText,
+                fontSize: '12px',
+                color: '#ccc',
+                marginTop: '10px',
+                marginBottom: '15px',
+                textAlign: 'center',
+                textShadow: '1px 1px 0 #000',
+                width: '100%',
+                imageRendering: 'pixelated',
+              }}
+            >
+              * 모든 점수는 경기 종료 후 30분 이내에 집계됩니다.
+            </div>
+          </div>
+        </div>
 
         {hotStreaks.length > 0 && (
           <div style={{ width: '90%', maxWidth: '800px', margin: '20px auto 0' }}>
-            <div style={{
-              background: 'rgba(0,0,0,0.7)',
-              border: '3px solid #ff6600',
-              borderRadius: '8px',
-              padding: '16px 20px',
-              boxShadow: '0 0 14px rgba(255, 102, 0, 0.2)',
-            }}>
-              <div style={{
-                fontFamily: fonts.retroText,
-                fontSize: '11px',
-                color: '#ff6600',
-                marginBottom: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}>
+            <div
+              style={{
+                background: 'rgba(0,0,0,0.7)',
+                border: '3px solid #ff6600',
+                borderRadius: '8px',
+                padding: '16px 20px',
+                boxShadow: '0 0 14px rgba(255, 102, 0, 0.2)',
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: retroText,
+                  fontSize: '11px',
+                  color: '#ff6600',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  imageRendering: 'pixelated',
+                }}
+              >
                 🔥 연승 중인 플레이어
               </div>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 {hotStreaks.map((entry) => (
-                  <div key={entry.handle ?? entry.userName} style={{
-                    background: 'rgba(255, 102, 0, 0.1)',
-                    border: '2px solid #ff6600',
-                    borderRadius: '6px',
-                    padding: '8px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}>
+                  <div
+                    key={entry.handle ?? entry.userName}
+                    style={{
+                      background: 'rgba(255, 102, 0, 0.1)',
+                      border: '2px solid #ff6600',
+                      borderRadius: '6px',
+                      padding: '8px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
                     <span style={{ fontSize: '16px' }}>🔥</span>
-                    <span style={{ fontFamily: fonts.retroText, fontSize: '12px', color: '#fff' }}>
+                    <span style={{ fontFamily: retroText, fontSize: '12px', color: '#fff' }}>
                       {entry.userName}
                     </span>
-                    <span style={{ fontFamily: fonts.retroDisplay, fontSize: '14px', color: '#ff6600' }}>
+                    <span style={{ fontFamily: retroDisplay, fontSize: '14px', color: '#ff6600' }}>
                       {entry.streak}연승
                     </span>
                   </div>
@@ -607,8 +595,7 @@ export default function RetroLeaderboard({
             onUsePowerup={onUsePowerup}
           />
         </div>
-
-      </ContentOverlay>
-    </StadiumContainer>
+      </div>
+    </div>
   );
 }
