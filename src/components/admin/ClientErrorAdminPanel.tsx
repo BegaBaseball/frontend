@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import {
   AlertTriangle,
   Bug,
@@ -9,16 +9,6 @@ import {
   Search,
   Siren,
 } from 'lucide-react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -49,6 +39,8 @@ import type {
 } from '../../types/admin';
 import { getApiErrorMessage } from '../../utils/errorUtils';
 import { formatDate, getTimeAgo } from '../../utils/formatters';
+
+const ClientErrorTrendChart = lazy(() => import('./ClientErrorTrendChart'));
 
 type WindowKey = '1h' | '24h' | '7d';
 
@@ -344,44 +336,9 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           </div>
 
           <div className="h-[320px]">
-            {loadingDashboard ? (
-              <div className="flex h-full items-center justify-center text-slate-400">로딩 중...</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="apiArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="runtimeArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#fb7185" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#fb7185" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="feedbackArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                  <XAxis dataKey="label" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      border: '1px solid #334155',
-                      borderRadius: '0.75rem',
-                      color: '#e2e8f0',
-                    }}
-                    labelStyle={{ color: '#f8fafc' }}
-                  />
-                  <Legend />
-                  <Area type="monotone" dataKey="api" stroke="#38bdf8" fill="url(#apiArea)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="runtime" stroke="#fb7185" fill="url(#runtimeArea)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="feedback" stroke="#fbbf24" fill="url(#feedbackArea)" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-400">차트 로딩 중...</div>}>
+              <ClientErrorTrendChart chartData={chartData} loading={loadingDashboard} />
+            </Suspense>
           </div>
         </section>
 
