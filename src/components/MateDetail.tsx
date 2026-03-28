@@ -29,7 +29,21 @@ import {
   DialogFooter,
 } from './ui/dialog';
 import { Input } from './ui/input';
+import { normalizeMateParty } from '../api/mate';
+import {
+  getMatePartyApplicationsQueryOptions,
+  getMatePartyMyApplicationQueryOptions,
+  getMatePartyReviewsQueryOptions,
+} from '../hooks/mateQueryOptions';
+import {
+  removeMatePartyFromCollections,
+  setMatePartyMyApplicationQueryData,
+  syncMatePartyQueryData,
+  updateMatePartyApplicationsQueryData,
+  updateMatePartyCollectionQueryData,
+} from '../hooks/mateQueryCache';
 import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
+import { MATE_KEYS } from '../hooks/mateQueryKeys';
 import {
   Calendar,
   MapPin,
@@ -50,7 +64,6 @@ import {
   User,
   RefreshCw,
 } from 'lucide-react';
-import { useMateStore } from '../store/mateStore';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import UserProfileModal from './profile/UserProfileModal';
 import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
@@ -64,7 +77,6 @@ import {
   getHostAverageRating,
   hasSameMateUserIdentity,
   isPartyHostedByUser,
-  mapBackendPartyToFrontend,
   stripHashtags,
 } from '../utils/mate';
 import ReviewDialog from './ReviewDialog';
@@ -79,13 +91,12 @@ export default function MateDetail() {
   const { id } = useParams<{ id: string }>();
   const { confirm } = useConfirmDialog();
   const {
-    party: selectedParty,
+    party,
     isLoading: isPartyLoading,
     isRevalidating: isPartyRevalidating,
     error: partyError,
     statusCode: partyStatusCode,
   } = useMatePartyFromRoute(id);
-  const setSelectedParty = useMateStore((state) => state.setSelectedParty);
   const {
     userId: currentUserId,
     userHandle: currentUserHandle,
@@ -113,37 +124,29 @@ export default function MateDetail() {
   const [showHostProfile, setShowHostProfile] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{ handle: string; name: string } | null>(null);
   const missingPartyRedirectRef = useRef<string | null>(null);
-  const selectedPartyId = selectedParty?.id;
-  const selectedPartyStatus = selectedParty?.status;
-  const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
+  const partyId = party?.id;
+  const partyStatus = party?.status;
+  const qrCheckInUrlRef = useRef('');
+  const qrSessionExpiresAtRef = useRef<string | null>(null);
+  const fetchQrSessionRef = useRef<((isMountedRef: { current: boolean }, force?: boolean) => Promise<void>) | null>(null);
+  const isHost = isPartyHostedByUser(party, { id: currentUserId, handle: currentUserHandle });
   const partyReviewsQuery = useQuery({
-    queryKey: ['mate-party-reviews', selectedPartyId],
-    queryFn: () => api.getPartyReviews(selectedPartyId!),
-    enabled: Boolean(selectedPartyId && selectedPartyStatus === 'COMPLETED'),
-    retry: false,
-    staleTime: 60 * 1000,
+    ...(partyId != null
+      ? getMatePartyReviewsQueryOptions(partyId)
+      : getMatePartyReviewsQueryOptions('unknown')),
+    enabled: Boolean(partyId && partyStatus === 'COMPLETED'),
   });
   const myApplicationQuery = useQuery({
-    queryKey: ['mate-party-my-application', selectedPartyId, currentUserId],
-    queryFn: async () => {
-      try {
-        return await api.getMyApplicationByParty(selectedPartyId!);
-      } catch (error) {
-        if (getApiErrorStatus(error) === 404) {
-          return null;
-        }
-        throw error;
-      }
-    },
-    enabled: Boolean(selectedPartyId && currentUserId),
-    retry: false,
-    staleTime: 30 * 1000,
+    ...(partyId != null
+      ? getMatePartyMyApplicationQueryOptions(partyId, currentUserId)
+      : getMatePartyMyApplicationQueryOptions('unknown', currentUserId)),
+    enabled: Boolean(partyId && currentUserId),
   });
   const hostApplicationsQuery = useQuery({
-    queryKey: ['mate-party-applications', selectedPartyId],
-    queryFn: () => api.getApplicationsByParty(selectedPartyId!),
-    enabled: Boolean(selectedPartyId && isHost),
-    staleTime: 30 * 1000,
+    ...(partyId != null
+      ? getMatePartyApplicationsQueryOptions(partyId)
+      : getMatePartyApplicationsQueryOptions('unknown')),
+    enabled: Boolean(partyId && isHost),
   });
   const reviews = useMemo(() => (
     Array.isArray(partyReviewsQuery.data) ? partyReviewsQuery.data : []
@@ -152,7 +155,7 @@ export default function MateDetail() {
   const applications = hostApplicationsQuery.data ?? [];
 
   useEffect(() => {
-    if (partyStatusCode !== 404 || !id || selectedParty) {
+    if (partyStatusCode !== 404 || !id || party) {
       missingPartyRedirectRef.current = null;
       return;
     }
@@ -167,7 +170,7 @@ export default function MateDetail() {
     }, 1600);
 
     return () => window.clearTimeout(redirectTimer);
-  }, [id, navigate, partyStatusCode, selectedParty]);
+  }, [id, navigate, partyStatusCode, party]);
 
   useEffect(() => {
     if (partyReviewsQuery.error && getApiErrorStatus(partyReviewsQuery.error) !== 403) {
@@ -191,26 +194,26 @@ export default function MateDetail() {
   }, []);
 
   const isGameTomorrow = () => {
-    if (!selectedParty) return false;
+    if (!party) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const gameDate = new Date(selectedParty.gameDate);
+    const gameDate = new Date(party.gameDate);
     gameDate.setHours(0, 0, 0, 0);
     const daysDiff = Math.floor((gameDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     return daysDiff < 1;
   };
 
   const canCancel = () => {
-    if (!selectedParty) return false;
+    if (!party) return false;
     if (!myApplication) return false;
     if (myApplication.isRejected) return false;
-    if (selectedParty.status === 'CHECKED_IN' || selectedParty.status === 'COMPLETED') return false;
+    if (party.status === 'CHECKED_IN' || party.status === 'COMPLETED') return false;
     if (!myApplication.isApproved) return true;
     return !isGameTomorrow();
   };
 
   const handleCancelApplication = async () => {
-    if (!selectedParty || !myApplication || !currentUserId) return;
+    if (!party || !myApplication || !currentUserId) return;
     const isApproved = myApplication.isApproved;
     const confirmMessage = isApproved
       ? '참여를 취소하시겠습니까?\n\n직거래는 당사자 간 채팅 조율 방식이며 플랫폼 결제/환불이 적용되지 않습니다.\n취소는 경기 하루 전까지만 가능합니다.'
@@ -225,15 +228,34 @@ export default function MateDetail() {
   };
 
   const executeCancelApplication = async () => {
-    if (!selectedParty || !myApplication || !currentUserId) return;
+    if (!party || !myApplication || !currentUserId) return;
 
     setIsCancelling(true);
     setShowCancelDialog(false);
     try {
+      const wasApproved = myApplication.isApproved;
+      const cancelledApplicationId = myApplication.id;
       const result = await api.cancelApplicationWithReason(myApplication.id, {
         cancelReasonType: selectedCancelReason,
         cancelMemo: cancelMemo.trim() || undefined,
       });
+      setMatePartyMyApplicationQueryData(queryClient, party.id, currentUserId, null);
+      updateMatePartyApplicationsQueryData(queryClient, party.id, (applications) =>
+        applications.filter((application) => application.id !== cancelledApplicationId),
+      );
+      if (wasApproved) {
+        updateMatePartyCollectionQueryData(queryClient, party.id, (currentParty) => ({
+          ...currentParty,
+          currentParticipants: Math.max(1, currentParty.currentParticipants - 1),
+          status: 'PENDING',
+        }), {
+          includeMyParties: false,
+        });
+        removeMatePartyFromCollections(queryClient, party.id, {
+          includePartyLists: false,
+          includeMyParties: true,
+        });
+      }
       toast.success('신청이 취소되었습니다.', {
         description: getRefundPolicyMessage(
           result.refundPolicyApplied,
@@ -241,12 +263,6 @@ export default function MateDetail() {
           result.feeCharged,
         ),
       });
-      const updatedParty = await api.getPartyById(selectedParty.id);
-      setSelectedParty(mapBackendPartyToFrontend(updatedParty));
-      await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ['mate-party-my-application', selectedParty.id, currentUserId] }),
-        queryClient.invalidateQueries({ queryKey: ['mate-party-applications', selectedParty.id] }),
-      ]);
     } catch (error: unknown) {
       console.error('신청 취소 중 오류:', error);
       toast.error(getApiErrorMessage(error, '신청 취소 중 오류가 발생했습니다.'));
@@ -274,22 +290,22 @@ export default function MateDetail() {
   ];
 
   const isApproved = myApplication?.isApproved || false;
-  const canAccessCheckIn = Boolean(selectedParty) &&
+  const canAccessCheckIn = Boolean(party) &&
     (isHost || isApproved) &&
-    selectedParty?.status !== 'CHECKED_IN' &&
-    selectedParty?.status !== 'COMPLETED' &&
-    selectedParty?.status !== 'FAILED';
+    party?.status !== 'CHECKED_IN' &&
+    party?.status !== 'COMPLETED' &&
+    party?.status !== 'FAILED';
 
   const fallbackCheckInUrl = useMemo(() => {
-    if (!id && !selectedParty?.id) {
+    if (!id && !party?.id) {
       return typeof window === 'undefined' ? '/mate' : window.location.href;
     }
-    const path = `/mate/${id ?? selectedParty?.id}/checkin`;
+    const path = `/mate/${id ?? party?.id}/checkin`;
     if (typeof window === 'undefined') {
       return path;
     }
     return new URL(path, window.location.origin).toString();
-  }, [id, selectedParty?.id]);
+  }, [id, party?.id]);
 
   const scheduleNextQrRefresh = useCallback((
     isMountedRef: { current: boolean },
@@ -300,7 +316,7 @@ export default function MateDetail() {
       refreshTimerRef.current = null;
     }
 
-    if (!isMountedRef.current || !isDocumentVisible || selectedPartyId === undefined || !canAccessCheckIn) {
+    if (!isMountedRef.current || !isDocumentVisible || partyId === undefined || !canAccessCheckIn) {
       return;
     }
 
@@ -309,28 +325,32 @@ export default function MateDetail() {
       if (!isMountedRef.current || typeof document !== 'undefined' && document.visibilityState !== 'visible') {
         return;
       }
-      void fetchQrSession(isMountedRef, true);
+      void fetchQrSessionRef.current?.(isMountedRef, true);
     }, delay);
-  }, [canAccessCheckIn, isDocumentVisible, selectedPartyId]);
+  }, [canAccessCheckIn, isDocumentVisible, partyId]);
 
   const fetchQrSession = useCallback(async (
     isMountedRef: { current: boolean },
     force: boolean = false,
   ) => {
-    if (selectedPartyId === undefined || !canAccessCheckIn || !isDocumentVisible) return;
-    if (!force && qrCheckInUrl && qrSessionExpiresAt) {
-      const parsedExpiresAtMs = Date.parse(qrSessionExpiresAt);
+    if (partyId === undefined || !canAccessCheckIn || !isDocumentVisible) return;
+    const currentQrCheckInUrl = qrCheckInUrlRef.current;
+    const currentQrSessionExpiresAt = qrSessionExpiresAtRef.current;
+    if (!force && currentQrCheckInUrl && currentQrSessionExpiresAt) {
+      const parsedExpiresAtMs = Date.parse(currentQrSessionExpiresAt);
       if (!Number.isNaN(parsedExpiresAtMs) && parsedExpiresAtMs - Date.now() > QR_REFRESH_LEAD_MS) {
-        scheduleNextQrRefresh(isMountedRef, qrSessionExpiresAt);
+        scheduleNextQrRefresh(isMountedRef, currentQrSessionExpiresAt);
         return;
       }
     }
     setIsQrLoading(true);
     try {
-      const qrSession = await api.createCheckInQrSession({ partyId: selectedPartyId });
+      const qrSession = await api.createCheckInQrSession({ partyId: partyId });
       if (!isMountedRef.current) return;
 
-      setQrCheckInUrl(qrSession.checkinUrl || fallbackCheckInUrl);
+      const nextQrCheckInUrl = qrSession.checkinUrl || fallbackCheckInUrl;
+      qrCheckInUrlRef.current = nextQrCheckInUrl;
+      setQrCheckInUrl(nextQrCheckInUrl);
       setQrSessionError(null);
       const expiresAt = qrSession.expiresAt ?? null;
       const parsedExpiresAtMs = expiresAt ? Date.parse(expiresAt) : Number.NaN;
@@ -338,12 +358,16 @@ export default function MateDetail() {
       if (expiresAt && !isValidExpiresAt) {
         console.warn('[MateDetail] Invalid QR session expiresAt:', expiresAt);
       }
-      setQrSessionExpiresAt(isValidExpiresAt ? expiresAt : null);
-      scheduleNextQrRefresh(isMountedRef, isValidExpiresAt ? expiresAt : null);
+      const nextQrSessionExpiresAt = isValidExpiresAt ? expiresAt : null;
+      qrSessionExpiresAtRef.current = nextQrSessionExpiresAt;
+      setQrSessionExpiresAt(nextQrSessionExpiresAt);
+      scheduleNextQrRefresh(isMountedRef, nextQrSessionExpiresAt);
     } catch (error: unknown) {
       if (!isMountedRef.current) return;
       console.error('QR 세션 발급 실패:', error);
+      qrCheckInUrlRef.current = fallbackCheckInUrl;
       setQrCheckInUrl(fallbackCheckInUrl);
+      qrSessionExpiresAtRef.current = null;
       setQrSessionError(getApiErrorMessage(error, 'QR 세션을 발급하지 못했습니다.'));
     } finally {
       if (isMountedRef.current) {
@@ -354,16 +378,20 @@ export default function MateDetail() {
     canAccessCheckIn,
     fallbackCheckInUrl,
     isDocumentVisible,
-    qrCheckInUrl,
-    qrSessionExpiresAt,
     scheduleNextQrRefresh,
-    selectedPartyId,
+    partyId,
   ]);
+
+  useEffect(() => {
+    fetchQrSessionRef.current = fetchQrSession;
+  }, [fetchQrSession]);
 
   useEffect(() => {
     const isMountedRef = { current: true };
 
+    qrCheckInUrlRef.current = fallbackCheckInUrl;
     setQrCheckInUrl(fallbackCheckInUrl);
+    qrSessionExpiresAtRef.current = null;
     setQrSessionExpiresAt(null);
     setQrSessionError(null);
 
@@ -372,7 +400,7 @@ export default function MateDetail() {
       refreshTimerRef.current = null;
     }
 
-    if (selectedPartyId === undefined || !canAccessCheckIn || !isDocumentVisible) {
+    if (partyId === undefined || !canAccessCheckIn || !isDocumentVisible) {
       setIsQrLoading(false);
       return () => {
         isMountedRef.current = false;
@@ -388,13 +416,13 @@ export default function MateDetail() {
         refreshTimerRef.current = null;
       }
     };
-  }, [selectedPartyId, canAccessCheckIn, fallbackCheckInUrl, fetchQrSession, isDocumentVisible]);
+  }, [partyId, canAccessCheckIn, fallbackCheckInUrl, fetchQrSession, isDocumentVisible]);
 
   const qrCodeValue = useMemo(() => qrCheckInUrl || fallbackCheckInUrl, [qrCheckInUrl, fallbackCheckInUrl]);
 
 
 
-  if (isPartyLoading && !selectedParty) {
+  if (isPartyLoading && !party) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
         <div className="max-w-3xl mx-auto px-4 py-6">
@@ -446,7 +474,7 @@ export default function MateDetail() {
     );
   }
 
-  if (partyError || !selectedParty) {
+  if (partyError || !party) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center">
         <div className="text-center max-w-md px-4">
@@ -500,13 +528,13 @@ export default function MateDetail() {
   };
 
   const isGameSoon = () => {
-    const gameDate = new Date(selectedParty.gameDate);
+    const gameDate = new Date(party.gameDate);
     const now = new Date();
     const hours = (gameDate.getTime() - now.getTime()) / (1000 * 60 * 60);
     return hours < 24 && hours > 0;
   };
 
-  const canConvertToSale = (selectedParty.status === 'PENDING' || selectedParty.status === 'FAILED') && isGameSoon();
+  const canConvertToSale = (party.status === 'PENDING' || party.status === 'FAILED') && isGameSoon();
 
   const handleOpenSaleDialog = () => {
     setSalePrice('');
@@ -526,9 +554,8 @@ export default function MateDetail() {
     }
     setIsConvertingToSale(true);
     try {
-      const updatedParty = await api.updateParty(selectedParty.id, { status: 'SELLING', price: parsed });
-      const mappedParty = mapBackendPartyToFrontend(updatedParty);
-      setSelectedParty(mappedParty);
+      const updatedParty = await api.updateParty(party.id, { status: 'SELLING', price: parsed });
+      syncMatePartyQueryData(queryClient, normalizeMateParty(updatedParty));
       toast.success('판매 전환이 완료되었습니다.');
       setShowSaleDialog(false);
     } catch (error: unknown) {
@@ -575,7 +602,7 @@ export default function MateDetail() {
   const handleOpenChat = () => navigate(`/mate/${id}/chat`);
 
   // UI Helpers
-  const homeTeamColor = getTeamColorByAnyKey(selectedParty.homeTeam);
+  const homeTeamColor = getTeamColorByAnyKey(party.homeTeam);
   const getSeatBadgeColor = (section: string) => {
     if (section.includes('응원')) return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-900/50';
     if (section.includes('테이블')) return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/35 dark:text-purple-200 dark:border-purple-900/50';
@@ -584,9 +611,9 @@ export default function MateDetail() {
   };
 
   // description에서 해시태그 추출 (생성 Step 4에서 추가된 스타일 태그)
-  const hostTags = extractHashtags(selectedParty.description);
-  const mannerScore = getHostAverageRating(selectedParty);
-  const mannerScoreLabel = formatHostAverageRating(selectedParty);
+  const hostTags = extractHashtags(party.description);
+  const mannerScore = getHostAverageRating(party);
+  const mannerScoreLabel = formatHostAverageRating(party);
 
 
   // Helper: Find matching zone in stadium data
@@ -602,19 +629,19 @@ export default function MateDetail() {
     ) || null;
   };
 
-  const currentZone = selectedParty ? resolveSeatZone(selectedParty.stadium, selectedParty.section) : null;
+  const currentZone = party ? resolveSeatZone(party.stadium, party.section) : null;
   const posterShellClass = 'rounded-3xl overflow-hidden mb-8 border border-gray-200/80 shadow-2xl ring-1 ring-black/5 transform transition-all hover:scale-[1.01] dark:border-white/10 dark:shadow-[0_32px_80px_rgba(0,0,0,0.72)] dark:ring-white/10';
   const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
   const insetPanelClass = 'rounded-xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
-  const summaryTradeLabel = selectedParty.status === 'SELLING'
+  const summaryTradeLabel = party.status === 'SELLING'
     ? '판매 티켓'
     : '직거래';
-  const summaryAmountLabel = selectedParty.status === 'SELLING'
+  const summaryAmountLabel = party.status === 'SELLING'
     ? '판매가'
     : '거래 기준 금액';
-  const summaryAmount = selectedParty.status === 'SELLING'
-    ? (selectedParty.price || 0)
-    : (selectedParty.ticketPrice || 0);
+  const summaryAmount = party.status === 'SELLING'
+    ? (party.price || 0)
+    : (party.ticketPrice || 0);
   const isAwaitingApproval = Boolean(myApplication && !myApplication.isApproved && !myApplication.isRejected);
   const summaryPolicyText = isHost
     ? (canConvertToSale ? '경기 임박 시 판매 전환 가능' : '파티 상태를 관리할 수 있습니다')
@@ -654,7 +681,7 @@ export default function MateDetail() {
         detail: '다른 파티를 찾아보거나 목록으로 돌아갈 수 있습니다.',
       };
     }
-    if (selectedParty.status === 'SELLING') {
+    if (party.status === 'SELLING') {
       return {
         eyebrow: '지금 구매 가능',
         title: '티켓 정보와 정책을 확인하고 신청하세요.',
@@ -754,7 +781,7 @@ export default function MateDetail() {
       variant: 'outline',
       className: 'w-full h-12 border-primary text-primary hover:bg-primary/10',
     });
-  } else if (selectedParty.status === 'PENDING') {
+  } else if (party.status === 'PENDING') {
     actionButtons.push({
       key: 'apply',
       label: '참여하기',
@@ -816,15 +843,15 @@ export default function MateDetail() {
               <div className="relative z-10 mb-6 flex justify-center sm:mb-8">
                 <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-2xl border border-white/20 bg-black/30 px-4 py-2 text-center shadow-lg backdrop-blur-md sm:flex-nowrap sm:gap-3 sm:rounded-full sm:px-5">
                   <span className="font-mono font-bold tracking-wider">
-                    {formatGameDate(selectedParty.gameDate)}
+                    {formatGameDate(party.gameDate)}
                   </span>
                   <span className="hidden text-white/60 sm:inline">•</span>
                   <span className="font-mono font-bold">
-                    {selectedParty.gameTime.substring(0, 5)}
+                    {party.gameTime.substring(0, 5)}
                   </span>
                   <span className="hidden text-white/60 sm:inline">•</span>
                   <span className="w-full break-keep text-xs font-bold sm:w-auto sm:text-sm">
-                    {selectedParty.stadium}
+                    {party.stadium}
                   </span>
                 </div>
               </div>
@@ -833,10 +860,10 @@ export default function MateDetail() {
               <div className="relative z-10 mx-auto grid max-w-lg grid-cols-[1fr_auto_1fr] items-start gap-3 sm:items-center sm:gap-6">
                 <div className="flex min-w-0 flex-col items-center gap-2 text-center transform transition-transform hover:scale-105 sm:gap-3">
                   <div className="rounded-full bg-white p-2 shadow-lg sm:p-3">
-                    <TeamLogo teamId={selectedParty.homeTeam} size={72} />
+                    <TeamLogo teamId={party.homeTeam} size={72} />
                   </div>
                   <span className="break-keep text-lg font-black tracking-tight shadow-black drop-shadow-md sm:text-2xl">
-                    {resolveTeamDisplayName(selectedParty.homeTeam) || selectedParty.homeTeam}
+                    {resolveTeamDisplayName(party.homeTeam) || party.homeTeam}
                   </span>
                 </div>
 
@@ -846,10 +873,10 @@ export default function MateDetail() {
 
                 <div className="flex min-w-0 flex-col items-center gap-2 text-center transform transition-transform hover:scale-105 sm:gap-3">
                   <div className="rounded-full bg-white p-2 shadow-lg sm:p-3">
-                    <TeamLogo teamId={selectedParty.awayTeam} size={72} />
+                    <TeamLogo teamId={party.awayTeam} size={72} />
                   </div>
                   <span className="break-keep text-lg font-black tracking-tight shadow-black drop-shadow-md sm:text-2xl">
-                    {resolveTeamDisplayName(selectedParty.awayTeam) || selectedParty.awayTeam}
+                    {resolveTeamDisplayName(party.awayTeam) || party.awayTeam}
                   </span>
                 </div>
               </div>
@@ -885,8 +912,8 @@ export default function MateDetail() {
                         </div>
                       </div>
                     ) : (
-                      <Badge variant="outline" className={`${getSeatBadgeColor(selectedParty.section)}`}>
-                        {selectedParty.section.split(' ')[0]}
+                      <Badge variant="outline" className={`${getSeatBadgeColor(party.section)}`}>
+                        {party.section.split(' ')[0]}
                       </Badge>
                     )}
 
@@ -933,21 +960,21 @@ export default function MateDetail() {
                     <div className="mt-4 mb-4 animate-in zoom-in-95 duration-200">
                       <SeatViewGallery
                         compact
-                        stadium={selectedParty.stadium}
-                        section={selectedParty.section}
+                        stadium={party.stadium}
+                        section={party.section}
                       />
                     </div>
                   )}
                   <h2 className="mb-2 text-2xl font-black text-gray-900 dark:text-gray-100 sm:text-3xl">
-                    {selectedParty.section}
+                    {party.section}
                   </h2>
                   <div className="flex flex-wrap items-center justify-center gap-3 text-gray-500 dark:text-gray-300 md:justify-start md:gap-4">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
-                      <span>{selectedParty.currentParticipants}/{selectedParty.maxParticipants}명</span>
+                      <span>{party.currentParticipants}/{party.maxParticipants}명</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      {selectedParty.ticketVerified ? (
+                      {party.ticketVerified ? (
                         <>
                           <CheckCircle className="w-4 h-4 text-green-500" />
                           <span className="font-medium text-green-600 dark:text-green-400">티켓 인증됨</span>
@@ -999,7 +1026,7 @@ export default function MateDetail() {
               </div>
               <div className={`${insetPanelClass} p-3`}>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">티켓 인증</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{selectedParty.ticketVerified ? '인증 완료' : '확인 전'}</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{party.ticketVerified ? '인증 완료' : '확인 전'}</p>
               </div>
               <div className={`${insetPanelClass} p-3`}>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">{summaryAmountLabel}</p>
@@ -1011,7 +1038,7 @@ export default function MateDetail() {
               </div>
               <div className={`${insetPanelClass} p-3`}>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">참여 현황</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{selectedParty.currentParticipants}/{selectedParty.maxParticipants}명</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{party.currentParticipants}/{party.maxParticipants}명</p>
               </div>
             </div>
           </Card>
@@ -1023,12 +1050,12 @@ export default function MateDetail() {
                   <Info className="w-5 h-5 text-primary" /> 비용 안내
                 </h3>
                 <div className={`${insetPanelClass} p-5`}>
-                  {selectedParty.status === 'SELLING' ? (
+                  {party.status === 'SELLING' ? (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-gray-600 dark:text-gray-300">티켓 판매가</span>
                         <span className="text-xl font-bold text-orange-600">
-                          {selectedParty.price?.toLocaleString()}원
+                          {party.price?.toLocaleString()}원
                         </span>
                       </div>
                       <Separator className="my-2 bg-gray-200 dark:bg-border" />
@@ -1041,7 +1068,7 @@ export default function MateDetail() {
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
                         <span className="font-semibold text-gray-900 dark:text-gray-200">
-                          {(selectedParty.ticketPrice || 0).toLocaleString()}원
+                          {(party.ticketPrice || 0).toLocaleString()}원
                         </span>
                       </div>
                       <Separator className="my-2 bg-gray-200 dark:bg-border" />
@@ -1073,9 +1100,9 @@ export default function MateDetail() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-4 sm:items-center">
                     <ProfileAvatar
-                      src={selectedParty.hostProfileImageUrl ?? undefined}
-                      alt={selectedParty.hostName}
-                      fallbackName={selectedParty.hostName}
+                      src={party.hostProfileImageUrl ?? undefined}
+                      alt={party.hostName}
+                      fallbackName={party.hostName}
                       width={80}
                       height={80}
                       showRing
@@ -1088,16 +1115,16 @@ export default function MateDetail() {
                         className="mt-1 text-left text-xl font-black text-gray-900 dark:text-white"
                         onClick={() => setShowHostProfile(true)}
                       >
-                        {selectedParty.hostName}
+                        {party.hostName}
                       </button>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <Badge variant="outline" className="dark:border-border dark:text-gray-200">
                           <Star className={`w-3 h-3 ${mannerScore === null ? 'text-gray-400' : 'text-yellow-500 fill-yellow-500'}`} />
                           {mannerScore === null ? mannerScoreLabel : `평점 ${mannerScoreLabel}`}
                         </Badge>
-                        <Badge variant="outline" className={`${selectedParty.ticketVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200' : 'dark:border-border dark:text-gray-200'}`}>
+                        <Badge variant="outline" className={`${party.ticketVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200' : 'dark:border-border dark:text-gray-200'}`}>
                           <Shield className="w-3 h-3" />
-                          {selectedParty.ticketVerified ? '티켓 인증' : '인증 확인 전'}
+                          {party.ticketVerified ? '티켓 인증' : '인증 확인 전'}
                         </Badge>
                         <Badge variant="outline" className="border-purple-200 bg-purple-50 text-purple-600 dark:border-purple-900/50 dark:bg-purple-950/35 dark:text-purple-200">
                           {summaryTradeLabel}
@@ -1116,7 +1143,7 @@ export default function MateDetail() {
                   <MessageSquare className="w-5 h-5 text-primary" /> 파티 소개
                 </h3>
                 <p className="mb-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-300 md:text-base">
-                  {stripHashtags(selectedParty.description)}
+                  {stripHashtags(party.description)}
                 </p>
                 {hostTags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
@@ -1134,12 +1161,12 @@ export default function MateDetail() {
                   <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
                 </h3>
                 <SeatViewGallery
-                  stadium={selectedParty.stadium}
-                  section={selectedParty.section}
+                  stadium={party.stadium}
+                  section={party.section}
                 />
               </Card>
 
-              {selectedParty.status === 'COMPLETED' && currentUserId && (isHost || isApproved) && (
+              {party.status === 'COMPLETED' && currentUserId && (isHost || isApproved) && (
                 <Card className={`p-4 ${sectionCardClass}`}>
                   <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white">
                     <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
@@ -1154,10 +1181,10 @@ export default function MateDetail() {
                             handle: app.applicantHandle,
                             name: app.applicantName,
                           }))
-                        : (selectedParty.hostHandle
+                        : (party.hostHandle
                           ? [{
-                            handle: selectedParty.hostHandle,
-                            name: selectedParty.hostName,
+                            handle: party.hostHandle,
+                            name: party.hostName,
                           }]
                           : []);
 
@@ -1229,7 +1256,7 @@ export default function MateDetail() {
               <AdSlot
                 slotId="mate_detail_1"
                 pageType="mate_detail"
-                contentId={selectedParty?.id ? String(selectedParty.id) : (id ?? null)}
+                contentId={party?.id ? String(party.id) : (id ?? null)}
                 creativeType="sponsor_card"
                 loggedIn={Boolean(currentUserId)}
                 userId={currentUserId ? String(currentUserId) : null}
@@ -1324,7 +1351,7 @@ export default function MateDetail() {
           )}
         </div>
         <UserProfileModal
-          handle={selectedParty?.hostHandle ?? null}
+          handle={party?.hostHandle ?? null}
           isOpen={showHostProfile}
           onClose={() => setShowHostProfile(false)}
         />
@@ -1332,10 +1359,13 @@ export default function MateDetail() {
           <ReviewDialog
             isOpen={reviewTarget !== null}
             onClose={() => setReviewTarget(null)}
-            partyId={selectedParty.id}
+            partyId={party.id}
             reviewee={reviewTarget}
             onSuccess={() => {
-              void queryClient.invalidateQueries({ queryKey: ['mate-party-reviews', selectedParty.id] });
+              void invalidateMatePartyQueries(queryClient, party.id, {
+                includeParty: false,
+                includeReviews: true,
+              });
             }}
           />
         )}

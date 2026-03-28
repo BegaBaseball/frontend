@@ -97,6 +97,18 @@ describe('MateDetail state coverage', () => {
     });
   };
 
+  const visitAsGuest = (path: string) => {
+    cy.intercept('GET', '**/auth/mypage*', { statusCode: 401, body: { success: false, message: 'Unauthorized' } }).as('guestGetMe');
+    cy.intercept('GET', '**/auth/reissue*', { statusCode: 401, body: { success: false, message: 'Unauthorized' } }).as('guestReissue');
+
+    cy.visit(path, {
+      onBeforeLoad(win) {
+        win.localStorage.clear();
+        win.sessionStorage.clear();
+      },
+    });
+  };
+
   const setupDetailMocks = ({
     party,
     myApplication,
@@ -144,6 +156,38 @@ describe('MateDetail state coverage', () => {
         checkinUrl: `${checkinBaseUrl}/mate/${party.id}/checkin?sessionId=session-${party.id}`,
       },
     }).as('createCheckinQrSession');
+  };
+
+  const setupPartyErrorMocks = ({
+    partyId,
+    statusCode,
+  }: {
+    partyId: number;
+    statusCode: 403 | 404;
+  }) => {
+    cy.intercept('GET', '**/auth/mypage*', {
+      statusCode: 200,
+      body: {
+        success: true,
+        data: testUser,
+      },
+    }).as('sessionGetMe');
+
+    cy.intercept('GET', `**/api/parties/${partyId}*`, {
+      statusCode,
+      body: {},
+    }).as('getPartyById');
+
+    cy.intercept('GET', '**/api/parties*', {
+      statusCode: 200,
+      body: {
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+        number: 0,
+        size: 9,
+      },
+    }).as('getParties');
   };
 
   beforeEach(() => {
@@ -240,5 +284,200 @@ describe('MateDetail state coverage', () => {
 
     cy.contains('좌석 시야').should('be.visible');
     cy.contains('아직 등록된 시야가 없어요').should('be.visible');
+  });
+
+  it('shows an invalid-id error without issuing a party query', () => {
+    visitWithAuth('/mate/not-a-party-id');
+
+    cy.contains('파티를 불러오지 못했습니다').should('be.visible');
+    cy.contains('유효하지 않은 파티 ID입니다.').should('be.visible');
+  });
+
+  it('preserves the mate detail redirect target when auth bootstrap returns 401', () => {
+    cy.intercept('GET', `**/api/parties/${baseParty.id}*`, {
+      statusCode: 200,
+      body: baseParty,
+    }).as('blockedPartyRequest');
+
+    visitAsGuest(`/mate/${baseParty.id}`);
+    cy.wait('@guestGetMe');
+    cy.contains('로그인 필요').should('be.visible');
+    cy.contains('로그인하러 가기').click();
+    cy.location('pathname').should('eq', '/login');
+    cy.location('search').should('eq', `?redirect=${encodeURIComponent(`/mate/${baseParty.id}`)}`);
+    cy.get('@blockedPartyRequest.all').should('have.length', 0);
+  });
+
+  it('preserves the manage redirect target when auth bootstrap returns 401', () => {
+    cy.intercept('GET', `**/api/parties/${baseParty.id}*`, {
+      statusCode: 200,
+      body: baseParty,
+    }).as('blockedManagePartyRequest');
+
+    visitAsGuest(`/mate/${baseParty.id}/manage`);
+    cy.wait('@guestGetMe');
+    cy.contains('로그인 필요').should('be.visible');
+    cy.contains('로그인하러 가기').click();
+    cy.location('pathname').should('eq', '/login');
+    cy.location('search').should('eq', `?redirect=${encodeURIComponent(`/mate/${baseParty.id}/manage`)}`);
+    cy.get('@blockedManagePartyRequest.all').should('have.length', 0);
+  });
+
+  it('preserves the check-in redirect target including query params when auth bootstrap returns 401', () => {
+    const checkInPath = `/mate/${baseParty.id}/checkin?sessionId=session-${baseParty.id}`;
+
+    cy.intercept('GET', `**/api/parties/${baseParty.id}*`, {
+      statusCode: 200,
+      body: baseParty,
+    }).as('blockedCheckInPartyRequest');
+
+    visitAsGuest(checkInPath);
+    cy.wait('@guestGetMe');
+    cy.contains('로그인 필요').should('be.visible');
+    cy.contains('로그인하러 가기').click();
+    cy.location('pathname').should('eq', '/login');
+    cy.location('search').should('eq', `?redirect=${encodeURIComponent(checkInPath)}`);
+    cy.get('@blockedCheckInPartyRequest.all').should('have.length', 0);
+  });
+
+  it('redirects to the mate list when the party no longer exists', () => {
+    const partyId = 999;
+    setupPartyErrorMocks({ partyId, statusCode: 404 });
+
+    visitWithAuth(`/mate/${partyId}`);
+    cy.wait('@getPartyById');
+    cy.contains('삭제되었거나 존재하지 않는 파티입니다.').should('be.visible');
+    cy.location('pathname', { timeout: 5000 }).should('eq', '/mate');
+  });
+
+  it('keeps the user on the detail route when access is forbidden', () => {
+    const partyId = 998;
+    setupPartyErrorMocks({ partyId, statusCode: 403 });
+
+    visitWithAuth(`/mate/${partyId}`);
+    cy.wait('@getPartyById');
+    cy.contains('이 파티를 볼 권한이 없습니다.').should('be.visible');
+    cy.location('pathname').should('eq', `/mate/${partyId}`);
+  });
+
+  it('loads the apply route directly and recovers after refresh without router state', () => {
+    const party = { ...baseParty, id: 904, status: 'MATCHED' as const };
+
+    cy.intercept('GET', '**/auth/mypage*', {
+      statusCode: 200,
+      body: {
+        success: true,
+        data: testUser,
+      },
+    }).as('sessionGetMe');
+    cy.intercept('GET', `**/api/parties/${party.id}*`, {
+      statusCode: 200,
+      body: party,
+    }).as('getApplyParty');
+
+    visitWithAuth(`/mate/${party.id}/apply`);
+    cy.wait('@getApplyParty');
+    cy.contains('파티 참여 신청').should('be.visible');
+
+    cy.reload();
+    cy.wait('@getApplyParty');
+    cy.contains('파티 참여 신청').should('be.visible');
+  });
+
+  it('keeps detail content visible during list to detail navigation using route state', () => {
+    const party = { ...baseParty, id: 905, stadium: '사직야구장', homeTeam: 'LT', awayTeam: 'HH' };
+
+    cy.intercept('GET', '**/api/parties?page=0&size=9*', {
+      statusCode: 200,
+      body: {
+        content: [party],
+        totalElements: 1,
+        totalPages: 1,
+        number: 0,
+        size: 9,
+      },
+    }).as('getParties');
+    cy.intercept('GET', `**/api/parties/${party.id}*`, {
+      statusCode: 200,
+      delay: 1200,
+      body: party,
+    }).as('getDelayedDetailParty');
+    cy.intercept('GET', `**/api/applications/party/${party.id}/mine`, {
+      statusCode: 404,
+      body: {},
+    }).as('getListMyApplication');
+    cy.intercept('GET', `**/api/applications/party/${party.id}*`, {
+      statusCode: 200,
+      body: [],
+    }).as('getListPartyApplications');
+    cy.intercept('GET', '**/api/diary/seat-views*', {
+      statusCode: 200,
+      body: [],
+    }).as('getListSeatViews');
+    cy.intercept('POST', '**/api/checkin/qr-session', {
+      statusCode: 201,
+      body: {
+        sessionId: `session-${party.id}`,
+        partyId: party.id,
+        expiresAt: '2026-03-28T08:00:00Z',
+        checkinUrl: `${checkinBaseUrl}/mate/${party.id}/checkin?sessionId=session-${party.id}`,
+      },
+    }).as('getListQrSession');
+
+    visitWithAuth('/mate');
+    cy.wait('@getParties');
+    cy.contains('사직야구장').click();
+
+    cy.location('pathname').should('eq', `/mate/${party.id}`);
+    cy.contains('사직야구장').should('be.visible');
+    cy.contains('파티 정보를 불러오는 중').should('not.exist');
+  });
+
+  it('navigates from mate history without Zustand and keeps the placeholder content visible', () => {
+    const party = { ...baseParty, id: 906, stadium: '고척스카이돔', teamId: 'WO', homeTeam: 'WO', awayTeam: 'LG' };
+
+    cy.mockPublicFollowCounts('testuser');
+    cy.intercept('GET', '**/api/parties/my*', {
+      statusCode: 200,
+      body: [party],
+    }).as('getMyParties');
+    cy.intercept('GET', `**/api/parties/${party.id}*`, {
+      statusCode: 200,
+      delay: 1200,
+      body: party,
+    }).as('getHistoryDetailParty');
+    cy.intercept('GET', `**/api/applications/party/${party.id}/mine`, {
+      statusCode: 404,
+      body: {},
+    }).as('getHistoryMyApplication');
+    cy.intercept('GET', `**/api/applications/party/${party.id}*`, {
+      statusCode: 200,
+      body: [],
+    }).as('getHistoryApplications');
+    cy.intercept('GET', '**/api/diary/seat-views*', {
+      statusCode: 200,
+      body: [],
+    }).as('getHistorySeatViews');
+    cy.intercept('POST', '**/api/checkin/qr-session', {
+      statusCode: 201,
+      body: {
+        sessionId: `session-${party.id}`,
+        partyId: party.id,
+        expiresAt: '2026-03-28T08:00:00Z',
+        checkinUrl: `${checkinBaseUrl}/mate/${party.id}/checkin?sessionId=session-${party.id}`,
+      },
+    }).as('getHistoryQrSession');
+
+    visitWithAuth('/mypage?view=mateHistory');
+    cy.wait('@getMyParties');
+    cy.contains('참여한 메이트').should('be.visible');
+    cy.contains('상세보기 →').click();
+
+    cy.location('pathname').should('eq', `/mate/${party.id}`);
+    cy.contains('고척스카이돔').should('be.visible');
+    cy.contains('파티 정보를 불러오는 중').should('not.exist');
+    cy.get('@getHistoryDetailParty.all').should((requests) => {
+      expect(requests.length).to.be.at.most(1);
+    });
   });
 });

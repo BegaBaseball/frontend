@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { hasSameMateUserIdentity, isPartyHostedByUser, mapBackendPartyToFrontend } from './mate';
+import {
+  hasSameMateUserIdentity,
+  isPartyHostedByUser,
+  mapBackendPartyToFrontend,
+} from './mate';
 
 test('mapBackendPartyToFrontend tolerates public party payload without hostId', () => {
   const party = mapBackendPartyToFrontend({

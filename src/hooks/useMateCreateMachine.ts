@@ -1,12 +1,17 @@
 import { useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { analyzeTicket, type TicketInfo } from '../api/ticket';
-import { useMateStore } from '../store/mateStore';
+import {
+  invalidateMateCollectionQueries,
+  setMatePartyDetailQueryData,
+} from './mateQueryCache';
+import { useMateCreateDraft } from './useMateCreateDraft';
 import { api, getApiErrorStatus } from '../utils/api';
 import { mapBackendPartyToFrontend } from '../utils/mate';
 import { STADIUMS, TEAMS } from '../utils/constants';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import type { KboScheduleItem } from '../utils/api';
-import type { PartyFormData } from '../store/mateStore';
+import type { MateCreateFormErrors, PartyFormData } from '../utils/mateCreateDraft';
 
 export interface MatchInfo {
   id: string;
@@ -33,6 +38,8 @@ export interface MateCreateState {
 export interface UseMateCreateMachineReturn {
   state: MateCreateState;
   createStep: 1 | 2 | 3 | 4;
+  formData: PartyFormData;
+  formErrors: MateCreateFormErrors;
   canGoNext: boolean;
   canGoPrev: boolean;
   isScanning: boolean;
@@ -48,6 +55,8 @@ export interface UseMateCreateMachineReturn {
   submitErrorStatus: number | null;
   createdPartyId: number | null;
   uploadTicket: (file: File) => void;
+  updateFormData: (data: Partial<PartyFormData>) => void;
+  setFormError: (field: keyof MateCreateFormErrors, error: string) => void;
   goNext: () => void;
   goPrev: () => void;
   loadMatches: () => void;
@@ -58,16 +67,9 @@ export interface UseMateCreateMachineReturn {
   reset: () => void;
 }
 
-const normalizeInitialStep = (rawStep: number): 1 | 2 | 3 | 4 => {
-  if (rawStep === 2 || rawStep === 3 || rawStep === 4) {
-    return rawStep;
-  }
-  return 1;
-};
-
 const canGoNextByStep = (
   step: 1 | 2 | 3 | 4,
-  formData: ReturnType<typeof useMateStore.getState>['formData']
+  formData: PartyFormData,
 ) => {
   if (step === 1) {
     return formData.ticketFile !== null;
@@ -196,17 +198,16 @@ const sanitizeUserFacingMessage = (message: string, fallback: string): string =>
 };
 
 export function useMateCreateMachine(): UseMateCreateMachineReturn {
-  const formData = useMateStore((storeState) => storeState.formData);
-  const setFormError = useMateStore((storeState) => storeState.setFormError);
-  const updateFormData = useMateStore((storeState) => storeState.updateFormData);
-  const setSelectedParty = useMateStore((storeState) => storeState.setSelectedParty);
-  const resetForm = useMateStore((storeState) => storeState.resetForm);
-  const setCreateStep = useMateStore((storeState) => storeState.setCreateStep);
-  const persistedCreateStep = useMateStore((storeState) => storeState.createStep);
-
-  const [createStep, setCreateStepState] = useState<1 | 2 | 3 | 4>(() =>
-    normalizeInitialStep(persistedCreateStep)
-  );
+  const queryClient = useQueryClient();
+  const {
+    createStep,
+    formData,
+    formErrors,
+    setCreateStep,
+    updateFormData,
+    setFormError,
+    resetForm,
+  } = useMateCreateDraft();
   const [availableMatches, setAvailableMatches] = useState<MatchInfo[]>([]);
   const [errorType, setErrorType] = useState<MateCreateErrorType>(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -219,7 +220,6 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
   const errorTypeRef = useRef<MateCreateErrorType>(null);
 
   const setStep = (step: 1 | 2 | 3 | 4) => {
-    setCreateStepState(step);
     setCreateStep(step);
   };
 
@@ -375,7 +375,8 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
 
       const createdParty = await api.createParty(partyData);
       const frontendParty = mapBackendPartyToFrontend(createdParty);
-      setSelectedParty(frontendParty);
+      setMatePartyDetailQueryData(queryClient, frontendParty);
+      void invalidateMateCollectionQueries(queryClient);
       resetForm();
 
       setCreatedPartyId(frontendParty.id ?? null);
@@ -465,6 +466,8 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
   return {
     state,
     createStep,
+    formData,
+    formErrors,
     canGoNext,
     canGoPrev: createStep > 1 && !isMachineBusy && !isConfirming,
     isScanning,
@@ -482,6 +485,8 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
     uploadTicket: (file: File) => {
       void uploadTicket(file);
     },
+    updateFormData,
+    setFormError,
     goNext,
     goPrev,
     loadMatches: () => {
