@@ -1,5 +1,5 @@
 // AdminPage.tsx - Stadium Night Theme
-import { useState, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -39,7 +39,6 @@ import { useAuthProfileSnapshot } from '../store/authStore';
 import { TEAM_DATA } from '../constants/teams';
 import { formatDate, formatGameDate, getTimeAgo } from '../utils/formatters';
 import { OffseasonMovementAdminPanel } from './admin/OffseasonMovementAdminPanel';
-import { ClientErrorAdminPanel } from './admin/ClientErrorAdminPanel';
 import { StatCard } from './admin/StatCard';
 import { UsersAdminPanel } from './admin/UsersAdminPanel';
 import { PostsAdminPanel } from './admin/PostsAdminPanel';
@@ -67,6 +66,10 @@ import type {
   ReleaseDecisionEvaluateResponse,
   ReleaseDecisionPreset,
 } from '../types/admin';
+
+const ClientErrorAdminPanel = lazy(() =>
+  import('./admin/ClientErrorAdminPanel').then((module) => ({ default: module.ClientErrorAdminPanel })),
+);
 
 // ─── Stadium types (mirrors StadiumDto) ──────────────────────────────────────
 interface StadiumDto {
@@ -887,7 +890,9 @@ export default function AdminPage() {
             </TabsContent>
 
             <TabsContent value="clientErrors" className="p-6">
-              <ClientErrorAdminPanel active={activeTab === 'clientErrors'} />
+              <Suspense fallback={<div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400">클라이언트 에러 관제 로딩 중...</div>}>
+                <ClientErrorAdminPanel active={activeTab === 'clientErrors'} />
+              </Suspense>
             </TabsContent>
 
             <TabsContent value="seatViews" className="p-6">
