@@ -17,10 +17,10 @@ import GameCard from './GameCard';
 import ScheduledGameCard from './ScheduledGameCard';
 import WelcomeGuide from './WelcomeGuide';
 import AdSlot from './ads/AdSlot';
-import api from '../api/axios';
 import {
     buildHomeLoadState,
     fetchHomeBootstrap,
+    getHomeBootstrapQueryOptions,
     getHomeRankingSnapshotQueryOptions,
     getHomeWidgetsQueryOptions,
     HOME_WIDGETS_QUERY_KEY,
@@ -81,15 +81,7 @@ const HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS = "lg:h-[529px]";
 const HOME_DASHBOARD_RANKING_ROW_CLASS = "lg:h-[52px] lg:min-h-[52px]";
 const HOME_DASHBOARD_CARD_HEIGHT_CLASS = `${HOME_DASHBOARD_MOBILE_CARD_HEIGHT_CLASS} ${HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS}`;
 const TEAM_RANKING_CARD_HEIGHT_CLASS = HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS;
-const PUBLIC_HOME_REQUEST_CONFIG = {
-    skipAuthSessionHandling: true,
-} as const;
 const HOME_BOOTSTRAP_LEGACY_FALLBACK_DELAY_MS = 3000;
-
-interface HomeRequestResult<T> {
-    data: T;
-    succeeded: boolean;
-}
 
 interface HomeLoadSnapshot {
     leagueStartDates: LeagueStartDates;
@@ -154,8 +146,6 @@ export default function Home({ onNavigate }: HomeProps) {
     const hasUserChangedTabRef = useRef(false);
     const bootstrapRequestIdRef = useRef(0);
     const lastBootstrapDateKeyRef = useRef<string | null>(null);
-    const scheduledRequestIdRef = useRef(0);
-    const navRequestIdRef = useRef(0);
     const widgetsRequestIdRef = useRef(0);
     const rankingRequestIdRef = useRef(0);
     const lastWidgetsDateKeyRef = useRef<string | null>(null);
