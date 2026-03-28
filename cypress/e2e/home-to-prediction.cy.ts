@@ -5,6 +5,16 @@ describe('Home to Prediction deep link', () => {
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const todayCompact = today.replace(/-/g, '');
     const fakeToken = 'home-to-prediction-token';
+    const buildWidgetsResponse = (rankingSeasonYear = now.getFullYear()) => ({
+        hotCheerPosts: [],
+        featuredMates: [],
+        rankingSnapshot: {
+            rankingSeasonYear,
+            rankingSourceMessage: `${rankingSeasonYear} 시즌 순위 데이터`,
+            isOffSeason: false,
+            rankings: [],
+        },
+    });
     const homeGames = [
         {
             gameId: `${todayCompact}HHLG0`,
@@ -81,12 +91,13 @@ describe('Home to Prediction deep link', () => {
                 },
                 games: homeGames,
                 scheduledGamesWindow: homeGames,
-                rankingSeasonYear: now.getFullYear(),
-                rankingSourceMessage: `${now.getFullYear()} 시즌 순위 데이터`,
-                isOffSeason: false,
-                rankings: [],
             },
         }).as('getHomeBootstrapCustom');
+
+        cy.intercept('GET', '**/api/home/widgets*', {
+            statusCode: 200,
+            body: buildWidgetsResponse(),
+        }).as('getHomeWidgetsCustom');
 
         cy.intercept('**/api/matches/day*', {
             statusCode: 200,
@@ -171,6 +182,7 @@ describe('Home to Prediction deep link', () => {
         // Wait for the auth check to occur
         cy.wait('@getMe');
         cy.wait('@getHomeBootstrapCustom');
+        cy.wait('@getHomeWidgetsCustom');
 
 
 
@@ -219,6 +231,7 @@ describe('Home to Prediction deep link', () => {
         cy.setCookie('Authorization', fakeToken);
         cy.wait('@getMe');
         cy.wait('@getHomeBootstrapCustom');
+        cy.wait('@getHomeWidgetsCustom');
 
         cy.contains('[data-slot="card"]', '한화')
             .should('contain.text', 'LG')

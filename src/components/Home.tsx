@@ -21,12 +21,14 @@ import api from '../api/axios';
 import {
     buildHomeLoadState,
     fetchHomeBootstrap,
+    getHomeRankingSnapshotQueryOptions,
     getHomeWidgetsQueryOptions,
     HOME_WIDGETS_QUERY_KEY,
     shouldShowHomeConnectionError,
     type HomeCoreLoadSuccessState,
     type HomeLoadState,
 } from '../api/home';
+import { seedMatePartyQueryData } from '../hooks/mateQueryCache';
 import {
     partitionScheduledGames,
     shouldAutoSwitchToScheduled,
@@ -35,14 +37,12 @@ import {
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
 import { buildDisplayableRankings, groupGamesBySourceDate, partitionGamesByLeague } from '../utils/homeDashboard';
 import type { CheerPost } from '../api/cheerApi';
-import type { FeaturedMateCard, Game, Ranking, LeagueStartDates, HomeProps } from '../types/home';
+import type { FeaturedMateCard, Game, HomeProps, HomeRankingSnapshot, HomeWidgetsResponse, LeagueStartDates, Ranking } from '../types/home';
 import { formatTimeAgo } from '../utils/time';
 import { queryClient } from '../lib/queryClient';
 import {
     getInitialRankingSeasonYear,
-    isOffSeasonByDate,
     resolveRankingSeasonYear,
-    getSeasonShortLabel,
     toLocalMiddayDate,
     formatHomeDate,
     formatSourceDateLabel,
@@ -50,6 +50,7 @@ import {
 import { getRankingDisplayName, getMateTeamDisplayName, resolveLeagueBadge } from '../utils/homeTeamNameResolution';
 import { buildHomeRequestErrorContext, buildHomeNavigationState } from '../utils/homeErrorContext';
 import type { HomeNavigationState } from '../utils/homeErrorContext';
+import { buildMateRouteLocationState } from '../utils/mate';
 import { GameCardSkeleton, ScheduledGameCardSkeleton } from './home/GameCardSkeleton';
 
 // Types are imported from '../types/home'
@@ -85,13 +86,6 @@ const PUBLIC_HOME_REQUEST_CONFIG = {
 } as const;
 const HOME_BOOTSTRAP_LEGACY_FALLBACK_DELAY_MS = 3000;
 
-interface HomeRankingSnapshotState {
-    rankingSeasonYear: number;
-    rankingSourceMessage: string;
-    isOffSeason: boolean;
-    rankings: Ranking[];
-}
-
 interface HomeRequestResult<T> {
     data: T;
     succeeded: boolean;
@@ -102,7 +96,6 @@ interface HomeLoadSnapshot {
     navigation: HomeNavigationState;
     games: Game[];
     scheduledGames: Game[];
-    rankingSnapshot: HomeRankingSnapshotState;
     success: HomeCoreLoadSuccessState;
     loadState: HomeLoadState;
 }
@@ -111,7 +104,7 @@ interface HomeLoadSnapshot {
 
 export default function Home({ onNavigate }: HomeProps) {
     const navigate = useNavigate();
-    const fallbackLeagueStartDates = getFallbackLeagueStartDates();
+    const fallbackLeagueStartDates = useMemo(() => getFallbackLeagueStartDates(), []);
 
     // State
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -164,7 +157,9 @@ export default function Home({ onNavigate }: HomeProps) {
     const scheduledRequestIdRef = useRef(0);
     const navRequestIdRef = useRef(0);
     const widgetsRequestIdRef = useRef(0);
+    const rankingRequestIdRef = useRef(0);
     const lastWidgetsDateKeyRef = useRef<string | null>(null);
+    const rankingSeasonOverrideRef = useRef<number | null>(null);
     const widgetsTimeoutRef = useRef<number | null>(null);
     const widgetsIdleCallbackRef = useRef<number | null>(null);
     const matchLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
@@ -410,102 +405,6 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
-    const loadRankingsData = async (
-        seasonYear: number,
-        options: { baseDate?: Date; startDates?: LeagueStartDates | null } = {},
-    ) => {
-        const baseDate = options.baseDate ?? selectedDate;
-        const startDates = options.startDates ?? leagueStartDates;
-        const shouldFallbackToPrevious = isOffSeasonByDate(baseDate, startDates);
-        setIsRankingsLoading(true);
-        setRankingsError(false);
-        setRankingSourceMessage('');
-        setRankingSeasonYear(seasonYear);
-        setIsOffSeason(shouldFallbackToPrevious);
-
-        const requestRankings = async (targetSeasonYear: number): Promise<Ranking[]> => {
-            const response = await api.get<Ranking[]>(`/kbo/rankings/${targetSeasonYear}`, PUBLIC_HOME_REQUEST_CONFIG);
-            return response.data;
-        };
-
-        try {
-            const rankingsData = await requestRankings(seasonYear);
-
-            if (rankingsData.length > 0) {
-                setRankingSeasonYear(seasonYear);
-                setRankingSourceMessage(`${seasonYear} 시즌 순위 데이터`);
-                setRankings(rankingsData);
-                return;
-            }
-
-            if (!shouldFallbackToPrevious) {
-                setRankings([]);
-                setRankingSourceMessage(`${seasonYear} 시즌 데이터가 아직 집계되지 않았습니다.`);
-                return;
-            }
-
-            const previousSeasonYear = seasonYear - 1;
-            setRankingSourceMessage(`전시즌(${getSeasonShortLabel(previousSeasonYear)}) 재조회 중`);
-
-            try {
-                const fallbackData = await requestRankings(previousSeasonYear);
-
-                if (fallbackData.length > 0) {
-                    setRankingSeasonYear(previousSeasonYear);
-                    setRankingSourceMessage(`${previousSeasonYear} 시즌 순위 데이터`);
-                    setRankings(fallbackData);
-                    return;
-                }
-
-                setRankingSourceMessage('현재 시즌과 전시즌(전년도) 데이터가 없습니다.');
-                setRankings([]);
-                return;
-            } catch (fallbackError) {
-                console.error(`[Rank] Error loading previous season rankings:`, fallbackError);
-                setRankings([]);
-                setRankingsError(true);
-                setRankingSourceMessage('순위 조회 중 문제가 발생했습니다.');
-                return;
-            }
-        } catch (error) {
-            console.error('[Rank] Error loading rankings:', error);
-            setRankings([]);
-            setRankingsError(true);
-
-            if (shouldFallbackToPrevious) {
-                const previousSeasonYear = seasonYear - 1;
-                setRankingSourceMessage(`전시즌(${getSeasonShortLabel(previousSeasonYear)}) 재조회 중`);
-
-                try {
-                    const fallbackData = await requestRankings(previousSeasonYear);
-
-                    if (fallbackData.length > 0) {
-                        setRankingSeasonYear(previousSeasonYear);
-                        setRankingSourceMessage(`${previousSeasonYear} 시즌 순위 데이터`);
-                        setRankings(fallbackData);
-                        setRankingsError(false);
-                        return;
-                    }
-
-                    setRankingSourceMessage('현재 시즌과 전시즌(전년도) 데이터가 없습니다.');
-                    setRankings([]);
-                    setRankingsError(false);
-                    return;
-                } catch (fallbackError) {
-                    console.error('[Rank] Error loading fallback rankings:', fallbackError);
-                    setRankings([]);
-                    setRankingsError(true);
-                    setRankingSourceMessage('순위 조회 중 문제가 발생했습니다.');
-                }
-                return;
-            }
-
-            setRankingSourceMessage('순위 조회 중 문제가 발생했습니다.');
-        } finally {
-            setIsRankingsLoading(false);
-        }
-    };
-
     const applyHomeSnapshot = useCallback((date: Date, snapshot: HomeLoadSnapshot) => {
         const normalizedScheduledGames = snapshot.scheduledGames.map((game) => ({
             ...game,
@@ -531,18 +430,12 @@ export default function Home({ onNavigate }: HomeProps) {
         }
 
         setScheduledGames(normalizedScheduledGames);
-        setRankingSeasonYear(snapshot.rankingSnapshot.rankingSeasonYear);
-        setRankingSourceMessage(snapshot.rankingSnapshot.rankingSourceMessage);
-        setIsOffSeason(snapshot.rankingSnapshot.isOffSeason);
-        setRankings(snapshot.rankingSnapshot.rankings);
         const showConnectionError = shouldShowHomeConnectionError(snapshot.success);
 
         setIsLoading(false);
         setIsGamesError(!snapshot.success.games);
         setIsScheduledLoading(false);
         setIsScheduledError(!snapshot.success.scheduledGames);
-        setIsRankingsLoading(false);
-        setRankingsError(!snapshot.success.rankings);
         setConnectionError(showConnectionError);
 
         console.info('[HomeLoad]', {
@@ -574,18 +467,11 @@ export default function Home({ onNavigate }: HomeProps) {
             sourceDate: game.sourceDate || game.gameDate || formatDateForAPI(date),
             leagueBadge: game.leagueBadge || resolveLeagueBadge(game.leagueType),
         })),
-        rankingSnapshot: {
-            rankingSeasonYear: data.rankingSeasonYear,
-            rankingSourceMessage: data.rankingSourceMessage,
-            isOffSeason: data.isOffSeason,
-            rankings: data.rankings,
-        },
         success: {
             leagueStartDates: true,
             navigation: true,
             games: true,
             scheduledGames: true,
-            rankings: true,
         },
         loadState: buildHomeLoadState('bootstrap', { timedOut }),
     });
@@ -602,18 +488,11 @@ export default function Home({ onNavigate }: HomeProps) {
             },
             games: [],
             scheduledGames: [],
-            rankingSnapshot: {
-                rankingSeasonYear: resolveRankingSeasonYear(date, fallbackDates),
-                rankingSourceMessage: '순위 조회 중 문제가 발생했습니다.',
-                isOffSeason: isOffSeasonByDate(date, fallbackDates),
-                rankings: [],
-            },
             success: {
                 leagueStartDates: false,
                 navigation: false,
                 games: false,
                 scheduledGames: false,
-                rankings: false,
             },
             loadState: buildHomeLoadState('legacy-fallback', { timedOut }),
         };
@@ -761,140 +640,6 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     };
 
-    const requestLegacyRankingSnapshot = async (
-        date: Date,
-        startDates: LeagueStartDates,
-    ): Promise<HomeRequestResult<HomeRankingSnapshotState>> => {
-        const seasonYear = resolveRankingSeasonYear(date, startDates);
-        const shouldFallbackToPrevious = isOffSeasonByDate(date, startDates);
-
-        const buildFailure = (): HomeRankingSnapshotState => ({
-            rankingSeasonYear: seasonYear,
-            rankingSourceMessage: '순위 조회 중 문제가 발생했습니다.',
-            isOffSeason: shouldFallbackToPrevious,
-            rankings: [],
-        });
-
-        const requestRankings = async (targetSeasonYear: number): Promise<Ranking[]> => {
-            const response = await api.get<Ranking[]>(`/kbo/rankings/${targetSeasonYear}`, PUBLIC_HOME_REQUEST_CONFIG);
-            return response.data;
-        };
-
-        try {
-            const rankingsData = await requestRankings(seasonYear);
-
-            if (rankingsData.length > 0) {
-                return {
-                    data: {
-                        rankingSeasonYear: seasonYear,
-                        rankingSourceMessage: `${seasonYear} 시즌 순위 데이터`,
-                        isOffSeason: shouldFallbackToPrevious,
-                        rankings: rankingsData,
-                    },
-                    succeeded: true,
-                };
-            }
-
-            if (!shouldFallbackToPrevious) {
-                return {
-                    data: {
-                        rankingSeasonYear: seasonYear,
-                        rankingSourceMessage: `${seasonYear} 시즌 데이터가 아직 집계되지 않았습니다.`,
-                        isOffSeason: false,
-                        rankings: [],
-                    },
-                    succeeded: true,
-                };
-            }
-
-            const previousSeasonYear = seasonYear - 1;
-
-            try {
-                const fallbackData = await requestRankings(previousSeasonYear);
-                if (fallbackData.length > 0) {
-                    return {
-                        data: {
-                            rankingSeasonYear: previousSeasonYear,
-                            rankingSourceMessage: `${previousSeasonYear} 시즌 순위 데이터`,
-                            isOffSeason: true,
-                            rankings: fallbackData,
-                        },
-                        succeeded: true,
-                    };
-                }
-
-                return {
-                    data: {
-                        rankingSeasonYear: previousSeasonYear,
-                        rankingSourceMessage: '현재 시즌과 전시즌(전년도) 데이터가 없습니다.',
-                        isOffSeason: true,
-                        rankings: [],
-                    },
-                    succeeded: true,
-                };
-            } catch (fallbackError) {
-                console.error(
-                    '[HomeLegacy] Error loading fallback rankings:',
-                    buildHomeRequestErrorContext(fallbackError, `/kbo/rankings/${previousSeasonYear}`, date),
-                    fallbackError,
-                );
-                return {
-                    data: buildFailure(),
-                    succeeded: false,
-                };
-            }
-        } catch (error) {
-            console.error(
-                '[HomeLegacy] Error loading rankings:',
-                buildHomeRequestErrorContext(error, `/kbo/rankings/${seasonYear}`, date),
-                error,
-            );
-
-            if (!shouldFallbackToPrevious) {
-                return {
-                    data: buildFailure(),
-                    succeeded: false,
-                };
-            }
-
-            const previousSeasonYear = seasonYear - 1;
-            try {
-                const fallbackData = await requestRankings(previousSeasonYear);
-                if (fallbackData.length > 0) {
-                    return {
-                        data: {
-                            rankingSeasonYear: previousSeasonYear,
-                            rankingSourceMessage: `${previousSeasonYear} 시즌 순위 데이터`,
-                            isOffSeason: true,
-                            rankings: fallbackData,
-                        },
-                        succeeded: true,
-                    };
-                }
-
-                return {
-                    data: {
-                        rankingSeasonYear: previousSeasonYear,
-                        rankingSourceMessage: '현재 시즌과 전시즌(전년도) 데이터가 없습니다.',
-                        isOffSeason: true,
-                        rankings: [],
-                    },
-                    succeeded: true,
-                };
-            } catch (fallbackError) {
-                console.error(
-                    '[HomeLegacy] Error loading previous season rankings:',
-                    buildHomeRequestErrorContext(fallbackError, `/kbo/rankings/${previousSeasonYear}`, date),
-                    fallbackError,
-                );
-                return {
-                    data: buildFailure(),
-                    succeeded: false,
-                };
-            }
-        }
-    };
-
     const loadLegacyHomeData = useCallback(async (
         date: Date,
         options: { timedOut?: boolean } = {},
@@ -905,20 +650,17 @@ export default function Home({ onNavigate }: HomeProps) {
             requestLegacyGamesData(date),
             requestLegacyScheduledGamesData(date),
         ]);
-        const rankingResult = await requestLegacyRankingSnapshot(date, leagueStartDatesResult.data);
 
         return {
             leagueStartDates: leagueStartDatesResult.data,
             navigation: navigationResult.data,
             games: gamesResult.data,
             scheduledGames: scheduledResult.data,
-            rankingSnapshot: rankingResult.data,
             success: {
                 leagueStartDates: leagueStartDatesResult.succeeded,
                 navigation: navigationResult.succeeded,
                 games: gamesResult.succeeded,
                 scheduledGames: scheduledResult.succeeded,
-                rankings: rankingResult.succeeded,
             },
             loadState: buildHomeLoadState('legacy-fallback', { timedOut: options.timedOut }),
         };
@@ -963,8 +705,6 @@ export default function Home({ onNavigate }: HomeProps) {
         setIsGamesError(false);
         setIsScheduledLoading(true);
         setIsScheduledError(false);
-        setIsRankingsLoading(true);
-        setRankingsError(false);
         setConnectionError(false);
         matchLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
         scheduledLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
@@ -999,24 +739,44 @@ export default function Home({ onNavigate }: HomeProps) {
         }
     }, [applyHomeSnapshot, buildLegacyFailureSnapshot, loadLegacyHomeData]);
 
-    const applyHomeWidgetsData = useCallback((data: {
-        hotCheerPosts: CheerPost[];
-        featuredMates: FeaturedMateCard[];
-    }) => {
+    const applyHomeRankingSnapshot = useCallback((rankingSnapshot: HomeRankingSnapshot) => {
+        setRankingSeasonYear(rankingSnapshot.rankingSeasonYear);
+        setRankingSourceMessage(rankingSnapshot.rankingSourceMessage);
+        setIsOffSeason(rankingSnapshot.isOffSeason);
+        setRankings(rankingSnapshot.rankings);
+        setIsRankingsLoading(false);
+        setRankingsError(false);
+    }, []);
+
+    const applyHomeWidgetsData = useCallback((date: Date, data: HomeWidgetsResponse, options: { includeRanking?: boolean } = {}) => {
         setHotCheerPosts(data.hotCheerPosts);
         setFeaturedMates(data.featuredMates);
         setHotCheerError(null);
         setFeaturedMatesError(null);
         setIsHotCheerLoading(false);
         setIsFeaturedMatesLoading(false);
-    }, []);
+        queryClient.setQueryData(
+            getHomeRankingSnapshotQueryOptions(date, data.rankingSnapshot.rankingSeasonYear).queryKey,
+            data.rankingSnapshot,
+        );
+        if (options.includeRanking !== false) {
+            applyHomeRankingSnapshot(data.rankingSnapshot);
+        }
+    }, [applyHomeRankingSnapshot, queryClient]);
 
     const loadHomeWidgets = useCallback(async (date: Date) => {
         const requestId = ++widgetsRequestIdRef.current;
+        const rankingRequestId = ++rankingRequestIdRef.current;
+        const autoRankingSeasonYear = resolveRankingSeasonYear(date, leagueStartDates ?? fallbackLeagueStartDates);
+        rankingSeasonOverrideRef.current = null;
         setIsHotCheerLoading(true);
         setHotCheerError(null);
         setIsFeaturedMatesLoading(true);
         setFeaturedMatesError(null);
+        setRankingSeasonYear(autoRankingSeasonYear);
+        setRankingSourceMessage('');
+        setIsRankingsLoading(true);
+        setRankingsError(false);
 
         try {
             const data = await queryClient.fetchQuery(getHomeWidgetsQueryOptions(date));
@@ -1024,7 +784,9 @@ export default function Home({ onNavigate }: HomeProps) {
                 return;
             }
 
-            applyHomeWidgetsData(data);
+            applyHomeWidgetsData(date, data, {
+                includeRanking: rankingRequestId === rankingRequestIdRef.current,
+            });
         } catch (err) {
             if (requestId !== widgetsRequestIdRef.current) {
                 return;
@@ -1041,8 +803,48 @@ export default function Home({ onNavigate }: HomeProps) {
             setFeaturedMatesError('직관 메이트 목록을 불러오지 못했습니다.');
             setIsHotCheerLoading(false);
             setIsFeaturedMatesLoading(false);
+            if (rankingRequestId === rankingRequestIdRef.current) {
+                setRankings([]);
+                setRankingSourceMessage('순위 조회 중 문제가 발생했습니다.');
+                setIsRankingsLoading(false);
+                setRankingsError(true);
+            }
         }
-    }, [applyHomeWidgetsData]);
+    }, [applyHomeWidgetsData, fallbackLeagueStartDates, leagueStartDates]);
+
+    const loadRankingSnapshot = useCallback(async (date: Date, seasonYear: number) => {
+        const requestId = ++rankingRequestIdRef.current;
+        rankingSeasonOverrideRef.current = seasonYear;
+        setRankingSeasonYear(seasonYear);
+        setRankingSourceMessage('');
+        setIsOffSeason(false);
+        setIsRankingsLoading(true);
+        setRankingsError(false);
+
+        try {
+            const data = await queryClient.fetchQuery(getHomeRankingSnapshotQueryOptions(date, seasonYear));
+            if (requestId !== rankingRequestIdRef.current) {
+                return;
+            }
+
+            applyHomeRankingSnapshot(data);
+        } catch (err) {
+            if (requestId !== rankingRequestIdRef.current) {
+                return;
+            }
+
+            console.error(
+                '[HomeWidgets] Error loading ranking snapshot:',
+                buildHomeRequestErrorContext(err, `/home/widgets?seasonYear=${seasonYear}`, date),
+                err,
+            );
+            setRankings([]);
+            setRankingSourceMessage('순위 조회 중 문제가 발생했습니다.');
+            setIsOffSeason(false);
+            setIsRankingsLoading(false);
+            setRankingsError(true);
+        }
+    }, [applyHomeRankingSnapshot]);
 
     const handleTabChange = (value: string) => {
         const tabValue = value as LeagueTab;
@@ -1083,14 +885,15 @@ export default function Home({ onNavigate }: HomeProps) {
         setHotCheerError(null);
         setIsFeaturedMatesLoading(true);
         setFeaturedMatesError(null);
+        setIsRankingsLoading(true);
+        setRankingsError(false);
+        rankingSeasonOverrideRef.current = null;
 
-        const cachedWidgets = queryClient.getQueryData<{
-            hotCheerPosts: CheerPost[];
-            featuredMates: FeaturedMateCard[];
-        }>(HOME_WIDGETS_QUERY_KEY(dateKey));
+        const cachedWidgets = queryClient.getQueryData<HomeWidgetsResponse>(HOME_WIDGETS_QUERY_KEY(dateKey));
         if (cachedWidgets) {
+            rankingRequestIdRef.current += 1;
             lastWidgetsDateKeyRef.current = dateKey;
-            applyHomeWidgetsData(cachedWidgets);
+            applyHomeWidgetsData(selectedDate, cachedWidgets);
             return clearScheduledWidgetLoad;
         }
 
@@ -1111,6 +914,17 @@ export default function Home({ onNavigate }: HomeProps) {
 
         return clearScheduledWidgetLoad;
     }, [applyHomeWidgetsData, loadHomeWidgets, selectedDate, selectedDateKey]);
+
+    const reloadCurrentRankingSnapshot = () => {
+        const seasonYear = rankingSeasonOverrideRef.current;
+        if (seasonYear == null) {
+            void loadHomeWidgets(selectedDate);
+            return;
+        }
+
+        void loadRankingSnapshot(selectedDate, seasonYear);
+    };
+
     useEffect(() => {
         setIsSecondarySectionExpanded(false);
     }, [selectedDate]);
@@ -1641,7 +1455,12 @@ export default function Home({ onNavigate }: HomeProps) {
                                                     <button
                                                         type="button"
                                                         key={mate.id}
-                                                        onClick={() => navigate(`/mate/${mate.id}`)}
+                                                        onClick={() => {
+                                                            seedMatePartyQueryData(queryClient, mate);
+                                                            navigate(`/mate/${mate.id}`, {
+                                                                state: buildMateRouteLocationState(mate),
+                                                            });
+                                                        }}
                                                         className="text-left w-full px-2 py-1.5 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/35 last:pb-0 overflow-hidden"
                                                     >
                                                         <div className="flex items-start justify-between gap-2 mb-1">
@@ -1688,7 +1507,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                         aria-label={`${rankingSeasonYear - 1}시즌 팀 순위 보기`}
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => loadRankingsData(rankingSeasonYear - 1)}
+                                        onClick={() => void loadRankingSnapshot(selectedDate, rankingSeasonYear - 1)}
                                         className="h-7 w-7 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800/60"
                                     >
                                         <ChevronLeft className="w-4 h-4" />
@@ -1700,7 +1519,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                         aria-label={`${rankingSeasonYear + 1}시즌 팀 순위 보기`}
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => loadRankingsData(rankingSeasonYear + 1)}
+                                        onClick={() => void loadRankingSnapshot(selectedDate, rankingSeasonYear + 1)}
                                         disabled={rankingSeasonYear >= new Date().getFullYear()}
                                         className="h-7 w-7 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800/60 disabled:opacity-30 disabled:hover:bg-transparent"
                                     >
@@ -1724,10 +1543,7 @@ export default function Home({ onNavigate }: HomeProps) {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => {
-                                                const seasonYear = resolveRankingSeasonYear(selectedDate, leagueStartDates);
-                                                loadRankingsData(seasonYear);
-                                            }}
+                                            onClick={reloadCurrentRankingSnapshot}
                                             className="border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-white bg-transparent"
                                         >
                                             <RefreshCw className="w-4 h-4 mr-2" />

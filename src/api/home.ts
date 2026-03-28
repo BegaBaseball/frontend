@@ -3,21 +3,22 @@ import { useQuery } from '@tanstack/react-query';
 import type { CheerPost } from './cheerApi';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import { formatTimeAgo } from '../utils/time';
+import { fetchRankingSnapshot, getRankingSnapshotQueryOptions } from './rankings';
 import {
     FeaturedMateCard,
     Game,
     HomeBootstrapResponse,
+    HomeRankingSnapshot,
     HomeWidgetsResponse,
     LeagueStartDates,
-    Ranking,
 } from '../types/home';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
 import api from './axios';
 
 export type HomeLoadSource = 'bootstrap' | 'legacy-fallback';
 
-export const HOME_WIDGETS_QUERY_KEY = (dateKey: string) => ['home', 'widgets', dateKey] as const;
-export const HOME_RANKINGS_QUERY_KEY = (year: number) => ['rankings', year] as const;
+export const HOME_BOOTSTRAP_QUERY_KEY = (dateKey: string) => ['home', 'bootstrap', dateKey] as const;
+export const HOME_WIDGETS_QUERY_KEY = (dateKey: string, seasonYear?: number) => ['home', 'widgets', dateKey, seasonYear ?? 'auto'] as const;
 
 export interface HomeLoadState {
     source: HomeLoadSource;
@@ -30,7 +31,6 @@ export interface HomeCoreLoadSuccessState {
     navigation: boolean;
     games: boolean;
     scheduledGames: boolean;
-    rankings: boolean;
 }
 
 const publicHomeRequestConfig = {
@@ -95,18 +95,31 @@ const isBootstrapResponse = (value: unknown): value is HomeBootstrapResponse => 
     return typeof candidate.selectedDate === 'string'
         && Array.isArray(candidate.games)
         && Array.isArray(candidate.scheduledGamesWindow)
-        && Array.isArray(candidate.rankings)
         && !!candidate.leagueStartDates
         && !!candidate.navigation;
 };
 
-const isWidgetsResponse = (value: unknown): value is { hotCheerPosts: RawHotCheerPost[]; featuredMates: FeaturedMateCard[] } => {
+const isRankingSnapshot = (value: unknown): value is HomeRankingSnapshot => {
     if (!value || typeof value !== 'object') {
         return false;
     }
 
     const candidate = value as Record<string, unknown>;
-    return Array.isArray(candidate.hotCheerPosts) && Array.isArray(candidate.featuredMates);
+    return typeof candidate.rankingSeasonYear === 'number'
+        && typeof candidate.rankingSourceMessage === 'string'
+        && typeof candidate.isOffSeason === 'boolean'
+        && Array.isArray(candidate.rankings);
+};
+
+const isWidgetsResponse = (value: unknown): value is { hotCheerPosts: RawHotCheerPost[]; featuredMates: FeaturedMateCard[]; rankingSnapshot: HomeRankingSnapshot } => {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const candidate = value as Record<string, unknown>;
+    return Array.isArray(candidate.hotCheerPosts)
+        && Array.isArray(candidate.featuredMates)
+        && isRankingSnapshot(candidate.rankingSnapshot);
 };
 
 export const buildHomeLoadState = (
@@ -133,19 +146,6 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
             params: { date: apiDate },
             ...publicHomeRequestConfig,
         });
-        return data;
-
-    } catch (error) {
-        return [];
-    }
-};
-
-/**
- * 시즌 순위 데이터 조회
- */
-export const fetchRankingsData = async (year: number): Promise<Ranking[]> => {
-    try {
-        const { data } = await api.get<Ranking[]>(`/kbo/rankings/${year}`, publicHomeRequestConfig);
         return data;
 
     } catch (error) {
@@ -182,10 +182,20 @@ export const fetchHomeBootstrap = async (date: Date): Promise<HomeBootstrapRespo
     return data;
 };
 
-export const fetchHomeWidgets = async (date: Date): Promise<HomeWidgetsResponse> => {
+export const getHomeBootstrapQueryOptions = (date: Date) => {
+    const dateKey = formatDateForAPI(date);
+    return {
+        queryKey: HOME_BOOTSTRAP_QUERY_KEY(dateKey),
+        queryFn: () => fetchHomeBootstrap(date),
+        staleTime: 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+    } as const;
+};
+
+export const fetchHomeWidgets = async (date: Date, seasonYear?: number): Promise<HomeWidgetsResponse> => {
     const apiDate = formatDateForAPI(date);
     const { data } = await api.get('/home/widgets', {
-        params: { date: apiDate },
+        params: seasonYear == null ? { date: apiDate } : { date: apiDate, seasonYear },
         ...publicHomeRequestConfig,
     });
 
@@ -196,18 +206,29 @@ export const fetchHomeWidgets = async (date: Date): Promise<HomeWidgetsResponse>
     return {
         hotCheerPosts: data.hotCheerPosts.map(toCheerPost),
         featuredMates: data.featuredMates,
+        rankingSnapshot: data.rankingSnapshot,
     };
 };
 
-export const getHomeWidgetsQueryOptions = (date: Date) => {
+export const getHomeWidgetsQueryOptions = (date: Date, seasonYear?: number) => {
     const dateKey = formatDateForAPI(date);
     return {
-        queryKey: HOME_WIDGETS_QUERY_KEY(dateKey),
-        queryFn: () => fetchHomeWidgets(date),
+        queryKey: HOME_WIDGETS_QUERY_KEY(dateKey, seasonYear),
+        queryFn: () => fetchHomeWidgets(date, seasonYear),
         staleTime: 5 * 60 * 1000,
         gcTime: 30 * 60 * 1000,
     } as const;
 };
+
+export const fetchHomeRankingSnapshot = async (
+    date: Date,
+    seasonYear: number,
+): Promise<HomeRankingSnapshot> => fetchRankingSnapshot({ date, seasonYear });
+
+export const getHomeRankingSnapshotQueryOptions = (
+    date: Date,
+    seasonYear: number,
+) => getRankingSnapshotQueryOptions({ date, seasonYear });
 
 // ✅ React Query 훅 추가
 export const useLeagueStartDates = () => {
@@ -228,15 +249,5 @@ export const useGamesData = (date: Date) => {
         staleTime: 5 * 60 * 1000, // 5분
         gcTime: 10 * 60 * 1000, // 10분
         enabled: !!date, // date가 있을 때만 실행
-    });
-};
-
-export const useRankingsData = (year: number, options: { enabled?: boolean } = {}) => {
-    return useQuery({
-        queryKey: HOME_RANKINGS_QUERY_KEY(year), // 연도별로 캐싱
-        queryFn: () => fetchRankingsData(year),
-        staleTime: 30 * 60 * 1000, // 30분 (순위는 자주 안 바뀜)
-        gcTime: 60 * 60 * 1000, // 1시간
-        enabled: options.enabled ?? true,
     });
 };
