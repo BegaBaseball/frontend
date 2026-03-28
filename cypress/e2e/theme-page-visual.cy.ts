@@ -326,9 +326,14 @@ describe('Theme visual checks for public pages', () => {
       body: offseasonMetadata,
     }).as('getOffseasonMetadata');
 
-    cy.intercept('GET', '**/kbo/rankings*', {
+    cy.intercept('GET', '**/kbo/rankings/snapshot*', {
       statusCode: 200,
-      body: offseasonMetadata.finalRankings,
+      body: {
+        rankingSeasonYear: 2025,
+        rankingSourceMessage: '2025 시즌 순위 데이터',
+        isOffSeason: false,
+        rankings: offseasonMetadata.finalRankings,
+      },
     }).as('getOffseasonRankings');
   };
 
