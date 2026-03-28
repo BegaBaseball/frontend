@@ -18,8 +18,6 @@ import {
   MessageSquareText,
   Loader2,
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { useChatBot } from '../hooks/useChatBot';
 import { useAuthSession } from '../store/authStore';
 import { useIsMobile } from '../hooks/use-mobile';
@@ -27,6 +25,7 @@ import { memo, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent 
 import { useNavigate } from 'react-router-dom';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { ChatFavoriteItem, Message } from '../types/chatbot';
+import DeferredMarkdown from './DeferredMarkdown';
 
 
 // 도구 이름 한국어 매핑 (null이면 UI에서 숨김)
@@ -191,11 +190,13 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
               }
             `}
           >
-            <ReactMarkdown remarkPlugins={[remarkGfm]} className="text-sm prose dark:prose-invert max-w-none">
-              {isStreamError
+            <DeferredMarkdown
+              className="text-sm prose dark:prose-invert max-w-none"
+              fallbackClassName="text-sm whitespace-pre-wrap break-words"
+              content={isStreamError
                 ? '응답 중 오류가 발생했습니다. 다시 시도해주세요.'
                 : message.text}
-            </ReactMarkdown>
+            />
             <div className="mt-1 flex items-center gap-1.5 flex-wrap">
               {isCancelled && (
                 <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-1.5 py-0.5 dark:bg-amber-400/10 dark:border-amber-400/30 dark:text-amber-200">

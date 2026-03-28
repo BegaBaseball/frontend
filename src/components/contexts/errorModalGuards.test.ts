@@ -26,11 +26,11 @@ test('홈 라우트의 홈 bootstrap 500 오류는 전역 에러 모달에서 �
   }, '/home'), true);
 });
 
-test('홈 라우트의 홈 rankings 500 오류는 전역 에러 모달에서 무시한다', () => {
+test('홈 라우트의 home widgets 500 오류는 전역 에러 모달에서 무시한다', () => {
   assert.equal(shouldIgnoreGlobalApiError({
     message: 'Request failed with status code 500',
     statusCode: 500,
-    endpoint: '/kbo/rankings/2026',
+    endpoint: '/home/widgets?date=2026-03-16&seasonYear=2025',
   }, '/home'), true);
 });
 

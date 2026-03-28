@@ -90,6 +90,35 @@ const traceLoadEvent = (label: string) => {
   console.info(`[load-order][${now}ms] ${label}`);
 };
 
+const isAuthTraceEnabled = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return import.meta.env.DEV || new URLSearchParams(window.location.search).get('traceAuth') === '1';
+};
+
+const traceAuthEvent = (label: string) => {
+  if (!isAuthTraceEnabled()) {
+    return;
+  }
+
+  const now = performance.now().toFixed(2);
+  console.debug(`[auth-trace][${now}ms] ${label}`);
+};
+
+const describeAuthError = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  return 'Unknown error';
+};
+
 const isValidPredictionDate = (value: string): boolean => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
@@ -157,7 +186,12 @@ const AuthBootstrap = () => {
   });
 
   useEffect(() => {
+    traceAuthEvent(
+      `AuthBootstrap: pathname=${location.pathname}, mode=${authBootstrapMode}, isLoggedIn=${isLoggedIn}, isAuthLoading=${isAuthLoading}`,
+    );
+
     if (authBootstrapMode === 'skip' || authBootstrapMode === 'public-home') {
+      traceAuthEvent(`AuthBootstrap: path ${location.pathname} is ${authBootstrapMode}, skipping auto bootstrap`);
       if (!isLoggedIn && isAuthLoading) {
         useAuthStore.setState({ isAuthLoading: false });
       }
@@ -173,10 +207,18 @@ const AuthBootstrap = () => {
         return;
       }
       bootstrapPendingRef.current = false;
-      void fetchProfileAndAuthenticate();
+      traceAuthEvent(`AuthBootstrap: fetching profile for ${location.pathname}`);
+      void fetchProfileAndAuthenticate()
+        .then((isAuthenticated) => {
+          traceAuthEvent(`AuthBootstrap: fetchProfileAndAuthenticate resolved isAuthenticated=${isAuthenticated}`);
+        })
+        .catch((error) => {
+          traceAuthEvent(`AuthBootstrap: fetchProfileAndAuthenticate failed: ${describeAuthError(error)}`);
+        });
     };
 
     if (authBootstrapMode === 'defer') {
+      traceAuthEvent(`AuthBootstrap: defer scheduling for ${location.pathname}`);
       if (!isLoggedIn && isAuthLoading) {
         useAuthStore.setState({ isAuthLoading: false });
       }
@@ -191,6 +233,7 @@ const AuthBootstrap = () => {
       }
 
       return () => {
+        traceAuthEvent(`AuthBootstrap: defer cleanup for ${location.pathname}`);
         if (idleId !== undefined && 'cancelIdleCallback' in window) {
           window.cancelIdleCallback(idleId);
         }
@@ -200,6 +243,7 @@ const AuthBootstrap = () => {
       };
     }
 
+    traceAuthEvent(`AuthBootstrap: immediate bootstrap for ${location.pathname}`);
     runBootstrap();
   }, [authBootstrapMode, fetchProfileAndAuthenticate, isAuthLoading, isLoggedIn]);
 
@@ -212,12 +256,16 @@ function ProtectedRoute() {
   const location = useLocation();
 
   useEffect(() => {
+    traceAuthEvent(`ProtectedRoute: pathname=${location.pathname}, isAuthLoading=${isAuthLoading}, isLoggedIn=${isLoggedIn}`);
+
     if (!isAuthLoading && !isLoggedIn) {
+      traceAuthEvent(`ProtectedRoute: requireLogin triggered for ${location.pathname}`);
       requireLogin(`${location.pathname}${location.search}${location.hash}`);
     }
   }, [isAuthLoading, isLoggedIn, location.hash, location.pathname, location.search, requireLogin]);
 
   if (isAuthLoading) {
+    traceAuthEvent(`ProtectedRoute: show loading for ${location.pathname}`);
     return (
       <LoadingSpinner
         variant="auth"
@@ -311,6 +359,7 @@ export default function App() {
 
   useEffect(() => {
     const handleSessionExpired = () => {
+      traceAuthEvent('auth-session-expired event received');
       logout(true);
       requireLogin();
       // Optional: Show a toast or dialog saying "Session expired"
@@ -325,6 +374,7 @@ export default function App() {
       const customEvent = event as CustomEvent;
       const detail = customEvent.detail as { responseCode?: string } | undefined;
       if (detail?.responseCode === 'INVALID_AUTHOR') {
+        traceAuthEvent('global-api-error INVALID_AUTHOR received');
         requireLogin();
       }
     };
@@ -384,6 +434,7 @@ export default function App() {
                 <Route element={<Layout authenticated={false} />}>
                   {/* 홈과 몇몇 페이지는 로그인 없이도 접근 가능 */}
                   <Route path="/home" element={<Home />} />
+                  <Route path="/prediction" element={<Prediction />} />
                   <Route path="/offseason" element={<OffSeasonHome selectedDate={new Date()} />} />
                   <Route path="/offseason/list" element={<OffSeasonList />} />
                   <Route path="/cheer" element={<Cheer />} />
@@ -396,7 +447,6 @@ export default function App() {
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/leaderboard" element={<LeaderboardPage />} />
                   <Route path="/stadium" element={<StadiumGuide />} />
-                  <Route path="/prediction" element={<Prediction />} />
                 </Route>
 
                 <Route element={<Layout authenticated={true} />}>

@@ -19,9 +19,73 @@ const enableSelfHeal = rawArgs.includes('--self-heal')
 const requestTopLevelVersion = rawArgs.includes('--version') || rawArgs.includes('-v');
 const commandMode = isOpen ? 'open' : 'run';
 const hasExplicitSpecArg = rawArgs.some((arg) => arg === '--spec' || arg.startsWith('--spec='));
+const hasExplicitBrowserArg = rawArgs.some((arg) => arg === '--browser' || arg.startsWith('--browser='));
 const excludedDefaultSpecs = new Set([
   'cypress/e2e/chatbot-real.cy.ts',
 ]);
+const chromeMateRegressionSpecs = new Set([
+  'cypress/e2e/mate.cy.ts',
+  'cypress/e2e/mate-detail-states.cy.ts',
+  'cypress/e2e/mate-execution-flow.cy.ts',
+  'cypress/e2e/mate-visual.cy.ts',
+]);
+const sequentialMateRegressionSpecs = new Set([
+  'cypress/e2e/mate.cy.ts',
+  'cypress/e2e/mate-detail-states.cy.ts',
+  'cypress/e2e/mate-execution-flow.cy.ts',
+  'cypress/e2e/mate-visual.cy.ts',
+]);
+
+const collectExplicitSpecArgs = (args) => {
+  const specs = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '--spec' && args[index + 1]) {
+      specs.push(...args[index + 1].split(','));
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--spec=')) {
+      specs.push(...arg.slice('--spec='.length).split(','));
+    }
+  }
+
+  return specs
+    .map((spec) => spec.trim())
+    .filter(Boolean);
+};
+
+const stripExplicitSpecArgs = (args) => {
+  const cleanedArgs = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '--spec') {
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--spec=')) {
+      continue;
+    }
+
+    cleanedArgs.push(arg);
+  }
+
+  return cleanedArgs;
+};
+
+const explicitSpecs = collectExplicitSpecArgs(rawArgs);
+const autoChromeForMateRegressionSpecs = !hasExplicitBrowserArg
+  && hasExplicitSpecArg
+  && explicitSpecs.some((spec) => chromeMateRegressionSpecs.has(spec));
+const shouldRunMateSpecsSequentially = commandMode === 'run'
+  && explicitSpecs.length > 1
+  && explicitSpecs.every((spec) => sequentialMateRegressionSpecs.has(spec));
 
 const canWriteDirectory = (directory) => {
   try {
@@ -72,6 +136,12 @@ const defaultSpecList = hasExplicitSpecArg ? null : resolveDefaultSpecList();
 if (defaultSpecList) {
   cypressArgs.push('--spec', defaultSpecList);
 }
+
+if (autoChromeForMateRegressionSpecs) {
+  cypressArgs.push('--browser', 'chrome');
+}
+
+const cypressArgsWithoutSpec = stripExplicitSpecArgs(cypressArgs);
 
 const installedCypressVersion = (() => {
   const versionFile = resolve(projectRoot, 'node_modules/cypress/package.json');
@@ -297,12 +367,48 @@ const getExpectedBinaryVersion = (environment = envWithCache) => {
 };
 
 const runLocal = (environment = envWithCache) => {
+  if (shouldRunMateSpecsSequentially) {
+    console.log('\n[local] running Cypress mate regression specs sequentially');
+
+    for (const spec of explicitSpecs) {
+      console.log(`- spec: ${spec}`);
+      const status = runCommandStatus(
+        'npx',
+        ['cypress', commandMode, ...cypressArgsWithoutSpec, '--spec', spec],
+        environment,
+      );
+      if (status !== 0) {
+        return status ?? 1;
+      }
+    }
+
+    return 0;
+  }
+
   console.log(`\n[local] running npx cypress ${commandMode}`);
   const status = runCommandStatus('npx', ['cypress', commandMode, ...cypressArgs], environment);
   return status ?? 1;
 };
 
 const runLocalWithoutVerify = (environment = envWithCache) => {
+  if (shouldRunMateSpecsSequentially) {
+    console.log('\n[local] direct sequential run without prior verify');
+
+    for (const spec of explicitSpecs) {
+      console.log(`- spec: ${spec}`);
+      const status = runCommandStatus(
+        'npx',
+        ['cypress', commandMode, ...cypressArgsWithoutSpec, '--spec', spec],
+        environment,
+      );
+      if (status !== 0) {
+        return status ?? 1;
+      }
+    }
+
+    return 0;
+  }
+
   console.log('\n[local] direct run without prior verify');
   if (!isBinaryVersionCompatible(environment)) {
     console.log(`\nSkipping direct run: local binary version does not match Cypress package version ${installedCypressVersion}.`);
@@ -497,6 +603,12 @@ const runDocker = () => {
 console.log('Cypress orchestrator');
 console.log(`- cacheDir: ${cacheDir}`);
 console.log(`- useGlobalCache: ${useGlobalCache ? 'true' : 'false'}`);
+if (autoChromeForMateRegressionSpecs) {
+  console.log('- browser override: chrome (mate regression spec)');
+}
+if (shouldRunMateSpecsSequentially) {
+  console.log('- execution mode: sequential spec runs (mate regression spec)');
+}
 
 if (forceDocker) {
   if (commandMode !== 'run') {

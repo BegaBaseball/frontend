@@ -108,7 +108,6 @@
     "cwv:baseline": "node scripts/cwv-baseline.mjs --json reports/cwv-baseline.json --markdown reports/cwv-baseline.md",
     "build": "npm run build:base && npm run seo:prerender && npm run seo:sitemap",
     "preview": "npm run preview:cloudflare",
-    "preview:pages": "npm run preview:cloudflare",
     "preview:cloudflare": "npm run build && wrangler dev",
     "qa:landing": "node scripts/landing-qa.mjs",
     "qa:auth": "node scripts/auth-qa.mjs",
@@ -123,6 +122,7 @@
     "cy:run:docker": "CYPRESS_USE_DOCKER=1 node scripts/cypress-run.mjs",
     "cy:run:global": "node scripts/cypress-run.mjs --global-cache",
     "cy:run:coach": "node scripts/cypress-run.mjs --spec cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/prediction.cy.ts",
+    "cy:run:coach:chrome": "node scripts/cypress-run.mjs --browser chrome --spec cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/prediction.cy.ts",
     "cy:run:rescue": "node scripts/cypress-run.mjs --self-heal --auto-docker",
     "cy:run:global:docker": "CYPRESS_USE_DOCKER=1 node scripts/cypress-run.mjs --global-cache --docker",
     "cy:run:heal": "node scripts/cypress-run.mjs --self-heal",
@@ -145,6 +145,7 @@
     "test:e2e:ai:real": "node scripts/test-e2e.mjs --spec cypress/e2e/chatbot-real.cy.ts",
     "test:e2e:coverage:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/diary.cy.ts,cypress/e2e/admin.cy.ts,cypress/e2e/chatbot.cy.ts",
     "test:e2e:coach:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/prediction.cy.ts",
+    "test:e2e:coach:dev:chrome": "node scripts/test-e2e.mjs --browser chrome --spec cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/prediction.cy.ts",
     "test:e2e:coach:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/prediction-coach-briefing.cy.ts,cypress/e2e/prediction.cy.ts",
     "test:e2e:security:dev": "node scripts/test-e2e.mjs --spec cypress/e2e/security-surface-real.cy.ts,cypress/e2e/websocket-real.cy.ts",
     "test:e2e:security:prodlike": "node scripts/test-e2e.mjs --no-server --spec cypress/e2e/security-surface-real.cy.ts,cypress/e2e/websocket-real.cy.ts",
@@ -156,7 +157,6 @@
     "test:seo": "node --import tsx --test \"src/seo/**/*.test.ts\"",
     "test:unit": "node --import tsx --test \"src/**/*.test.ts\"",
     "deploy": "npm run build:artifact",
-    "deploy:pages": "npm run deploy:cloudflare",
     "deploy:cloudflare": "npm run build && wrangler deploy"
   }
 }
