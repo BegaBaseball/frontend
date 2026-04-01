@@ -3,23 +3,27 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Sparkles, Zap } from 'lucide-react';
 import { Game, GameDetail } from '../types/prediction';
-import { TEAM_DATA, TEAM_NAME_TO_ID } from '../constants/teams';
-import CoachAnalysisDialog from './CoachAnalysisDialog';
-import { motion, AnimatePresence } from 'framer-motion';
+import CoachAnalysisDialogLauncher from './CoachAnalysisDialogLauncher';
 import {
   analyzeTeam,
+  CoachAnalyzeResponse,
   CoachDataQuality,
   CoachGenerationMode,
   getCoachDataQualityLabel,
+  isCoachAnalyzeError,
 } from '../api/coach';
 import {
   COACH_BRIEFING_DISPLAY_MESSAGE,
   COACH_BRIEFING_MANUAL_HINT,
+  buildCoachBriefingRequestDescriptor,
   CoachRequestMode,
+  getCoachBriefingDataQualityNotice,
   RawAiBriefing,
   NormalizedAiBriefing,
   normalizeCoachBriefing,
 } from '../utils/prediction';
+import { useAuthAccessActions } from '../store/authStore';
+import { getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 interface CoachBriefingProps {
     game: Game | null;
@@ -31,6 +35,8 @@ interface CoachBriefingProps {
     };
     isPastGame: boolean;
     isFutureGame?: boolean;
+    isLoggedIn: boolean;
+    isAuthLoading: boolean;
     autoEnabled: boolean;
     requestMode: CoachRequestMode;
     forceManual?: boolean;
@@ -45,6 +51,8 @@ const COACH_BRIEFING_FALLBACK_MESSAGES = {
   year: '경기 연도 정보를 확인하는 중입니다. 잠시 후 다시 시도해주세요.',
   error: 'AI 분석을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.',
 } as const;
+const coachBriefingMemoryCache = new Map<string, CoachBriefingCachePayload>();
+const coachBriefingInFlightRequests = new Map<string, Promise<CoachAnalyzeResponse>>();
 
 interface CoachBriefingCachePayload {
   title: string;
@@ -243,7 +251,7 @@ const readCoachBriefingFromStorageByPriority = (requestCacheKey: string | null) 
     return null;
   }
 
-  // UI state cache is preferred by hook-level state (cacheRef), then localStorage, then sessionStorage.
+  // UI state cache is preferred by in-memory cache, then localStorage, then sessionStorage.
   const localCache = readLocalCoachBriefingCache();
   const localCached = localCache.get(requestCacheKey);
   if (localCached) {
@@ -265,22 +273,27 @@ export default function CoachBriefing({
     seasonContext,
     isPastGame,
     isFutureGame = false,
+    isLoggedIn,
+    isAuthLoading,
     autoEnabled,
     requestMode,
     forceManual = false,
 }: CoachBriefingProps) {
+    const { logout, requireLogin } = useAuthAccessActions();
+    const cardRef = useRef<HTMLDivElement | null>(null);
     const [displayedMessage, setDisplayedMessage] = useState('');
     const [aiBriefing, setAiBriefing] = useState<NormalizedAiBriefing | null>(null);
     const [briefingMeta, setBriefingMeta] = useState<CoachBriefingMetaState | null>(null);
     const [aiLoading, setAiLoading] = useState(false);
+    const [authExpired, setAuthExpired] = useState(false);
+    const [hasActivatedAutoBriefing, setHasActivatedAutoBriefing] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
-    const cacheRef = useRef<Map<string, CoachBriefingCachePayload>>(new Map());
-    const inFlightRef = useRef<Set<string>>(new Set());
-    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const abortRef = useRef<AbortController | null>(null);
     const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const retryCountRef = useRef(0);
     const requestCacheKeyRef = useRef<string | null>(null);
+    const currentRequestFingerprintRef = useRef<string | null>(null);
+    const successfulRequestFingerprintRef = useRef<string | null>(null);
+    const requestSeqRef = useRef(0);
     const homeRank = seasonContext?.home?.rank ?? null;
     const homeGamesBehind = seasonContext?.home?.gamesBehind ?? null;
     const homeRemainingGames = seasonContext?.home?.remainingGames ?? null;
@@ -296,6 +309,7 @@ export default function CoachBriefing({
     const MAX_BACKOFF_MS = 16000;
     const effectiveRequestMode: CoachRequestMode = forceManual ? 'manual_detail' : requestMode;
     const effectiveAutoEnabled = autoEnabled && effectiveRequestMode === 'auto_brief';
+    const shouldStartAutoBriefing = effectiveAutoEnabled && hasActivatedAutoBriefing;
     const briefingLabel = effectiveAutoEnabled ? '실데이터 브리핑' : 'AI 코치 분석';
     const normalizeBriefing = (
         source: string | RawAiBriefing | null | undefined,
@@ -381,44 +395,121 @@ export default function CoachBriefing({
         ),
         [effectiveRequestMode],
     );
-    const focusSignature = requestFocus.join('+');
     const requestSeasonYear = useMemo(() => resolveSeasonYear(), [game?.gameId, game?.gameDate, game?.seasonId]);
-    const requestMatchupKey = useMemo(() => {
-        if (!game) {
-            return null;
-        }
-
-        return [
-            game.gameId,
-            requestSeasonYear || 'na',
-            game.leagueType || 'na',
-            game.postSeasonSeries || 'na',
-            game.seriesGameNo ?? 'na',
-            homePitcherName || 'na',
-            awayPitcherName || 'na',
-            gameDetail?.gameStatus || 'na',
-            game.homeScore ?? 'na',
-            game.awayScore ?? 'na',
-            gameDetail?.homeScore ?? 'na',
-            gameDetail?.awayScore ?? 'na',
-        ].join(':');
-    }, [
-        awayPitcherName,
+    const requestDescriptor = useMemo(() => buildCoachBriefingRequestDescriptor({
         game,
-        gameDetail?.awayScore,
-        gameDetail?.gameStatus,
-        gameDetail?.homeScore,
+        requestMode: effectiveRequestMode,
+        focus: requestFocus,
+        requestSeasonYear,
+        requestLeagueTypeCode,
         homePitcherName,
+        awayPitcherName,
+        homeSeasonContext: (
+            homeRank != null && homeGamesBehind != null && homeRemainingGames != null
+        ) ? {
+            rank: homeRank,
+            gamesBehind: homeGamesBehind,
+            remainingGames: homeRemainingGames,
+        } : null,
+        awaySeasonContext: (
+            awayRank != null && awayGamesBehind != null && awayRemainingGames != null
+        ) ? {
+            rank: awayRank,
+            gamesBehind: awayGamesBehind,
+            remainingGames: awayRemainingGames,
+        } : null,
+    }), [
+        awayGamesBehind,
+        awayPitcherName,
+        awayRank,
+        awayRemainingGames,
+        effectiveRequestMode,
+        game?.awayTeam,
+        game?.gameDate,
+        game?.gameId,
+        game?.homeTeam,
+        game?.leagueType,
+        game?.postSeasonSeries,
+        game?.seasonId,
+        game?.seriesGameNo,
+        homeGamesBehind,
+        homePitcherName,
+        homeRank,
+        homeRemainingGames,
+        requestFocus,
+        requestLeagueTypeCode,
         requestSeasonYear,
     ]);
+    const requestCacheKey = requestDescriptor?.requestCacheKey ?? null;
+    const isGuestBlocked = !isLoggedIn && !isAuthLoading;
+    const isAuthCheckPending = isAuthLoading;
+    const loginRequiredMessage = effectiveAutoEnabled
+        ? '실데이터 브리핑은 로그인 후 제공됩니다.'
+        : 'AI 코치 상세 분석은 로그인 후 제공됩니다.';
+    const authExpiredMessage = effectiveAutoEnabled
+        ? '로그인 세션이 만료되었습니다. 다시 로그인 후 브리핑을 확인해주세요.'
+        : '로그인 세션이 만료되었습니다. 다시 로그인 후 상세 분석을 확인해주세요.';
+    const dataQualityNotice = useMemo(
+        () => getCoachBriefingDataQualityNotice(
+            briefingMeta?.dataQuality,
+            briefingMeta?.groundingReasons,
+        ),
+        [briefingMeta?.dataQuality, briefingMeta?.groundingReasons],
+    );
+    const showLoginAction = isGuestBlocked || authExpired;
+    const isAwaitingAutoBriefing =
+        effectiveAutoEnabled
+        && !shouldStartAutoBriefing
+        && !isGuestBlocked
+        && !isAuthCheckPending
+        && !authExpired;
+    const handleLoginAction = () => {
+        const redirectPath = getCurrentRelativeUrl();
+        if (authExpired) {
+            logout(true);
+        }
+        requireLogin(redirectPath);
+    };
 
-    const requestCacheKey = useMemo(() => {
-        if (!requestMatchupKey) {
-            return null;
+    useEffect(() => {
+        if (!effectiveAutoEnabled) {
+            setHasActivatedAutoBriefing(false);
+            return;
         }
 
-        return `${requestMatchupKey}-${effectiveRequestMode}-${focusSignature}`;
-    }, [focusSignature, effectiveRequestMode, requestMatchupKey]);
+        if (hasActivatedAutoBriefing) {
+            return;
+        }
+
+        if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') {
+            setHasActivatedAutoBriefing(true);
+            return;
+        }
+
+        const target = cardRef.current;
+        if (!target) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0)) {
+                    setHasActivatedAutoBriefing(true);
+                    observer.disconnect();
+                }
+            },
+            {
+                rootMargin: '120px 0px 160px 0px',
+                threshold: 0.1,
+            },
+        );
+
+        observer.observe(target);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [effectiveAutoEnabled, hasActivatedAutoBriefing]);
 
     const persistCoachBriefingCache = (
       data: NormalizedAiBriefing,
@@ -441,7 +532,7 @@ export default function CoachBriefing({
             supportedFactCount: meta?.supportedFactCount,
         };
 
-        cacheRef.current.set(requestCacheKey, payload);
+        coachBriefingMemoryCache.set(requestCacheKey, payload);
         const sessionCache = readSessionCoachBriefingCache();
         sessionCache.set(requestCacheKey, payload);
         writeSessionCoachBriefingCache(sessionCache);
@@ -464,7 +555,7 @@ export default function CoachBriefing({
           supportedFactCount: payload.supportedFactCount,
         });
 
-        cacheRef.current.set(requestCacheKey, {
+        coachBriefingMemoryCache.set(requestCacheKey, {
             title: cachedValue.title,
             message: cachedValue.message,
             displayText: cachedValue.displayText,
@@ -500,11 +591,24 @@ export default function CoachBriefing({
         }
     };
 
-    useEffect(() => {
-        requestCacheKeyRef.current = requestCacheKey;
+    const resetRetryState = () => {
         retryCountRef.current = 0;
         setRetryCount(0);
+    };
+
+    const clearActiveRequest = () => {
+        requestSeqRef.current += 1;
+        currentRequestFingerprintRef.current = null;
+    };
+
+    useEffect(() => {
+        if (requestCacheKeyRef.current === requestCacheKey) {
+            return;
+        }
+
+        requestCacheKeyRef.current = requestCacheKey;
         clearRetryTimer();
+        resetRetryState();
     }, [requestCacheKey]);
 
     const getSeasonBanner = () => {
@@ -533,42 +637,42 @@ export default function CoachBriefing({
     };
 
     useEffect(() => {
-        if (!game) {
+        if (!shouldStartAutoBriefing || !requestDescriptor || !requestCacheKey) {
+            clearActiveRequest();
             setAiBriefing(null);
             setBriefingMeta(null);
             setAiLoading(false);
-            retryCountRef.current = 0;
-            setRetryCount(0);
-            if (abortRef.current) {
-                abortRef.current.abort();
-                abortRef.current = null;
-            }
+            setAuthExpired(false);
+            successfulRequestFingerprintRef.current = null;
             clearRetryTimer();
+            resetRetryState();
             return;
         }
 
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-        }
-        if (abortRef.current) {
-            abortRef.current.abort();
-            abortRef.current = null;
+        if (isAuthCheckPending) {
+            clearActiveRequest();
+            clearRetryTimer();
+            resetRetryState();
+            setAiLoading(false);
+            return;
         }
 
-        if (!effectiveAutoEnabled || !requestCacheKey) {
+        if (isGuestBlocked) {
+            clearActiveRequest();
             setAiBriefing(null);
             setBriefingMeta(null);
             setAiLoading(false);
-            retryCountRef.current = 0;
-            setRetryCount(0);
+            setAuthExpired(false);
+            successfulRequestFingerprintRef.current = null;
             clearRetryTimer();
+            resetRetryState();
             return;
         }
 
-        purgeExpiredCoachBriefingCache(cacheRef.current);
-        const cached = cacheRef.current.get(requestCacheKey);
+        purgeExpiredCoachBriefingCache(coachBriefingMemoryCache);
+        const cached = coachBriefingMemoryCache.get(requestCacheKey);
         if (cached) {
+            setAuthExpired(false);
             setAiBriefing(normalizeBriefing(cached));
             setBriefingMeta(normalizeCoachBriefingMeta({
               generationMode: cached.generationMode,
@@ -578,10 +682,10 @@ export default function CoachBriefing({
               groundingReasons: cached.groundingReasons,
               supportedFactCount: cached.supportedFactCount,
             }));
+            successfulRequestFingerprintRef.current = requestCacheKey;
             setAiLoading(false);
-            retryCountRef.current = 0;
-            setRetryCount(0);
             clearRetryTimer();
+            resetRetryState();
             return;
         }
 
@@ -589,250 +693,224 @@ export default function CoachBriefing({
         if (cachedPayloadByStorage) {
             const cachedValue = restoreFromCachePayload(cachedPayloadByStorage);
             if (cachedValue) {
+                setAuthExpired(false);
                 setAiBriefing(cachedValue);
+                successfulRequestFingerprintRef.current = requestCacheKey;
                 setAiLoading(false);
-                retryCountRef.current = 0;
-                setRetryCount(0);
                 clearRetryTimer();
+                resetRetryState();
                 return;
             }
         }
 
-        if (inFlightRef.current.has(requestCacheKey)) {
-            return;
-        }
+        const requestSeq = requestSeqRef.current + 1;
+        requestSeqRef.current = requestSeq;
+        currentRequestFingerprintRef.current = requestCacheKey;
+        let keepLoadingAfterResponse = false;
 
-        const homeTeamName = TEAM_DATA[game.homeTeam]?.fullName || game.homeTeam;
-        const awayTeamName = TEAM_DATA[game.awayTeam]?.fullName || game.awayTeam;
-        const homeId = TEAM_NAME_TO_ID[homeTeamName] || game.homeTeam;
-        const awayId = TEAM_NAME_TO_ID[awayTeamName] || game.awayTeam;
-        const homeLeagueContext = (
-            homeRank != null && homeGamesBehind != null && homeRemainingGames != null
-        ) ? {
-            rank: homeRank,
-            gamesBehind: homeGamesBehind,
-            remainingGames: homeRemainingGames,
-        } : null;
-        const awayLeagueContext = (
-            awayRank != null && awayGamesBehind != null && awayRemainingGames != null
-        ) ? {
-            rank: awayRank,
-            gamesBehind: awayGamesBehind,
-            remainingGames: awayRemainingGames,
-        } : null;
+        const matchesCurrentRequest = () => (
+            requestSeqRef.current === requestSeq
+            && currentRequestFingerprintRef.current === requestCacheKey
+        );
+        const canOverrideSuccessfulBriefing = () => (
+            successfulRequestFingerprintRef.current !== requestCacheKey
+        );
+        const preserveSuccessfulBriefing = (
+            successfulRequestFingerprintRef.current === requestCacheKey
+            && aiBriefing != null
+        );
 
-        let active = true;
-        const initiateAnalysis = () => {
-            if (!active) return;
-            if (inFlightRef.current.has(requestCacheKey)) return;
-
-            const controller = new AbortController();
-            let keepLoadingAfterResponse = false;
-            abortRef.current = controller;
+        setAuthExpired(false);
+        if (!preserveSuccessfulBriefing) {
             setAiBriefing(null);
             setBriefingMeta(null);
-            setAiLoading(true);
-            inFlightRef.current.add(requestCacheKey);
+        }
+        setAiLoading(true);
+        let sharedRequest = coachBriefingInFlightRequests.get(requestCacheKey);
+        if (!sharedRequest) {
+            sharedRequest = analyzeTeam(requestDescriptor.requestPayload);
+            coachBriefingInFlightRequests.set(requestCacheKey, sharedRequest);
+        }
 
-            analyzeTeam({
-                home_team_id: homeId,
-                away_team_id: awayId,
-                league_context: {
-                    season: game.seasonId,
-                    season_year: requestSeasonYear,
-                    game_date: game.gameDate,
-                    league_type: game.leagueType,
-                    league_type_code: requestLeagueTypeCode,
-                    round: game.postSeasonSeries,
-                    stage_label: game.postSeasonSeries,
-                    game_no: game.seriesGameNo,
-                    series_game_no: game.seriesGameNo,
-                    home_pitcher: homePitcherName,
-                    away_pitcher: awayPitcherName,
-                    home: homeLeagueContext,
-                    away: awayLeagueContext,
-                },
-                focus: requestFocus,
-                request_mode: effectiveRequestMode,
-                game_id: game.gameId,
-            }, undefined, { signal: controller.signal })
-                .then((response) => {
-                    if (!active) return;
+        sharedRequest
+            .then((response) => {
+                if (!matchesCurrentRequest()) {
+                    return;
+                }
 
-                    const shouldRetry = response.in_progress === true
-                        || response.cache_state === 'FAILED_LOCKED';
+                const shouldRetry = response.in_progress === true
+                    || response.cache_state === 'FAILED_LOCKED';
 
-                    const normalizedResponse = normalizeBriefing({
-                        title: response.structuredData?.headline,
-                        answer: response.answer,
-                        message:
-                            response.structuredData?.detailed_markdown ||
-                            response.structuredData?.coach_note ||
-                            response.answer ||
-                            response.raw_answer ||
-                            '',
-                        structuredData: response.structuredData
-                            ? {
-                                headline: response.structuredData.headline,
-                                summary: response.structuredData.analysis?.summary,
-                                detailed_markdown: response.structuredData.detailed_markdown,
-                                coach_note: response.structuredData.coach_note,
-                                analysis: response.structuredData.analysis,
-                            }
-                            : undefined,
-                    });
-                    const normalizedMeta = normalizeCoachBriefingMeta({
-                      generationMode: response.generation_mode,
-                      dataQuality: response.data_quality,
-                      usedEvidence: response.used_evidence,
-                      groundingWarnings: response.grounding_warnings,
-                      groundingReasons: response.grounding_reasons,
-                      supportedFactCount: response.supported_fact_count,
-                    });
-
-                    const scheduleRetryIfNeeded = (retryable: boolean) => {
-                        if (!retryable) {
-                            clearRetryTimer();
-                            retryCountRef.current = 0;
-                            setRetryCount(0);
-                            return false;
+                const normalizedResponse = normalizeBriefing({
+                    title: response.structuredData?.headline,
+                    answer: response.answer,
+                    message:
+                        response.structuredData?.detailed_markdown ||
+                        response.structuredData?.coach_note ||
+                        response.answer ||
+                        response.raw_answer ||
+                        '',
+                    structuredData: response.structuredData
+                        ? {
+                            headline: response.structuredData.headline,
+                            summary: response.structuredData.analysis?.summary,
+                            detailed_markdown: response.structuredData.detailed_markdown,
+                            coach_note: response.structuredData.coach_note,
+                            analysis: response.structuredData.analysis,
                         }
+                        : undefined,
+                });
+                const normalizedMeta = normalizeCoachBriefingMeta({
+                  generationMode: response.generation_mode,
+                  dataQuality: response.data_quality,
+                  usedEvidence: response.used_evidence,
+                  groundingWarnings: response.grounding_warnings,
+                  groundingReasons: response.grounding_reasons,
+                  supportedFactCount: response.supported_fact_count,
+                });
 
-                        const currentRetryCount = retryCountRef.current;
-                        if (currentRetryCount >= MAX_COACH_RETRIES) {
-                            clearRetryTimer();
-                            applyFallbackBriefing(fallbackRetryMessage);
-                            return false;
-                        }
-
+                const scheduleRetryIfNeeded = (retryable: boolean) => {
+                    if (!retryable) {
                         clearRetryTimer();
-                        const selectedDelay =
-                            RETRY_DELAYS_MS[currentRetryCount] ??
-                            RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
-                        const backoffMs = Math.min(selectedDelay, MAX_BACKOFF_MS);
-                        const nextRetryCount = currentRetryCount + 1;
-                        retryTimerRef.current = setTimeout(() => {
-                            retryTimerRef.current = null;
-                            if (!active) return;
-                            if (requestCacheKeyRef.current !== requestCacheKey) return;
-                            cacheRef.current.delete(requestCacheKey);
-                            inFlightRef.current.delete(requestCacheKey);
-                            retryCountRef.current = nextRetryCount;
-                            setRetryCount(nextRetryCount);
-                        }, backoffMs);
-                        return true;
-                    };
-
-                    if (normalizedResponse && !shouldRetry) {
-                        persistCoachBriefingCache(normalizedResponse, normalizedMeta);
+                        resetRetryState();
+                        return false;
                     }
 
-                    keepLoadingAfterResponse = scheduleRetryIfNeeded(shouldRetry);
-
-                    if (shouldRetry) {
-                        return;
+                    const currentRetryCount = retryCountRef.current;
+                    if (currentRetryCount >= MAX_COACH_RETRIES) {
+                        clearRetryTimer();
+                        resetRetryState();
+                        if (canOverrideSuccessfulBriefing()) {
+                            applyFallbackBriefing(fallbackRetryMessage);
+                        }
+                        return false;
                     }
 
-                    if (normalizedResponse) {
-                        setAiBriefing(normalizedResponse);
-                        setBriefingMeta(normalizedMeta);
-                    } else {
-                        applyFallbackBriefing(fallbackErrorMessage);
-                    }
-                })
-                .catch((error: unknown) => {
-                    if (error instanceof DOMException && error.name === 'AbortError') {
-                        return;
-                    }
-                    const abortMessage = error instanceof Error ? error.message : String(error ?? '');
-                    if (abortMessage.includes('AbortError') || abortMessage.includes('aborted')) {
-                        return;
-                    }
-                    if (active) {
-                        if (
-                            abortMessage.includes('unable_to_resolve_analysis_year') ||
-                            abortMessage.includes('invalid_season_year_for_analysis')
-                        ) {
-                            applyFallbackBriefing(fallbackYearMessage);
-                            retryCountRef.current = 0;
-                            setRetryCount(0);
-                            clearRetryTimer();
+                    clearRetryTimer();
+                    const selectedDelay =
+                        RETRY_DELAYS_MS[currentRetryCount] ??
+                        RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
+                    const backoffMs = Math.min(selectedDelay, MAX_BACKOFF_MS);
+                    const nextRetryCount = currentRetryCount + 1;
+                    retryTimerRef.current = setTimeout(() => {
+                        retryTimerRef.current = null;
+                        if (!matchesCurrentRequest()) {
                             return;
                         }
-                        applyFallbackBriefing(fallbackErrorMessage);
-                        retryCountRef.current = 0;
-                        setRetryCount(0);
-                        clearRetryTimer();
-                    }
-                })
-                .finally(() => {
-                    inFlightRef.current.delete(requestCacheKey);
-                    if (active) {
-                        setAiLoading(keepLoadingAfterResponse);
-                    }
-                });
-        };
+                        coachBriefingMemoryCache.delete(requestCacheKey);
+                        retryCountRef.current = nextRetryCount;
+                        setRetryCount(nextRetryCount);
+                    }, backoffMs);
+                    return true;
+                };
 
-        initiateAnalysis();
+                if (normalizedResponse && !shouldRetry) {
+                    persistCoachBriefingCache(normalizedResponse, normalizedMeta);
+                    successfulRequestFingerprintRef.current = requestCacheKey;
+                }
 
+                keepLoadingAfterResponse = scheduleRetryIfNeeded(shouldRetry);
+
+                if (shouldRetry || !matchesCurrentRequest()) {
+                    return;
+                }
+
+                if (normalizedResponse) {
+                    setAiBriefing(normalizedResponse);
+                    setBriefingMeta(normalizedMeta);
+                    return;
+                }
+
+                if (canOverrideSuccessfulBriefing()) {
+                    applyFallbackBriefing(fallbackErrorMessage);
+                }
+            })
+            .catch((error: unknown) => {
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    return;
+                }
+                const abortMessage = error instanceof Error ? error.message : String(error ?? '');
+                if (abortMessage.includes('AbortError') || abortMessage.includes('aborted')) {
+                    return;
+                }
+                if (!matchesCurrentRequest()) {
+                    return;
+                }
+                if (isCoachAnalyzeError(error) && error.code === 'AUTH_EXPIRED') {
+                    clearActiveRequest();
+                    setAiLoading(false);
+                    setAuthExpired(true);
+                    setAiBriefing(null);
+                    setBriefingMeta(null);
+                    clearRetryTimer();
+                    resetRetryState();
+                    return;
+                }
+                if (
+                    abortMessage.includes('unable_to_resolve_analysis_year') ||
+                    abortMessage.includes('invalid_season_year_for_analysis')
+                ) {
+                    if (canOverrideSuccessfulBriefing()) {
+                        applyFallbackBriefing(fallbackYearMessage);
+                    }
+                    clearRetryTimer();
+                    resetRetryState();
+                    return;
+                }
+                if (canOverrideSuccessfulBriefing()) {
+                    applyFallbackBriefing(fallbackErrorMessage);
+                }
+                clearRetryTimer();
+                resetRetryState();
+            })
+            .finally(() => {
+                if (coachBriefingInFlightRequests.get(requestCacheKey) === sharedRequest) {
+                    coachBriefingInFlightRequests.delete(requestCacheKey);
+                }
+                if (!matchesCurrentRequest()) {
+                    return;
+                }
+                if (!keepLoadingAfterResponse) {
+                    currentRequestFingerprintRef.current = null;
+                }
+                setAiLoading(keepLoadingAfterResponse);
+            });
 
         return () => {
-            active = false;
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-                timeoutRef.current = null;
-            }
-            if (abortRef.current) {
-                abortRef.current.abort();
-                abortRef.current = null;
-            }
             clearRetryTimer();
-            inFlightRef.current.delete(requestCacheKey);
-            setAiLoading(false);
+            requestSeqRef.current += 1;
+            currentRequestFingerprintRef.current = null;
         };
     }, [
-        effectiveAutoEnabled,
-        game?.gameId,
-        game?.homeTeam,
-        game?.awayTeam,
-        game?.seasonId,
-        game?.gameDate,
-        game?.leagueType,
-        game?.postSeasonSeries,
-        game?.seriesGameNo,
-        game?.homeScore,
-        game?.awayScore,
-        gameDetail?.homeScore,
-        gameDetail?.awayScore,
-        gameDetail?.gameStatus,
-        homeRank,
-        homeGamesBehind,
-        homeRemainingGames,
-        awayRank,
-        awayGamesBehind,
-        awayRemainingGames,
-        homePitcherName,
-        awayPitcherName,
-        requestLeagueTypeCode,
+        aiBriefing,
+        shouldStartAutoBriefing,
+        isAuthCheckPending,
+        isGuestBlocked,
         requestCacheKey,
-        focusSignature,
-        requestSeasonYear,
+        requestDescriptor,
         retryCount,
-        effectiveRequestMode,
     ]);
 
     const activeTitle = effectiveAutoEnabled
         ? (aiBriefing?.title ?? '실데이터 브리핑')
         : 'AI 코치 상세 분석';
-    const activeMessage = effectiveAutoEnabled
-        ? (aiLoading
-            ? '실데이터를 모아 경기 맥락 브리핑을 정리하는 중입니다.'
-            : ((aiBriefing?.displayText ?? aiBriefing?.message) || fallbackMessage))
-        : (forceManual
-            ? '예정 경기에서는 자동 브리핑이 없습니다. 현재 매치업의 승부처는 AI 코치 상세 분석에서 확인할 수 있습니다.'
-            : isFutureGame
-                ? '예정 경기에서는 자동 브리핑이 없습니다. 현재 매치업의 승부처는 AI 코치 상세 분석에서 확인할 수 있습니다.'
-                : '자동 브리핑은 핵심 경기만 제공합니다. 현재 매치업의 해석은 AI 코치 상세 분석에서 확인할 수 있습니다.');
+    const activeMessage = authExpired
+        ? authExpiredMessage
+        : isGuestBlocked
+            ? loginRequiredMessage
+            : isAuthCheckPending && !aiBriefing
+                ? '로그인 상태를 확인하는 중입니다.'
+                : isAwaitingAutoBriefing
+                    ? '이 브리핑 카드를 확인하면 실데이터 브리핑을 불러옵니다.'
+                : effectiveAutoEnabled
+                    ? (aiLoading
+                        ? '실데이터를 모아 경기 맥락 브리핑을 정리하는 중입니다.'
+                        : ((aiBriefing?.displayText ?? aiBriefing?.message) || fallbackMessage))
+                    : (forceManual
+                        ? '예정 경기에서는 자동 브리핑이 없습니다. 현재 매치업의 승부처는 AI 코치 상세 분석에서 확인할 수 있습니다.'
+                        : isFutureGame
+                            ? '예정 경기에서는 자동 브리핑이 없습니다. 현재 매치업의 승부처는 AI 코치 상세 분석에서 확인할 수 있습니다.'
+                            : '자동 브리핑은 핵심 경기만 제공합니다. 현재 매치업의 해석은 AI 코치 상세 분석에서 확인할 수 있습니다.');
 
     // Typewriter effect
     useEffect(() => {
@@ -862,13 +940,10 @@ export default function CoachBriefing({
     }, [activeMessage]);
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-        >
+        <div ref={cardRef} data-testid="coach-briefing-card">
             <Card
                 data-debug-auto={String(effectiveAutoEnabled)}
+                data-debug-activated={String(hasActivatedAutoBriefing)}
                 data-debug-loading={String(aiLoading)}
                 data-debug-request-mode={effectiveRequestMode}
                 className="mb-6 overflow-hidden border border-gray-200 dark:border-border shadow-xl bg-white dark:bg-card text-gray-900 dark:text-gray-100 relative">
@@ -917,17 +992,12 @@ export default function CoachBriefing({
 
                             {getSeasonBanner()}
 
-                            <AnimatePresence mode="wait">
-                                <motion.h4
-                                    data-testid="coach-briefing-title"
-                                    key={activeTitle}
-                                    initial={{ opacity: 0, y: 4 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 leading-tight tracking-tight break-keep"
-                                >
-                                    {activeTitle}
-                                </motion.h4>
-                            </AnimatePresence>
+                            <h4
+                                data-testid="coach-briefing-title"
+                                className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 leading-tight tracking-tight break-keep"
+                            >
+                                {activeTitle}
+                            </h4>
 
                             <div className="min-h-[2.5rem]">
                                 <p className="text-sm md:text-base text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
@@ -935,14 +1005,32 @@ export default function CoachBriefing({
                                         {displayedMessage}
                                     </span>
                                     {aiLoading && (
-                                        <motion.span
-                                            animate={{ opacity: [1, 0.2, 1] }}
-                                            transition={{ duration: 1, repeat: Infinity }}
-                                            className="inline-block w-1 h-3 bg-emerald-200/80 ml-1 align-middle"
+                                        <span
+                                            className="inline-block w-1 h-3 bg-emerald-200/80 ml-1 align-middle animate-pulse"
                                         />
                                     )}
                                 </p>
-                                {briefingMeta?.groundingWarnings.length ? (
+                                {dataQualityNotice ? (
+                                    <div
+                                        data-testid="coach-briefing-data-quality-note"
+                                        className="mt-3 rounded-xl border border-amber-200/70 bg-amber-50/80 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-200"
+                                    >
+                                        <p className="font-medium break-keep">
+                                            {dataQualityNotice.message}
+                                        </p>
+                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                            {dataQualityNotice.reasons.map((reason) => (
+                                                <span
+                                                    key={reason}
+                                                    data-testid="coach-briefing-grounding-reason"
+                                                    className="rounded-full border border-amber-300/70 bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-100"
+                                                >
+                                                    {reason}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : briefingMeta?.groundingWarnings.length ? (
                                     <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 font-medium break-keep">
                                         {briefingMeta.groundingWarnings[0]}
                                     </p>
@@ -952,32 +1040,53 @@ export default function CoachBriefing({
                     </div>
 
                     <div className="mt-4 flex justify-end">
-                        <CoachAnalysisDialog
-                            initialTeam={game?.homeTeam}
-                            homeTeamId={game?.homeTeam}
-                            awayTeamId={game?.awayTeam}
-                            gameId={game?.gameId}
-                            gameDate={game?.gameDate}
-                            seasonId={game?.seasonId}
-                            leagueType={game?.leagueType}
-                            round={game?.postSeasonSeries}
-                            gameNo={game?.seriesGameNo}
-                            homePitcher={homePitcherName}
-                            awayPitcher={awayPitcherName}
-                            trigger={
-                                <Button
-                                    data-testid="coach-analysis-open"
-                                    className="w-full md:w-auto h-10 bg-emerald-950 hover:bg-emerald-900 text-emerald-50 border border-emerald-700/60 rounded-xl shadow-sm">
-                                    <Zap className="w-4 h-4 mr-2 text-emerald-50" />
-                                    <span className="text-xs font-semibold">
-                                        {game ? 'AI 코치 상세 분석' : '전력 분석'}
-                                    </span>
-                                </Button>
-                            }
-                        />
+                        {showLoginAction ? (
+                            <Button
+                                type="button"
+                                data-testid="coach-briefing-login-cta"
+                                className="w-full md:w-auto h-10 bg-emerald-950 hover:bg-emerald-900 text-emerald-50 border border-emerald-700/60 rounded-xl shadow-sm"
+                                onClick={handleLoginAction}
+                            >
+                                <Zap className="w-4 h-4 mr-2 text-emerald-50" />
+                                <span className="text-xs font-semibold">
+                                    {authExpired
+                                        ? '다시 로그인하기'
+                                        : effectiveAutoEnabled
+                                            ? '로그인하고 브리핑 보기'
+                                            : '로그인하고 상세 분석 보기'}
+                                </span>
+                            </Button>
+                        ) : isAuthCheckPending ? (
+                            <Button
+                                type="button"
+                                disabled
+                                data-testid="coach-briefing-auth-loading"
+                                className="w-full md:w-auto h-10 bg-emerald-950/70 text-emerald-50 border border-emerald-700/40 rounded-xl shadow-sm disabled:opacity-100"
+                            >
+                                <Zap className="w-4 h-4 mr-2 text-emerald-50" />
+                                <span className="text-xs font-semibold">
+                                    로그인 확인 중...
+                                </span>
+                            </Button>
+                        ) : (
+                            <CoachAnalysisDialogLauncher
+                                initialTeam={game?.homeTeam}
+                                homeTeamId={game?.homeTeam}
+                                awayTeamId={game?.awayTeam}
+                                gameId={game?.gameId}
+                                gameDate={game?.gameDate}
+                                seasonId={game?.seasonId}
+                                leagueType={game?.leagueType}
+                                round={game?.postSeasonSeries}
+                                gameNo={game?.seriesGameNo}
+                                homePitcher={homePitcherName}
+                                awayPitcher={awayPitcherName}
+                                buttonLabel={game ? 'AI 코치 상세 분석' : '전력 분석'}
+                            />
+                        )}
                     </div>
                 </div>
             </Card>
-        </motion.div>
+        </div>
     );
 }

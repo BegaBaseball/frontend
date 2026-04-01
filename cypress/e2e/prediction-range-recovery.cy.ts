@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { installPredictionAuthenticatedSessionIntercept, visitPredictionPage } from '../support/predictionPage';
+
 describe('Prediction Range Recovery', () => {
     const today = '2026-02-22';
     const todayGameId = '20260222HHSS0';
@@ -34,45 +36,10 @@ describe('Prediction Range Recovery', () => {
     });
 
     const openPredictionPage = () => {
-        const fakeToken = 'prediction-range-recovery-token';
-        const authState = {
-            state: {
-                user: {
-                    id: 123,
-                    email: 'test@example.com',
-                    name: 'TestUser',
-                    handle: 'testuser',
-                    favoriteTeam: 'HH',
-                    role: 'ROLE_USER',
-                    hasPassword: true,
-                    profileImageUrl: null,
-                },
-                isLoggedIn: true,
-                isAdmin: false,
-            },
-            version: 0,
-        };
-
-        const seedAuthState = (win: Window) => {
-            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            win.localStorage.setItem('accessToken', fakeToken);
-            win.localStorage.setItem('bega_has_visited', 'true');
-            win.localStorage.setItem('bega_dont_show_guide', 'true');
-        };
-
-        cy.visit('/prediction', {
-            onBeforeLoad(win) {
-                seedAuthState(win);
-                win.addEventListener('auth-session-expired', (event) => {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                }, true);
-            },
+        visitPredictionPage({
+            path: '/prediction',
+            token: 'prediction-range-recovery-token',
         });
-        cy.window().then((win) => {
-            seedAuthState(win);
-        });
-        cy.setCookie('Authorization', fakeToken);
         cy.contains('전력분석실', { timeout: 20000 }).should('exist');
         cy.wait('@getMatchDay');
     };
@@ -98,7 +65,7 @@ describe('Prediction Range Recovery', () => {
             body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
         }).as('getVoteStatusRecovery');
 
-        cy.intercept('**/api/kbo/rankings/*', {
+        cy.intercept('**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: baseRankings,
         }).as('getRankingsRecovery');
@@ -168,8 +135,8 @@ describe('Prediction Range Recovery', () => {
             win.localStorage.removeItem('prediction:run-session:v1');
         });
         cy.clock(new Date('2026-02-22T12:00:00').getTime(), ['Date']);
-        cy.login('user');
-        cy.mockAPI();
+        cy.mockAPI({ skipRankings: true });
+        installPredictionAuthenticatedSessionIntercept('getPredictionSessionRecovery');
         interceptPredictionCommon();
     });
 

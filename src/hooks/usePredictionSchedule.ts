@@ -539,7 +539,7 @@ export const usePredictionSchedule = ({
     }
 
     if (adjacentPrefetchIdleCallbackRef.current !== null && 'cancelIdleCallback' in window) {
-      (window as any).cancelIdleCallback(adjacentPrefetchIdleCallbackRef.current);
+      window.cancelIdleCallback(adjacentPrefetchIdleCallbackRef.current);
       adjacentPrefetchIdleCallbackRef.current = null;
     }
     if (adjacentPrefetchTimeoutRef.current !== null) {
@@ -562,7 +562,7 @@ export const usePredictionSchedule = ({
     };
 
     if ('requestIdleCallback' in window) {
-      adjacentPrefetchIdleCallbackRef.current = (window as any).requestIdleCallback(run, {
+      adjacentPrefetchIdleCallbackRef.current = window.requestIdleCallback(run, {
         timeout: 1200,
       });
       return;

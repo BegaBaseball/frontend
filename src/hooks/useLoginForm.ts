@@ -1,7 +1,7 @@
 // hooks/useLoginForm.ts
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { loginUser } from '../api/auth';
+import { loginUser } from '../api/authPublic';
 import { useAuthAuthenticationActions } from '../store/authStore';
 import { validateLoginField, validateLoginForm } from '../utils/validation';
 import { LoginFormData } from '../types/auth';

@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { installPredictionAuthenticatedSessionIntercept, visitPredictionPage } from '../support/predictionPage';
+
 describe('Prediction Date Boundary', () => {
     const gameDate = '2026-02-03';
     const gameId = '20260203HHSS0';
@@ -8,52 +10,36 @@ describe('Prediction Date Boundary', () => {
         earliestGameDate: '2026-02-01',
         latestGameDate: '2026-03-01',
     };
+    const parseCoachRequestBody = (rawBody: unknown): Record<string, unknown> => {
+        if (rawBody == null) {
+            return {};
+        }
+
+        if (typeof rawBody === 'string') {
+            try {
+                return JSON.parse(rawBody) as Record<string, unknown>;
+            } catch {
+                return {};
+            }
+        }
+
+        if (typeof rawBody === 'object') {
+            return rawBody as Record<string, unknown>;
+        }
+
+        return {};
+    };
 
     const openPredictionPage = () => {
-        const fakeToken = 'prediction-date-boundary-token';
-        const authState = {
-            state: {
-                user: {
-                    id: 123,
-                    email: 'test@example.com',
-                    name: 'TestUser',
-                    handle: 'testuser',
-                    favoriteTeam: 'HH',
-                    role: 'ROLE_USER',
-                    hasPassword: true,
-                    profileImageUrl: null,
-                },
-                isLoggedIn: true,
-                isAdmin: false,
-            },
-            version: 0,
-        };
-
-        const seedAuthState = (win: Window) => {
-            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            win.localStorage.setItem('accessToken', fakeToken);
-            win.localStorage.setItem('bega_has_visited', 'true');
-            win.localStorage.setItem('bega_dont_show_guide', 'true');
-        };
-
-        cy.visit('/prediction', {
-            onBeforeLoad(win) {
-                seedAuthState(win);
-                win.addEventListener('auth-session-expired', (event) => {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                }, true);
-            },
+        visitPredictionPage({
+            path: `/prediction?gameId=${gameId}&date=${gameDate}`,
+            token: 'prediction-date-boundary-token',
         });
-        cy.window().then((win) => {
-            seedAuthState(win);
-        });
-        cy.setCookie('Authorization', fakeToken);
         cy.tick(100);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.wait('@getScheduleRange');
         cy.wait('@getGameDetail');
-        cy.wait('@getRankingsBoundary');
+        cy.tick(1000);
         cy.wait('@getVoteStatus');
         cy.tick(100);
     };
@@ -71,8 +57,8 @@ describe('Prediction Date Boundary', () => {
             win.localStorage.removeItem('prediction:run-session');
             win.localStorage.removeItem('prediction:run-session:v1');
         });
-        cy.login('user');
-        cy.mockAPI();
+        cy.mockAPI({ skipRankings: true });
+        installPredictionAuthenticatedSessionIntercept('getPredictionSessionBoundary');
 
         cy.intercept('GET', '**/api/matches/day*', {
             statusCode: 200,
@@ -85,6 +71,7 @@ describe('Prediction Date Boundary', () => {
                         homeTeam: 'HH',
                         awayTeam: 'SS',
                         stadium: '대전',
+                        leagueType: 'POST',
                         gameStatus: 'SCHEDULED',
                         gameStatusKr: '경기 예정',
                         homeScore: null,
@@ -121,6 +108,7 @@ describe('Prediction Date Boundary', () => {
                     homeTeam: 'HH',
                     awayTeam: 'SS',
                     stadium: '대전',
+                    leagueType: 'POST',
                     startTime: '18:30',
                     gameStatus: 'SCHEDULED',
                     gameStatusKr: '경기 예정',
@@ -150,12 +138,18 @@ describe('Prediction Date Boundary', () => {
             body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
         }).as('getVoteStatus');
 
-        cy.intercept('**/api/kbo/rankings/*', {
-            statusCode: 200,
-            body: [
-                { teamId: 'HH', teamName: '한화 이글스', rank: 7, wins: 30, losses: 50, draws: 0, winRate: '0.375', games: 80, gamesBehind: 6.0 },
-                { teamId: 'SS', teamName: '삼성 라이온즈', rank: 8, wins: 28, losses: 52, draws: 0, winRate: '0.350', games: 80, gamesBehind: 7.0 },
-            ],
+        cy.intercept({
+            method: 'GET',
+            pathname: '/api/kbo/rankings/snapshot',
+            middleware: true,
+        }, (req) => {
+            req.reply({
+                statusCode: 200,
+                body: [
+                    { teamId: 'HH', teamName: '한화 이글스', rank: 7, wins: 30, losses: 50, draws: 0, winRate: '0.375', games: 80, gamesBehind: 6.0 },
+                    { teamId: 'SS', teamName: '삼성 라이온즈', rank: 8, wins: 28, losses: 52, draws: 0, winRate: '0.350', games: 80, gamesBehind: 7.0 },
+                ],
+            });
         }).as('getRankingsBoundary');
 
         cy.intercept('POST', '**/coach/analyze*', {
@@ -165,13 +159,19 @@ describe('Prediction Date Boundary', () => {
         }).as('coachAnalyze');
     });
 
-    it('should treat same-day game at KST 00:30 as today, not future', () => {
+    it('should treat same-day game at KST 00:30 as today and trigger auto briefing', () => {
         openPredictionPage();
 
         cy.wait('@getUserVotes');
         cy.get('@getUserVote.all').should('have.length', 0);
-        cy.get('[data-testid="coach-analysis-open"]').should('be.visible');
+        cy.get('[data-testid="coach-briefing-card"]').scrollIntoView().should('be.visible');
+        cy.tick(500);
         cy.contains('요청 버튼을 눌러주세요').should('not.exist');
-        cy.get('@coachAnalyze.all').should('have.length', 0);
+        cy.wait('@coachAnalyze').then((interception) => {
+            const body = parseCoachRequestBody(interception.request.body);
+            expect(body.request_mode).to.eq('auto_brief');
+            expect(body.game_id).to.eq(gameId);
+        });
+        cy.get('@coachAnalyze.all').should('have.length', 1);
     });
 });

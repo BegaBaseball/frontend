@@ -1,35 +1,22 @@
-import { Fragment, Profiler, StrictMode } from "react";
+import { Fragment, Profiler, StrictMode, type ProfilerOnRenderCallback } from "react";
 import { createRoot } from "react-dom/client";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "next-themes";
-import { HelmetProvider } from "react-helmet-async";
 import App from "./App";
 import "./index.css";
-import { queryClient } from "./lib/queryClient";
 import { installSafeConsole } from "./utils/safeLogger";
-import { setupRenderPerf } from "./utils/renderPerf";
 
-installSafeConsole();
-const renderPerf = setupRenderPerf();
-const RootMode = renderPerf.disableStrictMode ? Fragment : StrictMode;
+type RenderPerfController = {
+  disableStrictMode: boolean;
+  enabled: boolean;
+  onReactRender: ProfilerOnRenderCallback | null;
+};
 
-const appTree = renderPerf.enabled && renderPerf.onReactRender ? (
-  <Profiler id="app-root" onRender={renderPerf.onReactRender}>
-    <App />
-  </Profiler>
-) : (
-  <App />
-);
+const defaultRenderPerf: RenderPerfController = {
+  disableStrictMode: false,
+  enabled: false,
+  onReactRender: null,
+};
 
 const rootEl = document.getElementById("root")!;
-
-// Remove HTML shell loader once React takes over
-const shellLoader = document.getElementById('app-shell-loader');
-if (shellLoader) {
-  shellLoader.style.opacity = '0';
-  shellLoader.style.pointerEvents = 'none';
-  setTimeout(() => shellLoader.remove(), 200);
-}
 
 // Register service worker for PWA support
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -40,20 +27,50 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   });
 }
 
-createRoot(rootEl).render(
-  <RootMode>
-    <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          storageKey="kbo-theme"
-          disableTransitionOnChange
-        >
-          {appTree}
-        </ThemeProvider>
-      </QueryClientProvider>
-    </HelmetProvider>
-  </RootMode>
-);
+const isRenderPerfRequested = (): boolean => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('perf') === 'render' || params.get('debugRenderPerf') === '1';
+};
+
+const removeShellLoader = () => {
+  const shellLoader = document.getElementById('app-shell-loader');
+  if (!shellLoader) {
+    return;
+  }
+
+  shellLoader.style.opacity = '0';
+  shellLoader.style.pointerEvents = 'none';
+  setTimeout(() => shellLoader.remove(), 200);
+};
+
+const mountApp = (renderPerf: RenderPerfController) => {
+  const RootMode = renderPerf.disableStrictMode ? Fragment : StrictMode;
+  const appTree = renderPerf.enabled && renderPerf.onReactRender ? (
+    <Profiler id="app-root" onRender={renderPerf.onReactRender}>
+      <App />
+    </Profiler>
+  ) : (
+    <App />
+  );
+
+  removeShellLoader();
+  createRoot(rootEl).render(
+    <RootMode>
+      {appTree}
+    </RootMode>
+  );
+};
+
+const boot = async () => {
+  installSafeConsole();
+
+  if (!isRenderPerfRequested()) {
+    mountApp(defaultRenderPerf);
+    return;
+  }
+
+  const { setupRenderPerf } = await import('./utils/renderPerf');
+  mountApp(setupRenderPerf());
+};
+
+void boot();

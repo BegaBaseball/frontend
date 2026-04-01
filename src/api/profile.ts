@@ -5,12 +5,10 @@ import {
   ProfileUpdateData,
   ProfileUpdateResponse,
   UserProviderDto,
-  PublicUserProfile,
   DeviceSessionItem,
   SecurityEventItem,
   TrustedDeviceItem,
   AccountDeletionScheduleResponse,
-  AccountDeletionRecoveryInfo,
 } from '../types/profile';
 import api from './axios';
 import { getApiErrorMessage } from '../utils/errorUtils';
@@ -25,31 +23,10 @@ const normalizeFavoriteTeam = (value?: string | null): string | null => {
   return trimmed === '' || trimmed === '없음' ? null : trimmed;
 };
 
-const normalizePublicProfile = (profile: PublicUserProfile): PublicUserProfile => ({
-  ...profile,
-  favoriteTeam: normalizeFavoriteTeam(profile.favoriteTeam),
-});
-
 const normalizeUserProfile = (profile: UserProfile): UserProfile => ({
   ...profile,
   favoriteTeam: normalizeFavoriteTeam(profile.favoriteTeam),
 });
-
-/**
- * 다른 사용자 프로필 조회 (공개 정보 - 핸들 기준)
- */
-export async function fetchPublicUserProfileByHandle(handle: string): Promise<PublicUserProfile> {
-  try {
-    const response = await api.get<{ success: boolean; data: PublicUserProfile; message?: string }>(`/users/profile/${handle}`);
-
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
-    }
-    return normalizePublicProfile(response.data.data);
-  } catch (error: unknown) {
-    throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
-  }
-}
 
 /**
  * 사용자 프로필 조회
@@ -311,34 +288,6 @@ export async function deleteTrustedDevice(deviceId: number): Promise<void> {
     }
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '신뢰 기기 해제에 실패했습니다.'));
-  }
-}
-
-export async function getAccountDeletionRecoveryInfo(token: string): Promise<AccountDeletionRecoveryInfo> {
-  try {
-    const response = await api.get<{ success: boolean; data?: AccountDeletionRecoveryInfo; message?: string }>('/auth/account/deletion/recovery', {
-      params: { token },
-    });
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.message || '계정 복구 정보를 확인하지 못했습니다.');
-    }
-
-    return response.data.data;
-  } catch (error: unknown) {
-    throw new Error(getApiErrorMessage(error, '계정 복구 정보 조회에 실패했습니다.'));
-  }
-}
-
-export async function requestAccountDeletionRecovery(token: string): Promise<void> {
-  try {
-    const response = await api.post<{ success: boolean; message?: string }>('/auth/account/deletion/recovery', {
-      token,
-    });
-    if (!response.data.success) {
-      throw new Error(response.data.message || '계정 복구에 실패했습니다.');
-    }
-  } catch (error: unknown) {
-    throw new Error(getApiErrorMessage(error, '계정 복구에 실패했습니다.'));
   }
 }
 

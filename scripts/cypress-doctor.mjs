@@ -7,13 +7,20 @@ const projectRoot = process.cwd();
 const cacheDir = resolve(process.env.CYPRESS_CACHE_FOLDER || `${projectRoot}/.cypress-cache`);
 const runArgs = new Set(process.argv.slice(2));
 const shouldRepair = runArgs.has('--repair');
+const inspectGlobalCache = runArgs.has('--global-cache') || runArgs.has('--compare-default-cache');
 const log = (message) => console.log(message);
 
-const run = (label, command) => {
+const getCommandEnv = (extraEnv = {}) => ({
+  ...process.env,
+  ...extraEnv,
+});
+
+const run = (label, command, extraEnv = {}) => {
   log(`\n- ${label}`);
   try {
     const output = execSync(command, {
       cwd: projectRoot,
+      env: getCommandEnv(extraEnv),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -44,6 +51,7 @@ const getDefaultCachePath = () => {
   try {
     const output = execSync('npx cypress cache path', {
       cwd: projectRoot,
+      env: getCommandEnv({ CYPRESS_CACHE_FOLDER: undefined }),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     }).trim();
@@ -65,10 +73,12 @@ const findCachedVersionsIn = (directory) => {
 };
 
 const defaultCacheDir = getDefaultCachePath();
-const cachedVersions = findCachedVersions();
-const defaultVersions = defaultCacheDir && defaultCacheDir !== cacheDir
+const activeCacheDir = cacheDir;
+const activeVersions = findCachedVersions();
+const defaultVersions = inspectGlobalCache && defaultCacheDir && defaultCacheDir !== activeCacheDir
   ? findCachedVersionsIn(defaultCacheDir)
   : [];
+const activeEnv = { CYPRESS_CACHE_FOLDER: activeCacheDir };
 const hasDocker = () => {
   try {
     execSync('docker info', { stdio: 'ignore' });
@@ -101,42 +111,42 @@ const repairDirectory = (directory, versions) => {
 log('Cypress local health check start');
 log(`- node: ${process.version}`);
 log(`- nodePath: ${process.execPath}`);
-log(`- cacheDir: ${cacheDir}`);
-if (defaultCacheDir) {
+log(`- cacheDir: ${activeCacheDir}`);
+if (defaultCacheDir && inspectGlobalCache) {
   log(`- default cacheDir: ${defaultCacheDir}`);
 }
-log(`- cached versions (${cacheDir}): ${cachedVersions.join(', ') || 'none'}`);
-if (defaultCacheDir && defaultCacheDir !== cacheDir) {
+log(`- cached versions (${activeCacheDir}): ${activeVersions.join(', ') || 'none'}`);
+if (defaultCacheDir && defaultCacheDir !== activeCacheDir && inspectGlobalCache) {
   log(`- cached versions (${defaultCacheDir}): ${defaultVersions.join(', ') || 'none'}`);
 }
 
-run('Cypress CLI version', 'npx cypress version');
-run('Cypress cache path', 'npx cypress cache path');
+run('Cypress CLI version', 'npx cypress version', activeEnv);
+run('Cypress cache path', 'npx cypress cache path', activeEnv);
 
-if (cachedVersions.length === 0) {
+if (activeVersions.length === 0) {
   log('\nNo Cypress.app found under custom cache directory.');
 }
 
-if (defaultVersions.length === 0) {
+if (inspectGlobalCache && defaultVersions.length === 0) {
   log('\nNo Cypress.app found under default Cypress cache directory.');
 }
 
 if (shouldRepair) {
-  if (cachedVersions.length > 0) {
-    repairDirectory(cacheDir, cachedVersions);
+  if (activeVersions.length > 0) {
+    repairDirectory(activeCacheDir, activeVersions);
   }
-  if (defaultVersions.length > 0 && defaultCacheDir && defaultCacheDir !== cacheDir) {
+  if (inspectGlobalCache && defaultVersions.length > 0 && defaultCacheDir && defaultCacheDir !== activeCacheDir) {
     repairDirectory(defaultCacheDir, defaultVersions);
   }
 }
 
-if (cachedVersions.length === 0 && defaultVersions.length === 0) {
+if (activeVersions.length === 0 && defaultVersions.length === 0) {
   log('Run: npm run cy:install or set CYPRESS_CACHE_FOLDER to a valid cache path.');
   process.exit(0);
 }
 
-cachedVersions.forEach((version) => {
-  const appPath = join(cacheDir, version, 'Cypress.app');
+activeVersions.forEach((version) => {
+  const appPath = join(activeCacheDir, version, 'Cypress.app');
   run(`codesign check (${version})`, `codesign --verify --deep --verbose=4 "${appPath}"`);
 
   try {
@@ -163,7 +173,7 @@ cachedVersions.forEach((version) => {
   );
 });
 
-if (defaultCacheDir && defaultVersions.length > 0) {
+if (inspectGlobalCache && defaultCacheDir && defaultVersions.length > 0) {
   defaultVersions.forEach((version) => {
     const appPath = join(defaultCacheDir, version, 'Cypress.app');
     run(`codesign check (${version})`, `codesign --verify --deep --verbose=4 "${appPath}"`);
@@ -193,10 +203,11 @@ if (defaultCacheDir && defaultVersions.length > 0) {
   });
 }
 
-run(
-  'Cypress verify',
-  `CYPRESS_CACHE_FOLDER="${cacheDir}" npx cypress verify`,
-);
+const verifyPassed = run('Cypress verify', 'npx cypress verify', activeEnv);
+
+if (verifyPassed) {
+  log('\nRuntime verify passed for the active cache. codesign/xattr mismatches above are advisory on this host.');
+}
 
 log('\nRecommended remediation');
 log('- If verification fails, run: npm run cy:install');
@@ -212,5 +223,9 @@ if (hasDocker()) {
   log('  CYPRESS_USE_DOCKER=1 npm run cy:run');
 } else {
   log('- Docker fallback unavailable: install Docker Desktop to use Cypress Docker image fallback.');
+}
+if (!inspectGlobalCache && defaultCacheDir && defaultCacheDir !== activeCacheDir) {
+  log('- Compare the global cache only when needed:');
+  log('  npm run cy:doctor:global');
 }
 log('\nCypress local health check end');

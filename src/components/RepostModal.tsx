@@ -1,12 +1,6 @@
 import { Repeat2, Quote, Undo2 } from 'lucide-react';
 import { CheerPost } from '../api/cheerApi';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from './ui/dialog';
+import PlainDialog from './ui/plain-dialog';
 import {
     getRepostPolicyDecision,
 } from '../utils/repostPolicy';
@@ -58,17 +52,14 @@ export default function RepostModal({
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[340px] p-0 gap-0">
-                <DialogHeader className="px-4 py-3 border-b border-gray-100 dark:border-border">
-                    <DialogTitle className="text-base font-semibold text-center">
-                        리포스트
-                    </DialogTitle>
-                    <DialogDescription className="sr-only">
-                        게시글을 리포스트하거나 인용할 수 있는 옵션을 선택하세요.
-                    </DialogDescription>
-                </DialogHeader>
-
+        <PlainDialog
+            open={isOpen}
+            onClose={onClose}
+            title={<span className="block text-center text-base font-semibold">리포스트</span>}
+            className="sm:max-w-[340px] p-0 gap-0"
+            bodyClassName="p-0"
+            hideCloseButton
+        >
                 <div className="py-2">
                     {isRepost ? (
                         isOwner && onCancelRepost ? (
@@ -187,7 +178,6 @@ export default function RepostModal({
                         취소
                     </button>
                 </div>
-            </DialogContent>
-        </Dialog>
+        </PlainDialog>
     );
 }

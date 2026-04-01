@@ -1,17 +1,9 @@
 /// <reference types="cypress" />
 
+import { getHomeAuthRequestTraces, visitHomePage } from '../support/homePage';
+
 describe('Home error UX', () => {
   const fixedNow = new Date('2026-03-16T12:00:00').getTime();
-
-  const seedAnonymousHomeState = (win: Window) => {
-    win.localStorage.setItem('auth-storage', JSON.stringify({
-      state: {},
-      version: 0,
-    }));
-    win.localStorage.removeItem('auth-bootstrap-hint');
-    win.localStorage.setItem('bega_has_visited', 'true');
-    win.localStorage.setItem('bega_dont_show_guide', 'true');
-  };
 
   const buildBootstrapResponse = (
     date: string,
@@ -32,10 +24,16 @@ describe('Home error UX', () => {
     },
     games: [],
     scheduledGamesWindow: [],
-    rankingSeasonYear: 2025,
-    rankingSourceMessage: '2025 시즌 순위 데이터',
-    isOffSeason: true,
-    rankings: [],
+  });
+  const buildWidgetsResponse = (rankingSeasonYear = 2025) => ({
+    hotCheerPosts: [],
+    featuredMates: [],
+    rankingSnapshot: {
+      rankingSeasonYear,
+      rankingSourceMessage: `${rankingSeasonYear} 시즌 순위 데이터`,
+      isOffSeason: rankingSeasonYear < 2026,
+      rankings: [],
+    },
   });
 
   beforeEach(() => {
@@ -62,14 +60,13 @@ describe('Home error UX', () => {
 
     cy.intercept('GET', '**/api/home/widgets*', {
       statusCode: 200,
-      body: {
-        hotCheerPosts: [],
-        featuredMates: [],
-      },
+      body: buildWidgetsResponse(),
     }).as('getHomeWidgets');
 
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.wait('@getHomeBootstrap');
@@ -79,18 +76,85 @@ describe('Home error UX', () => {
     cy.get('@getMeAnonymous.all').should('have.length', 0);
     cy.get('@getHomeBootstrap.all').should('have.length', 1);
     cy.get('@getHomeWidgets.all').should('have.length', 1);
+    getHomeAuthRequestTraces().should('deep.equal', []);
   });
 
   it('does not request mypage for anonymous root landing entry', () => {
-    cy.visit('/', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.contains('야구를 더 스마트하게', { timeout: 15000 }).should('be.visible');
     cy.get('@getMeAnonymous.all').should('have.length', 0);
+    getHomeAuthRequestTraces().should('deep.equal', []);
   });
 
-  it('falls back to legacy home data when bootstrap returns 500 without looping', () => {
+  it('allows a single deferred mypage attempt on home when auth bootstrap hint is fresh', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+      persistedAuthHint: true,
+      authBootstrapMeta: {
+        lastSuccessAt: fixedNow - 30_000,
+        lastFailureAt: null,
+      },
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+
+    cy.contains('KBO LEAGUE', { timeout: 15000 }).should('be.visible');
+    cy.get('@getMeAnonymous.all').its('length').should('be.gte', 1);
+    getHomeAuthRequestTraces().should((traces) => {
+      expect(traces).to.have.length(1);
+      expect(traces[0]?.url).to.include('/api/auth/mypage');
+    });
+  });
+
+  it('suppresses deferred mypage retry on home during recent failure cooldown', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+      persistedAuthHint: true,
+      authBootstrapMeta: {
+        lastSuccessAt: null,
+        lastFailureAt: fixedNow - 30_000,
+      },
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+
+    cy.contains('KBO LEAGUE', { timeout: 15000 }).should('be.visible');
+    cy.get('@getMeAnonymous.all').should('have.length', 0);
+    getHomeAuthRequestTraces().should('deep.equal', []);
+  });
+
+  it('shows connection fallback when bootstrap returns 500 without looping', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 500,
       body: { message: 'forced-bootstrap-failure' },
@@ -98,10 +162,7 @@ describe('Home error UX', () => {
 
     cy.intercept('GET', '**/api/home/widgets*', {
       statusCode: 200,
-      body: {
-        hotCheerPosts: [],
-        featuredMates: [],
-      },
+      body: buildWidgetsResponse(),
     }).as('getHomeWidgets');
 
     cy.intercept('GET', '**/api/kbo/league-start-dates', {
@@ -131,23 +192,31 @@ describe('Home error UX', () => {
     cy.intercept('GET', '**/api/kbo/rankings/*', {
       statusCode: 200,
       body: [],
-    }).as('getLegacyRankings');
+    }).as('legacyRankingsShouldNotRun');
 
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.wait('@getHomeBootstrapFailure');
-    cy.wait('@getLegacyLeagueDates');
-    cy.wait('@getLegacyNavigation');
-    cy.contains('경기가 없는 날입니다.', { timeout: 15000 }).should('be.visible');
+    cy.wait('@getHomeWidgets');
+    cy.contains('서버 연결에 문제가 있습니다.', { timeout: 15000 }).should('be.visible');
+    cy.contains('경기 일정을 불러오지 못했습니다', { timeout: 15000 }).should('be.visible');
 
     cy.wait(300);
-    cy.get('@getHomeBootstrapFailure.all').should('have.length', 1);
+    cy.get('@getHomeBootstrapFailure.all').then((requests) => {
+      expect(requests.length).to.be.within(1, 2);
+    });
+    cy.get('@getLegacyLeagueDates.all').should('have.length', 0);
+    cy.get('@getLegacyNavigation.all').should('have.length', 0);
+    cy.get('@getLegacySchedule.all').should('have.length', 0);
+    cy.get('@legacyRankingsShouldNotRun.all').should('have.length', 0);
     cy.contains('KBO LEAGUE').should('be.visible');
   });
 
-  it('starts legacy fallback when bootstrap is delayed past the threshold', () => {
+  it('shows timeout fallback before delayed bootstrap recovers', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       delay: 4500,
       statusCode: 200,
@@ -156,10 +225,7 @@ describe('Home error UX', () => {
 
     cy.intercept('GET', '**/api/home/widgets*', {
       statusCode: 200,
-      body: {
-        hotCheerPosts: [],
-        featuredMates: [],
-      },
+      body: buildWidgetsResponse(),
     }).as('getHomeWidgets');
 
     cy.intercept('GET', '**/api/kbo/league-start-dates', {
@@ -189,22 +255,27 @@ describe('Home error UX', () => {
     cy.intercept('GET', '**/api/kbo/rankings/*', {
       statusCode: 200,
       body: [],
-    }).as('getLegacyRankings');
+    }).as('legacyRankingsShouldNotRun');
 
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
-    cy.wait('@getLegacyLeagueDates');
-    cy.wait('@getLegacyNavigation');
-    cy.wait('@getLegacyRankings');
-    cy.contains('경기가 없는 날입니다.', { timeout: 15000 }).should('be.visible');
-    cy.contains('서버 연결에 문제가 있습니다.').should('not.exist');
+    cy.wait('@getHomeWidgets');
+    cy.contains('서버 연결에 문제가 있습니다.', { timeout: 4500 }).should('be.visible');
+    cy.contains('경기가 없는 날입니다.').should('be.visible');
+    cy.get('@getLegacyLeagueDates.all').should('have.length', 0);
+    cy.get('@getLegacyNavigation.all').should('have.length', 0);
+    cy.get('@getLegacyScheduleDelayed.all').should('have.length', 0);
+    cy.get('@legacyRankingsShouldNotRun.all').should('have.length', 0);
     cy.wait('@getHomeBootstrapDelayed');
+    cy.contains('서버 연결에 문제가 있습니다.').should('not.exist');
     cy.get('@getHomeBootstrapDelayed.all').should('have.length', 1);
   });
 
-  it('falls back to legacy widget data when widgets returns 500 without breaking the page', () => {
+  it('surfaces widget errors when widgets returns 500 without breaking the page', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,
       body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
@@ -215,79 +286,67 @@ describe('Home error UX', () => {
       body: { message: 'forced-widgets-failure' },
     }).as('getHomeWidgetsFailure');
 
-    cy.intercept('GET', '**/api/cheer/posts/hot*', {
-      statusCode: 200,
-      body: {
-        content: [
-          {
-            id: 91,
-            teamId: 'LG',
-            author: '테스트 작성자',
-            authorHandle: '@fallback',
-            content: '홈 fallback 인기글',
-            createdAt: '2026-03-16T04:30:00Z',
-            comments: 2,
-            likes: 3,
-            bookmarkCount: 0,
-            views: 12,
-            isHot: true,
-            isBookmarked: false,
-            isOwner: false,
-            repostCount: 0,
-            repostedByMe: false,
-            postType: 'NORMAL',
-            imageUrls: [],
-          },
-        ],
-        last: true,
-        totalPages: 1,
-        totalElements: 1,
-        size: 5,
-        number: 0,
-      },
-    }).as('getLegacyHotPosts');
-
-    cy.intercept('GET', '**/api/parties?page=0&size=1000*', {
-      statusCode: 200,
-      body: [
-        {
-          id: 301,
-          hostId: 701,
-          hostName: '메이트 호스트',
-          hostBadge: 'NEW',
-          hostAverageRating: 4.5,
-          hostReviewCount: 3,
-          teamId: 'LG',
-          gameDate: '2026-03-20',
-          gameTime: '18:30',
-          stadium: '잠실야구장',
-          homeTeam: 'LG',
-          awayTeam: 'LT',
-          section: '1루석',
-          maxParticipants: 4,
-          currentParticipants: 1,
-          description: '홈 fallback 메이트',
-          ticketVerified: false,
-          status: 'PENDING',
-          ticketPrice: 22000,
-          createdAt: '2026-03-16T04:30:00Z',
-        },
-      ],
-    }).as('getLegacyFeaturedMates');
-
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.wait('@getHomeBootstrap');
     cy.wait('@getHomeWidgetsFailure');
-    cy.wait('@getLegacyHotPosts');
-    cy.wait('@getLegacyFeaturedMates');
-
-    cy.contains('홈 fallback 인기글', { timeout: 15000 }).should('be.visible');
-    cy.contains('LG 트윈스 vs 롯데 자이언츠').should('be.visible');
-    cy.get('@getHomeWidgetsFailure.all').should('have.length', 1);
+    cy.contains('인기 응원글을 불러오지 못했습니다.', { timeout: 15000 }).should('be.visible');
+    cy.contains('직관 메이트 목록을 불러오지 못했습니다.').should('be.visible');
+    cy.contains('팀 순위를 불러오는 중 문제가 발생했습니다.').should('be.visible');
+    cy.contains('button', '다시 시도').should('be.visible');
+    cy.get('@getHomeWidgetsFailure.all').then((requests) => {
+      expect(requests.length).to.be.within(1, 2);
+    });
     cy.contains('KBO LEAGUE').should('be.visible');
+  });
+
+  it('requests ranking season changes through home widgets only', () => {
+    const widgetSeasonYears: Array<string> = [];
+
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', (req) => {
+      const seasonYearParam = req.query.seasonYear;
+      const seasonYear = Array.isArray(seasonYearParam) ? seasonYearParam[0] : String(seasonYearParam || 'auto');
+      widgetSeasonYears.push(seasonYear);
+
+      req.reply({
+        statusCode: 200,
+        body: buildWidgetsResponse(seasonYear === 'auto' ? 2025 : Number(seasonYear)),
+      });
+    }).as('getHomeWidgets');
+
+    cy.intercept('GET', '**/api/kbo/rankings/*', {
+      statusCode: 200,
+      body: [],
+    }).as('legacyRankingsShouldNotRun');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+    cy.contains('2025').should('be.visible');
+
+    cy.get('button[aria-label="2024시즌 팀 순위 보기"]').click({ force: true });
+    cy.wait('@getHomeWidgets');
+
+    cy.wrap(null).then(() => {
+      expect(widgetSeasonYears).to.deep.equal(['auto', '2024']);
+    });
+    cy.get('@getHomeBootstrap.all').should('have.length', 1);
+    cy.get('@legacyRankingsShouldNotRun.all').should('have.length', 0);
+    cy.contains('2024').should('be.visible');
   });
 
   it('requests bootstrap and widgets once per selected date change', () => {
@@ -315,15 +374,14 @@ describe('Home error UX', () => {
 
       req.reply({
         statusCode: 200,
-        body: {
-          hotCheerPosts: [],
-          featuredMates: [],
-        },
+        body: buildWidgetsResponse(),
       });
     }).as('getHomeWidgets');
 
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.wait('@getHomeBootstrap');

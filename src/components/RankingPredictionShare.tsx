@@ -1,4 +1,3 @@
-import TeamLogo from './TeamLogo';
 import RankingItem from './ranking/RankingItem';
 import { useRankingPredictionShare } from '../hooks/useRankingPredictionShare';
 import LoadingSpinner from './LoadingSpinner';

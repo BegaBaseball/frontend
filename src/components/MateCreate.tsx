@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useRef, useState } from 'react';
+import { type ChangeEvent, type ComponentPropsWithoutRef, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { OptimizedImage } from './common/OptimizedImage';
@@ -6,27 +6,34 @@ import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Progress } from './ui/progress';
 import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Ticket, Loader2 } from 'lucide-react';
-import { useMateStore } from '../store/mateStore';
 import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
-import { api, ApiError } from '../utils/api';
+import { api, getApiErrorStatus } from '../utils/api';
 import { TEAMS } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
-import { AxiosError } from 'axios';
 import { useMateCreateMachine, type MatchInfo } from '../hooks/useMateCreateMachine';
 import { SEAT_CATEGORIES, SeatCategory, KBO_STADIUMS } from '../utils/stadiumData';
 import { SEAT_ICONS } from '../utils/seatIcons';
 import { getEstimatedPrice } from '../utils/priceHelper';
 import { validateMateDescription } from '../utils/mateValidation';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import { cn } from '../lib/utils';
+
+function FieldLabel({
+  className,
+  ...props
+}: ComponentPropsWithoutRef<'label'>) {
+  return (
+    <label
+      className={cn('flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100', className)}
+      {...props}
+    />
+  );
+}
 
 export default function MateCreate() {
   const navigate = useNavigate();
@@ -46,7 +53,11 @@ export default function MateCreate() {
     submitErrorStatus,
     errorType,
     createdPartyId,
+    formData,
+    formErrors,
     uploadTicket,
+    updateFormData,
+    setFormError,
     goNext,
     goPrev,
     loadMatches,
@@ -56,27 +67,53 @@ export default function MateCreate() {
     reset,
     retry,
   } = useMateCreateMachine();
-  const formData = useMateStore((state) => state.formData);
-  const formErrors = useMateStore((state) => state.formErrors);
-  const updateFormData = useMateStore((state) => state.updateFormData);
-  const setFormError = useMateStore((state) => state.setFormError);
-  const { userId: authUserId } = useAuthSession();
+  const { isAuthLoading, userId: currentUserId } = useAuthSession();
   const { logout } = useAuthAccessActions();
 
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const lastSubmitErrorRef = useRef('');
   const loadedMatchDateRef = useRef('');
 
   const redirectToLogin = (replace = false) => {
-    setCurrentUserId(null);
     logout(true);
     navigate(buildLoginPath(getCurrentRelativeUrl()), replace ? { replace: true } : undefined);
   };
 
   useEffect(() => {
-    void fetchCurrentUser();
-  }, [authUserId]);
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!currentUserId) {
+      redirectToLogin(true);
+      return;
+    }
+
+    if (!requireSocialVerification) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const verifySocialAccount = async () => {
+      try {
+        const socialResult = await api.checkSocialVerified(currentUserId);
+        if (isMounted && socialResult.data === false) {
+          setShowVerificationDialog(true);
+        }
+      } catch (error: unknown) {
+        if (getApiErrorStatus(error) === 401) {
+          redirectToLogin(true);
+        }
+      }
+    };
+
+    void verifySocialAccount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUserId, isAuthLoading, requireSocialVerification]);
 
   // Price Automation
   useEffect(() => {
@@ -92,41 +129,26 @@ export default function MateCreate() {
     window.scrollTo({ top: 0, left: 0 });
   }, [createStep]);
 
-
-  const fetchCurrentUser = async () => {
-    try {
-      let id = authUserId ?? null;
-
-      if (!id) {
-        const userData = await api.getCurrentUser();
-        id = userData.data.id;
-      }
-
-      if (!id) {
-        throw new Error('사용자 ID를 확인할 수 없습니다.');
-      }
-
-      setCurrentUserId(id);
-
-      // 소셜 연동 여부 확인 - 미연동 시 알림
-      if (requireSocialVerification) {
-        try {
-          const socialResult = await api.checkSocialVerified(id);
-          if (socialResult.data === false) {
-            setShowVerificationDialog(true);
-          }
-        } catch {
-          // 확인 실패 시 무시 (나중에 제출 시 다시 체크됨)
-        }
-      }
-    } catch (error: unknown) {
-      console.error('사용자 정보 가져오기 실패:', error);
-      if ((error instanceof AxiosError && error.response?.status === 401) ||
-        (error instanceof ApiError && error.status === 401)) {
-        redirectToLogin(true);
-      }
+  useEffect(() => {
+    if (!isConfirming) {
+      return;
     }
-  };
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        cancelSubmit();
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [cancelSubmit, isConfirming]);
 
   const handleDescriptionChange = (text: string) => {
     updateFormData({ description: text });
@@ -144,7 +166,6 @@ export default function MateCreate() {
   const handleBack = () => {
     if (createStep === 1) {
       reset();
-      setCurrentUserId(null);
       navigate('/mate');
     } else {
       goPrev();
@@ -350,7 +371,12 @@ export default function MateCreate() {
               {progressValue.toFixed(0)}%
             </span>
           </div>
-          <Progress value={progressValue} className="h-2" />
+          <div className="h-2 w-full overflow-hidden rounded-full bg-primary/20">
+            <div
+              className="h-full bg-primary transition-[width] duration-300"
+              style={{ width: `${progressValue}%` }}
+            />
+          </div>
         </div>
 
         <Card className="p-5 sm:p-8">
@@ -362,7 +388,7 @@ export default function MateCreate() {
               </h2>
 
               <div className="space-y-4">
-                <Label>예매내역 스크린샷</Label>
+                <FieldLabel>예매내역 스크린샷</FieldLabel>
                 <div
                   className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors sm:p-8 ${isScanning
                     ? 'border-primary bg-slate-50 dark:bg-card/60'
@@ -509,7 +535,7 @@ export default function MateCreate() {
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="gameDate">경기 날짜 <span className="text-red-500 ml-0.5">*</span></Label>
+                  <FieldLabel htmlFor="gameDate">경기 날짜 <span className="text-red-500 ml-0.5">*</span></FieldLabel>
                   <Input
                     id="gameDate"
                     type="date"
@@ -583,7 +609,7 @@ export default function MateCreate() {
                         </div>
                         <div className="grid gap-3 md:grid-cols-2">
                           <div className="space-y-1">
-                            <Label htmlFor="manualGameTime">경기 시간</Label>
+                            <FieldLabel htmlFor="manualGameTime">경기 시간</FieldLabel>
                             <Input
                               id="manualGameTime"
                               type="time"
@@ -592,7 +618,7 @@ export default function MateCreate() {
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label htmlFor="manualStadium">구장</Label>
+                            <FieldLabel htmlFor="manualStadium">구장</FieldLabel>
                             <Input
                               id="manualStadium"
                               list="manual-stadium-options"
@@ -607,40 +633,36 @@ export default function MateCreate() {
                             </datalist>
                           </div>
                           <div className="space-y-1">
-                            <Label>원정 팀</Label>
-                            <Select
-                              value={formData.awayTeam || undefined}
-                              onValueChange={(value: string) => updateFormData({ awayTeam: value })}
+                            <FieldLabel htmlFor="manualAwayTeam">원정 팀</FieldLabel>
+                            <select
+                              id="manualAwayTeam"
+                              value={formData.awayTeam}
+                              onChange={(event) => updateFormData({ awayTeam: event.target.value })}
+                              className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm dark:border-border dark:bg-input/30"
                             >
-                              <SelectTrigger>
-                                <SelectValue placeholder="원정 팀 선택" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {TEAMS.map((team) => (
-                                  <SelectItem key={`away-${team.id}`} value={team.id}>
-                                    {team.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              <option value="">원정 팀 선택</option>
+                              {TEAMS.map((team) => (
+                                <option key={`away-${team.id}`} value={team.id}>
+                                  {team.name}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                           <div className="space-y-1">
-                            <Label>홈 팀</Label>
-                            <Select
-                              value={formData.homeTeam || undefined}
-                              onValueChange={(value: string) => updateFormData({ homeTeam: value })}
+                            <FieldLabel htmlFor="manualHomeTeam">홈 팀</FieldLabel>
+                            <select
+                              id="manualHomeTeam"
+                              value={formData.homeTeam}
+                              onChange={(event) => updateFormData({ homeTeam: event.target.value })}
+                              className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm dark:border-border dark:bg-input/30"
                             >
-                              <SelectTrigger>
-                                <SelectValue placeholder="홈 팀 선택" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {TEAMS.map((team) => (
-                                  <SelectItem key={`home-${team.id}`} value={team.id}>
-                                    {team.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              <option value="">홈 팀 선택</option>
+                              {TEAMS.map((team) => (
+                                <option key={`home-${team.id}`} value={team.id}>
+                                  {team.name}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-300">
@@ -663,7 +685,7 @@ export default function MateCreate() {
 
               {/* 1. Cheering Side Selection (Visual Blocks) */}
               <div className="space-y-3">
-                <Label className="text-base font-bold sm:text-lg">응원 진영 선택 <span className="text-red-500 ml-0.5">*</span></Label>
+                <FieldLabel className="text-base font-bold sm:text-lg">응원 진영 선택 <span className="text-red-500 ml-0.5">*</span></FieldLabel>
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 min-h-[7rem] sm:h-28">
                   {/* Home Team */}
                   <button
@@ -731,7 +753,7 @@ export default function MateCreate() {
 
               {/* 2. Seat Category (Grid with Descriptions) */}
               <div className="space-y-3">
-                <Label className="text-base font-bold sm:text-lg">좌석 종류 (선택)</Label>
+                <FieldLabel className="text-base font-bold sm:text-lg">좌석 종류 (선택)</FieldLabel>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {Object.entries(SEAT_CATEGORIES)
                     .filter(([k]) => availableCategoryKeys.includes(k as SeatCategory))
@@ -776,7 +798,7 @@ export default function MateCreate() {
 
               {/* 3. Seat Detail (Structured Inputs) */}
               <div className="space-y-3">
-                <Label className="text-base font-bold sm:text-lg" htmlFor="seatDetail">좌석 상세 <span className="text-red-500 ml-0.5">*</span></Label>
+                <FieldLabel className="text-base font-bold sm:text-lg" htmlFor="seatDetail">좌석 상세 <span className="text-red-500 ml-0.5">*</span></FieldLabel>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
                     <label className="text-xs text-gray-500 mb-1 block">구역/블록</label>
@@ -850,26 +872,23 @@ export default function MateCreate() {
               </div>
 
               <div className="space-y-2">
-                <Label id="participants-label" className="text-base font-bold sm:text-lg">모집 인원 <span className="text-red-500 ml-0.5">*</span></Label>
-                <Select
+                <FieldLabel htmlFor="maxParticipants" className="text-base font-bold sm:text-lg">모집 인원 <span className="text-red-500 ml-0.5">*</span></FieldLabel>
+                <select
+                  id="maxParticipants"
                   value={formData.maxParticipants.toString()}
-                  onValueChange={(value: string) =>
-                    updateFormData({ maxParticipants: parseInt(value) })
+                  onChange={(event) =>
+                    updateFormData({ maxParticipants: parseInt(event.target.value, 10) })
                   }
+                  className="h-12 w-full rounded-md border border-gray-300 bg-white px-3 text-sm dark:border-border dark:bg-input/30"
                 >
-                  <SelectTrigger aria-labelledby="participants-label" className="h-12">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2">2명 (본인 포함)</SelectItem>
-                    <SelectItem value="3">3명 (본인 포함)</SelectItem>
-                    <SelectItem value="4">4명 (본인 포함)</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="2">2명 (본인 포함)</option>
+                  <option value="3">3명 (본인 포함)</option>
+                  <option value="4">4명 (본인 포함)</option>
+                </select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ticketPrice" className="text-base font-bold sm:text-lg">티켓 가격 (1인당) <span className="text-red-500 ml-0.5">*</span></Label>
+                <FieldLabel htmlFor="ticketPrice" className="text-base font-bold sm:text-lg">티켓 가격 (1인당) <span className="text-red-500 ml-0.5">*</span></FieldLabel>
                 <div className="relative">
                   <Input
                     id="ticketPrice"
@@ -908,7 +927,7 @@ export default function MateCreate() {
               </h2>
 
               <div className="space-y-2">
-                <Label htmlFor="description">소개글 <span className="text-red-500 ml-0.5">*</span></Label>
+                <FieldLabel htmlFor="description">소개글 <span className="text-red-500 ml-0.5">*</span></FieldLabel>
                 <Textarea
                   id="description"
                   value={formData.description}
@@ -1012,117 +1031,119 @@ export default function MateCreate() {
             </p>
           )}
         </Card>
-      </div >
+      </div>
 
-      {/* Confirmation Modal */}
-      <Dialog
-        open={isConfirming}
-        onOpenChange={(open) => {
-          if (!open) {
-            cancelSubmit();
-          }
-        }}
-      >
-        <DialogContent className="mx-4 max-w-[calc(100vw-2rem)] sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-primary">파티 생성 확인</DialogTitle>
-            <DialogDescription>
-              아래 내용을 확인하고 파티를 생성하시겠습니까?
-            </DialogDescription>
-          </DialogHeader>
+      {isConfirming && (
+        <div className="fixed inset-0 z-[80]">
+          <div className="absolute inset-0 bg-black/50" aria-hidden="true" onClick={cancelSubmit} />
+          <div className="absolute inset-0 flex items-center justify-center p-4" onClick={cancelSubmit}>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="mate-create-confirm-title"
+              aria-describedby="mate-create-confirm-description"
+              onClick={(event) => event.stopPropagation()}
+              className="w-full max-w-[calc(100vw-2rem)] rounded-xl border bg-background p-6 shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 sm:max-w-md"
+            >
+              <div className="space-y-2">
+                <h2 id="mate-create-confirm-title" className="text-lg font-semibold text-primary">
+                  파티 생성 확인
+                </h2>
+                <p id="mate-create-confirm-description" className="text-sm text-muted-foreground">
+                  아래 내용을 확인하고 파티를 생성하시겠습니까?
+                </p>
+              </div>
 
-          <div className="space-y-4 py-4">
-            {/* Game Info */}
-            <div className="flex flex-col gap-3 rounded-lg bg-gray-50 p-4 dark:bg-card sm:flex-row sm:items-center sm:justify-center">
-              <div className="flex items-center justify-center gap-2">
-                <TeamLogo teamId={formData.awayTeam} size="sm" />
-                <span className="font-bold text-sm">
-                  {TEAMS.find(t => t.id === formData.awayTeam)?.name}
-                </span>
-              </div>
-              <span className="text-center text-gray-400 text-xs font-bold">VS</span>
-              <div className="flex items-center justify-center gap-2">
-                <span className="font-bold text-sm">
-                  {TEAMS.find(t => t.id === formData.homeTeam)?.name}
-                </span>
-                <TeamLogo teamId={formData.homeTeam} size="sm" />
-              </div>
-            </div>
+              <div className="space-y-4 py-4">
+                <div className="flex flex-col gap-3 rounded-lg bg-gray-50 p-4 dark:bg-card sm:flex-row sm:items-center sm:justify-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <TeamLogo teamId={formData.awayTeam} size="sm" />
+                    <span className="font-bold text-sm">
+                      {TEAMS.find(t => t.id === formData.awayTeam)?.name}
+                    </span>
+                  </div>
+                  <span className="text-center text-gray-400 text-xs font-bold">VS</span>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="font-bold text-sm">
+                      {TEAMS.find(t => t.id === formData.homeTeam)?.name}
+                    </span>
+                    <TeamLogo teamId={formData.homeTeam} size="sm" />
+                  </div>
+                </div>
 
-            {/* Date/Time/Stadium */}
-            <div className="space-y-2 text-sm">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                <span className="text-gray-500">경기 일시</span>
-                <span className="break-words font-medium sm:text-right">
-                  {formData.gameDate} {formData.gameTime || '18:30'}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                <span className="text-gray-500">경기장</span>
-                <span className="break-words font-medium sm:text-right">{formData.stadium}</span>
-              </div>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                <span className="text-gray-500">좌석</span>
-                <span className="break-words font-medium sm:text-right">
-                  {formData.seatDetail
-                    ? [
-                      formData.cheeringSide === 'HOME' ? '[홈응원]' : formData.cheeringSide === 'AWAY' ? '[원정응원]' : formData.cheeringSide === 'NEUTRAL' ? '[중립]' : '',
-                      formData.seatCategory,
-                      formData.seatDetail,
-                    ].filter(Boolean).join(' ')
-                    : formData.section}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                <span className="text-gray-500">모집 인원</span>
-                <span className="font-medium sm:text-right">{formData.maxParticipants}명 (본인 포함)</span>
-              </div>
-            </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                    <span className="text-gray-500">경기 일시</span>
+                    <span className="break-words font-medium sm:text-right">
+                      {formData.gameDate} {formData.gameTime || '18:30'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                    <span className="text-gray-500">경기장</span>
+                    <span className="break-words font-medium sm:text-right">{formData.stadium}</span>
+                  </div>
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                    <span className="text-gray-500">좌석</span>
+                    <span className="break-words font-medium sm:text-right">
+                      {formData.seatDetail
+                        ? [
+                          formData.cheeringSide === 'HOME' ? '[홈응원]' : formData.cheeringSide === 'AWAY' ? '[원정응원]' : formData.cheeringSide === 'NEUTRAL' ? '[중립]' : '',
+                          formData.seatCategory,
+                          formData.seatDetail,
+                        ].filter(Boolean).join(' ')
+                        : formData.section}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                    <span className="text-gray-500">모집 인원</span>
+                    <span className="font-medium sm:text-right">{formData.maxParticipants}명 (본인 포함)</span>
+                  </div>
+                </div>
 
-            {/* Price Info */}
-            <div className="border-t pt-3 space-y-2 text-sm">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                <span className="text-gray-500">거래 기준 금액</span>
-                <span className="font-medium sm:text-right">{formData.ticketPrice.toLocaleString()}원</span>
-              </div>
-              <p className="text-xs text-gray-500">
-                앱 내 결제 없이 승인 후 채팅으로 직거래를 진행합니다.
-              </p>
-            </div>
+                <div className="space-y-2 border-t pt-3 text-sm">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                    <span className="text-gray-500">거래 기준 금액</span>
+                    <span className="font-medium sm:text-right">{formData.ticketPrice.toLocaleString()}원</span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    앱 내 결제 없이 승인 후 채팅으로 직거래를 진행합니다.
+                  </p>
+                </div>
 
-            {/* Description Preview */}
-            <div className="border-t pt-3">
-              <p className="text-xs text-gray-500 mb-1">소개글</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
-                {formData.description}
-              </p>
+                <div className="border-t pt-3">
+                  <p className="mb-1 text-xs text-gray-500">소개글</p>
+                  <p className="line-clamp-3 text-sm text-gray-700 dark:text-gray-300">
+                    {formData.description}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  variant="outline"
+                  onClick={cancelSubmit}
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto"
+                >
+                  수정하기
+                </Button>
+                <Button
+                  onClick={confirmSubmit}
+                  disabled={isSubmitting}
+                  className="w-full bg-primary text-white sm:w-auto"
+                >
+                  {isSubmitting ? '생성 중...' : '확인'}
+                </Button>
+              </div>
             </div>
           </div>
-
-          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button
-              variant="outline"
-              onClick={cancelSubmit}
-              disabled={isSubmitting}
-              className="w-full sm:w-auto"
-            >
-              수정하기
-            </Button>
-            <Button
-              onClick={confirmSubmit}
-              disabled={isSubmitting}
-              className="w-full bg-primary text-white sm:w-auto"
-            >
-              {isSubmitting ? '생성 중...' : '확인'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       <VerificationRequiredDialog
         isOpen={showVerificationDialog}
         onClose={() => setShowVerificationDialog(false)}
       />
-    </div >
+    </div>
   );
 }

@@ -8,7 +8,7 @@ export interface CompressionOptions {
   maxWidthOrHeight?: number;
   /** 압축 품질 (0~1) - 기본값: 0.8 */
   initialQuality?: number;
-  /** WebWorker 사용 여부 - 기본값: true */
+  /** 하위 호환용 옵션이며 현재 로컬 압축기에서는 무시됩니다. */
   useWebWorker?: boolean;
 }
 
@@ -20,14 +20,72 @@ const DEFAULT_OPTIONS: Required<CompressionOptions> = {
   useWebWorker: true,
 };
 
-let imageCompressionLoader: Promise<typeof import('browser-image-compression').default> | null = null;
+const MIN_QUALITY = 0.45;
+const QUALITY_STEP = 0.1;
+const MAX_RESIZE_ATTEMPTS = 4;
+const RESIZE_FACTOR = 0.85;
+const MIN_DIMENSION = 480;
 
-async function getImageCompression() {
-  if (!imageCompressionLoader) {
-    imageCompressionLoader = import('browser-image-compression').then((module) => module.default);
+function clampQuality(quality: number): number {
+  return Math.min(0.95, Math.max(MIN_QUALITY, quality));
+}
+
+function createOutputType(file: File): string {
+  if (file.type === 'image/jpeg' || file.type === 'image/webp') {
+    return file.type;
   }
 
-  return imageCompressionLoader;
+  if (file.type === 'image/png') {
+    return 'image/webp';
+  }
+
+  return file.type;
+}
+
+function renameFileForType(fileName: string, mimeType: string): string {
+  const extensionByType: Record<string, string> = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/webp': '.webp',
+  };
+
+  const extension = extensionByType[mimeType];
+  if (!extension) {
+    return fileName;
+  }
+
+  return fileName.replace(/\.[^.]+$/, '') + extension;
+}
+
+async function loadImageElement(file: File): Promise<HTMLImageElement> {
+  const imageUrl = URL.createObjectURL(file);
+
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(imageUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(imageUrl);
+      reject(new Error('이미지 디코딩에 실패했습니다.'));
+    };
+    image.src = imageUrl;
+  });
+}
+
+async function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  mimeType: string,
+  quality: number,
+): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (blob) => resolve(blob),
+      mimeType,
+      quality,
+    );
+  });
 }
 
 /**
@@ -42,30 +100,86 @@ export async function compressImage(
 ): Promise<File> {
   // 이미 충분히 작은 파일은 압축 건너뛰기
   const maxSizeMB = options.maxSizeMB ?? DEFAULT_OPTIONS.maxSizeMB;
-  if (file.size <= maxSizeMB * 1024 * 1024) {
+  const maxBytes = maxSizeMB * 1024 * 1024;
+
+  if (
+    file.size <= maxBytes ||
+    typeof document === 'undefined' ||
+    !isImageFile(file) ||
+    !isSupportedImageType(file) ||
+    file.type === 'image/gif'
+  ) {
     return file;
   }
 
-  const compressionOptions = {
-    maxSizeMB: options.maxSizeMB ?? DEFAULT_OPTIONS.maxSizeMB,
-    maxWidthOrHeight: options.maxWidthOrHeight ?? DEFAULT_OPTIONS.maxWidthOrHeight,
-    initialQuality: options.initialQuality ?? DEFAULT_OPTIONS.initialQuality,
-    useWebWorker: options.useWebWorker ?? DEFAULT_OPTIONS.useWebWorker,
-    fileType: file.type as 'image/jpeg' | 'image/png' | 'image/webp',
-  };
-
   try {
-    const imageCompression = await getImageCompression();
-    const originalSize = file.size;
-    const compressedFile = await imageCompression(file, compressionOptions);
-    const compressedSize = compressedFile.size;
-    const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+    const image = await loadImageElement(file);
+    const maxWidthOrHeight = options.maxWidthOrHeight ?? DEFAULT_OPTIONS.maxWidthOrHeight;
+    const initialQuality = clampQuality(options.initialQuality ?? DEFAULT_OPTIONS.initialQuality);
+    const outputType = createOutputType(file);
 
-    // 압축된 파일에 원본 파일명 유지
-    return new File([compressedFile], file.name, {
-      type: compressedFile.type,
-      lastModified: Date.now(),
-    });
+    const longestSide = Math.max(image.naturalWidth, image.naturalHeight);
+    const baseScale = longestSide > maxWidthOrHeight ? maxWidthOrHeight / longestSide : 1;
+    let width = Math.max(1, Math.round(image.naturalWidth * baseScale));
+    let height = Math.max(1, Math.round(image.naturalHeight * baseScale));
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { alpha: outputType !== 'image/jpeg' });
+
+    if (!context) {
+      return file;
+    }
+
+    let bestBlob: Blob | null = null;
+
+    for (let attempt = 0; attempt <= MAX_RESIZE_ATTEMPTS; attempt += 1) {
+      canvas.width = width;
+      canvas.height = height;
+      context.clearRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+
+      for (let quality = initialQuality; quality >= MIN_QUALITY; quality -= QUALITY_STEP) {
+        const blob = await canvasToBlob(canvas, outputType, clampQuality(quality));
+        if (!blob) {
+          continue;
+        }
+
+        if (!bestBlob || blob.size < bestBlob.size) {
+          bestBlob = blob;
+        }
+
+        if (blob.size <= maxBytes) {
+          return new File(
+            [blob],
+            renameFileForType(file.name, blob.type || outputType),
+            {
+              type: blob.type || outputType,
+              lastModified: file.lastModified,
+            },
+          );
+        }
+      }
+
+      if (Math.max(width, height) <= MIN_DIMENSION) {
+        break;
+      }
+
+      width = Math.max(1, Math.round(width * RESIZE_FACTOR));
+      height = Math.max(1, Math.round(height * RESIZE_FACTOR));
+    }
+
+    if (bestBlob && bestBlob.size < file.size) {
+      return new File(
+        [bestBlob],
+        renameFileForType(file.name, bestBlob.type || outputType),
+        {
+          type: bestBlob.type || outputType,
+          lastModified: file.lastModified,
+        },
+      );
+    }
+
+    return file;
   } catch (error) {
     console.error(`[ImageCompression] ${file.name} 압축 실패:`, error);
     // 압축 실패 시 원본 반환

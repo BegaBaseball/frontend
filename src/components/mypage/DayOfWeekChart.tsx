@@ -1,4 +1,3 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { DayStats } from '../../types/diary';
 
@@ -15,6 +14,7 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
             day,
             winRate: Math.round(dayOfWeekStats[day].winRate),
             count: dayOfWeekStats[day].count,
+            wins: dayOfWeekStats[day].wins,
         }));
 
     if (data.length === 0) {
@@ -30,21 +30,7 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
         );
     }
 
-    const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
-        if (active && payload && payload.length) {
-            const entry = dayOfWeekStats[label ?? ''];
-            return (
-                <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-sm">
-                    <p className="font-bold text-primary">{label}요일</p>
-                    <p className="text-muted-foreground">승률: <span className="font-semibold">{payload[0].value}%</span></p>
-                    {entry && (
-                        <p className="text-muted-foreground text-xs">{entry.count}경기 · {entry.wins}승</p>
-                    )}
-                </div>
-            );
-        }
-        return null;
-    };
+    const tickValues = [100, 75, 50, 25, 0];
 
     return (
         <Card className="h-full">
@@ -52,39 +38,51 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
                 <CardTitle className="text-lg font-bold text-primary">요일별 승률</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                            data={data}
-                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                        >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                            <XAxis
-                                dataKey="day"
-                                tick={{ fontSize: 12, fill: '#6b7280' }}
-                                axisLine={false}
-                                tickLine={false}
-                                tickFormatter={(v) => `${v}요일`}
-                            />
-                            <YAxis
-                                tick={{ fontSize: 12, fill: '#6b7280' }}
-                                axisLine={false}
-                                tickLine={false}
-                                domain={[0, 100]}
-                                tickFormatter={(v) => `${v}%`}
-                            />
-                            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(45, 95, 79, 0.1)' }} />
-                            <ReferenceLine y={50} stroke="#e5e7eb" strokeDasharray="4 2" />
-                            <Bar dataKey="winRate" radius={[4, 4, 0, 0]} barSize={24}>
-                                {data.map((entry) => (
-                                    <Cell
-                                        key={entry.day}
-                                        fill={entry.winRate >= 50 ? '#2d5f4f' : '#9ca3af'}
-                                    />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                <div className="grid h-[250px] grid-cols-[36px_minmax(0,1fr)] gap-3">
+                    <div className="flex h-[210px] flex-col justify-between pt-2 text-[11px] font-medium text-muted-foreground">
+                        {tickValues.map((tick) => (
+                            <span key={tick}>{tick}%</span>
+                        ))}
+                    </div>
+
+                    <div className="relative">
+                        <div className="pointer-events-none absolute inset-x-0 bottom-12 top-2 flex flex-col justify-between">
+                            {tickValues.map((tick) => (
+                                <div
+                                    key={tick}
+                                    className={tick === 50
+                                        ? 'border-t border-dashed border-primary/40'
+                                        : 'border-t border-dashed border-slate-200 dark:border-border'}
+                                />
+                            ))}
+                        </div>
+
+                        <div className="relative flex h-full items-end gap-3">
+                            {data.map((entry) => {
+                                const barHeight = Math.max((entry.winRate / 100) * 150, 12);
+                                const barColor = entry.winRate >= 50 ? '#2d5f4f' : '#9ca3af';
+
+                                return (
+                                    <div key={entry.day} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-300">
+                                            {entry.winRate}%
+                                        </span>
+                                        <div className="flex h-[150px] w-full items-end justify-center">
+                                            <div
+                                                className="w-full max-w-[34px] rounded-t-lg shadow-sm transition-all duration-300"
+                                                style={{ height: `${barHeight}px`, backgroundColor: barColor }}
+                                                title={`${entry.day}요일 ${entry.winRate}% · ${entry.wins}승 / ${entry.count}경기`}
+                                            />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-xs font-semibold text-foreground">{entry.day}</p>
+                                            <p className="text-[11px] text-muted-foreground">{entry.count}경기</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
                 </div>
             </CardContent>
         </Card>

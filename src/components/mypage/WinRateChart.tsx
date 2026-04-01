@@ -1,5 +1,3 @@
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 interface WinRateChartProps {
@@ -17,6 +15,14 @@ export default function WinRateChart({ wins, draws, losses, winRate }: WinRateCh
     ].filter(item => item.value > 0);
 
     const total = wins + draws + losses;
+    const conicStops = data.reduce<string[]>((acc, item, index) => {
+        const previousDegrees = data
+            .slice(0, index)
+            .reduce((sum, current) => sum + ((current.value / total) * 360), 0);
+        const currentDegrees = previousDegrees + ((item.value / total) * 360);
+        acc.push(`${item.color} ${previousDegrees}deg ${currentDegrees}deg`);
+        return acc;
+    }, []);
 
     if (total === 0) {
         return (
@@ -37,34 +43,32 @@ export default function WinRateChart({ wins, draws, losses, winRate }: WinRateCh
                 <CardTitle className="text-lg font-bold text-primary">승리요정 분석</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[250px] w-full relative">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie
-                                data={data}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                            >
-                                {data.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
-                                ))}
-                            </Pie>
-                            <Tooltip
-                                formatter={(value: number) => [`${value}경기`, '']}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Legend verticalAlign="bottom" height={36} />
-                        </PieChart>
-                    </ResponsiveContainer>
+                <div className="flex h-[250px] flex-col items-center justify-center gap-6">
+                    <div
+                        className="relative flex h-40 w-40 items-center justify-center rounded-full shadow-sm"
+                        style={{ background: `conic-gradient(${conicStops.join(', ')})` }}
+                    >
+                        <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-card shadow-inner">
+                            <div className="text-3xl font-black text-primary">{winRate.toFixed(0)}%</div>
+                            <div className="text-xs font-semibold text-muted-foreground">승률</div>
+                        </div>
+                    </div>
 
-                    {/* Center Label */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 -mt-4 text-center">
-                        <div className="text-3xl font-black text-primary">{winRate.toFixed(0)}%</div>
-                        <div className="text-xs text-muted-foreground font-semibold">승률</div>
+                    <div className="grid w-full gap-2">
+                        {data.map((entry) => (
+                            <div key={entry.name} className="flex items-center justify-between rounded-xl bg-muted/60 px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                    <span
+                                        className="h-3 w-3 rounded-full"
+                                        style={{ backgroundColor: entry.color }}
+                                    />
+                                    <span className="text-sm font-medium text-foreground">{entry.name}</span>
+                                </div>
+                                <span className="text-sm font-semibold text-muted-foreground">
+                                    {entry.value}경기
+                                </span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </CardContent>

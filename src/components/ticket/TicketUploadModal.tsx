@@ -1,30 +1,47 @@
-import React, { useEffect, useState, useRef } from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
+import React, { cloneElement, isValidElement, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { analyzeTicket, TicketInfo } from '@/api/ticket';
 import { Loader2, Upload, Ticket, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import PlainDialog from '@/components/ui/plain-dialog';
 
 interface TicketUploadModalProps {
     onTicketAnalyzed?: (data: TicketInfo) => void;
     onConfirm?: (data: TicketInfo) => void;
     trigger?: React.ReactNode;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }
 
-export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: TicketUploadModalProps) {
-    const [open, setOpen] = useState(false);
+export function TicketUploadModal({
+    onTicketAnalyzed,
+    onConfirm,
+    trigger,
+    open,
+    onOpenChange,
+}: TicketUploadModalProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [ticketData, setTicketData] = useState<TicketInfo | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const isControlled = open !== undefined;
+    const resolvedOpen = isControlled ? open : internalOpen;
+    const defaultTrigger = (
+        <Button variant="outline" className="gap-2">
+            <Ticket className="w-4 h-4" />
+            티켓 등록하기
+        </Button>
+    );
+    const triggerContent = trigger === undefined ? defaultTrigger : trigger;
+
+    const handleOpenChange = (newOpen: boolean) => {
+        if (!isControlled) {
+            setInternalOpen(newOpen);
+        }
+        onOpenChange?.(newOpen);
+    };
 
     useEffect(() => {
         return () => {
@@ -37,6 +54,10 @@ export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: Tick
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+        }
 
         // Create preview
         const url = URL.createObjectURL(file);
@@ -74,10 +95,13 @@ export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: Tick
         if (onConfirm) {
             onConfirm(ticketData);
         }
-        setOpen(false);
+        handleOpenChange(false);
     };
 
     const resetForm = () => {
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+        }
         setTicketData(null);
         setPreviewUrl(null);
         if (fileInputRef.current) {
@@ -85,29 +109,63 @@ export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: Tick
         }
     };
 
-    const handleOpenChange = (newOpen: boolean) => {
-        if (!newOpen) {
-            // Keep state for now
+    const renderTrigger = () => {
+        if (triggerContent === null) {
+            return null;
         }
-        setOpen(newOpen);
+
+        if (triggerContent && isValidElement<{ onClick?: (event: MouseEvent<HTMLElement>) => void }>(triggerContent)) {
+            const originalOnClick = triggerContent.props.onClick;
+            return cloneElement(triggerContent, {
+                onClick: (event: MouseEvent<HTMLElement>) => {
+                    originalOnClick?.(event);
+                    if (!event.defaultPrevented) {
+                        handleOpenChange(true);
+                    }
+                },
+            });
+        }
+
+        return (
+            <span className="contents" onClick={() => handleOpenChange(true)}>
+                {triggerContent}
+            </span>
+        );
     };
 
     return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-                {trigger || (
-                    <Button variant="outline" className="gap-2">
-                        <Ticket className="w-4 h-4" />
-                        티켓 등록하기
-                    </Button>
+        <>
+            {renderTrigger()}
+            <PlainDialog
+                open={resolvedOpen}
+                onClose={() => handleOpenChange(false)}
+                title="티켓 이미지 업로드"
+                description="티켓 이미지를 올리면 날짜, 좌석, 매치업 정보를 자동으로 추출합니다."
+                className="sm:max-w-md max-h-[90vh] overflow-hidden"
+                bodyClassName="max-h-[calc(90vh-81px)] overflow-y-auto"
+                footer={(
+                    <>
+                        <Button variant="outline" onClick={() => handleOpenChange(false)}>취소</Button>
+                        {ticketData ? (
+                            <Button
+                                onClick={handleConfirm}
+                                className="bg-primary hover:bg-primary/90 text-white font-bold"
+                            >
+                                기록하러 가기
+                            </Button>
+                        ) : (
+                            <Button
+                                disabled={!previewUrl || isLoading}
+                                onClick={() => fileInputRef.current?.click()}
+                                className="bg-primary hover:bg-primary/90 text-white font-bold"
+                            >
+                                이미지 분석하기
+                            </Button>
+                        )}
+                    </>
                 )}
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>티켓 이미지 업로드</DialogTitle>
-                </DialogHeader>
-
-                <div className="flex flex-col gap-6 py-4">
+            >
+                <div className="flex flex-col gap-6 py-1">
                     {/* Upload Area */}
                     <div className="grid w-full items-center gap-1.5">
                         {!previewUrl ? (
@@ -167,7 +225,7 @@ export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: Tick
 
                             <div className="grid gap-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="date" className="text-right text-xs">날짜</Label>
+                                    <label htmlFor="date" className="text-right text-xs">날짜</label>
                                     <Input
                                         id="date"
                                         value={ticketData.date || ''}
@@ -177,7 +235,7 @@ export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: Tick
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="stadium" className="text-right text-xs">구장</Label>
+                                    <label htmlFor="stadium" className="text-right text-xs">구장</label>
                                     <Input
                                         id="stadium"
                                         value={ticketData.stadium || ''}
@@ -186,7 +244,7 @@ export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: Tick
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="matchup" className="text-right text-xs">매치업</Label>
+                                    <label htmlFor="matchup" className="text-right text-xs">매치업</label>
                                     <div className="col-span-3 flex items-center gap-2">
                                         <Input
                                             value={ticketData.awayTeam || ''}
@@ -204,7 +262,7 @@ export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: Tick
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="seat" className="text-right text-xs">좌석</Label>
+                                    <label htmlFor="seat" className="text-right text-xs">좌석</label>
                                     <div className="col-span-3 grid grid-cols-3 gap-2">
                                         <Input
                                             value={ticketData.section || ''}
@@ -230,27 +288,7 @@ export function TicketUploadModal({ onTicketAnalyzed, onConfirm, trigger }: Tick
                         </div>
                     )}
                 </div>
-
-                <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
-                    {ticketData ? (
-                        <Button
-                            onClick={handleConfirm}
-                            className="bg-primary hover:bg-primary/90 text-white font-bold"
-                        >
-                            기록하러 가기
-                        </Button>
-                    ) : (
-                        <Button
-                            disabled={!previewUrl || isLoading}
-                            onClick={() => fileInputRef.current?.click()}
-                            className="bg-primary hover:bg-primary/90 text-white font-bold"
-                        >
-                            이미지 분석하기
-                        </Button>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
+            </PlainDialog>
+        </>
     );
 }

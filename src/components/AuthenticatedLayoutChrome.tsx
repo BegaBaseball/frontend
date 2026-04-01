@@ -29,6 +29,7 @@ export default function AuthenticatedLayoutChrome() {
       ) : (
         <button
           type="button"
+          data-testid="chatbot-request-launcher"
           onClick={() => setIsChatBotRequested(true)}
           className={`fixed z-[9999] h-14 w-14
                      sm:h-16 sm:w-16 sm:min-h-[64px] sm:min-w-[64px]

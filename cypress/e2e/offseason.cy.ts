@@ -47,9 +47,14 @@ describe('Offseason Mode', () => {
                 body: mockMetadata,
             }).as('getMetadata');
 
-            cy.intercept('GET', '**/kbo/rankings/*', {
+            cy.intercept('GET', '**/kbo/rankings/snapshot*', {
                 statusCode: 200,
-                body: mockMetadata.finalRankings,
+                body: {
+                    rankingSeasonYear: 2025,
+                    rankingSourceMessage: '2025 시즌 순위 데이터',
+                    isOffSeason: false,
+                    rankings: mockMetadata.finalRankings,
+                },
             }).as('getRankings');
 
             cy.visit('/offseason');

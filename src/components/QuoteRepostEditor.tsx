@@ -4,15 +4,10 @@ import { CheerPost, EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import { useCheerMutations } from '../hooks/useCheerQueries';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import EmbeddedPost from './EmbeddedPost';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from './ui/dialog';
 import { toast } from 'sonner';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { ProfileAvatar } from './ui/ProfileAvatar';
+import PlainDialog from './ui/plain-dialog';
 
 interface QuoteRepostEditorProps {
     isOpen: boolean;
@@ -81,30 +76,36 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-            <DialogContent className="sm:max-w-[500px] p-0 gap-0 max-h-[90vh] overflow-hidden flex flex-col">
-                <DialogHeader className="px-4 py-3 border-b border-gray-100 dark:border-border flex-shrink-0">
-                        <div className="flex items-center justify-between">
-                            <button
-                                type="button"
-                                onClick={handleClose}
-                                className="p-1 -ml-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                disabled={quoteRepostMutation.isPending}
-                            >
+        <PlainDialog
+            open={isOpen}
+            onClose={handleClose}
+            hideCloseButton
+            className="max-w-[500px] max-h-[90vh] overflow-hidden"
+            bodyClassName="p-0"
+        >
+            <div className="flex max-h-[90vh] flex-col">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-border flex-shrink-0">
+                    <div className="flex items-center justify-between">
+                        <button
+                            type="button"
+                            onClick={() => void handleClose()}
+                            className="p-1 -ml-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            disabled={quoteRepostMutation.isPending}
+                        >
                             <X className="w-5 h-5 text-gray-500" />
                         </button>
-                        <DialogTitle className="text-base font-semibold">
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                             인용 리포스트
-                        </DialogTitle>
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                disabled={!canSubmit}
-                                className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${
-                                canSubmit
-                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                    : 'bg-gray-200 dark:bg-secondary text-gray-400 cursor-not-allowed'
-                            }`}
+                        </h2>
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={!canSubmit}
+                            className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${
+                            canSubmit
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                : 'bg-gray-200 dark:bg-secondary text-gray-400 cursor-not-allowed'
+                        }`}
                         >
                             {quoteRepostMutation.isPending ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -113,10 +114,9 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                             )}
                         </button>
                     </div>
-                </DialogHeader>
+                </div>
 
                 <div className="flex-1 overflow-y-auto p-4">
-                    {/* 작성자 정보 */}
                     <div className="flex gap-3">
                         <div className="h-10 w-10 flex-shrink-0">
                             <ProfileAvatar
@@ -140,7 +140,6 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                                 </span>
                             </div>
 
-                            {/* 텍스트 입력 */}
                             <textarea
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
@@ -150,13 +149,11 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                                 autoFocus
                             />
 
-                            {/* 원본 게시글 미리보기 */}
                             <EmbeddedPost post={embeddedOriginal} />
                         </div>
                     </div>
                 </div>
 
-                {/* 하단 글자 수 표시 */}
                 <div className="px-4 py-3 border-t border-gray-100 dark:border-border flex-shrink-0">
                     <div className="flex justify-end">
                         <span
@@ -172,7 +169,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                         </span>
                     </div>
                 </div>
-            </DialogContent>
-        </Dialog>
+            </div>
+        </PlainDialog>
     );
 }

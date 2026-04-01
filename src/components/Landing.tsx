@@ -1,14 +1,16 @@
-import { ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import begaCharacter from '../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import './Landing.css';
 import { LANDING_FEATURES } from '../constants/landing';
 import { useLandingScroll } from '../hooks/useLandingScroll';
 import { useAuthSession } from '../store/authStore';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import { requestLoadTrace } from '../utils/requestLoadTrace';
 import FeatureCard from './FeatureCard';
+import { ArrowRightIcon } from './icons/PublicShellIcons';
 import LaptopMockup from './LaptopMockup';
 import { OptimizedImage } from './common/OptimizedImage';
 import { Button } from './ui/button';
@@ -50,24 +52,6 @@ const FOOTER_SECTIONS = [
   },
 ] as const;
 
-const isLoadTraceEnabled = (): boolean => {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  return new URLSearchParams(window.location.search).get('traceLoad') === '1';
-};
-
-const traceLoadEvent = (label: string) => {
-  if (!isLoadTraceEnabled()) {
-    return;
-  }
-
-  const now = performance.now().toFixed(2);
-  performance.mark(`load-order:${label}`);
-  console.info(`[load-order][${now}ms] ${label}`);
-};
-
 export default function Landing() {
   const [activeFeature, setActiveFeature] = useState(0);
   const [expandedFeature, setExpandedFeature] = useState<number | null>(null);
@@ -75,10 +59,10 @@ export default function Landing() {
   const { isLoggedIn } = useAuthSession();
 
   useEffect(() => {
-    traceLoadEvent('Landing mount');
+    requestLoadTrace('Landing mount');
 
     return () => {
-      traceLoadEvent('Landing unmount');
+      requestLoadTrace('Landing unmount');
     };
   }, []);
 
@@ -226,7 +210,7 @@ export default function Landing() {
                 className="group w-full sm:w-auto"
               >
                 지금 바로 시작하기
-                <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                <ArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
               <Button
                 size="touchLg"
@@ -352,7 +336,7 @@ export default function Landing() {
                 className="group mt-8 border-white/15 bg-white text-primary hover:bg-white/90"
               >
                 무료로 시작하기
-                <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                <ArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
             </div>
           </div>

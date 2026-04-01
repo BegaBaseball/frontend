@@ -1,6 +1,4 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { OpponentStats } from '../../types/diary';
 
 interface OpponentWinRateChartProps {
@@ -39,23 +37,31 @@ export default function OpponentWinRateChart({ opponentStats = {} }: OpponentWin
                 <CardTitle className="text-lg font-bold text-primary">상대팀별 직관 승률 (Top 8)</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                            <XAxis type="number" domain={[0, 100]} unit="%" hide />
-                            <YAxis dataKey="team" type="category" width={60} tick={{ fontSize: 12, fontWeight: 'bold' }} />
-                            <Tooltip
-                                formatter={(value, name, props) => [`${value}% (${props.payload.wins}/${props.payload.games}승)`, '승률']}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Bar dataKey="winRate" radius={[0, 4, 4, 0]} barSize={20}>
-                                {data.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.winRate >= 50 ? '#2d5f4f' : '#ef4444'} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                <div className="space-y-4">
+                    {data.map((entry) => {
+                        const barColor = entry.winRate >= 50 ? '#2d5f4f' : '#ef4444';
+
+                        return (
+                            <div key={entry.team} className="space-y-1.5">
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="truncate text-sm font-semibold text-foreground">{entry.team}</span>
+                                    <span className="shrink-0 text-sm font-bold" style={{ color: barColor }}>
+                                        {entry.winRate}%
+                                    </span>
+                                </div>
+                                <div className="h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-secondary">
+                                    <div
+                                        className="h-full rounded-full transition-all duration-300"
+                                        style={{ width: `${entry.winRate}%`, backgroundColor: barColor }}
+                                        title={`${entry.team} ${entry.winRate}% (${entry.wins}승 / ${entry.games}경기)`}
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {entry.wins}승 / {entry.games}경기
+                                </p>
+                            </div>
+                        );
+                    })}
                 </div>
             </CardContent>
         </Card>

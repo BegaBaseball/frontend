@@ -1,313 +1,134 @@
-import styled, { keyframes, css } from 'styled-components';
-import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { fonts, crispText, textOutline } from './RetroTheme';
+import { CSSProperties, useState } from 'react';
 
-const float = keyframes`
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-`;
+const retroDisplay = "'Press Start 2P', monospace";
+const retroText = "'Galmuri11', 'Galmuri9', sans-serif";
+const textOutline =
+  '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
 
-const floatHover = keyframes`
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-8px) scale(1.05); }
-`;
-
-const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 5px currentColor; }
-  50% { box-shadow: 0 0 15px currentColor, 0 0 25px currentColor; }
-`;
-
-const shimmer = keyframes`
-  0% { background-position: -100% 0; }
-  100% { background-position: 200% 0; }
-`;
-
-const InventoryContainer = styled.div`
-  background:
-    /* 그리드 패턴 */
-    repeating-linear-gradient(
-      0deg,
-      transparent 0px,
-      transparent 20px,
-      rgba(74, 74, 106, 0.1) 20px,
-      rgba(74, 74, 106, 0.1) 21px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      transparent 20px,
-      rgba(74, 74, 106, 0.1) 20px,
-      rgba(74, 74, 106, 0.1) 21px
-    ),
-    linear-gradient(180deg, #0a0a1e 0%, #050510 100%);
-  border-top: 3px solid #4a4a6a;
-  padding: 24px 20px;
-  position: relative;
-
-  /* 코너 장식 */
-  &::before,
-  &::after {
-    content: '🎮';
-    position: absolute;
-    font-size: 14px;
-    opacity: 0.5;
+const powerupInventoryStyles = `
+  @keyframes retroPowerupFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
   }
-  &::before {
-    top: 12px;
-    left: 12px;
-  }
-  &::after {
-    bottom: 12px;
-    right: 12px;
-  }
-`;
 
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid rgba(0, 255, 255, 0.2);
+  @keyframes retroPowerupFloatHover {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-8px) scale(1.05); }
+  }
 
-  h3 {
-    font-family: ${fonts.retroDisplay};
-    font-size: 11px;
-    color: #00ffff;
+  @keyframes retroPowerupGlow {
+    0%, 100% { box-shadow: 0 0 5px currentColor; }
+    50% { box-shadow: 0 0 15px currentColor, 0 0 25px currentColor; }
+  }
+
+  @keyframes retroPowerupShimmer {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(220%); }
+  }
+
+  @keyframes retroPowerupModalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes retroPowerupModalPopIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .retro-powerup-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .retro-powerup-card {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-    ${crispText}
+    padding: 20px 16px;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.3s ease, box-shadow 0.3s ease;
   }
 
-  .help {
-    font-family: ${fonts.retroDisplay};
-    font-size: 9px;
-    color: #6a6a8a;
-    cursor: help;
-    padding: 4px 8px;
-    border: 1px solid #4a4a6a;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    ${crispText}
-
-    &:hover {
-      color: #00ffff;
-      border-color: #00ffff;
-    }
-  }
-`;
-
-const PowerupsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const PowerupCard = styled(motion.button)<{
-  $color: string;
-  $available: boolean;
-  $active?: boolean;
-  $hasItem: boolean;
-}>`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 16px;
-  background: ${props => {
-    if (props.$active) {
-      return `linear-gradient(180deg, ${props.$color}33 0%, ${props.$color}11 100%)`;
-    }
-    if (!props.$hasItem) {
-      return 'rgba(0, 0, 0, 0.6)';
-    }
-    return 'rgba(0, 0, 0, 0.4)';
-  }};
-  border: 2px solid ${props => props.$hasItem ? props.$color : '#222'};
-  border-radius: 8px;
-  cursor: ${props => props.$available ? 'pointer' : 'not-allowed'};
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-
-  /* 미보유 시 흑백 처리 */
-  filter: ${props => props.$hasItem ? 'none' : 'grayscale(100%) brightness(0.5)'};
-
-  ${props => props.$active && css`
-    animation: ${glow} 2s infinite;
-    color: ${props.$color};
-  `}
-
-  /* 보유 아이템 빛나는 테두리 */
-  ${props => props.$hasItem && css`
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, ${props.$color}40, transparent);
-      animation: ${shimmer} 3s infinite;
-    }
-  `}
-
-  &:hover {
-    ${props => props.$available && css`
-      transform: scale(1.05) translateY(-8px);
-      border-color: #fff;
-      box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.3),
-        0 0 20px ${props.$color}60;
-
-      .icon {
-        animation: ${floatHover} 0.6s ease-in-out infinite;
-      }
-    `}
+  .retro-powerup-card.is-active {
+    animation: retroPowerupGlow 2s infinite;
   }
 
-  .icon {
+  .retro-powerup-card.has-item .retro-powerup-shimmer {
+    position: absolute;
+    inset: 0;
+    animation: retroPowerupShimmer 3s linear infinite;
+    pointer-events: none;
+  }
+
+  .retro-powerup-card.is-clickable:hover {
+    transform: scale(1.05) translateY(-8px);
+    border-color: #ffffff;
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.3),
+      0 0 20px rgba(255, 255, 255, 0.18);
+  }
+
+  .retro-powerup-card.is-clickable:hover .retro-powerup-icon {
+    animation: retroPowerupFloatHover 0.6s ease-in-out infinite;
+  }
+
+  .retro-powerup-card.is-clickable:active {
+    transform: scale(0.98);
+  }
+
+  .retro-powerup-icon {
     font-size: 48px;
     margin-bottom: 14px;
-    animation: ${float} 3s ease-in-out infinite;
-    filter: ${props => props.$hasItem
-      ? `drop-shadow(0 0 10px ${props.$color}80)`
-      : 'none'
-    };
+    animation: retroPowerupFloat 3s ease-in-out infinite;
   }
 
-  .name {
-    font-family: ${fonts.retroText};
-    font-size: 12px;
-    color: ${props => props.$hasItem ? props.$color : '#444'};
-    margin-bottom: 8px;
-    text-align: center;
-    letter-spacing: -0.3px;
-    ${crispText}
-    text-shadow: ${props => props.$hasItem
-      ? `-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px ${props.$color}60`
-      : 'none'
-    };
+  .retro-powerup-help {
+    transition: color 0.2s ease, border-color 0.2s ease;
   }
 
-  .description {
-    font-family: ${fonts.retroText};
-    font-size: 10px;
-    color: ${props => props.$hasItem ? '#bbb' : '#555'};
-    text-align: center;
-    line-height: 1.6;
-    margin-bottom: 14px;
-    min-height: 32px;
-    letter-spacing: -0.3px;
-    ${crispText}
-    ${textOutline}
+  .retro-powerup-help:hover {
+    color: #00ffff;
+    border-color: #00ffff;
   }
 
-  .count {
-    font-family: ${fonts.retroDisplay};
-    font-size: 14px;
-    color: ${props => props.$hasItem ? '#fff' : '#444'};
-    background: ${props => props.$hasItem
-      ? `linear-gradient(180deg, ${props.$color}40 0%, ${props.$color}20 100%)`
-      : 'rgba(0, 0, 0, 0.5)'
-    };
-    padding: 6px 16px;
-    border-radius: 4px;
-    border: 2px solid ${props => props.$hasItem ? props.$color : '#333'};
-    ${crispText}
-    ${props => props.$hasItem && css`
-      text-shadow: 0 0 8px ${props.$color};
-    `}
-  }
-`;
-
-const ActiveBadge = styled.div`
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: #00ff00;
-  color: #000;
-  font-family: ${fonts.retroDisplay};
-  font-size: 6px;
-  padding: 3px 6px;
-  border-radius: 2px;
-  ${crispText}
-`;
-
-const Modal = styled(motion.div)`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 20px;
-`;
-
-const ModalContent = styled(motion.div)`
-  background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1e 100%);
-  border: 3px solid #ff00ff;
-  border-radius: 8px;
-  padding: 24px;
-  max-width: 400px;
-  width: 100%;
-  text-align: center;
-
-  h4 {
-    font-family: ${fonts.retroText};
-    font-size: 14px;
-    color: #ff00ff;
-    margin-bottom: 16px;
-    letter-spacing: -0.3px;
-    ${crispText}
-    ${textOutline}
+  .retro-powerup-modal {
+    animation: retroPowerupModalFadeIn 0.18s ease-out;
   }
 
-  p {
-    font-family: ${fonts.retroText};
-    font-size: 11px;
-    color: #bbb;
-    line-height: 1.8;
-    margin-bottom: 24px;
-    letter-spacing: -0.3px;
-    ${crispText}
-    ${textOutline}
+  .retro-powerup-modal-content {
+    animation: retroPowerupModalPopIn 0.2s ease-out;
   }
 
-  .buttons {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
+  .retro-powerup-modal-button {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
-`;
 
-const ModalButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-  font-family: ${fonts.retroText};
-  font-size: 11px;
-  padding: 12px 24px;
-  border: 2px solid ${props => props.$variant === 'primary' ? '#00ff00' : '#666'};
-  background: ${props => props.$variant === 'primary'
-    ? 'linear-gradient(180deg, #00aa00 0%, #006600 100%)'
-    : 'transparent'
-  };
-  color: ${props => props.$variant === 'primary' ? '#fff' : '#888'};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  ${crispText}
-  ${textOutline}
-
-  &:hover {
+  .retro-powerup-modal-button:hover:not(:disabled) {
     transform: translateY(-2px);
-    ${props => props.$variant === 'primary'
-      ? 'box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);'
-      : 'color: #fff; border-color: #888;'
+  }
+
+  .retro-powerup-modal-button.primary:hover:not(:disabled) {
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+  }
+
+  .retro-powerup-modal-button.secondary:hover:not(:disabled) {
+    color: #fff;
+    border-color: #888;
+  }
+
+  @media (max-width: 480px) {
+    .retro-powerup-grid {
+      grid-template-columns: 1fr;
     }
   }
 `;
@@ -355,6 +176,27 @@ interface PowerUpInventoryProps {
   disabled?: boolean;
 }
 
+const getPowerupCardStyle = (
+  color: string,
+  hasItem: boolean,
+  isActive: boolean,
+  actionable: boolean,
+): CSSProperties => ({
+  background: isActive
+    ? `linear-gradient(180deg, ${color}33 0%, ${color}11 100%)`
+    : hasItem
+      ? 'rgba(0, 0, 0, 0.4)'
+      : 'rgba(0, 0, 0, 0.6)',
+  border: `2px solid ${hasItem ? color : '#222'}`,
+  cursor: actionable ? 'pointer' : 'not-allowed',
+  filter: hasItem ? 'none' : 'grayscale(100%) brightness(0.5)',
+});
+
+const getPowerupTextStyle = (color: string, hasItem: boolean): CSSProperties => ({
+  color: hasItem ? color : '#444',
+  textShadow: hasItem ? `${textOutline}, 0 0 8px ${color}60` : 'none',
+});
+
 export default function PowerUpInventory({
   powerups,
   activePowerups = [],
@@ -379,85 +221,288 @@ export default function PowerUpInventory({
   };
 
   return (
-    <InventoryContainer>
-      <Header>
-        <h3>
+    <div
+      style={{
+        background: `
+          repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 20px,
+            rgba(74, 74, 106, 0.1) 20px,
+            rgba(74, 74, 106, 0.1) 21px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent 0px,
+            transparent 20px,
+            rgba(74, 74, 106, 0.1) 20px,
+            rgba(74, 74, 106, 0.1) 21px
+          ),
+          linear-gradient(180deg, #0a0a1e 0%, #050510 100%)
+        `,
+        borderTop: '3px solid #4a4a6a',
+        padding: '24px 20px',
+        position: 'relative',
+      }}
+    >
+      <style>{powerupInventoryStyles}</style>
+
+      <span style={{ position: 'absolute', top: '12px', left: '12px', fontSize: '14px', opacity: 0.5 }}>🎮</span>
+      <span style={{ position: 'absolute', bottom: '12px', right: '12px', fontSize: '14px', opacity: 0.5 }}>🎮</span>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '20px',
+          paddingBottom: '12px',
+          borderBottom: '2px solid rgba(0, 255, 255, 0.2)',
+        }}
+      >
+        <h3
+          style={{
+            fontFamily: retroDisplay,
+            fontSize: '11px',
+            color: '#00ffff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            textShadow: '0 0 10px rgba(0, 255, 255, 0.5)',
+            margin: 0,
+            imageRendering: 'pixelated',
+          }}
+        >
           <span>🎮</span>
           POWER-UPS
         </h3>
-        <span className="help" title="아이템은 예측 화면에서 사용할 수 있습니다">
+        <span
+          className="retro-powerup-help"
+          title="아이템은 예측 화면에서 사용할 수 있습니다"
+          style={{
+            fontFamily: retroDisplay,
+            fontSize: '9px',
+            color: '#6a6a8a',
+            cursor: 'help',
+            padding: '4px 8px',
+            border: '1px solid #4a4a6a',
+            borderRadius: '4px',
+            imageRendering: 'pixelated',
+          }}
+        >
           ?
         </span>
-      </Header>
+      </div>
 
-      <PowerupsGrid>
+      <div className="retro-powerup-grid">
         {POWERUPS.map((powerup) => {
           const count = powerups[powerup.type] || 0;
           const isActive = activePowerups.includes(powerup.type);
           const hasItem = count > 0;
           const available = hasItem && !disabled;
+          const actionable = available && !isActive && Boolean(onUsePowerup);
 
           return (
-            <PowerupCard
+            <button
               key={powerup.type}
-              $color={powerup.color}
-              $available={available}
-              $active={isActive}
-              $hasItem={hasItem}
-              onClick={() => available && !isActive && setSelectedPowerup(powerup)}
-              whileTap={available ? { scale: 0.98 } : undefined}
+              type="button"
+              className={[
+                'retro-powerup-card',
+                hasItem ? 'has-item' : '',
+                isActive ? 'is-active' : '',
+                actionable ? 'is-clickable' : '',
+              ].filter(Boolean).join(' ')}
+              style={getPowerupCardStyle(powerup.color, hasItem, isActive, actionable)}
+              onClick={() => actionable && setSelectedPowerup(powerup)}
+              disabled={!actionable}
             >
-              {isActive && <ActiveBadge>ACTIVE</ActiveBadge>}
-              <span className="icon">{powerup.icon}</span>
-              <span className="name">{powerup.nameKo}</span>
-              <span className="description">{powerup.description}</span>
-              <span className="count">x{count}</span>
-            </PowerupCard>
+              {hasItem && (
+                <span
+                  className="retro-powerup-shimmer"
+                  style={{
+                    background: `linear-gradient(90deg, transparent, ${powerup.color}40, transparent)`,
+                  }}
+                />
+              )}
+              {isActive && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    background: '#00ff00',
+                    color: '#000',
+                    fontFamily: retroDisplay,
+                    fontSize: '6px',
+                    padding: '3px 6px',
+                    borderRadius: '2px',
+                    imageRendering: 'pixelated',
+                  }}
+                >
+                  ACTIVE
+                </span>
+              )}
+              <span
+                className="retro-powerup-icon"
+                style={{
+                  filter: hasItem ? `drop-shadow(0 0 10px ${powerup.color}80)` : 'none',
+                }}
+              >
+                {powerup.icon}
+              </span>
+              <span
+                style={{
+                  ...getPowerupTextStyle(powerup.color, hasItem),
+                  fontFamily: retroText,
+                  fontSize: '12px',
+                  marginBottom: '8px',
+                  textAlign: 'center',
+                  letterSpacing: '-0.3px',
+                  imageRendering: 'pixelated',
+                }}
+              >
+                {powerup.nameKo}
+              </span>
+              <span
+                style={{
+                  fontFamily: retroText,
+                  fontSize: '10px',
+                  color: hasItem ? '#bbb' : '#555',
+                  textAlign: 'center',
+                  lineHeight: 1.6,
+                  marginBottom: '14px',
+                  minHeight: '32px',
+                  letterSpacing: '-0.3px',
+                  textShadow: textOutline,
+                  imageRendering: 'pixelated',
+                }}
+              >
+                {powerup.description}
+              </span>
+              <span
+                style={{
+                  fontFamily: retroDisplay,
+                  fontSize: '14px',
+                  color: hasItem ? '#fff' : '#444',
+                  background: hasItem
+                    ? `linear-gradient(180deg, ${powerup.color}40 0%, ${powerup.color}20 100%)`
+                    : 'rgba(0, 0, 0, 0.5)',
+                  padding: '6px 16px',
+                  borderRadius: '4px',
+                  border: `2px solid ${hasItem ? powerup.color : '#333'}`,
+                  textShadow: hasItem ? `0 0 8px ${powerup.color}` : undefined,
+                  imageRendering: 'pixelated',
+                }}
+              >
+                x{count}
+              </span>
+            </button>
           );
         })}
-      </PowerupsGrid>
+      </div>
 
-      {/* Use Powerup Modal */}
       {selectedPowerup && (
-        <Modal
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+        <div
+          className="retro-powerup-modal"
           onClick={() => !isUsing && setSelectedPowerup(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '20px',
+          }}
         >
-          <ModalContent
-            initial={{ scale: 0.9, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            onClick={(e) => e.stopPropagation()}
+          <div
+            className="retro-powerup-modal-content"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              background: 'linear-gradient(180deg, #1a1a2e 0%, #0a0a1e 100%)',
+              border: '3px solid #ff00ff',
+              borderRadius: '8px',
+              padding: '24px',
+              maxWidth: '400px',
+              width: '100%',
+              textAlign: 'center',
+            }}
           >
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-              {selectedPowerup.icon}
-            </div>
-            <h4>{selectedPowerup.nameKo}</h4>
-            <p>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>{selectedPowerup.icon}</div>
+            <h4
+              style={{
+                fontFamily: retroText,
+                fontSize: '14px',
+                color: '#ff00ff',
+                margin: '0 0 16px',
+                letterSpacing: '-0.3px',
+                textShadow: textOutline,
+                imageRendering: 'pixelated',
+              }}
+            >
+              {selectedPowerup.nameKo}
+            </h4>
+            <p
+              style={{
+                fontFamily: retroText,
+                fontSize: '11px',
+                color: '#bbb',
+                lineHeight: 1.8,
+                margin: '0 0 24px',
+                letterSpacing: '-0.3px',
+                textShadow: textOutline,
+                imageRendering: 'pixelated',
+              }}
+            >
               {selectedPowerup.description}
-              <br /><br />
+              <br />
+              <br />
               이 아이템을 사용하시겠습니까?
             </p>
-            <div className="buttons">
-              <ModalButton
-                $variant="secondary"
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="retro-powerup-modal-button secondary"
                 onClick={() => setSelectedPowerup(null)}
                 disabled={isUsing}
+                style={{
+                  fontFamily: retroText,
+                  fontSize: '11px',
+                  padding: '12px 24px',
+                  border: '2px solid #666',
+                  background: 'transparent',
+                  color: '#888',
+                  cursor: isUsing ? 'not-allowed' : 'pointer',
+                  textShadow: textOutline,
+                  imageRendering: 'pixelated',
+                }}
               >
                 취소
-              </ModalButton>
-              <ModalButton
-                $variant="primary"
+              </button>
+              <button
+                type="button"
+                className="retro-powerup-modal-button primary"
                 onClick={handleUse}
                 disabled={isUsing}
+                style={{
+                  fontFamily: retroText,
+                  fontSize: '11px',
+                  padding: '12px 24px',
+                  border: '2px solid #00ff00',
+                  background: 'linear-gradient(180deg, #00aa00 0%, #006600 100%)',
+                  color: '#fff',
+                  cursor: isUsing ? 'not-allowed' : 'pointer',
+                  textShadow: textOutline,
+                  imageRendering: 'pixelated',
+                }}
               >
                 {isUsing ? '사용 중...' : '사용하기'}
-              </ModalButton>
+              </button>
             </div>
-          </ModalContent>
-        </Modal>
+          </div>
+        </div>
       )}
-    </InventoryContainer>
+    </div>
   );
 }

@@ -30,7 +30,7 @@ describe('Prediction detail stability', () => {
 
   beforeEach(() => {
     (cy as any).login('user');
-    (cy as any).mockAPI();
+    (cy as any).mockAPI({ skipRankings: true });
 
     cy.intercept('GET', '**/api/auth/mypage*', {
       statusCode: 200,
@@ -94,7 +94,7 @@ describe('Prediction detail stability', () => {
       body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
     }).as('getVoteStatus');
 
-    cy.intercept('**/api/kbo/rankings/*', {
+    cy.intercept('**/api/kbo/rankings/snapshot*', {
       statusCode: 200,
       body: [],
     }).as('getRankings');

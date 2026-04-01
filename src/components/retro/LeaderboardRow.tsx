@@ -1,118 +1,141 @@
-import styled, { css, keyframes } from 'styled-components';
-import { forwardRef } from 'react';
-import { motion } from 'framer-motion';
-import LevelBadge from './LevelBadge';
-import { RankBadge, StreakCounter, fonts, crispText, textOutline } from './RetroTheme';
+import { CSSProperties, forwardRef, useEffect } from 'react';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 
-const rankUpGlow = keyframes`
-  0%, 100% { color: #00ff00; }
-  50% { color: #ccffcc; text-shadow: 0 0 10px #00ff00; }
-`;
+const STYLE_ID = 'retro-leaderboard-row-styles';
+const retroDisplay = "'Press Start 2P', monospace";
+const textOutline =
+  '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
 
-const rankDownGlow = keyframes`
-  0%, 100% { color: #ff4444; }
-  50% { color: #ffcccc; text-shadow: 0 0 10px #ff4444; }
-`;
+const leaderboardRowStyles = `
+  @keyframes retroLeaderboardRankUpGlow {
+    0%, 100% { color: #00ff00; }
+    50% { color: #ccffcc; text-shadow: ${textOutline}, 0 0 10px #00ff00; }
+  }
 
-// 1위 전용 반짝임
-const goldShine = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
-`;
+  @keyframes retroLeaderboardRankDownGlow {
+    0%, 100% { color: #ff4444; }
+    50% { color: #ffcccc; text-shadow: ${textOutline}, 0 0 10px #ff4444; }
+  }
 
-const RowContainer = styled(motion.div) <{
-  $isCurrentUser: boolean;
-  $rank: number;
-  $rankChange?: number;
-}>`
-  display: grid;
-  grid-template-columns: 60px 1fr 100px 80px;
-  align-items: center;
-  padding: 8px 16px;
-  position: relative;
-  font-family: ${fonts.retroDisplay};
-  color: #fff;
-  transition: all 0.2s ease;
-  border-bottom: 2px solid transparent; // 기본 투명
+  @keyframes retroLeaderboardGoldShine {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+  }
 
-  /* 1, 2, 3위 텍스트 색상 및 스타일 */
-  ${props => props.$rank === 1 && css`
-    color: #ffd700;
-    text-shadow: 2px 2px 0px #000;
-  `}
-  
-  ${props => props.$rank === 2 && css`
-    color: #c0c0c0;
-    text-shadow: 2px 2px 0px #000;
-  `}
+  .retro-leaderboard-row {
+    display: grid;
+    grid-template-columns: 60px minmax(0, 1fr) 100px 80px;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    color: #ffffff;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
 
-  ${props => props.$rank === 3 && css`
-    color: #cd7f32;
-    text-shadow: 2px 2px 0px #000;
-  `}
-
-  /* 내 랭킹 강조 (배경 약간 밝게) */
-  ${props => props.$isCurrentUser && css`
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid #ff00ff;
-  `}
-
-  &:hover {
+  .retro-leaderboard-row:hover {
     background: rgba(255, 255, 255, 0.05);
   }
 
-  /* 순위 변동 애니메이션 */
-  ${props => props.$rankChange && props.$rankChange > 0 && css`
-    animation: ${rankUpGlow} 2s ease-out;
-  `}
+  .retro-leaderboard-rank-cell,
+  .retro-leaderboard-score-cell,
+  .retro-leaderboard-streak-cell,
+  .retro-leaderboard-name {
+    font-family: ${retroDisplay};
+    text-shadow: ${textOutline};
+    image-rendering: pixelated;
+  }
 
-  ${props => props.$rankChange && props.$rankChange < 0 && css`
-    animation: ${rankDownGlow} 2s ease-out;
-  `}
+  .retro-leaderboard-rank-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 20px;
+  }
+
+  .retro-leaderboard-crown {
+    display: inline-block;
+    font-size: 16px;
+    margin-right: -4px;
+    animation: retroLeaderboardGoldShine 2s infinite;
+  }
+
+  .retro-leaderboard-user-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .retro-leaderboard-avatar {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #fff;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    overflow: hidden;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    flex-shrink: 0;
+  }
+
+  .retro-leaderboard-user-info {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .retro-leaderboard-name {
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 1px;
+  }
+
+  .retro-leaderboard-score-cell,
+  .retro-leaderboard-streak-cell {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+
+  .retro-leaderboard-score-cell {
+    text-align: right;
+  }
+
+  .retro-leaderboard-streak-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
   @media (max-width: 640px) {
-    grid-template-columns: 50px 1fr 80px;
-    gap: 8px;
-    padding: 8px 4px;
+    .retro-leaderboard-row {
+      grid-template-columns: 50px minmax(0, 1fr) 80px;
+      gap: 8px;
+      padding: 8px 4px;
+    }
+
+    .retro-leaderboard-score-cell {
+      font-size: 14px;
+    }
+
+    .retro-leaderboard-streak-cell {
+      display: none;
+    }
   }
 `;
 
-const RankCell = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 20px;
-  ${crispText}
-  ${textOutline}
-`;
+const ensureLeaderboardRowStyles = () => {
+  if (typeof document === 'undefined' || document.getElementById(STYLE_ID)) {
+    return;
+  }
 
-const CrownIcon = styled.span`
-  display: inline-block;
-  font-size: 16px;
-  margin-right: -4px;
-  animation: ${goldShine} 2s infinite;
-`;
-
-const UserCell = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-`;
-
-const Avatar = styled.div`
-  width: 32px;
-  height: 32px;
-  border: 2px solid #fff;
-  background: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  overflow: hidden;
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
-`;
+  const styleTag = document.createElement('style');
+  styleTag.id = STYLE_ID;
+  styleTag.textContent = leaderboardRowStyles;
+  document.head.appendChild(styleTag);
+};
 
 const resolveProfileImage = (imageUrl?: string) => {
   if (!imageUrl) return null;
@@ -120,49 +143,24 @@ const resolveProfileImage = (imageUrl?: string) => {
   return imageUrl;
 };
 
-const UserInfo = styled.div`
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+const getRankColor = (rank: number) => {
+  if (rank === 1) return '#ffd700';
+  if (rank === 2) return '#c0c0c0';
+  if (rank === 3) return '#cd7f32';
+  return '#ffffff';
+};
 
-  .name {
-    font-family: ${fonts.retroDisplay};
-    font-size: 16px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    letter-spacing: 1px;
-    ${crispText}
-    ${textOutline}
+const getRankAnimation = (rankChange?: number) => {
+  if (typeof rankChange !== 'number' || rankChange === 0) {
+    return undefined;
   }
-`;
 
-const ScoreCell = styled.div`
-  text-align: right;
-  font-family: ${fonts.retroDisplay};
-  font-size: 16px;
-  letter-spacing: 1px;
-  ${crispText}
-  ${textOutline}
-
-  @media (max-width: 640px) {
-    font-size: 14px;
+  if (rankChange > 0) {
+    return 'retroLeaderboardRankUpGlow 2s ease-out';
   }
-`;
 
-const StreakCell = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-family: ${fonts.retroDisplay};
-  font-size: 16px;
-  ${textOutline}
-
-  @media (max-width: 640px) {
-    display: none;
-  }
-`;
+  return 'retroLeaderboardRankDownGlow 2s ease-out';
+};
 
 export interface LeaderboardEntry {
   rank?: number;
@@ -186,31 +184,28 @@ const LeaderboardRow = forwardRef<HTMLDivElement, LeaderboardRowProps>(({
   entry,
   isCurrentUser = false,
 }, ref) => {
-  const formatScore = (score: number): string => {
-    return score.toLocaleString();
+  useEffect(() => {
+    ensureLeaderboardRowStyles();
+  }, []);
+
+  const rowStyle: CSSProperties = {
+    color: getRankColor(rank),
+    borderBottom: '2px solid transparent',
+    textShadow: rank <= 3 ? '2px 2px 0 #000' : undefined,
+    animation: getRankAnimation(entry.rankChange),
+    background: isCurrentUser ? 'rgba(255, 255, 255, 0.1)' : undefined,
+    border: isCurrentUser ? '2px solid #ff00ff' : undefined,
   };
 
   return (
-    <RowContainer
-      ref={ref}
-      $isCurrentUser={isCurrentUser}
-      $rank={rank}
-      $rankChange={entry.rankChange}
-      layout
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      transition={{ duration: 0.1 }}
-    >
-      {/* Rank */}
-      <RankCell>
-        {rank === 1 && <CrownIcon>👑</CrownIcon>}
+    <div ref={ref} className="retro-leaderboard-row" style={rowStyle}>
+      <div className="retro-leaderboard-rank-cell">
+        {rank === 1 && <span className="retro-leaderboard-crown">👑</span>}
         <span>{rank}.</span>
-      </RankCell>
+      </div>
 
-      {/* User Info */}
-      <UserCell>
-        <Avatar>
+      <div className="retro-leaderboard-user-cell">
+        <div className="retro-leaderboard-avatar">
           {resolveProfileImage(entry.profileImageUrl) ? (
             <ProfileAvatar
               src={resolveProfileImage(entry.profileImageUrl) || undefined}
@@ -223,22 +218,16 @@ const LeaderboardRow = forwardRef<HTMLDivElement, LeaderboardRowProps>(({
           ) : (
             '😐'
           )}
-        </Avatar>
-        <UserInfo>
-          <div className="name">{entry.userName}</div>
-        </UserInfo>
-      </UserCell>
+        </div>
+        <div className="retro-leaderboard-user-info">
+          <div className="retro-leaderboard-name">{entry.userName}</div>
+        </div>
+      </div>
 
-      {/* Score */}
-      <ScoreCell>
-        {formatScore(entry.score)}
-      </ScoreCell>
+      <div className="retro-leaderboard-score-cell">{entry.score.toLocaleString()}</div>
 
-      {/* Streak */}
-      <StreakCell>
-        {entry.streak}
-      </StreakCell>
-    </RowContainer>
+      <div className="retro-leaderboard-streak-cell">{entry.streak}</div>
+    </div>
   );
 });
 

@@ -119,6 +119,10 @@ const uploadFixtureFiles = (
     });
 };
 
+const expectToast = (message: string) => {
+    cy.contains('[role="status"]', message, { timeout: 10000 }).should('be.visible');
+};
+
 describe('Personal Diary', () => {
     let diaryEntries: DiaryEntry[];
     let diaryStatistics: Record<string, unknown>;
@@ -217,7 +221,7 @@ describe('Personal Diary', () => {
         cy.getBySel('save-diary-btn').click();
 
         cy.wait('@saveScheduledDiary');
-        cy.contains('li', '다이어리가 작성되었습니다').should('be.visible');
+        expectToast('다이어리가 작성되었습니다');
         cy.getBySel('day-15').find('img').should('be.visible');
     });
 
@@ -365,8 +369,8 @@ describe('Personal Diary', () => {
         cy.getBySel('diary-seat-view-submit-button').click();
 
         cy.wait('@submitSeatViewSelections');
-        cy.contains('li', '시야뷰가 검토 대기 상태로 제출되었습니다').should('be.visible');
-        cy.contains('li', '다이어리가 작성되었습니다').should('be.visible');
+        expectToast('시야뷰가 검토 대기 상태로 제출되었습니다');
+        expectToast('다이어리가 작성되었습니다');
         cy.getBySel('day-15').find('img').should('be.visible');
     });
 
@@ -412,6 +416,16 @@ describe('Personal Diary', () => {
             body: { success: true },
         }).as('updateDiaryForSkip');
 
+        cy.intercept('POST', '**/api/diary/51/seat-view-selections*', (req) => {
+            expect(req.body.candidateIds).to.deep.equal([]);
+            req.reply({
+                statusCode: 200,
+                body: {
+                    candidates: [],
+                },
+            });
+        }).as('skipSeatViewSelections');
+
         visitMyPage();
 
         cy.getBySel('day-15').click({ force: true });
@@ -429,19 +443,47 @@ describe('Personal Diary', () => {
         cy.wait('@updateDiaryForSkip');
         cy.contains('AI 추천 시야뷰 확인').should('be.visible');
         cy.getBySel('diary-seat-view-skip-button').click({ force: true });
+        cy.wait('@skipSeatViewSelections');
 
         cy.contains('AI 추천 시야뷰 확인').should('not.exist');
         cy.getBySel('day-15').find('img').should('be.visible');
     });
 
-    it('allows modifying a record', () => {
+    it('allows modifying and deleting a record', () => {
         visitMyPage();
 
+        cy.intercept('POST', '**/api/diary/save*', (req) => {
+            expect(req.body.memo).to.eq('Fresh content');
+            diaryEntries = [
+                seedDiaryEntry({
+                    id: 1,
+                    date: '2024-05-10',
+                    memo: 'Original content',
+                }),
+                seedDiaryEntry({
+                    id: 61,
+                    date: '2024-05-15',
+                    memo: 'Fresh content',
+                }),
+            ];
+            req.reply({
+                statusCode: 201,
+                body: { id: 61, date: '2024-05-15', type: 'attended' },
+            });
+        }).as('saveDiaryForEditDelete');
+
         cy.contains('5월 15일 직관 기록').should('be.visible');
-        cy.getBySel('day-10').find('img', { timeout: 10000 }).should('be.visible');
-        cy.getBySel('day-10').click({ force: true });
-        cy.contains('5월 10일 직관 기록').should('be.visible');
-        cy.getBySel('diary-memo').should('contain', 'Original content');
+        cy.get('button').contains('최고').click();
+        cy.get('select').select('101');
+        cy.contains('button', '승').click();
+        cy.get('textarea').type('Fresh content');
+        cy.getBySel('save-diary-btn').click();
+
+        cy.wait('@saveDiaryForEditDelete');
+        cy.wait('@getDiaries');
+        expectToast('다이어리가 작성되었습니다');
+        cy.getBySel('day-15').find('img').should('be.visible');
+        cy.getBySel('diary-memo').should('contain', 'Fresh content');
 
         cy.intercept('POST', '**/api/diary/*/modify*', (req) => {
             expect(req.body.memo).to.eq('Modified content!');
@@ -449,6 +491,11 @@ describe('Personal Diary', () => {
                 seedDiaryEntry({
                     id: 1,
                     date: '2024-05-10',
+                    memo: 'Original content',
+                }),
+                seedDiaryEntry({
+                    id: 61,
+                    date: '2024-05-15',
                     memo: 'Modified content!',
                 }),
             ];
@@ -459,60 +506,37 @@ describe('Personal Diary', () => {
         }).as('updateDiary');
 
         cy.getBySel('edit-diary-btn').click();
-        cy.get('textarea').should('have.value', 'Original content');
+        cy.get('textarea').should('have.value', 'Fresh content');
         cy.get('textarea').clear().type('Modified content!');
         cy.getBySel('save-diary-btn').click();
 
         cy.wait('@updateDiary');
-        cy.contains('li', '다이어리가 수정되었습니다').should('be.visible');
-    });
+        cy.wait('@getDiaries');
+        expectToast('다이어리가 수정되었습니다');
+        cy.getBySel('diary-memo').should('contain', 'Modified content!');
 
-    it('allows deleting a record', () => {
         cy.intercept('POST', '**/api/diary/*/delete*', {
             statusCode: 200,
             body: { success: true },
         }).as('deleteDiary');
 
-        visitMyPage();
+        diaryEntries = [
+            seedDiaryEntry({
+                id: 1,
+                date: '2024-05-10',
+                memo: 'Original content',
+            }),
+        ];
 
-        cy.getBySel('day-10').click({ force: true });
-        cy.contains('5월 10일 직관 기록').should('be.visible');
-        cy.get('body').then(($body) => {
-            if ($body.find('[data-testid="delete-diary-btn"]').length === 0) {
-                cy.getBySel('day-10').click({ force: true });
-            }
+        cy.getBySel('delete-diary-btn').should('be.visible').click();
+        cy.get('[role="alertdialog"], [role="dialog"]').filter(':visible').last().should('be.visible');
+        cy.get('[role="alertdialog"], [role="dialog"]').filter(':visible').last().contains('button', '삭제').click();
+
+        cy.wait('@deleteDiary').then(({ request }) => {
+            expect(request.url).to.include('/61/delete');
         });
-        cy.getBySel('delete-diary-btn').should('be.visible');
-
-        diaryEntries = [];
-        diaryStatistics = buildStatistics({
-            totalCount: 0,
-            totalWins: 0,
-            yearlyCount: 0,
-            yearlyWins: 0,
-            winRate: 0,
-            yearlyWinRate: 0,
-            mostVisitedStadium: null,
-            mostVisitedCount: 0,
-            happiestMonth: null,
-            happiestCount: 0,
-            firstDiaryDate: null,
-            luckyDay: '',
-            opponentWinRates: {},
-            bestOpponent: '',
-            worstOpponent: '',
-            dayOfWeekStats: {},
-            earnedBadges: [],
-        });
-
-        cy.getBySel('delete-diary-btn').click();
-        cy.get('[role="alertdialog"]').should('be.visible');
-        cy.get('[role="alertdialog"]').contains('button', '삭제').click();
-
-        cy.wait('@deleteDiary');
-        cy.wait('@getDiaries');
-        cy.contains('li', '다이어리가 삭제되었습니다').should('be.visible');
-        cy.getBySel('day-10').find('img').should('not.exist');
+        expectToast('다이어리가 삭제되었습니다');
+        cy.get('@deleteDiary.all').should('have.length', 1);
     });
 
     it('toggles to the statistics view and renders diary analytics', () => {

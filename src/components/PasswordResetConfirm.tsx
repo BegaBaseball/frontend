@@ -12,7 +12,6 @@ import {
 } from './ui/auth-primitives';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
 
 export default function PasswordResetConfirm() {
   const navigate = useNavigate();
@@ -67,10 +66,10 @@ export default function PasswordResetConfirm() {
 
             <AuthFieldGroup>
               <div className="space-y-2">
-                <Label htmlFor="newPassword" className="flex items-center gap-2 text-foreground">
+                <label htmlFor="newPassword" className="flex items-center gap-2 text-foreground">
                   <Lock className="h-4 w-4 text-primary" />
                   새 비밀번호
-                </Label>
+                </label>
                 <div className="relative">
                   <Input
                     id="newPassword"
@@ -108,10 +107,10 @@ export default function PasswordResetConfirm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-foreground">
+                <label htmlFor="confirmPassword" className="flex items-center gap-2 text-foreground">
                   <Lock className="h-4 w-4 text-primary" />
                   비밀번호 확인
-                </Label>
+                </label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"

@@ -1,6 +1,9 @@
-import type { Application, Party } from '../types/mate';
+import type { Application, CheckIn, ChatMessage, Party, PartyReview, PartyStatus } from '../types/mate';
 import type { AxiosRequestConfig } from 'axios';
 import api from './axios';
+import { api as requestApi } from '../utils/api';
+import { getApiErrorStatus } from '../utils/api';
+import type { PaginatedResponse } from '../utils/api';
 import { compressImage } from '../utils/imageCompression';
 import { mapBackendPartyToFrontend } from '../utils/mate';
 
@@ -15,6 +18,19 @@ interface ListPayload<T> extends ApiEnvelope<T | T[]> {
 }
 
 type BackendPartyDTO = Parameters<typeof mapBackendPartyToFrontend>[0];
+
+export type FetchPartyByIdOptions = Parameters<typeof requestApi.getPartyById>[1];
+
+export interface FetchMatePartiesPageParams {
+  teamId?: string;
+  stadium?: string;
+  page?: number;
+  size?: number;
+  status?: PartyStatus;
+  searchQuery?: string;
+  gameDate?: string;
+  signal?: AbortSignal;
+}
 
 const toList = <T>(payload: ListPayload<T> | T[] | null | undefined): T[] => {
   if (Array.isArray(payload)) {
@@ -36,17 +52,72 @@ const toList = <T>(payload: ListPayload<T> | T[] | null | undefined): T[] => {
   return payload.data ? [payload.data] : [];
 };
 
-/**
- * 현재 사용자 정보 조회
- */
-export async function fetchCurrentUser() {
-  const response = await api.get<ApiEnvelope<unknown>>('/auth/mypage');
+export const normalizeMateParty = (party: BackendPartyDTO | Party): Party =>
+  mapBackendPartyToFrontend(party as BackendPartyDTO);
 
-  if (!response.data?.success || response.data?.data == null) {
-    throw new Error('사용자 정보 조회 실패');
+export async function fetchPartyById(
+  partyId: number | string,
+  options?: FetchPartyByIdOptions,
+): Promise<Party> {
+  const response = await requestApi.getPartyById(partyId, options);
+  return normalizeMateParty(response);
+}
+
+export async function fetchPartyReviews(
+  partyId: number | string,
+): Promise<PartyReview[]> {
+  return requestApi.getPartyReviews(Number(partyId));
+}
+
+export async function fetchPartyApplications(
+  partyId: number | string,
+): Promise<Application[]> {
+  return requestApi.getApplicationsByParty(partyId);
+}
+
+export async function fetchPartyCheckIns(
+  partyId: number | string,
+): Promise<CheckIn[]> {
+  return requestApi.getCheckInsByParty(partyId);
+}
+
+export async function fetchPartyMessages(
+  partyId: number | string,
+): Promise<ChatMessage[]> {
+  return requestApi.getChatMessages(partyId);
+}
+
+export async function fetchPartyMyApplication(
+  partyId: number | string,
+): Promise<Application | null> {
+  try {
+    return await requestApi.getMyApplicationByParty(partyId);
+  } catch (error) {
+    if (getApiErrorStatus(error) === 404) {
+      return null;
+    }
+    throw error;
   }
+}
 
-  return response.data;
+export async function fetchMatePartiesPage(
+  params: FetchMatePartiesPageParams = {},
+): Promise<PaginatedResponse<Party>> {
+  const response = await requestApi.getParties(
+    params.teamId,
+    params.stadium,
+    params.page ?? 0,
+    params.size ?? 9,
+    params.status,
+    params.searchQuery,
+    params.gameDate,
+    params.signal,
+  );
+
+  return {
+    ...response,
+    content: response.content.map(normalizeMateParty),
+  };
 }
 
 /**
@@ -59,7 +130,7 @@ export async function fetchAllParties(requestConfig: AxiosRequestConfig = {}): P
     throw new Error('파티 목록 조회 실패');
   }
 
-  return toList(response.data).map(mapBackendPartyToFrontend);
+  return toList(response.data).map(normalizeMateParty);
 }
 
 /**
@@ -81,7 +152,7 @@ export async function fetchMyApplications(): Promise<Application[]> {
 export async function fetchMyParties(): Promise<Party[]> {
   try {
     const response = await api.get<ListPayload<BackendPartyDTO> | BackendPartyDTO[]>(`/parties/my`);
-    return toList(response.data).map(mapBackendPartyToFrontend);
+    return toList(response.data).map(normalizeMateParty);
   } catch (error) {
     console.error('메이트 내역 조회 실패:', error);
     throw error;

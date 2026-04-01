@@ -233,12 +233,6 @@ export const searchPosts = async (params: SearchPostsParams): Promise<PageRespon
     return transformPostPage(response.data);
 };
 
-// 특정 사용자 게시글 조회 (핸들 기준)
-export async function fetchUserPostsByHandle(handle: string, page = 0, size = 20): Promise<PageResponse<CheerPost>> {
-    const response = await api.get(`/cheer/user/${handle}/posts?page=${page}&size=${size}`);
-    return transformPostPage(response.data);
-}
-
 /** Backend response DTOs (before transformation) */
 interface PostDTO {
     id: number;
@@ -630,15 +624,5 @@ const normalizeUploadedImageUrls = (data: unknown): string[] => {
 // 게시글 이미지 목록 조회 (ID 포함)
 export async function fetchPostImages(postId: number): Promise<PostImageDto[]> {
     const response = await api.get(`/cheer/posts/${postId}/images`);
-    return response.data;
-}
-// Cheer Battle Status
-export interface CheerBattleStatus {
-    stats: Record<string, number>;
-    myVote: string | null;
-}
-
-export async function getCheerBattleStatus(gameId: string): Promise<CheerBattleStatus> {
-    const response = await api.get(`/cheer/battle/${gameId}/status`);
     return response.data;
 }

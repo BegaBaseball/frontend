@@ -19,3 +19,14 @@ export const buildHistoryPayload = (conversation: Message[]) => {
     content: msg.text,
   }));
 };
+
+export const appendTextToBotMessage = (message: Message, appendedText: string): Message => {
+  if (!appendedText) {
+    return message;
+  }
+
+  return {
+    ...message,
+    text: `${message.text}${appendedText}`,
+  };
+};

@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { CheckCircle2, Eye, EyeOff, Lock, Mail, User, XCircle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { TEAM_LIST, getFullTeamName } from '../constants/teams';
 import { useSignUpForm } from '../hooks/useSignUpForm';
 import { buildLoginPath } from '../utils/loginRedirect';
-import TeamRecommendationTest from './TeamRecommendationTest';
 import AuthLayout from './auth/AuthLayout';
 import {
   AuthActionGroup,
@@ -15,8 +14,8 @@ import {
 } from './ui/auth-primitives';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+
+const LazyTeamRecommendationTest = lazy(() => import('./TeamRecommendationTest'));
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -24,6 +23,7 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showTeamTest, setShowTeamTest] = useState(false);
+  const [hasOpenedTeamTest, setHasOpenedTeamTest] = useState(false);
 
   const {
     formData,
@@ -70,10 +70,10 @@ export default function SignUp() {
 
         <AuthFieldGroup>
           <div className="space-y-2">
-            <Label htmlFor="name" className="flex items-center gap-2 text-foreground">
+            <label htmlFor="name" className="flex items-center gap-2 text-foreground">
               <User className="h-4 w-4 text-primary" />
               닉네임
-            </Label>
+            </label>
             <Input
               id="name"
               name="name"
@@ -91,10 +91,10 @@ export default function SignUp() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="handle" className="flex items-center gap-2 text-foreground">
+            <label htmlFor="handle" className="flex items-center gap-2 text-foreground">
               <User className="h-4 w-4 text-primary" />
               사용자 핸들 (@)
-            </Label>
+            </label>
             <Input
               id="handle"
               name="handle"
@@ -127,10 +127,10 @@ export default function SignUp() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2 text-foreground">
+            <label htmlFor="email" className="flex items-center gap-2 text-foreground">
               <Mail className="h-4 w-4 text-primary" />
               이메일
-            </Label>
+            </label>
             <Input
               id="email"
               name="email"
@@ -151,10 +151,10 @@ export default function SignUp() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="flex items-center gap-2 text-foreground">
+            <label htmlFor="password" className="flex items-center gap-2 text-foreground">
               <Lock className="h-4 w-4 text-primary" />
               비밀번호
-            </Label>
+            </label>
             <div className="relative">
               <Input
                 id="password"
@@ -192,10 +192,10 @@ export default function SignUp() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-foreground">
+            <label htmlFor="confirmPassword" className="flex items-center gap-2 text-foreground">
               <Lock className="h-4 w-4 text-primary" />
               비밀번호 확인
-            </Label>
+            </label>
             <div className="relative">
               <Input
                 id="confirmPassword"
@@ -225,27 +225,27 @@ export default function SignUp() {
           </div>
 
           <div className="space-y-2">
-            <Label id="favoriteTeam-label" className="text-foreground">응원팀 선택</Label>
-            <Select
+            <label htmlFor="favoriteTeam" className="text-foreground">
+              응원팀 선택
+            </label>
+            <select
+              id="favoriteTeam"
+              name="favoriteTeam"
               value={formData.favoriteTeam}
-              onValueChange={(value) => handleFieldChange('favoriteTeam', value)}
+              onChange={(event) => handleFieldChange('favoriteTeam', event.target.value)}
               disabled={isLoading || isSuccess}
+              className={`auth-select-trigger ${fieldErrors.favoriteTeam ? 'auth-input-error' : ''}`}
+              data-testid="signup-favorite-team"
             >
-              <SelectTrigger
-                aria-labelledby="favoriteTeam-label"
-                className={`auth-select-trigger ${fieldErrors.favoriteTeam ? 'auth-input-error' : ''}`}
-                data-testid="signup-favorite-team"
-              >
-                <SelectValue placeholder="팀을 선택하세요" />
-              </SelectTrigger>
-              <SelectContent>
-                {TEAM_LIST.map((team) => (
-                  <SelectItem key={team} value={team}>
-                    {team}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <option value="" disabled>
+                팀을 선택하세요
+              </option>
+              {TEAM_LIST.map((team) => (
+                <option key={team} value={team}>
+                  {team}
+                </option>
+              ))}
+            </select>
 
             {fieldErrors.favoriteTeam ? <p className="auth-error-text">* {fieldErrors.favoriteTeam}</p> : null}
 
@@ -263,7 +263,10 @@ export default function SignUp() {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setShowTeamTest(true)}
+                onClick={() => {
+                  setHasOpenedTeamTest(true);
+                  setShowTeamTest(true);
+                }}
                 className="h-auto px-2 py-1 text-sm text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
                 disabled={isLoading || isSuccess}
                 data-testid="signup-team-test"
@@ -272,14 +275,26 @@ export default function SignUp() {
               </Button>
             </div>
 
-            <TeamRecommendationTest
-              isOpen={showTeamTest}
-              onClose={() => setShowTeamTest(false)}
-              onSelectTeam={(team) => {
-                handleFieldChange('favoriteTeam', getFullTeamName(team));
-                setShowTeamTest(false);
-              }}
-            />
+            {hasOpenedTeamTest ? (
+              <Suspense
+                fallback={
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+                    <div className="rounded-2xl border border-border bg-card px-6 py-4 text-sm text-muted-foreground shadow-2xl">
+                      구단 테스트를 불러오는 중...
+                    </div>
+                  </div>
+                }
+              >
+                <LazyTeamRecommendationTest
+                  isOpen={showTeamTest}
+                  onClose={() => setShowTeamTest(false)}
+                  onSelectTeam={(team) => {
+                    handleFieldChange('favoriteTeam', getFullTeamName(team));
+                    setShowTeamTest(false);
+                  }}
+                />
+              </Suspense>
+            ) : null}
 
             <p className="auth-note">응원구단은 회원가입 후에도 마이페이지 &gt; 내 정보 수정에서 변경할 수 있습니다.</p>
           </div>

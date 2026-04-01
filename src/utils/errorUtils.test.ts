@@ -46,6 +46,18 @@ test('getApiErrorMessage는 일반 Error의 사용자 메시지를 유지한다'
   assert.equal(message, '이메일 또는 비밀번호가 일치하지 않습니다.');
 });
 
+test('parseError는 axios-like 네트워크 오류를 NETWORK로 분류한다', () => {
+  const parsed = parseError({
+    isAxiosError: true,
+    code: 'ERR_NETWORK',
+    message: 'Network Error',
+  });
+
+  assert.equal(parsed.type, 'NETWORK');
+  assert.equal(parsed.message, '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.');
+  assert.equal(parsed.statusCode, null);
+});
+
 test('getDuplicateCommentErrorMessage는 DUPLICATE_COMMENT를 전용 문구로 바꾼다', () => {
   const message = getDuplicateCommentErrorMessage({
     status: 409,
