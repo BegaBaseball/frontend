@@ -1,10 +1,8 @@
-// src/components/OAuthCallback.tsx
-import { AxiosError } from 'axios';
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthProfileActions } from '../store/authStore';
 import { useAuthRedirectState } from '../store/authStore';
-import { consumeOAuth2State } from '../api/auth';
+import { consumeOAuth2State } from '../api/authPublic';
 import LoadingSpinner from './LoadingSpinner';
 import { Button } from './ui/button';
 import {
@@ -14,6 +12,7 @@ import {
   resolveOAuthErrorCode,
 } from '../utils/authFlow';
 import { buildLoginPathWithError, getStoredLoginRedirect } from '../utils/loginRedirect';
+import { parseError } from '../utils/errorUtils';
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
@@ -68,10 +67,7 @@ export default function OAuthCallback() {
           scheduleRetryRedirect('oauth2_provider_payload_invalid');
         }
       } catch (error) {
-        const responseCode = error instanceof AxiosError
-          ? (error.response?.data as { code?: string } | undefined)?.code
-          : undefined;
-        scheduleRetryRedirect(resolveOAuthErrorCode(responseCode));
+        scheduleRetryRedirect(resolveOAuthErrorCode(parseError(error).responseCode));
       }
     })();
 

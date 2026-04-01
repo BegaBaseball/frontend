@@ -1,8 +1,8 @@
 import { Suspense, lazy } from 'react';
 import { Bell } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useNotificationStore } from '../store/notificationStore';
 import { useUIStore } from '../store/uiStore';
+import PlainMenu from './ui/plain-menu';
 
 const NotificationPanel = lazy(() => import('./NotificationPanel'));
 
@@ -22,8 +22,12 @@ export default function NavbarNotificationControls({
   );
 
   return (
-    <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
-      <PopoverTrigger asChild>
+    <PlainMenu
+      open={isNotificationOpen}
+      onOpenChange={setIsNotificationOpen}
+      align="end"
+      panelClassName="w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] overflow-hidden sm:w-96 sm:max-w-sm"
+      trigger={(
         <button
           type="button"
           className={buttonClassName}
@@ -49,48 +53,39 @@ export default function NavbarNotificationControls({
             </span>
           )}
         </button>
-      </PopoverTrigger>
-
-      <PopoverContent
+      )}
+    >
+      <div
         id="global-notification-popover"
-        className="w-auto p-0 border-none shadow-none bg-transparent"
-        align="end"
-        sideOffset={8}
+        className="
+          overflow-hidden rounded-xl
+          bg-white dark:bg-card
+          border border-gray-200 dark:border-border
+          shadow-xl
+        "
       >
-        <div
-          className="
-            w-[calc(100vw-32px)] mr-4
-            sm:w-96 sm:mr-0
-            overflow-hidden rounded-xl
-            bg-white dark:bg-card
-            border border-gray-200 dark:border-border
-            shadow-xl
-            animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200
-          "
-        >
-          <div className="p-4 border-b border-gray-200 dark:border-border bg-gray-50/50 dark:bg-secondary/70 flex justify-between items-center">
-            <h3 className="font-bold text-sm text-primary dark:text-primary-light">
-              알림
-            </h3>
-            {unreadCount > 0 && (
-              <span className="text-xs text-muted-foreground dark:text-gray-300">
-                {unreadCount}개의 읽지 않은 알림
-              </span>
-            )}
-          </div>
-          <div className="max-h-[60vh] overflow-y-auto">
-            <Suspense
-              fallback={
-                <div className="flex min-h-[300px] items-center justify-center text-sm text-muted-foreground">
-                  알림을 불러오는 중...
-                </div>
-              }
-            >
-              <NotificationPanel />
-            </Suspense>
-          </div>
+        <div className="p-4 border-b border-gray-200 dark:border-border bg-gray-50/50 dark:bg-secondary/70 flex justify-between items-center">
+          <h3 className="font-bold text-sm text-primary dark:text-primary-light">
+            알림
+          </h3>
+          {unreadCount > 0 && (
+            <span className="text-xs text-muted-foreground dark:text-gray-300">
+              {unreadCount}개의 읽지 않은 알림
+            </span>
+          )}
         </div>
-      </PopoverContent>
-    </Popover>
+        <div className="max-h-[60vh] overflow-y-auto">
+          <Suspense
+            fallback={
+              <div className="flex min-h-[300px] items-center justify-center text-sm text-muted-foreground">
+                알림을 불러오는 중...
+              </div>
+            }
+          >
+            <NotificationPanel />
+          </Suspense>
+        </div>
+      </div>
+    </PlainMenu>
   );
 }

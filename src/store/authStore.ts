@@ -1,9 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import { clearSessionScopedQueries } from '../lib/queryClient';
-import * as authApi from '../api/auth';
-import { setPersistedAuthBootstrapHint } from '../utils/authBootstrap';
+import { runSessionScopedQueryCleanup } from '../lib/queryClientRegistry';
+import {
+  clearPersistedAuthBootstrapState,
+  hasPersistedAuthBootstrapHint,
+  markPersistedAuthBootstrapFailure,
+  markPersistedAuthBootstrapSuccess,
+} from '../utils/authBootstrap';
 import {
   clearStoredLoginRedirect,
   getCurrentRelativeUrl,
@@ -12,6 +16,15 @@ import {
 } from '../utils/loginRedirect';
 
 const LEGACY_AUTH_TOKEN_KEY = 'authToken';
+let authApiModulePromise: Promise<typeof import('../api/auth')> | null = null;
+
+const loadAuthApi = () => {
+  if (!authApiModulePromise) {
+    authApiModulePromise = import('../api/auth');
+  }
+
+  return authApiModulePromise;
+};
 
 const clearLegacyAuthTokenStorage = () => {
   if (typeof window === 'undefined') {
@@ -36,15 +49,103 @@ const extractHttpStatus = (error: unknown): number | undefined => {
   return response && typeof response.status === 'number' ? response.status : undefined;
 };
 
+const extractResponseCode = (error: unknown): string | undefined => {
+  if (!error || typeof error !== 'object' || !('response' in (error as Record<string, unknown>))) {
+    return undefined;
+  }
+
+  const response = (error as { response?: { data?: { code?: unknown } } }).response;
+  return typeof response?.data?.code === 'string' ? response.data.code : undefined;
+};
+
 const shouldKeepBootstrapHintOnError = (error: unknown): boolean => {
   const status = extractHttpStatus(error);
   return status === undefined || status >= 500;
 };
 
+const shouldClearBootstrapSuccessOnError = (error: unknown): boolean => {
+  const status = extractHttpStatus(error);
+  const responseCode = extractResponseCode(error);
+  return status === 401 || shouldLogBootstrapFailure(status, responseCode);
+};
+
+const shouldLogBootstrapFailure = (status?: number, responseCode?: string): boolean => (
+  status === 401
+  || responseCode === 'REFRESH_TOKEN_MISSING'
+  || responseCode === 'REFRESH_TOKEN_EXPIRED'
+  || responseCode === 'REFRESH_TOKEN_NOT_FOUND'
+  || responseCode === 'INVALID_REFRESH_TOKEN'
+  || responseCode === 'INVALID_REFRESH_TOKEN_TYPE'
+);
+
+const isAuthBootstrapTraceEnabled = (): boolean => {
+  const isDev = Boolean(import.meta.env?.DEV);
+
+  if (typeof window === 'undefined') {
+    return isDev;
+  }
+
+  return isDev || new URLSearchParams(window.location?.search ?? '').get('traceAuth') === '1';
+};
+
+const logBootstrapFailure = (
+  error: unknown,
+  options: {
+    mode?: 'default' | 'public-optional';
+  } = {},
+) => {
+  const status = extractHttpStatus(error);
+  const responseCode = extractResponseCode(error);
+  if (!shouldLogBootstrapFailure(status, responseCode)) {
+    return;
+  }
+
+  if (options.mode === 'public-optional') {
+    if (isAuthBootstrapTraceEnabled()) {
+      console.debug('[auth-bootstrap] optional public bootstrap failed', {
+        status,
+        responseCode,
+        hadPersistedHint: hasPersistedAuthBootstrapHint(),
+      });
+    }
+    return;
+  }
+
+  console.warn('[auth-bootstrap] session bootstrap failed', {
+    status,
+    responseCode,
+    hadPersistedHint: hasPersistedAuthBootstrapHint(),
+  });
+};
+
+const normalizeProfileImageUrl = (value?: string | null): string | null => {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  if (
+    trimmedValue.startsWith('/assets/')
+    || trimmedValue.startsWith('/src/assets/')
+    || trimmedValue.startsWith('blob:')
+    || trimmedValue.startsWith('data:')
+  ) {
+    return null;
+  }
+
+  return trimmedValue.length > 0 ? trimmedValue : null;
+};
+
 export const authStoreApi = {
-  fetchCurrentUserProfile: authApi.fetchCurrentUserProfile,
-  logoutUser: authApi.logoutUser,
-  normalizeProfileImageUrl: authApi.normalizeProfileImageUrl,
+  fetchCurrentUserProfile: async () => {
+    const authApi = await loadAuthApi();
+    return authApi.fetchCurrentUserProfile();
+  },
+  logoutUser: async () => {
+    const authApi = await loadAuthApi();
+    return authApi.logoutUser();
+  },
+  normalizeProfileImageUrl,
 };
 
 interface User {
@@ -76,7 +177,7 @@ interface AuthState {
 }
 
 interface AuthActions {
-  fetchProfileAndAuthenticate: () => Promise<boolean>;
+  fetchProfileAndAuthenticate: (options?: { mode?: 'default' | 'public-optional' }) => Promise<boolean>;
   setUserProfile: (profile: Partial<Omit<User, 'id'>> & { email: string; name: string }) => void;
   deductCheerPoints: (amount: number) => void; // Added action
   login: (email: string, name: string, profileImageUrl?: string | null, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => void;
@@ -106,17 +207,20 @@ export const useAuthStore = create<AuthStore>()(
     (set, get) => ({
       ...getInitialState(),
 
-      fetchProfileAndAuthenticate: async () => {
+      fetchProfileAndAuthenticate: async (options) => {
+        const isPublicOptional = options?.mode === 'public-optional';
         if (pendingAuthProfileRequest) {
           return pendingAuthProfileRequest;
         }
 
         const request = (async (): Promise<boolean> => {
-          set({ isAuthLoading: true });
+          if (!isPublicOptional) {
+            set({ isAuthLoading: true });
+          }
 
           try {
             const profile = await authStoreApi.fetchCurrentUserProfile();
-            setPersistedAuthBootstrapHint(true);
+            markPersistedAuthBootstrapSuccess();
             set({
               user: profile,
               isAuthLoading: false,
@@ -126,14 +230,19 @@ export const useAuthStore = create<AuthStore>()(
           } catch (error) {
             // 401 errors are handled by interceptor (redirect to login)
             // For other errors during initial auth check, we just reset state silently to avoid modal on startup
-            clearSessionScopedQueries();
-            if (!shouldKeepBootstrapHintOnError(error)) {
-              setPersistedAuthBootstrapHint(false);
-            }
-            set({
-              user: null,
-              isAuthLoading: false
+            logBootstrapFailure(error, { mode: isPublicOptional ? 'public-optional' : 'default' });
+            markPersistedAuthBootstrapFailure({
+              clearHint: !shouldKeepBootstrapHintOnError(error),
+              clearSuccess: shouldClearBootstrapSuccessOnError(error),
             });
+
+            if (!isPublicOptional) {
+              runSessionScopedQueryCleanup();
+              set({
+                user: null,
+                isAuthLoading: false
+              });
+            }
             return false;
           }
         })();
@@ -183,7 +292,7 @@ export const useAuthStore = create<AuthStore>()(
 
       login: (email: string, name: string, profileImageUrl?: string | null, role?: string, favoriteTeam?: string, id?: number, cheerPoints?: number, handle?: string, provider?: string, hasPassword?: boolean) => {
         const normalizedId = Number(id) || 0;
-        setPersistedAuthBootstrapHint(true);
+        markPersistedAuthBootstrapSuccess();
 
         set({
           user: {
@@ -205,14 +314,14 @@ export const useAuthStore = create<AuthStore>()(
 
       logout: (skipServerLogout = false) => {
         clearStoredLoginRedirect();
-        setPersistedAuthBootstrapHint(false);
+        clearPersistedAuthBootstrapState();
         if (!get().user || skipServerLogout) {
-          clearSessionScopedQueries();
+          runSessionScopedQueryCleanup();
           set(getInitialState());
           return;
         }
 
-          clearSessionScopedQueries();
+          runSessionScopedQueryCleanup();
           if (!pendingLogoutRequest) {
             pendingLogoutRequest = authStoreApi.logoutUser()
               .then(() => {
@@ -233,7 +342,7 @@ export const useAuthStore = create<AuthStore>()(
       },
       reset: () =>
         {
-          setPersistedAuthBootstrapHint(false);
+          clearPersistedAuthBootstrapState();
           return set({
             ...getInitialState(),
           });

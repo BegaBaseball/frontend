@@ -1,9 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Client, IMessage } from '@stomp/stompjs';
 import { toast } from 'sonner';
-import { SERVER_BASE_URL } from '../constants/config';
 import type { ChatMessage } from '../types/mate';
 import { buildPartySocketDestination } from '../utils/socketDestinations';
+import { loadStompModule, resolveStompBrokerUrl, type StompClient, type StompMessage } from '../utils/stomp';
 
 type OutboundChatMessage = {
   partyId: string | number;
@@ -18,7 +17,7 @@ interface UseWebSocketProps {
 }
 
 export function useWebSocket({ partyId, onMessageReceived, enabled = true }: UseWebSocketProps) {
-  const clientRef = useRef<Client | null>(null);
+  const clientRef = useRef<StompClient | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   // 최신 콜백을 ref로 유지하여 deps에서 제거 → 불필요한 재연결 방지
   const onMessageReceivedRef = useRef(onMessageReceived);
@@ -28,69 +27,65 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
 
   // WebSocket 연결
   useEffect(() => {
+    let disposed = false;
+
     if (!enabled || !partyId) {
+      if (clientRef.current?.active) {
+        void clientRef.current.deactivate();
+      }
+      clientRef.current = null;
       setIsConnected(false);
       return;
     }
 
-    const resolveBrokerUrl = (): string => {
-      try {
-        const serverUrl = new URL(SERVER_BASE_URL);
-        const serverProtocol = serverUrl.protocol === 'https:' ? 'wss:' : 'ws:';
-        return `${serverProtocol}//${serverUrl.host}/ws`;
-      } catch {
-        if (typeof window !== 'undefined') {
-          const pageProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-          return `${pageProtocol}//${window.location.host}/ws`;
-        }
-
-        const wsProtocol = SERVER_BASE_URL.startsWith('https') ? 'wss:' : 'ws:';
-        const wsHost = SERVER_BASE_URL.replace(/^https?:\/\//, '');
-        return `${wsProtocol}//${wsHost}/ws`;
+    void (async () => {
+      const { Client } = await loadStompModule();
+      if (disposed || !enabled || !partyId) {
+        return;
       }
-    };
 
-    const brokerUrl = resolveBrokerUrl();
-
-    const client = new Client({
-      brokerURL: brokerUrl,
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-    });
-
-    client.onConnect = () => {
-      setIsConnected(true);
-
-      // 해당 파티 채팅방 구독
-      client.subscribe(buildPartySocketDestination(partyId), (message: IMessage) => {
-        const receivedMessage = JSON.parse(message.body) as ChatMessage;
-        onMessageReceivedRef.current(receivedMessage);
+      const client = new Client({
+        brokerURL: resolveStompBrokerUrl(),
+        reconnectDelay: 5000,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000,
       });
-    };
 
-    client.onStompError = (frame) => {
-      const headerKeys = Object.keys(frame.headers || {}).sort().slice(0, 12);
-      console.error('STOMP error', {
-        command: frame.command,
-        headerKeys,
-        bodyLength: frame.body ? frame.body.length : 0,
-      });
-      toast.error('채팅 채널에 접근할 수 없습니다. 파티 참여 상태를 확인해주세요.');
-      setIsConnected(false);
-    };
+      client.onConnect = () => {
+        setIsConnected(true);
 
-    client.onWebSocketClose = () => {
-      setIsConnected(false);
-    };
+        // 해당 파티 채팅방 구독
+        client.subscribe(buildPartySocketDestination(partyId), (message: StompMessage) => {
+          const receivedMessage = JSON.parse(message.body) as ChatMessage;
+          onMessageReceivedRef.current(receivedMessage);
+        });
+      };
 
-    client.activate();
-    clientRef.current = client;
+      client.onStompError = (frame) => {
+        const headerKeys = Object.keys(frame.headers || {}).sort().slice(0, 12);
+        console.error('STOMP error', {
+          command: frame.command,
+          headerKeys,
+          bodyLength: frame.body ? frame.body.length : 0,
+        });
+        toast.error('채팅 채널에 접근할 수 없습니다. 파티 참여 상태를 확인해주세요.');
+        setIsConnected(false);
+      };
+
+      client.onWebSocketClose = () => {
+        setIsConnected(false);
+      };
+
+      client.activate();
+      clientRef.current = client;
+    })();
 
     return () => {
-      if (client.active) {
-        client.deactivate();
+      disposed = true;
+      if (clientRef.current?.active) {
+        void clientRef.current.deactivate();
       }
+      clientRef.current = null;
       setIsConnected(false);
     };
   }, [partyId, enabled]);

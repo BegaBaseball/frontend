@@ -1,4 +1,5 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import './NavigationMenu.css';
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { LogOut, ShieldAlert, Menu, X, Map, Users, Megaphone, LineChart } from 'lucide-react';

@@ -1,5 +1,21 @@
-import axios from 'axios';
 import { formatDateForAPI } from './home';
+
+type AxiosLikeError = {
+    isAxiosError: boolean;
+    name?: string;
+    message?: string;
+    response?: {
+        status?: number | null;
+        data?: {
+            code?: string | null;
+        } | null;
+    } | null;
+};
+
+const isAxiosLikeError = (error: unknown): error is AxiosLikeError =>
+    typeof error === 'object'
+    && error !== null
+    && (error as { isAxiosError?: unknown }).isAxiosError === true;
 
 export const buildHomeRequestErrorContext = (error: unknown, endpoint: string, date: Date) => {
     const fallback = {
@@ -11,7 +27,7 @@ export const buildHomeRequestErrorContext = (error: unknown, endpoint: string, d
         message: error instanceof Error ? error.message : 'Unknown error',
     };
 
-    if (!axios.isAxiosError(error)) {
+    if (!isAxiosLikeError(error)) {
         return fallback;
     }
 

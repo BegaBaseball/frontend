@@ -1,6 +1,6 @@
 // hooks/usePasswordReset.ts
 import { useState } from 'react';
-import { requestPasswordReset } from '../api/auth';
+import { requestPasswordReset } from '../api/authPublic';
 import { validateLoginField } from '../utils/validation';
 
 export const usePasswordReset = (redirectPath?: string | null) => {
