@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -19,16 +19,14 @@ import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import LoadingSpinner from './LoadingSpinner';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { Progress } from './ui/progress';
-import { getMatePartyCheckInsQueryOptions } from '../hooks/mateQueryOptions';
 import {
   appendMatePartyCheckInQueryData,
+  getMatePartyCheckInsQueryOptions,
   updateMatePartyCollectionQueryData,
-} from '../hooks/mateQueryCache';
-import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
+  useMatePartyFromRoute,
+} from '../hooks/mateCheckInRoute';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { cn } from '../lib/utils';
 import { api } from '../utils/api';
@@ -87,6 +85,27 @@ function EmptyState({
       </div>
       <p className="mt-4 text-base font-semibold text-gray-900 dark:text-white">{title}</p>
       <p className="mt-2 max-w-sm text-sm leading-6 text-gray-500 dark:text-gray-300">{description}</p>
+    </div>
+  );
+}
+
+function MatePill({ className = '', children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+function ProgressBar({ value, className = '' }: { value: number; className?: string }) {
+  const safeValue = Math.max(0, Math.min(100, value));
+
+  return (
+    <div className={`w-full overflow-hidden rounded-full bg-gray-200 dark:bg-secondary/80 ${className}`} aria-hidden="true">
+      <div
+        className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+        style={{ width: `${safeValue}%` }}
+      />
     </div>
   );
 }
@@ -312,22 +331,22 @@ export default function MateCheckIn() {
                         경기장 도착 상태와 전체 진행률을 한 화면에서 확인합니다. 개인 인증과 그룹 진행 상황을 분리해서 보여줍니다.
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <Badge className={cn('border text-xs font-semibold', statusMeta.className)}>
+                        <MatePill className={cn('border text-xs font-semibold', statusMeta.className)}>
                           {statusMeta.label}
-                        </Badge>
-                        <Badge className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
+                        </MatePill>
+                        <MatePill className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
                           {roleLabel}
-                        </Badge>
-                        <Badge className="border border-gray-200 bg-white/90 text-gray-700 dark:border-border dark:bg-card/70 dark:text-gray-200">
+                        </MatePill>
+                        <MatePill className="border border-gray-200 bg-white/90 text-gray-700 dark:border-border dark:bg-card/70 dark:text-gray-200">
                           {flowLabel}
-                        </Badge>
+                        </MatePill>
                         {qrSessionId && (
-                          <Badge className="border border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/35 dark:text-sky-300">
+                          <MatePill className="border border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/35 dark:text-sky-300">
                             <span className="flex items-center gap-1">
                               <QrCode className="h-3.5 w-3.5" />
                               QR 세션
                             </span>
-                          </Badge>
+                          </MatePill>
                         )}
                       </div>
                     </div>
@@ -515,14 +534,14 @@ export default function MateCheckIn() {
                     개인 체크인과 별개로 전체 인원이 얼마나 도착했는지 보여줍니다.
                   </p>
                 </div>
-                <Badge className={cn(
+                <MatePill className={cn(
                   'border text-xs font-semibold',
                   allCheckedIn
                     ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
                     : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300',
                 )}>
                   {allCheckedIn ? '전원 도착 완료' : `${remainingCount}명 대기 중`}
-                </Badge>
+                </MatePill>
               </div>
 
               <div className="mt-6 space-y-4">
@@ -530,7 +549,7 @@ export default function MateCheckIn() {
                   <span>진행률</span>
                   <span className="font-semibold text-gray-900 dark:text-white">{progressValue}%</span>
                 </div>
-                <Progress value={progressValue} className="h-3" />
+                <ProgressBar value={progressValue} className="h-3" />
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className={`${mateInsetPanelClass} p-4`}>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">완료</p>
@@ -589,14 +608,14 @@ export default function MateCheckIn() {
                       </p>
                     </div>
                   </div>
-                  <Badge className={cn(
+                  <MatePill className={cn(
                     'border text-xs font-semibold',
                     hostCheckedIn
                       ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
                       : 'border-gray-200 bg-white text-gray-600 dark:border-border dark:bg-card/60 dark:text-gray-300',
                   )}>
                     {hostCheckedIn ? '체크인 완료' : '대기 중'}
-                  </Badge>
+                  </MatePill>
                 </div>
 
                 {!isHost && (
@@ -619,14 +638,14 @@ export default function MateCheckIn() {
                         </p>
                       </div>
                     </div>
-                    <Badge className={cn(
+                    <MatePill className={cn(
                       'border text-xs font-semibold',
                       isCheckedIn
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
                         : 'border-gray-200 bg-white text-gray-600 dark:border-border dark:bg-card/60 dark:text-gray-300',
                     )}>
                       {isCheckedIn ? '체크인 완료' : '대기 중'}
-                    </Badge>
+                    </MatePill>
                   </div>
                 )}
 
@@ -652,9 +671,9 @@ export default function MateCheckIn() {
                           </p>
                         </div>
                       </div>
-                      <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
+                      <MatePill className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                         체크인 완료
-                      </Badge>
+                      </MatePill>
                     </div>
                   ))}
 

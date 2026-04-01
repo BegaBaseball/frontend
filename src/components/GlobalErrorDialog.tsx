@@ -1,17 +1,20 @@
-import { useErrorModal } from './contexts/ErrorModalContext';
-import ErrorFeedbackPanel from './common/ErrorFeedbackPanel';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from './ui/alert-dialog';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import type { ErrorModalState, GlobalApiErrorDetail } from '../types/error';
+import { shouldIgnoreGlobalApiError } from './contexts/errorModalGuards';
+
+const LazyGlobalErrorDialogContent = lazy(() => import('./GlobalErrorDialogContent'));
+
+const initialState: ErrorModalState = {
+    isOpen: false,
+    message: '',
+    statusCode: null,
+    errorId: null,
+    source: 'api',
+    onRetry: null,
+};
 
 export default function GlobalErrorDialog() {
-    const { isOpen, message, statusCode, errorId, source, onRetry, closeErrorModal } = useErrorModal();
+    const [state, setState] = useState<ErrorModalState>(initialState);
     const getPrefixText = (code: number | null): string => {
         if (!code) return '⛔ 요청 실패';
         if (code === 404 || code === 409) return '⚠️ 오류 발생';
@@ -19,41 +22,55 @@ export default function GlobalErrorDialog() {
         return '⛔ 요청 실패';
     };
 
-    if (!isOpen || (typeof window !== 'undefined' && window.Cypress)) return null;
+    useEffect(() => {
+        const handleGlobalError = (event: Event) => {
+            const customEvent = event as CustomEvent<GlobalApiErrorDetail | undefined>;
+            const errorData = customEvent.detail;
+            if (shouldIgnoreGlobalApiError(errorData, window.location.pathname)) {
+                return;
+            }
 
-    const displayStatusCode = statusCode || 0;
-    const handleRetry = onRetry
+            setState({
+                isOpen: true,
+                message: (errorData?.message || '').toString(),
+                statusCode: errorData?.statusCode ?? null,
+                errorId: errorData?.errorId ?? null,
+                source: errorData?.source ?? 'api',
+                onRetry: errorData?.onRetry ?? null,
+            });
+        };
+
+        window.addEventListener('global-api-error', handleGlobalError);
+        return () => {
+            window.removeEventListener('global-api-error', handleGlobalError);
+        };
+    }, []);
+
+    const closeErrorModal = () => {
+        setState(initialState);
+    };
+
+    if (!state.isOpen || (typeof window !== 'undefined' && window.Cypress)) return null;
+
+    const handleRetry = state.onRetry
         ? async () => {
             closeErrorModal();
-            await onRetry();
+            await state.onRetry?.();
         }
         : null;
 
     return (
-        <AlertDialog open={isOpen} onOpenChange={closeErrorModal}>
-            <AlertDialogContent className="border-red-500 sm:max-w-lg">
-                <AlertDialogHeader>
-                    {/* 서버 메시지를 Title에 직접 표시 */}
-                    <AlertDialogTitle className="text-xl font-bold text-red-600">
-                        {getPrefixText(statusCode)} (HTTP {displayStatusCode})
-                    </AlertDialogTitle>
-
-                    {/* 보조 정보: 오류 유형과 상태 코드를 Description에 표시 */}
-                    <AlertDialogDescription className="text-gray-500 mt-2">
-                        {message}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <ErrorFeedbackPanel
-                    errorId={errorId}
-                    source={source}
-                    onRetry={handleRetry}
-                />
-                <AlertDialogFooter>
-                    <AlertDialogAction onClick={closeErrorModal}>
-                        확인
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <Suspense fallback={null}>
+            <LazyGlobalErrorDialogContent
+                isOpen={state.isOpen}
+                message={state.message}
+                statusCode={state.statusCode}
+                errorId={state.errorId}
+                source={state.source}
+                prefixText={getPrefixText(state.statusCode)}
+                onRetry={handleRetry}
+                closeErrorModal={closeErrorModal}
+            />
+        </Suspense>
     );
 }

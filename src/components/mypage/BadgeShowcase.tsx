@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Ticket, Flame, MapPin, Sparkles, Crown, Lock } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface BadgeShowcaseProps {
     earnedBadges: string[];
@@ -24,6 +22,14 @@ const BADGES: BadgeInfo[] = [
     { id: 'crown', name: '레전드', icon: Crown, description: '50경기 이상 직관', color: 'bg-purple-500' },
 ];
 
+function BadgeShell({ children }: { children: ReactNode }) {
+    return (
+        <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium">
+            {children}
+        </span>
+    );
+}
+
 export default function BadgeShowcase({ earnedBadges = [] }: BadgeShowcaseProps) {
     return (
         <Card className="h-full bg-gradient-to-br from-card to-muted/40 border-none shadow-md">
@@ -34,39 +40,42 @@ export default function BadgeShowcase({ earnedBadges = [] }: BadgeShowcaseProps)
             </CardHeader>
             <CardContent>
                 <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                    <TooltipProvider>
-                        {BADGES.map((badge) => {
-                            const isEarned = earnedBadges.includes(badge.id);
-                            return (
-                                <Tooltip key={badge.id}>
-                                    <TooltipTrigger>
-                            <div
-                                className={`
+                    {BADGES.map((badge) => {
+                        const isEarned = earnedBadges.includes(badge.id);
+                        const statusLabel = isEarned ? '획득 완료' : '미획득';
+
+                        return (
+                            <div key={badge.id} className="flex flex-col items-center gap-2 text-center">
+                                <div
+                                    title={`${badge.name} - ${badge.description} (${statusLabel})`}
+                                    className={`
                         relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300
                         ${isEarned
-                                                    ? `${badge.color} text-white shadow-lg scale-100 hover:scale-110`
-                                                    : 'bg-muted text-muted-foreground grayscale opacity-60'}
+                                            ? `${badge.color} text-white shadow-lg scale-100 hover:scale-110`
+                                            : 'bg-muted text-muted-foreground grayscale opacity-60'}
                       `}
-                            >
-                                <badge.icon className="w-8 h-8" strokeWidth={1.5} />
-                                {!isEarned && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-full">
-                                        <Lock className="w-4 h-4 text-muted-foreground" />
-                                    </div>
-                                )}
-                            </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <div className="text-center">
-                                            <p className="font-bold">{badge.name}</p>
-                                            <p className="text-xs text-muted-foreground">{badge.description}</p>
-                                            {!isEarned && <p className="text-xs text-red-400 mt-1">미획득</p>}
+                                >
+                                    <badge.icon className="w-8 h-8" strokeWidth={1.5} />
+                                    {!isEarned && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-full">
+                                            <Lock className="w-4 h-4 text-muted-foreground" />
                                         </div>
-                                    </TooltipContent>
-                                </Tooltip>
-                            );
-                        })}
-                    </TooltipProvider>
+                                    )}
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold text-foreground">{badge.name}</p>
+                                    <p className="max-w-[96px] text-[11px] leading-4 text-muted-foreground">
+                                        {badge.description}
+                                    </p>
+                                    <BadgeShell>
+                                        <span className={isEarned ? 'text-emerald-500' : 'text-red-400'}>
+                                            {statusLabel}
+                                        </span>
+                                    </BadgeShell>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </CardContent>
         </Card>

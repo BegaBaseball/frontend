@@ -1,26 +1,9 @@
+import { useState, type ReactNode } from 'react';
 import { Search, Users, Trash2, UserCog } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
+import PlainDialog from '../ui/plain-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../ui/alert-dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
 import TeamLogo from '../TeamLogo';
 import { TEAM_DATA } from '../../constants/teams';
 import { formatDate } from '../../utils/formatters';
@@ -55,6 +38,16 @@ interface UsersAdminPanelProps {
   setRoleChangeReason: (reason: string) => void;
 }
 
+function AdminBadge({ className = '', children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+const adminNativeSelectClassName = 'w-[120px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs text-slate-200 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-60';
+
 export function UsersAdminPanel({
   searchTerm,
   setSearchTerm,
@@ -66,6 +59,8 @@ export function UsersAdminPanel({
   setPendingRoleChange,
   setRoleChangeReason,
 }: UsersAdminPanelProps) {
+  const [pendingDeleteUser, setPendingDeleteUser] = useState<AdminUser | null>(null);
+
   return (
     <>
       <div className="mb-6">
@@ -144,17 +139,17 @@ export function UsersAdminPanel({
                     </TableCell>
                     <TableCell>
                       {user.role === 'ROLE_SUPER_ADMIN' ? (
-                        <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0 shadow-lg shadow-purple-500/20">
+                        <AdminBadge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0 shadow-lg shadow-purple-500/20">
                           최고관리자
-                        </Badge>
+                        </AdminBadge>
                       ) : user.role === 'ROLE_ADMIN' ? (
-                        <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg shadow-amber-500/20">
+                        <AdminBadge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg shadow-amber-500/20">
                           관리자
-                        </Badge>
+                        </AdminBadge>
                       ) : (
-                        <Badge className="bg-slate-700 text-slate-300 border-0">
+                        <AdminBadge className="bg-slate-700 text-slate-300 border-0">
                           일반
-                        </Badge>
+                        </AdminBadge>
                       )}
                     </TableCell>
                     {isSuperAdmin && (
@@ -163,9 +158,11 @@ export function UsersAdminPanel({
                         {user.id === currentUserId || user.role === 'ROLE_SUPER_ADMIN' ? (
                           <span className="text-slate-600 text-xs">변경 불가</span>
                         ) : (
-                          <Select
+                          <select
+                            data-testid={`admin-user-role-trigger-${user.id}`}
                             value={user.role}
-                            onValueChange={(nextRole: 'ROLE_ADMIN' | 'ROLE_USER') => {
+                            onChange={(event) => {
+                              const nextRole = event.target.value as 'ROLE_ADMIN' | 'ROLE_USER';
                               if (nextRole === user.role) return;
                               setPendingRoleChange({
                                 userId: user.id,
@@ -176,57 +173,24 @@ export function UsersAdminPanel({
                               });
                               setRoleChangeReason('');
                             }}
+                            className={adminNativeSelectClassName}
                           >
-                            <SelectTrigger
-                              data-testid={`admin-user-role-trigger-${user.id}`}
-                              className="w-[120px] bg-slate-800/60 border-slate-700 text-slate-200 text-xs h-8 rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-                              <SelectItem value="ROLE_USER" className="text-xs focus:bg-slate-700 focus:text-slate-100">
-                                일반 사용자
-                              </SelectItem>
-                              <SelectItem value="ROLE_ADMIN" className="text-xs focus:bg-slate-700 focus:text-slate-100">
-                                관리자
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                            <option value="ROLE_USER">일반 사용자</option>
+                            <option value="ROLE_ADMIN">관리자</option>
+                          </select>
                         )}
                       </TableCell>
                     )}
                     <TableCell className="text-right">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
-                            disabled={user.role === 'ROLE_ADMIN'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-slate-900 border-slate-800 text-slate-100">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle className="text-white">유저를 삭제하시겠습니까?</AlertDialogTitle>
-                            <AlertDialogDescription className="text-slate-400">
-                              이 작업은 되돌릴 수 없습니다. 유저의 모든 데이터가 영구적으로 삭제됩니다.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel className="bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700">
-                              취소
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25"
-                            >
-                              삭제
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                        disabled={user.role === 'ROLE_ADMIN'}
+                        onClick={() => setPendingDeleteUser(user)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -235,6 +199,37 @@ export function UsersAdminPanel({
           </Table>
         </div>
       )}
+
+      <PlainDialog
+        open={Boolean(pendingDeleteUser)}
+        onClose={() => setPendingDeleteUser(null)}
+        title="유저를 삭제하시겠습니까?"
+        description="이 작업은 되돌릴 수 없습니다. 유저의 모든 데이터가 영구적으로 삭제됩니다."
+        className="sm:max-w-md border-slate-800 bg-slate-900 text-slate-100"
+        footer={(
+          <>
+            <Button variant="outline" onClick={() => setPendingDeleteUser(null)} className="border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700">
+              취소
+            </Button>
+            <Button
+              onClick={() => {
+                if (!pendingDeleteUser) return;
+                handleDeleteUser(pendingDeleteUser.id);
+                setPendingDeleteUser(null);
+              }}
+              className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25"
+            >
+              삭제
+            </Button>
+          </>
+        )}
+      >
+        {pendingDeleteUser ? (
+          <p className="text-sm text-slate-400">
+            <span className="font-semibold text-slate-200">{pendingDeleteUser.name}</span> 계정을 삭제합니다.
+          </p>
+        ) : null}
+      </PlainDialog>
     </>
   );
 }

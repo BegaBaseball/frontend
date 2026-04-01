@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { User } from 'lucide-react';
-import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { cn } from '../../lib/utils';
 
 export interface ProfileImageProps {
@@ -80,33 +79,47 @@ export const ProfileImage: React.FC<ProfileImageProps> = ({
   const [imgError, setImgError] = useState(false);
 
   const resolvedSrc = resolveImageSrc(src);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [resolvedSrc]);
+
   const showImage = resolvedSrc !== null && !imgError;
   const initial = username?.trim().slice(0, 1) || null;
 
   const sizeClass = SIZE_CLASS_MAP[size];
   const fallbackTextClass = FALLBACK_TEXT_SIZE_MAP[size];
   const iconSize = ICON_SIZE_MAP[size];
+  const imageAlt = alt ?? username ?? '프로필';
 
   return (
-    <Avatar className={cn(sizeClass, className)}>
+    <div
+      className={cn(
+        'relative flex shrink-0 overflow-hidden rounded-full',
+        sizeClass,
+        className,
+      )}
+    >
       {showImage && (
-        <AvatarImage
+        <img
           src={resolvedSrc}
-          alt={alt ?? username ?? '프로필'}
+          alt={imageAlt}
+          className="block size-full object-cover"
+          decoding="async"
           loading="lazy"
           onError={() => setImgError(true)}
         />
       )}
-      <AvatarFallback
-        className="bg-slate-100 dark:bg-secondary text-slate-600 dark:text-gray-300 font-semibold select-none"
-      >
-        {initial ? (
-          <span className={fallbackTextClass}>{initial}</span>
-        ) : (
-          <User size={iconSize} className="text-slate-400 dark:text-gray-500" />
-        )}
-      </AvatarFallback>
-    </Avatar>
+      {!showImage && (
+        <div className="flex size-full items-center justify-center bg-slate-100 font-semibold select-none text-slate-600 dark:bg-secondary dark:text-gray-300">
+          {initial ? (
+            <span className={fallbackTextClass}>{initial}</span>
+          ) : (
+            <User size={iconSize} className="text-slate-400 dark:text-gray-500" />
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 

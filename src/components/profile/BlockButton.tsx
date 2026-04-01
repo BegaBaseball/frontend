@@ -1,20 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import { Button } from '../ui/button';
 import { Ban, Loader2 } from 'lucide-react';
 import { toggleBlockByHandle, BlockToggleResponse } from '../../api/blockApi';
 import { useAuthProfileSnapshot } from '../../store/authStore';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '../ui/alert-dialog';
+import { Button } from '../ui/button';
 
 interface BlockButtonProps {
     handle: string;
@@ -36,20 +26,46 @@ export default function BlockButton({
     const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
     const [isBlocked, setIsBlocked] = useState(initialBlocked);
     const [isLoading, setIsLoading] = useState(false);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const titleId = useId();
+    const descriptionId = useId();
 
-    // Don't show block button for own profile
+    useEffect(() => {
+        if (!isConfirmOpen) {
+            return;
+        }
+
+        const previousOverflow = document.body.style.overflow;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsConfirmOpen(false);
+            }
+        };
+
+        document.body.style.overflow = 'hidden';
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isConfirmOpen]);
+
     if (handle && currentUserHandle === handle) {
         return null;
     }
 
     const handleToggleBlock = useCallback(async () => {
-        if (isLoading) return;
+        if (isLoading) {
+            return;
+        }
 
         setIsLoading(true);
         try {
             const response = await toggleBlockByHandle(handle);
             setIsBlocked(response.blocked);
             onBlockChange?.(response);
+            setIsConfirmOpen(false);
         } catch (error) {
             console.error('Failed to toggle block:', error);
             toast.error('차단 처리에 실패했습니다.');
@@ -72,7 +88,7 @@ export default function BlockButton({
                     <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                     <>
-                        <Ban className="h-4 w-4 mr-1" />
+                        <Ban className="mr-1 h-4 w-4" />
                         차단 해제
                     </>
                 )}
@@ -80,49 +96,66 @@ export default function BlockButton({
         );
     }
 
-    // Not blocked - show confirmation dialog
     return (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button
-                    variant={variant}
-                    disabled={isLoading}
-                    className={`${buttonSize} text-gray-500 hover:text-red-500 hover:bg-red-50`}
-                >
-                    {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <>
-                            <Ban className="h-4 w-4 mr-1" />
-                            차단
-                        </>
-                    )}
-                </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>사용자 차단</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {userName}를 차단하시겠습니까?
-                        <br /><br />
-                        차단하면 다음과 같은 효과가 있습니다:
-                        <ul className="list-disc list-inside mt-2 space-y-1">
-                            <li>상대방의 게시글이 피드에서 숨겨집니다</li>
-                            <li>양방향 팔로우 관계가 해제됩니다</li>
-                            <li>상대방에게 알림이 가지 않습니다</li>
-                        </ul>
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>취소</AlertDialogCancel>
-                    <AlertDialogAction
-                        onClick={handleToggleBlock}
-                        className="bg-red-500 hover:bg-red-600"
-                    >
-                        차단하기
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <>
+            <Button
+                variant={variant}
+                disabled={isLoading}
+                onClick={() => setIsConfirmOpen(true)}
+                className={`${buttonSize} text-gray-500 hover:bg-red-50 hover:text-red-500`}
+            >
+                {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                    <>
+                        <Ban className="mr-1 h-4 w-4" />
+                        차단
+                    </>
+                )}
+            </Button>
+
+            {isConfirmOpen && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-[90]">
+                    <div className="absolute inset-0 bg-black/50" aria-hidden="true" onClick={() => setIsConfirmOpen(false)} />
+                    <div className="absolute inset-0 flex items-center justify-center p-4" onClick={() => setIsConfirmOpen(false)}>
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby={titleId}
+                            aria-describedby={descriptionId}
+                            onClick={(event) => event.stopPropagation()}
+                            className="w-full max-w-sm rounded-xl border bg-white p-6 shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 dark:border-border dark:bg-card"
+                        >
+                            <div className="space-y-2">
+                                <h2 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    사용자 차단
+                                </h2>
+                                <div id={descriptionId} className="text-sm text-gray-600 dark:text-gray-300">
+                                    <p>{userName}를 차단하시겠습니까?</p>
+                                    <ul className="mt-3 list-inside list-disc space-y-1">
+                                        <li>상대방의 게시글이 피드에서 숨겨집니다</li>
+                                        <li>양방향 팔로우 관계가 해제됩니다</li>
+                                        <li>상대방에게 알림이 가지 않습니다</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                <Button variant="outline" onClick={() => setIsConfirmOpen(false)} disabled={isLoading}>
+                                    취소
+                                </Button>
+                                <Button
+                                    onClick={handleToggleBlock}
+                                    disabled={isLoading}
+                                    className="bg-red-500 text-white hover:bg-red-600"
+                                >
+                                    {isLoading ? '처리 중...' : '차단하기'}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+        </>
     );
 }

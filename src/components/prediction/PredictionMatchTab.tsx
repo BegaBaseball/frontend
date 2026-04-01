@@ -1,5 +1,4 @@
 import { lazy, Suspense } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, TrendingUp } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import type { Game, GameDetail, VoteStatus, VoteTeam } from '../../types/prediction';
@@ -9,6 +8,12 @@ import {
   getGameStatus,
   type GameStatusResult,
 } from '../../utils/prediction';
+import {
+  PredictionChevronLeftIcon,
+  PredictionChevronRightIcon,
+  PredictionLoaderIcon,
+  PredictionTrendingUpIcon,
+} from './PredictionShellIcons';
 
 const PredictionMatchDetailPanel = lazy(() => import('./PredictionMatchDetailPanel'));
 
@@ -86,7 +91,7 @@ export default function PredictionMatchTab({
                 fallback={(
                   <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
                     <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
                       경기 카드를 준비하고 있습니다.
                     </div>
                   </Card>
@@ -152,7 +157,7 @@ export default function PredictionMatchTab({
                     aria-label="이전 날짜 보기"
                     className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
                   >
-                    <ChevronLeft size={36} />
+                    <PredictionChevronLeftIcon size={36} />
                   </button>
                   <button
                     type="button"
@@ -161,7 +166,7 @@ export default function PredictionMatchTab({
                     aria-label="다음 날짜 보기"
                     className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
                   >
-                    <ChevronRight size={36} />
+                    <PredictionChevronRightIcon size={36} />
                   </button>
                 </div>
               </Card>
@@ -177,7 +182,7 @@ export default function PredictionMatchTab({
                 aria-label="이전 날짜 보기"
                 className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
               >
-                <ChevronLeft size={36} />
+                <PredictionChevronLeftIcon size={36} />
               </button>
               <button
                 type="button"
@@ -186,12 +191,12 @@ export default function PredictionMatchTab({
                 aria-label="다음 날짜 보기"
                 className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
               >
-                <ChevronRight size={36} />
+                <PredictionChevronRightIcon size={36} />
               </button>
             </div>
 
             <div className="bg-slate-100 dark:bg-card p-4 rounded-full mb-4">
-              <TrendingUp className="w-8 h-8 text-slate-400 dark:text-gray-300" />
+              <PredictionTrendingUpIcon className="w-8 h-8 text-slate-400 dark:text-gray-300" />
             </div>
             <div className="mb-4">
               <p className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-1">
@@ -229,7 +234,7 @@ export default function PredictionMatchTab({
           aria-label="이전 날짜 보기"
           className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
         >
-          <ChevronLeft size={24} className="text-emerald-600 dark:text-emerald-300" />
+          <PredictionChevronLeftIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
         </button>
         <span className="font-medium text-slate-900 dark:text-gray-100">
           {formatDate(currentDate)}
@@ -241,7 +246,7 @@ export default function PredictionMatchTab({
           aria-label="다음 날짜 보기"
           className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
         >
-          <ChevronRight size={24} className="text-emerald-600 dark:text-emerald-300" />
+          <PredictionChevronRightIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
         </button>
       </div>
     </>

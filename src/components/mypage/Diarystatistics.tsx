@@ -1,4 +1,5 @@
 import { lazy, Suspense, useMemo } from 'react';
+import './Diary.css';
 import { Card } from '../ui/card';
 import { useDiaryStatistics } from '../../hooks/useDiaryStatistics';
 import StatCard from './StatCard';

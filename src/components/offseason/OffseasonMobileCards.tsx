@@ -2,9 +2,9 @@ import { CalendarDays, Info, TrendingUp } from 'lucide-react';
 
 import { getTeamKoreanName } from '../../utils/teamNames';
 import TeamLogo from '../TeamLogo';
-import { Badge } from '../ui/badge';
 import { OffseasonMovement } from './offseasonListTypes';
-import { formatDateLabel, formatRemarks, getDisplayAmount, getMovementSummary, getSectionColor } from './offseasonListUtils';
+import { OffseasonPill, OffseasonSectionPill } from './offseasonUi';
+import { formatDateLabel, formatRemarks, getDisplayAmount, getMovementSummary } from './offseasonListUtils';
 
 export function OffseasonMobileCards({
     movements,
@@ -42,17 +42,15 @@ export function OffseasonMobileCards({
                                     <div className="flex items-center gap-2">
                                         <p className="text-xs font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{teamName}</p>
                                         {item.isBigEvent && (
-                                            <Badge className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-[10px] font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
+                                            <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-[10px] font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
                                                 주요
-                                            </Badge>
+                                            </OffseasonPill>
                                         )}
                                     </div>
                                     <h3 className="text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">{item.player}</h3>
                                 </div>
                             </div>
-                            <Badge className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide ${getSectionColor(item.section)}`}>
-                                {item.section}
-                            </Badge>
+                            <OffseasonSectionPill section={item.section} />
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
@@ -23,17 +23,6 @@ import {
     Trash2,
     Undo2
 } from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from './ui/dropdown-menu';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger
-} from './ui/popover';
 import { cn } from '../lib/utils';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import * as cheatApi from '../api/cheerApi';
@@ -48,8 +37,7 @@ import { formatTimeAgo } from '../utils/time';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
-import ReportModal from './ReportModal';
-import QuoteRepostEditor from './QuoteRepostEditor';
+import PlainMenu from './ui/plain-menu';
 import {
     getRepostPolicyDecision,
 } from '../utils/repostPolicy';
@@ -61,6 +49,9 @@ import {
 } from '../utils/teamColors';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { getDuplicateCommentErrorMessage, parseError } from '../utils/errorUtils';
+
+const LazyReportModal = lazy(() => import('./ReportModal'));
+const LazyQuoteRepostEditor = lazy(() => import('./QuoteRepostEditor'));
 
 const detailDateFormatter = new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'long',
@@ -121,11 +112,14 @@ export default function CheerDetail() {
     const [commentLikeAnimating, setCommentLikeAnimating] = useState<Record<number, boolean>>({});
     const commentLikeTimersRef = useRef<Record<number, number>>({});
     const commentsSectionRef = useRef<HTMLDivElement | null>(null);
-    const [isRepostPopoverOpen, setIsRepostPopoverOpen] = useState(false);
+    const [isRepostMenuOpen, setIsRepostMenuOpen] = useState(false);
+    const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
     const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
+    const [hasMountedQuoteEditor, setHasMountedQuoteEditor] = useState(false);
 
     // Report Modal State
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [hasMountedReportModal, setHasMountedReportModal] = useState(false);
 
     const resolvedPostId = useMemo(() => {
         if (!selectedPost) return parsedPostId;
@@ -163,6 +157,18 @@ export default function CheerDetail() {
             });
         };
     }, []);
+
+    useEffect(() => {
+        if (isQuoteEditorOpen) {
+            setHasMountedQuoteEditor(true);
+        }
+    }, [isQuoteEditorOpen]);
+
+    useEffect(() => {
+        if (isReportModalOpen) {
+            setHasMountedReportModal(true);
+        }
+    }, [isReportModalOpen]);
 
     const loadComments = async (postId: number) => {
         setCommentsLoading(true);
@@ -236,7 +242,7 @@ export default function CheerDetail() {
             redirectToLogin();
             return;
         }
-        setIsRepostPopoverOpen(false);
+        setIsRepostMenuOpen(false);
         const targetPostId = selectedPost.repostType === 'SIMPLE' && selectedPost.originalPost?.id
             ? selectedPost.originalPost.id
             : selectedPost.id;
@@ -248,7 +254,7 @@ export default function CheerDetail() {
             redirectToLogin();
             return;
         }
-        setIsRepostPopoverOpen(false);
+        setIsRepostMenuOpen(false);
         setIsQuoteEditorOpen(true);
     };
 
@@ -258,7 +264,7 @@ export default function CheerDetail() {
             redirectToLogin();
             return;
         }
-        setIsRepostPopoverOpen(false);
+        setIsRepostMenuOpen(false);
         cancelRepostMutation.mutate(selectedPost.id);
     };
 
@@ -672,27 +678,49 @@ export default function CheerDetail() {
 
                                 <div className="flex items-center gap-1">
                                     {selectedPost.isOwner ? (
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
+                                        <PlainMenu
+                                            open={isOwnerMenuOpen}
+                                            onOpenChange={setIsOwnerMenuOpen}
+                                            align="end"
+                                            panelClassName="w-40 p-1"
+                                            trigger={(
                                                 <button
                                                     type="button"
+                                                    onClick={() => setIsOwnerMenuOpen((prev) => !prev)}
                                                     className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-700 sm:p-2 dark:hover:bg-white/10 dark:hover:text-slate-100"
                                                     aria-label="게시물 메뉴"
+                                                    aria-expanded={isOwnerMenuOpen}
+                                                    aria-haspopup="menu"
                                                 >
                                                     <MoreVertical className="w-5 h-5" />
                                                 </button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={handleDisplayEdit}>
-                                                    <Edit2 className="mr-2 h-4 w-4" />
-                                                    수정하기
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500">
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    삭제하기
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                            )}
+                                        >
+                                            <button
+                                                type="button"
+                                                role="menuitem"
+                                                onClick={() => {
+                                                    setIsOwnerMenuOpen(false);
+                                                    handleDisplayEdit();
+                                                }}
+                                                className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
+                                            >
+                                                <Edit2 className="mr-2 h-4 w-4" />
+                                                수정하기
+                                            </button>
+                                            <button
+                                                type="button"
+                                                role="menuitem"
+                                                onClick={() => {
+                                                    setIsOwnerMenuOpen(false);
+                                                    void handleDelete();
+                                                }}
+                                                className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                삭제하기
+                                            </button>
+                                        </PlainMenu>
                                     ) : isLoggedIn ? (
                                         <button
                                             type="button"
@@ -802,19 +830,27 @@ export default function CheerDetail() {
                                                 <span className="text-[11px] font-bold leading-none sm:text-[13px]">{commentCount.toLocaleString()}</span>
                                             </button>
 
-                                            <Popover
-                                                open={isRepostPopoverOpen}
-                                                onOpenChange={(open: boolean) => {
+                                            <PlainMenu
+                                                open={isRepostMenuOpen}
+                                                onOpenChange={(open) => {
                                                     if (open && !isLoggedIn) {
                                                         redirectToLogin();
                                                         return;
                                                     }
-                                                    setIsRepostPopoverOpen(open);
+                                                    setIsRepostMenuOpen(open);
                                                 }}
-                                            >
-                                                <PopoverTrigger asChild>
+                                                align="start"
+                                                panelClassName="w-56 overflow-hidden p-0"
+                                                trigger={(
                                                     <button
                                                         type="button"
+                                                        onClick={() => {
+                                                            if (!isRepostMenuOpen && !isLoggedIn) {
+                                                                redirectToLogin();
+                                                                return;
+                                                            }
+                                                            setIsRepostMenuOpen((prev) => !prev);
+                                                        }}
                                                         className={cn(
                                                             'flex h-9 items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all duration-150 hover:-translate-y-px active:scale-[0.98] sm:h-10 sm:gap-1',
                                                             repostButtonActive
@@ -823,20 +859,19 @@ export default function CheerDetail() {
                                                         )}
                                                         aria-label={repostButtonActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
                                                         aria-pressed={repostButtonActive}
+                                                        aria-expanded={isRepostMenuOpen}
+                                                        aria-haspopup="menu"
                                                     >
                                                         <Repeat2 className="h-3.5 w-3.5 flex-shrink-0 sm:h-4 sm:w-4" />
                                                         <span className="text-[11px] font-bold leading-none sm:text-[13px]">{repostCount.toLocaleString()}</span>
                                                     </button>
-                                                </PopoverTrigger>
-                                                <PopoverContent
-                                                    className="w-56 p-0"
-                                                    align="start"
-                                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                                                >
+                                                )}
+                                            >
                                                     <div className="flex flex-col py-1">
                                                         {canCancelRepost ? (
                                                             <button
                                                                 type="button"
+                                                                role="menuitem"
                                                                 onClick={handleCancelRepost}
                                                                 aria-label="리포스트 삭제"
                                                                 className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
@@ -855,6 +890,7 @@ export default function CheerDetail() {
                                                             <>
                                                                 <button
                                                                     type="button"
+                                                                    role="menuitem"
                                                                     onClick={handleSimpleRepost}
                                                                     aria-label="리포스트"
                                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -878,6 +914,7 @@ export default function CheerDetail() {
                                                             {canQuoteRepost ? (
                                                                 <button
                                                                     type="button"
+                                                                    role="menuitem"
                                                                     onClick={handleQuoteRepost}
                                                                     aria-label="인용하기"
                                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -902,8 +939,7 @@ export default function CheerDetail() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                </PopoverContent>
-                                            </Popover>
+                                            </PlainMenu>
 
                                             <button
                                                 type="button"
@@ -1185,16 +1221,36 @@ export default function CheerDetail() {
                         </div>
                     </div>
                 </article>
-                <ReportModal
-                    postId={parsedPostId}
-                    isOpen={isReportModalOpen}
-                    onClose={() => setIsReportModalOpen(false)}
-                />
-                <QuoteRepostEditor
-                    isOpen={isQuoteEditorOpen}
-                    onClose={() => setIsQuoteEditorOpen(false)}
-                    post={selectedPost}
-                />
+                {hasMountedReportModal ? (
+                    <Suspense
+                        fallback={isReportModalOpen ? (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-sm font-semibold text-white">
+                                신고 창을 불러오는 중...
+                            </div>
+                        ) : null}
+                    >
+                        <LazyReportModal
+                            postId={parsedPostId}
+                            isOpen={isReportModalOpen}
+                            onClose={() => setIsReportModalOpen(false)}
+                        />
+                    </Suspense>
+                ) : null}
+                {hasMountedQuoteEditor ? (
+                    <Suspense
+                        fallback={isQuoteEditorOpen ? (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-sm font-semibold text-white">
+                                인용 작성기를 불러오는 중...
+                            </div>
+                        ) : null}
+                    >
+                        <LazyQuoteRepostEditor
+                            isOpen={isQuoteEditorOpen}
+                            onClose={() => setIsQuoteEditorOpen(false)}
+                            post={selectedPost}
+                        />
+                    </Suspense>
+                ) : null}
             </div>
         </div>
     );

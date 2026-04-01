@@ -2,8 +2,8 @@ import React, { Fragment, ReactNode, useState, useEffect, useRef, useMemo } from
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { TrendingUp, ChevronLeft, ChevronRight, AlertTriangle, Clock3, Loader2 } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import TeamLogo from '../TeamLogo';
+import { useTheme } from '../../hooks/useTheme';
 import {
   Game,
   VoteTeam,

@@ -1,24 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { Separator } from './ui/separator';
 import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 import {
   setMatePartyMyApplicationQueryData,
   updateMatePartyApplicationsQueryData,
-} from '../hooks/mateQueryCache';
+  useMatePartyFromRoute,
+} from '../hooks/mateApplyRoute';
 import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
 import { api, ApiError } from '../utils/api';
 import { formatGameDate } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
@@ -45,6 +42,18 @@ const sanitizeUserFacingMessage = (message: string, fallback: string): string =>
   }
   return trimmed;
 };
+
+function MatePill({ className = '', children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+function SectionDivider({ className = '' }: { className?: string }) {
+  return <div className={`h-px w-full bg-gray-200 dark:bg-border ${className}`} aria-hidden="true" />;
+}
 
 export default function MateApply() {
   const { isAuthLoading, userId: currentUserId } = useAuthSession();
@@ -316,9 +325,9 @@ export default function MateApply() {
         </Button>
 
         <div className="mb-6 sm:mb-8">
-          <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary dark:border-primary/30 dark:bg-primary/10">
+          <MatePill className="border-primary/20 bg-primary/5 text-primary dark:border-primary/30 dark:bg-primary/10">
             {flowBadgeLabel}
-          </Badge>
+          </MatePill>
           <h1 className="mt-3 text-2xl font-black tracking-tight text-primary sm:text-3xl">
             {isSelling ? '티켓 구매' : '파티 참여 신청'}
           </h1>
@@ -396,9 +405,9 @@ export default function MateApply() {
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-300">
               승인 여부를 판단하는 핵심 정보입니다. 관람 스타일과 거래 조율 의사를 간단히 적어주세요.
             </p>
-            <Label htmlFor="message" className="mb-2 block">
+            <label htmlFor="message" className="mb-2 block text-sm font-medium text-gray-900 dark:text-gray-100">
               호스트에게 전달할 메시지
-            </Label>
+            </label>
             <Textarea
               id="message"
               value={message}
@@ -503,7 +512,7 @@ export default function MateApply() {
                     {ticketAmount.toLocaleString()}원
                   </span>
                 </div>
-                <Separator className="bg-gray-200 dark:bg-border" />
+                <SectionDivider />
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-gray-900 dark:text-white">
                     거래 기준 금액
