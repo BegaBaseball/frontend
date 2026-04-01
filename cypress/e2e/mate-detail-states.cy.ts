@@ -245,13 +245,16 @@ describe('MateDetail state coverage', () => {
     visitWithAuth(`/mate/${party.id}`);
     cy.wait('@getPartyById');
     cy.wait('@getMyApplicationByParty');
-    cy.wait('@createCheckinQrSession');
 
     getDesktopActionCard().scrollIntoView().within(() => {
       cy.contains('참여 확정').should('exist');
       cy.contains('button', '채팅방 입장').should('exist');
       cy.contains('button', '체크인 페이지').should('exist');
     });
+
+    cy.get('@createCheckinQrSession.all').should('have.length', 0);
+    cy.contains('button', '체크인 QR 보기').click();
+    cy.wait('@createCheckinQrSession');
   });
 
   it('shows rejected state recovery action', () => {
@@ -280,9 +283,10 @@ describe('MateDetail state coverage', () => {
 
     visitWithAuth(`/mate/${party.id}`);
     cy.wait('@getPartyById');
-    cy.wait('@getSeatViews');
 
     cy.contains('좌석 시야').should('be.visible');
+    cy.contains('button', '좌석/구역 보기').click();
+    cy.wait('@getSeatViews');
     cy.contains('아직 등록된 시야가 없어요').should('be.visible');
   });
 

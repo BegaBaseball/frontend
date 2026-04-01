@@ -119,6 +119,10 @@ const uploadFixtureFiles = (
     });
 };
 
+const expectToast = (message: string) => {
+    cy.contains('[role="status"]', message, { timeout: 10000 }).should('be.visible');
+};
+
 describe('Personal Diary', () => {
     let diaryEntries: DiaryEntry[];
     let diaryStatistics: Record<string, unknown>;
@@ -217,7 +221,7 @@ describe('Personal Diary', () => {
         cy.getBySel('save-diary-btn').click();
 
         cy.wait('@saveScheduledDiary');
-        cy.contains('li', '다이어리가 작성되었습니다').should('be.visible');
+        expectToast('다이어리가 작성되었습니다');
         cy.getBySel('day-15').find('img').should('be.visible');
     });
 
@@ -365,8 +369,8 @@ describe('Personal Diary', () => {
         cy.getBySel('diary-seat-view-submit-button').click();
 
         cy.wait('@submitSeatViewSelections');
-        cy.contains('li', '시야뷰가 검토 대기 상태로 제출되었습니다').should('be.visible');
-        cy.contains('li', '다이어리가 작성되었습니다').should('be.visible');
+        expectToast('시야뷰가 검토 대기 상태로 제출되었습니다');
+        expectToast('다이어리가 작성되었습니다');
         cy.getBySel('day-15').find('img').should('be.visible');
     });
 
@@ -477,7 +481,7 @@ describe('Personal Diary', () => {
 
         cy.wait('@saveDiaryForEditDelete');
         cy.wait('@getDiaries');
-        cy.contains('li', '다이어리가 작성되었습니다').should('be.visible');
+        expectToast('다이어리가 작성되었습니다');
         cy.getBySel('day-15').find('img').should('be.visible');
         cy.getBySel('diary-memo').should('contain', 'Fresh content');
 
@@ -508,7 +512,7 @@ describe('Personal Diary', () => {
 
         cy.wait('@updateDiary');
         cy.wait('@getDiaries');
-        cy.contains('li', '다이어리가 수정되었습니다').should('be.visible');
+        expectToast('다이어리가 수정되었습니다');
         cy.getBySel('diary-memo').should('contain', 'Modified content!');
 
         cy.intercept('POST', '**/api/diary/*/delete*', {
@@ -525,13 +529,13 @@ describe('Personal Diary', () => {
         ];
 
         cy.getBySel('delete-diary-btn').should('be.visible').click();
-        cy.get('[role="alertdialog"]').should('be.visible');
-        cy.get('[role="alertdialog"]').contains('button', '삭제').click();
+        cy.get('[role="alertdialog"], [role="dialog"]').filter(':visible').last().should('be.visible');
+        cy.get('[role="alertdialog"], [role="dialog"]').filter(':visible').last().contains('button', '삭제').click();
 
         cy.wait('@deleteDiary').then(({ request }) => {
             expect(request.url).to.include('/61/delete');
         });
-        cy.contains('li', '다이어리가 삭제되었습니다').should('be.visible');
+        expectToast('다이어리가 삭제되었습니다');
         cy.get('@deleteDiary.all').should('have.length', 1);
     });
 

@@ -163,7 +163,7 @@ describe('Mate execution flow UI', () => {
 
     cy.contains('button', '체크인하기').click();
     cy.wait('@createCheckIn');
-    cy.wait('@getCheckIns');
+    cy.get('@getCheckIns.all').should('have.length', 1);
 
     cy.contains('체크인 완료').should('be.visible');
     cy.get('[data-testid="checkin-progress-card"]').within(() => {
@@ -252,15 +252,6 @@ describe('Mate execution flow UI', () => {
       statusCode: 200,
       body: [pendingApplication, approvedApplication],
     }).as('getPartyApplications');
-    cy.intercept('POST', '**/api/checkin/qr-session', {
-      statusCode: 201,
-      body: {
-        sessionId: 'session-940',
-        partyId: 940,
-        expiresAt: '2026-03-21T11:30:00Z',
-        checkinUrl: `${Cypress.config('baseUrl')}/mate/940/checkin?sessionId=session-940`,
-      },
-    }).as('createCheckInQrSession');
     cy.intercept('GET', '**/api/chat/party/940*', {
       statusCode: 200,
       body: [],
@@ -283,7 +274,7 @@ describe('Mate execution flow UI', () => {
     cy.visit('/mate/940');
     cy.wait('@getRouteParty');
     cy.wait('@getPartyApplications');
-    cy.wait('@createCheckInQrSession');
+    cy.contains('button', '체크인 QR 보기').should('be.visible');
     cy.get('@getRouteParty.all').then((calls) => {
       baselinePartyRequestCount = calls.length;
       expect(baselinePartyRequestCount).to.be.greaterThan(0);

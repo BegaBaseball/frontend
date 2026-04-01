@@ -1,7 +1,8 @@
 /// <reference types="cypress" />
 
+import { visitHomePage } from '../support/homePage';
+
 describe('Home featured mates navigation', () => {
-  const fakeToken = 'home-featured-mates-token';
   const selectedDate = '2026-03-16';
   const featuredMate = {
     id: 911,
@@ -20,29 +21,6 @@ describe('Home featured mates navigation', () => {
     awayTeam: 'LG',
     ticketPrice: 22000,
   } as const;
-
-  const seedAuthState = (win: Window) => {
-    win.localStorage.setItem('auth-storage', JSON.stringify({
-      state: {
-        user: {
-          id: 123,
-          email: 'test@example.com',
-          name: 'TestUser',
-          handle: 'testuser',
-          favoriteTeam: 'LG',
-          role: 'ROLE_USER',
-          hasPassword: true,
-          profileImageUrl: null,
-        },
-        isLoggedIn: true,
-        isAdmin: false,
-      },
-      version: 0,
-    }));
-    win.localStorage.setItem('accessToken', fakeToken);
-    win.localStorage.setItem('bega_has_visited', 'true');
-    win.localStorage.setItem('bega_dont_show_guide', 'true');
-  };
 
   beforeEach(() => {
     cy.clearCookies();
@@ -96,8 +74,11 @@ describe('Home featured mates navigation', () => {
   });
 
   it('keeps mate preview visible while home-to-detail background refresh is running', () => {
-    cy.visit('/home', {
-      onBeforeLoad: seedAuthState,
+    visitHomePage({
+      path: '/home',
+      token: 'home-featured-mates-token',
+      user: { favoriteTeam: 'LG' },
+      resetStorage: true,
     });
 
     cy.wait('@getMe');

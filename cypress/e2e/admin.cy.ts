@@ -103,12 +103,19 @@ const ok = <T,>(data: T, message = 'ok') => ({
 
 const readQuery = (url: string, key: string) => new URL(url).searchParams.get(key) ?? '';
 
-const selectRadixOption = (testId: string, optionText: string) => {
-    cy.getBySel(testId).click({ force: true });
-    cy.get('[role="option"]').contains(optionText).click({ force: true });
+const selectOption = (testId: string, optionText: string) => {
+    cy.getBySel(testId).then(($element) => {
+        if ($element.is('select')) {
+            cy.wrap($element).select(optionText, { force: true });
+            return;
+        }
+
+        cy.wrap($element).click({ force: true });
+        cy.get('[role="option"]').contains(optionText).click({ force: true });
+    });
 };
 
-const visibleAlertDialog = () => cy.get('[role="alertdialog"]').filter(':visible').last();
+const visibleAlertDialog = () => cy.get('[role="alertdialog"], [role="dialog"]').filter(':visible').last();
 
 const visibleDialog = () => cy.get('[role="dialog"]').filter(':visible').last();
 
@@ -1001,7 +1008,7 @@ describe('Admin page coverage', () => {
         cy.contains('FanUser').should('be.visible');
         cy.contains('ModUser').should('not.exist');
 
-        selectRadixOption('admin-user-role-trigger-11', '관리자');
+        selectOption('admin-user-role-trigger-11', '관리자');
         visibleAlertDialog().within(() => {
             cy.getBySel('admin-role-change-reason').type('운영 보조 권한 부여');
             cy.getBySel('admin-role-change-confirm').click();
@@ -1015,7 +1022,7 @@ describe('Admin page coverage', () => {
         cy.getBySel('admin-users-search').clear().type('ModUser');
         cy.wait('@getAdminUsers');
 
-        selectRadixOption('admin-user-role-trigger-12', '일반 사용자');
+        selectOption('admin-user-role-trigger-12', '일반 사용자');
         visibleAlertDialog().within(() => {
             cy.getBySel('admin-role-change-reason').type('권한 실패 테스트');
             cy.getBySel('admin-role-change-confirm').click();
@@ -1053,11 +1060,11 @@ describe('Admin page coverage', () => {
         cy.wait('@getClientErrorEvents');
         cy.contains('클라이언트 에러 관제').should('be.visible');
 
-        selectRadixOption('admin-client-errors-window-trigger', '최근 1시간');
+        selectOption('admin-client-errors-window-trigger', '최근 1시간');
         cy.wait('@getClientErrorDashboard');
         cy.wait('@getClientErrorEvents');
 
-        selectRadixOption('admin-client-errors-bucket-trigger', 'API');
+        selectOption('admin-client-errors-bucket-trigger', 'API');
         cy.wait('@getClientErrorEvents');
         cy.getBySel('admin-client-errors-route-filter').type('/admin', { force: true });
         cy.wait('@getClientErrorEvents');
@@ -1137,7 +1144,7 @@ describe('Admin page coverage', () => {
         cy.wait('@getAdminStadiums');
         cy.wait('@getStadiumPlaces');
 
-        selectRadixOption('admin-stadium-select-trigger', '대전 한화생명 이글스파크 (HH)');
+        selectOption('admin-stadium-select-trigger', '대전 한화생명 이글스파크 (HH)');
         cy.wait('@getStadiumPlaces');
         cy.contains('이글스 카페').should('be.visible');
 
@@ -1145,7 +1152,7 @@ describe('Admin page coverage', () => {
         visibleDialog().within(() => {
             cy.get('input[placeholder="장소 이름"]').type('원정 라운지');
         });
-        selectRadixOption('admin-place-category-trigger', '음식점');
+        selectOption('admin-place-category-trigger', '음식점');
         visibleDialog().within(() => {
             cy.get('input[placeholder="도로명 주소"]').type('대전 중구 중앙로 10');
             cy.get('input[placeholder="02-1234-5678"]').type('042-555-1234');
@@ -1191,7 +1198,7 @@ describe('Admin page coverage', () => {
 
         cy.getBySel('admin-ai-refresh-presets').click();
         cy.wait('@getReleasePresets');
-        selectRadixOption('admin-ai-scenario-trigger', 'hotfix-check');
+        selectOption('admin-ai-scenario-trigger', 'hotfix-check');
         cy.contains('docs/hotfix.md').should('be.visible');
 
         cy.getBySel('admin-ai-generate-draft').click();
@@ -1201,7 +1208,7 @@ describe('Admin page coverage', () => {
 
         cy.getBySel('admin-ai-refresh-eval-cases').click();
         cy.wait('@getReleaseEvalCases');
-        selectRadixOption('admin-ai-eval-case-trigger', 'hotfix-check-1');
+        selectOption('admin-ai-eval-case-trigger', 'hotfix-check-1');
         cy.getBySel('admin-ai-run-eval').click();
 
         cy.wait('@postReleaseEvaluation');

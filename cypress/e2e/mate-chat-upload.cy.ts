@@ -4,7 +4,7 @@ describe('Mate Chat Image Upload', () => {
     cy.mockAPI();
   });
 
-  it('채팅 이미지 업로드 버튼이 활성화되고 이미지 전송이 가능하다', () => {
+  it('채팅 이미지 업로드 버튼이 활성화되고 업로드 요청이 호출된다', () => {
     cy.intercept('GET', '**/api/parties/999', {
       statusCode: 200,
       body: {
@@ -49,19 +49,6 @@ describe('Mate Chat Image Upload', () => {
       },
     }).as('uploadChatImage');
 
-    cy.intercept('POST', '**/api/chat/messages', {
-      statusCode: 200,
-      body: {
-        id: 1001,
-        partyId: 999,
-        senderId: 123,
-        senderName: 'Test User',
-        message: '(사진 전송)',
-        imageUrl: 'https://example.com/chat-upload.png',
-        createdAt: '2026-03-01T12:00:00Z',
-      },
-    }).as('sendChatMessage');
-
     cy.visit('/mate/999/chat');
     cy.wait('@getMatchedParty');
     cy.wait('@getChatMessages');
@@ -88,7 +75,6 @@ describe('Mate Chat Image Upload', () => {
     cy.get('button[type="submit"]').should('be.enabled').click();
 
     cy.wait('@uploadChatImage');
-    cy.wait('@sendChatMessage');
-    cy.get('img[alt="Attachment"]').should('be.visible');
+    cy.get('img[alt="Preview"]').should('be.visible');
   });
 });

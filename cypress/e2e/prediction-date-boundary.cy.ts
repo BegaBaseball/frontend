@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { installPredictionAuthenticatedSessionIntercept, visitPredictionPage } from '../support/predictionPage';
+
 describe('Prediction Date Boundary', () => {
     const gameDate = '2026-02-03';
     const gameId = '20260203HHSS0';
@@ -29,45 +31,10 @@ describe('Prediction Date Boundary', () => {
     };
 
     const openPredictionPage = () => {
-        const fakeToken = 'prediction-date-boundary-token';
-        const authState = {
-            state: {
-                user: {
-                    id: 123,
-                    email: 'test@example.com',
-                    name: 'TestUser',
-                    handle: 'testuser',
-                    favoriteTeam: 'HH',
-                    role: 'ROLE_USER',
-                    hasPassword: true,
-                    profileImageUrl: null,
-                },
-                isLoggedIn: true,
-                isAdmin: false,
-            },
-            version: 0,
-        };
-
-        const seedAuthState = (win: Window) => {
-            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            win.localStorage.setItem('accessToken', fakeToken);
-            win.localStorage.setItem('bega_has_visited', 'true');
-            win.localStorage.setItem('bega_dont_show_guide', 'true');
-        };
-
-        cy.visit(`/prediction?gameId=${gameId}&date=${gameDate}`, {
-            onBeforeLoad(win) {
-                seedAuthState(win);
-                win.addEventListener('auth-session-expired', (event) => {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                }, true);
-            },
+        visitPredictionPage({
+            path: `/prediction?gameId=${gameId}&date=${gameDate}`,
+            token: 'prediction-date-boundary-token',
         });
-        cy.window().then((win) => {
-            seedAuthState(win);
-        });
-        cy.setCookie('Authorization', fakeToken);
         cy.tick(100);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.wait('@getScheduleRange');
@@ -90,8 +57,8 @@ describe('Prediction Date Boundary', () => {
             win.localStorage.removeItem('prediction:run-session');
             win.localStorage.removeItem('prediction:run-session:v1');
         });
-        cy.login('user');
         cy.mockAPI({ skipRankings: true });
+        installPredictionAuthenticatedSessionIntercept('getPredictionSessionBoundary');
 
         cy.intercept('GET', '**/api/matches/day*', {
             statusCode: 200,

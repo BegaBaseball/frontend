@@ -1,8 +1,17 @@
 /// <reference types="cypress" />
 
-import { buildDefaultPredictionPath, ensureCoachBriefingVisible } from '../support/predictionPage';
+import {
+    buildDefaultPredictionPath,
+    ensureCoachBriefingVisible,
+    getPredictionAuthRequestTraces,
+    installPredictionAuthenticatedSessionIntercept,
+    installPredictionGuestSessionIntercept,
+    visitPredictionPage,
+} from '../support/predictionPage';
 
 describe('Game Prediction', () => {
+    const getCoachAnalysisDialog = () => cy.get('[data-testid="coach-analysis-dialog"]');
+
     type ScheduleGameMock = {
         gameId: string;
         gameDate: string;
@@ -99,6 +108,11 @@ describe('Game Prediction', () => {
         captureAuthEvents?: boolean;
         seedAuth?: boolean;
         persistedAuthHint?: boolean;
+        authBootstrapMeta?: {
+            version?: number;
+            lastSuccessAt?: number | null;
+            lastFailureAt?: number | null;
+        } | null;
         waitForScheduleRange?: boolean;
         path?: string;
     } = {}) => {
@@ -107,46 +121,21 @@ describe('Game Prediction', () => {
             captureAuthEvents = false,
             seedAuth = true,
             persistedAuthHint = false,
+            authBootstrapMeta = null,
             waitForScheduleRange = true,
             path = '/prediction',
         } = options;
-        const fakeToken = 'prediction-spec-token';
         const resolvedPath = path === '/prediction'
             ? buildDefaultPredictionPath(rangeSchedulePayload)
             : path;
-        const authState = {
-            state: {
-                user: {
-                    id: 123,
-                    email: 'test@example.com',
-                    name: 'TestUser',
-                    handle: 'testuser',
-                    favoriteTeam: 'HH',
-                    role: 'ROLE_USER',
-                    hasPassword: true,
-                    profileImageUrl: null,
-                },
-                isLoggedIn: true,
-                isAdmin: false,
-            },
-            version: 0,
-        };
-
-        const seedAuthState = (win: Window) => {
-            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            win.localStorage.setItem('accessToken', fakeToken);
-            win.localStorage.setItem('bega_has_visited', 'true');
-            win.localStorage.setItem('bega_dont_show_guide', 'true');
-        };
-
-        cy.visit(resolvedPath, {
+        visitPredictionPage({
+            path: resolvedPath,
+            token: 'prediction-spec-token',
+            authenticated: seedAuth,
+            persistedAuthHint,
+            authBootstrapMeta,
+            resetStorage: true,
             onBeforeLoad(win) {
-                win.sessionStorage.clear();
-                win.localStorage.clear();
-                if (persistedAuthHint) {
-                    win.localStorage.setItem('auth-bootstrap-hint', '1');
-                }
-
                 const typedWin = win as Window & {
                     __predictionFlowEvents?: Array<{
                         eventName: string;
@@ -170,10 +159,6 @@ describe('Game Prediction', () => {
                     event.preventDefault();
                     event.stopImmediatePropagation();
                 }, true);
-
-                if (seedAuth) {
-                    seedAuthState(win);
-                }
 
                 if (captureAuthEvents) {
                     typedWin.__predictionAuthEvents = [];
@@ -205,12 +190,6 @@ describe('Game Prediction', () => {
                 typedWin.addEventListener('prediction-flow:event', typedWin.__predictionFlowEventHandler);
             },
         });
-        if (seedAuth) {
-            cy.window().then((win) => {
-                seedAuthState(win);
-            });
-            cy.setCookie('Authorization', fakeToken);
-        }
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         if (waitForScheduleRange) {
             cy.wait('@getScheduleRange');
@@ -233,6 +212,7 @@ describe('Game Prediction', () => {
         cy.clearCookies();
         cy.clearLocalStorage();
         (cy as any).mockAPI({ skipRankings: true });
+        installPredictionAuthenticatedSessionIntercept();
 
         // Force date to 2026-02-03 12:00:00 KST (approx)
         // Using UTC date that results in the same date string for getTodayString
@@ -890,12 +870,12 @@ describe('Game Prediction', () => {
         cy.get('@coachAnalyzeAbortOnClose.all').should('have.length', 1);
 
         cy.get('body').type('{esc}');
-        cy.get('[data-slot="dialog-content"]').should('not.exist');
+        cy.get('[data-testid="coach-analysis-dialog"]').should('not.exist');
 
         cy.get('[data-testid="coach-analysis-open"]')
             .should('be.visible')
             .click({ force: true });
-        cy.get('[data-slot="dialog-content"]').should('exist');
+        getCoachAnalysisDialog().should('be.visible');
         cy.get('[data-testid="coach-analysis-run-button"]')
             .scrollIntoView()
             .click({ force: true });
@@ -968,7 +948,7 @@ describe('Game Prediction', () => {
 
         cy.get('[data-testid="coach-analysis-run-button"]').should('be.disabled');
         cy.contains('감독님이 헤드셋 끼고 준비 중...').should('exist');
-        cy.get('[data-slot="dialog-content"]').then(($dialog) => {
+        getCoachAnalysisDialog().then(($dialog) => {
             const skeletons = Array.from($dialog[0].querySelectorAll('div')).filter((element) => {
                 const className = typeof element.className === 'string' ? element.className : '';
                 return className.includes('h-4') && className.includes('rounded-lg');
@@ -1185,10 +1165,11 @@ describe('Game Prediction', () => {
             gameDate: '2026-02-06',
         }));
 
-        openPredictionPage();
+        openPredictionPage({ path: '/prediction?date=2026-02-03' });
 
         cy.get('@getScheduleRange.all').should('have.length.gte', 1);
-        cy.contains('예정된 경기 일정이 없습니다.').should('be.visible');
+        cy.get('[data-testid="prediction-empty-nearest-date-btn"]').should('be.visible');
+        cy.contains(/가장 가까운 경기일은/).should('be.visible');
         cy.get('[data-testid="vote-home-btn"]').should('not.exist');
     });
 
@@ -1196,10 +1177,7 @@ describe('Game Prediction', () => {
         cy.clearCookie('Authorization');
         cy.clearLocalStorage('auth-storage');
         cy.clearLocalStorage('accessToken');
-        cy.intercept('**/api/auth/mypage', {
-            statusCode: 401,
-            body: { message: 'Unauthorized' },
-        }).as('getMeUnauthorized');
+        installPredictionGuestSessionIntercept('getMeUnauthorized');
 
         cy.get('@predictionClock').invoke('restore');
         openPredictionPage({
@@ -1210,6 +1188,7 @@ describe('Game Prediction', () => {
         cy.contains('로그인 필요').should('not.exist');
         cy.get('@getUserVotes.all').should('have.length', 0);
         cy.get('@getMeUnauthorized.all').should('have.length', 0);
+        getPredictionAuthRequestTraces().should('deep.equal', []);
     });
 
     it('should keep prediction schedule public when deferred auth bootstrap returns 401', () => {
@@ -1217,15 +1196,16 @@ describe('Game Prediction', () => {
         cy.clearLocalStorage('auth-storage');
         cy.clearLocalStorage('accessToken');
         cy.clearLocalStorage('auth-bootstrap-hint');
-        cy.intercept('**/api/auth/mypage*', {
-            statusCode: 401,
-            body: { message: 'Unauthorized' },
-        }).as('getMeUnauthorized');
+        installPredictionGuestSessionIntercept('getMeUnauthorized');
 
         cy.get('@predictionClock').invoke('restore');
         openPredictionPage({
             seedAuth: false,
             persistedAuthHint: true,
+            authBootstrapMeta: {
+                lastSuccessAt: Date.now() - 30 * 1000,
+                lastFailureAt: null,
+            },
             captureAuthEvents: true,
         });
 
@@ -1235,6 +1215,10 @@ describe('Game Prediction', () => {
         cy.get('@getUserVotes.all').should('have.length', 0);
         cy.wait('@getMeUnauthorized');
         cy.get('@getMeUnauthorized.all').its('length').should('be.gte', 1);
+        getPredictionAuthRequestTraces().should((traces) => {
+            expect(traces).to.have.length(1);
+            expect(traces[0]?.url).to.include('/api/auth/mypage');
+        });
         cy.window().then((win) => {
             const typedWin = win as Window & {
                 __predictionAuthEvents?: Array<{
@@ -1243,8 +1227,33 @@ describe('Game Prediction', () => {
                 }>;
             };
 
-            expect(typedWin.__predictionAuthEvents ?? []).to.deep.equal([]);
+            const authEvents = typedWin.__predictionAuthEvents ?? [];
+            expect(authEvents.filter((event) => event.eventName === 'auth-session-expired')).to.deep.equal([]);
         });
+    });
+
+    it('should keep prediction schedule public without retrying auth bootstrap during failure cooldown', () => {
+        cy.clearCookie('Authorization');
+        cy.clearLocalStorage('auth-storage');
+        cy.clearLocalStorage('accessToken');
+        installPredictionGuestSessionIntercept('getMeUnauthorized');
+
+        cy.get('@predictionClock').invoke('restore');
+        openPredictionPage({
+            seedAuth: false,
+            persistedAuthHint: true,
+            authBootstrapMeta: {
+                lastSuccessAt: null,
+                lastFailureAt: new Date('2026-02-03T11:59:30').getTime(),
+            },
+        });
+
+        cy.contains('한화 이글스').should('be.visible');
+        cy.contains('button', '로그인').should('be.visible');
+        cy.contains('로그인 필요').should('not.exist');
+        cy.get('@getUserVotes.all').should('have.length', 0);
+        cy.get('@getMeUnauthorized.all').should('have.length', 0);
+        getPredictionAuthRequestTraces().should('deep.equal', []);
     });
 
     it('should show error card when /api/matches/range fails', () => {

@@ -1,6 +1,12 @@
 /// <reference types="cypress" />
 
-import { buildDefaultPredictionPath, ensureCoachBriefingVisible } from '../support/predictionPage';
+import {
+  buildDefaultPredictionPath,
+  ensureCoachBriefingVisible,
+  installPredictionAuthenticatedSessionIntercept,
+  installPredictionGuestSessionIntercept,
+  visitPredictionPage,
+} from '../support/predictionPage';
 
 describe('Prediction Coach Briefing Regression', () => {
   type ScheduleGameMock = {
@@ -124,49 +130,15 @@ describe('Prediction Coach Briefing Regression', () => {
     useRealClock?: boolean;
     waitForVoteBootstrap?: boolean;
     } = {}) => {
-      const fakeToken = 'coach-briefing-test-token';
-      const resolvedPath = path === '/prediction'
+    const resolvedPath = path === '/prediction'
       ? buildDefaultPredictionPath(rangeSchedulePayload)
       : path;
-    const authState = {
-      state: {
-        user: {
-          id: 123,
-          email: 'test@example.com',
-          name: 'TestUser',
-          handle: 'testuser',
-          favoriteTeam: 'HH',
-          role: 'ROLE_USER',
-          hasPassword: true,
-          profileImageUrl: null,
-        },
-        isLoggedIn: true,
-        isAdmin: false,
-      },
-      version: 0,
-    };
-
-    const seedAuthState = (win: Window) => {
-      if (authenticated) {
-        win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-        win.localStorage.setItem('accessToken', fakeToken);
-        win.localStorage.setItem('auth-bootstrap-hint', '1');
-      } else {
-        win.localStorage.removeItem('auth-storage');
-        win.localStorage.removeItem('accessToken');
-        win.localStorage.removeItem('auth-bootstrap-hint');
-      }
-      win.localStorage.setItem('bega_has_visited', 'true');
-      win.localStorage.setItem('bega_dont_show_guide', 'true');
-    };
-
-    cy.visit(resolvedPath, {
+    visitPredictionPage({
+      path: resolvedPath,
+      token: 'coach-briefing-test-token',
+      authenticated,
+      persistedAuthHint: authenticated,
       onBeforeLoad: (win: Window) => {
-        seedAuthState(win);
-        win.addEventListener('auth-session-expired', (event) => {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        }, true);
         if (!reducedMotion) {
           return;
         }
@@ -187,12 +159,6 @@ describe('Prediction Coach Briefing Regression', () => {
         });
       },
     });
-    cy.window().then((win) => {
-      seedAuthState(win);
-    });
-    if (authenticated) {
-      cy.setCookie('Authorization', fakeToken);
-    }
     const advanceTime = (ms: number) => {
       if (useRealClock) {
         cy.wait(ms);
@@ -260,6 +226,7 @@ describe('Prediction Coach Briefing Regression', () => {
       win.localStorage.removeItem(COACH_BRIEFING_LOCAL_STORAGE_KEY);
     });
     (cy as any).mockAPI({ skipRankings: true });
+    installPredictionAuthenticatedSessionIntercept('getPredictionSessionCoach');
 
     setScheduleData([...defaultRangeSchedulePayload]);
 
@@ -375,7 +342,9 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.tick(2000);
     cy.wait('@coachAnalyzeRetry');
     cy.tick(100);
-    cy.tick(6000);
+    cy.tick(2000);
+    cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 1);
+    cy.tick(8000);
     cy.get('@coachAnalyzeRetry.all', { timeout: 10000 }).should((interceptions: any) => {
       expect((interceptions as any[]).length).to.be.gte(2);
     });
@@ -436,8 +405,7 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.equal(initialStructuredCalls);
     });
-    cy.tick(4000);
-    cy.wait('@coachAnalyzeStructured');
+    cy.tick(4500);
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.be.gte(initialStructuredCalls + 1);
     });
@@ -718,6 +686,8 @@ describe('Prediction Coach Briefing Regression', () => {
   });
 
   it('does not request coach analyze for guests and shows a login CTA', () => {
+    installPredictionGuestSessionIntercept('getPredictionGuestSessionCoach');
+
     cy.get('@appClock').then((clock: any) => {
       clock.restore();
     });
