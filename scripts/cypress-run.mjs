@@ -16,6 +16,7 @@ const skipVerify =
 const useGlobalCache = rawArgs.includes('--global-cache');
 const enableSelfHeal = rawArgs.includes('--self-heal')
   || process.env.CYPRESS_SELF_HEAL === '1';
+const allowGlobalFallback = useGlobalCache || process.env.CYPRESS_ALLOW_GLOBAL_FALLBACK === '1';
 const requestTopLevelVersion = rawArgs.includes('--version') || rawArgs.includes('-v');
 const commandMode = isOpen ? 'open' : 'run';
 const hasExplicitSpecArg = rawArgs.some((arg) => arg === '--spec' || arg.startsWith('--spec='));
@@ -216,11 +217,7 @@ const envWithCache = {
 };
 
 if (!useGlobalCache) {
-  if (hasExpectedLocalBinary()) {
-    envWithCache.CYPRESS_CACHE_FOLDER = cacheDir;
-  } else {
-    delete envWithCache.CYPRESS_CACHE_FOLDER;
-  }
+  envWithCache.CYPRESS_CACHE_FOLDER = cacheDir;
 }
 
 if (useGlobalCache) {
@@ -641,7 +638,20 @@ if (primaryVerify) {
 
 console.log('\nLocal Cypress verify failed.');
 
-if (!useGlobalCache) {
+if (commandMode === 'run') {
+  const localHasExpectedBinary = hasExpectedLocalBinary();
+  if (localHasExpectedBinary && isBinaryVersionCompatible(envWithCache)) {
+    console.log('\nTrying local direct run without global cache fallback.');
+    const directLocalStatus = runLocalWithoutVerify(envWithCache);
+    if (directLocalStatus === 0) {
+      process.exit(0);
+    }
+
+    console.log('\nLocal direct run without verify also failed.');
+  }
+}
+
+if (!useGlobalCache && allowGlobalFallback) {
   const globalCacheDir = getDefaultCacheDir();
   const fallbackCacheDir = globalCacheDir && resolve(globalCacheDir);
 
@@ -678,6 +688,10 @@ if (commandMode === 'run') {
       }
     }
   }
+}
+
+if (!useGlobalCache && !allowGlobalFallback) {
+  console.log('\nSkipping global Cypress cache fallback. Set CYPRESS_ALLOW_GLOBAL_FALLBACK=1 to re-enable it.');
 }
 
 if (commandMode === 'run') {
