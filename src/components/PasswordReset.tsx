@@ -12,7 +12,6 @@ import {
 } from './ui/auth-primitives';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
 
 export default function PasswordReset() {
   const navigate = useNavigate();
@@ -63,10 +62,10 @@ export default function PasswordReset() {
 
             <AuthFieldGroup>
               <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2 text-foreground">
+                <label htmlFor="email" className="flex items-center gap-2 text-foreground">
                   <Mail className="h-4 w-4 text-primary" />
                   E-mail
-                </Label>
+                </label>
                 <Input
                   id="email"
                   name="email"

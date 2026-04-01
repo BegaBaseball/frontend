@@ -1,7 +1,7 @@
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { getSocialLoginUrl } from '../api/auth';
+import { getSocialLoginUrl } from '../api/authPublic';
 import { useLoginForm } from '../hooks/useLoginForm';
 import { buildPasswordResetPath, buildSignUpPath } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
@@ -13,7 +13,6 @@ import {
 } from './ui/auth-primitives';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -61,10 +60,10 @@ export default function Login() {
 
         <AuthFieldGroup>
           <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2 text-foreground">
+            <label htmlFor="email" className="flex items-center gap-2 text-foreground">
               <Mail className="h-4 w-4 text-primary" />
               E-mail
-            </Label>
+            </label>
             <Input
               id="email"
               name="email"
@@ -85,10 +84,10 @@ export default function Login() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="flex items-center gap-2 text-foreground">
+            <label htmlFor="password" className="flex items-center gap-2 text-foreground">
               <Lock className="h-4 w-4 text-primary" />
               Password
-            </Label>
+            </label>
             <div className="relative">
               <Input
                 id="password"

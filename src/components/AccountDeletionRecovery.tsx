@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   getAccountDeletionRecoveryInfo,
   requestAccountDeletionRecovery,
-} from '../api/profile';
+} from '../api/accountDeletionRecoveryPublic';
 import { buildLoginPath, getStoredLoginRedirect } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
 import {

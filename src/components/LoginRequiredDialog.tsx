@@ -1,16 +1,8 @@
 // components/LoginRequiredDialog.tsx
 import { useNavigate } from 'react-router-dom';
 import { buildLoginPath } from '../utils/loginRedirect';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../components/ui/alert-dialog';
+import { Button } from './ui/button';
+import PlainDialog from './ui/plain-dialog';
 
 interface LoginRequiredDialogProps {
   open: boolean;
@@ -45,36 +37,31 @@ export const LoginRequiredDialog = ({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      {/* 오버레이 배경색을 흰색(다크모드는 검은색)으로 강제 변경하여 회색 음영 제거 */}
-      <style>{`
-        [data-radix-portal] > [data-state] > div[data-aria-hidden="true"] {
-          background-color: white !important;
-        }
-        .dark [data-radix-portal] > [data-state] > div[data-aria-hidden="true"] {
-          background-color: #111827 !important;
-        }
-      `}</style>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle className="text-primary">
-            로그인 필요
-          </AlertDialogTitle>
-          <AlertDialogDescription className="text-base">
-            로그인이 필요한 서비스입니다.<br />
-            로그인 페이지로 이동하시겠습니까?
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={handleCancel}>취소</AlertDialogCancel>
-          <AlertDialogAction
+    <PlainDialog
+      open={open}
+      onClose={handleCancel}
+      title="로그인 필요"
+      hideCloseButton={true}
+      className="max-w-md"
+      footer={
+        <>
+          <Button variant="outline" onClick={handleCancel}>
+            취소
+          </Button>
+          <Button
             onClick={handleGoToLogin}
-            className="text-white bg-primary-dark hover:bg-primary"
+            className="bg-primary-dark text-white hover:bg-primary"
           >
             로그인하러 가기
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </>
+      }
+    >
+      <p className="text-base text-muted-foreground">
+        로그인이 필요한 서비스입니다.
+        <br />
+        로그인 페이지로 이동하시겠습니까?
+      </p>
+    </PlainDialog>
   );
 };

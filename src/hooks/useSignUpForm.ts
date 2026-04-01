@@ -1,7 +1,7 @@
 // hooks/useSignUpForm.ts
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { signupUser } from '../api/auth';
+import { signupUser } from '../api/authPublic';
 import { validateField, validateAllFields } from '../utils/validation';
 import { SignUpFormData, FieldErrors, FieldName } from '../types/auth';
 import { buildLoginPath } from '../utils/loginRedirect';

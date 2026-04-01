@@ -1,0 +1,3 @@
+.mobile-menu-popup {
+  width: min(380px, calc(100vw - 32px));
+}
