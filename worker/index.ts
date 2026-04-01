@@ -6,14 +6,23 @@ interface Env {
   ASSETS: AssetsBinding;
 }
 
+const CANONICAL_HOST = 'www.begabaseball.xyz';
+const BARE_HOST = 'begabaseball.xyz';
+const BLOCKED_PREVIEW_HOST_SUFFIX = '.pages.dev';
+
+function shouldBlockPreviewHost(url: URL): boolean {
+  const hostname = url.hostname.toLowerCase();
+  return hostname === 'pages.dev' || hostname.endsWith(BLOCKED_PREVIEW_HOST_SUFFIX);
+}
+
 function shouldRedirectToCanonicalHost(url: URL): boolean {
-  return url.hostname === 'begabaseball.xyz';
+  return url.hostname.toLowerCase() === BARE_HOST;
 }
 
 function buildCanonicalRedirect(url: URL): Response {
   const targetUrl = new URL(url.toString());
   targetUrl.protocol = 'https:';
-  targetUrl.hostname = 'www.begabaseball.xyz';
+  targetUrl.hostname = CANONICAL_HOST;
   return Response.redirect(targetUrl.toString(), 301);
 }
 
@@ -44,6 +53,10 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    if (shouldBlockPreviewHost(url)) {
+      return new Response(null, { status: 404 });
+    }
+
     if (shouldRedirectToCanonicalHost(url)) {
       return buildCanonicalRedirect(url);
     }
@@ -61,5 +74,6 @@ export {
   isApiPath,
   isHtmlNavigation,
   serveSpaAsset,
+  shouldBlockPreviewHost,
   shouldRedirectToCanonicalHost,
 };

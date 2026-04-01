@@ -1,10 +1,21 @@
 /// <reference types="cypress" />
 
+import { visitHomePage } from '../support/homePage';
+
 describe('Home to Prediction deep link', () => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const todayCompact = today.replace(/-/g, '');
-    const fakeToken = 'home-to-prediction-token';
+    const buildWidgetsResponse = (rankingSeasonYear = now.getFullYear()) => ({
+        hotCheerPosts: [],
+        featuredMates: [],
+        rankingSnapshot: {
+            rankingSeasonYear,
+            rankingSourceMessage: `${rankingSeasonYear} 시즌 순위 데이터`,
+            isOffSeason: false,
+            rankings: [],
+        },
+    });
     const homeGames = [
         {
             gameId: `${todayCompact}HHLG0`,
@@ -36,29 +47,6 @@ describe('Home to Prediction deep link', () => {
         },
     ];
 
-    const seedAuthState = (win: Window) => {
-        win.localStorage.setItem('auth-storage', JSON.stringify({
-            state: {
-                user: {
-                    id: 123,
-                    email: 'test@example.com',
-                    name: 'TestUser',
-                    handle: 'testuser',
-                    favoriteTeam: 'HH',
-                    role: 'ROLE_USER',
-                    hasPassword: true,
-                    profileImageUrl: null,
-                },
-                isLoggedIn: true,
-                isAdmin: false,
-            },
-            version: 0,
-        }));
-        win.localStorage.setItem('accessToken', fakeToken);
-        win.localStorage.setItem('bega_has_visited', 'true');
-        win.localStorage.setItem('bega_dont_show_guide', 'true');
-    };
-
     beforeEach(() => {
         cy.clearCookies();
         cy.clearLocalStorage();
@@ -81,12 +69,13 @@ describe('Home to Prediction deep link', () => {
                 },
                 games: homeGames,
                 scheduledGamesWindow: homeGames,
-                rankingSeasonYear: now.getFullYear(),
-                rankingSourceMessage: `${now.getFullYear()} 시즌 순위 데이터`,
-                isOffSeason: false,
-                rankings: [],
             },
         }).as('getHomeBootstrapCustom');
+
+        cy.intercept('GET', '**/api/home/widgets*', {
+            statusCode: 200,
+            body: buildWidgetsResponse(),
+        }).as('getHomeWidgetsCustom');
 
         cy.intercept('**/api/matches/day*', {
             statusCode: 200,
@@ -159,18 +148,15 @@ describe('Home to Prediction deep link', () => {
 
     it('moves to prediction with gameId/date query and preselects clicked game', () => {
         cy.viewport(1280, 720); // Desktop view forcing
-        cy.visit('/home', {
-            onBeforeLoad: (win) => {
-                seedAuthState(win);
-            },
+        visitHomePage({
+            path: '/home',
+            token: 'home-to-prediction-token',
+            resetStorage: true,
         });
-        cy.window().then((win) => {
-            seedAuthState(win);
-        });
-        cy.setCookie('Authorization', fakeToken);
         // Wait for the auth check to occur
         cy.wait('@getMe');
         cy.wait('@getHomeBootstrapCustom');
+        cy.wait('@getHomeWidgetsCustom');
 
 
 
@@ -208,17 +194,14 @@ describe('Home to Prediction deep link', () => {
         }).as('getDelayedGameDetail');
 
         cy.viewport(1280, 720);
-        cy.visit('/home', {
-            onBeforeLoad: (win) => {
-                seedAuthState(win);
-            },
+        visitHomePage({
+            path: '/home',
+            token: 'home-to-prediction-token',
+            resetStorage: true,
         });
-        cy.window().then((win) => {
-            seedAuthState(win);
-        });
-        cy.setCookie('Authorization', fakeToken);
         cy.wait('@getMe');
         cy.wait('@getHomeBootstrapCustom');
+        cy.wait('@getHomeWidgetsCustom');
 
         cy.contains('[data-slot="card"]', '한화')
             .should('contain.text', 'LG')

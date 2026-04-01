@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { cn } from '../lib/utils';
 import ImageLightbox from './ImageLightbox';
 import { OptimizedImage } from './common/OptimizedImage';
@@ -7,7 +7,7 @@ interface ImageGridProps {
   images: string[];
 }
 
-export default function ImageGrid({ images }: ImageGridProps) {
+const ImageGrid = React.memo(function ImageGrid({ images }: ImageGridProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   if (!images || images.length === 0) return null;
@@ -73,4 +73,6 @@ export default function ImageGrid({ images }: ImageGridProps) {
       )}
     </>
   );
-}
+});
+
+export default ImageGrid;

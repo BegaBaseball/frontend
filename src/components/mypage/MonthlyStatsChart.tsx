@@ -1,21 +1,6 @@
-import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { EmojiStat } from '../../types/diary';
-
-interface MonthlyStatsChartProps {
-    monthlyData: { month: string; count: number }[]; // Need to derive this from raw data if not provided directly
-}
-
-// Since the backend only gives `monthlyCount` (total count for *this* month?) and `happiestMonth`,
-// but NOT a breakdown of *all* months, we might need to calculate this frontend-side from `diaryEntries`?
-// Let's check `useDiaryStatistics`. `emojiStats` is derived. We can derive monthly stats there or pass entries here.
-// For now, I'll assume we pass `diaryEntries` to calculate it, or updated hook later.
-// Let's define the prop to accept a derived array for flexibility.
 
 export default function MonthlyStatsChart({ data }: { data: { month: string; count: number }[] }) {
-    // Filling empty months for a full year view usually looks better, but let's stick to active data for now.
-
     if (data.length === 0) {
         return (
             <Card className="h-full">
@@ -29,8 +14,13 @@ export default function MonthlyStatsChart({ data }: { data: { month: string; cou
         );
     }
 
-    // Find max for Y-axis domain padding
-    const maxCount = Math.max(...data.map(d => d.count));
+    const maxCount = Math.max(...data.map((entry) => entry.count), 1);
+    const tickValues = Array.from(new Set([
+        maxCount,
+        Math.round(maxCount * 0.66),
+        Math.round(maxCount * 0.33),
+        0,
+    ])).sort((a, b) => b - a);
 
     return (
         <Card className="h-full">
@@ -38,42 +28,44 @@ export default function MonthlyStatsChart({ data }: { data: { month: string; cou
                 <CardTitle className="text-lg font-bold text-primary">월별 직관 추이</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                            data={data}
-                            margin={{
-                                top: 10,
-                                right: 10,
-                                left: -20,
-                                bottom: 0,
-                            }}
-                        >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                            <XAxis
-                                dataKey="month"
-                                tick={{ fontSize: 12, fill: '#6b7280' }}
-                                axisLine={false}
-                                tickLine={false}
-                            />
-                            <YAxis
-                                tick={{ fontSize: 12, fill: '#6b7280' }}
-                                axisLine={false}
-                                tickLine={false}
-                                allowDecimals={false}
-                                domain={[0, maxCount + 2]}
-                            />
-                            <Tooltip
-                                cursor={{ fill: 'rgba(45, 95, 79, 0.1)' }}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={20}>
-                                {data.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#2d5f4f' : '#4d8f7b'} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                <div className="grid h-[250px] grid-cols-[36px_minmax(0,1fr)] gap-3">
+                    <div className="flex h-[210px] flex-col justify-between pt-2 text-[11px] font-medium text-muted-foreground">
+                        {tickValues.map((tick) => (
+                            <span key={tick}>{tick}</span>
+                        ))}
+                    </div>
+
+                    <div className="relative">
+                        <div className="pointer-events-none absolute inset-x-0 bottom-10 top-2 flex flex-col justify-between">
+                            {tickValues.map((tick) => (
+                                <div key={tick} className="border-t border-dashed border-slate-200 dark:border-border" />
+                            ))}
+                        </div>
+
+                        <div className="relative flex h-full items-end gap-3">
+                            {data.map((entry, index) => {
+                                const ratio = entry.count / maxCount;
+                                const barHeight = Math.max(ratio * 150, 14);
+                                const barColor = index % 2 === 0 ? '#2d5f4f' : '#4d8f7b';
+
+                                return (
+                                    <div key={entry.month} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-300">
+                                            {entry.count}
+                                        </span>
+                                        <div className="flex h-[150px] w-full items-end justify-center">
+                                            <div
+                                                className="w-full max-w-[34px] rounded-t-lg shadow-sm transition-all duration-300"
+                                                style={{ height: `${barHeight}px`, backgroundColor: barColor }}
+                                                title={`${entry.month} ${entry.count}회`}
+                                            />
+                                        </div>
+                                        <span className="text-xs font-medium text-muted-foreground">{entry.month}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
                 </div>
             </CardContent>
         </Card>

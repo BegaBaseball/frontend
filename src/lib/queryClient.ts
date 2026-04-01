@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import { registerSessionScopedQueryCleanup } from './queryClientRegistry';
 
 const SESSION_SCOPED_QUERY_KEYS = [
   ['deviceSessions'],
@@ -28,3 +29,5 @@ export const clearSessionScopedQueries = () => {
     queryClient.removeQueries({ queryKey });
   }
 };
+
+registerSessionScopedQueryCleanup(clearSessionScopedQueries);

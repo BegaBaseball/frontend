@@ -179,7 +179,7 @@ describe('Mate Flow Policy', () => {
     cy.wait('@createApplication');
   });
 
-  it('승인 전에는 채팅 조회 접근이 차단된다', () => {
+  it('승인 전에는 채팅 화면에서 접근 차단 상태를 보여준다', () => {
     cy.intercept('GET', '**/api/parties/888', {
       statusCode: 200,
       body: {
@@ -209,17 +209,11 @@ describe('Mate Flow Policy', () => {
       body: null,
     }).as('myPendingApplication');
 
-    cy.intercept('GET', '**/api/chat/party/888', {
-      statusCode: 403,
-      body: { error: '파티 참여자만 채팅을 조회할 수 있습니다.' },
-    }).as('chatDenied');
-
     cy.visit('/mate/888/chat');
     cy.wait('@getPendingParty');
     cy.wait('@myPendingApplication');
-    cy.wait('@chatDenied')
-      .its('response.statusCode')
-      .should('eq', 403);
+    cy.contains('승인 전에는 채팅이 열리지 않습니다').should('be.visible');
+    cy.contains('승인 전에는 채팅 기록 조회와 메시지 전송이 모두 제한됩니다.').should('be.visible');
   });
 
   it('승인 후에는 채팅 조회 접근이 허용된다', () => {

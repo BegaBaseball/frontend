@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Stadium, Place, CategoryType } from '../types/stadium';
-import { api } from '../utils/api';
 import { loadKakaoMapScript, searchNearbyPlaces, updateMapMarkers } from '../utils/kakaoMap';
 import { useKakaoMap } from './useKakaoMap';
 import {
@@ -8,6 +7,10 @@ import {
   hasValidCoordinates,
   sanitizeStadiumGuideErrorMessage,
 } from '../utils/stadiumGuideUtils';
+import {
+  fetchStadiumPlaces as fetchStadiumGuidePlaces,
+  fetchStadiums as fetchStadiumGuideStadiums,
+} from '../api/stadiumGuidePublic';
 
 export const useStadiumGuide = () => {
   const [stadiums, setStadiums] = useState<Stadium[]>([]);
@@ -58,9 +61,7 @@ export const useStadiumGuide = () => {
     try {
       setStadiumsStatus('loading');
       setStadiumsError(null);
-      const data = await api.getStadiums({
-        skipGlobalErrorHandler: true,
-      });
+      const data = await fetchStadiumGuideStadiums();
       setStadiums(data);
 
       if (data.length === 0) {
@@ -149,9 +150,7 @@ export const useStadiumGuide = () => {
       setNearbyError(null);
       setPlacesStatus('loading');
       setPlacesError(null);
-      const data = await api.getStadiumPlaces(selectedStadium.stadiumId, selectedCategory, {
-        skipGlobalErrorHandler: true,
-      });
+      const data = await fetchStadiumGuidePlaces(selectedStadium.stadiumId, selectedCategory);
       setPlaces(data);
       setPlacesStatus(data.length > 0 ? 'success' : 'empty');
     } catch (error) {

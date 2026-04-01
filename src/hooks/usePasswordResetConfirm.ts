@@ -1,7 +1,7 @@
 // hooks/usePasswordResetConfirm.ts
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { confirmPasswordReset } from '../api/auth';
+import { confirmPasswordReset } from '../api/authPublic';
 import { validatePasswordResetField, validatePasswordResetForm } from '../utils/validation';
 import { PasswordResetConfirmFormData, PasswordResetConfirmFieldErrors } from '../types/auth';
 

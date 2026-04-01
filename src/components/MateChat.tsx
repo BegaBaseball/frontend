@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -23,21 +24,22 @@ import {
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
-import { ScrollArea } from './ui/scroll-area';
-import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { useAuthProfileSnapshot } from '../store/authStore';
-import { useMateStore } from '../store/mateStore';
+import {
+  getMatePartyMyApplicationQueryOptions,
+  getMatePartyMessagesQueryOptions,
+  MATE_KEYS,
+  useMatePartyFromRoute,
+} from '../hooks/mateChatRoute';
+import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { uploadChatImage, updateChatReadTimestamp } from '../api/mate';
-import { Application, ChatMessage } from '../types/mate';
+import { ChatMessage } from '../types/mate';
 import { cn } from '../lib/utils';
-import { api, getApiErrorStatus } from '../utils/api';
+import { getApiErrorStatus } from '../utils/api';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import {
   getPartyFlowLabel,
@@ -49,6 +51,7 @@ import {
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
 import { formatGameDate, isPartyHostedByUser } from '../utils/mate';
+import { validateMateChatMessage } from '../utils/mateValidation';
 
 const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
 
@@ -98,38 +101,37 @@ function ChatEmptyState({
   );
 }
 
+function MatePill({ className = '', children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+function SectionDivider({ className = '' }: { className?: string }) {
+  return <div className={`h-px w-full bg-gray-200 dark:bg-border ${className}`} aria-hidden="true" />;
+}
+
 export default function MateChat() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const chatImageInputId = 'mate-chat-image-upload';
+  const queryClient = useQueryClient();
   const {
-    party: selectedParty,
+    party,
     isLoading: isPartyLoading,
     isRevalidating: isPartyRevalidating,
     error: partyError,
   } = useMatePartyFromRoute(id);
-  const validateChatMessage = useMateStore((state) => state.validateChatMessage);
   const {
-    userId: authUserId,
     userEmail: authUserEmail,
     userName: authUserName,
     userHandle: authUserHandle,
   } = useAuthProfileSnapshot();
+  const { isAuthLoading, userId: currentUserId } = useAuthSession();
 
   const [messageText, setMessageText] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentUser, setCurrentUser] = useState<{
-    id: number;
-    email: string;
-    name: string;
-    handle?: string | null;
-  } | null>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [myApplication, setMyApplication] = useState<Application | null>(null);
-  const [isCheckingApproval, setIsCheckingApproval] = useState(true);
-  const [chatLoadError, setChatLoadError] = useState<string | null>(null);
-  const [messagesRetryCount, setMessagesRetryCount] = useState(0);
-
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -147,6 +149,32 @@ export default function MateChat() {
     timer: ReturnType<typeof setTimeout>;
   }>>([]);
 
+  const appendUniqueMessage = useCallback((base: ChatMessage[], incoming: ChatMessage): ChatMessage[] => {
+    if (base.some((item) =>
+      item.id === incoming.id
+      || (
+        Number(item.senderId) === Number(incoming.senderId)
+        && item.message === incoming.message
+        && (item.imageUrl || '') === (incoming.imageUrl || '')
+        && Math.abs(new Date(item.createdAt).getTime() - new Date(incoming.createdAt).getTime()) < 5000
+      )
+    )) {
+      return base;
+    }
+    return [...base, incoming];
+  }, []);
+
+  const updateMessageCache = useCallback((updater: (current: ChatMessage[]) => ChatMessage[]) => {
+    if (!party?.id) {
+      return;
+    }
+
+    queryClient.setQueryData<ChatMessage[]>(MATE_KEYS.partyMessages(party.id), (current) => {
+      const safeCurrent = Array.isArray(current) ? current : [];
+      return updater(safeCurrent);
+    });
+  }, [queryClient, party?.id]);
+
   const handleMessageReceived = useCallback((message: ChatMessage) => {
     const currentUserId = currentUserIdRef.current;
     if (currentUserId !== null && Number(message.senderId) === Number(currentUserId)) {
@@ -160,21 +188,8 @@ export default function MateChat() {
       }
     }
 
-    setMessages((prev) => {
-      if (prev.some((item) =>
-        item.id === message.id
-        || (
-          Number(item.senderId) === Number(message.senderId)
-          && item.message === message.message
-          && (item.imageUrl || '') === (message.imageUrl || '')
-          && Math.abs(new Date(item.createdAt).getTime() - new Date(message.createdAt).getTime()) < 5000
-        )
-      )) {
-        return prev;
-      }
-      return [...prev, message];
-    });
-  }, []);
+    updateMessageCache((prev) => appendUniqueMessage(prev, message));
+  }, [appendUniqueMessage, updateMessageCache]);
 
   const notifyChatUnreadCount = useCallback((count: number) => {
     if (typeof window === 'undefined') {
@@ -189,12 +204,8 @@ export default function MateChat() {
   }, []);
 
   useEffect(() => {
-    currentUserIdRef.current = currentUser?.id ?? null;
-  }, [currentUser?.id]);
-
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
 
   useEffect(() => {
     return () => {
@@ -211,72 +222,22 @@ export default function MateChat() {
     };
   }, [imagePreviewUrl]);
 
-  useEffect(() => {
-    if (authUserId) {
-      setCurrentUser({
-        id: authUserId,
-        email: authUserEmail ?? '',
-        name: authUserName ?? '',
-        handle: authUserHandle ?? null,
-      });
-      setIsLoadingUser(false);
-      return;
+  const currentUser = currentUserId
+    ? {
+      id: currentUserId,
+      email: authUserEmail ?? '',
+      name: authUserName ?? '',
+      handle: authUserHandle ?? null,
     }
-
-    const fetchUserInfo = async () => {
-      try {
-        const result = await api.getCurrentUser();
-        if (result.success && result.data) {
-          setCurrentUser({
-            id: result.data.id,
-            email: result.data.email,
-            name: result.data.name,
-            handle: result.data.handle ?? null,
-          });
-        }
-      } catch (error) {
-        console.error('사용자 정보 가져오기 실패:', error);
-        toast.error('사용자 정보를 불러오지 못했습니다.');
-      } finally {
-        setIsLoadingUser(false);
-      }
-    };
-
-    void fetchUserInfo();
-  }, [authUserEmail, authUserHandle, authUserId, authUserName]);
+    : null;
 
   const { sendMessage: sendWebSocketMessage, isConnected } = useWebSocket({
-    partyId: selectedParty?.id || '',
+    partyId: party?.id || '',
     onMessageReceived: handleMessageReceived,
-    enabled: !!selectedParty && !!currentUser,
+    enabled: Boolean(party && currentUser && !isAuthLoading),
   });
 
-  useEffect(() => {
-    if (!selectedParty || !currentUser) {
-      return;
-    }
-
-    const fetchMessages = async () => {
-      try {
-        setChatLoadError(null);
-        const data = await api.getChatMessages(selectedParty.id);
-        setMessages(data);
-      } catch (error) {
-        console.error('메시지 불러오기 실패:', error);
-        if (getApiErrorStatus(error) === 403) {
-          setChatLoadError('승인된 참여자와 호스트만 채팅 기록을 조회할 수 있습니다.');
-          return;
-        }
-        setChatLoadError('이전 메시지를 불러오지 못했습니다. 다시 시도해주세요.');
-        toast.error('이전 메시지를 불러오지 못했습니다.');
-      }
-    };
-
-    void fetchMessages();
-  }, [currentUser, messagesRetryCount, selectedParty]);
-
-  const getScrollContainer = (): HTMLElement | null =>
-    (scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null) ?? null;
+  const getScrollContainer = (): HTMLElement | null => scrollAreaRef.current;
 
   const isNearBottom = (): boolean => {
     const element = getScrollContainer();
@@ -285,6 +246,50 @@ export default function MateChat() {
     }
     return element.scrollHeight - (element.scrollTop + element.clientHeight) < 100;
   };
+
+  const isHost = currentUser && party
+    ? isPartyHostedByUser(party, { id: currentUser.id, handle: currentUser.handle ?? null })
+    : false;
+  const myApplicationQuery = useQuery({
+    ...(party?.id != null
+      ? getMatePartyMyApplicationQueryOptions(party.id, currentUserId)
+      : getMatePartyMyApplicationQueryOptions('unknown', currentUserId)),
+    enabled: Boolean(party?.id && currentUser && !isHost),
+  });
+  const myApplication = myApplicationQuery.data ?? null;
+  const isCheckingApproval = Boolean(party && currentUser && !isHost && myApplicationQuery.isPending);
+  const approvalLoadError = myApplicationQuery.error
+    ? '신청 정보를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.'
+    : null;
+  const canLoadMessages = Boolean(party?.id && currentUser && (isHost || myApplication?.isApproved));
+  const messagesQuery = useQuery({
+    ...(party?.id != null
+      ? getMatePartyMessagesQueryOptions(party.id)
+      : getMatePartyMessagesQueryOptions('unknown')),
+    enabled: canLoadMessages,
+  });
+  const messages = messagesQuery.data ?? [];
+  const chatLoadError = messagesQuery.error
+    ? (getApiErrorStatus(messagesQuery.error) === 403
+      ? '승인된 참여자와 호스트만 채팅 기록을 조회할 수 있습니다.'
+      : '이전 메시지를 불러오지 못했습니다. 다시 시도해주세요.')
+    : null;
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    if (messagesQuery.error && getApiErrorStatus(messagesQuery.error) !== 403) {
+      toast.error('이전 메시지를 불러오지 못했습니다.');
+    }
+  }, [messagesQuery.error]);
+
+  useEffect(() => {
+    if (myApplicationQuery.error) {
+      toast.error('신청 정보를 확인하지 못했습니다.');
+    }
+  }, [myApplicationQuery.error]);
 
   useEffect(() => {
     if (!isNearBottom()) {
@@ -297,13 +302,13 @@ export default function MateChat() {
   }, [messages]);
 
   useEffect(() => {
-    if (!selectedParty?.id || !currentUser) {
+    if (!party?.id || !currentUser) {
       return;
     }
 
     const markAsRead = async () => {
       try {
-        await updateChatReadTimestamp(selectedParty.id);
+        await updateChatReadTimestamp(party.id);
         notifyChatUnreadCount(0);
       } catch (error) {
         console.error('읽음 처리 실패', error);
@@ -312,44 +317,9 @@ export default function MateChat() {
 
     const timer = setTimeout(markAsRead, 500);
     return () => clearTimeout(timer);
-  }, [currentUser, messages, notifyChatUnreadCount, selectedParty?.id]);
+  }, [currentUser, messages, notifyChatUnreadCount, party?.id]);
 
-  const isHost = currentUser && selectedParty
-    ? isPartyHostedByUser(selectedParty, { id: currentUser.id, handle: currentUser.handle ?? null })
-    : false;
-
-  useEffect(() => {
-    if (!selectedParty || !currentUser || isHost) {
-      setIsCheckingApproval(false);
-      return;
-    }
-
-    const checkMyApproval = async () => {
-      try {
-        const myApp = await api.getMyApplicationByParty(selectedParty.id);
-        setMyApplication(myApp);
-      } catch (error: unknown) {
-        if (getApiErrorStatus(error) === 404) {
-          try {
-            const applications = await api.getMyApplications();
-            const fallback = applications.find((app: Application) => app.partyId === selectedParty.id);
-            setMyApplication(fallback ?? null);
-            return;
-          } catch (fallbackError) {
-            console.error('신청 정보 fallback 확인 실패:', fallbackError);
-          }
-        }
-        console.error('신청 정보 확인 실패:', error);
-        toast.error('신청 정보를 확인하지 못했습니다.');
-      } finally {
-        setIsCheckingApproval(false);
-      }
-    };
-
-    void checkMyApproval();
-  }, [currentUser, isHost, selectedParty]);
-
-  if (isLoadingUser || (isPartyLoading && !selectedParty)) {
+  if (isAuthLoading || (isPartyLoading && !party) || (canLoadMessages && messagesQuery.isPending && messages.length === 0)) {
     return (
       <div className={`${matePageShellClass} flex flex-col`}>
         <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-4 sm:px-6 lg:px-8">
@@ -401,7 +371,7 @@ export default function MateChat() {
     );
   }
 
-  if (partyError || !selectedParty) {
+  if (partyError || !party) {
     return (
       <div className={matePageShellClass}>
         <img
@@ -457,6 +427,36 @@ export default function MateChat() {
         <div className="text-center">
           <div className="mb-3 inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
           <p className="text-sm text-gray-500 dark:text-gray-300">채팅 접근 상태를 확인하는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (approvalLoadError) {
+    return (
+      <div className={matePageShellClass}>
+        <img
+          src={grassDecor}
+          alt=""
+          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
+        />
+        <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+          <Card className={`p-6 ${mateSectionCardClass}`}>
+            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/25">
+              <AlertCircle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                {approvalLoadError}
+              </AlertDescription>
+            </Alert>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => void myApplicationQuery.refetch()}>
+                다시 시도
+              </Button>
+              <Button onClick={() => navigate(`/mate/${id}`)}>
+                상세로 돌아가기
+              </Button>
+            </div>
+          </Card>
         </div>
       </div>
     );
@@ -561,7 +561,7 @@ export default function MateChat() {
     }
 
     if (messageText.trim()) {
-      const validationError = validateChatMessage(messageText);
+      const validationError = validateMateChatMessage(messageText);
       if (validationError) {
         toast.warning(validationError);
         return;
@@ -584,7 +584,7 @@ export default function MateChat() {
     }
 
     const newMessage = {
-      partyId: selectedParty.id,
+      partyId: party.id,
       senderId: currentUser.id,
       senderName: currentUser.name,
       message: messageText.trim() || (finalImagePath ? '(사진 전송)' : ''),
@@ -593,20 +593,7 @@ export default function MateChat() {
 
     const persistViaHttp = async () => {
       const savedMessage = await api.sendChatMessage(newMessage);
-      setMessages((prev) => {
-        if (prev.some((item) =>
-          item.id === savedMessage.id
-          || (
-            Number(item.senderId) === Number(savedMessage.senderId)
-            && item.message === savedMessage.message
-            && (item.imageUrl || '') === (savedMessage.imageUrl || '')
-            && Math.abs(new Date(item.createdAt).getTime() - new Date(savedMessage.createdAt).getTime()) < 5000
-          )
-        )) {
-          return prev;
-        }
-        return [...prev, savedMessage];
-      });
+      updateMessageCache((prev) => appendUniqueMessage(prev, savedMessage));
     };
 
     const wsSent = isConnected && sendWebSocketMessage(newMessage);
@@ -648,8 +635,6 @@ export default function MateChat() {
         return;
       }
     }
-
-    setChatLoadError(null);
     setMessageText('');
     cancelImageSelection();
   };
@@ -691,9 +676,9 @@ export default function MateChat() {
     }
   });
 
-  const statusMeta = getPartyStatusMeta(selectedParty.status);
-  const flowLabel = getPartyFlowLabel(selectedParty.status);
-  const canAccessCheckIn = ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(selectedParty.status);
+  const statusMeta = getPartyStatusMeta(party.status);
+  const flowLabel = getPartyFlowLabel(party.status);
+  const canAccessCheckIn = ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(party.status);
   const headerTitle = isHost ? '호스트 채팅' : '메이트 채팅';
   const heroHeading = isHost ? '채팅과 체크인 조율' : '호스트와 만남 조율 채팅';
   const headerDescription = isHost
@@ -718,8 +703,8 @@ export default function MateChat() {
     {
       icon: Shield,
       label: '티켓 신뢰',
-      value: selectedParty.ticketVerified ? '호스트 인증 완료' : '티켓 인증 전',
-      detail: selectedParty.ticketVerified ? '상세페이지와 동일한 인증 신호가 유지됩니다.' : '추가 인증이 필요한 상태일 수 있습니다.',
+      value: party.ticketVerified ? '호스트 인증 완료' : '티켓 인증 전',
+      detail: party.ticketVerified ? '상세페이지와 동일한 인증 신호가 유지됩니다.' : '추가 인증이 필요한 상태일 수 있습니다.',
     },
     {
       icon: isConnected ? Wifi : WifiOff,
@@ -754,7 +739,7 @@ export default function MateChat() {
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 gap-3 sm:gap-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10 sm:h-16 sm:w-16">
-                    <TeamLogo teamId={selectedParty.teamId} size="md" />
+                    <TeamLogo teamId={party.teamId} size="md" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
@@ -767,22 +752,22 @@ export default function MateChat() {
                       {headerDescription}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Badge className={cn('border text-xs font-semibold', statusMeta.className)}>
+                      <MatePill className={cn('border text-xs font-semibold', statusMeta.className)}>
                         {statusMeta.label}
-                      </Badge>
-                      <Badge className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
+                      </MatePill>
+                      <MatePill className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
                         {flowLabel}
-                      </Badge>
-                      <Badge className="border border-gray-200 bg-white/90 text-gray-700 dark:border-border dark:bg-card/70 dark:text-gray-200">
+                      </MatePill>
+                      <MatePill className="border border-gray-200 bg-white/90 text-gray-700 dark:border-border dark:bg-card/70 dark:text-gray-200">
                         {roleLabel}
-                      </Badge>
-                      {selectedParty.ticketVerified && (
-                        <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
+                      </MatePill>
+                      {party.ticketVerified && (
+                        <MatePill className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                           <span className="flex items-center gap-1">
                             <Ticket className="h-3.5 w-3.5" />
                             티켓 인증
                           </span>
-                        </Badge>
+                        </MatePill>
                       )}
                     </div>
                   </div>
@@ -795,7 +780,7 @@ export default function MateChat() {
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">일정</p>
                         <p className="mt-1 font-medium text-gray-900 dark:text-white">
-                          {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime}
+                          {formatGameDate(party.gameDate)} {party.gameTime}
                         </p>
                       </div>
                     </div>
@@ -803,8 +788,8 @@ export default function MateChat() {
                       <MapPin className="mt-0.5 h-4 w-4 text-primary" />
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
-                        <p className="mt-1 font-medium text-gray-900 dark:text-white">{selectedParty.stadium}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-300">{selectedParty.section}</p>
+                        <p className="mt-1 font-medium text-gray-900 dark:text-white">{party.stadium}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">{party.section}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -878,7 +863,7 @@ export default function MateChat() {
                 variant="outline"
                 size="sm"
                 className="border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-900 dark:text-amber-200 dark:hover:bg-amber-950/40"
-                onClick={() => setMessagesRetryCount((count) => count + 1)}
+                onClick={() => void messagesQuery.refetch()}
               >
                 다시 시도
               </Button>
@@ -897,17 +882,17 @@ export default function MateChat() {
                 공용 일정, 전달 시간, 체크인 준비는 이 대화 흐름을 기준으로 정리합니다.
               </p>
             </div>
-            <Badge className={cn(
+            <MatePill className={cn(
               'border text-xs font-semibold',
               isConnected
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
                 : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300',
             )}>
               {isConnected ? '실시간 연결' : '재연결 중'}
-            </Badge>
+            </MatePill>
           </div>
 
-          <ScrollArea ref={scrollAreaRef} className="min-h-[360px] flex-1 pr-2 sm:min-h-[420px] sm:pr-4">
+          <div ref={scrollAreaRef} className="min-h-[360px] flex-1 overflow-y-auto pr-2 sm:min-h-[420px] sm:pr-4">
             {groupedMessages.length === 0 ? (
               <ChatEmptyState
                 icon={Users}
@@ -921,11 +906,11 @@ export default function MateChat() {
                 {groupedMessages.map((group) => (
                   <div key={group.date}>
                     <div className="mb-4 flex items-center gap-4">
-                      <Separator className="flex-1" />
+                      <SectionDivider className="flex-1" />
                       <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-500 dark:bg-secondary/80 dark:text-gray-300">
                         {group.date}
                       </span>
-                      <Separator className="flex-1" />
+                      <SectionDivider className="flex-1" />
                     </div>
 
                     <div className="space-y-3">
@@ -981,7 +966,7 @@ export default function MateChat() {
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </Card>
 
         <Card className={`mt-4 p-3 sm:p-4 ${mateSectionCardClass}`}>

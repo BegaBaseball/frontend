@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { fetchSharedPrediction } from '../api/ranking';
+import { fetchSharedPrediction } from '../api/rankingPublic';
 import { restoreTeamsFromIds } from '../utils/ranking';
 import { usePredictionStore } from '../store/predictionStore';
 import { Team } from '../types/ranking';

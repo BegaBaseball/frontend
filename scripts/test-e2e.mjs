@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
+import { createServer } from 'node:net';
 
 const projectRoot = process.cwd();
 const normalizeFrontendBaseUrl = (value) => {
@@ -53,11 +54,27 @@ const resolveFrontendTargetFromEnv = () => {
 };
 
 const resolvedFrontendTarget = resolveFrontendTargetFromEnv();
-const defaultHost = process.env.CYPRESS_TEST_HOST || resolvedFrontendTarget?.host || 'localhost';
+const defaultHost = process.env.CYPRESS_TEST_HOST || resolvedFrontendTarget?.host || '127.0.0.1';
 const defaultPort = process.env.CYPRESS_TEST_PORT || resolvedFrontendTarget?.port || '5176';
+const devServerEnvPrefix = 'VITE_SUPPRESS_CYPRESS_PROXY_ERRORS=true';
+const attachExistingServer = process.env.CYPRESS_ATTACH_EXISTING_SERVER === '1';
+const shouldPreferManagedLocalServer = !resolvedFrontendTarget && !attachExistingServer;
 
-let startCommand = `npm run dev -- --host ${defaultHost} --port ${defaultPort}`;
+let startCommand = `${devServerEnvPrefix} npm run dev -- --host ${defaultHost} --port ${defaultPort}`;
 let targetUrl = resolvedFrontendTarget?.baseUrl || `http://${defaultHost}:${defaultPort}`;
+
+const VITE_SOURCE_HEALTH_PROBES = [
+  '/src/main.tsx',
+  '/src/App.tsx',
+  '/src/components/Home.tsx',
+];
+
+const hasViteErrorOverlay = (body) => (
+  body.includes('<title>Error</title>') ||
+  body.includes('Internal Server Error') ||
+  body.includes('ErrorOverlay') ||
+  body.includes('Failed to fetch dynamically imported module')
+);
 
 const runCypressCommand = (commandArgs) => {
   return spawnSync(commandArgs[0], commandArgs.slice(1), {
@@ -83,6 +100,77 @@ const isServerReady = async (url) => {
   } finally {
     clearTimeout(timer);
   }
+};
+
+const isViteSourceServerHealthy = async (url) => {
+  for (const probePath of VITE_SOURCE_HEALTH_PROBES) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, 2000);
+
+    try {
+      const separator = probePath.includes('?') ? '&' : '?';
+      const response = await fetch(`${url}${probePath}${separator}t=${Date.now()}`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      const body = await response.text();
+      if (!response.ok || hasViteErrorOverlay(body)) {
+        return false;
+      }
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  return true;
+};
+
+const findAvailablePort = async (host, startPort) => {
+  let port = Number.parseInt(String(startPort), 10);
+  if (!Number.isFinite(port)) {
+    port = 5176;
+  }
+
+  const canListen = (candidatePort) => new Promise((resolve) => {
+    const server = createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close(() => resolve(true));
+    });
+    server.listen(candidatePort, host);
+  });
+
+  while (!(await canListen(port))) {
+    port += 1;
+  }
+
+  return String(port);
+};
+
+const buildExecutionPlan = (host, port, testScript, baseCypressArgs) => {
+  const nextStartCommand = `${devServerEnvPrefix} npm run dev -- --host ${host} --port ${port}`;
+  const nextTargetUrl = `http://${host}:${port}`;
+  const nextCypressArgsWithBaseUrl = applyBaseUrlConfig(baseCypressArgs, nextTargetUrl);
+  const nextTestCommandArgs = buildCypressCommandArgs(testScript, nextCypressArgsWithBaseUrl);
+  const nextTestCommand = nextTestCommandArgs.join(' ');
+  const nextShellCommand = `npx start-server-and-test ${JSON.stringify(nextStartCommand)} ${JSON.stringify(
+    nextTargetUrl,
+  )} ${JSON.stringify(nextTestCommand)}`;
+  const nextCommandLine = `start-server-and-test ${nextStartCommand} ${nextTargetUrl} ${nextTestCommand}`;
+
+  return {
+    startCommand: nextStartCommand,
+    targetUrl: nextTargetUrl,
+    cypressArgsWithBaseUrl: nextCypressArgsWithBaseUrl,
+    testCommandArgs: nextTestCommandArgs,
+    testCommand: nextTestCommand,
+    shellCommand: nextShellCommand,
+    commandLine: nextCommandLine,
+  };
 };
 
 const hasExplicitBaseUrlConfig = (args) => {
@@ -276,7 +364,7 @@ const showUsage = () => {
   console.log('  npm run test:e2e:prediction:rescue');
   console.log('  npm run test:e2e -- --docker');
   console.log('  npm run test:e2e -- --auto-docker');
-  console.log('  npm run test:e2e -- --host localhost --port 4173 --spec cypress/e2e/mypage.cy.ts');
+  console.log('  npm run test:e2e -- --host 127.0.0.1 --port 4173 --spec cypress/e2e/mypage.cy.ts');
   console.log('  npm run test:e2e -- --no-server --spec cypress/e2e/mypage.cy.ts');
 };
 
@@ -314,22 +402,13 @@ try {
     }
   }
 
-  startCommand = `npm run dev -- --host ${host} --port ${port}`;
-  targetUrl = `http://${host}:${port}`;
-  const cypressArgsWithBaseUrl = applyBaseUrlConfig(baseCypressArgs, targetUrl);
-
-  const testCommandArgs = buildCypressCommandArgs(testScript, cypressArgsWithBaseUrl);
-  const testCommand = testCommandArgs.join(' ');
-  const quotedStartCommand = JSON.stringify(startCommand);
-  const quotedTestCommand = JSON.stringify(testCommand);
-  const shellCommand = `npx start-server-and-test ${quotedStartCommand} ${JSON.stringify(
-    targetUrl,
-  )} ${quotedTestCommand}`;
-  const commandLine = `start-server-and-test ${startCommand} ${targetUrl} ${testCommand}`;
+  let executionPlan = buildExecutionPlan(host, port, testScript, baseCypressArgs);
+  startCommand = executionPlan.startCommand;
+  targetUrl = executionPlan.targetUrl;
 
   if (noServer) {
     console.log('\nRunning Cypress without auto-starting dev server');
-    const status = runCypressWithFallback(testCommandArgs);
+    const status = runCypressWithFallback(executionPlan.testCommandArgs);
     if (status === 0) {
       process.exit(0);
     }
@@ -339,7 +418,7 @@ try {
       console.log('Attempting auto-docker fallback (if Docker is available).');
       console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
       const rescueStatus = runCypressWithFallback(
-        buildCypressCommandArgs('cy:run:rescue', cypressArgsWithBaseUrl),
+        buildCypressCommandArgs('cy:run:rescue', executionPlan.cypressArgsWithBaseUrl),
       );
       if (rescueStatus === 0) {
         process.exit(0);
@@ -349,43 +428,60 @@ try {
     process.exit(status);
   }
 
-  const alreadyRunning = await isServerReady(targetUrl);
+  const alreadyRunning = await isServerReady(executionPlan.targetUrl);
   if (alreadyRunning) {
-    console.log(`\nTarget URL already reachable: ${targetUrl}`);
-    console.log(`\nRunning Cypress directly (${testCommand})`);
-    const status = runCypressWithFallback(testCommandArgs);
-    if (status === 0) {
-      process.exit(0);
-    }
-
-    if (!useDocker && !useAutoDocker) {
-      console.log('\nPrimary Cypress execution failed.');
-      console.log('Attempting auto-docker fallback (if Docker is available).');
-      console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
-      const rescueStatus = runCypressWithFallback(
-        buildCypressCommandArgs('cy:run:rescue', cypressArgsWithBaseUrl),
-      );
-      if (rescueStatus === 0) {
+    const isHealthy = await isViteSourceServerHealthy(executionPlan.targetUrl);
+    if (!isHealthy) {
+      const freshPort = await findAvailablePort(host, Number.parseInt(String(port), 10) + 1);
+      executionPlan = buildExecutionPlan(host, freshPort, testScript, baseCypressArgs);
+      startCommand = executionPlan.startCommand;
+      targetUrl = executionPlan.targetUrl;
+      console.log(`\nDetected unhealthy source server at http://${host}:${port}`);
+      console.log(`Starting a fresh dev server at ${executionPlan.targetUrl}`);
+    } else if (shouldPreferManagedLocalServer) {
+      const freshPort = await findAvailablePort(host, Number.parseInt(String(port), 10) + 1);
+      executionPlan = buildExecutionPlan(host, freshPort, testScript, baseCypressArgs);
+      startCommand = executionPlan.startCommand;
+      targetUrl = executionPlan.targetUrl;
+      console.log(`\nDetected reachable local dev server at ${resolvedFrontendTarget?.baseUrl || `http://${host}:${port}`}`);
+      console.log(`Starting an isolated dev server for this run at ${executionPlan.targetUrl}`);
+    } else {
+      console.log(`\nTarget URL already reachable: ${executionPlan.targetUrl}`);
+      console.log(`\nRunning Cypress directly (${executionPlan.testCommand})`);
+      const status = runCypressWithFallback(executionPlan.testCommandArgs);
+      if (status === 0) {
         process.exit(0);
       }
-    }
 
-    process.exit(status);
+      if (!useDocker && !useAutoDocker) {
+        console.log('\nPrimary Cypress execution failed.');
+        console.log('Attempting auto-docker fallback (if Docker is available).');
+        console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
+        const rescueStatus = runCypressWithFallback(
+          buildCypressCommandArgs('cy:run:rescue', executionPlan.cypressArgsWithBaseUrl),
+        );
+        if (rescueStatus === 0) {
+          process.exit(0);
+        }
+      }
+
+      process.exit(status);
+    }
   }
 
-  console.log(`\nRunning Cypress via start-server-and-test\n${commandLine}\n`);
+  console.log(`\nRunning Cypress via start-server-and-test\n${executionPlan.commandLine}\n`);
 
-  const status = spawnSync(shellCommand, {
+  const status = spawnSync(executionPlan.shellCommand, {
     cwd: projectRoot,
     stdio: 'inherit',
     shell: true,
   }).status;
   if (status !== 0) {
     console.log('\nstart-server-and-test 종료: ');
-    const serverReadyAfterFailure = await isServerReady(targetUrl);
+    const serverReadyAfterFailure = await isServerReady(executionPlan.targetUrl);
 
     if (serverReadyAfterFailure) {
-      const fallbackStatus = runCypressWithFallback(testCommandArgs);
+      const fallbackStatus = runCypressWithFallback(executionPlan.testCommandArgs);
       if (fallbackStatus === 0) {
         process.exit(0);
       }
@@ -395,7 +491,7 @@ try {
       console.log('Primary execution failed. Trying auto-docker fallback.');
       console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
       const rescueStatus = runCypressWithFallback(
-        buildCypressCommandArgs('cy:run:rescue', cypressArgsWithBaseUrl),
+        buildCypressCommandArgs('cy:run:rescue', executionPlan.cypressArgsWithBaseUrl),
       );
       if (rescueStatus === 0) {
         process.exit(0);

@@ -1,10 +1,11 @@
 // components/MyPage/MateHistoryCard.tsx
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import TeamLogo from '../TeamLogo';
+import { seedMatePartyQueryData } from '../../hooks/mateList';
 import { MateParty } from '../../types/mate';
-import { getStatusLabel, getStatusStyle, formatGameDate } from '../../utils/mate';
-import { useMateStore } from '../../store/mateStore';
+import { buildMateRouteLocationState, formatGameDate, getStatusLabel, getStatusStyle } from '../../utils/mate';
 
 interface MateHistoryCardProps {
   party: MateParty;
@@ -12,15 +13,17 @@ interface MateHistoryCardProps {
 
 export default function MateHistoryCard({ party }: MateHistoryCardProps) {
   const navigate = useNavigate();
-  const setSelectedParty = useMateStore((state) => state.setSelectedParty);
+  const queryClient = useQueryClient();
 
   const statusStyle = getStatusStyle(party.status);
   const statusLabel = getStatusLabel(party.status);
 
   // 클릭 핸들러 추가
   const handleClick = () => {
-    setSelectedParty(party);
-    navigate(`/mate/${party.id}`);
+    seedMatePartyQueryData(queryClient, party);
+    navigate(`/mate/${party.id}`, {
+      state: buildMateRouteLocationState(party),
+    });
   };
 
   return (

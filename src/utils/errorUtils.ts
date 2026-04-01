@@ -1,5 +1,3 @@
-import { AxiosError } from 'axios';
-
 export type ErrorType = 'AUTH' | 'PERMISSION' | 'NOT_FOUND' | 'RATE_LIMIT' | 'CONFLICT' | 'SERVER' | 'NETWORK' | 'UNKNOWN';
 
 export interface ParsedError {
@@ -21,11 +19,27 @@ type ApiErrorLike = {
     message: string;
 };
 
+type AxiosErrorLike = {
+    isAxiosError: boolean;
+    code?: string;
+    message: string;
+    response?: {
+        status?: number;
+        data?: Record<string, unknown>;
+    };
+};
+
 const isApiError = (error: unknown): error is ApiErrorLike =>
     typeof error === 'object' &&
     error !== null &&
     'status' in error &&
     typeof (error as { status?: unknown }).status === 'number';
+
+const isAxiosLikeError = (error: unknown): error is AxiosErrorLike =>
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { isAxiosError?: unknown }).isAxiosError === true &&
+    typeof (error as { message?: unknown }).message === 'string';
 
 const TECHNICAL_MESSAGE_PATTERNS = [
     /request failed with status code \d+/i,
@@ -116,7 +130,7 @@ const resolveUserFacingMessage = (
 
 export const isNetworkError = (error: unknown): boolean => {
     return (
-        error instanceof AxiosError &&
+        isAxiosLikeError(error) &&
         (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED' || error.message === 'Network Error')
     );
 };
@@ -199,7 +213,7 @@ export const parseError = (error: unknown): ParsedError => {
     }
 
     // Handle AxiosError (legacy or if mixed usage)
-    if (error instanceof AxiosError) {
+    if (isAxiosLikeError(error)) {
         const code = error.response?.status;
         const data = error.response?.data as Record<string, unknown> | undefined;
         const rawMessage = normalizeErrorText(

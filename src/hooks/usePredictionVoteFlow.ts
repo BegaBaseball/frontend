@@ -6,7 +6,7 @@ import { useAuthCheerActions } from '../store/authStore';
 import { useLeaderboardStore } from '../store/leaderboardStore';
 import { getFullTeamName } from '../constants/teams';
 import { parseError } from '../utils/errorUtils';
-import { useUserLeaderboardStats } from './useLeaderboard';
+import { useUserLeaderboardStats } from './useLeaderboardPrivate';
 import {
   PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
   PREDICTION_RUN_SESSION_STORAGE_KEY,

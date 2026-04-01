@@ -382,8 +382,8 @@ describe('Cheer Board', () => {
             }).as('toggleRepost');
 
             getNonOwnedPostCard().find('button[aria-label*="리포스트"]').click();
-            cy.get('[role="dialog"]').should('be.visible');
-            cy.get('[role="dialog"]').contains('button', '리포스트').first().click();
+            cy.get('[role="menu"], [role="dialog"]').should('be.visible');
+            cy.get('[role="menu"], [role="dialog"]').contains('button', /^리포스트$/).first().click();
             cy.wait('@toggleRepost')
                 .its('request.url')
                 .should('include', '/api/cheer/posts/2/repost');

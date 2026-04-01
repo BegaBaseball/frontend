@@ -5,6 +5,7 @@ import worker, {
   buildCanonicalRedirect,
   isApiPath,
   isHtmlNavigation,
+  shouldBlockPreviewHost,
 } from './index';
 
 test('redirects bare domain to canonical www host with path and query intact', async () => {
@@ -36,6 +37,11 @@ test('treats html accept headers as SPA navigations only for get or head request
   })), false);
 });
 
+test('blocks pages.dev preview hosts in production routing', () => {
+  assert.equal(shouldBlockPreviewHost(new URL('https://preview.begabaseball.pages.dev')), true);
+  assert.equal(shouldBlockPreviewHost(new URL('https://www.begabaseball.xyz')), false);
+});
+
 test('worker redirects bare-domain requests before touching assets', async () => {
   let assetFetchCount = 0;
 
@@ -53,6 +59,25 @@ test('worker redirects bare-domain requests before touching assets', async () =>
 
   assert.equal(response.status, 301);
   assert.equal(response.headers.get('location'), 'https://www.begabaseball.xyz/mypage?view=accountSettings');
+  assert.equal(assetFetchCount, 0);
+});
+
+test('worker returns 404 for pages.dev preview hosts before touching assets', async () => {
+  let assetFetchCount = 0;
+
+  const response = await worker.fetch(
+    new Request('https://preview.begabaseball.pages.dev/mypage'),
+    {
+      ASSETS: {
+        fetch: async () => {
+          assetFetchCount += 1;
+          return new Response('unexpected');
+        },
+      },
+    },
+  );
+
+  assert.equal(response.status, 404);
   assert.equal(assetFetchCount, 0);
 });
 

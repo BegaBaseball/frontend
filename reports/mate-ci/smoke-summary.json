@@ -1,0 +1,43 @@
+{
+  "workflow": "smoke",
+  "title": "Frontend Mate Smoke",
+  "stages": [
+    {
+      "label": "Unit smoke",
+      "status": "success",
+      "count": "41/41 passed",
+      "scope": "mate route barrels, query/cache helpers, mate utils/api",
+      "metrics": {
+        "total": 41,
+        "pass": 41,
+        "fail": 0,
+        "skipped": 0
+      },
+      "logFile": "reports/mate-ci/unit-smoke.log"
+    },
+    {
+      "label": "Build smoke",
+      "status": "success",
+      "count": "n/a",
+      "scope": "vite build + seo prerender + sitemap",
+      "metrics": null,
+      "logFile": "reports/mate-ci/build-smoke.log"
+    },
+    {
+      "label": "Core E2E smoke",
+      "status": "success",
+      "count": "22/22 passed",
+      "scope": "mate-detail-states.cy.ts, mate-execution-flow.cy.ts",
+      "metrics": {
+        "total": 22,
+        "pass": 22,
+        "fail": 0
+      },
+      "logFile": "reports/mate-ci/e2e-smoke.log"
+    }
+  ],
+  "notes": [
+    "- Trigger: PR path changes and manual workflow dispatch",
+    "- Artifact policy: machine-readable reports/logs are uploaded as `frontend-mate-smoke-reports`; failure screenshots/videos are uploaded as `frontend-mate-smoke-cypress-failures` for 14 days"
+  ]
+}

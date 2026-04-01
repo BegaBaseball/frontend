@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useRef, useState } from 'react';
+import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { CalendarDays, Download, Edit3, Link2, Newspaper, Plus, RefreshCw, Search, Trash2, Upload } from 'lucide-react';
 
 import {
@@ -11,34 +11,9 @@ import { FRANCHISE_TEAM_IDS, TEAM_DATA } from '../../constants/teams';
 import { cn } from '../../lib/utils';
 import { formatDate } from '../../utils/formatters';
 import TeamLogo from '../TeamLogo';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../ui/alert-dialog';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
 import { Input } from '../ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
+import PlainDialog from '../ui/plain-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Textarea } from '../ui/textarea';
 import type { AdminOffseasonMovement, AdminOffseasonMovementPayload } from '../../types/admin';
@@ -222,6 +197,20 @@ const getSectionBadgeClass = (section: string) => {
   return 'bg-slate-700 text-slate-200 border-0';
 };
 
+function AdminBadge({ className = '', children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+const adminNativeSelectClassName =
+  'h-10 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 text-sm text-slate-200 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
+
+const adminDialogSelectClassName =
+  'h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
+
 const hasTextValue = (value?: string | null) => Boolean(value?.trim());
 
 const hasStructuredValue = (movement: AdminOffseasonMovement | AdminOffseasonMovementPayload) =>
@@ -391,6 +380,12 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
     setEditingMovement(movement);
     setFormData(movementToPayload(movement));
     setDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setEditingMovement(null);
+    setFormData(createEmptyPayload());
   };
 
   const updateField = (field: keyof AdminOffseasonMovementPayload, value: string) => {
@@ -705,38 +700,32 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               className="pl-10 bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-xl"
             />
           </div>
-          <Select value={sectionFilter} onValueChange={setSectionFilter}>
-            <SelectTrigger
-              data-testid="admin-offseason-section-trigger"
-              className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl"
-            >
-              <SelectValue placeholder="구분 전체" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-              <SelectItem value={ALL_VALUE}>구분 전체</SelectItem>
-              {SECTION_OPTIONS.map((section) => (
-                <SelectItem key={section} value={section}>
-                  {section}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={teamFilter} onValueChange={setTeamFilter}>
-            <SelectTrigger
-              data-testid="admin-offseason-team-trigger"
-              className="bg-slate-800/50 border-slate-700 text-slate-200 rounded-xl"
-            >
-              <SelectValue placeholder="팀 전체" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-              <SelectItem value={ALL_VALUE}>팀 전체</SelectItem>
-              {TEAM_OPTIONS.map((team) => (
-                <SelectItem key={team.code} value={team.code}>
-                  {team.fullName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <select
+            data-testid="admin-offseason-section-trigger"
+            value={sectionFilter}
+            onChange={(event) => setSectionFilter(event.target.value)}
+            className={adminNativeSelectClassName}
+          >
+            <option value={ALL_VALUE}>구분 전체</option>
+            {SECTION_OPTIONS.map((section) => (
+              <option key={section} value={section}>
+                {section}
+              </option>
+            ))}
+          </select>
+          <select
+            data-testid="admin-offseason-team-trigger"
+            value={teamFilter}
+            onChange={(event) => setTeamFilter(event.target.value)}
+            className={adminNativeSelectClassName}
+          >
+            <option value={ALL_VALUE}>팀 전체</option>
+            {TEAM_OPTIONS.map((team) => (
+              <option key={team.code} value={team.code}>
+                {team.fullName}
+              </option>
+            ))}
+          </select>
           <Input
             type="date"
             data-testid="admin-offseason-from-date"
@@ -850,7 +839,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                 실패 {csvReport.failedCount}건
               </p>
             </div>
-            <Badge className="border-0 bg-sky-500/15 text-sky-200">CSV Import</Badge>
+            <AdminBadge className="border-0 bg-sky-500/15 text-sky-200">CSV Import</AdminBadge>
           </div>
           {csvReport.errors.length > 0 && (
             <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/80 p-3">
@@ -907,9 +896,9 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                   >
                     <TableCell className="text-slate-300 text-sm font-medium">{formatDate(movement.movementDate)}</TableCell>
                     <TableCell>
-                      <Badge className={getSectionBadgeClass(movement.section)}>
+                      <AdminBadge className={getSectionBadgeClass(movement.section)}>
                         {movement.section}
-                      </Badge>
+                      </AdminBadge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -928,16 +917,16 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {!hasTextValue(movement.summary) && (
-                            <Badge className="border-0 bg-amber-500/15 text-[11px] text-amber-200">요약 없음</Badge>
+                            <AdminBadge className="border-0 bg-amber-500/15 text-[11px] text-amber-200">요약 없음</AdminBadge>
                           )}
                           {!hasTextValue(movement.details) && (
-                            <Badge className="border-0 bg-amber-500/15 text-[11px] text-amber-200">상세 메모 없음</Badge>
+                            <AdminBadge className="border-0 bg-amber-500/15 text-[11px] text-amber-200">상세 메모 없음</AdminBadge>
                           )}
                           {!hasStructuredValue(movement) && (
-                            <Badge className="border-0 bg-violet-500/15 text-[11px] text-violet-200">구조화 없음</Badge>
+                            <AdminBadge className="border-0 bg-violet-500/15 text-[11px] text-violet-200">구조화 없음</AdminBadge>
                           )}
                           {!hasSourceValue(movement) && (
-                            <Badge className="border-0 bg-sky-500/15 text-[11px] text-sky-200">출처 없음</Badge>
+                            <AdminBadge className="border-0 bg-sky-500/15 text-[11px] text-sky-200">출처 없음</AdminBadge>
                           )}
                         </div>
                         {movement.details?.trim() && movement.summary?.trim() && movement.details !== movement.summary && (
@@ -1000,27 +989,41 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
         </div>
       )}
 
-      <Dialog
+      <PlainDialog
         open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) {
-            setEditingMovement(null);
-            setFormData(createEmptyPayload());
-          }
-        }}
+        onClose={closeDialog}
+        title={editingMovement ? '스토브리그 이동 수정' : '스토브리그 이동 추가'}
+        description="`summary`는 목록에, `details`는 상세 패널 원문 메모에 노출됩니다."
+        contentTestId="admin-offseason-dialog"
+        className="sm:max-w-4xl border-slate-800 bg-slate-950 text-slate-100"
+        bodyClassName="max-h-[70vh] overflow-y-auto p-5"
+        footer={(
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="admin-offseason-dialog-cancel"
+              onClick={closeDialog}
+              className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+            >
+              취소
+            </Button>
+            <Button type="button" data-testid="admin-offseason-dialog-submit" onClick={() => void handleSubmit()} disabled={submitting} className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
+              {submitting ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  저장 중
+                </>
+              ) : (
+                <>
+                  {editingMovement ? <Edit3 className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+                  {editingMovement ? '수정 저장' : '이동 등록'}
+                </>
+              )}
+            </Button>
+          </>
+        )}
       >
-        <DialogContent
-          data-testid="admin-offseason-dialog"
-          className="max-h-[90vh] overflow-y-auto border-slate-800 bg-slate-950 text-slate-100 sm:max-w-4xl"
-        >
-          <DialogHeader>
-            <DialogTitle>{editingMovement ? '스토브리그 이동 수정' : '스토브리그 이동 추가'}</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              `summary`는 목록에, `details`는 상세 패널 원문 메모에 노출됩니다.
-            </DialogDescription>
-          </DialogHeader>
-
           <div className="grid gap-6">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="space-y-2">
@@ -1035,39 +1038,33 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               </div>
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">구분</p>
-                <Select value={formData.section} onValueChange={(value) => updateField('section', value)}>
-                  <SelectTrigger
-                    data-testid="admin-offseason-dialog-section-trigger"
-                    className="bg-slate-900 border-slate-700 text-slate-100"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-                    {SECTION_OPTIONS.map((section) => (
-                      <SelectItem key={section} value={section}>
-                        {section}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  data-testid="admin-offseason-dialog-section-trigger"
+                  value={formData.section}
+                  onChange={(event) => updateField('section', event.target.value)}
+                  className={adminDialogSelectClassName}
+                >
+                  {SECTION_OPTIONS.map((section) => (
+                    <option key={section} value={section}>
+                      {section}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">팀 코드</p>
-                <Select value={formData.teamCode} onValueChange={(value) => updateField('teamCode', value)}>
-                  <SelectTrigger
-                    data-testid="admin-offseason-dialog-team-trigger"
-                    className="bg-slate-900 border-slate-700 text-slate-100"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-                    {TEAM_OPTIONS.map((team) => (
-                      <SelectItem key={team.code} value={team.code}>
-                        {team.fullName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  data-testid="admin-offseason-dialog-team-trigger"
+                  value={formData.teamCode}
+                  onChange={(event) => updateField('teamCode', event.target.value)}
+                  className={adminDialogSelectClassName}
+                >
+                  {TEAM_OPTIONS.map((team) => (
+                    <option key={team.code} value={team.code}>
+                      {team.fullName}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">선수명</p>
@@ -1139,25 +1136,19 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
             <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr_0.8fr_1fr]">
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">상대 구단</p>
-                <Select
+                <select
+                  data-testid="admin-offseason-counterparty-trigger"
                   value={formData.counterpartyTeam || NONE_VALUE}
-                  onValueChange={(value) => updateField('counterpartyTeam', value === NONE_VALUE ? '' : value)}
+                  onChange={(event) => updateField('counterpartyTeam', event.target.value === NONE_VALUE ? '' : event.target.value)}
+                  className={adminDialogSelectClassName}
                 >
-                  <SelectTrigger
-                    data-testid="admin-offseason-counterparty-trigger"
-                    className="bg-slate-900 border-slate-700 text-slate-100"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-                    <SelectItem value={NONE_VALUE}>없음</SelectItem>
-                    {TEAM_OPTIONS.map((team) => (
-                      <SelectItem key={team.code} value={team.code}>
-                        {team.fullName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value={NONE_VALUE}>없음</option>
+                  {TEAM_OPTIONS.map((team) => (
+                    <option key={team.code} value={team.code}>
+                      {team.fullName}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">반대급부</p>
@@ -1206,7 +1197,7 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">미리보기</p>
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center gap-2">
-                    <Badge className={getSectionBadgeClass(formData.section)}>{formData.section || '구분 없음'}</Badge>
+                    <AdminBadge className={getSectionBadgeClass(formData.section)}>{formData.section || '구분 없음'}</AdminBadge>
                     <span className="text-sm text-slate-400">{TEAM_DATA[formData.teamCode]?.fullName || formData.teamCode}</span>
                   </div>
                   <p className="text-lg font-semibold text-white">{formData.playerName || '선수명'}</p>
@@ -1217,58 +1208,46 @@ export function OffseasonMovementAdminPanel({ active }: { active: boolean }) {
               </div>
             </div>
           </div>
+      </PlainDialog>
 
-          <DialogFooter>
+      <PlainDialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title="스토브리그 이동 삭제"
+        description={
+          deleteTarget
+            ? `${deleteTarget.playerName} · ${TEAM_DATA[deleteTarget.teamCode]?.fullName || deleteTarget.teamCode} 이동 정보를 삭제합니다.`
+            : '선택한 이동 정보를 삭제합니다.'
+        }
+        contentTestId="admin-offseason-delete-dialog"
+        className="sm:max-w-md border-slate-800 bg-slate-950 text-slate-100"
+        footer={(
+          <>
             <Button
               type="button"
               variant="outline"
-              data-testid="admin-offseason-dialog-cancel"
-              onClick={() => setDialogOpen(false)}
+              onClick={() => setDeleteTarget(null)}
               className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
             >
               취소
             </Button>
-            <Button type="button" data-testid="admin-offseason-dialog-submit" onClick={() => void handleSubmit()} disabled={submitting} className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
-              {submitting ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  저장 중
-                </>
-              ) : (
-                <>
-                  {editingMovement ? <Edit3 className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
-                  {editingMovement ? '수정 저장' : '이동 등록'}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent data-testid="admin-offseason-delete-dialog" className="border-slate-800 bg-slate-950 text-slate-100">
-          <AlertDialogHeader>
-            <AlertDialogTitle>스토브리그 이동 삭제</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
-              {deleteTarget
-                ? `${deleteTarget.playerName} · ${TEAM_DATA[deleteTarget.teamCode]?.fullName || deleteTarget.teamCode} 이동 정보를 삭제합니다.`
-                : '선택한 이동 정보를 삭제합니다.'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800">
-              취소
-            </AlertDialogCancel>
-            <AlertDialogAction
+            <Button
+              type="button"
               data-testid="admin-offseason-delete-confirm"
               onClick={() => void handleDelete()}
               className="bg-red-500 text-white hover:bg-red-400"
             >
               삭제
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </>
+        )}
+      >
+        {deleteTarget ? (
+          <p className="text-sm text-slate-400">
+            삭제 후에는 동일한 이동 정보를 다시 입력해야 하며, 목록과 공개 페이지에서도 즉시 사라집니다.
+          </p>
+        ) : null}
+      </PlainDialog>
     </div>
   );
 }

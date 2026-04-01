@@ -23,6 +23,16 @@ const failures = [];
 const warnings = [];
 const checks = [];
 
+const PLACEHOLDER_PATTERNS = [
+  /replace-with-real/i,
+  /replace[-_]me/i,
+  /placeholder/i,
+  /example/i,
+  /google-site-verification-token/i,
+  /naver-site-verification-token/i,
+  /^g-xxxxxxxxxx$/i,
+];
+
 const normalizeHost = (host) =>
   String(host || '')
     .replace(/^\[/, '')
@@ -31,6 +41,9 @@ const normalizeHost = (host) =>
     .toLowerCase();
 
 const isLoopbackHost = (host) => LOOPBACK_HOSTS.has(normalizeHost(host));
+
+const looksLikePlaceholder = (value) =>
+  PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(String(value || '').trim()));
 
 const parseAbsoluteUrl = (label, value) => {
   try {
@@ -89,6 +102,12 @@ for (const key of recommendedEnvKeys) {
       failures.push(`strict 모드 권장 env 누락: ${key}`);
     } else {
       warnings.push(`권장 env 누락: ${key}`);
+    }
+  } else if (looksLikePlaceholder(value)) {
+    if (strict) {
+      failures.push(`strict 모드 placeholder env 감지: ${key}`);
+    } else {
+      warnings.push(`placeholder env 감지: ${key}`);
     }
   } else {
     checks.push(`권장 env 확인: ${key}`);

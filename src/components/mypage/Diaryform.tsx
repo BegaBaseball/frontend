@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Camera, X, Ticket, Loader2 } from 'lucide-react';
+import './Diary.css';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Checkbox } from '../ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import PlainDialog from '../ui/plain-dialog';
 import { EMOJI_STATS, WINNING_OPTIONS, MAX_PHOTOS } from '../../constants/diary';
 import { getEmojiByName, getFullImageUrl, formatDateString, getWinningLabel } from '../../utils/diary';
 import { useDiaryView } from '../../hooks/useDiaryView';
@@ -48,6 +47,28 @@ interface DiaryEditModeProps {
   toggleSeatViewCandidate: (candidateId: number, checked: boolean) => void;
   handleSeatViewSelectionConfirm: () => Promise<void> | void;
   handleSeatViewSelectionSkip: () => Promise<void> | void;
+}
+
+const joinClassNames = (...classes: Array<string | false | null | undefined>) =>
+  classes.filter(Boolean).join(' ');
+
+function InlineBadge({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={joinClassNames(
+        'inline-flex w-fit items-center justify-center rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap',
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
 export default function DiaryViewSection() {
@@ -570,6 +591,13 @@ function DiaryEditMode({
     }
   };
 
+  const handleSeatViewDialogClose = () => {
+    if (!seatViewSelectionState.open || seatViewSelectionState.submitting) {
+      return;
+    }
+    handleSeatViewSelectionSkip();
+  };
+
   const allPhotos = [...diaryForm.photos, ...diaryForm.photoFiles];
 
   return (
@@ -605,9 +633,9 @@ function DiaryEditMode({
         <p className="text-xs text-muted-foreground text-center mt-1">티켓 사진을 올리면 AI가 자동으로 정보를 채워줍니다</p>
         {(diaryForm.ticketVerified || diaryForm.ticketVerificationToken) && (
           <div className="mt-2 flex justify-center">
-            <Badge className="border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+            <InlineBadge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
               {diaryForm.ticketVerified ? '티켓 인증 완료' : '티켓 인증 준비됨'}
-            </Badge>
+            </InlineBadge>
           </div>
         )}
       </div>
@@ -692,12 +720,13 @@ function DiaryEditMode({
                 />
                 {typeof photo !== 'string' && (
                   <div className="absolute left-2 top-2">
-                    <Badge className={`border-0 ${photo.sourceType === 'TICKET_SCAN'
+                    <InlineBadge className={photo.sourceType === 'TICKET_SCAN'
                       ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
                       : 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'
-                      }`}>
+                      }
+                    >
                       {photo.sourceType === 'TICKET_SCAN' ? '티켓' : '일반'}
-                    </Badge>
+                    </InlineBadge>
                   </div>
                 )}
                 <button
@@ -871,77 +900,16 @@ function DiaryEditMode({
         </Button>
       </div>
 
-      <Dialog
+      <PlainDialog
         open={seatViewSelectionState.open}
-        onOpenChange={(open) => {
-          if (!open && seatViewSelectionState.open && !seatViewSelectionState.submitting) {
-            handleSeatViewSelectionSkip();
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>AI 추천 시야뷰 확인</DialogTitle>
-            <DialogDescription>
-              공개할 시야뷰 사진을 선택하세요. 티켓 스캔 이미지는 개인 다이어리에는 남지만 공개 갤러리에는 자동 제외됩니다.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-3 max-h-[60vh] overflow-y-auto">
-            {seatViewSelectionState.candidates.map((candidate) => {
-              const checked = seatViewSelectionState.selectedIds.includes(candidate.id);
-              const confidenceLabel = candidate.aiConfidence != null
-                ? `${Math.round(candidate.aiConfidence * 100)}%`
-                : '미분류';
-
-              return (
-                <label
-                  key={candidate.id}
-                  className={`flex gap-3 rounded-xl border p-3 transition-colors ${candidate.shareEligible
-                    ? 'cursor-pointer border-border hover:border-primary'
-                    : 'cursor-not-allowed border-dashed border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/20'
-                    }`}
-                >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={(value) => toggleSeatViewCandidate(candidate.id, Boolean(value))}
-                    disabled={!candidate.shareEligible || seatViewSelectionState.submitting}
-                    className="mt-1"
-                  />
-                  <img
-                    src={candidate.previewUrl}
-                    alt="시야뷰 후보"
-                    className="h-24 w-24 rounded-lg object-cover"
-                  />
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge className="border-0 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                        {candidate.sourceType === 'TICKET_SCAN' ? '티켓 스캔' : '일반 업로드'}
-                      </Badge>
-                      {candidate.aiSuggestedLabel && (
-                        <Badge className={`border-0 ${candidate.aiSuggestedLabel === 'SEAT_VIEW'
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                          : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
-                          }`}>
-                          AI: {candidate.aiSuggestedLabel}
-                        </Badge>
-                      )}
-                      <Badge className="border-0 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
-                        신뢰도 {confidenceLabel}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {candidate.shareEligible
-                        ? '선택한 사진만 검토 대기 상태로 올라갑니다.'
-                        : '이 사진은 공개 시야뷰 후보로 제출할 수 없습니다.'}
-                    </p>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-
-          <DialogFooter className="gap-2 sm:justify-between">
+        onClose={handleSeatViewDialogClose}
+        title="AI 추천 시야뷰 확인"
+        description="공개할 시야뷰 사진을 선택하세요. 티켓 스캔 이미지는 개인 다이어리에는 남지만 공개 갤러리에는 자동 제외됩니다."
+        className="sm:max-w-2xl"
+        bodyClassName="max-h-[calc(90vh-81px)] overflow-y-auto"
+        hideCloseButton={seatViewSelectionState.submitting}
+        footer={(
+          <>
             <Button
               type="button"
               variant="outline"
@@ -959,9 +927,65 @@ function DiaryEditMode({
             >
               {seatViewSelectionState.submitting ? '제출 중...' : '선택한 사진 제출'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        )}
+      >
+          <div className="grid gap-3 max-h-[60vh] overflow-y-auto">
+            {seatViewSelectionState.candidates.map((candidate) => {
+              const checked = seatViewSelectionState.selectedIds.includes(candidate.id);
+              const confidenceLabel = candidate.aiConfidence != null
+                ? `${Math.round(candidate.aiConfidence * 100)}%`
+                : '미분류';
+
+              return (
+                <label
+                  key={candidate.id}
+                  className={`flex gap-3 rounded-xl border p-3 transition-colors ${candidate.shareEligible
+                    ? 'cursor-pointer border-border hover:border-primary'
+                    : 'cursor-not-allowed border-dashed border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/20'
+                    }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => toggleSeatViewCandidate(candidate.id, event.target.checked)}
+                    disabled={!candidate.shareEligible || seatViewSelectionState.submitting}
+                    className="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border border-border accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <img
+                    src={candidate.previewUrl}
+                    alt="시야뷰 후보"
+                    className="h-24 w-24 rounded-lg object-cover"
+                  />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <InlineBadge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        {candidate.sourceType === 'TICKET_SCAN' ? '티켓 스캔' : '일반 업로드'}
+                      </InlineBadge>
+                      {candidate.aiSuggestedLabel && (
+                        <InlineBadge className={candidate.aiSuggestedLabel === 'SEAT_VIEW'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                          : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
+                          }
+                        >
+                          AI: {candidate.aiSuggestedLabel}
+                        </InlineBadge>
+                      )}
+                      <InlineBadge className="bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+                        신뢰도 {confidenceLabel}
+                      </InlineBadge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {candidate.shareEligible
+                        ? '선택한 사진만 검토 대기 상태로 올라갑니다.'
+                        : '이 사진은 공개 시야뷰 후보로 제출할 수 없습니다.'}
+                    </p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+      </PlainDialog>
     </div>
   );
 }

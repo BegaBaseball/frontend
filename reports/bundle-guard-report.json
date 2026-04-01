@@ -1,0 +1,375 @@
+{
+  "generatedAt": "2026-04-01T14:34:39.929Z",
+  "clientAssetsDirectory": "dist/assets",
+  "workerAssetsDirectory": null,
+  "forbiddenChunkPrefixes": [
+    "vendor-calendar-",
+    "vendor-charts-",
+    "vendor-dnd-",
+    "vendor-emoji-",
+    "vendor-form-",
+    "vendor-markdown-",
+    "vendor-motion-",
+    "vendor-qr-",
+    "vendor-state-",
+    "vendor-styles-",
+    "vendor-theme-",
+    "vendor-toast-",
+    "vendor-ui-",
+    "vendor-upload-"
+  ],
+  "forbiddenMatches": [],
+  "budgetResults": [
+    {
+      "label": "vendor-react-core",
+      "file": "dist/assets/vendor-react-core-8Es8s6KO.js",
+      "maxBytes": 170000,
+      "ok": true,
+      "sizeBytes": 145478
+    },
+    {
+      "label": "vendor-router",
+      "file": "dist/assets/vendor-router-CCE02BB5.js",
+      "maxBytes": 50000,
+      "ok": true,
+      "sizeBytes": 36434
+    },
+    {
+      "label": "vendor-query",
+      "file": "dist/assets/vendor-query-LmllSSX3.js",
+      "maxBytes": 45000,
+      "ok": true,
+      "sizeBytes": 36422
+    },
+    {
+      "label": "vendor-network",
+      "file": "dist/assets/vendor-network-D8Ucs4Yf.js",
+      "maxBytes": 45000,
+      "ok": true,
+      "sizeBytes": 37159
+    },
+    {
+      "label": "vendor-realtime",
+      "file": "dist/assets/vendor-realtime-M0z4SMIV.js",
+      "maxBytes": 30000,
+      "ok": true,
+      "sizeBytes": 22119
+    },
+    {
+      "label": "Prediction route",
+      "file": "dist/assets/Prediction-CFOjljDs.js",
+      "maxBytes": 105000,
+      "ok": true,
+      "sizeBytes": 3366
+    },
+    {
+      "label": "Home route",
+      "file": "dist/assets/Home-De8Vu43G.js",
+      "maxBytes": 40000,
+      "ok": true,
+      "sizeBytes": 1549
+    },
+    {
+      "label": "LeaderboardPage route",
+      "file": "dist/assets/LeaderboardPage-CUrkQ_jK.js",
+      "maxBytes": 35000,
+      "ok": true,
+      "sizeBytes": 1059
+    },
+    {
+      "label": "OffSeasonHome route",
+      "file": "dist/assets/OffSeasonHome-Cb4yZ85_.js",
+      "maxBytes": 30000,
+      "ok": true,
+      "sizeBytes": 24954
+    },
+    {
+      "label": "OffSeasonList route",
+      "file": "dist/assets/OffSeasonList-luVL_fB7.js",
+      "maxBytes": 45000,
+      "ok": true,
+      "sizeBytes": 40189
+    },
+    {
+      "label": "StadiumGuide route",
+      "file": "dist/assets/StadiumGuide-CINfcEnL.js",
+      "maxBytes": 26000,
+      "ok": true,
+      "sizeBytes": 1458
+    },
+    {
+      "label": "AccountDeletionRecovery route",
+      "file": "dist/assets/AccountDeletionRecovery-o61lG3H9.js",
+      "maxBytes": 7000,
+      "ok": true,
+      "sizeBytes": 4763
+    },
+    {
+      "label": "Login route",
+      "file": "dist/assets/Login-CK3xSOlQ.js",
+      "maxBytes": 12000,
+      "ok": true,
+      "sizeBytes": 10438
+    },
+    {
+      "label": "SignUp route",
+      "file": "dist/assets/SignUp-B189TaiB.js",
+      "maxBytes": 13000,
+      "ok": true,
+      "sizeBytes": 11195
+    },
+    {
+      "label": "PasswordReset route",
+      "file": "dist/assets/PasswordReset-BsFxQIuT.js",
+      "maxBytes": 7000,
+      "ok": true,
+      "sizeBytes": 4075
+    },
+    {
+      "label": "PasswordResetConfirm route",
+      "file": "dist/assets/PasswordResetConfirm-CijJOFjY.js",
+      "maxBytes": 9000,
+      "ok": true,
+      "sizeBytes": 6980
+    },
+    {
+      "label": "OAuthCallback route",
+      "file": "dist/assets/OAuthCallback-B6z4r3Gx.js",
+      "maxBytes": 4000,
+      "ok": true,
+      "sizeBytes": 1937
+    },
+    {
+      "label": "NoticePage route",
+      "file": "dist/assets/NoticePage-Dor5blTQ.js",
+      "maxBytes": 9000,
+      "ok": true,
+      "sizeBytes": 1275
+    },
+    {
+      "label": "UserProfile route",
+      "file": "dist/assets/UserProfile-xNL0eyk0.js",
+      "maxBytes": 16000,
+      "ok": true,
+      "sizeBytes": 14654
+    },
+    {
+      "label": "UserProfileModal route",
+      "file": "dist/assets/UserProfileModal-B_jde880.js",
+      "maxBytes": 8000,
+      "ok": true,
+      "sizeBytes": 6733
+    },
+    {
+      "label": "UserListModal route",
+      "file": "dist/assets/UserListModal-8o-j9THi.js",
+      "maxBytes": 7000,
+      "ok": true,
+      "sizeBytes": 5532
+    },
+    {
+      "label": "RankingPredictionShare route",
+      "file": "dist/assets/RankingPredictionShare-Cp2XniC2.js",
+      "maxBytes": 5000,
+      "ok": true,
+      "sizeBytes": 1815
+    },
+    {
+      "label": "AdminPage route",
+      "file": "dist/assets/AdminPage-ccgtw5KC.js",
+      "maxBytes": 80000,
+      "ok": true,
+      "sizeBytes": 53464
+    },
+    {
+      "label": "ChatBot route",
+      "file": "dist/assets/ChatBot-C3aGCnv4.js",
+      "maxBytes": 52000,
+      "ok": true,
+      "sizeBytes": 31311
+    },
+    {
+      "label": "worker entry",
+      "file": "dist/begabaseball_frontend/index.js",
+      "maxBytes": 25000,
+      "ok": true,
+      "sizeBytes": 19306
+    }
+  ],
+  "dependencyGuardResults": [
+    {
+      "label": "Home direct deps",
+      "file": "dist/assets/Home-De8Vu43G.js",
+      "ok": true,
+      "forbiddenSubstrings": [
+        "./vendor-network-",
+        "./axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "Home secondary panels direct deps",
+      "file": "dist/assets/HomeSecondaryPanelsContainer-BT5utckZ.js",
+      "ok": true,
+      "forbiddenSubstrings": [
+        "./vendor-network-",
+        "./axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "OffSeasonHome direct deps",
+      "file": "dist/assets/OffSeasonHome-Cb4yZ85_.js",
+      "ok": true,
+      "forbiddenSubstrings": [
+        "./vendor-network-",
+        "./axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "OffSeasonList direct deps",
+      "file": "dist/assets/OffSeasonList-luVL_fB7.js",
+      "ok": true,
+      "forbiddenSubstrings": [
+        "./vendor-network-",
+        "./axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "RankingPredictionShare direct deps",
+      "file": "dist/assets/RankingPredictionShare-Cp2XniC2.js",
+      "ok": true,
+      "forbiddenSubstrings": [
+        "./vendor-network-",
+        "./axios-"
+      ],
+      "violations": []
+    }
+  ],
+  "manifestImportGuardResults": [
+    {
+      "label": "LeaderboardPage manifest imports",
+      "file": "dist/assets/LeaderboardPage-CUrkQ_jK.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "StadiumGuide manifest imports",
+      "file": "dist/assets/StadiumGuide-CINfcEnL.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "AccountDeletionRecovery manifest imports",
+      "file": "dist/assets/AccountDeletionRecovery-o61lG3H9.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "Login manifest imports",
+      "file": "dist/assets/Login-CK3xSOlQ.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "SignUp manifest imports",
+      "file": "dist/assets/SignUp-B189TaiB.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "PasswordReset manifest imports",
+      "file": "dist/assets/PasswordReset-BsFxQIuT.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "PasswordResetConfirm manifest imports",
+      "file": "dist/assets/PasswordResetConfirm-CijJOFjY.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "OAuthCallback manifest imports",
+      "file": "dist/assets/OAuthCallback-B6z4r3Gx.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "NoticePage manifest imports",
+      "file": "dist/assets/NoticePage-Dor5blTQ.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "UserProfile manifest imports",
+      "file": "dist/assets/UserProfile-xNL0eyk0.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "UserProfileModal manifest imports",
+      "file": "dist/assets/UserProfileModal-B_jde880.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    },
+    {
+      "label": "UserListModal manifest imports",
+      "file": "dist/assets/UserListModal-8o-j9THi.js",
+      "ok": true,
+      "forbiddenImportSubstrings": [
+        "vendor-network-",
+        "_axios-"
+      ],
+      "violations": []
+    }
+  ],
+  "ok": true,
+  "failures": []
+}
