@@ -1,0 +1,1 @@
+export { useMatePartyFromRoute } from './useMatePartyFromRoute';

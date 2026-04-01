@@ -1,98 +1,21 @@
-import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { useLeaderboard, usePowerups } from '../hooks/useLeaderboard';
-import { isLoggedInUser, useAuthStore } from '../store/authStore';
-import RetroLeaderboard from '../components/retro/RetroLeaderboard';
-import type { LeaderboardType } from '../api/leaderboard';
+import { lazy, Suspense } from 'react';
 
-/**
- * 리더보드 페이지 컨테이너
- * useLeaderboard 훅으로 데이터를 가져와 RetroLeaderboard에 전달
- */
+const LeaderboardPageRuntime = lazy(() => import('./LeaderboardPageRuntime'));
+
 export default function LeaderboardPage() {
-  const navigate = useNavigate();
-  const [type, setType] = useState<LeaderboardType>('season');
-  const [page, setPage] = useState(0);
-
-  const isLoggedIn = useAuthStore((state) => isLoggedInUser(state.user));
-  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
-  const currentUserHandle = useAuthStore((state) => state.user?.handle);
-
-  const {
-    leaderboard,
-    myRank,
-    hotStreaks,
-    tickerMessages,
-    isLoading,
-    totalPages,
-    refetch,
-  } = useLeaderboard(type, page, 10, { includeMyRank: isLoggedIn && !isAuthLoading });
-
-  const {
-    powerups,
-    activePowerups,
-    usePowerup,
-  } = usePowerups();
-
-  const handleTypeChange = useCallback((newType: LeaderboardType) => {
-    setType(newType);
-    setPage(0);
-  }, []);
-
-  const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage);
-  }, []);
-
-  const handleRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  const handleMyScore = useCallback(() => {
-    if (myRank && myRank.rank > 0) {
-      const pageSize = 10;
-      const targetPage = Math.floor((myRank.rank - 1) / pageSize);
-      setPage(targetPage);
-    } else {
-      toast.info('아직 랭킹 정보가 없습니다.', { description: '예측에 참여해서 첫 점수를 획득해보세요!' });
-    }
-  }, [myRank, setPage]);
-
-  const handlePredict = useCallback(() => {
-    navigate('/prediction');
-  }, [navigate]);
-
-  const handleUsePowerup = useCallback(async (powerupType: string) => {
-    await usePowerup(powerupType);
-  }, [usePowerup]);
-
-  const hotStreakEntries = hotStreaks.map((hs) => ({
-    handle: hs.handle,
-    userName: hs.userName,
-    profileImageUrl: hs.profileImageUrl,
-    level: hs.level,
-    rankTitle: '',
-    score: 0,
-    streak: hs.streak,
-  }));
-
   return (
-    <RetroLeaderboard
-      leaderboard={leaderboard}
-      userStats={myRank}
-      tickerMessages={tickerMessages}
-      hotStreaks={hotStreakEntries}
-      powerups={powerups}
-      activePowerups={activePowerups}
-      isLoading={isLoading}
-      currentUserHandle={currentUserHandle}
-      onTypeChange={handleTypeChange}
-      onPageChange={handlePageChange}
-      onRefresh={handleRefresh}
-      onMyScore={handleMyScore}
-      onPredict={handlePredict}
-      onUsePowerup={handleUsePowerup}
-      totalPages={totalPages}
-    />
+    <Suspense
+      fallback={(
+        <div className="min-h-screen bg-[#fdf6e3] px-4 py-8 text-[#2f2a20]">
+          <div className="mx-auto max-w-6xl">
+            <div className="rounded-2xl border border-[#d4b98f] bg-[#f4e3b5] px-6 py-10 text-center text-sm shadow-[0_6px_0_#b08b57]">
+              리더보드를 준비하고 있습니다.
+            </div>
+          </div>
+        </div>
+      )}
+    >
+      <LeaderboardPageRuntime />
+    </Suspense>
   );
 }
