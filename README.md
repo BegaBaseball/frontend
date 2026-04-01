@@ -251,6 +251,28 @@ npm run test:e2e:ai:dev
 npm run test:e2e:coverage:dev
 ```
 
+### Mate CI / E2E 실행
+```bash
+# 빠른 로컬 smoke
+npm run test:mate:smoke
+VITE_SITE_URL=http://localhost:5173 VITE_API_BASE_URL=http://localhost:8080 npm run build
+npm run test:e2e:mate:smoke
+
+# 전체 mate regression
+npm run test:e2e:mate:full
+
+# 변경 파일 기준 full regression 라벨 적용 여부 로컬 확인
+npm run qa:mate:regression:label -- bega_frontend/src/components/MateDetail.tsx
+```
+
+- `Frontend Mate Smoke` workflow는 mate 관련 경로와 공용 의존성 변경 PR에서 자동 실행됩니다.
+- `Frontend Mate Regression` workflow는 매일 03:00 KST에 실행되고, 수동 실행도 가능합니다.
+- mate 핵심 경로 변경 PR에는 `full-mate-regression` 라벨이 자동으로 붙고, 필요하면 수동으로도 추가해 workflow를 실행할 수 있습니다.
+- 수동 실행 시 `suite_scope`로 `all / route / create / extended`를 고를 수 있고, `upload_visual_artifacts`로 `mate-visual` 스크린샷 업로드를 요청할 수 있습니다.
+- 두 workflow 모두 `reports/mate-ci/*.json`과 raw log를 artifact로 올려 machine-readable 결과를 남깁니다.
+- pull request에서는 두 workflow가 sticky comment를 업데이트해서 stage별 결과와 artifact 이름을 바로 보여줍니다.
+- `npm run qa:mate:regression:label -- <changed-file...>` 로 auto-label 기준을 로컬에서 미리 확인할 수 있습니다.
+
 ### Real AI 챗봇 smoke 실행
 ```bash
 # 필수: 실제 백엔드 기준 URL
@@ -313,9 +335,10 @@ VITE_KAKAO_MAP_KEY=your_kakao_map_key
 VITE_SITE_URL=https://www.begabaseball.xyz
 
 # SEO 권장(운영 환경)
-# VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXXX
-# VITE_GOOGLE_SITE_VERIFICATION=google-site-verification-token
-# VITE_NAVER_SITE_VERIFICATION=naver-site-verification-token
+# strict gate는 placeholder 값을 실패로 처리합니다.
+# VITE_GA4_MEASUREMENT_ID=G-REPLACE_WITH_REAL_MEASUREMENT_ID
+# VITE_GOOGLE_SITE_VERIFICATION=replace-with-real-google-site-verification
+# VITE_NAVER_SITE_VERIFICATION=replace-with-real-naver-site-verification
 ```
 
 | 변수명 | 설명 | 필수 |
@@ -324,9 +347,9 @@ VITE_SITE_URL=https://www.begabaseball.xyz
 | `VITE_PROXY_TARGET` | 로컬 `npm run dev`에서 `/api` 프록시가 바라볼 백엔드 origin | 로컬 권장 |
 | `VITE_KAKAO_MAP_KEY` | 카카오 지도 JavaScript 키 | ✅ |
 | `VITE_SITE_URL` | canonical/sitemap 기준 URL | ✅ |
-| `VITE_GA4_MEASUREMENT_ID` | GA4 측정 ID | 선택 |
-| `VITE_GOOGLE_SITE_VERIFICATION` | Google Search Console 검증 메타 | 선택 |
-| `VITE_NAVER_SITE_VERIFICATION` | 네이버 서치어드바이저 검증 메타 | 선택 |
+| `VITE_GA4_MEASUREMENT_ID` | GA4 측정 ID | 운영 릴리즈 필수 |
+| `VITE_GOOGLE_SITE_VERIFICATION` | Google Search Console 검증 메타 | 운영 릴리즈 필수 |
+| `VITE_NAVER_SITE_VERIFICATION` | 네이버 서치어드바이저 검증 메타 | 운영 릴리즈 필수 |
 
 ---
 

@@ -6,8 +6,13 @@ interface ImportMetaEnv {
   readonly VITE_CHEER_API_URL?: string;
   readonly VITE_PROXY_TARGET?: string;
   readonly VITE_API_BASE_URL?: string;
+  readonly VITE_SITE_URL?: string;
   readonly VITE_TOSS_CLIENT_KEY?: string;
+  readonly VITE_MATE_PAYMENT_MODE?: 'DIRECT_TRADE' | 'TOSS_TEST';
   readonly VITE_MATE_REQUIRE_SOCIAL_VERIFICATION?: 'true' | 'false';
+  readonly VITE_GA4_MEASUREMENT_ID?: string;
+  readonly VITE_GOOGLE_SITE_VERIFICATION?: string;
+  readonly VITE_NAVER_SITE_VERIFICATION?: string;
   readonly VITE_MOCK_CHATBOT_RATE_LIMIT?: 'true' | 'false' | 'cycling' | '10' | '20' | '40';
 }
 
