@@ -1,11 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Ranking, RankingSnapshot } from '../types/home';
 import { formatDateForAPI } from '../utils/home';
-import api from './axios';
-
-const publicRankingRequestConfig = {
-  skipAuthSessionHandling: true,
-} as const;
+import { publicGet } from './publicClient';
 
 export const RANKING_SNAPSHOT_QUERY_KEY = (dateKey: string, seasonYear?: number) => ['ranking-snapshot', dateKey, seasonYear ?? 'auto'] as const;
 
@@ -69,7 +65,7 @@ const normalizeRankingSnapshot = (
 export const fetchRankingSnapshot = async (
   options: FetchRankingSnapshotOptions = {},
 ): Promise<RankingSnapshot> => {
-  const params: Record<string, unknown> = {};
+  const params: Record<string, string | number> = {};
   if (options.date) {
     params.date = formatDateForAPI(options.date);
   }
@@ -77,9 +73,8 @@ export const fetchRankingSnapshot = async (
     params.seasonYear = options.seasonYear;
   }
 
-  const { data } = await api.get('/kbo/rankings/snapshot', {
+  const data = await publicGet<unknown>('/kbo/rankings/snapshot', {
     ...(Object.keys(params).length > 0 ? { params } : {}),
-    ...publicRankingRequestConfig,
   });
 
   return normalizeRankingSnapshot(data, options);

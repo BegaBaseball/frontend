@@ -1,10 +1,11 @@
 import axios from 'axios';
 import type { GlobalApiErrorDetail } from '../types/error';
 import { parseError } from '../utils/errorUtils';
-import { reportApiError } from '../utils/clientErrorReporter';
+import { hasPersistedAuthBootstrapHint } from '../utils/authBootstrap';
 import { getApiBaseUrl } from './apiBase';
 
 const API_BASE_URL = getApiBaseUrl();
+let clientErrorReporterModulePromise: Promise<typeof import('../utils/clientErrorReporter')> | null = null;
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -17,7 +18,15 @@ const api = axios.create({
 
 let reissueInFlight: Promise<void> | null = null;
 let hasSessionExpired = false;
-const isAuthTraceEnabled = (): boolean => import.meta.env.DEV;
+const getImportMetaEnv = (): Record<string, unknown> | undefined => {
+    try {
+        return (import.meta as ImportMeta & { env?: Record<string, unknown> }).env;
+    } catch {
+        return undefined;
+    }
+};
+
+const isAuthTraceEnabled = (): boolean => Boolean(getImportMetaEnv()?.DEV);
 
 const traceAuthEvent = (label: string) => {
     if (!isAuthTraceEnabled()) {
@@ -26,6 +35,20 @@ const traceAuthEvent = (label: string) => {
 
     const now = performance.now().toFixed(2);
     console.debug(`[auth-axios][${now}ms] ${label}`);
+};
+
+const traceAuthRequestOrigin = (requestUrl?: string) => {
+    if (!requestUrl || !requestUrl.includes('/auth/mypage')) {
+        return;
+    }
+
+    const stack = new Error().stack
+        ?.split('\n')
+        .slice(2, 8)
+        .map((line) => line.trim())
+        .join(' | ');
+
+    traceAuthEvent(`Auth profile request origin url=${requestUrl} stack=${stack ?? 'unavailable'}`);
 };
 
 const skipReissueRequestPaths = [
@@ -101,14 +124,22 @@ const buildGlobalErrorDetail = (error: any): GlobalApiErrorDetail => {
     const parsedError = parseError(error);
     const requestMethod = (error.config?.method || 'get').toUpperCase();
     const endpoint = normalizeRequestPath(error.config?.url);
-    const eventId = reportApiError({
-        message: parsedError.message,
-        statusCode: parsedError.statusCode,
-        responseCode: parsedError.responseCode,
-        method: requestMethod,
-        endpoint,
-        shouldReport: !shouldSkipErrorReporting(error, parsedError.responseCode),
-    });
+    const eventId = createClientErrorEventId();
+    const shouldReport = !shouldSkipErrorReporting(error, parsedError.responseCode);
+
+    if (shouldReport) {
+        void loadClientErrorReporter().then(({ reportApiError }) => {
+            reportApiError({
+                eventId,
+                message: parsedError.message,
+                statusCode: parsedError.statusCode,
+                responseCode: parsedError.responseCode,
+                method: requestMethod,
+                endpoint,
+                shouldReport,
+            });
+        });
+    }
 
     return {
         ...parsedError,
@@ -121,7 +152,64 @@ const buildGlobalErrorDetail = (error: any): GlobalApiErrorDetail => {
     };
 };
 
+const extractErrorStatus = (error: any): number | undefined => {
+    const status = error?.response?.status;
+    return typeof status === 'number' ? status : undefined;
+};
+
+const extractErrorResponseCode = (error: any): string | undefined => {
+    const code = error?.response?.data?.code;
+    return typeof code === 'string' ? code : undefined;
+};
+
+const buildAuthSessionExpiredDetail = (
+    cause: 'reissue_failed' | 'request_unauthorized',
+    requestUrl: string,
+    requestMethod: string,
+    options: {
+        requestStatus?: number;
+        requestCode?: string;
+        reissueError?: any;
+    } = {},
+) => ({
+    cause,
+    requestUrl,
+    requestMethod,
+    requestStatus: options.requestStatus,
+    requestCode: options.requestCode,
+    reissueStatus: extractErrorStatus(options.reissueError),
+    reissueCode: extractErrorResponseCode(options.reissueError),
+    hadBootstrapHint: hasPersistedAuthBootstrapHint(),
+});
+
+const dispatchAuthSessionExpired = (
+    detail: ReturnType<typeof buildAuthSessionExpiredDetail>,
+) => {
+    window.dispatchEvent(new CustomEvent('auth-session-expired', { detail }));
+};
+
+const createClientErrorEventId = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+
+    return `client-error-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+};
+
+const loadClientErrorReporter = () => {
+    if (!clientErrorReporterModulePromise) {
+        clientErrorReporterModulePromise = import('../utils/clientErrorReporter');
+    }
+
+    return clientErrorReporterModulePromise;
+};
+
 // Response Interceptor
+api.interceptors.request.use((config) => {
+    traceAuthRequestOrigin(config.url);
+    return config;
+});
+
 api.interceptors.response.use(
     (response) => {
         const requestUrl = response.config?.url || '';
@@ -158,6 +246,11 @@ api.interceptors.response.use(
         }
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+            if (skipAuthSessionHandling) {
+                traceAuthEvent(`Skip reissue for ${requestUrl} due skipAuthSessionHandling=true`);
+                return Promise.reject(error);
+            }
+
             if (responseCode === 'INVALID_AUTHOR') {
                 console.error('Session invalid due to missing/invalid author user.');
                 const parsedError = buildGlobalErrorDetail(error);
@@ -194,6 +287,12 @@ api.interceptors.response.use(
                 return api(originalRequest);
             } catch (reissueError) {
                 // 재발급 실패 시 (Refresh Token 만료 등)
+                const detail = buildAuthSessionExpiredDetail('reissue_failed', requestUrl, requestMethod, {
+                    requestStatus: responseStatus,
+                    requestCode: responseCode,
+                    reissueError,
+                });
+                console.warn('[auth-axios] reissue failed', detail);
                 if (skipAuthSessionHandling) {
                     traceAuthEvent(`Skip auth-session-expired for ${requestUrl} due skipAuthSessionHandling=true`);
                     return Promise.reject(reissueError);
@@ -202,7 +301,7 @@ api.interceptors.response.use(
                 if (!hasSessionExpired) {
                     hasSessionExpired = true;
                     console.error('Session expired. Please login again.');
-                    window.dispatchEvent(new CustomEvent('auth-session-expired'));
+                    dispatchAuthSessionExpired(detail);
                 }
 
                 return Promise.reject(reissueError);
@@ -225,8 +324,13 @@ api.interceptors.response.use(
             // 재발급 후에도 401이 남는 경우: 토큰은 만료되었거나 계정이 유효하지 않아 세션이 복구 불가
             if (!hasSessionExpired) {
                 hasSessionExpired = true;
+                const detail = buildAuthSessionExpiredDetail('request_unauthorized', requestUrl, requestMethod, {
+                    requestStatus: responseStatus,
+                    requestCode: responseCode,
+                });
+                console.warn('[auth-axios] session invalid after retry', detail);
                 console.error('Session invalid. Please login again.');
-                window.dispatchEvent(new CustomEvent('auth-session-expired'));
+                dispatchAuthSessionExpired(detail);
                 traceAuthEvent(`auth-session-expired dispatched for ${requestUrl}`);
             }
         }

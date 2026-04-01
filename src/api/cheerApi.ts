@@ -233,12 +233,6 @@ export const searchPosts = async (params: SearchPostsParams): Promise<PageRespon
     return transformPostPage(response.data);
 };
 
-// 특정 사용자 게시글 조회 (핸들 기준)
-export async function fetchUserPostsByHandle(handle: string, page = 0, size = 20): Promise<PageResponse<CheerPost>> {
-    const response = await api.get(`/cheer/user/${handle}/posts?page=${page}&size=${size}`);
-    return transformPostPage(response.data);
-}
-
 /** Backend response DTOs (before transformation) */
 interface PostDTO {
     id: number;

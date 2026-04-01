@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import type { CheerPost } from './cheerApi';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import { formatTimeAgo } from '../utils/time';
-import { fetchRankingSnapshot, getRankingSnapshotQueryOptions } from './rankings';
 import {
     FeaturedMateCard,
     Game,
@@ -13,7 +12,7 @@ import {
     LeagueStartDates,
 } from '../types/home';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
-import api from './axios';
+import { publicGet } from './publicClient';
 
 export type HomeLoadSource = 'bootstrap' | 'legacy-fallback';
 
@@ -32,10 +31,6 @@ export interface HomeCoreLoadSuccessState {
     games: boolean;
     scheduledGames: boolean;
 }
-
-const publicHomeRequestConfig = {
-    skipAuthSessionHandling: true,
-} as const;
 
 interface RawHotCheerPost {
     id: number;
@@ -142,9 +137,8 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
     const apiDate = formatDateForAPI(date);
 
     try {
-        const { data } = await api.get<Game[]>('/kbo/schedule', {
+        const data = await publicGet<Game[]>('/kbo/schedule', {
             params: { date: apiDate },
-            ...publicHomeRequestConfig,
         });
         return data;
 
@@ -158,7 +152,7 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
  */
 export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
     try {
-        const { data } = await api.get<LeagueStartDates>('/kbo/league-start-dates', publicHomeRequestConfig);
+        const data = await publicGet<LeagueStartDates>('/kbo/league-start-dates');
         cacheLeagueStartDates(data);
         return data;
 
@@ -169,9 +163,8 @@ export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
 
 export const fetchHomeBootstrap = async (date: Date): Promise<HomeBootstrapResponse> => {
     const apiDate = formatDateForAPI(date);
-    const { data } = await api.get('/home/bootstrap', {
+    const data = await publicGet<unknown>('/home/bootstrap', {
         params: { date: apiDate },
-        ...publicHomeRequestConfig,
     });
 
     if (!isBootstrapResponse(data)) {
@@ -194,9 +187,8 @@ export const getHomeBootstrapQueryOptions = (date: Date) => {
 
 export const fetchHomeWidgets = async (date: Date, seasonYear?: number): Promise<HomeWidgetsResponse> => {
     const apiDate = formatDateForAPI(date);
-    const { data } = await api.get('/home/widgets', {
+    const data = await publicGet<unknown>('/home/widgets', {
         params: seasonYear == null ? { date: apiDate } : { date: apiDate, seasonYear },
-        ...publicHomeRequestConfig,
     });
 
     if (!isWidgetsResponse(data)) {
@@ -219,16 +211,6 @@ export const getHomeWidgetsQueryOptions = (date: Date, seasonYear?: number) => {
         gcTime: 30 * 60 * 1000,
     } as const;
 };
-
-export const fetchHomeRankingSnapshot = async (
-    date: Date,
-    seasonYear: number,
-): Promise<HomeRankingSnapshot> => fetchRankingSnapshot({ date, seasonYear });
-
-export const getHomeRankingSnapshotQueryOptions = (
-    date: Date,
-    seasonYear: number,
-) => getRankingSnapshotQueryOptions({ date, seasonYear });
 
 // ✅ React Query 훅 추가
 export const useLeagueStartDates = () => {

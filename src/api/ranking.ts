@@ -1,4 +1,3 @@
-// api/ranking.ts (기존 파일에 추가/업데이트)
 import api from './axios';
 import { SeasonResponse, SavedPredictionResponse, SaveRankingRequest } from '../types/ranking';
 import { AxiosError } from 'axios';
@@ -43,16 +42,5 @@ export const saveRankingPrediction = async (data: SaveRankingRequest): Promise<S
     skipGlobalErrorHandler: true,
     skipAuthSessionHandling: true,
   });
-  return response.data;
-};
-
-/**
- * 공유된 순위 예측 조회
- */
-export const fetchSharedPrediction = async (
-  shareId: string,
-  seasonYear: string
-): Promise<SavedPredictionResponse> => {
-  const response = await api.get(`/predictions/ranking/share/${shareId}/${seasonYear}`);
   return response.data;
 };
