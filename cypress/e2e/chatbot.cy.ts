@@ -496,7 +496,7 @@ const visitLoggedInShell = (allowSessionExpiry = false) => {
     cy.setCookie('Authorization', authToken);
     cy.wait('@getMeAuthenticated');
     cy.contains('직관 기록', { timeout: 20000 }).should('be.visible');
-    cy.get('[role="alertdialog"]').should('not.exist');
+    cy.get('[role="alertdialog"], [role="dialog"]').should('not.exist');
 };
 
 const typeAndSend = (message: string, expectsNewSession = false) => {
@@ -512,6 +512,8 @@ const typeAndSend = (message: string, expectsNewSession = false) => {
 const selectVisibleText = (selector: string, value: string) => {
     cy.get(selector).filter(':visible').contains(value).click({ force: true });
 };
+
+const visibleSessionDialog = () => cy.get('[role="alertdialog"], [role="dialog"]').filter(':visible').last();
 
 const openConversationTab = () => {
     cy.getBySel('chatbot-tab-conversation').click();
@@ -547,7 +549,7 @@ describe('AI Chatbot', () => {
                 win.dispatchEvent(new Event('auth-session-expired'));
             });
 
-            cy.get('[role="alertdialog"]', { timeout: 10000 }).should('exist');
+            visibleSessionDialog().should('exist');
             cy.contains('로그인 필요', { timeout: 10000 }).should('exist');
             cy.contains('로그인이 필요한 서비스입니다.', { timeout: 10000 }).should('exist');
             cy.contains('button', '로그인하러 가기', { timeout: 10000 }).click({ force: true });

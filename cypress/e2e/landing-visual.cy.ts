@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { getHomeAuthRequestTraces, installHomeAuthRequestTrace } from '../support/homePage';
+
 type ViewportCase = {
   label: 'mobile' | 'tablet' | 'desktop';
   width: number;
@@ -39,6 +41,7 @@ const visitLanding = (options?: { reducedMotion?: boolean }) => {
     onBeforeLoad(win) {
       win.localStorage.clear();
       win.sessionStorage.clear();
+      installHomeAuthRequestTrace(win);
 
       if (!options?.reducedMotion) {
         return;
@@ -62,6 +65,8 @@ const visitLanding = (options?: { reducedMotion?: boolean }) => {
 
   cy.getBySel('landing-page').should('be.visible');
   cy.contains('야구를 더').should('be.visible');
+  cy.get('@getSessionProfile.all').should('have.length', 0);
+  getHomeAuthRequestTraces().should('deep.equal', []);
 };
 
 const assertNoHorizontalOverflow = () => {

@@ -1,5 +1,13 @@
 /// <reference types="cypress" />
 
+import {
+    getPredictionAuthRequestTraces,
+    installPredictionAuthenticatedSessionIntercept,
+    installPredictionGuestSessionIntercept,
+    visitPredictionPage,
+    visitPredictionPublicPage,
+} from '../support/predictionPage';
+
 const COACH_BRIEFING_SESSION_STORAGE_KEY = 'prediction:coachBriefing:v2';
 const COACH_BRIEFING_LOCAL_STORAGE_KEY = 'prediction:coachBriefing:local:v2';
 
@@ -84,6 +92,8 @@ describe('Prediction Lazy Load', () => {
     };
 
     const installCommonPredictionIntercepts = () => {
+        installPredictionAuthenticatedSessionIntercept('getPredictionSessionLazy');
+
         cy.intercept('GET', '**/api/matches/bounds*', {
             statusCode: 200,
             body: matchBoundsPayload,
@@ -167,50 +177,16 @@ describe('Prediction Lazy Load', () => {
     };
 
     const openPredictionPage = (path = '/prediction', waitForMatchDayAlias = 'getMatchDay') => {
-        const fakeToken = 'prediction-lazy-load-token';
-        const authState = {
-            state: {
-                user: {
-                    id: 123,
-                    email: 'test@example.com',
-                    name: 'TestUser',
-                    handle: 'testuser',
-                    favoriteTeam: 'HH',
-                    role: 'ROLE_USER',
-                    hasPassword: true,
-                    profileImageUrl: null,
-                },
-                isLoggedIn: true,
-                isAdmin: false,
-            },
-            version: 0,
-        };
-
-        const seedAuthState = (win: Window) => {
-            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            win.localStorage.setItem('accessToken', fakeToken);
-            win.localStorage.setItem('bega_has_visited', 'true');
-            win.localStorage.setItem('bega_dont_show_guide', 'true');
-        };
-
-        cy.visit(path, {
-            onBeforeLoad(win) {
-                seedAuthState(win);
-                win.addEventListener('auth-session-expired', (event) => {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                }, true);
-            },
+        visitPredictionPage({
+            path,
+            token: 'prediction-lazy-load-token',
         });
-        cy.window().then((win) => {
-            seedAuthState(win);
-        });
-        cy.setCookie('Authorization', fakeToken);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         if (waitForMatchDayAlias) {
             cy.wait(`@${waitForMatchDayAlias}`);
         }
         cy.get('@getUserVoteLazy.all').should('have.length', 0);
+        getPredictionAuthRequestTraces().should('deep.equal', []);
     };
 
     const installMatchDayResponse = (currentDate: string, nextDate: string, gameId = '20260203HHSS0') => {
@@ -316,7 +292,6 @@ describe('Prediction Lazy Load', () => {
             win.localStorage.removeItem('prediction:run-session');
             win.localStorage.removeItem(COACH_BRIEFING_LOCAL_STORAGE_KEY);
         });
-        cy.login('user');
         cy.mockAPI({ skipRankings: true });
         installCommonPredictionIntercepts();
         const now = new Date('2026-02-03T12:00:00').getTime();
@@ -984,19 +959,8 @@ describe('Prediction Public Access', () => {
     };
 
     const openPredictionPageAsGuest = () => {
-        cy.visit('/prediction', {
-            onBeforeLoad(win) {
-                win.sessionStorage.clear();
-                win.localStorage.removeItem('auth-storage');
-                win.localStorage.removeItem('accessToken');
-                win.localStorage.removeItem('auth-bootstrap-hint');
-                win.localStorage.setItem('bega_has_visited', 'true');
-                win.localStorage.setItem('bega_dont_show_guide', 'true');
-                win.addEventListener('auth-session-expired', (event) => {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                }, true);
-            },
+        visitPredictionPublicPage({
+            path: '/prediction',
         });
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
     };
@@ -1008,12 +972,7 @@ describe('Prediction Public Access', () => {
         cy.mockAPI({ skipRankings: true });
         installGuestPredictionIntercepts();
         cy.clock(new Date('2026-02-03T12:00:00').getTime(), ['Date']);
-        cy.intercept('GET', '**/auth/mypage*', {
-            statusCode: 401,
-            body: {
-                message: 'Unauthorized',
-            },
-        }).as('getGuestSession');
+        installPredictionGuestSessionIntercept('getGuestSession');
     });
 
     it('loads public match day data for guests without requesting my-votes', () => {
@@ -1080,7 +1039,16 @@ describe('Prediction Public Access', () => {
         cy.wrap(null).then(() => {
             expect(requestedDates).to.have.members([today, previousDate, nextDate]);
             expect(myVotesCallCount).to.equal(0);
+            cy.get('@getGuestSession.all').then((calls) => {
+                expect(calls.length).to.be.at.most(1);
+            });
             cy.get('@getGuestUserVoteLazy.all').should('have.length', 0);
+        });
+        getPredictionAuthRequestTraces().then((traces) => {
+            expect(traces.length).to.be.at.most(1);
+            traces.forEach((trace) => {
+                expect(trace.url).to.include('/api/auth/mypage');
+            });
         });
     });
 });

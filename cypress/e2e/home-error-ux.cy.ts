@@ -1,17 +1,9 @@
 /// <reference types="cypress" />
 
+import { getHomeAuthRequestTraces, visitHomePage } from '../support/homePage';
+
 describe('Home error UX', () => {
   const fixedNow = new Date('2026-03-16T12:00:00').getTime();
-
-  const seedAnonymousHomeState = (win: Window) => {
-    win.localStorage.setItem('auth-storage', JSON.stringify({
-      state: {},
-      version: 0,
-    }));
-    win.localStorage.removeItem('auth-bootstrap-hint');
-    win.localStorage.setItem('bega_has_visited', 'true');
-    win.localStorage.setItem('bega_dont_show_guide', 'true');
-  };
 
   const buildBootstrapResponse = (
     date: string,
@@ -71,8 +63,10 @@ describe('Home error UX', () => {
       body: buildWidgetsResponse(),
     }).as('getHomeWidgets');
 
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.wait('@getHomeBootstrap');
@@ -82,18 +76,85 @@ describe('Home error UX', () => {
     cy.get('@getMeAnonymous.all').should('have.length', 0);
     cy.get('@getHomeBootstrap.all').should('have.length', 1);
     cy.get('@getHomeWidgets.all').should('have.length', 1);
+    getHomeAuthRequestTraces().should('deep.equal', []);
   });
 
   it('does not request mypage for anonymous root landing entry', () => {
-    cy.visit('/', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.contains('야구를 더 스마트하게', { timeout: 15000 }).should('be.visible');
     cy.get('@getMeAnonymous.all').should('have.length', 0);
+    getHomeAuthRequestTraces().should('deep.equal', []);
   });
 
-  it('falls back to legacy home data when bootstrap returns 500 without looping', () => {
+  it('allows a single deferred mypage attempt on home when auth bootstrap hint is fresh', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+      persistedAuthHint: true,
+      authBootstrapMeta: {
+        lastSuccessAt: fixedNow - 30_000,
+        lastFailureAt: null,
+      },
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+
+    cy.contains('KBO LEAGUE', { timeout: 15000 }).should('be.visible');
+    cy.get('@getMeAnonymous.all').its('length').should('be.gte', 1);
+    getHomeAuthRequestTraces().should((traces) => {
+      expect(traces).to.have.length(1);
+      expect(traces[0]?.url).to.include('/api/auth/mypage');
+    });
+  });
+
+  it('suppresses deferred mypage retry on home during recent failure cooldown', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+      persistedAuthHint: true,
+      authBootstrapMeta: {
+        lastSuccessAt: null,
+        lastFailureAt: fixedNow - 30_000,
+      },
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+
+    cy.contains('KBO LEAGUE', { timeout: 15000 }).should('be.visible');
+    cy.get('@getMeAnonymous.all').should('have.length', 0);
+    getHomeAuthRequestTraces().should('deep.equal', []);
+  });
+
+  it('shows connection fallback when bootstrap returns 500 without looping', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 500,
       body: { message: 'forced-bootstrap-failure' },
@@ -133,22 +194,29 @@ describe('Home error UX', () => {
       body: [],
     }).as('legacyRankingsShouldNotRun');
 
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.wait('@getHomeBootstrapFailure');
-    cy.wait('@getLegacyLeagueDates');
-    cy.wait('@getLegacyNavigation');
-    cy.contains('경기가 없는 날입니다.', { timeout: 15000 }).should('be.visible');
+    cy.wait('@getHomeWidgets');
+    cy.contains('서버 연결에 문제가 있습니다.', { timeout: 15000 }).should('be.visible');
+    cy.contains('경기 일정을 불러오지 못했습니다', { timeout: 15000 }).should('be.visible');
 
     cy.wait(300);
-    cy.get('@getHomeBootstrapFailure.all').should('have.length', 1);
+    cy.get('@getHomeBootstrapFailure.all').then((requests) => {
+      expect(requests.length).to.be.within(1, 2);
+    });
+    cy.get('@getLegacyLeagueDates.all').should('have.length', 0);
+    cy.get('@getLegacyNavigation.all').should('have.length', 0);
+    cy.get('@getLegacySchedule.all').should('have.length', 0);
     cy.get('@legacyRankingsShouldNotRun.all').should('have.length', 0);
     cy.contains('KBO LEAGUE').should('be.visible');
   });
 
-  it('starts legacy fallback when bootstrap is delayed past the threshold', () => {
+  it('shows timeout fallback before delayed bootstrap recovers', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       delay: 4500,
       statusCode: 200,
@@ -189,16 +257,21 @@ describe('Home error UX', () => {
       body: [],
     }).as('legacyRankingsShouldNotRun');
 
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
-    cy.wait('@getLegacyLeagueDates');
-    cy.wait('@getLegacyNavigation');
-    cy.contains('경기가 없는 날입니다.', { timeout: 15000 }).should('be.visible');
-    cy.contains('서버 연결에 문제가 있습니다.').should('not.exist');
+    cy.wait('@getHomeWidgets');
+    cy.contains('서버 연결에 문제가 있습니다.', { timeout: 4500 }).should('be.visible');
+    cy.contains('경기가 없는 날입니다.').should('be.visible');
+    cy.get('@getLegacyLeagueDates.all').should('have.length', 0);
+    cy.get('@getLegacyNavigation.all').should('have.length', 0);
+    cy.get('@getLegacyScheduleDelayed.all').should('have.length', 0);
     cy.get('@legacyRankingsShouldNotRun.all').should('have.length', 0);
     cy.wait('@getHomeBootstrapDelayed');
+    cy.contains('서버 연결에 문제가 있습니다.').should('not.exist');
     cy.get('@getHomeBootstrapDelayed.all').should('have.length', 1);
   });
 
@@ -213,8 +286,10 @@ describe('Home error UX', () => {
       body: { message: 'forced-widgets-failure' },
     }).as('getHomeWidgetsFailure');
 
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.wait('@getHomeBootstrap');
@@ -253,8 +328,10 @@ describe('Home error UX', () => {
       body: [],
     }).as('legacyRankingsShouldNotRun');
 
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.wait('@getHomeBootstrap');
@@ -301,8 +378,10 @@ describe('Home error UX', () => {
       });
     }).as('getHomeWidgets');
 
-    cy.visit('/home', {
-      onBeforeLoad: seedAnonymousHomeState,
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
     });
 
     cy.wait('@getHomeBootstrap');
