@@ -1,198 +1,27 @@
 import type { QueryClient } from '@tanstack/react-query';
 
 import type { PaginatedResponse } from '../utils/api';
-import type { Application, CheckIn, MatePartySeed, Party, PartyStatus } from '../types/mate';
+import type { Application, CheckIn, MatePartySeed, Party } from '../types/mate';
 import { normalizeMatePartySeed } from '../utils/mate';
-import { MATE_KEYS, type MatePartyListKeyParams } from './mateQueryKeys';
-
-type InvalidateMatePartyQueriesOptions = {
-  includeParty?: boolean;
-  includeApplications?: boolean;
-  includeMyApplications?: boolean;
-  includeCheckIns?: boolean;
-  includeMessages?: boolean;
-  includeReviews?: boolean;
-  includeCollections?: boolean;
-  userId?: number | null;
-};
-
-type MatePartyCollectionsUpdateOptions = {
-  includeParty?: boolean;
-  includePartyLists?: boolean;
-  includeMyParties?: boolean;
-};
-
-type MatePartyCollectionsRemoveOptions = {
-  includePartyLists?: boolean;
-  includeMyParties?: boolean;
-};
-
-const HIDDEN_PUBLIC_PARTY_STATUSES = new Set<PartyStatus>(['CHECKED_IN', 'COMPLETED']);
+import { MATE_KEYS } from './mateQueryKeys';
+import type {
+  InvalidateMatePartyQueriesOptions,
+  MatePartyApplicationUpdater,
+  MatePartyApplicationsUpdater,
+  MatePartyCollectionsRemoveOptions,
+  MatePartyCollectionsUpdateOptions,
+  MatePartyUpdater,
+} from './mateQueryCacheContracts';
+import {
+  appendMatePartyCheckIns,
+  extractMatePartyListParams,
+  updateMatePartyApplicationsArray,
+  updateMatePartyArray,
+  updateMatePartyListResponse,
+} from './internal/mateQueryCacheUtils';
 
 const settleMateQueryInvalidations = (tasks: Array<Promise<unknown>>) =>
   Promise.allSettled(tasks);
-
-const normalizeText = (value?: string | null) => value?.trim().toLowerCase() || '';
-
-const matchesPartyListParams = (party: Party, params: MatePartyListKeyParams): boolean => {
-  const normalizedTeamId = normalizeText(params.teamId);
-  if (normalizedTeamId && normalizedTeamId !== 'all' && normalizeText(party.teamId) !== normalizedTeamId) {
-    return false;
-  }
-
-  const normalizedStadium = normalizeText(params.stadium);
-  if (normalizedStadium && normalizedStadium !== 'all' && !normalizeText(party.stadium).includes(normalizedStadium)) {
-    return false;
-  }
-
-  const normalizedGameDate = normalizeText(params.gameDate);
-  if (normalizedGameDate && normalizedGameDate !== 'all' && normalizeText(party.gameDate) !== normalizedGameDate) {
-    return false;
-  }
-
-  const normalizedStatus = params.status;
-  if (normalizedStatus && normalizedStatus !== 'all' && party.status !== normalizedStatus) {
-    return false;
-  }
-
-  if (HIDDEN_PUBLIC_PARTY_STATUSES.has(party.status)) {
-    return false;
-  }
-
-  const normalizedSearchQuery = normalizeText(params.searchQuery);
-  if (!normalizedSearchQuery || normalizedSearchQuery === 'all') {
-    return true;
-  }
-
-  const haystack = [
-    party.stadium,
-    party.homeTeam,
-    party.awayTeam,
-    party.section,
-    party.description,
-    party.hostName,
-    party.hostHandle,
-  ]
-    .map((value) => normalizeText(value))
-    .join(' ');
-
-  return normalizedSearchQuery
-    .split(/\s+/)
-    .filter(Boolean)
-    .every((token) => haystack.includes(token));
-};
-
-const updatePartyArray = (
-  parties: Party[],
-  partyId: number | string,
-  updater: (party: Party) => Party | null,
-): Party[] => {
-  let changed = false;
-  const nextParties: Party[] = [];
-
-  parties.forEach((party) => {
-    if (party.id !== partyId) {
-      nextParties.push(party);
-      return;
-    }
-
-    const nextParty = updater(party);
-    if (nextParty) {
-      nextParties.push(nextParty);
-    }
-    changed = true;
-  });
-
-  return changed ? nextParties : parties;
-};
-
-const recalculateTotalPages = (totalElements: number, size: number, fallback: number) => {
-  if (size <= 0) {
-    return fallback;
-  }
-
-  if (totalElements <= 0) {
-    return 0;
-  }
-
-  return Math.ceil(totalElements / size);
-};
-
-const updatePartyListResponse = (
-  response: PaginatedResponse<Party>,
-  params: MatePartyListKeyParams,
-  partyId: number | string,
-  updater: (party: Party) => Party | null,
-): PaginatedResponse<Party> => {
-  let changed = false;
-  const nextContent: Party[] = [];
-
-  response.content.forEach((party) => {
-    if (party.id !== partyId) {
-      nextContent.push(party);
-      return;
-    }
-
-    const nextParty = updater(party);
-    if (nextParty && matchesPartyListParams(nextParty, params)) {
-      nextContent.push(nextParty);
-    }
-    changed = true;
-  });
-
-  if (!changed) {
-    return response;
-  }
-
-  const nextTotalElements = Math.max(0, response.totalElements - (response.content.length - nextContent.length));
-
-  return {
-    ...response,
-    content: nextContent,
-    totalElements: nextTotalElements,
-    totalPages: recalculateTotalPages(nextTotalElements, response.size, response.totalPages),
-  };
-};
-
-const updateApplicationArray = (
-  applications: Application[],
-  applicationId: number | string,
-  updater: (application: Application) => Application | null,
-): Application[] => {
-  let changed = false;
-  const nextApplications: Application[] = [];
-
-  applications.forEach((application) => {
-    if (application.id !== applicationId) {
-      nextApplications.push(application);
-      return;
-    }
-
-    const nextApplication = updater(application);
-    if (nextApplication) {
-      nextApplications.push(nextApplication);
-    }
-    changed = true;
-  });
-
-  return changed ? nextApplications : applications;
-};
-
-const extractPartyListParams = (queryKey: readonly unknown[]): MatePartyListKeyParams | null => {
-  if (
-    queryKey.length !== 4 ||
-    queryKey[0] !== 'mate' ||
-    queryKey[1] !== 'parties' ||
-    queryKey[2] !== 'list'
-  ) {
-    return null;
-  }
-
-  const params = queryKey[3];
-  return typeof params === 'object' && params !== null
-    ? params as MatePartyListKeyParams
-    : null;
-};
 
 export const invalidateMateCollectionQueries = (
   queryClient: QueryClient,
@@ -265,7 +94,7 @@ export const setMatePartyDetailQueryData = (
 export const updateMatePartyCollectionQueryData = (
   queryClient: QueryClient,
   partyId: number | string,
-  updater: (party: Party) => Party | null,
+  updater: MatePartyUpdater,
   options: MatePartyCollectionsUpdateOptions = {},
 ): void => {
   const {
@@ -289,14 +118,14 @@ export const updateMatePartyCollectionQueryData = (
           return;
         }
 
-        const params = extractPartyListParams(queryKey);
+        const params = extractMatePartyListParams(queryKey);
         if (!params) {
           return;
         }
 
         queryClient.setQueryData<PaginatedResponse<Party>>(
           queryKey,
-          (response) => (response ? updatePartyListResponse(response, params, partyId, updater) : response),
+          (response) => (response ? updateMatePartyListResponse(response, params, partyId, updater) : response),
         );
       });
   }
@@ -311,7 +140,7 @@ export const updateMatePartyCollectionQueryData = (
 
         queryClient.setQueryData<Party[]>(
           queryKey,
-          (parties) => (parties ? updatePartyArray(parties, partyId, updater) : parties),
+          (parties) => (parties ? updateMatePartyArray(parties, partyId, updater) : parties),
         );
       });
   }
@@ -344,7 +173,7 @@ export const removeMatePartyFromCollections = (
 export const updateMatePartyApplicationsQueryData = (
   queryClient: QueryClient,
   partyId: number | string,
-  updater: (applications: Application[]) => Application[],
+  updater: MatePartyApplicationsUpdater,
 ): void => {
   queryClient.setQueryData<Application[] | undefined>(
     MATE_KEYS.partyApplications(partyId),
@@ -356,10 +185,10 @@ export const updateMatePartyApplicationQueryData = (
   queryClient: QueryClient,
   partyId: number | string,
   applicationId: number | string,
-  updater: (application: Application) => Application | null,
+  updater: MatePartyApplicationUpdater,
 ): void => {
   updateMatePartyApplicationsQueryData(queryClient, partyId, (applications) =>
-    updateApplicationArray(applications, applicationId, updater),
+    updateMatePartyApplicationsArray(applications, applicationId, updater),
   );
 };
 
@@ -384,14 +213,7 @@ export const appendMatePartyCheckInQueryData = (
     MATE_KEYS.partyCheckIns(partyId),
     (current) => {
       const existing = current ?? [];
-      if (existing.some((item) => (
-        item.id === checkIn.id ||
-        (item.userHandle && checkIn.userHandle && item.userHandle === checkIn.userHandle)
-      ))) {
-        return existing;
-      }
-
-      return [...existing, checkIn];
+      return appendMatePartyCheckIns(existing, checkIn);
     },
   );
 
