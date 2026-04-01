@@ -1,33 +1,20 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { RotateCcw, Award, X, GripVertical, LogIn } from 'lucide-react';
+import { RotateCcw, LogIn } from 'lucide-react';
 import TeamLogo from './TeamLogo';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { DndProvider } from 'react-dnd';
 import { OptimizedImage } from './common/OptimizedImage';
 import LoadingSpinner from './LoadingSpinner';
+import PlainDialog from './ui/plain-dialog';
+import RankingItem from './ranking/RankingItem';
 import firstPlaceImage from '../assets/f552d9266ac817e0c86b657dead0069395c6da11.png';
 import { useRankingPrediction } from '../hooks/useRankingPrediction';
-import { useDrag, useDrop } from 'react-dnd';
-import { Team } from '../store/predictionStore';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
-
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from './ui/alert-dialog';
 
 export default function RankingPrediction() {
   const navigate = useNavigate();
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const {
     showSaveDialog,
     setShowSaveDialog,
@@ -96,158 +83,43 @@ export default function RankingPrediction() {
     );
   }
 
-  const RankingItem = ({ team, index }: { team: Team | null; index: number }) => {
-    const ref = useRef<HTMLDivElement>(null);
-
-    const [{ isDragging }, drag] = useDrag({
-      type: 'TEAM',
-      item: { index },
-      canDrag: team !== null && !alreadySaved,
-      collect: (monitor) => ({
-        isDragging: monitor.isDragging(),
-      }),
-    });
-
-    const [, drop] = useDrop({
-      accept: 'TEAM',
-      hover: (item: { index: number }) => {
-        if (!ref.current || alreadySaved) return;
-        const dragIndex = item.index;
-        const hoverIndex = index;
-        if (dragIndex === hoverIndex) return;
-
-        moveTeam(dragIndex, hoverIndex);
-        item.index = hoverIndex;
-      },
-    });
-
-    // Keyboard handler for accessibility
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-      if (alreadySaved || !team) return;
-
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'ArrowUp' && index > 0) {
-          e.preventDefault();
-          moveTeam(index, index - 1);
-          // Focus the element at new position after state update
-          setTimeout(() => {
-            const items = document.querySelectorAll('[data-ranking-item]');
-            (items[index - 1] as HTMLElement)?.focus();
-          }, 0);
-        } else if (e.key === 'ArrowDown' && index < 9) {
-          e.preventDefault();
-          moveTeam(index, index + 1);
-          setTimeout(() => {
-            const items = document.querySelectorAll('[data-ranking-item]');
-            (items[index + 1] as HTMLElement)?.focus();
-          }, 0);
-        }
-      }
-    };
-
-    drag(drop(ref));
-
-    // 가을야구권(1~5위)과 하위권(6~10위) 색상 구분
-    const isPostSeasonZone = index < 5;
-    const rankBadgeClassName = isPostSeasonZone ? 'bg-primary' : 'bg-gray-400';
-
-    return (
-      <>
-        {/* 5위와 6위 사이 포스트시즌 커트라인 표시 */}
-        {index === 5 && (
-          <div className="flex items-center gap-4 my-4 opacity-80">
-            <div className="h-px flex-1 bg-red-400/50 dark:bg-red-500/50 border-t border-dashed border-red-500"></div>
-            <span className="text-xs font-bold text-red-500 px-3 py-1 bg-red-50 dark:bg-red-900/20 rounded-full border border-red-200 dark:border-red-800">
-              가을야구 진출 (PS)
-            </span>
-            <div className="h-px flex-1 bg-red-400/50 dark:bg-red-500/50 border-t border-dashed border-red-500"></div>
-          </div>
-        )}
-
-        <div
-          ref={ref}
-          data-ranking-item
-          tabIndex={team && !alreadySaved ? 0 : -1}
-          onKeyDown={handleKeyDown}
-          aria-label={team
-            ? `${index + 1}위: ${team.name}${!alreadySaved ? '. Ctrl+화살표로 순위 변경' : ''}`
-            : `${index + 1}위: 팀 미선택`
-          }
-          className={`border rounded-xl p-3 transition-all duration-200 ${team
-            ? `shadow-sm ${!alreadySaved && 'cursor-move hover:scale-[1.01] hover:shadow-md'} ${isPostSeasonZone
-              ? 'bg-white dark:bg-card border-primary/30 dark:border-primary/50'
-              : 'bg-gray-50/80 dark:bg-card border-gray-200 dark:border-border'
-            }`
-            : 'border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-card'
-            } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'} focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${rankBadgeClassName} font-black text-lg ${isPostSeasonZone ? 'border-2 border-primary/20 dark:border-primary/40' : ''}`}
-            >
-              {index + 1}
-            </div>
-
-            {team ? (
-              <div className="flex items-center gap-3 flex-1">
-                {!alreadySaved && <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />}
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-card border border-gray-100 dark:border-border flex-shrink-0">
-                  <TeamLogo team={team.shortName} size={32} />
-                </div>
-                <span style={{ fontWeight: 700 }} className={`flex-1 ${isPostSeasonZone ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-200'}`}>
-                  {team.name}
-                </span>
-                {!alreadySaved && (
-                  <Button
-                    onClick={() => handleRemoveTeam(index)}
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`${team.name} 제거`}
-                    className="h-10 w-10 p-0 hover:bg-red-50 dark:hover:bg-red-900/30 group"
-                  >
-                    <X className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" />
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="flex-1 text-center text-gray-400 dark:text-gray-200 text-sm">
-                팀을 선택하세요
-              </div>
-            )}
-          </div>
-        </div>
-      </>
-    );
-  };
-
   return (
-    <DndProvider backend={HTML5Backend}>
-      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <AlertDialogContent className="dark:bg-card dark:border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-primary">순위 확정</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 dark:text-gray-300">
-              한번 저장하면 순위 변경이 불가능합니다.<br />
-              이대로 순위를 확정하시겠습니까?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
+    <>
+      <PlainDialog
+        open={showSaveDialog}
+        onClose={() => setShowSaveDialog(false)}
+        title={<span className="text-primary">순위 확정</span>}
+        description={(
+          <>
+            한번 저장하면 순위 변경이 불가능합니다.<br />
+            이대로 순위를 확정하시겠습니까?
+          </>
+        )}
+        className="dark:bg-card dark:border-border"
+        footer={(
+          <>
+            <Button
+              type="button"
+              variant="outline"
               disabled={isSaving}
+              onClick={() => setShowSaveDialog(false)}
               className="text-gray-700 dark:text-gray-100 border border-border/60 dark:border-border/80 bg-background dark:bg-card hover:bg-gray-100 dark:hover:bg-primary/10"
             >
               취소
-            </AlertDialogCancel>
-            <AlertDialogAction
+            </Button>
+            <Button
+              type="button"
               onClick={confirmSave}
               disabled={isSaving}
               className="text-white bg-primary-dark hover:bg-primary"
             >
               {isSaving ? '저장 중...' : '확인'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </>
+        )}
+      >
+        <div />
+      </PlainDialog>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Rankings Area - 왼쪽 */}
@@ -268,7 +140,16 @@ export default function RankingPrediction() {
 
           <div className="space-y-2">
             {rankings.map((team, index) => (
-              <RankingItem key={index} team={team} index={index} />
+              <RankingItem
+                key={index}
+                team={team}
+                index={index}
+                alreadySaved={alreadySaved}
+                onRemove={handleRemoveTeam}
+                onMove={moveTeam}
+                draggedIndex={draggedIndex}
+                onDragIndexChange={setDraggedIndex}
+              />
             ))}
           </div>
         </div>
@@ -299,9 +180,9 @@ export default function RankingPrediction() {
                     key={team.id}
                     onClick={() => handleTeamClick(team)}
                     disabled={alreadySaved}
-                  className={`w-full p-2 transition-colors text-left border-b border-gray-100 dark:border-border/70 last:border-b-0 ${!alreadySaved && 'hover:bg-gray-50 dark:hover:bg-primary/10'
-                    } ${alreadySaved && 'opacity-50 cursor-not-allowed'}`}
-                >
+                    className={`w-full p-2 transition-colors text-left border-b border-gray-100 dark:border-border/70 last:border-b-0 ${!alreadySaved && 'hover:bg-gray-50 dark:hover:bg-primary/10'
+                      } ${alreadySaved && 'opacity-50 cursor-not-allowed'}`}
+                  >
                     <div className="flex items-center gap-2.5">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-card border border-gray-100 dark:border-border flex-shrink-0">
                         <TeamLogo team={team.shortName} size={32} />
@@ -368,6 +249,6 @@ export default function RankingPrediction() {
           </div>
         </div>
       </div>
-    </DndProvider>
+    </>
   );
 }

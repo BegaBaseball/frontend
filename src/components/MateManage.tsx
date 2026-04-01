@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -27,25 +27,22 @@ import LoadingSpinner from './LoadingSpinner';
 import TeamLogo from './TeamLogo';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { Alert, AlertDescription } from './ui/alert';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Textarea } from './ui/textarea';
 import { normalizeMateParty } from '../api/mate';
-import { getMatePartyApplicationsQueryOptions } from '../hooks/mateQueryOptions';
 import {
+  getMatePartyApplicationsQueryOptions,
   removeMatePartyFromCollections,
   removeMatePartyQueries,
   syncMatePartyQueryData,
   updateMatePartyApplicationQueryData,
   updateMatePartyCollectionQueryData,
-} from '../hooks/mateQueryCache';
-import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
+  useMatePartyFromRoute,
+} from '../hooks/mateManageRoute';
 import { useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
-import { BadgeType } from '../types/mate';
+import { Application, BadgeType } from '../types/mate';
 import { cn } from '../lib/utils';
 import { api, getApiErrorStatus } from '../utils/api';
 import { getApiErrorMessage } from '../utils/errorUtils';
@@ -68,6 +65,34 @@ type SummaryItemProps = {
   label: string;
   value: string;
   detail: string;
+};
+
+const APPLICATION_TABS = [
+  { key: 'pending', label: '대기' },
+  { key: 'approved', label: '승인' },
+  { key: 'rejected', label: '거절' },
+] as const;
+
+type ApplicationTabKey = typeof APPLICATION_TABS[number]['key'];
+
+const resolveDefaultApplicationTab = (
+  pendingCount: number,
+  approvedCount: number,
+  rejectedCount: number,
+): ApplicationTabKey => {
+  if (pendingCount > 0) {
+    return 'pending';
+  }
+
+  if (approvedCount > 0) {
+    return 'approved';
+  }
+
+  if (rejectedCount > 0) {
+    return 'rejected';
+  }
+
+  return 'pending';
 };
 
 function SummaryItem({ icon: Icon, label, value, detail }: SummaryItemProps) {
@@ -106,6 +131,25 @@ function EmptyState({
       <p className="mt-4 text-base font-semibold text-gray-900 dark:text-white">{title}</p>
       <p className="mt-2 max-w-sm text-sm leading-6 text-gray-500 dark:text-gray-300">{description}</p>
     </div>
+  );
+}
+
+function InlineBadge({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold', className)}>
+      {children}
+    </span>
+  );
+}
+
+function FieldLabel({ htmlFor, children }: { htmlFor: string; children: ReactNode }) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="flex items-center gap-2 text-sm leading-none font-medium text-gray-900 select-none dark:text-white"
+    >
+      {children}
+    </label>
   );
 }
 
@@ -157,6 +201,16 @@ export default function MateManage() {
   const isLoading = applicationsQuery.isPending;
   const isHostAccessDenied = getApiErrorStatus(applicationsQuery.error) === 403;
   const fetchError = Boolean(applicationsQuery.error) && !isHostAccessDenied;
+  const pendingApplications = applications.filter((app) => !app.isApproved && !app.isRejected);
+  const approvedApplications = applications.filter((app) => app.isApproved);
+  const rejectedApplications = applications.filter((app) => app.isRejected);
+  const defaultApplicationTab = resolveDefaultApplicationTab(
+    pendingApplications.length,
+    approvedApplications.length,
+    rejectedApplications.length,
+  );
+  const [activeApplicationTab, setActiveApplicationTab] = useState<ApplicationTabKey | null>(null);
+  const selectedApplicationTab = activeApplicationTab ?? defaultApplicationTab;
 
   const handleApprove = async (applicationId: string | number) => {
     setApplicationActionError('');
@@ -398,9 +452,6 @@ export default function MateManage() {
 
   const statusMeta = getPartyStatusMeta(party.status);
   const hostBadgeMeta = getBadgeMeta(party.hostBadge);
-  const pendingApplications = applications.filter((app) => !app.isApproved && !app.isRejected);
-  const approvedApplications = applications.filter((app) => app.isApproved);
-  const rejectedApplications = applications.filter((app) => app.isRejected);
   const canEdit = party.status === 'PENDING' && approvedApplications.length === 0;
   const canReviewCheckIn = approvedApplications.length > 0 || ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(party.status);
   const flowLabel = getPartyFlowLabel(party.status);
@@ -433,8 +484,12 @@ export default function MateManage() {
       onClick: handleOpenCheckIn,
       className: 'border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950/30',
     }
-    : null;
-  const defaultTab = pendingApplications.length > 0 ? 'pending' : approvedApplications.length > 0 ? 'approved' : 'rejected';
+      : null;
+  const selectedApplications = selectedApplicationTab === 'pending'
+    ? pendingApplications
+    : selectedApplicationTab === 'approved'
+      ? approvedApplications
+      : rejectedApplications;
 
   const summaryItems = [
     {
@@ -486,21 +541,21 @@ export default function MateManage() {
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-lg font-bold text-gray-900 dark:text-white">{app.applicantName}</p>
                 {badgeMeta && (
-                  <Badge className={cn('border text-xs font-semibold', badgeMeta.className)}>
+                  <InlineBadge className={cn(badgeMeta.className)}>
                     <span className="flex items-center gap-1">
                       {getBadgeIcon(app.applicantBadge)}
                       {badgeMeta.label}
                     </span>
-                  </Badge>
+                  </InlineBadge>
                 )}
-                <Badge className={cn('border text-xs font-semibold', tabTone)}>{tabLabel}</Badge>
+                <InlineBadge className={cn(tabTone)}>{tabLabel}</InlineBadge>
                 {app.ticketVerified && (
-                  <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
+                  <InlineBadge className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                     <span className="flex items-center gap-1">
                       <Ticket className="h-3.5 w-3.5" />
                       티켓 인증
                     </span>
-                  </Badge>
+                  </InlineBadge>
                 )}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-300">
@@ -676,24 +731,24 @@ export default function MateManage() {
                         신청 검토, 승인 결정, 채팅 연결, 체크인 준비까지 한 흐름으로 정리합니다.
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <Badge className={cn('border text-xs font-semibold', statusMeta.className)}>
+                        <InlineBadge className={cn(statusMeta.className)}>
                           {statusMeta.label}
-                        </Badge>
-                        <Badge className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
+                        </InlineBadge>
+                        <InlineBadge className="border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
                           {flowLabel}
-                        </Badge>
+                        </InlineBadge>
                         {party.ticketVerified && (
-                          <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
+                          <InlineBadge className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                             <span className="flex items-center gap-1">
                               <Ticket className="h-3.5 w-3.5" />
                               티켓 인증
                             </span>
-                          </Badge>
+                          </InlineBadge>
                         )}
                         {hostBadgeMeta && (
-                          <Badge className={cn('border text-xs font-semibold', hostBadgeMeta.className)}>
+                          <InlineBadge className={cn(hostBadgeMeta.className)}>
                             {hostBadgeMeta.label}
-                          </Badge>
+                          </InlineBadge>
                         )}
                       </div>
                     </div>
@@ -770,14 +825,14 @@ export default function MateManage() {
                       승인 완료 전까지 좌석, 모집 인원, 가격, 소개를 정리할 수 있습니다.
                     </p>
                   </div>
-                  <Badge className="border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
+                  <InlineBadge className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
                     승인 완료 전 수정 가능
-                  </Badge>
+                  </InlineBadge>
                 </div>
 
                 <div className="mt-6 grid gap-4 lg:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="manage-section">좌석</Label>
+                    <FieldLabel htmlFor="manage-section">좌석</FieldLabel>
                     <Input
                       id="manage-section"
                       value={editForm.section}
@@ -786,7 +841,7 @@ export default function MateManage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="manage-ticket-price">티켓 가격 (원)</Label>
+                    <FieldLabel htmlFor="manage-ticket-price">티켓 가격 (원)</FieldLabel>
                     <Input
                       id="manage-ticket-price"
                       type="number"
@@ -796,7 +851,7 @@ export default function MateManage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="manage-max-participants">모집 인원</Label>
+                    <FieldLabel htmlFor="manage-max-participants">모집 인원</FieldLabel>
                     <select
                       id="manage-max-participants"
                       value={editForm.maxParticipants}
@@ -811,7 +866,7 @@ export default function MateManage() {
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  <Label htmlFor="manage-description">소개글</Label>
+                  <FieldLabel htmlFor="manage-description">소개글</FieldLabel>
                   <Textarea
                     id="manage-description"
                     value={editForm.description}
@@ -864,49 +919,73 @@ export default function MateManage() {
                 </div>
               </div>
 
-              <Tabs defaultValue={defaultTab} className="mt-6">
-                <TabsList className="grid h-auto w-full grid-cols-3 gap-1">
-                  <TabsTrigger value="pending" className="px-2 py-2 text-[11px] sm:text-sm">대기 ({pendingApplications.length})</TabsTrigger>
-                  <TabsTrigger value="approved" className="px-2 py-2 text-[11px] sm:text-sm">승인 ({approvedApplications.length})</TabsTrigger>
-                  <TabsTrigger value="rejected" className="px-2 py-2 text-[11px] sm:text-sm">거절 ({rejectedApplications.length})</TabsTrigger>
-                </TabsList>
+              <div className="mt-6">
+                <div className="grid h-auto w-full grid-cols-3 gap-1 rounded-xl border border-gray-200/70 bg-white p-1.5 dark:border-white/5 dark:bg-[#16181c]">
+                  {APPLICATION_TABS.map((tab) => {
+                    const count = tab.key === 'pending'
+                      ? pendingApplications.length
+                      : tab.key === 'approved'
+                        ? approvedApplications.length
+                        : rejectedApplications.length;
+                    const isActive = selectedApplicationTab === tab.key;
 
-                <TabsContent value="pending" className="mt-6 space-y-4">
-                  {pendingApplications.length === 0 ? (
-                    <EmptyState
-                      icon={Users}
-                      title="대기 중인 신청이 없습니다"
-                      description="새 신청이 들어오면 이 탭에서 바로 검토할 수 있습니다. 상세페이지 CTA와 연결된 첫 판단 지점입니다."
-                    />
-                  ) : (
-                    pendingApplications.map((application) => renderApplicationCard(application, 'pending'))
-                  )}
-                </TabsContent>
+                    return (
+                      <button
+                        type="button"
+                        key={tab.key}
+                        onClick={() => setActiveApplicationTab(tab.key)}
+                        aria-pressed={isActive}
+                        className={cn(
+                          'rounded-lg px-2 py-2 text-[11px] font-medium transition-colors sm:text-sm',
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-gray-500 hover:bg-primary/10 hover:text-primary dark:text-zinc-400 dark:hover:text-emerald-300',
+                        )}
+                      >
+                        {tab.label} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
 
-                <TabsContent value="approved" className="mt-6 space-y-4">
-                  {approvedApplications.length === 0 ? (
-                    <EmptyState
-                      icon={CheckCircle}
-                      title="승인된 신청이 없습니다"
-                      description="참여가 확정되면 여기서 채팅과 체크인 연결 흐름을 이어갈 수 있습니다."
-                    />
-                  ) : (
-                    approvedApplications.map((application) => renderApplicationCard(application, 'approved'))
+                <div className="mt-6 space-y-4">
+                  {selectedApplicationTab === 'pending' && (
+                    pendingApplications.length === 0 ? (
+                      <EmptyState
+                        icon={Users}
+                        title="대기 중인 신청이 없습니다"
+                        description="새 신청이 들어오면 이 탭에서 바로 검토할 수 있습니다. 상세페이지 CTA와 연결된 첫 판단 지점입니다."
+                      />
+                    ) : (
+                      selectedApplications.map((application) => renderApplicationCard(application, 'pending'))
+                    )
                   )}
-                </TabsContent>
 
-                <TabsContent value="rejected" className="mt-6 space-y-4">
-                  {rejectedApplications.length === 0 ? (
-                    <EmptyState
-                      icon={XCircle}
-                      title="거절된 신청이 없습니다"
-                      description="거절된 신청은 기록만 유지됩니다. 이후 다시 검토할 항목은 없습니다."
-                    />
-                  ) : (
-                    rejectedApplications.map((application) => renderApplicationCard(application, 'rejected'))
+                  {selectedApplicationTab === 'approved' && (
+                    approvedApplications.length === 0 ? (
+                      <EmptyState
+                        icon={CheckCircle}
+                        title="승인된 신청이 없습니다"
+                        description="참여가 확정되면 여기서 채팅과 체크인 연결 흐름을 이어갈 수 있습니다."
+                      />
+                    ) : (
+                      selectedApplications.map((application) => renderApplicationCard(application, 'approved'))
+                    )
                   )}
-                </TabsContent>
-              </Tabs>
+
+                  {selectedApplicationTab === 'rejected' && (
+                    rejectedApplications.length === 0 ? (
+                      <EmptyState
+                        icon={XCircle}
+                        title="거절된 신청이 없습니다"
+                        description="거절된 신청은 기록만 유지됩니다. 이후 다시 검토할 항목은 없습니다."
+                      />
+                    ) : (
+                      selectedApplications.map((application) => renderApplicationCard(application, 'rejected'))
+                    )
+                  )}
+                </div>
+              </div>
             </Card>
           </div>
 

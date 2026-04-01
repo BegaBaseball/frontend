@@ -2,10 +2,10 @@ import { useMemo } from 'react';
 import { Building2, Newspaper } from 'lucide-react';
 
 import { getTeamKoreanName } from '../../utils/teamNames';
-import { Badge } from '../ui/badge';
 import { Card } from '../ui/card';
 import { OffseasonMovement } from './offseasonListTypes';
-import { formatDateLabel, getMovementSummary, getSectionColor } from './offseasonListUtils';
+import { OffseasonPill, OffseasonSectionPill } from './offseasonUi';
+import { formatDateLabel, getMovementSummary } from './offseasonListUtils';
 
 export function OffseasonInsightsPanel({
     movements,
@@ -76,9 +76,9 @@ export function OffseasonInsightsPanel({
                                             <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">현재 조건 기준 이동 건수</p>
                                         </div>
                                     </div>
-                                    <Badge className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-bold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+                                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-bold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
                                         {count}건
-                                    </Badge>
+                                    </OffseasonPill>
                                 </div>
                             ))}
                         </div>
@@ -95,9 +95,7 @@ export function OffseasonInsightsPanel({
                             {sectionSummary.map(([section, count]) => (
                                 <div key={section} className="space-y-2">
                                     <div className="flex items-center justify-between gap-3">
-                                        <Badge className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide ${getSectionColor(section)}`}>
-                                            {section}
-                                        </Badge>
+                                        <OffseasonSectionPill section={section} />
                                         <span className="text-xs font-bold text-zinc-500 dark:text-zinc-300">{count}건</span>
                                     </div>
                                     <div className="h-2 rounded-full bg-zinc-100 dark:bg-zinc-800">
@@ -140,9 +138,9 @@ export function OffseasonInsightsPanel({
                                                 {movement.player} · {getTeamKoreanName(movement.team)}
                                             </p>
                                         </div>
-                                        <Badge className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-[10px] font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
+                                        <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-[10px] font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
                                             주요
-                                        </Badge>
+                                        </OffseasonPill>
                                     </div>
                                     <p className="mt-2 line-clamp-2 text-sm font-medium leading-relaxed text-zinc-600 dark:text-zinc-300">
                                         {getMovementSummary(movement)}

@@ -1,15 +1,6 @@
-import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { cloneElement, isValidElement, useState, useEffect, useMemo, useRef, type MouseEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from './ui/dialog';
-import { Label } from './ui/label';
 import {
     Loader2, Zap, TrendingUp, Users, Shield, BarChart2
 } from 'lucide-react';
@@ -31,6 +22,7 @@ import {
 } from '../utils/prediction';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import CoachAnalysisResultView from './prediction/CoachAnalysisResultView';
+import PlainDialog from './ui/plain-dialog';
 
 const isAbortError = (error: unknown): boolean => {
     if (error instanceof DOMException && error.name === 'AbortError') {
@@ -882,39 +874,66 @@ export default function CoachAnalysisDialog({
     const hasFocusMeta = typeof result?.focus_signature === 'string';
     const focusMismatch = hasFocusMeta
         && selectedFocusNormalized.join('+') !== resolvedFocus.join('+');
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                {trigger ? trigger : (
-                    <Button variant="outline" className="gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-0 hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/20 px-8 h-12 rounded-full font-bold">
-                        <Zap className="w-4 h-4 fill-white" />
-                        AI 코치 상세 분석
-                    </Button>
-                )}
-            </DialogTrigger>
-            <DialogContent
-                data-testid="coach-analysis-dialog"
-                className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-white dark:bg-secondary border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-0"
-            >
-            <DialogHeader className="p-4 sm:p-6 shrink-0 bg-white dark:bg-black/30 border-b border-gray-100 dark:border-gray-800">
-                    <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                        AI 코치 상세 분석
-                    </DialogTitle>
-                    <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                        {homeTeamId && awayTeamId
-                            ? `${getInitialTeamName(homeTeamId)} vs ${getInitialTeamName(awayTeamId)} 승부처를 실데이터 기반으로 해석합니다.`
-                            : `${selectedTeam} 전략 및 지표를 실데이터와 함께 해석합니다.`}
-                    </DialogDescription>
-                </DialogHeader>
 
+    const handleOpen = () => {
+        setIsOpen(true);
+    };
+
+    const renderTrigger = () => {
+        if (trigger && isValidElement<{ onClick?: (event: MouseEvent<HTMLElement>) => void }>(trigger)) {
+            const originalOnClick = trigger.props.onClick;
+            return cloneElement(trigger, {
+                onClick: (event: MouseEvent<HTMLElement>) => {
+                    originalOnClick?.(event);
+                    if (!event.defaultPrevented) {
+                        handleOpen();
+                    }
+                },
+            });
+        }
+
+        if (trigger) {
+            return (
+                <span className="contents" onClick={handleOpen}>
+                    {trigger}
+                </span>
+            );
+        }
+
+        return (
+            <Button
+                variant="outline"
+                onClick={handleOpen}
+                className="gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-0 hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/20 px-8 h-12 rounded-full font-bold"
+            >
+                <Zap className="w-4 h-4 fill-white" />
+                AI 코치 상세 분석
+            </Button>
+        );
+    };
+
+    return (
+        <>
+            {renderTrigger()}
+            <PlainDialog
+                open={isOpen}
+                onClose={() => setIsOpen(false)}
+                title="AI 코치 상세 분석"
+                description={homeTeamId && awayTeamId
+                    ? `${getInitialTeamName(homeTeamId)} vs ${getInitialTeamName(awayTeamId)} 승부처를 실데이터 기반으로 해석합니다.`
+                    : `${selectedTeam} 전략 및 지표를 실데이터와 함께 해석합니다.`}
+                contentTestId="coach-analysis-dialog"
+                className="sm:max-w-[700px] max-h-[90vh] overflow-hidden border-none bg-white p-0 shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] dark:bg-secondary"
+                bodyClassName="flex max-h-[calc(90vh-81px)] flex-col overflow-hidden bg-white p-0 dark:bg-secondary"
+            >
                 <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 space-y-7 sm:space-y-8 bg-gray-50/60 dark:bg-black/40 relative">
                     {/* Team Selection Section */}
                     <div className="space-y-6">
                         <div className="flex items-center justify-between px-1">
-                            <Label className="text-sm font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                            <p className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-300">
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                                 {homeTeamId && awayTeamId ? '분석 기준 팀 선택' : '분석 대상 팀 선택'}
-                            </Label>
+                            </p>
                         </div>
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-1">
                             {selectableTeamNames.map((teamName) => {
@@ -951,10 +970,10 @@ export default function CoachAnalysisDialog({
 
                     {/* Focus Points Section */}
                     <div className="space-y-6">
-                        <Label className="text-sm font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2 px-1">
+                        <p className="flex items-center gap-2 px-1 text-sm font-semibold text-gray-600 dark:text-gray-300">
                             <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
                             분석 집중 항목
-                        </Label>
+                        </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {focusOptions.map((opt) => {
                                 const isActive = focus.includes(opt.id);
@@ -1103,7 +1122,7 @@ export default function CoachAnalysisDialog({
                         </div>
                     )}
                 </div>
-            </DialogContent>
-        </Dialog>
+            </PlainDialog>
+        </>
     );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -24,20 +24,17 @@ import {
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
-import { ScrollArea } from './ui/scroll-area';
-import { Separator } from './ui/separator';
 import { Skeleton } from './ui/skeleton';
 import { useWebSocket } from '../hooks/useWebSocket';
 import {
-  getMatePartyMessagesQueryOptions,
   getMatePartyMyApplicationQueryOptions,
-} from '../hooks/mateQueryOptions';
-import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { MATE_KEYS } from '../hooks/mateQueryKeys';
+  getMatePartyMessagesQueryOptions,
+  MATE_KEYS,
+  useMatePartyFromRoute,
+} from '../hooks/mateChatRoute';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { uploadChatImage, updateChatReadTimestamp } from '../api/mate';
 import { ChatMessage } from '../types/mate';
@@ -102,6 +99,18 @@ function ChatEmptyState({
       <p className="mt-2 max-w-md text-sm leading-6 text-gray-500 dark:text-gray-300">{description}</p>
     </div>
   );
+}
+
+function MatePill({ className = '', children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+function SectionDivider({ className = '' }: { className?: string }) {
+  return <div className={`h-px w-full bg-gray-200 dark:bg-border ${className}`} aria-hidden="true" />;
 }
 
 export default function MateChat() {
@@ -228,8 +237,7 @@ export default function MateChat() {
     enabled: Boolean(party && currentUser && !isAuthLoading),
   });
 
-  const getScrollContainer = (): HTMLElement | null =>
-    (scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null) ?? null;
+  const getScrollContainer = (): HTMLElement | null => scrollAreaRef.current;
 
   const isNearBottom = (): boolean => {
     const element = getScrollContainer();
@@ -744,22 +752,22 @@ export default function MateChat() {
                       {headerDescription}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Badge className={cn('border text-xs font-semibold', statusMeta.className)}>
+                      <MatePill className={cn('border text-xs font-semibold', statusMeta.className)}>
                         {statusMeta.label}
-                      </Badge>
-                      <Badge className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
+                      </MatePill>
+                      <MatePill className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
                         {flowLabel}
-                      </Badge>
-                      <Badge className="border border-gray-200 bg-white/90 text-gray-700 dark:border-border dark:bg-card/70 dark:text-gray-200">
+                      </MatePill>
+                      <MatePill className="border border-gray-200 bg-white/90 text-gray-700 dark:border-border dark:bg-card/70 dark:text-gray-200">
                         {roleLabel}
-                      </Badge>
+                      </MatePill>
                       {party.ticketVerified && (
-                        <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
+                        <MatePill className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                           <span className="flex items-center gap-1">
                             <Ticket className="h-3.5 w-3.5" />
                             티켓 인증
                           </span>
-                        </Badge>
+                        </MatePill>
                       )}
                     </div>
                   </div>
@@ -874,17 +882,17 @@ export default function MateChat() {
                 공용 일정, 전달 시간, 체크인 준비는 이 대화 흐름을 기준으로 정리합니다.
               </p>
             </div>
-            <Badge className={cn(
+            <MatePill className={cn(
               'border text-xs font-semibold',
               isConnected
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
                 : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300',
             )}>
               {isConnected ? '실시간 연결' : '재연결 중'}
-            </Badge>
+            </MatePill>
           </div>
 
-          <ScrollArea ref={scrollAreaRef} className="min-h-[360px] flex-1 pr-2 sm:min-h-[420px] sm:pr-4">
+          <div ref={scrollAreaRef} className="min-h-[360px] flex-1 overflow-y-auto pr-2 sm:min-h-[420px] sm:pr-4">
             {groupedMessages.length === 0 ? (
               <ChatEmptyState
                 icon={Users}
@@ -898,11 +906,11 @@ export default function MateChat() {
                 {groupedMessages.map((group) => (
                   <div key={group.date}>
                     <div className="mb-4 flex items-center gap-4">
-                      <Separator className="flex-1" />
+                      <SectionDivider className="flex-1" />
                       <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-500 dark:bg-secondary/80 dark:text-gray-300">
                         {group.date}
                       </span>
-                      <Separator className="flex-1" />
+                      <SectionDivider className="flex-1" />
                     </div>
 
                     <div className="space-y-3">
@@ -958,7 +966,7 @@ export default function MateChat() {
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </Card>
 
         <Card className={`mt-4 p-3 sm:p-4 ${mateSectionCardClass}`}>

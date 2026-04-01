@@ -1,5 +1,5 @@
-import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import { MoonIcon, SunIcon } from './icons/PublicShellIcons';
 
 interface ThemeToggleButtonProps {
   className?: string;
@@ -37,7 +37,7 @@ export default function ThemeToggleButton({
       aria-label={isDarkMode ? ariaLabelLight : ariaLabelDark}
       className={`relative inline-flex p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary ${className}`}
     >
-      {isDarkMode ? <Sun className={iconClassName} /> : <Moon className={iconClassName} />}
+      {isDarkMode ? <SunIcon className={iconClassName} /> : <MoonIcon className={iconClassName} />}
     </button>
   );
 }

@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import TeamLogo from '../TeamLogo';
-import { seedMatePartyQueryData } from '../../hooks/mateQueryCache';
+import { seedMatePartyQueryData } from '../../hooks/mateList';
 import { MateParty } from '../../types/mate';
 import { buildMateRouteLocationState, formatGameDate, getStatusLabel, getStatusStyle } from '../../utils/mate';
 

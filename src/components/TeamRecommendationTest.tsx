@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from './ui/dialog';
+import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { Button } from './ui/button';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import PlainDialog from './ui/plain-dialog';
 import TeamLogo from './TeamLogo';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { TeamRecommendationTestProps } from '../types/teamTest';
@@ -62,12 +62,27 @@ export default function TeamRecommendationTest({
   const recommendedTeamLabel = getTeamDisplayName(recommendedTeam);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col bg-white dark:bg-card border-gray-200 dark:border-border">
-        <DialogTitle className="sr-only">응원구단 추천 테스트</DialogTitle>
-        <DialogDescription className="sr-only">
+    <PlainDialog
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel="응원구단 추천 테스트"
+      hideHeader={true}
+      hideCloseButton={true}
+      className="max-w-5xl border-gray-200 dark:border-border"
+      bodyClassName="relative max-h-[80vh] overflow-hidden p-6"
+    >
+        <h2 className="sr-only">응원구단 추천 테스트</h2>
+        <p className="sr-only">
           7개의 질문에 답하여 당신에게 맞는 KBO 구단을 찾아보세요
-        </DialogDescription>
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-0 top-0 rounded-full p-2 text-gray-400 transition hover:bg-black/5 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-white/10 dark:hover:text-gray-200"
+          aria-label="테스트 닫기"
+        >
+          <X className="h-5 w-5" />
+        </button>
 
         {!showResult ? (
           <div className="flex flex-col h-full py-3">
@@ -295,7 +310,6 @@ export default function TeamRecommendationTest({
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+    </PlainDialog>
   );
 }

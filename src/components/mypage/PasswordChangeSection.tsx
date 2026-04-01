@@ -4,7 +4,6 @@ import { Eye, EyeOff, Lock, Save, AlertCircle, CheckCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { changePassword } from '../../api/profile';
 import { toast } from 'sonner';
@@ -100,9 +99,9 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                 {/* Current Password (Only show if user has password) */}
                 {hasPassword && (
                     <div className="space-y-2">
-                        <Label htmlFor="currentPassword" className="text-muted-foreground">
+                        <label htmlFor="currentPassword" className="text-sm font-medium text-muted-foreground">
                             현재 비밀번호 *
-                        </Label>
+                        </label>
                         <div className="relative">
                             <Input
                                 id="currentPassword"
@@ -126,9 +125,9 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
 
                 {/* New Password */}
                 <div className="space-y-2">
-                        <Label htmlFor="newPassword" className="text-muted-foreground">
+                        <label htmlFor="newPassword" className="text-sm font-medium text-muted-foreground">
                         새 비밀번호 *
-                    </Label>
+                    </label>
                     <div className="relative">
                         <Input
                             id="newPassword"
@@ -152,9 +151,9 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
 
                 {/* Confirm Password */}
                 <div className="space-y-2">
-                        <Label htmlFor="confirmPassword" className="text-muted-foreground">
+                        <label htmlFor="confirmPassword" className="text-sm font-medium text-muted-foreground">
                         비밀번호 확인 *
-                    </Label>
+                    </label>
                     <div className="relative">
                         <Input
                             id="confirmPassword"

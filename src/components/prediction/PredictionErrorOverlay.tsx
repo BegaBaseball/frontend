@@ -1,14 +1,6 @@
 import { useState } from 'react';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../ui/alert-dialog';
 import { Button } from '../ui/button';
+import PlainDialog from '../ui/plain-dialog';
 import type { PredRecoveryAction, PredictionRunEvent, PredictionErrorCode } from '../../types/predictionFlow';
 
 type PredictionErrorOverlayProps = {
@@ -120,15 +112,16 @@ export default function PredictionErrorOverlay({
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <AlertDialogContent className="max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title || DEFAULT_TITLE}</AlertDialogTitle>
-          <AlertDialogDescription>{displayedMessage}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter className="sm:justify-between sm:items-center">
-          <AlertDialogCancel onClick={onClose}>닫기</AlertDialogCancel>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+    <PlainDialog
+      open={isOpen}
+      onClose={onClose}
+      title={title || DEFAULT_TITLE}
+      description={displayedMessage}
+      className="max-w-md"
+      footer={(
+        <>
+          <Button type="button" variant="outline" onClick={onClose}>닫기</Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             {actions.slice(0, 3).map((action) => {
               if (action === 'RETRY') {
                 return (
@@ -156,8 +149,10 @@ export default function PredictionErrorOverlay({
               );
             })}
           </div>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        </>
+      )}
+    >
+      <div />
+    </PlainDialog>
   );
 }
