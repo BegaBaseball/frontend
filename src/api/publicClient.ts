@@ -6,6 +6,8 @@ interface PublicApiErrorData {
   code?: string;
   error?: string;
   message?: string;
+  data?: unknown;
+  errors?: Record<string, unknown>;
 }
 
 export class PublicApiError extends Error {

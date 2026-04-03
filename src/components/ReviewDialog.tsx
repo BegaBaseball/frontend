@@ -2,7 +2,8 @@ import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { Star } from 'lucide-react';
-import { api, getApiErrorStatus } from '../utils/api';
+import { createReview } from '../api/mate';
+import { getApiErrorStatus } from '../api/errorStatus';
 import { getApiErrorMessage } from '../utils/errorUtils';
 
 interface ReviewDialogProps {
@@ -55,7 +56,7 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewee, onSuc
     if (rating === 0) return;
     setIsSubmitting(true);
     try {
-      await api.createReview({
+      await createReview({
         partyId,
         revieweeHandle: reviewee.handle,
         rating,

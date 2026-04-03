@@ -36,10 +36,10 @@ import {
   useMatePartyFromRoute,
 } from '../hooks/mateChatRoute';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
-import { uploadChatImage, updateChatReadTimestamp } from '../api/mate';
+import { sendChatMessage, uploadChatImage, updateChatReadTimestamp } from '../api/mate';
+import { getApiErrorStatus } from '../api/errorStatus';
 import { ChatMessage } from '../types/mate';
 import { cn } from '../lib/utils';
-import { getApiErrorStatus } from '../utils/api';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import {
   getPartyFlowLabel,
@@ -592,7 +592,7 @@ export default function MateChat() {
     };
 
     const persistViaHttp = async () => {
-      const savedMessage = await api.sendChatMessage(newMessage);
+      const savedMessage = await sendChatMessage(newMessage);
       updateMessageCache((prev) => appendUniqueMessage(prev, savedMessage));
     };
 

@@ -12,7 +12,13 @@ import { Card } from './ui/card';
 import PlainDialog from './ui/plain-dialog';
 import { Skeleton } from './ui/skeleton';
 import { Input } from './ui/input';
-import { normalizeMateParty } from '../api/mate';
+import {
+  cancelApplicationWithReason,
+  createCheckInQrSession,
+  normalizeMateParty,
+  updateParty,
+} from '../api/mate';
+import { getApiErrorStatus } from '../api/errorStatus';
 import {
   getMatePartyApplicationsQueryOptions,
   getMatePartyMyApplicationQueryOptions,
@@ -45,7 +51,6 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
-import { api, getApiErrorStatus } from '../utils/api';
 import { Alert, AlertDescription } from './ui/alert';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import {
@@ -282,7 +287,7 @@ export default function MateDetailRuntime() {
     try {
       const wasApproved = myApplication.isApproved;
       const cancelledApplicationId = myApplication.id;
-      const result = await api.cancelApplicationWithReason(myApplication.id, {
+      const result = await cancelApplicationWithReason(myApplication.id, {
         cancelReasonType: selectedCancelReason,
         cancelMemo: cancelMemo.trim() || undefined,
       });
@@ -392,7 +397,7 @@ export default function MateDetailRuntime() {
     }
     setIsQrLoading(true);
     try {
-      const qrSession = await api.createCheckInQrSession({ partyId: partyId });
+      const qrSession = await createCheckInQrSession({ partyId: partyId });
       if (!isMountedRef.current) return;
 
       const nextQrCheckInUrl = qrSession.checkinUrl || fallbackCheckInUrl;
@@ -578,7 +583,7 @@ export default function MateDetailRuntime() {
     }
     setIsConvertingToSale(true);
     try {
-      const updatedParty = await api.updateParty(party.id, { status: 'SELLING', price: parsed });
+      const updatedParty = await updateParty(party.id, { status: 'SELLING', price: parsed });
       syncMatePartyQueryData(queryClient, normalizeMateParty(updatedParty));
       toast.success('판매 전환이 완료되었습니다.');
       setShowSaleDialog(false);

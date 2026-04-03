@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
+import { getApiErrorStatus } from '../api/errorStatus';
 import { Party } from '../types/mate';
 import { getMatePartyQueryOptions } from './mateQueryOptions';
-import { getApiErrorStatus } from '../utils/api';
 import { getMateRoutePlaceholderParty } from '../utils/mate';
 
 export interface MatePartyRouteState {

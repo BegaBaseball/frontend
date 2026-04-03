@@ -10,7 +10,7 @@ import type {
   PredictionFlowState,
   PredictionRunEvent,
 } from '../types/predictionFlow';
-import type { GameDetail, PredictionTab } from '../types/prediction';
+import type { GameDetail } from '../types/prediction';
 import {
   buildPredictionRecoveryPath,
   type PredictionLocationState,
@@ -49,16 +49,11 @@ export const usePrediction = () => {
   });
   const confirm = optionalConfirmDialog?.confirm ?? fallbackConfirm;
 
-  const [activeTab, setActiveTab] = useState<PredictionTab>('match');
   const [predictionErrorOverlay, setPredictionErrorOverlay] = useState<PredictionErrorOverlayState | null>(null);
   const [pendingSeedDetail, setPendingSeedDetail] = useState<{ gameId: string; detail: GameDetail } | null>(null);
-  const activeTabRef = useRef<PredictionTab>('match');
+  const activeTabRef = useRef<'match'>('match');
   const currentGameIdRef = useRef<string | null>(null);
   const currentDateRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    activeTabRef.current = activeTab;
-  }, [activeTab]);
 
   const emitFlowEvent = useCallback((
     eventName: PredictionFlowEventName,
@@ -234,7 +229,7 @@ export const usePrediction = () => {
     fetchAndCacheUserVotes,
     primeGameDetail: queuePrimeGameDetail,
     activateMatchTab: () => {
-      setActiveTab('match');
+      activeTabRef.current = 'match';
     },
   });
 
@@ -293,8 +288,6 @@ export const usePrediction = () => {
   ]);
 
   return {
-    activeTab,
-    setActiveTab,
     selectedGame: schedule.selectedGame,
     setSelectedGame: schedule.setSelectedGame,
     allDatesData: schedule.allDatesData,
