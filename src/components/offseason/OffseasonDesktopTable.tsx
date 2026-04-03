@@ -2,10 +2,10 @@ import { ArrowUpDown, Sparkles } from 'lucide-react';
 
 import { getTeamKoreanName } from '../../utils/teamNames';
 import TeamLogo from '../TeamLogo';
-import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { OffseasonMovement, SORT_OPTIONS, SortOrder } from './offseasonListTypes';
-import { formatDateLabel, formatRemarks, getDisplayAmount, getMovementSummary, getSectionColor } from './offseasonListUtils';
+import { OffseasonPill, OffseasonSectionPill } from './offseasonUi';
+import { formatDateLabel, formatRemarks, getDisplayAmount, getMovementSummary } from './offseasonListUtils';
 
 export function OffseasonDesktopTable({
     movements,
@@ -32,12 +32,12 @@ export function OffseasonDesktopTable({
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Badge className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+                    <OffseasonPill className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
                         정렬: {activeSortLabel}
-                    </Badge>
-                    <Badge className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                    </OffseasonPill>
+                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                         총 {movements.length}행
-                    </Badge>
+                    </OffseasonPill>
                 </div>
             </div>
 
@@ -150,9 +150,7 @@ export function OffseasonDesktopTable({
                                     ? 'border-emerald-200 bg-emerald-50/75 dark:border-emerald-900/50 dark:bg-emerald-950/20'
                                     : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950/90'
                                     }`}>
-                                    <Badge className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide ${getSectionColor(item.section)}`}>
-                                        {item.section}
-                                    </Badge>
+                                    <OffseasonSectionPill section={item.section} />
                                 </TableCell>
                                 <TableCell className={`border-y px-3 py-4 align-top ${item.isBigEvent
                                     ? 'border-emerald-200 bg-emerald-50/75 dark:border-emerald-900/50 dark:bg-emerald-950/20'
@@ -182,9 +180,9 @@ export function OffseasonDesktopTable({
                                             )}
                                         </div>
                                         {item.isBigEvent && (
-                                            <Badge className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-[10px] font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
+                                            <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-[10px] font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
                                                 헤드라인 이동
-                                            </Badge>
+                                            </OffseasonPill>
                                         )}
                                     </div>
                                 </TableCell>

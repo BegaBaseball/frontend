@@ -1,3 +1,5 @@
+import type { MateParty } from './mate';
+
 // types/home.ts
 export interface Game {
     gameId: string;
@@ -45,17 +47,18 @@ export interface ScheduleNavigation {
     hasNext: boolean;
 }
 
-export interface FeaturedMateCard {
-    id: number;
-    gameDate: string;
-    gameTime: string;
-    homeTeam: string;
-    awayTeam: string;
-    currentParticipants: number;
-    maxParticipants: number;
+export interface FeaturedMateCard extends MateParty {
     ticketPrice?: number | null;
-    status: string;
 }
+
+export interface RankingSnapshot {
+    rankingSeasonYear: number;
+    rankingSourceMessage: string;
+    isOffSeason: boolean;
+    rankings: Ranking[];
+}
+
+export type HomeRankingSnapshot = RankingSnapshot;
 
 export interface HomeBootstrapResponse {
     selectedDate: string;
@@ -63,15 +66,12 @@ export interface HomeBootstrapResponse {
     navigation: ScheduleNavigation;
     games: Game[];
     scheduledGamesWindow: Game[];
-    rankingSeasonYear: number;
-    rankingSourceMessage: string;
-    isOffSeason: boolean;
-    rankings: Ranking[];
 }
 
 export interface HomeWidgetsResponse {
     hotCheerPosts: import('../api/cheerApi').CheerPost[];
     featuredMates: FeaturedMateCard[];
+    rankingSnapshot: RankingSnapshot;
 }
 
 export interface HomeProps {

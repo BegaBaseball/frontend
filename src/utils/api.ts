@@ -118,7 +118,7 @@ export const api = {
           'Content-Type': 'application/json',
           ...headers,
         },
-        signal: options?.signal as any,
+        signal: options?.signal ?? undefined,
         skipGlobalErrorHandler: options?.skipGlobalErrorHandler,
         skipErrorReporting: options?.skipErrorReporting,
         allowManualRetry: options?.allowManualRetry,

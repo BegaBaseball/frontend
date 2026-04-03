@@ -1,5 +1,4 @@
 import { memo } from 'react';
-import { motion } from 'framer-motion';
 import { AlertTriangle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { DashboardStat } from '../../api/coach';
 
@@ -10,18 +9,6 @@ const trendTextClass: Record<DashboardStat['trend'], string> = {
 };
 
 const isCriticalClass = 'text-red-700 bg-red-50 dark:text-red-300 dark:bg-red-950/30';
-
-const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            duration: 0.5,
-            ease: "easeOut"
-        }
-    }
-} as const;
 
 function CoachStatCard({ stat }: { stat: DashboardStat }) {
     const trendLabel = stat.trend === 'up'
@@ -36,8 +23,7 @@ function CoachStatCard({ stat }: { stat: DashboardStat }) {
             : '경계';
 
     return (
-        <motion.div
-            variants={itemVariants}
+        <div
             className="rounded-2xl border bg-white p-5 shadow-sm transition-colors dark:bg-gray-900"
         >
             <div className="flex items-center justify-between mb-3 relative z-10">
@@ -66,7 +52,7 @@ function CoachStatCard({ stat }: { stat: DashboardStat }) {
             <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
                 {trendLabel} 추세
             </div>
-        </motion.div>
+        </div>
     );
 }
 

@@ -1,25 +1,12 @@
 import { Sparkles } from 'lucide-react';
 
 import { getTeamKoreanName } from '../../utils/teamNames';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '../ui/dialog';
-import {
-    Drawer,
-    DrawerContent,
-    DrawerDescription,
-    DrawerHeader,
-    DrawerTitle,
-} from '../ui/drawer';
+import PlainDialog from '../ui/plain-dialog';
 import TeamLogo from '../TeamLogo';
 import { OffseasonMovement } from './offseasonListTypes';
-import { formatDateLabel, formatDateTimeLabel, formatRemarks, getDisplayAmount, getMovementSummary, getSectionColor } from './offseasonListUtils';
+import { OffseasonPill, OffseasonSectionPill } from './offseasonUi';
+import { formatDateLabel, formatDateTimeLabel, formatRemarks, getDisplayAmount, getMovementSummary } from './offseasonListUtils';
 
 export function OffseasonMovementDetailPanel({
     movement,
@@ -71,12 +58,10 @@ export function OffseasonMovementDetailPanel({
                         </div>
                         <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
-                                <Badge className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide ${getSectionColor(movement.section)}`}>
-                                    {movement.section}
-                                </Badge>
-                                <Badge className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-[10px] font-bold text-emerald-50">
+                                <OffseasonSectionPill section={movement.section} />
+                                <OffseasonPill className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-[10px] font-bold text-emerald-50">
                                     {statusLabel}
-                                </Badge>
+                                </OffseasonPill>
                             </div>
                             <div>
                                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100/65">{teamName}</p>
@@ -123,9 +108,9 @@ export function OffseasonMovementDetailPanel({
                         <p className="mt-1 text-sm font-bold text-zinc-900 dark:text-zinc-50">수집된 상세 데이터</p>
                     </div>
                     {hasStructuredFacts && (
-                        <Badge className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+                        <OffseasonPill className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
                             {detailFacts.length}개 항목
-                        </Badge>
+                        </OffseasonPill>
                     )}
                 </div>
                 {hasStructuredFacts ? (
@@ -163,9 +148,9 @@ export function OffseasonMovementDetailPanel({
                         <p className="mt-1 text-sm font-bold text-zinc-900 dark:text-zinc-50">출처 정보</p>
                     </div>
                     {hasSourceFacts && (
-                        <Badge className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                        <OffseasonPill className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                             확인 가능
-                        </Badge>
+                        </OffseasonPill>
                     )}
                 </div>
                 {hasSourceFacts ? (
@@ -196,12 +181,12 @@ export function OffseasonMovementDetailPanel({
 
             <div className="rounded-3xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-800 dark:bg-zinc-950/70">
                 <div className="flex flex-wrap items-center gap-2">
-                    <Badge className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                         데이터 ID #{movement.id}
-                    </Badge>
-                    <Badge className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                    </OffseasonPill>
+                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                         팀 코드 {movement.team}
-                    </Badge>
+                    </OffseasonPill>
                 </div>
                 <p className="mt-3 text-sm font-medium leading-relaxed text-zinc-500 dark:text-zinc-300">
                     상세 패널은 요약, 계약 구조, 출처, 원문 메모를 분리해서 보여주도록 확장되었습니다.
@@ -216,37 +201,27 @@ export function OffseasonMovementDetailPanel({
         </div>
     );
 
-    if (isMobile) {
-        return (
-            <Drawer open={open} onOpenChange={onOpenChange}>
-                <DrawerContent className="max-h-[90vh] rounded-t-[32px] border-zinc-200 bg-white px-4 pb-6 dark:border-zinc-800 dark:bg-zinc-950">
-                    <DrawerHeader className="px-1 pb-4 pt-6 text-left">
-                        <DrawerTitle className="text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">
-                            이적 상세 정보
-                        </DrawerTitle>
-                        <DrawerDescription className="text-sm font-medium text-zinc-500 dark:text-zinc-300">
-                            선택한 선수 이동의 요약, 계약 구조, 출처 정보를 한 번에 확인할 수 있습니다.
-                        </DrawerDescription>
-                    </DrawerHeader>
-                    <div className="overflow-y-auto px-1 pb-2">{body}</div>
-                </DrawerContent>
-            </Drawer>
-        );
-    }
-
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto rounded-[32px] border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-                <DialogHeader className="text-left">
-                    <DialogTitle className="text-2xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">
-                        이적 상세 정보
-                    </DialogTitle>
-                    <DialogDescription className="text-sm font-medium text-zinc-500 dark:text-zinc-300">
-                        선택한 선수 이동의 요약, 원문 메모, 구조화 필드, 출처를 한 번에 확인할 수 있습니다.
-                    </DialogDescription>
-                </DialogHeader>
-                {body}
-            </DialogContent>
-        </Dialog>
+        <PlainDialog
+            open={open}
+            onClose={() => onOpenChange(false)}
+            title="이적 상세 정보"
+            placement={isMobile ? 'bottom' : 'center'}
+            className={isMobile
+                ? 'max-h-[90vh] max-w-none !rounded-b-none !rounded-t-[32px] border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950'
+                : 'max-h-[88vh] max-w-3xl !rounded-[32px] border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950'
+            }
+            bodyClassName={isMobile
+                ? '!max-h-[calc(90vh-4.5rem)] !overflow-y-auto !px-4 !pb-6 !pt-2'
+                : '!max-h-[calc(88vh-4.5rem)] !overflow-y-auto !p-6'
+            }
+        >
+            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-300">
+                {isMobile
+                    ? '선택한 선수 이동의 요약, 계약 구조, 출처 정보를 한 번에 확인할 수 있습니다.'
+                    : '선택한 선수 이동의 요약, 원문 메모, 구조화 필드, 출처를 한 번에 확인할 수 있습니다.'}
+            </p>
+            {body}
+        </PlainDialog>
     );
 }

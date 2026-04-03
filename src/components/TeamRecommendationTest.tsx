@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from './ui/dialog';
+import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { Button } from './ui/button';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import PlainDialog from './ui/plain-dialog';
 import TeamLogo from './TeamLogo';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { TeamRecommendationTestProps } from '../types/teamTest';
@@ -63,12 +62,27 @@ export default function TeamRecommendationTest({
   const recommendedTeamLabel = getTeamDisplayName(recommendedTeam);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col bg-white dark:bg-card border-gray-200 dark:border-border">
-        <DialogTitle className="sr-only">응원구단 추천 테스트</DialogTitle>
-        <DialogDescription className="sr-only">
+    <PlainDialog
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel="응원구단 추천 테스트"
+      hideHeader={true}
+      hideCloseButton={true}
+      className="max-w-5xl border-gray-200 dark:border-border"
+      bodyClassName="relative max-h-[80vh] overflow-hidden p-6"
+    >
+        <h2 className="sr-only">응원구단 추천 테스트</h2>
+        <p className="sr-only">
           7개의 질문에 답하여 당신에게 맞는 KBO 구단을 찾아보세요
-        </DialogDescription>
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-0 top-0 rounded-full p-2 text-gray-400 transition hover:bg-black/5 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-white/10 dark:hover:text-gray-200"
+          aria-label="테스트 닫기"
+        >
+          <X className="h-5 w-5" />
+        </button>
 
         {!showResult ? (
           <div className="flex flex-col h-full py-3">
@@ -89,11 +103,9 @@ export default function TeamRecommendationTest({
               {/* Progress Bar */}
               <div className="relative">
                 <div className="w-full h-2 bg-gray-200 dark:bg-secondary rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full bg-primary"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.5 }}
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+                    style={{ width: `${progress}%` }}
                   />
                 </div>
               </div>
@@ -101,16 +113,10 @@ export default function TeamRecommendationTest({
 
             {/* Question and Answers Container */}
             <div className="flex-1 flex flex-col min-h-0 mb-3">
-              <AnimatePresence mode="wait" custom={direction}>
-                <motion.div
-                  key={currentQuestion}
-                  custom={direction}
-                  initial={{ opacity: 0, x: direction > 0 ? 50 : -50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: direction > 0 ? -50 : 50 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex flex-col h-full"
-                >
+              <div
+                key={currentQuestion}
+                className="flex flex-col h-full"
+              >
                   {/* Question Card */}
                   <div
                     className="mb-3 p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-primary/15 dark:to-emerald-900/20 border-2 border-primary flex-shrink-0"
@@ -129,14 +135,11 @@ export default function TeamRecommendationTest({
                   <div className="flex-1 overflow-y-auto pr-2">
                     <div className="grid grid-cols-2 gap-2">
                       {currentQuestionData.answers.map((answer, index) => (
-                        <motion.button
+                        <button
                           key={index}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.03 }}
                           onClick={() => handleAnswer(answer, index)}
                           className={`
-                            p-3 rounded-lg border-2 text-left transition-all
+                            p-3 rounded-lg border-2 text-left transition-all duration-150 hover:-translate-y-px
                             ${
                               selectedAnswer === index
                                 ? 'bg-green-50 dark:bg-primary/20 shadow-lg border-primary'
@@ -164,21 +167,16 @@ export default function TeamRecommendationTest({
                             </span>
 
                             {selectedAnswer === index && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-primary"
-                              >
+                              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-primary">
                                 <ChevronRight className="w-4 h-4 text-white" />
-                              </motion.div>
+                              </div>
                             )}
                           </div>
-                        </motion.button>
+                        </button>
                       ))}
                     </div>
                   </div>
-                </motion.div>
-              </AnimatePresence>
+              </div>
             </div>
 
             {/* Navigation - Fixed at bottom */}
@@ -312,7 +310,6 @@ export default function TeamRecommendationTest({
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+    </PlainDialog>
   );
 }

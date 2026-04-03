@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
   Camera,
   Save,
@@ -13,43 +13,21 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
 import { Card, CardContent } from '../ui/card';
+import '../common/autofill-input.css';
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from '../ui/alert';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../ui/alert-dialog';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-} from '../ui/sheet';
 import TeamLogo from '../TeamLogo';
-import TeamRecommendationTest from '../TeamRecommendationTest';
 import { useProfileEdit } from '../../hooks/useProfileEdit';
 import { FRANCHISE_TEAM_IDS, TEAM_DATA } from '../../constants/teams';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { ProfileSection, NicknameCheckState } from '../../types/profile';
-import AccountSettingsSection from './AccountSettingsSection';
-import BlockedUsersSection from './BlockedUsersSection';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import VerificationRequiredDialog from '../VerificationRequiredDialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import PlainDialog from '../ui/plain-dialog';
 
 interface ProfileEditSectionProps {
   profileImage: string | null;
@@ -94,6 +72,12 @@ const getTeamLabel = (teamId: string): string => {
   return TEAM_DATA[teamId]?.name || '응원하는 팀을 선택하세요';
 };
 
+const TEAM_TEST_HINT = '구단 테스트로 나에게 맞는 응원스타일을 확인해 보세요.';
+
+const LazyTeamRecommendationTest = lazy(() => import('../TeamRecommendationTest'));
+const LazyAccountSettingsSection = lazy(() => import('./AccountSettingsSection'));
+const LazyBlockedUsersSection = lazy(() => import('./BlockedUsersSection'));
+
 export default function ProfileEditSection({
   profileImage: initialProfileImage,
   name: initialName,
@@ -112,7 +96,6 @@ export default function ProfileEditSection({
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [showMobileMenu, setShowMobileMenu] = useState(true);
   const [showTeamSheet, setShowTeamSheet] = useState(false);
-  const [isTeamSelectOpen, setIsTeamSelectOpen] = useState(false);
   const [pendingPasswordAction, setPendingPasswordAction] = useState(false);
   const [pendingSection, setPendingSection] = useState<ProfileSection | null>(null);
   const {
@@ -165,7 +148,7 @@ export default function ProfileEditSection({
   const hasFieldErrors = Boolean(fieldErrors.name || fieldErrors.bio || isNameBlocked);
   const canSubmit = hasChanges && !isLoading && !isNameChecking && !isNameBlocked && !hasFieldErrors;
   const selectableTeamIds = useMemo<string[]>(() => ['없음', ...FRANCHISE_TEAM_IDS], []);
-  const hideBottomActions = showTeamSheet || isTeamSelectOpen;
+  const hideBottomActions = showTeamSheet;
 
   useEffect(() => {
     if (isDesktop) {
@@ -305,9 +288,9 @@ export default function ProfileEditSection({
 
       <Card>
         <CardContent className="space-y-2 p-4">
-          <Label htmlFor="name" className="text-sm text-muted-foreground">
+          <label htmlFor="name" className="text-sm text-muted-foreground">
             이름
-          </Label>
+          </label>
           <Input
             id="name"
             value={name}
@@ -333,9 +316,9 @@ export default function ProfileEditSection({
 
       <Card>
         <CardContent className="space-y-2 p-4">
-          <Label htmlFor="email" className="text-sm text-muted-foreground">
+          <label htmlFor="email" className="text-sm text-muted-foreground">
             이메일
-          </Label>
+          </label>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
 	            <Input
@@ -359,9 +342,9 @@ export default function ProfileEditSection({
 
       <Card>
         <CardContent className="space-y-2 p-4">
-          <Label htmlFor="bio" className="text-sm text-muted-foreground">
+          <label htmlFor="bio" className="text-sm text-muted-foreground">
             자기소개
-          </Label>
+          </label>
           <textarea
             id="bio"
             value={bio}
@@ -390,73 +373,52 @@ export default function ProfileEditSection({
       {userRole === 'ROLE_USER' && (
         <Card>
           <CardContent className="space-y-3 p-4">
-            <Label htmlFor="team" className="text-sm text-muted-foreground">
+            <label htmlFor="team" className="text-sm text-muted-foreground">
               응원구단
-            </Label>
+            </label>
 
             {isDesktop ? (
               <div className="space-y-2">
                 <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                  <Select
-                    value={editingFavoriteTeam}
-                    open={isTeamSelectOpen}
-                    onOpenChange={setIsTeamSelectOpen}
-                    onValueChange={(value) => {
-                      setEditingFavoriteTeam(value);
-                      setIsTeamSelectOpen(false);
-                    }}
-                  >
-                    <SelectTrigger className="w-full border-border bg-card text-foreground focus-visible:ring-primary/40">
-                      <div className="flex items-center gap-2">
-                        {editingFavoriteTeam !== '없음' && (
-                          <div className="w-6 h-6">
-                            <TeamLogo team={editingFavoriteTeam} size="sm" />
-                          </div>
-                        )}
-                        <span>{getTeamLabel(editingFavoriteTeam)}</span>
+                  <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-card px-3">
+                    {editingFavoriteTeam !== '없음' ? (
+                      <div className="h-6 w-6 shrink-0">
+                        <TeamLogo team={editingFavoriteTeam} size="sm" />
                       </div>
-                    </SelectTrigger>
-                    <SelectContent className="z-[120] max-h-72">
+                    ) : (
+                      <div className="h-6 w-6 shrink-0 rounded-full bg-muted" />
+                    )}
+                    <select
+                      id="team"
+                      value={editingFavoriteTeam}
+                      onChange={(event) => setEditingFavoriteTeam(event.target.value)}
+                      className="h-10 w-full appearance-none bg-transparent text-sm text-foreground outline-none"
+                      disabled={isLoading}
+                    >
                       {selectableTeamIds.map((teamId) => (
-                        <SelectItem key={teamId} value={teamId}>
-                          <div className="flex items-center gap-2">
-                            {teamId !== '없음' && (
-                              <div className="w-6 h-6">
-                                <TeamLogo team={teamId} size="sm" />
-                              </div>
-                            )}
-                            {teamId === '없음' && (
-                              <div className="w-6 h-6 rounded-full bg-muted" />
-                            )}
-                            {TEAM_DATA[teamId].name}
-                          </div>
-                        </SelectItem>
+                        <option key={teamId} value={teamId}>
+                          {TEAM_DATA[teamId].name}
+                        </option>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </select>
+                    <span className="shrink-0 text-xs text-muted-foreground" aria-hidden="true">
+                      ▾
+                    </span>
+                  </div>
 
-                  <TooltipProvider delayDuration={150}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowTeamTest(true)}
-                          className="h-10 px-3 text-xs flex items-center justify-center text-primary border-primary/30 hover:bg-primary/10 dark:hover:bg-primary/20"
-                          title="구단 테스트를 실행해 나에게 맞는 응원스타일을 확인해 보세요."
-                          disabled={isLoading}
-                        >
-                          <Sparkles className="w-4 h-4 mr-1.5" />
-                          구단 테스트 해보기
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>구단 테스트로 나에게 맞는 응원스타일을 확인해 보세요.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowTeamTest(true)}
+                    className="h-10 px-3 text-xs flex items-center justify-center text-primary border-primary/30 hover:bg-primary/10 dark:hover:bg-primary/20"
+                    title={TEAM_TEST_HINT}
+                    disabled={isLoading}
+                  >
+                    <Sparkles className="w-4 h-4 mr-1.5" />
+                    구단 테스트 해보기
+                  </Button>
                 </div>
 
-                <p className="text-xs text-muted-foreground">응원구단은 응원석에서 사용됩니다</p>
+                <p className="text-xs text-muted-foreground">응원구단은 응원석에서 사용됩니다. {TEAM_TEST_HINT}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -480,29 +442,20 @@ export default function ProfileEditSection({
                     >
                       변경
                     </Button>
-                    <TooltipProvider delayDuration={150}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            onClick={() => setShowTeamTest(true)}
-                            className="h-8 px-2 text-xs"
-                            title="구단 테스트를 실행해 나에게 맞는 응원스타일을 확인해 보세요."
-                            disabled={isLoading}
-                          >
-                        <Sparkles className="w-4 h-4 mr-1.5" />
-                          구단 테스트 해보기
-                        </Button>
-                      </TooltipTrigger>
-                        <TooltipContent>
-                          <p>구단 테스트로 나에게 맞는 응원스타일을 확인해 보세요.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowTeamTest(true)}
+                      className="h-8 px-2 text-xs"
+                      title={TEAM_TEST_HINT}
+                      disabled={isLoading}
+                    >
+                      <Sparkles className="w-4 h-4 mr-1.5" />
+                      구단 테스트 해보기
+                    </Button>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  앱처럼 빠르게 열어서 응원구단을 선택할 수 있습니다.
+                  앱처럼 빠르게 열어서 응원구단을 선택할 수 있습니다. {TEAM_TEST_HINT}
                 </p>
               </div>
             )}
@@ -543,10 +496,18 @@ export default function ProfileEditSection({
     }
 
     if (activeSection === 'accountSettings') {
-      return <AccountSettingsSection userProvider={userProvider} hasPassword={hasPassword} />;
+      return (
+        <Suspense fallback={<div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">계정 설정을 불러오는 중입니다...</div>}>
+          <LazyAccountSettingsSection userProvider={userProvider} hasPassword={hasPassword} />
+        </Suspense>
+      );
     }
 
-    return <BlockedUsersSection />;
+    return (
+      <Suspense fallback={<div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">차단 목록을 불러오는 중입니다...</div>}>
+        <LazyBlockedUsersSection />
+      </Suspense>
+    );
   };
 
   return (
@@ -650,13 +611,21 @@ export default function ProfileEditSection({
       </div>
 
       {showTeamSheet && (
-        <Sheet open={showTeamSheet} onOpenChange={setShowTeamSheet}>
-          <SheetContent side="bottom" className="h-[70vh] flex flex-col overflow-hidden z-[130]">
-            <SheetHeader>
-              <SheetTitle>응원구단 선택</SheetTitle>
-              <SheetDescription>원하는 응원구단을 선택하면 즉시 반영됩니다.</SheetDescription>
-            </SheetHeader>
-            <div className="flex-1 min-h-0 space-y-2 mt-4 overflow-y-auto pb-2">
+        <PlainDialog
+          open={showTeamSheet}
+          onClose={() => setShowTeamSheet(false)}
+          placement="bottom"
+          title="응원구단 선택"
+          description="원하는 응원구단을 선택하면 즉시 반영됩니다."
+          className="h-[70vh] max-w-2xl rounded-b-none rounded-t-3xl border-none"
+          bodyClassName="flex max-h-[calc(70vh-81px)] flex-col overflow-hidden bg-white p-0 dark:bg-card"
+          footer={(
+            <Button variant="outline" className="w-full" onClick={() => setShowTeamSheet(false)}>
+              닫기
+            </Button>
+          )}
+        >
+          <div className="flex-1 min-h-0 space-y-2 overflow-y-auto px-5 pb-4 pt-4">
               {selectableTeamIds.map((teamId) => (
                 <Button
                   key={teamId}
@@ -680,48 +649,59 @@ export default function ProfileEditSection({
                   <CheckCircle2 className={`w-4 h-4 ${editingFavoriteTeam === teamId ? 'text-primary' : 'text-transparent'}`} />
                 </Button>
               ))}
-            </div>
-            <SheetFooter className="shrink-0">
-              <Button variant="outline" className="w-full" onClick={() => setShowTeamSheet(false)}>
-                닫기
-              </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+          </div>
+        </PlainDialog>
       )}
 
-      <AlertDialog open={showDiscardDialog} onOpenChange={(open) => !open && handleSectionDialogClose()}>
-        <AlertDialogContent className="dark:bg-card dark:border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {pendingSection ? '변경사항을 버리고 이동하시겠습니까?' : '변경사항을 버리시겠습니까?'}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              {pendingSection
-                ? '저장하지 않은 변경사항이 있습니다. 이동하려면 변경사항이 사라집니다.'
-                : '저장하지 않은 변경사항이 있습니다. 나가시겠습니까?'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>
+      <PlainDialog
+        open={showDiscardDialog}
+        onClose={handleSectionDialogClose}
+        title={pendingSection ? '변경사항을 버리고 이동하시겠습니까?' : '변경사항을 버리시겠습니까?'}
+        description={pendingSection
+          ? '저장하지 않은 변경사항이 있습니다. 이동하려면 변경사항이 사라집니다.'
+          : '저장하지 않은 변경사항이 있습니다. 나가시겠습니까?'}
+        className="max-w-md"
+        footer={(
+          <>
+            <Button variant="outline" onClick={handleSectionDialogClose}>
               계속 수정
-            </AlertDialogCancel>
-            <AlertDialogAction
+            </Button>
+            <Button
               onClick={handleTabDiscardConfirm}
               className="bg-primary text-primary-foreground hover:bg-primary-dark"
             >
               나가기
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </>
+        )}
+      >
+        <p className="text-sm text-muted-foreground">
+          저장하지 않은 변경사항은 되돌릴 수 없습니다.
+        </p>
+      </PlainDialog>
 
       {showTeamTest && (
-        <TeamRecommendationTest
-          isOpen={showTeamTest}
-          onClose={() => setShowTeamTest(false)}
-          onSelectTeam={handleTeamSelect}
-        />
+        <Suspense
+          fallback={(
+            <PlainDialog
+              open={showTeamTest}
+              onClose={() => setShowTeamTest(false)}
+              ariaLabel="응원구단 추천 테스트 불러오는 중"
+              hideHeader
+              className="max-w-md"
+            >
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                응원구단 추천 테스트를 불러오는 중입니다...
+              </div>
+            </PlainDialog>
+          )}
+        >
+          <LazyTeamRecommendationTest
+            isOpen={showTeamTest}
+            onClose={() => setShowTeamTest(false)}
+            onSelectTeam={handleTeamSelect}
+          />
+        </Suspense>
       )}
 
       <VerificationRequiredDialog

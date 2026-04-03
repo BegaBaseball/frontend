@@ -1,4 +1,5 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
+import './NavigationMenu.css';
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { LogOut, ShieldAlert, Menu, X, Map, Users, Megaphone, LineChart } from 'lucide-react';
@@ -43,20 +44,22 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
     void import('./Prediction');
   };
 
-  // 안 읽은 채팅 메시지 수 (폴링 - 탭 비활성 시 중지)
+  // 안 읽은 채팅 메시지 수
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const menuToggleButtonRef = useRef<HTMLButtonElement | null>(null);
   const menuPopupRef = useRef<HTMLDivElement | null>(null);
   const preMenuFocusRef = useRef<HTMLElement | null>(null);
+  const refreshChatUnreadRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!authenticatedShell || !isLoggedIn) {
       setChatUnreadCount(0);
+      refreshChatUnreadRef.current = null;
       return;
     }
 
     let cancelled = false;
-    const checkChatUnread = async () => {
+    const refreshChatUnread = async () => {
       try {
         const { getChatUnreadCounts } = await import('../api/mate');
         if (cancelled) {
@@ -71,32 +74,30 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
       }
     };
 
-    let interval: ReturnType<typeof setInterval> | null = null;
-
-    const startPolling = () => {
-      void checkChatUnread();
-      interval = setInterval(() => {
-        if (!document.hidden) void checkChatUnread();
-      }, 30000);
+    refreshChatUnreadRef.current = () => {
+      void refreshChatUnread();
     };
 
     const handleVisibilityChange = () => {
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
+      if (!document.hidden) {
+        void refreshChatUnread();
       }
-      if (!document.hidden) startPolling();
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    if (!document.hidden) startPolling();
+    void refreshChatUnread();
 
     return () => {
       cancelled = true;
+      refreshChatUnreadRef.current = null;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (interval) clearInterval(interval);
     };
-  }, [authenticatedShell, isLoggedIn, location.pathname]); // 경로 변경 시(채팅 뷰 진입/이탈 등) 즉각 업데이트
+  }, [authenticatedShell, isLoggedIn]);
+
+  // 경로 변경 시(채팅 뷰 진입/이탈 등) 즉각 unread 카운트 갱신
+  useEffect(() => {
+    refreshChatUnreadRef.current?.();
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!authenticatedShell) {

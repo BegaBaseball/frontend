@@ -1,11 +1,8 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuthProfileSnapshot } from '../store/authStore';
+import { Link } from 'react-router-dom';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 
 
 export default function Footer() {
-  const navigate = useNavigate();
-  const { userHandle } = useAuthProfileSnapshot();
   return (
     <footer className="bg-gray-100 dark:bg-gray-900 text-zinc-900 dark:text-white py-8 border-t border-zinc-200 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -53,13 +50,9 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <button
-                  type="button"
-                  onClick={() => navigate(userHandle ? `/profile/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}` : '/mypage')}
-                  className="hover:text-primary dark:hover:text-white text-left"
-                >
+                <Link to="/mypage" className="hover:text-primary dark:hover:text-white">
                   프로필
-                </button>
+                </Link>
               </li>
             </ul>
           </div>

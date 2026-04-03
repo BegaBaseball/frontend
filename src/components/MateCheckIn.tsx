@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -18,15 +19,17 @@ import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import LoadingSpinner from './LoadingSpinner';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { Progress } from './ui/progress';
-import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { useAuthProfileSnapshot } from '../store/authStore';
-import { CheckIn } from '../types/mate';
+import {
+  appendMatePartyCheckInQueryData,
+  getMatePartyCheckInsQueryOptions,
+  updateMatePartyCollectionQueryData,
+  useMatePartyFromRoute,
+} from '../hooks/mateCheckInRoute';
+import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { cn } from '../lib/utils';
-import { api } from '../utils/api';
+import { createCheckIn } from '../api/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import {
   getPartyFlowLabel,
@@ -86,119 +89,63 @@ function EmptyState({
   );
 }
 
+function MatePill({ className = '', children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+function ProgressBar({ value, className = '' }: { value: number; className?: string }) {
+  const safeValue = Math.max(0, Math.min(100, value));
+
+  return (
+    <div className={`w-full overflow-hidden rounded-full bg-gray-200 dark:bg-secondary/80 ${className}`} aria-hidden="true">
+      <div
+        className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+        style={{ width: `${safeValue}%` }}
+      />
+    </div>
+  );
+}
+
 export default function MateCheckIn() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const {
-    party: selectedParty,
+    party,
     isLoading: isPartyLoading,
     isRevalidating: isPartyRevalidating,
     error: partyError,
   } = useMatePartyFromRoute(id);
   const {
-    userId: authUserId,
-    userHandle: authUserHandle,
+    userHandle: currentUserHandle,
   } = useAuthProfileSnapshot();
+  const { isAuthLoading, userId: currentUserId } = useAuthSession();
+  const queryClient = useQueryClient();
 
   const [isChecking, setIsChecking] = useState(false);
-  const [checkInStatus, setCheckInStatus] = useState<CheckIn[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserHandle, setCurrentUserHandle] = useState<string | null>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [userLoadError, setUserLoadError] = useState<string | null>(null);
-  const [userRetryCount, setUserRetryCount] = useState(0);
-  const [statusLoadError, setStatusLoadError] = useState<string | null>(null);
-  const [statusRetryCount, setStatusRetryCount] = useState(0);
   const qrSessionId = searchParams.get('sessionId')?.trim() || undefined;
 
-  useEffect(() => {
-    let isMounted = true;
+  const checkInsQuery = useQuery({
+    ...(party?.id != null
+      ? getMatePartyCheckInsQueryOptions(party.id)
+      : getMatePartyCheckInsQueryOptions('unknown')),
+    enabled: Boolean(party?.id),
+  });
+  const checkInStatus = checkInsQuery.data ?? [];
+  const statusLoadError = checkInsQuery.error
+    ? '체크인 현황을 다시 확인하지 못했습니다. 잠시 후 다시 시도해주세요.'
+    : null;
 
-    const fetchUser = async () => {
-      setIsLoadingUser(true);
-      setUserLoadError(null);
-
-      if (authUserId && authUserId > 0) {
-        if (isMounted) {
-          setCurrentUserId(authUserId);
-          setCurrentUserHandle(authUserHandle || null);
-          setIsLoadingUser(false);
-        }
-        return;
-      }
-
-      try {
-        const userData = await api.getCurrentUser();
-        const profileId = Number(userData?.data?.id);
-        if (Number.isFinite(profileId) && profileId > 0) {
-          if (isMounted) {
-            setCurrentUserId(profileId);
-            setCurrentUserHandle(userData?.data?.handle ?? null);
-          }
-          return;
-        }
-        throw new Error('사용자 ID를 확인할 수 없습니다.');
-      } catch (error) {
-        console.error('사용자 정보 가져오기 실패:', error);
-        if (isMounted) {
-          setCurrentUserId(null);
-          setCurrentUserHandle(null);
-          setUserLoadError(getApiErrorMessage(error, '사용자 정보를 확인하지 못했습니다. 다시 시도해주세요.'));
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingUser(false);
-        }
-      }
-    };
-
-    void fetchUser();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [authUserHandle, authUserId, userRetryCount]);
-
-  useEffect(() => {
-    if (!selectedParty) {
-      return;
-    }
-
-    let isMounted = true;
-
-    const fetchCheckInStatus = async () => {
-      try {
-        setStatusLoadError(null);
-        const data = await api.getCheckInsByParty(selectedParty.id);
-        if (isMounted) {
-          setCheckInStatus(data);
-        }
-      } catch (error) {
-        console.error('체크인 현황 불러오기 실패:', error);
-        if (isMounted) {
-          setStatusLoadError('체크인 현황을 다시 확인하지 못했습니다. 잠시 후 다시 시도해주세요.');
-        }
-      }
-    };
-
-    void fetchCheckInStatus();
-    const interval = setInterval(() => {
-      void fetchCheckInStatus();
-    }, 15000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [selectedParty, statusRetryCount]);
-
-  if ((isPartyLoading && !selectedParty) || isLoadingUser) {
+  if (isAuthLoading || (isPartyLoading && !party)) {
     return <LoadingSpinner text="파티 정보를 불러오는 중입니다..." />;
   }
 
-  if (partyError || !selectedParty || !currentUserId) {
-    const resolvedError = partyError || userLoadError || '파티 정보를 찾을 수 없습니다.';
+  if (partyError || !party) {
+    const resolvedError = partyError || '파티 정보를 찾을 수 없습니다.';
     return (
       <div className={matePageShellClass}>
         <img
@@ -215,14 +162,6 @@ export default function MateCheckIn() {
               </AlertDescription>
             </Alert>
             <div className="mt-4 flex flex-wrap gap-2">
-              {userLoadError && (
-                <Button
-                  variant="outline"
-                  onClick={() => setUserRetryCount((count) => count + 1)}
-                >
-                  다시 시도
-                </Button>
-              )}
               <Button
                 variant="ghost"
                 onClick={() => navigate('/mate')}
@@ -237,7 +176,11 @@ export default function MateCheckIn() {
     );
   }
 
-  const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
+  if (!currentUserId) {
+    return null;
+  }
+
+  const isHost = isPartyHostedByUser(party, { id: currentUserId, handle: currentUserHandle });
   const myCheckIn = checkInStatus.find((checkIn) => hasSameMateUserIdentity(
     { handle: checkIn.userHandle },
     { handle: currentUserHandle },
@@ -245,15 +188,15 @@ export default function MateCheckIn() {
   const isCheckedIn = Boolean(myCheckIn);
   const hostCheckedIn = checkInStatus.some((checkIn) => hasSameMateUserIdentity(
     { handle: checkIn.userHandle },
-    { handle: selectedParty.hostHandle },
+    { handle: party.hostHandle },
   ));
-  const totalParticipants = Math.max(selectedParty.currentParticipants, 1);
+  const totalParticipants = Math.max(party.currentParticipants, 1);
   const checkedInCount = checkInStatus.length;
   const remainingCount = Math.max(totalParticipants - checkedInCount, 0);
   const allCheckedIn = checkedInCount >= totalParticipants;
   const progressValue = Math.min(100, Math.round((checkedInCount / totalParticipants) * 100));
-  const statusMeta = getPartyStatusMeta(selectedParty.status);
-  const flowLabel = getPartyFlowLabel(selectedParty.status);
+  const statusMeta = getPartyStatusMeta(party.status);
+  const flowLabel = getPartyFlowLabel(party.status);
   const roleLabel = isHost ? '호스트 모드' : '참여자 모드';
   const sessionLabel = qrSessionId ? 'QR 세션 진입' : '일반 진입';
   const currentStateLabel = allCheckedIn
@@ -303,15 +246,18 @@ export default function MateCheckIn() {
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      await api.createCheckIn({
-        partyId: selectedParty.id,
-        location: selectedParty.stadium,
+      const createdCheckIn = await createCheckIn({
+        partyId: party.id,
+        location: party.stadium,
         ...(qrSessionId ? { qrSessionId } : {}),
       });
-
-      const data = await api.getCheckInsByParty(selectedParty.id);
-      setCheckInStatus(data);
-      setStatusLoadError(null);
+      const nextCheckIns = appendMatePartyCheckInQueryData(queryClient, party.id, createdCheckIn);
+      if (nextCheckIns.length >= party.currentParticipants) {
+        updateMatePartyCollectionQueryData(queryClient, party.id, (currentParty) => ({
+          ...currentParty,
+          status: 'CHECKED_IN',
+        }));
+      }
       toast.success('체크인이 완료되었습니다!');
     } catch (error) {
       console.error('체크인 중 오류:', error);
@@ -372,7 +318,7 @@ export default function MateCheckIn() {
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex min-w-0 gap-3 sm:gap-4">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10 sm:h-16 sm:w-16">
-                      <TeamLogo teamId={selectedParty.teamId} size="md" />
+                      <TeamLogo teamId={party.teamId} size="md" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
@@ -385,22 +331,22 @@ export default function MateCheckIn() {
                         경기장 도착 상태와 전체 진행률을 한 화면에서 확인합니다. 개인 인증과 그룹 진행 상황을 분리해서 보여줍니다.
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <Badge className={cn('border text-xs font-semibold', statusMeta.className)}>
+                        <MatePill className={cn('border text-xs font-semibold', statusMeta.className)}>
                           {statusMeta.label}
-                        </Badge>
-                        <Badge className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
+                        </MatePill>
+                        <MatePill className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
                           {roleLabel}
-                        </Badge>
-                        <Badge className="border border-gray-200 bg-white/90 text-gray-700 dark:border-border dark:bg-card/70 dark:text-gray-200">
+                        </MatePill>
+                        <MatePill className="border border-gray-200 bg-white/90 text-gray-700 dark:border-border dark:bg-card/70 dark:text-gray-200">
                           {flowLabel}
-                        </Badge>
+                        </MatePill>
                         {qrSessionId && (
-                          <Badge className="border border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/35 dark:text-sky-300">
+                          <MatePill className="border border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/35 dark:text-sky-300">
                             <span className="flex items-center gap-1">
                               <QrCode className="h-3.5 w-3.5" />
                               QR 세션
                             </span>
-                          </Badge>
+                          </MatePill>
                         )}
                       </div>
                     </div>
@@ -413,7 +359,7 @@ export default function MateCheckIn() {
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">일정</p>
                           <p className="mt-1 font-medium text-gray-900 dark:text-white">
-                            {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime}
+                            {formatGameDate(party.gameDate)} {party.gameTime}
                           </p>
                         </div>
                       </div>
@@ -421,8 +367,8 @@ export default function MateCheckIn() {
                         <MapPin className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
-                          <p className="mt-1 font-medium text-gray-900 dark:text-white">{selectedParty.stadium}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-300">{selectedParty.section}</p>
+                          <p className="mt-1 font-medium text-gray-900 dark:text-white">{party.stadium}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">{party.section}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
@@ -473,7 +419,7 @@ export default function MateCheckIn() {
                     variant="outline"
                     size="sm"
                     className="border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-900 dark:text-amber-200 dark:hover:bg-amber-950/40"
-                    onClick={() => setStatusRetryCount((count) => count + 1)}
+                    onClick={() => void checkInsQuery.refetch()}
                   >
                     다시 시도
                   </Button>
@@ -588,14 +534,14 @@ export default function MateCheckIn() {
                     개인 체크인과 별개로 전체 인원이 얼마나 도착했는지 보여줍니다.
                   </p>
                 </div>
-                <Badge className={cn(
+                <MatePill className={cn(
                   'border text-xs font-semibold',
                   allCheckedIn
                     ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
                     : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300',
                 )}>
                   {allCheckedIn ? '전원 도착 완료' : `${remainingCount}명 대기 중`}
-                </Badge>
+                </MatePill>
               </div>
 
               <div className="mt-6 space-y-4">
@@ -603,7 +549,7 @@ export default function MateCheckIn() {
                   <span>진행률</span>
                   <span className="font-semibold text-gray-900 dark:text-white">{progressValue}%</span>
                 </div>
-                <Progress value={progressValue} className="h-3" />
+                <ProgressBar value={progressValue} className="h-3" />
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className={`${mateInsetPanelClass} p-4`}>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">완료</p>
@@ -656,20 +602,20 @@ export default function MateCheckIn() {
                       <div className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                     )}
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedParty.hostName} (호스트)</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{party.hostName} (호스트)</p>
                       <p className="text-xs text-gray-500 dark:text-gray-300">
                         {hostCheckedIn ? '도착 인증 완료' : '아직 도착 확인 전'}
                       </p>
                     </div>
                   </div>
-                  <Badge className={cn(
+                  <MatePill className={cn(
                     'border text-xs font-semibold',
                     hostCheckedIn
                       ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
                       : 'border-gray-200 bg-white text-gray-600 dark:border-border dark:bg-card/60 dark:text-gray-300',
                   )}>
                     {hostCheckedIn ? '체크인 완료' : '대기 중'}
-                  </Badge>
+                  </MatePill>
                 </div>
 
                 {!isHost && (
@@ -692,14 +638,14 @@ export default function MateCheckIn() {
                         </p>
                       </div>
                     </div>
-                    <Badge className={cn(
+                    <MatePill className={cn(
                       'border text-xs font-semibold',
                       isCheckedIn
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
                         : 'border-gray-200 bg-white text-gray-600 dark:border-border dark:bg-card/60 dark:text-gray-300',
                     )}>
                       {isCheckedIn ? '체크인 완료' : '대기 중'}
-                    </Badge>
+                    </MatePill>
                   </div>
                 )}
 
@@ -709,7 +655,7 @@ export default function MateCheckIn() {
                     { handle: currentUserHandle },
                   ) && !hasSameMateUserIdentity(
                     { handle: checkIn.userHandle },
-                    { handle: selectedParty.hostHandle },
+                    { handle: party.hostHandle },
                   ))
                   .map((checkIn) => (
                     <div
@@ -725,9 +671,9 @@ export default function MateCheckIn() {
                           </p>
                         </div>
                       </div>
-                      <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
+                      <MatePill className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                         체크인 완료
-                      </Badge>
+                      </MatePill>
                     </div>
                   ))}
 

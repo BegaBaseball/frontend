@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { X, Camera } from 'lucide-react';
 import { fetchSeatViews, SeatViewPhoto } from '../api/diary';
-import { Button } from './ui/button';
+import { Button } from './ui/plain-button';
 
 interface SeatViewGalleryProps {
   stadium: string;

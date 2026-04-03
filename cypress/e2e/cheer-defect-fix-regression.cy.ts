@@ -480,7 +480,7 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         cy.contains('원글 본문').should('be.visible');
         cy.get('button[aria-label^="좋아요"]').first().as('likeButton');
         cy.get('button[aria-label*="리포스트"]').first().as('repostButton');
-        cy.get('button:has(svg.lucide-bookmark)').first().as('bookmarkButton');
+        cy.get('button[aria-label^="북마크"]').first().as('bookmarkButton');
 
         cy.get('@likeButton').should('contain', '99');
         cy.get('@likeButton').find('svg').should('have.class', 'fill-current');
@@ -1160,7 +1160,7 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         cy.get('[data-testid="write-post-btn"]').filter(':visible').first().click({ force: true });
 
         cy.wait('@createCheerPostUnauthorized');
-        cy.wait('@reissueForExpiredCheerWrite');
+        cy.get('@reissueForExpiredCheerWrite.all').should('have.length', 0);
         cy.location('pathname').should('eq', '/login');
         cy.location('search').should('eq', '?redirect=%2Fcheer%2Fwrite%3Ftab%3Dpopular');
     });

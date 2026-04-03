@@ -107,6 +107,12 @@ export interface MateParty {
   awayTeam: string;
 }
 
+export type MatePartySeed = Party | MateParty;
+
+export interface MateRouteLocationState {
+  partySeed?: MatePartySeed;
+}
+
 export interface MateApplication {
   id: number;
   partyId: number;

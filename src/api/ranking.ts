@@ -1,17 +1,13 @@
-// api/ranking.ts (기존 파일에 추가/업데이트)
-import api from './axios';
+import { getApiErrorStatus } from './errorStatus';
+import { privateGet, privatePost } from './privateClient';
+import { publicGet } from './publicClient';
 import { SeasonResponse, SavedPredictionResponse, SaveRankingRequest } from '../types/ranking';
-import { AxiosError } from 'axios';
 
 /**
  * 현재 예측 가능한 시즌 조회
  */
 export const fetchCurrentSeason = async (): Promise<SeasonResponse> => {
-  const response = await api.get('/predictions/ranking/current-season', {
-    skipGlobalErrorHandler: true,
-    skipAuthSessionHandling: true,
-  });
-  return response.data;
+  return publicGet<SeasonResponse>('/predictions/ranking/current-season');
 };
 
 /**
@@ -20,15 +16,13 @@ export const fetchCurrentSeason = async (): Promise<SeasonResponse> => {
  */
 export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPredictionResponse | null> => {
   try {
-    const response = await api.get(`/predictions/ranking`, {
+    return await privateGet<SavedPredictionResponse>('/predictions/ranking', {
       params: { seasonYear },
-      skipGlobalErrorHandler: true, // 404는 예외가 아니므로 전역 에러 처리 제외
       skipAuthSessionHandling: true,
     });
-    return response.data;
   } catch (error: unknown) {
     // 404: 저장된 예측이 없음 - 정상적인 상태이므로 null 반환
-    if (error instanceof AxiosError && error.response?.status === 404) {
+    if (getApiErrorStatus(error) === 404) {
       return null;
     }
     throw error;
@@ -39,20 +33,7 @@ export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPre
  * 순위 예측 저장
  */
 export const saveRankingPrediction = async (data: SaveRankingRequest): Promise<SavedPredictionResponse> => {
-  const response = await api.post('/predictions/ranking', data, {
-    skipGlobalErrorHandler: true,
+  return privatePost<SavedPredictionResponse, SaveRankingRequest>('/predictions/ranking', data, {
     skipAuthSessionHandling: true,
   });
-  return response.data;
-};
-
-/**
- * 공유된 순위 예측 조회
- */
-export const fetchSharedPrediction = async (
-  shareId: string,
-  seasonYear: string
-): Promise<SavedPredictionResponse> => {
-  const response = await api.get(`/predictions/ranking/share/${shareId}/${seasonYear}`);
-  return response.data;
 };

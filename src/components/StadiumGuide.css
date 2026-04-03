@@ -1,0 +1,50 @@
+.stadium-guide-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.stadium-guide-select::-ms-expand {
+  display: none;
+}
+
+.stadium-guide-map {
+  width: 100%;
+  height: 500px;
+  color: #111827;
+}
+
+.dark .stadium-guide-map {
+  color: #f3f4f6;
+}
+
+.stadium-guide-map-frame {
+  min-height: 500px;
+}
+
+.stadium-guide-list-shell {
+  height: 550px;
+}
+
+.stadium-guide-scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary)) hsl(var(--secondary));
+}
+
+.stadium-guide-scroll-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.stadium-guide-scroll-area::-webkit-scrollbar-track {
+  background: hsl(var(--secondary));
+  border-radius: 10px;
+}
+
+.stadium-guide-scroll-area::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary));
+  border-radius: 10px;
+}
+
+.stadium-guide-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.85);
+}

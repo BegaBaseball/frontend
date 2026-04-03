@@ -1,14 +1,8 @@
-import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 
 export default function EndOfFeed() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-col items-center justify-center px-4 py-12 text-center"
-    >
+    <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
       <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400">
         <Check className="h-6 w-6" />
       </div>
@@ -23,6 +17,6 @@ export default function EndOfFeed() {
       >
         처음으로 돌아가기
       </button>
-    </motion.div>
+    </div>
   );
 }

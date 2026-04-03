@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText, Repeat2, Trash2, CheckCheck, Clock, Calendar, AlertTriangle, Star, ShieldAlert } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore } from '../store/notificationStore';
 import { useAuthSession } from '../store/authStore';
 import { notificationApi, isIgnorableNotificationError } from '../utils/notificationApi';
@@ -215,26 +214,21 @@ export default function NotificationPanel() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            <AnimatePresence initial={false}>
-              {Object.entries(groupedNotifications).map(([groupName, groupNotifs]) => (
-                groupNotifs.length > 0 && (
-                  <div key={groupName}>
-                    <div className="px-4 py-2 bg-gray-50/50 dark:bg-card/50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      {groupName}
-                    </div>
-                    {groupNotifs.map((notification) => (
-                      <motion.div
-                        key={notification.id}
-                        layout
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
-                        onClick={() => handleNotificationClick(notification)}
-                        className={`relative group p-4 cursor-pointer transition-colors duration-500 ${notification.isRead
-                          ? 'bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                          : 'bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                          }`}
-                      >
+            {Object.entries(groupedNotifications).map(([groupName, groupNotifs]) => (
+              groupNotifs.length > 0 && (
+                <div key={groupName}>
+                  <div className="px-4 py-2 bg-gray-50/50 dark:bg-card/50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    {groupName}
+                  </div>
+                  {groupNotifs.map((notification) => (
+                    <div
+                      key={notification.id}
+                      onClick={() => handleNotificationClick(notification)}
+                      className={`relative group p-4 cursor-pointer transition-colors duration-500 ${notification.isRead
+                        ? 'bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        : 'bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                        }`}
+                    >
                         <div className="flex gap-3 pr-6">
                           {/* Icon/Avatar Area */}
                           <div className="flex-shrink-0 mt-0.5">
@@ -274,12 +268,11 @@ export default function NotificationPanel() {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )
-              ))}
-            </AnimatePresence>
+                    </div>
+                  ))}
+                </div>
+              )
+            ))}
           </div>
         )}
       </div>

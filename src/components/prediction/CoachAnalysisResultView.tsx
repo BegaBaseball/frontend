@@ -1,5 +1,4 @@
 import { type ComponentType } from 'react';
-import { motion } from 'framer-motion';
 import {
     AlertTriangle,
     BarChart3,
@@ -20,28 +19,6 @@ import {
 import CoachStatCard from './CoachStatCard';
 import CoachMetricCard from './CoachMetricCard';
 
-const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.08,
-        },
-    },
-} as const;
-
-const itemVariants = {
-    hidden: { opacity: 0, y: 12 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            duration: 0.35,
-            ease: 'easeOut',
-        },
-    },
-} as const;
-
 interface CoachAnalysisResultViewProps {
     analysisData: CoachAnalysisData | null;
 }
@@ -58,7 +35,7 @@ function InsightSection({ icon: Icon, title, items }: InsightSectionProps) {
     }
 
     return (
-        <motion.div variants={itemVariants} className="space-y-3 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center gap-2">
                 <Icon aria-hidden="true" className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{title}</h4>
@@ -70,7 +47,7 @@ function InsightSection({ icon: Icon, title, items }: InsightSectionProps) {
                     </p>
                 ))}
             </div>
-        </motion.div>
+        </div>
     );
 }
 
@@ -90,7 +67,7 @@ function RiskSection({ risks, isReviewMode }: { risks: CoachRiskItem[]; isReview
     };
 
     return (
-        <motion.div variants={itemVariants} className="space-y-4">
+        <div className="space-y-4">
             <div className="flex items-center gap-3">
                 <AlertTriangle aria-hidden="true" className="h-5 w-5 text-red-500" />
                 <div>
@@ -111,7 +88,7 @@ function RiskSection({ risks, isReviewMode }: { risks: CoachRiskItem[]; isReview
                     </div>
                 ))}
             </div>
-        </motion.div>
+        </div>
     );
 }
 
@@ -126,16 +103,11 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
     const hasDetailedReport = Boolean(analysisData.detailed_analysis) || Boolean(analysisData.coach_note);
 
     return (
-        <motion.div
-            key="analysis-results"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+        <div
             role="article"
             className="space-y-8 pb-10"
         >
-            <motion.div
-                variants={itemVariants}
+            <div
                 className={`rounded-2xl border p-6 sm:p-8 shadow-sm ${
                     isPositive
                         ? 'border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20'
@@ -172,11 +144,11 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                         ))}
                     </div>
                 )}
-            </motion.div>
+            </div>
 
             {(analysisData.verdict || analysisData.analysis_summary) && (
                 <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-                    <motion.div variants={itemVariants} className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+                    <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                         <div className="mb-3 flex items-center gap-3">
                             <div className="rounded-xl bg-gray-100 p-2 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
                                 <Gavel aria-hidden="true" className="h-4 w-4" />
@@ -186,10 +158,10 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                         <p className="text-base font-semibold leading-relaxed text-gray-900 dark:text-white">
                             {analysisData.verdict || analysisData.analysis_summary}
                         </p>
-                    </motion.div>
+                    </div>
 
                     {analysisData.analysis_summary && (
-                        <motion.div variants={itemVariants} className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+                        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                             <div className="mb-3 flex items-center gap-3">
                                 <div className="rounded-xl bg-gray-100 p-2 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
                                     <Radar aria-hidden="true" className="h-4 w-4" />
@@ -199,7 +171,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                             <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
                                 {analysisData.analysis_summary}
                             </p>
-                        </motion.div>
+                        </div>
                     )}
                 </div>
             )}
@@ -207,7 +179,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
             {hasAnyMetric && (
                 <div className="space-y-10">
                     {criticalFactors.length > 0 && (
-                        <motion.div variants={itemVariants} className="space-y-4">
+                        <div className="space-y-4">
                             <div className="flex items-center gap-3">
                                 <AlertTriangle aria-hidden="true" className="h-5 w-5 text-red-500" />
                                 <div>
@@ -222,11 +194,11 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                                     <CoachMetricCard key={`risk-${idx}`} data={item} />
                                 ))}
                             </div>
-                        </motion.div>
+                        </div>
                     )}
 
                     {strategicFactors.length > 0 && (
-                        <motion.div variants={itemVariants} className="space-y-4">
+                        <div className="space-y-4">
                             <div className="flex items-center gap-3">
                                 <CheckCircle aria-hidden="true" className="h-5 w-5 text-emerald-500" />
                                 <div>
@@ -241,7 +213,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                                     <CoachMetricCard key={`norm-${idx}`} data={item} />
                                 ))}
                             </div>
-                        </motion.div>
+                        </div>
                     )}
                 </div>
             )}
@@ -282,7 +254,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
             <RiskSection risks={analysisData.risks} isReviewMode={isReviewMode} />
 
             {hasDetailedReport && (
-                <motion.div variants={itemVariants} className="space-y-4 pt-2">
+                <div className="space-y-4 pt-2">
                     <div className="flex items-center gap-3">
                         <BarChart3 aria-hidden="true" className="h-5 w-5 text-blue-500" />
                         <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">상세 리포트</h4>
@@ -304,8 +276,8 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                             </p>
                         </div>
                     )}
-                </motion.div>
+                </div>
             )}
-        </motion.div>
+        </div>
     );
 }

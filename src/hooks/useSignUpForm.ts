@@ -1,9 +1,26 @@
-// hooks/useSignUpForm.ts
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { signupUser } from '../api/auth';
-import { validateField, validateAllFields } from '../utils/validation';
-import { SignUpFormData, FieldErrors, FieldName } from '../types/auth';
+import {
+  checkSignUpEmailAvailability,
+  checkSignUpHandleAvailability,
+  signupUser,
+  SignUpSubmissionError,
+} from '../api/authPublic';
+import {
+  createSignUpAvailabilityState,
+  normalizeSignUpEmailValue,
+  normalizeSignUpHandleInput,
+  normalizeSignUpHandleValue,
+  SIGNUP_AVAILABILITY_DEBOUNCE_MS,
+  validateAllFields,
+  validateField,
+} from '../utils/validation';
+import {
+  type FieldErrors,
+  type FieldName,
+  type SignUpFieldAvailability,
+  type SignUpFormData,
+} from '../types/auth';
 import { buildLoginPath } from '../utils/loginRedirect';
 
 const initialFormData: SignUpFormData = {
@@ -12,7 +29,7 @@ const initialFormData: SignUpFormData = {
   email: '',
   password: '',
   confirmPassword: '',
-  favoriteTeam: ''
+  favoriteTeam: '',
 };
 
 const initialFieldErrors: FieldErrors = {
@@ -21,7 +38,62 @@ const initialFieldErrors: FieldErrors = {
   email: '',
   password: '',
   confirmPassword: '',
-  favoriteTeam: ''
+  favoriteTeam: '',
+};
+
+const initialAvailabilityState: SignUpFieldAvailability = {
+  state: 'idle',
+  message: '',
+};
+
+const useSignUpAvailabilityCheck = (
+  field: 'handle' | 'email',
+  normalizedValue: string,
+  isValid: boolean,
+  checkAvailability: (value: string, signal?: AbortSignal) => Promise<{ available: boolean; message?: string; normalized?: string }>,
+) => {
+  const [availability, setAvailability] = useState<SignUpFieldAvailability>(initialAvailabilityState);
+  const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!isValid) {
+      setAvailability(initialAvailabilityState);
+      return;
+    }
+
+    const requestId = ++requestIdRef.current;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setAvailability(createSignUpAvailabilityState(field, 'checking', normalizedValue));
+
+      try {
+        const result = await checkAvailability(normalizedValue, controller.signal);
+        if (requestIdRef.current !== requestId) {
+          return;
+        }
+
+        setAvailability(createSignUpAvailabilityState(
+          field,
+          result.available ? 'available' : 'taken',
+          result.normalized ?? normalizedValue,
+          result.available ? undefined : result.message,
+        ));
+      } catch {
+        if (requestIdRef.current !== requestId || controller.signal.aborted) {
+          return;
+        }
+
+        setAvailability(createSignUpAvailabilityState(field, 'error', normalizedValue));
+      }
+    }, SIGNUP_AVAILABILITY_DEBOUNCE_MS);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [checkAvailability, field, isValid, normalizedValue]);
+
+  return [availability, setAvailability] as const;
 };
 
 export const useSignUpForm = () => {
@@ -31,7 +103,7 @@ export const useSignUpForm = () => {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>(initialFieldErrors);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);  // ✅ 성공 상태 추가
+  const [isSuccess, setIsSuccess] = useState(false);
   const successRedirectTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => () => {
@@ -40,35 +112,81 @@ export const useSignUpForm = () => {
     }
   }, []);
 
+  const normalizedHandle = normalizeSignUpHandleValue(formData.handle);
+  const normalizedEmail = normalizeSignUpEmailValue(formData.email);
+  const [handleAvailability, setHandleAvailability] = useSignUpAvailabilityCheck(
+    'handle',
+    normalizedHandle,
+    validateField('handle', normalizedHandle) === '',
+    checkSignUpHandleAvailability,
+  );
+  const [emailAvailability, setEmailAvailability] = useSignUpAvailabilityCheck(
+    'email',
+    normalizedEmail,
+    validateField('email', normalizedEmail) === '',
+    checkSignUpEmailAvailability,
+  );
+
+  const currentValidationErrors = validateAllFields(formData);
+  const hasLocalValidationErrors = Object.values(currentValidationErrors).some((value) => value !== '');
+  const isAvailabilityChecking = handleAvailability.state === 'checking' || emailAvailability.state === 'checking';
+  const isAvailabilityReady = handleAvailability.state === 'available' && emailAvailability.state === 'available';
+  const isSubmitDisabled = isLoading || isSuccess || hasLocalValidationErrors || isAvailabilityChecking || !isAvailabilityReady;
+
   const handleFieldChange = (fieldName: FieldName, value: string) => {
-    setFormData({ ...formData, [fieldName]: value });
+    const nextValue = fieldName === 'handle' ? normalizeSignUpHandleInput(value) : value;
+    setFormData((prev) => ({ ...prev, [fieldName]: nextValue }));
+    setError(null);
 
     if (fieldErrors[fieldName]) {
-      setFieldErrors({ ...fieldErrors, [fieldName]: '' });
+      setFieldErrors((prev) => ({ ...prev, [fieldName]: '' }));
+    }
+
+    if (fieldName === 'handle') {
+      setHandleAvailability(initialAvailabilityState);
+    }
+
+    if (fieldName === 'email') {
+      setEmailAvailability(initialAvailabilityState);
     }
   };
 
   const handleFieldBlur = (fieldName: FieldName) => {
     const value = formData[fieldName];
-    const errorMessage = validateField(fieldName, value, formData);
-    setFieldErrors({ ...fieldErrors, [fieldName]: errorMessage });
+    const normalizedValue = fieldName === 'handle'
+      ? normalizeSignUpHandleInput(value)
+      : value;
+    const nextFormData = fieldName === 'handle'
+      ? { ...formData, handle: normalizedValue }
+      : formData;
+    const errorMessage = validateField(fieldName, normalizedValue, nextFormData);
+    setFieldErrors((prev) => ({ ...prev, [fieldName]: errorMessage }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ✅ 중복 요청 방지: 이미 처리 중이거나 성공한 경우 무시
     if (isLoading || isSuccess) {
       return;
     }
 
     setError(null);
-    setIsSuccess(false);  // ✅ 초기화
+    setIsSuccess(false);
 
     const errors = validateAllFields(formData);
     setFieldErrors(errors);
 
-    if (Object.values(errors).some(error => error !== '')) {
+    if (Object.values(errors).some((value) => value !== '')) {
+      return;
+    }
+
+    if (isAvailabilityChecking) {
+      setError('핸들과 이메일 사용 가능 여부 확인이 끝날 때까지 기다려주세요.');
+      return;
+    }
+
+    if (!isAvailabilityReady) {
+      setError('핸들과 이메일 중복 확인을 완료해 주세요.');
       return;
     }
 
@@ -77,21 +195,41 @@ export const useSignUpForm = () => {
     try {
       await signupUser({
         name: formData.name,
-        handle: formData.handle.startsWith('@') ? formData.handle : `@${formData.handle}`,
-        email: formData.email,
+        handle: normalizeSignUpHandleValue(formData.handle),
+        email: normalizeSignUpEmailValue(formData.email),
         password: formData.password,
         confirmPassword: formData.confirmPassword,
         favoriteTeam: formData.favoriteTeam === '없음' ? null : formData.favoriteTeam,
       });
 
-      setIsSuccess(true);  // ✅ 성공 상태 설정
+      setIsSuccess(true);
 
-      // ✅ 3초 후 로그인 페이지로 이동
       successRedirectTimeoutRef.current = window.setTimeout(() => {
         navigate(buildLoginPath(new URLSearchParams(location.search).get('redirect')));
       }, 3000);
     } catch (err) {
       console.error('Sign up error:', err);
+
+      if (err instanceof SignUpSubmissionError) {
+        if (err.field === 'handle') {
+          setHandleAvailability(createSignUpAvailabilityState(
+            'handle',
+            'taken',
+            err.normalized ?? normalizeSignUpHandleValue(formData.handle),
+            err.message,
+          ));
+        }
+
+        if (err.field === 'email') {
+          setEmailAvailability(createSignUpAvailabilityState(
+            'email',
+            'taken',
+            err.normalized ?? normalizeSignUpEmailValue(formData.email),
+            err.message,
+          ));
+        }
+      }
+
       setError((err as Error).message || '네트워크 오류로 회원가입에 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -101,8 +239,11 @@ export const useSignUpForm = () => {
   return {
     formData,
     fieldErrors,
+    handleAvailability,
+    emailAvailability,
     isLoading,
-    isSuccess,  // ✅ 성공 상태 반환
+    isSubmitDisabled,
+    isSuccess,
     error,
     handleFieldChange,
     handleFieldBlur,

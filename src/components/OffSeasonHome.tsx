@@ -1,7 +1,6 @@
 
 import { useMemo } from 'react';
 import { Card } from './ui/card';
-import { Badge } from './ui/badge';
 import { Search, ChevronRight, ChevronLeft, Calculator, Trophy, Medal, Crown, TrendingUp, Loader2, Info, ChevronDown, Clock, Award } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +8,10 @@ import { Button } from './ui/button';
 import { getTeamKoreanName } from '../utils/teamNames';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useQuery } from '@tanstack/react-query';
-import api from '../api/axios';
+import { publicGet } from '../api/publicClient';
+import { fetchRankingSnapshot } from '../api/rankings';
+import type { Ranking } from '../types/home';
+import { OffseasonPill } from './offseason/offseasonUi';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
@@ -20,17 +22,6 @@ interface AwardData {
   playerName: string;
   team: string;
   stats: string;
-}
-
-interface Ranking {
-  rank: number;
-  teamId: string;
-  teamName: string;
-  wins: number;
-  losses: number;
-  draws: number;
-  winRate: string;
-  games: number;
 }
 
 interface OffseasonMetadata {
@@ -66,9 +57,9 @@ const defaultOffseasonHomeData: OffseasonHomeData = {
 
 const fetchOffseasonHomeData = async (): Promise<OffseasonHomeData> => {
   const [movementsResponse, metadataResponse, rankingsResponse] = await Promise.allSettled([
-    api.get<OffseasonMovement[]>('/kbo/offseason/movements'),
-    api.get<OffseasonMetadata>('/kbo/offseason/metadata', { params: { year: OFFSEASON_METADATA_YEAR } }),
-    api.get<Ranking[]>(`/kbo/rankings/${OFFSEASON_RANKING_YEAR}`),
+    publicGet<OffseasonMovement[]>('/kbo/offseason/movements'),
+    publicGet<OffseasonMetadata>('/kbo/offseason/metadata', { params: { year: OFFSEASON_METADATA_YEAR } }),
+    fetchRankingSnapshot({ seasonYear: OFFSEASON_RANKING_YEAR }),
   ]);
 
   if (movementsResponse.status === 'rejected') {
@@ -82,13 +73,13 @@ const fetchOffseasonHomeData = async (): Promise<OffseasonHomeData> => {
   }
 
   const metadata = metadataResponse.status === 'fulfilled'
-    ? metadataResponse.value.data
+    ? metadataResponse.value
     : { awards: [] };
 
   return {
-    movements: movementsResponse.status === 'fulfilled' ? movementsResponse.value.data : [],
+    movements: movementsResponse.status === 'fulfilled' ? movementsResponse.value : [],
     awards: metadata.awards,
-    rankings: rankingsResponse.status === 'fulfilled' ? rankingsResponse.value.data : [],
+    rankings: rankingsResponse.status === 'fulfilled' ? rankingsResponse.value.rankings : [],
   };
 };
 
@@ -115,7 +106,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
   const navigate = useNavigate();
   const isLargeScreen = useMediaQuery('(min-width: 1024px)');
   const { data, isLoading } = useQuery<OffseasonHomeData>({
-    queryKey: ['offseason-home'],
+    queryKey: ['offseason-home', OFFSEASON_RANKING_YEAR],
     queryFn: fetchOffseasonHomeData,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -158,7 +149,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
         <div className="px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-12 relative z-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <Badge className="bg-yellow-400 text-gray-900 dark:text-zinc-900 mb-3 md:mb-4 hover:bg-yellow-500 border-none font-bold">2025-26 스토브리그</Badge>
+              <OffseasonPill className="mb-3 border-none bg-yellow-400 px-3 py-1 text-sm font-bold text-gray-900 dark:text-zinc-900 md:mb-4">2025-26 스토브리그</OffseasonPill>
               <h2 className="text-white text-2xl md:text-4xl mb-2" style={{ fontWeight: 900 }}>스토브리그 하이라이트</h2>
               <p className="text-emerald-100/80 text-base md:text-lg">다가오는 새로운 시즌을 준비하는 뜨거운 기록들</p>
             </div>
@@ -202,7 +193,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
             <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
           <h3 className="text-xl md:text-2xl font-black text-primary">2025 주요 이적 소식</h3>
-          <Badge className="ml-2 text-white animate-pulse border-none px-2 md:px-3 text-[10px] md:text-xs" style={{ backgroundColor: '#ef4444' }}>Breaking</Badge>
+          <OffseasonPill className="ml-2 animate-pulse border-none px-2 py-1 text-[10px] text-white md:px-3 md:text-xs" style={{ backgroundColor: '#ef4444' }}>Breaking</OffseasonPill>
         </div>
 
         {isLoading ? (
@@ -243,7 +234,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5 md:mb-2">
-                      <Badge className="text-white bg-primary border-none font-bold text-[10px]">{news.section}</Badge>
+                      <OffseasonPill className="bg-primary px-2 py-0.5 text-[10px] font-bold text-white">{news.section}</OffseasonPill>
                       <span className="text-[10px] text-gray-400 dark:text-zinc-300 font-medium">{news.date}</span>
                     </div>
                     <p className="text-gray-900 dark:text-white text-base md:text-lg font-bold group-hover:text-primary transition-colors line-clamp-1">
@@ -329,7 +320,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
                     <span className="text-xs font-bold text-primary w-6">4위</span>
                     <TeamLogo team="삼성" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">삼성</span>
-                    <Badge className="ml-auto text-[10px] bg-primary">승</Badge>
+                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
                   </div>
                 </div>
               </div>
@@ -348,7 +339,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
                     <span className="text-xs font-bold text-primary w-6">WC</span>
                     <TeamLogo team="삼성" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">삼성</span>
-                    <Badge className="ml-auto text-[10px] bg-primary text-white">승</Badge>
+                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
                   </div>
                 </div>
               </div>
@@ -362,7 +353,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
                     <span className="text-xs font-bold text-primary w-6">2위</span>
                     <TeamLogo team="한화" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-sm">한화</span>
-                    <Badge className="ml-auto text-[10px] bg-primary text-white">승</Badge>
+                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
                     <span className="text-xs font-bold text-gray-500 dark:text-zinc-300 w-6">준PO</span>
@@ -384,7 +375,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
                     <span className="text-xs font-bold text-emerald-200 w-6">1위</span>
                     <TeamLogo team="LG" size={24} />
                     <span className="font-bold text-white">LG</span>
-                    <Badge className="ml-auto text-[10px] bg-yellow-400 text-black">V3</Badge>
+                    <OffseasonPill className="ml-auto border-none bg-yellow-400 px-2 py-0.5 text-[10px] text-black">V3</OffseasonPill>
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border opacity-70">
                     <span className="text-xs font-bold text-gray-500 dark:text-zinc-300 w-6">PO</span>
@@ -416,7 +407,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
                       <span className="text-sm font-bold text-primary w-8">4위</span>
                       <TeamLogo team="삼성" size={24} />
                       <span className="font-bold text-gray-900 dark:text-white">삼성</span>
-                      <Badge className="ml-auto text-[10px] bg-primary">승</Badge>
+                      <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
                     </div>
                   </div>
                 </div>
@@ -443,7 +434,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
                     <span className="text-sm font-bold text-primary w-8">WC</span>
                     <TeamLogo team="삼성" size={24} />
                     <span className="font-bold text-gray-900 dark:text-white">삼성</span>
-                    <Badge className="ml-auto text-[10px] bg-primary text-white">승</Badge>
+                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
                   </div>
                 </div>
               </div>
@@ -464,7 +455,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
                     <span className="text-sm font-bold text-primary w-8">2위</span>
                     <TeamLogo team="한화" size={24} />
                     <span className="font-bold text-gray-900 dark:text-white">한화</span>
-                    <Badge className="ml-auto text-[10px] bg-primary text-white">승</Badge>
+                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
                   </div>
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-52">
                     <span className="text-sm font-bold text-gray-500 dark:text-zinc-300 w-8">준PO</span>
@@ -489,7 +480,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
                     <span className="text-sm font-bold text-emerald-200 w-8">1위</span>
                     <TeamLogo team="LG" size={32} />
                     <span className="font-bold text-white text-lg">LG</span>
-                    <Badge className="ml-auto text-[10px] bg-yellow-400 text-black hover:bg-yellow-500">V3</Badge>
+                    <OffseasonPill className="ml-auto border-none bg-yellow-400 px-2 py-0.5 text-[10px] text-black">V3</OffseasonPill>
                   </div>
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-60 opacity-70">
                     <span className="text-sm font-bold text-gray-500 dark:text-zinc-300 w-8">PO</span>

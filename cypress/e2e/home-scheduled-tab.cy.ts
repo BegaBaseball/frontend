@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { visitHomePage } from '../support/homePage';
+
 describe('Home scheduled tab', () => {
   const formatDateKey = (date: Date) => date.toISOString().slice(0, 10);
   const addDays = (dateKey: string, offset: number) => {
@@ -39,10 +41,16 @@ describe('Home scheduled tab', () => {
     },
     games: [],
     scheduledGamesWindow: buildScheduledWindow(selectedDate),
-    rankingSeasonYear: 2025,
-    rankingSourceMessage: '2025 시즌 순위 데이터',
-    isOffSeason: true,
-    rankings: [],
+  });
+  const buildWidgetsResponse = (rankingSeasonYear = 2025) => ({
+    hotCheerPosts: [],
+    featuredMates: [],
+    rankingSnapshot: {
+      rankingSeasonYear,
+      rankingSourceMessage: `${rankingSeasonYear} 시즌 순위 데이터`,
+      isOffSeason: true,
+      rankings: [],
+    },
   });
 
   const scheduleByDate: Record<string, Array<Record<string, unknown>>> = {
@@ -151,25 +159,7 @@ describe('Home scheduled tab', () => {
     const now = new Date('2026-02-10T12:00:00').getTime();
     cy.clock(now, ['Date']);
 
-    (cy as any).login('user');
     (cy as any).mockAPI();
-
-    cy.intercept('GET', '**/api/cheer/posts/hot*', {
-      statusCode: 200,
-      body: {
-        content: [],
-        last: true,
-        totalPages: 0,
-        totalElements: 0,
-        size: 20,
-        number: 0,
-      },
-    }).as('getHomeHotPosts');
-
-    cy.intercept('GET', '**/api/parties?page=0&size=1000*', {
-      statusCode: 200,
-      body: [],
-    }).as('getHomeFeaturedMates');
 
     cy.intercept('GET', '**/api/home/bootstrap*', (req) => {
       const dateParam = req.query.date;
@@ -179,6 +169,15 @@ describe('Home scheduled tab', () => {
         body: buildBootstrapResponse(date),
       });
     }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', (req) => {
+      const seasonYearParam = req.query.seasonYear;
+      const seasonYear = Array.isArray(seasonYearParam) ? seasonYearParam[0] : seasonYearParam;
+      req.reply({
+        statusCode: 200,
+        body: buildWidgetsResponse(seasonYear ? Number(seasonYear) : 2025),
+      });
+    }).as('getHomeWidgets');
 
     cy.intercept('GET', '**/api/kbo/schedule/navigation?*', {
       statusCode: 200,
@@ -269,11 +268,15 @@ describe('Home scheduled tab', () => {
   });
 
   it('auto switches to 예정경기 and separates scheduled vs postponed/cancelled games', () => {
-    cy.visit('/home');
+    visitHomePage({
+      path: '/home',
+      token: 'home-scheduled-tab-token',
+      resetStorage: true,
+    });
 
     cy.contains('button', '예정경기', { timeout: 15000 })
       .should('be.visible')
-      .and('have.attr', 'data-state', 'active');
+      .and('have.attr', 'aria-selected', 'true');
 
     cy.contains('곧 열리는 경기').should('be.visible');
     cy.contains('연기/취소').should('be.visible');
@@ -301,7 +304,11 @@ describe('Home scheduled tab', () => {
   });
 
   it('resets secondary section to collapsed after date change', () => {
-    cy.visit('/home');
+    visitHomePage({
+      path: '/home',
+      token: 'home-scheduled-tab-token',
+      resetStorage: true,
+    });
 
     cy.get('[data-testid="home-scheduled-secondary-toggle"]')
       .should('have.attr', 'aria-expanded', 'false')
@@ -317,40 +324,31 @@ describe('Home scheduled tab', () => {
     cy.contains('연기/취소 경기가 접혀 있습니다. 펼치기 버튼으로 확인하세요.').should('be.visible');
   });
 
-  it('keeps successful scheduled dates visible when some 8-day requests fail', () => {
+  it('shows bootstrap fallback error when scheduled window cannot load', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 500,
       body: { message: 'bootstrap-fallback-required' },
     }).as('getHomeBootstrapFail');
 
-    cy.intercept('GET', '**/api/kbo/schedule?*', (req) => {
-      const dateParam = req.query.date;
-      const date = Array.isArray(dateParam) ? dateParam[0] : String(dateParam || '');
+    visitHomePage({
+      path: '/home',
+      token: 'home-scheduled-tab-token',
+      resetStorage: true,
+    });
 
-      if (date === '2026-02-10' || date === '2026-02-11') {
-        req.reply({
-          statusCode: 200,
-          body: scheduleByDate[date] || [],
-        });
-        return;
-      }
-
-      req.reply({
-        statusCode: 500,
-        body: { message: 'forced-scheduled-window-failure' },
-      });
-    }).as('getHomeSchedulePartial');
-
-    cy.visit('/home');
-
+    cy.wait('@getHomeBootstrapFail');
     cy.contains('button', '예정경기', { timeout: 15000 }).click();
-    cy.contains('예정 경기 일정을 불러오지 못했습니다').should('not.exist');
-    cy.contains('곧 열리는 경기').should('be.visible');
-    cy.contains('[data-slot="card"]', 'LG').should('be.visible');
+    cy.contains('경기 일정을 불러오지 못했습니다').should('be.visible');
+    cy.contains('곧 열리는 경기').should('not.exist');
+    cy.contains('[data-slot="card"]', 'LG').should('not.exist');
   });
 
   it('navigates to prediction using scheduled card CTA', () => {
-    cy.visit('/home');
+    visitHomePage({
+      path: '/home',
+      token: 'home-scheduled-tab-token',
+      resetStorage: true,
+    });
 
     cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
 

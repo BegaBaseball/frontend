@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import {
   AlertTriangle,
   Bug,
@@ -9,34 +9,10 @@ import {
   Search,
   Siren,
 } from 'lucide-react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import PlainDialog from '../ui/plain-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Badge } from '../ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
 import {
   fetchAdminClientErrorDashboard,
   fetchAdminClientErrorEventDetail,
@@ -49,6 +25,8 @@ import type {
 } from '../../types/admin';
 import { getApiErrorMessage } from '../../utils/errorUtils';
 import { formatDate, getTimeAgo } from '../../utils/formatters';
+
+const ClientErrorTrendChart = lazy(() => import('./ClientErrorTrendChart'));
 
 type WindowKey = '1h' | '24h' | '7d';
 
@@ -102,6 +80,16 @@ const channelBadgeClass: Record<'telegram' | 'slack', string> = {
   telegram: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
   slack: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
 };
+
+const adminNativeSelectClassName = 'rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-60';
+
+function AdminBadge({ className = '', children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${className}`}>
+      {children}
+    </span>
+  );
+}
 
 const buildWindowRange = (windowKey: WindowKey) => {
   const to = new Date();
@@ -271,6 +259,11 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
     label: formatAxisLabel(point.bucketStart, dashboard.granularity),
   })) || [];
 
+  const handleCloseDetail = () => {
+    setDetailOpen(false);
+    setSelectedEvent(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -289,19 +282,16 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Select value={windowKey} onValueChange={(value: WindowKey) => setWindowKey(value)}>
-            <SelectTrigger
-              data-testid="admin-client-errors-window-trigger"
-              className="w-[150px] rounded-xl border-slate-700 bg-slate-800/70 text-slate-100"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-800 text-slate-100">
-              <SelectItem value="1h">최근 1시간</SelectItem>
-              <SelectItem value="24h">최근 24시간</SelectItem>
-              <SelectItem value="7d">최근 7일</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            data-testid="admin-client-errors-window-trigger"
+            value={windowKey}
+            onChange={(event) => setWindowKey(event.target.value as WindowKey)}
+            className={`w-[150px] ${adminNativeSelectClassName}`}
+          >
+            <option value="1h">최근 1시간</option>
+            <option value="24h">최근 24시간</option>
+            <option value="7d">최근 7일</option>
+          </select>
 
           <Button
             type="button"
@@ -337,51 +327,16 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                 {WINDOW_LABEL[windowKey]} 기준 집계. 피드백은 별도 row로 적재된 사용자 제보 수입니다.
               </p>
             </div>
-            <Badge className="border-slate-700 bg-slate-800 text-slate-200">
+            <AdminBadge className="border-slate-700 bg-slate-800 text-slate-200">
               <Clock3 className="mr-1 h-3 w-3" />
               {dashboard?.granularity === 'day' ? 'Daily' : 'Hourly'}
-            </Badge>
+            </AdminBadge>
           </div>
 
           <div className="h-[320px]">
-            {loadingDashboard ? (
-              <div className="flex h-full items-center justify-center text-slate-400">로딩 중...</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="apiArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="runtimeArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#fb7185" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#fb7185" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="feedbackArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                  <XAxis dataKey="label" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      border: '1px solid #334155',
-                      borderRadius: '0.75rem',
-                      color: '#e2e8f0',
-                    }}
-                    labelStyle={{ color: '#f8fafc' }}
-                  />
-                  <Legend />
-                  <Area type="monotone" dataKey="api" stroke="#38bdf8" fill="url(#apiArea)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="runtime" stroke="#fb7185" fill="url(#runtimeArea)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="feedback" stroke="#fbbf24" fill="url(#feedbackArea)" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-400">차트 로딩 중...</div>}>
+              <ClientErrorTrendChart chartData={chartData} loading={loadingDashboard} />
+            </Suspense>
           </div>
         </section>
 
@@ -406,12 +361,12 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                 className="w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-left transition hover:border-rose-500/30 hover:bg-slate-950"
               >
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Badge className={bucketBadgeClass[item.bucket]}>{item.bucket.toUpperCase()}</Badge>
-                  <Badge className={sourceBadgeClass[item.source]}>{item.source}</Badge>
+                  <AdminBadge className={bucketBadgeClass[item.bucket]}>{item.bucket.toUpperCase()}</AdminBadge>
+                  <AdminBadge className={sourceBadgeClass[item.source]}>{item.source}</AdminBadge>
                   {item.latestAlertChannel ? (
-                    <Badge className={channelBadgeClass[item.latestAlertChannel]}>
+                    <AdminBadge className={channelBadgeClass[item.latestAlertChannel]}>
                       {item.latestAlertChannel.toUpperCase()}
-                    </Badge>
+                    </AdminBadge>
                   ) : null}
                   <span className="text-sm font-semibold text-white">{item.count.toLocaleString()}건</span>
                 </div>
@@ -444,49 +399,40 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
         </div>
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-          <Select value={filters.bucket} onValueChange={(value: EventFilters['bucket']) => setFilters((prev) => ({ ...prev, bucket: value }))}>
-            <SelectTrigger
-              data-testid="admin-client-errors-bucket-trigger"
-              className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100"
-            >
-              <SelectValue placeholder="Bucket" />
-            </SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-800 text-slate-100">
-              <SelectItem value="all">Bucket 전체</SelectItem>
-              <SelectItem value="api">API</SelectItem>
-              <SelectItem value="runtime">Runtime</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            data-testid="admin-client-errors-bucket-trigger"
+            value={filters.bucket}
+            onChange={(event) => setFilters((prev) => ({ ...prev, bucket: event.target.value as EventFilters['bucket'] }))}
+            className={adminNativeSelectClassName}
+          >
+            <option value="all">Bucket 전체</option>
+            <option value="api">API</option>
+            <option value="runtime">Runtime</option>
+          </select>
 
-          <Select value={filters.source} onValueChange={(value: EventFilters['source']) => setFilters((prev) => ({ ...prev, source: value }))}>
-            <SelectTrigger
-              data-testid="admin-client-errors-source-trigger"
-              className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100"
-            >
-              <SelectValue placeholder="Source" />
-            </SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-800 text-slate-100">
-              <SelectItem value="all">Source 전체</SelectItem>
-              <SelectItem value="api">api</SelectItem>
-              <SelectItem value="runtime">runtime</SelectItem>
-              <SelectItem value="unhandled_rejection">unhandled_rejection</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            data-testid="admin-client-errors-source-trigger"
+            value={filters.source}
+            onChange={(event) => setFilters((prev) => ({ ...prev, source: event.target.value as EventFilters['source'] }))}
+            className={adminNativeSelectClassName}
+          >
+            <option value="all">Source 전체</option>
+            <option value="api">api</option>
+            <option value="runtime">runtime</option>
+            <option value="unhandled_rejection">unhandled_rejection</option>
+          </select>
 
-          <Select value={filters.statusGroup} onValueChange={(value: EventFilters['statusGroup']) => setFilters((prev) => ({ ...prev, statusGroup: value }))}>
-            <SelectTrigger
-              data-testid="admin-client-errors-status-trigger"
-              className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100"
-            >
-              <SelectValue placeholder="Status Group" />
-            </SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-800 text-slate-100">
-              <SelectItem value="all">Status 전체</SelectItem>
-              <SelectItem value="5xx">5xx</SelectItem>
-              <SelectItem value="4xx">4xx</SelectItem>
-              <SelectItem value="none">none</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            data-testid="admin-client-errors-status-trigger"
+            value={filters.statusGroup}
+            onChange={(event) => setFilters((prev) => ({ ...prev, statusGroup: event.target.value as EventFilters['statusGroup'] }))}
+            className={adminNativeSelectClassName}
+          >
+            <option value="all">Status 전체</option>
+            <option value="5xx">5xx</option>
+            <option value="4xx">4xx</option>
+            <option value="none">none</option>
+          </select>
 
           <Input
             data-testid="admin-client-errors-route-filter"
@@ -546,8 +492,8 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                   <TableRow key={event.eventId} className="border-slate-800 hover:bg-slate-800/30">
                     <TableCell>
                       <div className="flex flex-col gap-2">
-                        <Badge className={bucketBadgeClass[event.bucket]}>{event.bucket}</Badge>
-                        <Badge className={sourceBadgeClass[event.source]}>{event.source}</Badge>
+                        <AdminBadge className={bucketBadgeClass[event.bucket]}>{event.bucket}</AdminBadge>
+                        <AdminBadge className={sourceBadgeClass[event.source]}>{event.source}</AdminBadge>
                       </div>
                     </TableCell>
                     <TableCell className="max-w-[320px] whitespace-normal">
@@ -623,7 +569,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
             {dashboard?.recentFeedback.length ? dashboard.recentFeedback.map((item) => (
               <div key={`${item.eventId}-${item.occurredAt}`} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <Badge className={bucketBadgeClass.feedback}>FEEDBACK</Badge>
+                  <AdminBadge className={bucketBadgeClass.feedback}>FEEDBACK</AdminBadge>
                   <span className="text-xs text-slate-500">{getTimeAgo(item.occurredAt)}</span>
                 </div>
                 <p className="text-sm text-slate-100">{item.comment}</p>
@@ -655,11 +601,11 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
               <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <Badge className={bucketBadgeClass[item.bucket]}>{item.bucket.toUpperCase()}</Badge>
-                    <Badge className={channelBadgeClass[item.channel]}>{item.channel.toUpperCase()}</Badge>
-                    <Badge className={item.deliveryStatus === 'SENT' ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300' : 'border-red-500/30 bg-red-500/15 text-red-300'}>
+                    <AdminBadge className={bucketBadgeClass[item.bucket]}>{item.bucket.toUpperCase()}</AdminBadge>
+                    <AdminBadge className={channelBadgeClass[item.channel]}>{item.channel.toUpperCase()}</AdminBadge>
+                    <AdminBadge className={item.deliveryStatus === 'SENT' ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300' : 'border-red-500/30 bg-red-500/15 text-red-300'}>
                       {item.deliveryStatus}
-                    </Badge>
+                    </AdminBadge>
                   </div>
                   <span className="text-xs text-slate-500">{formatDetailedDateTime(item.notifiedAt)}</span>
                 </div>
@@ -680,25 +626,15 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
         </section>
       </div>
 
-      <Dialog
+      <PlainDialog
         open={detailOpen}
-        onOpenChange={(open) => {
-          setDetailOpen(open);
-          if (!open) {
-            setSelectedEvent(null);
-          }
-        }}
+        onClose={handleCloseDetail}
+        title="Client Error Detail"
+        description="Error ID 기준 raw stack, feedback, 동일 fingerprint 최근 이벤트를 함께 봅니다."
+        contentTestId="admin-client-errors-detail-dialog"
+        className="sm:max-w-4xl border-slate-700 bg-slate-950 text-slate-100"
+        bodyClassName="max-h-[calc(85vh-5.5rem)] overflow-y-auto"
       >
-        <DialogContent
-          data-testid="admin-client-errors-detail-dialog"
-          className="max-h-[85vh] overflow-y-auto border-slate-700 bg-slate-950 text-slate-100 sm:max-w-4xl"
-        >
-          <DialogHeader>
-            <DialogTitle className="text-white">Client Error Detail</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Error ID 기준 raw stack, feedback, 동일 fingerprint 최근 이벤트를 함께 봅니다.
-            </DialogDescription>
-          </DialogHeader>
 
           {detailLoading ? (
             <div className="py-12 text-center text-slate-400">상세 정보를 불러오는 중입니다.</div>
@@ -707,9 +643,9 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <Badge className={bucketBadgeClass[selectedEvent.event.bucket]}>{selectedEvent.event.bucket.toUpperCase()}</Badge>
-                    <Badge className={sourceBadgeClass[selectedEvent.event.source]}>{selectedEvent.event.source}</Badge>
-                    <Badge className="border-slate-700 bg-slate-800 text-slate-200">{selectedEvent.event.statusGroup}</Badge>
+                    <AdminBadge className={bucketBadgeClass[selectedEvent.event.bucket]}>{selectedEvent.event.bucket.toUpperCase()}</AdminBadge>
+                    <AdminBadge className={sourceBadgeClass[selectedEvent.event.source]}>{selectedEvent.event.source}</AdminBadge>
+                    <AdminBadge className="border-slate-700 bg-slate-800 text-slate-200">{selectedEvent.event.statusGroup}</AdminBadge>
                   </div>
                   <div className="space-y-2 text-sm text-slate-300">
                     <p className="font-mono text-xs text-slate-500">{selectedEvent.event.eventId}</p>
@@ -771,7 +707,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                       className="w-full rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-left transition hover:border-slate-600"
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className={sourceBadgeClass[item.source]}>{item.source}</Badge>
+                        <AdminBadge className={sourceBadgeClass[item.source]}>{item.source}</AdminBadge>
                         <span className="text-xs text-slate-500">{formatDetailedDateTime(item.occurredAt)}</span>
                       </div>
                       <p className="mt-2 text-sm text-slate-100">{item.message}</p>
@@ -787,8 +723,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           ) : (
             <div className="py-12 text-center text-slate-400">선택한 이벤트를 불러오지 못했습니다.</div>
           )}
-        </DialogContent>
-      </Dialog>
+      </PlainDialog>
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -26,19 +27,30 @@ import LoadingSpinner from './LoadingSpinner';
 import TeamLogo from './TeamLogo';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { Alert, AlertDescription } from './ui/alert';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Textarea } from './ui/textarea';
-import { useMatePartyFromRoute } from '../hooks/useMatePartyFromRoute';
-import { useAuthAccessActions, useAuthProfileSnapshot } from '../store/authStore';
-import { useMateStore } from '../store/mateStore';
+import {
+  approveApplication,
+  deleteParty,
+  normalizeMateParty,
+  rejectApplication,
+  updateParty,
+} from '../api/mate';
+import { getApiErrorStatus } from '../api/errorStatus';
+import {
+  getMatePartyApplicationsQueryOptions,
+  removeMatePartyFromCollections,
+  removeMatePartyQueries,
+  syncMatePartyQueryData,
+  updateMatePartyApplicationQueryData,
+  updateMatePartyCollectionQueryData,
+  useMatePartyFromRoute,
+} from '../hooks/mateManageRoute';
+import { useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { Application, BadgeType } from '../types/mate';
 import { cn } from '../lib/utils';
-import { api, getApiErrorStatus } from '../utils/api';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import {
   getBadgeMeta,
@@ -52,12 +64,41 @@ import {
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
 import { formatGameDate, isPartyHostedByUser } from '../utils/mate';
+import { validateMateDescription } from '../utils/mateValidation';
 
 type SummaryItemProps = {
   icon: LucideIcon;
   label: string;
   value: string;
   detail: string;
+};
+
+const APPLICATION_TABS = [
+  { key: 'pending', label: '대기' },
+  { key: 'approved', label: '승인' },
+  { key: 'rejected', label: '거절' },
+] as const;
+
+type ApplicationTabKey = typeof APPLICATION_TABS[number]['key'];
+
+const resolveDefaultApplicationTab = (
+  pendingCount: number,
+  approvedCount: number,
+  rejectedCount: number,
+): ApplicationTabKey => {
+  if (pendingCount > 0) {
+    return 'pending';
+  }
+
+  if (approvedCount > 0) {
+    return 'approved';
+  }
+
+  if (rejectedCount > 0) {
+    return 'rejected';
+  }
+
+  return 'pending';
 };
 
 function SummaryItem({ icon: Icon, label, value, detail }: SummaryItemProps) {
@@ -99,31 +140,40 @@ function EmptyState({
   );
 }
 
+function InlineBadge({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold', className)}>
+      {children}
+    </span>
+  );
+}
+
+function FieldLabel({ htmlFor, children }: { htmlFor: string; children: ReactNode }) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="flex items-center gap-2 text-sm leading-none font-medium text-gray-900 select-none dark:text-white"
+    >
+      {children}
+    </label>
+  );
+}
+
 export default function MateManage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { confirm } = useConfirmDialog();
   const {
-    party: selectedParty,
+    party,
     isLoading: isPartyLoading,
     isRevalidating: isPartyRevalidating,
     error: partyError,
   } = useMatePartyFromRoute(id);
-  const validateDescription = useMateStore((state) => state.validateDescription);
-  const updateParty = useMateStore((state) => state.updateParty);
-  const { userId: authUserId, userHandle: authUserHandle } = useAuthProfileSnapshot();
+  const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
+  const { isAuthLoading, userId: currentUserId } = useAuthSession();
   const { logout, requireLogin } = useAuthAccessActions();
+  const queryClient = useQueryClient();
 
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserHandle, setCurrentUserHandle] = useState<string | null>(null);
-  const [userLoading, setUserLoading] = useState(true);
-  const [userLoadError, setUserLoadError] = useState<string | null>(null);
-  const [userRetryCount, setUserRetryCount] = useState(0);
-  const [isHostAccessDenied, setIsHostAccessDenied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -136,83 +186,63 @@ export default function MateManage() {
   const [applicationActionError, setApplicationActionError] = useState('');
 
   useEffect(() => {
-    if (authUserId) {
-      setCurrentUserId(authUserId);
-      setCurrentUserHandle(authUserHandle ?? null);
-      setUserLoadError(null);
-      setUserLoading(false);
+    if (isAuthLoading || currentUserId !== null) {
       return;
     }
 
-    const fetchCurrentUser = async () => {
-      try {
-        setUserLoading(true);
-        setUserLoadError(null);
-        const userData = await api.getCurrentUser();
-        setCurrentUserId(userData.data.id);
-        setCurrentUserHandle(userData.data.handle ?? null);
-      } catch (error: unknown) {
-        console.error('사용자 정보 가져오기 실패:', error);
-        if (getApiErrorStatus(error) === 401) {
-          logout(true);
-          requireLogin();
-        }
-        setUserLoadError('사용자 정보를 불러오지 못했습니다.');
-      } finally {
-        setUserLoading(false);
-      }
-    };
+    logout(true);
+    requireLogin();
+  }, [currentUserId, isAuthLoading, logout, requireLogin]);
 
-    void fetchCurrentUser();
-  }, [authUserHandle, authUserId, logout, requireLogin, userRetryCount]);
-
-  useEffect(() => {
-    if (!selectedParty || !currentUserId) {
-      return;
-    }
-
-    if (!isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle })) {
-      return;
-    }
-
-    const fetchApplications = async () => {
-      setIsLoading(true);
-      setFetchError(false);
-      setIsHostAccessDenied(false);
-      try {
-        const data = await api.getApplicationsByParty(selectedParty.id);
-        setApplications(data);
-      } catch (error: unknown) {
-        console.error('신청 목록 불러오기 오류:', error);
-        if (getApiErrorStatus(error) === 403) {
-          setIsHostAccessDenied(true);
-          setApplicationActionError('호스트만 신청 목록을 조회할 수 있습니다.');
-          setApplications([]);
-          return;
-        }
-        setFetchError(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void fetchApplications();
-  }, [currentUserHandle, currentUserId, retryCount, selectedParty]);
-
-  const refetchApplications = async () => {
-    if (!selectedParty) {
-      return;
-    }
-    const data = await api.getApplicationsByParty(selectedParty.id);
-    setApplications(data);
-  };
+  const isHost = party
+    ? isPartyHostedByUser(party, { id: currentUserId, handle: currentUserHandle })
+    : false;
+  const applicationsQuery = useQuery({
+    ...(party?.id != null
+      ? getMatePartyApplicationsQueryOptions(party.id)
+      : getMatePartyApplicationsQueryOptions('unknown')),
+    enabled: Boolean(party?.id && currentUserId && isHost),
+  });
+  const applications = applicationsQuery.data ?? [];
+  const isLoading = applicationsQuery.isPending;
+  const isHostAccessDenied = getApiErrorStatus(applicationsQuery.error) === 403;
+  const fetchError = Boolean(applicationsQuery.error) && !isHostAccessDenied;
+  const pendingApplications = applications.filter((app) => !app.isApproved && !app.isRejected);
+  const approvedApplications = applications.filter((app) => app.isApproved);
+  const rejectedApplications = applications.filter((app) => app.isRejected);
+  const defaultApplicationTab = resolveDefaultApplicationTab(
+    pendingApplications.length,
+    approvedApplications.length,
+    rejectedApplications.length,
+  );
+  const [activeApplicationTab, setActiveApplicationTab] = useState<ApplicationTabKey | null>(null);
+  const selectedApplicationTab = activeApplicationTab ?? defaultApplicationTab;
 
   const handleApprove = async (applicationId: string | number) => {
     setApplicationActionError('');
     try {
-      await api.approveApplication(applicationId);
+      const approvedApplication = await approveApplication(applicationId);
+      updateMatePartyApplicationQueryData(
+        queryClient,
+        party!.id,
+        approvedApplication.id,
+        () => approvedApplication,
+      );
+      updateMatePartyCollectionQueryData(queryClient, party!.id, (currentParty) => {
+        const nextParticipants = Math.min(
+          currentParty.maxParticipants,
+          currentParty.currentParticipants + 1,
+        );
+
+        return {
+          ...currentParty,
+          currentParticipants: nextParticipants,
+          status: nextParticipants >= currentParty.maxParticipants
+            ? 'MATCHED'
+            : currentParty.status,
+        };
+      });
       toast.success('신청이 승인되었습니다!');
-      await refetchApplications();
     } catch (error: unknown) {
       console.error('신청 승인 중 오류:', error);
       const errorMessage = getApiErrorMessage(error, '신청 승인에 실패했습니다.');
@@ -224,9 +254,14 @@ export default function MateManage() {
   const handleReject = async (applicationId: string | number) => {
     setApplicationActionError('');
     try {
-      await api.rejectApplication(applicationId);
+      const rejectedApplication = await rejectApplication(applicationId);
+      updateMatePartyApplicationQueryData(
+        queryClient,
+        party!.id,
+        rejectedApplication.id,
+        () => rejectedApplication,
+      );
       toast.success('신청이 거절되었습니다.');
-      await refetchApplications();
     } catch (error: unknown) {
       console.error('신청 거절 중 오류:', error);
       const errorMessage = getApiErrorMessage(error, '신청 거절에 실패했습니다.');
@@ -236,7 +271,11 @@ export default function MateManage() {
   };
 
   const handleDeleteParty = async () => {
-    if (!selectedParty || !currentUserId) {
+    if (!party || !currentUserId) {
+      if (!currentUserId) {
+        logout(true);
+        requireLogin();
+      }
       return;
     }
 
@@ -269,7 +308,9 @@ export default function MateManage() {
 
     setIsDeleting(true);
     try {
-      await api.deleteParty(selectedParty.id);
+      await deleteParty(party.id);
+      removeMatePartyFromCollections(queryClient, party.id);
+      removeMatePartyQueries(queryClient, party.id);
       toast.success('파티가 삭제되었습니다.');
       navigate('/mate');
     } catch (error: unknown) {
@@ -289,34 +330,34 @@ export default function MateManage() {
   };
 
   const handleStartEdit = () => {
-    if (!selectedParty) {
+    if (!party) {
       return;
     }
 
     setEditForm({
-      section: selectedParty.section,
-      maxParticipants: selectedParty.maxParticipants,
-      ticketPrice: selectedParty.ticketPrice || 0,
-      description: selectedParty.description,
+      section: party.section,
+      maxParticipants: party.maxParticipants,
+      ticketPrice: party.ticketPrice || 0,
+      description: party.description,
     });
     setDescriptionError('');
     setIsEditing(true);
   };
 
   const handleSaveEdit = async () => {
-    if (!selectedParty) {
+    if (!party) {
       return;
     }
 
-    const error = validateDescription(editForm.description);
+    const error = validateMateDescription(editForm.description);
     if (error) {
       setDescriptionError(error);
       return;
     }
 
     try {
-      await api.updateParty(selectedParty.id, editForm);
-      updateParty(selectedParty.id, editForm);
+      const updatedParty = await updateParty(party.id, editForm);
+      syncMatePartyQueryData(queryClient, normalizeMateParty(updatedParty));
       toast.success('파티 정보가 수정되었습니다.');
       setDescriptionError('');
       setIsEditing(false);
@@ -356,11 +397,11 @@ export default function MateManage() {
     return null;
   };
 
-  if (isPartyLoading && !selectedParty) {
+  if (isAuthLoading || (isPartyLoading && !party)) {
     return <LoadingSpinner text="파티 정보를 불러오는 중..." fullScreen />;
   }
 
-  if (partyError || !selectedParty) {
+  if (partyError || !party) {
     return (
       <div className={matePageShellClass}>
         <img
@@ -385,70 +426,9 @@ export default function MateManage() {
     );
   }
 
-  if (userLoading) {
-    return (
-      <div className={matePageShellClass}>
-        <img
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
-        />
-        <div className="relative z-10 mx-auto flex min-h-screen max-w-4xl items-center px-4 py-10 sm:px-6 lg:px-8">
-          <LoadingSpinner text="호스트 권한을 확인하는 중..." fullScreen={false} />
-        </div>
-      </div>
-    );
-  }
-
-  if (userLoadError) {
-    return (
-      <div className={matePageShellClass}>
-        <img
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
-        />
-        <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-          <Card className={`p-6 ${mateSectionCardClass}`}>
-            <Alert className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/25">
-              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              <AlertDescription className="text-red-700 dark:text-red-300">
-                {userLoadError}
-              </AlertDescription>
-            </Alert>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => setUserRetryCount((count) => count + 1)}>
-                다시 시도
-              </Button>
-              <Button onClick={() => navigate('/mate')}>목록으로 이동</Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   if (!currentUserId) {
-    return (
-      <div className={matePageShellClass}>
-        <img
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
-        />
-        <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-          <Card className={`p-6 ${mateSectionCardClass}`}>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>사용자 정보를 확인할 수 없습니다.</AlertDescription>
-            </Alert>
-          </Card>
-        </div>
-      </div>
-    );
+    return null;
   }
-
-  const isHost = isPartyHostedByUser(selectedParty, { id: currentUserId, handle: currentUserHandle });
 
   if (!isHost || isHostAccessDenied) {
     return (
@@ -476,14 +456,11 @@ export default function MateManage() {
     );
   }
 
-  const statusMeta = getPartyStatusMeta(selectedParty.status);
-  const hostBadgeMeta = getBadgeMeta(selectedParty.hostBadge);
-  const pendingApplications = applications.filter((app) => !app.isApproved && !app.isRejected);
-  const approvedApplications = applications.filter((app) => app.isApproved);
-  const rejectedApplications = applications.filter((app) => app.isRejected);
-  const canEdit = selectedParty.status === 'PENDING' && approvedApplications.length === 0;
-  const canReviewCheckIn = approvedApplications.length > 0 || ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(selectedParty.status);
-  const flowLabel = getPartyFlowLabel(selectedParty.status);
+  const statusMeta = getPartyStatusMeta(party.status);
+  const hostBadgeMeta = getBadgeMeta(party.hostBadge);
+  const canEdit = party.status === 'PENDING' && approvedApplications.length === 0;
+  const canReviewCheckIn = approvedApplications.length > 0 || ['MATCHED', 'CHECKED_IN', 'COMPLETED'].includes(party.status);
+  const flowLabel = getPartyFlowLabel(party.status);
   const responseSummary = pendingApplications.length > 0 ? `${pendingApplications.length}건` : '없음';
   const nextStepSummary = pendingApplications.length > 0
     ? '대기 신청 검토'
@@ -513,8 +490,12 @@ export default function MateManage() {
       onClick: handleOpenCheckIn,
       className: 'border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950/30',
     }
-    : null;
-  const defaultTab = pendingApplications.length > 0 ? 'pending' : approvedApplications.length > 0 ? 'approved' : 'rejected';
+      : null;
+  const selectedApplications = selectedApplicationTab === 'pending'
+    ? pendingApplications
+    : selectedApplicationTab === 'approved'
+      ? approvedApplications
+      : rejectedApplications;
 
   const summaryItems = [
     {
@@ -526,8 +507,8 @@ export default function MateManage() {
     {
       icon: Ticket,
       label: '티켓 상태',
-      value: selectedParty.ticketVerified ? '호스트 인증 완료' : '티켓 인증 전',
-      detail: selectedParty.ticketVerified ? '상세페이지와 동일한 신뢰 배지가 노출됩니다.' : '참여자에게 인증 배지가 아직 보이지 않습니다.',
+      value: party.ticketVerified ? '호스트 인증 완료' : '티켓 인증 전',
+      detail: party.ticketVerified ? '상세페이지와 동일한 신뢰 배지가 노출됩니다.' : '참여자에게 인증 배지가 아직 보이지 않습니다.',
     },
     {
       icon: CheckCircle,
@@ -566,21 +547,21 @@ export default function MateManage() {
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-lg font-bold text-gray-900 dark:text-white">{app.applicantName}</p>
                 {badgeMeta && (
-                  <Badge className={cn('border text-xs font-semibold', badgeMeta.className)}>
+                  <InlineBadge className={cn(badgeMeta.className)}>
                     <span className="flex items-center gap-1">
                       {getBadgeIcon(app.applicantBadge)}
                       {badgeMeta.label}
                     </span>
-                  </Badge>
+                  </InlineBadge>
                 )}
-                <Badge className={cn('border text-xs font-semibold', tabTone)}>{tabLabel}</Badge>
+                <InlineBadge className={cn(tabTone)}>{tabLabel}</InlineBadge>
                 {app.ticketVerified && (
-                  <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
+                  <InlineBadge className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                     <span className="flex items-center gap-1">
                       <Ticket className="h-3.5 w-3.5" />
                       티켓 인증
                     </span>
-                  </Badge>
+                  </InlineBadge>
                 )}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-300">
@@ -707,7 +688,7 @@ export default function MateManage() {
               title="신청 목록을 불러오지 못했습니다"
               description="네트워크 연결을 확인한 뒤 다시 시도해주세요. 목록과 상세는 유지되고 신청 관리 데이터만 다시 불러옵니다."
             />
-            <Button variant="outline" className="mt-4 w-fit" onClick={() => setRetryCount((count) => count + 1)}>
+            <Button variant="outline" className="mt-4 w-fit" onClick={() => void applicationsQuery.refetch()}>
               <RefreshCw className="mr-1.5 h-4 w-4" />
               다시 시도
             </Button>
@@ -743,7 +724,7 @@ export default function MateManage() {
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex min-w-0 gap-3 sm:gap-4">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10 sm:h-16 sm:w-16">
-                      <TeamLogo teamId={selectedParty.teamId} size="md" />
+                      <TeamLogo teamId={party.teamId} size="md" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
@@ -756,24 +737,24 @@ export default function MateManage() {
                         신청 검토, 승인 결정, 채팅 연결, 체크인 준비까지 한 흐름으로 정리합니다.
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <Badge className={cn('border text-xs font-semibold', statusMeta.className)}>
+                        <InlineBadge className={cn(statusMeta.className)}>
                           {statusMeta.label}
-                        </Badge>
-                        <Badge className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
+                        </InlineBadge>
+                        <InlineBadge className="border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
                           {flowLabel}
-                        </Badge>
-                        {selectedParty.ticketVerified && (
-                          <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
+                        </InlineBadge>
+                        {party.ticketVerified && (
+                          <InlineBadge className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                             <span className="flex items-center gap-1">
                               <Ticket className="h-3.5 w-3.5" />
                               티켓 인증
                             </span>
-                          </Badge>
+                          </InlineBadge>
                         )}
                         {hostBadgeMeta && (
-                          <Badge className={cn('border text-xs font-semibold', hostBadgeMeta.className)}>
+                          <InlineBadge className={cn(hostBadgeMeta.className)}>
                             {hostBadgeMeta.label}
-                          </Badge>
+                          </InlineBadge>
                         )}
                       </div>
                     </div>
@@ -786,7 +767,7 @@ export default function MateManage() {
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">일정</p>
                           <p className="mt-1 font-medium text-gray-900 dark:text-white">
-                            {formatGameDate(selectedParty.gameDate)} {selectedParty.gameTime}
+                            {formatGameDate(party.gameDate)} {party.gameTime}
                           </p>
                         </div>
                       </div>
@@ -795,9 +776,9 @@ export default function MateManage() {
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
                           <p className="mt-1 font-medium text-gray-900 dark:text-white">
-                            {selectedParty.stadium}
+                            {party.stadium}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-300">{selectedParty.section}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">{party.section}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
@@ -805,7 +786,7 @@ export default function MateManage() {
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">참여 현황</p>
                           <p className="mt-1 font-medium text-gray-900 dark:text-white">
-                            {selectedParty.currentParticipants}/{selectedParty.maxParticipants}명
+                            {party.currentParticipants}/{party.maxParticipants}명
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-300">승인 {approvedApplications.length}명, 대기 {pendingApplications.length}건</p>
                         </div>
@@ -850,14 +831,14 @@ export default function MateManage() {
                       승인 완료 전까지 좌석, 모집 인원, 가격, 소개를 정리할 수 있습니다.
                     </p>
                   </div>
-                  <Badge className="border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
+                  <InlineBadge className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
                     승인 완료 전 수정 가능
-                  </Badge>
+                  </InlineBadge>
                 </div>
 
                 <div className="mt-6 grid gap-4 lg:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="manage-section">좌석</Label>
+                    <FieldLabel htmlFor="manage-section">좌석</FieldLabel>
                     <Input
                       id="manage-section"
                       value={editForm.section}
@@ -866,7 +847,7 @@ export default function MateManage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="manage-ticket-price">티켓 가격 (원)</Label>
+                    <FieldLabel htmlFor="manage-ticket-price">티켓 가격 (원)</FieldLabel>
                     <Input
                       id="manage-ticket-price"
                       type="number"
@@ -876,7 +857,7 @@ export default function MateManage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="manage-max-participants">모집 인원</Label>
+                    <FieldLabel htmlFor="manage-max-participants">모집 인원</FieldLabel>
                     <select
                       id="manage-max-participants"
                       value={editForm.maxParticipants}
@@ -891,7 +872,7 @@ export default function MateManage() {
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  <Label htmlFor="manage-description">소개글</Label>
+                  <FieldLabel htmlFor="manage-description">소개글</FieldLabel>
                   <Textarea
                     id="manage-description"
                     value={editForm.description}
@@ -899,10 +880,10 @@ export default function MateManage() {
                       const nextDescription = event.target.value;
                       setEditForm({ ...editForm, description: nextDescription });
                       if (descriptionError) {
-                        setDescriptionError(validateDescription(nextDescription));
+                        setDescriptionError(validateMateDescription(nextDescription));
                       }
                     }}
-                    onBlur={() => setDescriptionError(validateDescription(editForm.description))}
+                    onBlur={() => setDescriptionError(validateMateDescription(editForm.description))}
                     className={cn(descriptionError && 'border-red-400 focus-visible:ring-red-200')}
                   />
                   {descriptionError && (
@@ -944,49 +925,73 @@ export default function MateManage() {
                 </div>
               </div>
 
-              <Tabs defaultValue={defaultTab} className="mt-6">
-                <TabsList className="grid h-auto w-full grid-cols-3 gap-1">
-                  <TabsTrigger value="pending" className="px-2 py-2 text-[11px] sm:text-sm">대기 ({pendingApplications.length})</TabsTrigger>
-                  <TabsTrigger value="approved" className="px-2 py-2 text-[11px] sm:text-sm">승인 ({approvedApplications.length})</TabsTrigger>
-                  <TabsTrigger value="rejected" className="px-2 py-2 text-[11px] sm:text-sm">거절 ({rejectedApplications.length})</TabsTrigger>
-                </TabsList>
+              <div className="mt-6">
+                <div className="grid h-auto w-full grid-cols-3 gap-1 rounded-xl border border-gray-200/70 bg-white p-1.5 dark:border-white/5 dark:bg-[#16181c]">
+                  {APPLICATION_TABS.map((tab) => {
+                    const count = tab.key === 'pending'
+                      ? pendingApplications.length
+                      : tab.key === 'approved'
+                        ? approvedApplications.length
+                        : rejectedApplications.length;
+                    const isActive = selectedApplicationTab === tab.key;
 
-                <TabsContent value="pending" className="mt-6 space-y-4">
-                  {pendingApplications.length === 0 ? (
-                    <EmptyState
-                      icon={Users}
-                      title="대기 중인 신청이 없습니다"
-                      description="새 신청이 들어오면 이 탭에서 바로 검토할 수 있습니다. 상세페이지 CTA와 연결된 첫 판단 지점입니다."
-                    />
-                  ) : (
-                    pendingApplications.map((application) => renderApplicationCard(application, 'pending'))
-                  )}
-                </TabsContent>
+                    return (
+                      <button
+                        type="button"
+                        key={tab.key}
+                        onClick={() => setActiveApplicationTab(tab.key)}
+                        aria-pressed={isActive}
+                        className={cn(
+                          'rounded-lg px-2 py-2 text-[11px] font-medium transition-colors sm:text-sm',
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-gray-500 hover:bg-primary/10 hover:text-primary dark:text-zinc-400 dark:hover:text-emerald-300',
+                        )}
+                      >
+                        {tab.label} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
 
-                <TabsContent value="approved" className="mt-6 space-y-4">
-                  {approvedApplications.length === 0 ? (
-                    <EmptyState
-                      icon={CheckCircle}
-                      title="승인된 신청이 없습니다"
-                      description="참여가 확정되면 여기서 채팅과 체크인 연결 흐름을 이어갈 수 있습니다."
-                    />
-                  ) : (
-                    approvedApplications.map((application) => renderApplicationCard(application, 'approved'))
+                <div className="mt-6 space-y-4">
+                  {selectedApplicationTab === 'pending' && (
+                    pendingApplications.length === 0 ? (
+                      <EmptyState
+                        icon={Users}
+                        title="대기 중인 신청이 없습니다"
+                        description="새 신청이 들어오면 이 탭에서 바로 검토할 수 있습니다. 상세페이지 CTA와 연결된 첫 판단 지점입니다."
+                      />
+                    ) : (
+                      selectedApplications.map((application) => renderApplicationCard(application, 'pending'))
+                    )
                   )}
-                </TabsContent>
 
-                <TabsContent value="rejected" className="mt-6 space-y-4">
-                  {rejectedApplications.length === 0 ? (
-                    <EmptyState
-                      icon={XCircle}
-                      title="거절된 신청이 없습니다"
-                      description="거절된 신청은 기록만 유지됩니다. 이후 다시 검토할 항목은 없습니다."
-                    />
-                  ) : (
-                    rejectedApplications.map((application) => renderApplicationCard(application, 'rejected'))
+                  {selectedApplicationTab === 'approved' && (
+                    approvedApplications.length === 0 ? (
+                      <EmptyState
+                        icon={CheckCircle}
+                        title="승인된 신청이 없습니다"
+                        description="참여가 확정되면 여기서 채팅과 체크인 연결 흐름을 이어갈 수 있습니다."
+                      />
+                    ) : (
+                      selectedApplications.map((application) => renderApplicationCard(application, 'approved'))
+                    )
                   )}
-                </TabsContent>
-              </Tabs>
+
+                  {selectedApplicationTab === 'rejected' && (
+                    rejectedApplications.length === 0 ? (
+                      <EmptyState
+                        icon={XCircle}
+                        title="거절된 신청이 없습니다"
+                        description="거절된 신청은 기록만 유지됩니다. 이후 다시 검토할 항목은 없습니다."
+                      />
+                    ) : (
+                      selectedApplications.map((application) => renderApplicationCard(application, 'rejected'))
+                    )
+                  )}
+                </div>
+              </div>
             </Card>
           </div>
 

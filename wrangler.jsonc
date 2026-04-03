@@ -1,8 +1,20 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "begabaseball-frontend",
+  // Production deploy path is wrangler deploy for the worker + static assets.
   "main": "worker/index.ts",
   "compatibility_date": "2025-09-27",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "www.begabaseball.xyz/*",
+      "zone_name": "begabaseball.xyz"
+    },
+    {
+      "pattern": "begabaseball.xyz/*",
+      "zone_name": "begabaseball.xyz"
+    }
+  ],
   "observability": {
     "enabled": false
   },

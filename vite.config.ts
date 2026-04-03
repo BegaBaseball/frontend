@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { defineConfig, loadEnv } from 'vite';
+import { createLogger, defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
@@ -8,20 +8,14 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const proxyTarget = env.VITE_PROXY_TARGET ?? 'http://localhost:8080';
+  const suppressCypressProxyErrors = env.VITE_SUPPRESS_CYPRESS_PROXY_ERRORS === 'true';
   const enableCloudflarePlugin =
     command !== 'serve' || env.VITE_ENABLE_CLOUDFLARE_PLUGIN === 'true';
   const helmetPackagePath = path.resolve(__dirname, 'node_modules/react-helmet-async/package.json');
   const useHelmetShim = !fs.existsSync(helmetPackagePath);
   const alias = {
-    'vaul@1.1.2': 'vaul',
-    'sonner@2.0.3': 'sonner',
-    'recharts@2.15.2': 'recharts',
-    'react-resizable-panels@2.1.7': 'react-resizable-panels',
-    'react-hook-form@7.55.0': 'react-hook-form',
-    'react-day-picker@8.10.1': 'react-day-picker',
-    'next-themes@0.4.6': 'next-themes',
-    'lucide-react@0.487.0': 'lucide-react',
-    'input-otp@1.4.2': 'input-otp',
+    sonner: path.resolve(__dirname, './src/shims/sonner.tsx'),
+    'lucide-react': path.resolve(__dirname, './src/shims/lucide-react.tsx'),
     'figma:asset/f552d9266ac817e0c86b657dead0069395c6da11.png': path.resolve(__dirname, './src/assets/f552d9266ac817e0c86b657dead0069395c6da11.png'),
     'figma:asset/e2bd5a0f58df48e435d03f049811638d849de606.png': path.resolve(__dirname, './src/assets/e2bd5a0f58df48e435d03f049811638d849de606.png'),
     'figma:asset/d97539563d3c93f568cb7a4331c9e607cfafe914.png': path.resolve(__dirname, './src/assets/d97539563d3c93f568cb7a4331c9e607cfafe914.png'),
@@ -42,43 +36,28 @@ export default defineConfig(({ mode, command }) => {
     'figma:asset/202a55c2e2083b7f096b21380d22d1769e56d762.png': path.resolve(__dirname, './src/assets/202a55c2e2083b7f096b21380d22d1769e56d762.png'),
     'figma:asset/19b0bb1cde805dc5d6e6af053a4bd1622a1a4fad.png': path.resolve(__dirname, './src/assets/19b0bb1cde805dc5d6e6af053a4bd1622a1a4fad.png'),
     'figma:asset/01cb53a9197c5457e6d7dd7460bdf1cd27b5440b.png': path.resolve(__dirname, './src/assets/01cb53a9197c5457e6d7dd7460bdf1cd27b5440b.png'),
-    'embla-carousel-react@8.6.0': 'embla-carousel-react',
-    'cmdk@1.1.1': 'cmdk',
-    'class-variance-authority@0.7.1': 'class-variance-authority',
-    '@radix-ui/react-tooltip@1.1.8': '@radix-ui/react-tooltip',
-    '@radix-ui/react-toggle@1.1.2': '@radix-ui/react-toggle',
-    '@radix-ui/react-toggle-group@1.1.2': '@radix-ui/react-toggle-group',
-    '@radix-ui/react-tabs@1.1.3': '@radix-ui/react-tabs',
-    '@radix-ui/react-switch@1.1.3': '@radix-ui/react-switch',
-    '@radix-ui/react-slot@1.1.2': '@radix-ui/react-slot',
-    '@radix-ui/react-slider@1.2.3': '@radix-ui/react-slider',
-    '@radix-ui/react-separator@1.1.2': '@radix-ui/react-separator',
-    '@radix-ui/react-select@2.1.6': '@radix-ui/react-select',
-    '@radix-ui/react-scroll-area@1.2.3': '@radix-ui/react-scroll-area',
-    '@radix-ui/react-radio-group@1.2.3': '@radix-ui/react-radio-group',
-    '@radix-ui/react-progress@1.1.2': '@radix-ui/react-progress',
-    '@radix-ui/react-popover@1.1.6': '@radix-ui/react-popover',
-    '@radix-ui/react-navigation-menu@1.2.5': '@radix-ui/react-navigation-menu',
-    '@radix-ui/react-menubar@1.1.6': '@radix-ui/react-menubar',
-    '@radix-ui/react-label@2.1.2': '@radix-ui/react-label',
-    '@radix-ui/react-hover-card@1.1.6': '@radix-ui/react-hover-card',
-    '@radix-ui/react-dropdown-menu@2.1.6': '@radix-ui/react-dropdown-menu',
-    '@radix-ui/react-dialog@1.1.6': '@radix-ui/react-dialog',
-    '@radix-ui/react-context-menu@2.2.6': '@radix-ui/react-context-menu',
-    '@radix-ui/react-collapsible@1.1.3': '@radix-ui/react-collapsible',
-    '@radix-ui/react-checkbox@1.1.4': '@radix-ui/react-checkbox',
-    '@radix-ui/react-avatar@1.1.3': '@radix-ui/react-avatar',
-    '@radix-ui/react-aspect-ratio@1.1.2': '@radix-ui/react-aspect-ratio',
-    '@radix-ui/react-alert-dialog@1.1.6': '@radix-ui/react-alert-dialog',
-    '@radix-ui/react-accordion@1.2.3': '@radix-ui/react-accordion',
     '@': path.resolve(__dirname, './src'),
   };
   if (useHelmetShim) {
     alias['react-helmet-async'] = path.resolve(__dirname, './src/shims/react-helmet-async.tsx');
   }
 
+  const viteLogger = createLogger();
+  const customLogger = suppressCypressProxyErrors
+    ? {
+      ...viteLogger,
+      error(message, options) {
+        if (typeof message === 'string' && message.includes('http proxy error:')) {
+          return;
+        }
+        viteLogger.error(message, options);
+      },
+    }
+    : viteLogger;
+
   return {
     appType: 'spa',
+    customLogger,
     plugins: [react(), ...(enableCloudflarePlugin ? [cloudflare()] : [])],
 
     resolve: {
@@ -94,6 +73,7 @@ export default defineConfig(({ mode, command }) => {
     build: {
       target: 'esnext',
       outDir: 'dist',
+      manifest: '.vite/client-manifest.json',
       chunkSizeWarningLimit: 1200,
       rollupOptions: {
         output: {
@@ -101,72 +81,42 @@ export default defineConfig(({ mode, command }) => {
             if (!id.includes('node_modules')) {
               return;
             }
-            if (id.includes('/recharts/')) {
-              return 'vendor-charts';
-            }
-            if (id.includes('/emoji-picker-react/')) {
-              return 'vendor-emoji';
-            }
-            if (id.includes('/browser-image-compression/')) {
-              return 'vendor-upload';
+            const isPackage = (pkg: string) => id.includes(`/node_modules/${pkg}/`);
+            if (
+              isPackage('react') ||
+              isPackage('react-dom') ||
+              isPackage('scheduler') ||
+              isPackage('use-sync-external-store') ||
+              isPackage('zustand') ||
+              isPackage('redux')
+            ) {
+              return 'vendor-react-core';
             }
             if (
-              id.includes('/styled-components/')
-              || id.includes('/stylis/')
+              isPackage('react-router') ||
+              isPackage('react-router-dom') ||
+              isPackage('@remix-run/router') ||
+              isPackage('history') ||
+              isPackage('react-is') ||
+              isPackage('hoist-non-react-statics') ||
+              isPackage('prop-types')
             ) {
-              return 'vendor-styles';
-            }
-            if (
-              id.includes('/react-day-picker/')
-              || id.includes('/date-fns/')
-            ) {
-              return 'vendor-calendar';
-            }
-            if (id.includes('/lucide-react/')) {
-              return 'vendor-icons';
-            }
-            if (
-              id.includes('/react-markdown/')
-              || id.includes('/remark-gfm/')
-              || id.includes('/remark-')
-              || id.includes('/rehype-')
-              || id.includes('/mdast-util-')
-              || id.includes('/micromark')
-              || id.includes('/unified/')
-            ) {
-              return 'vendor-markdown';
+              return 'vendor-router';
             }
             if (id.includes('/@tanstack/')) {
               return 'vendor-query';
             }
-            if (id.includes('/@radix-ui/') || id.includes('/cmdk/') || id.includes('/vaul/')) {
-              return 'vendor-ui';
-            }
             if (
-              id.includes('/framer-motion/')
-              || id.includes('/motion/')
-              || id.includes('/motion-dom/')
-              || id.includes('/motion-utils/')
+              id.includes('/sockjs-client/')
+              || id.includes('/@stomp/')
             ) {
-              return 'vendor-motion';
+              return 'vendor-realtime';
             }
             if (
               id.includes('/axios/')
-              || id.includes('/sockjs-client/')
-              || id.includes('/@stomp/')
-              || id.includes('/zustand/')
-              || id.includes('/js-cookie/')
             ) {
               return 'vendor-network';
             }
-            if (
-              id.includes('/react-dnd/')
-              || id.includes('/react-dnd-html5-backend/')
-              || id.includes('/dnd-core/')
-            ) {
-              return 'vendor-dnd';
-            }
-            return 'vendor';
           },
         },
       },
@@ -177,6 +127,7 @@ export default defineConfig(({ mode, command }) => {
           // Keep the client HTML at dist/index.html so SEO post-processing
           // and the final Cloudflare deploy artifact use the same root.
           outDir: 'dist',
+          manifest: '.vite/client-manifest.json',
           // Preserve the worker bundle written just before the client build.
           emptyOutDir: false,
         },
