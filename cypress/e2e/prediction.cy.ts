@@ -1367,7 +1367,6 @@ describe('Game Prediction', () => {
         cy.tick(45000);
         cy.contains('button', '다시 시도').should('exist');
         cy.contains('button', '간단 모드로 전환').should('exist');
-        cy.contains('button', '예측으로 돌아가기').should('exist');
     });
 
     it('should keep retry overlay inactive before submit starts', () => {

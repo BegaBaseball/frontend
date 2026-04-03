@@ -1,24 +1,49 @@
 import {
-  UserProfile,
-  UserProfileApiResponse,
+  AccountDeletionScheduleResponse,
+  DeviceSessionItem,
   ProfileImageDto,
   ProfileUpdateData,
   ProfileUpdateResponse,
-  UserProviderDto,
-  DeviceSessionItem,
   SecurityEventItem,
   TrustedDeviceItem,
-  AccountDeletionScheduleResponse,
+  UserProfile,
+  UserProfileApiResponse,
+  UserProviderDto,
 } from '../types/profile';
-import api from './axios';
-import { getApiErrorMessage } from '../utils/errorUtils';
-import { AxiosError } from 'axios';
 import { compressImage } from '../utils/imageCompression';
+import { getApiErrorMessage } from '../utils/errorUtils';
+import { getApiErrorStatus } from './errorStatus';
+import {
+  PrivateApiError,
+  privateDelete,
+  privateGet,
+  privatePost,
+  privatePut,
+} from './privateClient';
+
+interface ApiEnvelope<T> {
+  success?: boolean;
+  data?: T;
+  message?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface NicknameCheckResponse {
+  available: boolean;
+  message?: string;
+  normalized?: string;
+}
 
 const normalizeFavoriteTeam = (value?: string | null): string | null => {
   if (value == null) {
     return null;
   }
+
   const trimmed = value.trim();
   return trimmed === '' || trimmed === '없음' ? null : trimmed;
 };
@@ -28,17 +53,34 @@ const normalizeUserProfile = (profile: UserProfile): UserProfile => ({
   favoriteTeam: normalizeFavoriteTeam(profile.favoriteTeam),
 });
 
+const getPrivateEnvelope = (error: unknown): ApiEnvelope<unknown> | null => {
+  if (!(error instanceof PrivateApiError) || !error.data || typeof error.data !== 'object') {
+    return null;
+  }
+
+  return error.data as ApiEnvelope<unknown>;
+};
+
+const isNicknameCheckResponse = (value: unknown): value is NicknameCheckResponse => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return 'available' in value && typeof (value as { available: unknown }).available === 'boolean';
+};
+
 /**
  * 사용자 프로필 조회
  */
 export async function fetchUserProfile(): Promise<UserProfile> {
   try {
-    const response = await api.get<UserProfileApiResponse>('/auth/mypage');
+    const response = await privateGet<UserProfileApiResponse>('/auth/mypage');
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.message || '프로필 데이터를 불러올 수 없습니다.');
+    if (!response.success || !response.data) {
+      throw new Error(response.message || '프로필 데이터를 불러올 수 없습니다.');
     }
-    return normalizeUserProfile(response.data.data);
+
+    return normalizeUserProfile(response.data);
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '프로필 조회 실패'));
   }
@@ -49,6 +91,7 @@ export async function fetchUserProfile(): Promise<UserProfile> {
  */
 export async function uploadProfileImage(file: File): Promise<ProfileImageDto> {
   let fileToUpload = file;
+
   try {
     fileToUpload = await compressImage(file, {
       maxSizeMB: 0.8,
@@ -65,13 +108,13 @@ export async function uploadProfileImage(file: File): Promise<ProfileImageDto> {
   formData.append('file', fileToUpload);
 
   try {
-    const response = await api.postForm('/profile/image', formData);
+    const response = await privatePost<ApiEnvelope<ProfileImageDto>, FormData>('/profile/image', formData);
 
-    if (response.data.success) {
-      return response.data.data;
-    } else {
-      throw new Error(response.data.message || '프로필 이미지 업로드에 실패했습니다.');
+    if (!response.success || !response.data) {
+      throw new Error(response.message || '프로필 이미지 업로드에 실패했습니다.');
     }
+
+    return response.data;
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '프로필 이미지 업로드에 실패했습니다.'));
   }
@@ -82,23 +125,24 @@ export async function uploadProfileImage(file: File): Promise<ProfileImageDto> {
  */
 export async function updateProfile(data: ProfileUpdateData): Promise<ProfileUpdateResponse> {
   try {
-    const response = await api.put<ProfileUpdateResponse>('/auth/mypage', data);
+    const response = await privatePut<ProfileUpdateResponse, ProfileUpdateData>('/auth/mypage', data);
 
-    if (!response.data.success) {
-      throw new Error(response.data.message || '프로필 저장에 실패했습니다.');
+    if (!response.success) {
+      throw new Error(response.message || '프로필 저장에 실패했습니다.');
     }
 
     return {
-      ...response.data,
+      ...response,
       data: {
-        ...response.data.data,
-        favoriteTeam: normalizeFavoriteTeam(response.data.data?.favoriteTeam),
+        ...response.data,
+        favoriteTeam: normalizeFavoriteTeam(response.data?.favoriteTeam),
       },
     };
   } catch (error: unknown) {
-    if (error instanceof AxiosError && error.response?.status === 401) {
+    if (getApiErrorStatus(error) === 401) {
       throw new Error('인증 정보가 만료되었습니다. 다시 로그인해주세요.');
     }
+
     throw new Error(getApiErrorMessage(error, '프로필 저장 실패'));
   }
 }
@@ -106,40 +150,20 @@ export async function updateProfile(data: ProfileUpdateData): Promise<ProfileUpd
 /**
  * 비밀번호 변경
  */
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
-export interface NicknameCheckResponse {
-  available: boolean;
-  message?: string;
-  normalized?: string;
-}
-
-const isNicknameCheckResponse = (value: unknown): value is NicknameCheckResponse => {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-
-  return (
-    'available' in value &&
-    typeof (value as { available: unknown }).available === 'boolean'
-  );
-};
-
 export async function changePassword(data: ChangePasswordRequest): Promise<void> {
   try {
-    const response = await api.put('/auth/password', data);
+    const response = await privatePut<ApiEnvelope<never>, ChangePasswordRequest>('/auth/password', data, {
+      skipAuthSessionHandling: true,
+    });
 
-    if (!response.data.success) {
-      throw new Error(response.data.message || '비밀번호 변경에 실패했습니다.');
+    if (!response.success) {
+      throw new Error(response.message || '비밀번호 변경에 실패했습니다.');
     }
   } catch (error: unknown) {
-    if (error instanceof AxiosError && error.response?.status === 401) {
+    if (getApiErrorStatus(error) === 401) {
       throw new Error('현재 비밀번호가 일치하지 않습니다.');
     }
+
     throw new Error(getApiErrorMessage(error, '비밀번호 변경에 실패했습니다.'));
   }
 }
@@ -149,19 +173,24 @@ export async function changePassword(data: ChangePasswordRequest): Promise<void>
  */
 export async function deleteAccount(password?: string): Promise<AccountDeletionScheduleResponse> {
   try {
-    const response = await api.delete<{ success: boolean; data?: AccountDeletionScheduleResponse; message?: string }>('/auth/account', {
-      data: password ? { password } : undefined
-    });
+    const response = await privateDelete<ApiEnvelope<AccountDeletionScheduleResponse>, { password: string }>(
+      '/auth/account',
+      {
+        body: password ? { password } : undefined,
+        skipAuthSessionHandling: true,
+      },
+    );
 
-    if (!response.data.success) {
-      throw new Error(response.data.message || '계정 삭제 예약에 실패했습니다.');
+    if (!response.success) {
+      throw new Error(response.message || '계정 삭제 예약에 실패했습니다.');
     }
 
-    return response.data.data || { scheduledFor: '' };
+    return response.data || { scheduledFor: '' };
   } catch (error: unknown) {
-    if (error instanceof AxiosError && error.response?.status === 401) {
+    if (getApiErrorStatus(error) === 401) {
       throw new Error('비밀번호가 일치하지 않습니다.');
     }
+
     throw new Error(getApiErrorMessage(error, '계정 삭제 예약에 실패했습니다.'));
   }
 }
@@ -171,11 +200,13 @@ export async function deleteAccount(password?: string): Promise<AccountDeletionS
  */
 export async function getConnectedProviders(): Promise<UserProviderDto[]> {
   try {
-    const response = await api.get<{ success: boolean; data: UserProviderDto[]; message?: string }>('/auth/providers');
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.message || '연동 정보를 불러올 수 없습니다.');
+    const response = await privateGet<ApiEnvelope<UserProviderDto[]>>('/auth/providers');
+
+    if (!response.success || !response.data) {
+      throw new Error(response.message || '연동 정보를 불러올 수 없습니다.');
     }
-    return response.data.data;
+
+    return response.data;
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '연동 정보 조회 실패'));
   }
@@ -186,9 +217,10 @@ export async function getConnectedProviders(): Promise<UserProviderDto[]> {
  */
 export async function unlinkProvider(provider: string): Promise<void> {
   try {
-    const response = await api.delete(`/auth/providers/${provider}`);
-    if (!response.data.success) {
-      throw new Error(response.data.message || '연동 해제에 실패했습니다.');
+    const response = await privateDelete<ApiEnvelope<never>>(`/auth/providers/${encodeURIComponent(provider)}`);
+
+    if (!response.success) {
+      throw new Error(response.message || '연동 해제에 실패했습니다.');
     }
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '연동 해제 실패'));
@@ -200,12 +232,13 @@ export async function unlinkProvider(provider: string): Promise<void> {
  */
 export async function getDeviceSessions(): Promise<DeviceSessionItem[]> {
   try {
-    const response = await api.get<{ success: boolean; data: DeviceSessionItem | DeviceSessionItem[]; message?: string }>(`/auth/sessions`);
-    if (!response.data.success) {
+    const response = await privateGet<ApiEnvelope<DeviceSessionItem | DeviceSessionItem[]>>('/auth/sessions');
+
+    if (!response.success) {
       return [];
     }
 
-    const data = response.data.data;
+    const data = response.data;
     if (!data) {
       return [];
     }
@@ -225,12 +258,13 @@ export async function getDeviceSessions(): Promise<DeviceSessionItem[]> {
  */
 export async function deleteDeviceSession(sessionId: string): Promise<string> {
   try {
-    const response = await api.delete<{ success: boolean; message?: string; data?: never }>(`/auth/sessions/${sessionId}`);
-    if (!response.data.success) {
-      throw new Error(response.data.message || '기기 세션을 종료하지 못했습니다.');
+    const response = await privateDelete<ApiEnvelope<never>>(`/auth/sessions/${encodeURIComponent(sessionId)}`);
+
+    if (!response.success) {
+      throw new Error(response.message || '기기 세션을 종료하지 못했습니다.');
     }
 
-    return response.data.message || '기기 세션이 종료되었습니다.';
+    return response.message || '기기 세션이 종료되었습니다.';
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '기기 세션 종료에 실패했습니다.'));
   }
@@ -241,14 +275,15 @@ export async function deleteDeviceSession(sessionId: string): Promise<string> {
  */
 export async function deleteOtherDeviceSessions(): Promise<string> {
   try {
-    const response = await api.delete<{ success: boolean; message?: string; data?: never }>('/auth/sessions', {
+    const response = await privateDelete<ApiEnvelope<never>>('/auth/sessions', {
       params: { allExceptCurrent: true },
     });
-    if (!response.data.success) {
-      throw new Error(response.data.message || '세션 종료에 실패했습니다.');
+
+    if (!response.success) {
+      throw new Error(response.message || '세션 종료에 실패했습니다.');
     }
 
-    return response.data.message || '현재 기기 제외 다른 기기 로그아웃이 완료되었습니다.';
+    return response.message || '현재 기기 제외 다른 기기 로그아웃이 완료되었습니다.';
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '기기 세션 종료에 실패했습니다.'));
   }
@@ -256,12 +291,13 @@ export async function deleteOtherDeviceSessions(): Promise<string> {
 
 export async function getSecurityEvents(): Promise<SecurityEventItem[]> {
   try {
-    const response = await api.get<{ success: boolean; data?: SecurityEventItem[]; message?: string }>('/auth/security-events');
-    if (!response.data.success) {
-      throw new Error(response.data.message || '보안 활동을 불러오지 못했습니다.');
+    const response = await privateGet<ApiEnvelope<SecurityEventItem[]>>('/auth/security-events');
+
+    if (!response.success) {
+      throw new Error(response.message || '보안 활동을 불러오지 못했습니다.');
     }
 
-    return response.data.data || [];
+    return response.data || [];
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '보안 활동 조회에 실패했습니다.'));
   }
@@ -269,12 +305,13 @@ export async function getSecurityEvents(): Promise<SecurityEventItem[]> {
 
 export async function getTrustedDevices(): Promise<TrustedDeviceItem[]> {
   try {
-    const response = await api.get<{ success: boolean; data?: TrustedDeviceItem[]; message?: string }>('/auth/trusted-devices');
-    if (!response.data.success) {
-      throw new Error(response.data.message || '신뢰 기기 정보를 불러오지 못했습니다.');
+    const response = await privateGet<ApiEnvelope<TrustedDeviceItem[]>>('/auth/trusted-devices');
+
+    if (!response.success) {
+      throw new Error(response.message || '신뢰 기기 정보를 불러오지 못했습니다.');
     }
 
-    return response.data.data || [];
+    return response.data || [];
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '신뢰 기기 조회에 실패했습니다.'));
   }
@@ -282,9 +319,10 @@ export async function getTrustedDevices(): Promise<TrustedDeviceItem[]> {
 
 export async function deleteTrustedDevice(deviceId: number): Promise<void> {
   try {
-    const response = await api.delete<{ success: boolean; message?: string }>(`/auth/trusted-devices/${deviceId}`);
-    if (!response.data.success) {
-      throw new Error(response.data.message || '신뢰 기기 해제에 실패했습니다.');
+    const response = await privateDelete<ApiEnvelope<never>>(`/auth/trusted-devices/${deviceId}`);
+
+    if (!response.success) {
+      throw new Error(response.message || '신뢰 기기 해제에 실패했습니다.');
     }
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '신뢰 기기 해제에 실패했습니다.'));
@@ -296,42 +334,37 @@ export async function deleteTrustedDevice(deviceId: number): Promise<void> {
  */
 export async function checkNicknameAvailability(name: string): Promise<NicknameCheckResponse> {
   try {
-    const response = await api.get<{ success: boolean; message?: string; data?: unknown }>(`/auth/check-name`, {
+    const response = await privateGet<ApiEnvelope<unknown>>('/auth/check-name', {
       params: { name },
-      skipGlobalErrorHandler: true,
     });
 
-    if (!response.data.success) {
+    if (!response.success) {
       return {
         available: false,
-        message: response.data.message || '현재 닉네임을 사용할 수 없습니다.',
+        message: response.message || '현재 닉네임을 사용할 수 없습니다.',
       };
     }
 
-    const payload = response.data.data;
-    if (isNicknameCheckResponse(payload)) {
-      return payload;
+    if (isNicknameCheckResponse(response.data)) {
+      return response.data;
     }
 
     return {
       available: false,
-      message: response.data.message || '사용 여부를 확인할 수 없습니다.',
+      message: response.message || '사용 여부를 확인할 수 없습니다.',
     };
   } catch (error: unknown) {
-    if (error instanceof AxiosError) {
-      const status = error.response?.status ?? null;
-      const data = error.response?.data as { message?: string; data?: unknown } | undefined;
-      if (status === 400 || status === 409) {
-        const payload = data?.data;
-        if (isNicknameCheckResponse(payload)) {
-          return payload;
-        }
-
-        return {
-          available: false,
-          message: data?.message || '현재 닉네임을 사용할 수 없습니다.',
-        };
+    const status = getApiErrorStatus(error);
+    if (status === 400 || status === 409) {
+      const payload = getPrivateEnvelope(error);
+      if (isNicknameCheckResponse(payload?.data)) {
+        return payload.data;
       }
+
+      return {
+        available: false,
+        message: payload?.message || '현재 닉네임을 사용할 수 없습니다.',
+      };
     }
 
     throw new Error(getApiErrorMessage(error, '닉네임 중복 확인에 실패했습니다.'));

@@ -193,6 +193,14 @@ export interface SignUpResponse {
   };
 }
 
+export interface SignUpAvailabilityResponse {
+  available: boolean;
+  message?: string;
+  normalized?: string;
+}
+
+export type SignUpConflictField = 'handle' | 'email';
+
 export interface PolicyConsentPayloadItem {
   policyType: string;
   version: string;

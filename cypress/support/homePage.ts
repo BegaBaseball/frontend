@@ -26,6 +26,20 @@ interface HomeVisitOptions {
 }
 
 type HomeWindowWithAuthTrace = Window & {
+  __BEGA_TEST_AUTH_PROFILE__?: {
+    success: boolean;
+    data: {
+      id: number;
+      email: string;
+      name: string;
+      handle: string;
+      favoriteTeam: string;
+      role: string;
+      hasPassword: boolean;
+      profileImageUrl: string | null;
+      cheerPoints: number;
+    };
+  };
   __homeAuthRequestTraces?: Array<{
     transport: 'xhr' | 'fetch';
     method?: string;
@@ -35,6 +49,7 @@ type HomeWindowWithAuthTrace = Window & {
 };
 
 const AUTH_BOOTSTRAP_META_KEY = 'auth-bootstrap-meta';
+const CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY = 'cypress:skip-public-auth-bootstrap';
 
 const defaultHomeUserState: HomeUserState = {
   id: 123,
@@ -47,11 +62,28 @@ const defaultHomeUserState: HomeUserState = {
   profileImageUrl: null,
 };
 
+const buildInjectedAuthProfile = (user?: Partial<HomeUserState>) => ({
+  success: true,
+  data: {
+    id: user?.id ?? defaultHomeUserState.id,
+    email: user?.email ?? defaultHomeUserState.email,
+    name: user?.name ?? defaultHomeUserState.name,
+    handle: (user?.handle ?? defaultHomeUserState.handle).replace(/^@/, ''),
+    favoriteTeam: user?.favoriteTeam ?? defaultHomeUserState.favoriteTeam,
+    role: user?.role ?? defaultHomeUserState.role,
+    hasPassword: user?.hasPassword ?? defaultHomeUserState.hasPassword,
+    profileImageUrl: user?.profileImageUrl ?? defaultHomeUserState.profileImageUrl,
+    cheerPoints: 0,
+  },
+});
+
 const seedAuthenticatedHomeState = (
   win: Window,
   token: string,
   user?: Partial<HomeUserState>,
 ) => {
+  (win as HomeWindowWithAuthTrace).__BEGA_TEST_AUTH_PROFILE__ = buildInjectedAuthProfile(user);
+  win.sessionStorage.setItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY, '1');
   win.localStorage.setItem('auth-storage', JSON.stringify({
     state: {
       user: {
@@ -89,6 +121,8 @@ const seedAnonymousHomeState = (
   persistedAuthHint = false,
   authBootstrapMeta?: HomeAuthBootstrapMetaSeed | null,
 ) => {
+  delete (win as HomeWindowWithAuthTrace).__BEGA_TEST_AUTH_PROFILE__;
+  win.sessionStorage.removeItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY);
   win.localStorage.setItem('auth-storage', JSON.stringify({
     state: {},
     version: 0,

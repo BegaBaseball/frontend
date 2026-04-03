@@ -3,16 +3,15 @@ import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 
 import './AdminPage.css';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Search, Users, MessageSquare, Calendar, Shield, Activity, TrendingUp, Eye, X, MapPin, Bot, Newspaper, Camera, Bug } from 'lucide-react';
+import { Search, Users, MessageSquare, Calendar, Shield, Activity, TrendingUp, X, MapPin, Bot, Newspaper, Camera, Bug } from 'lucide-react';
 import { useAdminData } from '../hooks/useAdminData';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import { getTimeAgo } from '../utils/formatters';
 import { StatCard } from './admin/StatCard';
 import {
   createPlace,
+  fetchAdminPlaces,
+  fetchAdminStadiums,
   updatePlace,
   deletePlace,
   draftReleaseDecision,
@@ -22,10 +21,10 @@ import {
   fetchReleaseDecisionEvalCases,
   fetchReleaseDecisionPresets,
   saveReleaseDecisionArtifact,
+  AdminStadium,
   Place,
   PlaceFormData,
 } from '../api/admin';
-import api from '../api/axios';
 import type {
   ReleaseDecisionArtifactRecord,
   ReleaseDecisionArtifactSummary,
@@ -34,7 +33,6 @@ import type {
   ReleaseDecisionEvaluateResponse,
   ReleaseDecisionPreset,
 } from '../types/admin';
-import { AdminBadge } from './admin/AdminPanelPrimitives';
 
 const UsersAdminPanel = lazy(() =>
   import('./admin/UsersAdminPanel').then((module) => ({ default: module.UsersAdminPanel })),
@@ -51,6 +49,12 @@ const OffseasonMovementAdminPanel = lazy(() =>
 const ClientErrorAdminPanel = lazy(() =>
   import('./admin/ClientErrorAdminPanel').then((module) => ({ default: module.ClientErrorAdminPanel })),
 );
+const AdminReportsPanel = lazy(() =>
+  import('./admin/AdminReportsPanel').then((module) => ({ default: module.AdminReportsPanel })),
+);
+const AdminSeatViewsPanel = lazy(() =>
+  import('./admin/AdminSeatViewsPanel').then((module) => ({ default: module.AdminSeatViewsPanel })),
+);
 const AdminPlaceDialogContent = lazy(() => import('./admin/AdminPlaceDialogContent'));
 const AdminDeletePlaceDialogContent = lazy(() => import('./admin/AdminDeletePlaceDialogContent'));
 const AdminRoleChangeDialogContent = lazy(() => import('./admin/AdminRoleChangeDialogContent'));
@@ -60,17 +64,6 @@ const AdminStadiumsPanel = lazy(() =>
 const AdminAiOperationsPanel = lazy(() =>
   import('./admin/AdminAiOperationsPanel').then((module) => ({ default: module.AdminAiOperationsPanel })),
 );
-
-// ─── Stadium types (mirrors StadiumDto) ──────────────────────────────────────
-interface StadiumDto {
-  stadiumId: string;
-  stadiumName: string;
-  team: string;
-  lat: number;
-  lng: number;
-  address: string;
-  phone: string;
-}
 
 // ─── Place form default ───────────────────────────────────────────────────────
 const PLACE_CATEGORIES = [
@@ -190,7 +183,7 @@ export default function AdminPage() {
   const [roleChangeReason, setRoleChangeReason] = useState('');
 
   // ─── Stadium / Place management state ──────────────────────────────────────
-  const [stadiums, setStadiums] = useState<StadiumDto[]>([]);
+  const [stadiums, setStadiums] = useState<AdminStadium[]>([]);
   const [stadiumsLoading, setStadiumsLoading] = useState(false);
   const [selectedStadiumId, setSelectedStadiumId] = useState<string>('');
   const [places, setPlaces] = useState<Place[]>([]);
@@ -244,8 +237,8 @@ export default function AdminPage() {
   // Load stadiums once on mount
   useEffect(() => {
     setStadiumsLoading(true);
-    api.get<StadiumDto[]>('/stadiums')
-      .then(({ data }) => {
+    fetchAdminStadiums()
+      .then((data) => {
         setStadiums(data);
         if (data.length > 0) setSelectedStadiumId(data[0].stadiumId);
       })
@@ -259,8 +252,8 @@ export default function AdminPage() {
     setPlacesLoading(true);
     setStadiumError(null);
     try {
-      const { data } = await api.get<Place[]>(`/stadiums/${stadiumId}/places`);
-      setPlaces(Array.isArray(data) ? data : []);
+      const data = await fetchAdminPlaces(stadiumId);
+      setPlaces(data);
     } catch {
       setStadiumError('장소 목록을 불러올 수 없습니다.');
     } finally {
@@ -597,20 +590,6 @@ export default function AdminPage() {
     }
   }, [selectedSeatViewDetail]);
 
-  const reportStatusLabel: Record<string, string> = {
-    PENDING: '대기',
-    IN_REVIEW: '검토중',
-    RESOLVED: '완료',
-    CLOSED: '종결',
-  };
-
-  const reportStatusClass: Record<string, string> = {
-    PENDING: 'bg-amber-500/20 text-amber-300 border-0',
-    IN_REVIEW: 'bg-sky-500/20 text-sky-300 border-0',
-    RESOLVED: 'bg-emerald-500/20 text-emerald-300 border-0',
-    CLOSED: 'bg-slate-700 text-slate-300 border-0',
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 admin-page">
       {/* Background gradient mesh */}
@@ -753,111 +732,17 @@ export default function AdminPage() {
 
             {activeAdminTab === 'reports' && (
             <div className="p-6">
-              <div className="mb-4 grid grid-cols-1 md:grid-cols-6 gap-2">
-                <select
-                  value={reportFilters.status}
-                  data-testid="admin-reports-status-filter"
-                  onChange={(e) => updateReportFilters({ status: e.target.value })}
-                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
-                >
-                  <option value="all">상태 전체</option>
-                  <option value="PENDING">PENDING</option>
-                  <option value="IN_REVIEW">IN_REVIEW</option>
-                  <option value="RESOLVED">RESOLVED</option>
-                  <option value="CLOSED">CLOSED</option>
-                </select>
-                <select
-                  value={reportFilters.reason}
-                  data-testid="admin-reports-reason-filter"
-                  onChange={(e) => updateReportFilters({ reason: e.target.value })}
-                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
-                >
-                  <option value="all">사유 전체</option>
-                  <option value="SPAM">SPAM</option>
-                  <option value="INAPPROPRIATE_CONTENT">INAPPROPRIATE_CONTENT</option>
-                  <option value="ABUSIVE_LANGUAGE">ABUSIVE_LANGUAGE</option>
-                  <option value="ADVERTISEMENT">ADVERTISEMENT</option>
-                  <option value="COPYRIGHT_INFRINGEMENT">COPYRIGHT_INFRINGEMENT</option>
-                  <option value="FAKE_INFORMATION">FAKE_INFORMATION</option>
-                  <option value="OTHER">OTHER</option>
-                </select>
-                <Input
-                  type="date"
-                  value={reportFilters.fromDate}
-                  onChange={(e) => updateReportFilters({ fromDate: e.target.value })}
-                  className="bg-slate-800/50 border-slate-700 text-slate-200"
+              <Suspense fallback={<div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400">신고 관리 로딩 중...</div>}>
+                <AdminReportsPanel
+                  reportFilters={reportFilters}
+                  reportsLoading={reportsLoading}
+                  reports={reports}
+                  updateReportFilters={updateReportFilters}
+                  resetReportFilters={resetReportFilters}
+                  openReportDetail={openReportDetail}
+                  handleReportAction={handleReportAction}
                 />
-                <Input
-                  type="date"
-                  value={reportFilters.toDate}
-                  onChange={(e) => updateReportFilters({ toDate: e.target.value })}
-                  className="bg-slate-800/50 border-slate-700 text-slate-200"
-                />
-                <Button
-                  variant="outline"
-                  data-testid="admin-reports-reset-filters"
-                  className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
-                  onClick={resetReportFilters}
-                >
-                  필터 초기화
-                </Button>
-              </div>
-              <div className="rounded-xl border border-slate-800 overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/50">
-                      <TableHead className="text-slate-400 font-semibold">ID</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">사유</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">상태</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">게시물</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">신고자</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">접수일</TableHead>
-                      <TableHead className="text-slate-400 font-semibold text-right">상세/조치</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {reportsLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-16 text-slate-500">
-                          신고 목록 로딩 중...
-                        </TableCell>
-                      </TableRow>
-                    ) : reports.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-16 text-slate-500">
-                          신고 케이스가 없습니다.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      reports.map((report) => (
-                        <TableRow
-                          key={report.id}
-                          className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 cursor-pointer"
-                          onClick={() => openReportDetail(report.id)}
-                        >
-                          <TableCell className="text-slate-300 font-mono text-sm">{report.id}</TableCell>
-                          <TableCell className="text-slate-300">{report.reason || '-'}</TableCell>
-                          <TableCell>
-                            <AdminBadge className={reportStatusClass[report.status || ''] || 'bg-slate-700 text-slate-300 border-0'}>
-                              {report.status ? (reportStatusLabel[report.status] || report.status) : '대기'}
-                            </AdminBadge>
-                          </TableCell>
-                          <TableCell className="text-slate-300 max-w-[260px] truncate">{report.postPreview || '-'}</TableCell>
-                          <TableCell className="text-slate-300">{report.reporterHandle || '-'}</TableCell>
-                          <TableCell className="text-slate-400 text-sm">{getTimeAgo(report.createdAt)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button size="sm" variant="ghost" data-testid={`admin-report-detail-${report.id}`} className="text-slate-300 hover:text-white hover:bg-slate-700" onClick={(e) => { e.stopPropagation(); openReportDetail(report.id); }}><Eye className="w-4 h-4" /></Button>
-                              <Button size="sm" variant="ghost" data-testid={`admin-report-take-down-${report.id}`} className="text-red-300 hover:text-red-200 hover:bg-red-500/10" onClick={(e) => { e.stopPropagation(); handleReportAction(report.id, 'TAKE_DOWN', '정책 위반 게시물 비공개'); }}>비공개</Button>
-                              <Button size="sm" variant="ghost" data-testid={`admin-report-dismiss-${report.id}`} className="text-slate-300 hover:text-white hover:bg-slate-700" onClick={(e) => { e.stopPropagation(); handleReportAction(report.id, 'DISMISS', '검토 결과 위반 아님'); }}>기각</Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+              </Suspense>
             </div>
             )}
 
@@ -871,174 +756,17 @@ export default function AdminPage() {
 
             {activeAdminTab === 'seatViews' && (
             <div className="p-6">
-              <div className="mb-4 grid grid-cols-1 md:grid-cols-5 gap-2">
-                <select
-                  value={seatViewFilters.moderationStatus}
-                  data-testid="admin-seat-views-status-filter"
-                  onChange={(e) => updateSeatViewFilters({ moderationStatus: e.target.value })}
-                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
-                >
-                  <option value="all">상태 전체</option>
-                  <option value="PENDING">PENDING</option>
-                  <option value="APPROVED">APPROVED</option>
-                  <option value="REJECTED">REJECTED</option>
-                </select>
-                <Input
-                  data-testid="admin-seat-views-stadium-filter"
-                  value={seatViewFilters.stadium}
-                  onChange={(e) => updateSeatViewFilters({ stadium: e.target.value })}
-                  placeholder="구장명 필터"
-                  className="bg-slate-800/50 border-slate-700 text-slate-200"
+              <Suspense fallback={<div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400">시야뷰 관리 로딩 중...</div>}>
+                <AdminSeatViewsPanel
+                  seatViewFilters={seatViewFilters}
+                  seatViewsLoading={seatViewsLoading}
+                  seatViews={seatViews}
+                  updateSeatViewFilters={updateSeatViewFilters}
+                  resetSeatViewFilters={resetSeatViewFilters}
+                  openSeatViewDetail={openSeatViewDetail}
+                  handleSeatViewAction={handleSeatViewAction}
                 />
-                <select
-                  value={seatViewFilters.aiSuggestedLabel}
-                  data-testid="admin-seat-views-ai-filter"
-                  onChange={(e) => updateSeatViewFilters({ aiSuggestedLabel: e.target.value })}
-                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
-                >
-                  <option value="all">AI 라벨 전체</option>
-                  <option value="SEAT_VIEW">SEAT_VIEW</option>
-                  <option value="TICKET">TICKET</option>
-                  <option value="OTHER">OTHER</option>
-                  <option value="INAPPROPRIATE">INAPPROPRIATE</option>
-                </select>
-                <select
-                  value={seatViewFilters.adminLabel}
-                  data-testid="admin-seat-views-admin-filter"
-                  onChange={(e) => updateSeatViewFilters({ adminLabel: e.target.value })}
-                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
-                >
-                  <option value="all">관리자 라벨 전체</option>
-                  <option value="SEAT_VIEW">SEAT_VIEW</option>
-                  <option value="TICKET">TICKET</option>
-                  <option value="OTHER">OTHER</option>
-                  <option value="INAPPROPRIATE">INAPPROPRIATE</option>
-                </select>
-                <select
-                  value={seatViewFilters.ticketVerified}
-                  data-testid="admin-seat-views-ticket-filter"
-                  onChange={(e) => updateSeatViewFilters({ ticketVerified: e.target.value })}
-                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200"
-                >
-                  <option value="all">티켓 인증 전체</option>
-                  <option value="verified">인증 완료</option>
-                  <option value="unverified">미인증</option>
-                </select>
-                <Button
-                  variant="outline"
-                  data-testid="admin-seat-views-reset-filters"
-                  className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
-                  onClick={resetSeatViewFilters}
-                >
-                  필터 초기화
-                </Button>
-              </div>
-
-              <div className="rounded-xl border border-slate-800 overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/50">
-                      <TableHead className="text-slate-400 font-semibold">ID</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">사진</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">구장/좌석</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">AI</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">인증</TableHead>
-                      <TableHead className="text-slate-400 font-semibold">상태</TableHead>
-                      <TableHead className="text-slate-400 font-semibold text-right">상세/조치</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {seatViewsLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-16 text-slate-500">
-                          시야뷰 후보 로딩 중...
-                        </TableCell>
-                      </TableRow>
-                    ) : seatViews.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-16 text-slate-500">
-                          시야뷰 후보가 없습니다.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      seatViews.map((seatView) => (
-                        <TableRow
-                          key={seatView.id}
-                          className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 cursor-pointer"
-                          onClick={() => openSeatViewDetail(seatView.id)}
-                        >
-                          <TableCell className="text-slate-300 font-mono text-sm">{seatView.id}</TableCell>
-                          <TableCell>
-                            <img
-                              src={seatView.photoUrl}
-                              alt="시야뷰 후보"
-                              className="h-14 w-14 rounded-lg object-cover border border-slate-800"
-                            />
-                          </TableCell>
-                          <TableCell className="text-slate-300 text-sm">
-                            <div>{seatView.stadium}</div>
-                            <div className="text-slate-500">
-                              {[seatView.section, seatView.block, seatView.seatRow, seatView.seatNumber].filter(Boolean).join(' / ') || '-'}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-slate-300 text-sm">
-                            <div>{seatView.aiSuggestedLabel || '-'}</div>
-                            <div className="text-slate-500">
-                              {seatView.aiConfidence != null ? `${Math.round(seatView.aiConfidence * 100)}%` : '미분류'}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <AdminBadge className={seatView.ticketVerified ? 'bg-emerald-500/20 text-emerald-300 border-0' : 'bg-slate-700 text-slate-300 border-0'}>
-                              {seatView.ticketVerified ? '인증 완료' : '미인증'}
-                            </AdminBadge>
-                          </TableCell>
-                          <TableCell>
-                            <AdminBadge className={seatView.moderationStatus === 'APPROVED'
-                              ? 'bg-emerald-500/20 text-emerald-300 border-0'
-                              : seatView.moderationStatus === 'REJECTED'
-                                ? 'bg-red-500/20 text-red-300 border-0'
-                                : 'bg-amber-500/20 text-amber-300 border-0'}>
-                              {seatView.moderationStatus || '미제출'}
-                            </AdminBadge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                data-testid={`admin-seat-view-detail-${seatView.id}`}
-                                className="text-slate-300 hover:text-white hover:bg-slate-700"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openSeatViewDetail(seatView.id);
-                                }}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                data-testid={`admin-seat-view-approve-${seatView.id}`}
-                                className="text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/10"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSeatViewAction(seatView.id, {
-                                    adminLabel: 'SEAT_VIEW',
-                                    moderationStatus: 'APPROVED',
-                                    adminMemo: '관리자 승인',
-                                  });
-                                }}
-                              >
-                                승인
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+              </Suspense>
             </div>
             )}
 

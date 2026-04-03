@@ -19,6 +19,14 @@ export interface FieldErrors {
 
 export type FieldName = keyof SignUpFormData;
 
+export type SignUpFieldAvailabilityState = 'idle' | 'checking' | 'available' | 'taken' | 'error';
+
+export interface SignUpFieldAvailability {
+  state: SignUpFieldAvailabilityState;
+  message: string;
+  normalized?: string;
+}
+
 // 🔥 로그인 타입 추가
 export interface LoginFormData {
   email: string;

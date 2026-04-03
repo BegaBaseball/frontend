@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { PrivateApiError, privatePost } from './privateClient';
+import { PrivateApiError, privateDelete, privatePost } from './privateClient';
 
 test('privatePost는 401 후 reissue 성공 시 원 요청을 한 번 재시도한다', async (t) => {
   const urls: string[] = [];
@@ -54,12 +54,29 @@ test('privatePost는 reissue 실패 시 auth-session-expired를 dispatch하고 �
   Object.defineProperty(globalThis, 'window', {
     configurable: true,
     value: {
+      location: {
+        hostname: 'localhost',
+        origin: 'http://localhost',
+      },
       dispatchEvent: (event: Event) => {
         const customEvent = event as CustomEvent<Record<string, unknown> | undefined>;
         events.push(customEvent.detail);
         return true;
       },
     },
+  });
+
+  t.after(() => {
+    if (originalWindow === undefined) {
+      // @ts-expect-error test cleanup
+      delete globalThis.window;
+      return;
+    }
+
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: originalWindow,
+    });
   });
 
   t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
@@ -93,14 +110,35 @@ test('privatePost는 reissue 실패 시 auth-session-expired를 dispatch하고 �
 
   assert.equal(events.length, 1);
   assert.equal(events[0]?.cause, 'reissue_failed');
+});
 
-  if (originalWindow === undefined) {
-    // @ts-expect-error test cleanup
-    delete globalThis.window;
-  } else {
-    Object.defineProperty(globalThis, 'window', {
-      configurable: true,
-      value: originalWindow,
+test('privateDelete는 delete body와 query params를 함께 전송한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
     });
-  }
+  });
+
+  const response = await privateDelete<{ success: boolean }, { password: string }>('/auth/account', {
+    body: { password: 'Secret123!' },
+    params: { reason: 'user-request' },
+    skipAuthSessionHandling: true,
+  });
+
+  assert.deepEqual(response, { success: true });
+  assert.match(requestUrl, /\/api\/auth\/account\?reason=user-request$/);
+  assert.equal(requestInit?.method, 'DELETE');
+  assert.equal(requestInit?.credentials, 'include');
+  assert.equal(requestInit?.body, JSON.stringify({ password: 'Secret123!' }));
 });

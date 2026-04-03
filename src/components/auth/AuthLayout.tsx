@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import begaCharacter from '../../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
 import grassDecor from '../../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
 import './auth-layout.css';
+import '../common/autofill-input.css';
 import { OptimizedImage } from '../common/OptimizedImage';
 import { Button } from '../ui/button';
 import {

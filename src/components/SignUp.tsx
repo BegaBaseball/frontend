@@ -17,6 +17,18 @@ import { Input } from './ui/input';
 
 const LazyTeamRecommendationTest = lazy(() => import('./TeamRecommendationTest'));
 
+const getAvailabilityMessageClassName = (state: 'idle' | 'checking' | 'available' | 'taken' | 'error') => {
+  if (state === 'available') {
+    return 'auth-helper-text text-emerald-600';
+  }
+
+  if (state === 'taken' || state === 'error') {
+    return 'auth-error-text';
+  }
+
+  return 'auth-helper-text';
+};
+
 export default function SignUp() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,7 +40,10 @@ export default function SignUp() {
   const {
     formData,
     fieldErrors,
+    handleAvailability,
+    emailAvailability,
     isLoading,
+    isSubmitDisabled,
     isSuccess,
     error,
     handleFieldChange,
@@ -103,16 +118,7 @@ export default function SignUp() {
               autoCapitalize="none"
               autoCorrect="off"
               value={formData.handle}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                if (nextValue === '' || nextValue === '@') {
-                  handleFieldChange('handle', '@');
-                } else if (nextValue.startsWith('@')) {
-                  handleFieldChange('handle', nextValue);
-                } else {
-                  handleFieldChange('handle', `@${nextValue}`);
-                }
-              }}
+              onChange={(event) => handleFieldChange('handle', event.target.value)}
               onBlur={() => handleFieldBlur('handle')}
               className={`auth-input auth-autofill-input ${fieldErrors.handle ? 'auth-input-error' : ''}`}
               placeholder="@username"
@@ -121,8 +127,13 @@ export default function SignUp() {
             />
             {fieldErrors.handle ? (
               <p className="auth-error-text">* {fieldErrors.handle}</p>
+            ) : handleAvailability.state !== 'idle' ? (
+              <p className={getAvailabilityMessageClassName(handleAvailability.state)}>
+                {handleAvailability.state === 'taken' || handleAvailability.state === 'error' ? '* ' : ''}
+                {handleAvailability.message}
+              </p>
             ) : (
-              <p className="auth-helper-text">핸들은 내 프로필 주소로 사용됩니다. (기호는 _만 가능)</p>
+              <p className="auth-helper-text">핸들은 내 프로필 주소로 사용되며 소문자로 저장됩니다. (기호는 _만 가능)</p>
             )}
           </div>
 
@@ -147,7 +158,14 @@ export default function SignUp() {
               disabled={isLoading || isSuccess}
               data-testid="signup-email"
             />
-            {fieldErrors.email ? <p className="auth-error-text">* {fieldErrors.email}</p> : null}
+            {fieldErrors.email ? (
+              <p className="auth-error-text">* {fieldErrors.email}</p>
+            ) : emailAvailability.state !== 'idle' ? (
+              <p className={getAvailabilityMessageClassName(emailAvailability.state)}>
+                {emailAvailability.state === 'taken' || emailAvailability.state === 'error' ? '* ' : ''}
+                {emailAvailability.message}
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
@@ -306,7 +324,7 @@ export default function SignUp() {
             variant="brand"
             size="touchLg"
             className="w-full"
-            disabled={isLoading || isSuccess}
+            disabled={isSubmitDisabled}
             data-testid="signup-submit"
           >
             {isLoading ? (

@@ -29,7 +29,7 @@ import {
 } from '../hooks/mateCheckInRoute';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { cn } from '../lib/utils';
-import { api } from '../utils/api';
+import { createCheckIn } from '../api/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import {
   getPartyFlowLabel,
@@ -246,7 +246,7 @@ export default function MateCheckIn() {
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const createdCheckIn = await api.createCheckIn({
+      const createdCheckIn = await createCheckIn({
         partyId: party.id,
         location: party.stadium,
         ...(qrSessionId ? { qrSessionId } : {}),
