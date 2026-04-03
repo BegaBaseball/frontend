@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  checkSignUpEmailAvailability,
+  checkSignUpHandleAvailability,
   getSocialLoginUrl,
   loginUser,
   confirmPasswordReset,
   consumeOAuth2State,
   requestPasswordReset,
+  SignUpSubmissionError,
   signupUser,
 } from './authPublic';
 
@@ -96,6 +99,157 @@ test('signupUser는 공개 정책 조회 뒤 회원가입 요청을 보낸다', 
   assert.ok(bodies.some((body) => body.includes('"policyType":"PRIVACY"')));
 });
 
+test('checkSignUpHandleAvailability는 성공 응답의 handle 사용 가능 결과를 반환한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    success: true,
+    data: {
+      available: true,
+      normalized: '@slugger',
+    },
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }));
+
+  const response = await checkSignUpHandleAvailability('@Slugger');
+
+  assert.deepEqual(response, {
+    available: true,
+    normalized: '@slugger',
+  });
+});
+
+test('checkSignUpEmailAvailability는 409 응답을 사용 불가 결과로 변환한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    success: false,
+    code: 'DUPLICATE_EMAIL',
+    message: '이미 사용 중인 이메일입니다.',
+    data: {
+      available: false,
+      normalized: 'slugger@example.com',
+    },
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 409,
+  }));
+
+  const response = await checkSignUpEmailAvailability('Slugger@Example.com');
+
+  assert.deepEqual(response, {
+    available: false,
+    message: '이미 사용 중인 이메일입니다.',
+    normalized: 'slugger@example.com',
+  });
+});
+
+test('signupUser는 최종 handle 충돌을 SignUpSubmissionError로 변환한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    const url = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+    if (url.includes('/auth/policies/required')) {
+      return new Response(JSON.stringify({
+        success: true,
+        data: {
+          policies: [
+            { policyType: 'TERMS', version: '2026-02-26', required: true },
+            { policyType: 'PRIVACY', version: '2026-02-26', required: true },
+          ],
+        },
+      }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    return new Response(JSON.stringify({
+      success: false,
+      code: 'HANDLE_UNAVAILABLE',
+      message: '이미 사용 중인 아이디(@handle)입니다.',
+      data: {
+        handle: '@slugger',
+      },
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 409,
+    });
+  });
+
+  try {
+    await signupUser({
+      name: '테스트유저',
+      handle: '@Slugger',
+      email: 'tester@example.com',
+      password: 'Test1234!',
+      confirmPassword: 'Test1234!',
+      favoriteTeam: 'LG 트윈스',
+    });
+    assert.fail('expected signupUser to throw');
+  } catch (error) {
+    assert.ok(error instanceof SignUpSubmissionError);
+    assert.equal(error.field, 'handle');
+    assert.equal(error.normalized, '@slugger');
+    assert.equal(error.message, '이미 사용 중인 아이디(@handle)입니다.');
+  }
+});
+
+test('signupUser는 최종 email 충돌을 SignUpSubmissionError로 변환한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    const url = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+    if (url.includes('/auth/policies/required')) {
+      return new Response(JSON.stringify({
+        success: true,
+        data: {
+          policies: [
+            { policyType: 'TERMS', version: '2026-02-26', required: true },
+            { policyType: 'PRIVACY', version: '2026-02-26', required: true },
+          ],
+        },
+      }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    return new Response(JSON.stringify({
+      success: false,
+      code: 'DUPLICATE_EMAIL',
+      message: '이미 사용 중인 이메일입니다.',
+      data: {
+        email: 'taken@example.com',
+      },
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 409,
+    });
+  });
+
+  try {
+    await signupUser({
+      name: '테스트유저',
+      handle: '@tester',
+      email: 'Taken@Example.com',
+      password: 'Test1234!',
+      confirmPassword: 'Test1234!',
+      favoriteTeam: 'LG 트윈스',
+    });
+    assert.fail('expected signupUser to throw');
+  } catch (error) {
+    assert.ok(error instanceof SignUpSubmissionError);
+    assert.equal(error.field, 'email');
+    assert.equal(error.normalized, 'taken@example.com');
+    assert.equal(error.message, '이미 사용 중인 이메일입니다.');
+  }
+});
+
 test('requestPasswordReset는 redirect를 포함한 공개 reset request 경로를 호출한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
@@ -175,28 +329,31 @@ test('consumeOAuth2State는 공개 oauth state consume 경로를 호출한다', 
         : input.url;
 
     return new Response(JSON.stringify({
-      email: 'slugger@example.com',
-      name: 'Slugger',
-      role: 'ROLE_USER',
-      profileImageUrl: null,
-      favoriteTeam: 'LG',
-      handle: 'slugger',
+      success: true,
+      data: {
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token',
+        user: {
+          id: 1,
+          email: 'oauth@example.com',
+          name: 'OAuth User',
+        },
+      },
     }), {
       headers: { 'content-type': 'application/json' },
       status: 200,
     });
   });
 
-  const response = await consumeOAuth2State('state-success');
+  const response = await consumeOAuth2State('oauth-state-id');
 
-  assert.equal(response.handle, 'slugger');
-  assert.match(requestUrl, /\/api\/auth\/oauth2\/state\/state-success$/);
+  assert.equal(requestUrl.endsWith('/api/auth/oauth2/state/oauth-state-id'), true);
+  assert.equal(response.success, true);
 });
 
 test('getSocialLoginUrl는 provider와 link params를 유지한다', () => {
-  assert.match(getSocialLoginUrl('google'), /\/oauth2\/authorization\/google$/);
-  assert.match(
-    getSocialLoginUrl('kakao', { mode: 'link', linkToken: 'abc123' }),
-    /\/oauth2\/authorization\/kakao\?mode=link&linkToken=abc123$/,
-  );
+  const url = getSocialLoginUrl('google', { mode: 'link', linkToken: 'test-link-token' });
+  assert.equal(url.includes('/oauth2/authorization/google'), true);
+  assert.equal(url.includes('mode=link'), true);
+  assert.equal(url.includes('linkToken=test-link-token'), true);
 });

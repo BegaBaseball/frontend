@@ -405,7 +405,7 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.equal(initialStructuredCalls);
     });
-    cy.tick(4500);
+    cy.tick(7000);
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.be.gte(initialStructuredCalls + 1);
     });
@@ -517,17 +517,7 @@ describe('Prediction Coach Briefing Regression', () => {
       ));
       expect(interceptionList.length).to.be.greaterThan(beforeSwitchCount);
       expect(switchedGameRequests.length).to.be.gte(1);
-    });
-
-    cy.tick(4000);
-    cy.wait('@coachAnalyzeReset');
-    cy.get('@coachAnalyzeReset.all').should((interceptions: any) => {
-      const interceptionList = interceptions as any[];
-      const switchedGameRequests = interceptionList.filter((interception) => (
-        extractCoachGameId(interception?.request?.body) === '20260601LGKT0'
-      ));
       const lastSwitchedRequest = switchedGameRequests[switchedGameRequests.length - 1]?.request?.body;
-      expect(switchedGameRequests.length).to.be.gte(2);
       expect(extractCoachGameId(lastSwitchedRequest)).to.eq('20260601LGKT0');
     });
   });

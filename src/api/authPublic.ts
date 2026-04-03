@@ -1,19 +1,25 @@
+import { SERVER_BASE_URL } from '../constants/config';
 import { parseError } from '../utils/errorUtils';
 import { sanitizeLoginRedirect } from '../utils/loginRedirect';
-import { publicGet, publicPost } from './publicClient';
+import {
+  PublicApiError,
+  publicGet,
+  publicPost,
+} from './publicClient';
 import type {
   LoginRequest,
   LoginResponse,
   OAuth2StateData,
-  PolicyConsentPayloadItem,
   PasswordResetConfirmRequest,
   PasswordResetConfirmResponse,
   PasswordResetRequest,
   PasswordResetResponse,
+  PolicyConsentPayloadItem,
+  SignUpAvailabilityResponse,
+  SignUpConflictField,
   SignUpRequest,
   SignUpResponse,
 } from './auth';
-import { SERVER_BASE_URL } from '../constants/config';
 
 interface RawLoginResponse {
   success?: boolean;
@@ -25,6 +31,14 @@ interface RawLoginResponse {
     handle?: string | null;
     cheerPoints?: number | string;
   } | null;
+}
+
+interface PublicApiEnvelope {
+  success?: boolean;
+  message?: string | null;
+  code?: string | null;
+  data?: unknown;
+  errors?: Record<string, unknown>;
 }
 
 interface RequiredPolicyItem {
@@ -44,6 +58,29 @@ interface RequiredPoliciesApiResponse {
 const SIGNUP_SUBMIT_TIMEOUT_MS = 20_000;
 const SIGNUP_POLICY_TIMEOUT_MESSAGE = '필수 정책 정보를 불러오는 중 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
 const SIGNUP_SUBMIT_TIMEOUT_MESSAGE = '회원가입 요청 처리에 시간이 오래 걸리고 있습니다. 잠시 후 다시 시도해주세요. 같은 이메일이 이미 가입되었는지도 확인해주세요.';
+const SIGNUP_HANDLE_CHECK_ERROR_MESSAGE = '핸들 중복 확인에 실패했습니다.';
+const SIGNUP_EMAIL_CHECK_ERROR_MESSAGE = '이메일 중복 확인에 실패했습니다.';
+
+export class SignUpSubmissionError extends Error {
+  field?: SignUpConflictField;
+  normalized?: string;
+  code?: string;
+
+  constructor(
+    message: string,
+    options: {
+      field?: SignUpConflictField;
+      normalized?: string;
+      code?: string;
+    } = {},
+  ) {
+    super(message);
+    this.name = 'SignUpSubmissionError';
+    this.field = options.field;
+    this.normalized = options.normalized;
+    this.code = options.code;
+  }
+}
 
 const normalizeOptionalNumber = (value: number | string | undefined): number | undefined => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -98,6 +135,49 @@ const getFieldErrorMessage = (error: unknown): string | null => {
 const isPublicTimeoutError = (error: unknown): boolean =>
   error instanceof Error && /^Request timed out after \d+ms$/i.test(error.message);
 
+const isSignUpAvailabilityResponse = (value: unknown): value is SignUpAvailabilityResponse => (
+  typeof value === 'object'
+  && value !== null
+  && 'available' in value
+  && typeof (value as { available: unknown }).available === 'boolean'
+  && (!('normalized' in value) || typeof (value as { normalized?: unknown }).normalized === 'string' || (value as { normalized?: unknown }).normalized === undefined)
+  && (!('message' in value) || typeof (value as { message?: unknown }).message === 'string' || (value as { message?: unknown }).message === undefined)
+);
+
+const getPublicErrorEnvelope = (error: PublicApiError): PublicApiEnvelope | null => {
+  if (!error.data || typeof error.data !== 'object') {
+    return null;
+  }
+
+  return error.data as PublicApiEnvelope;
+};
+
+const extractConflictNormalized = (
+  payload: unknown,
+  field: SignUpConflictField,
+): string | undefined => {
+  if (!payload || typeof payload !== 'object') {
+    return undefined;
+  }
+
+  const value = (payload as Record<string, unknown>)[field];
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+};
+
+const resolveAvailabilityResponse = (
+  payload: unknown,
+  fallbackMessage: string,
+): SignUpAvailabilityResponse => {
+  if (isSignUpAvailabilityResponse(payload)) {
+    return payload;
+  }
+
+  return {
+    available: false,
+    message: fallbackMessage,
+  };
+};
+
 const fetchRequiredPolicyConsents = async (): Promise<PolicyConsentPayloadItem[]> => {
   const response = await publicGet<RequiredPoliciesApiResponse>('/auth/policies/required');
   const policies = response.data?.policies;
@@ -145,6 +225,59 @@ const resolvePolicyConsentsForSignup = async (
   }
 };
 
+const checkSignUpAvailability = async (
+  endpoint: string,
+  paramName: 'handle' | 'email',
+  value: string,
+  signal: AbortSignal | undefined,
+  fallbackMessage: string,
+): Promise<SignUpAvailabilityResponse> => {
+  try {
+    const response = await publicGet<PublicApiEnvelope>(endpoint, {
+      params: { [paramName]: value },
+      signal,
+    });
+    return resolveAvailabilityResponse(response.data, fallbackMessage);
+  } catch (error) {
+    if (error instanceof PublicApiError && (error.status === 400 || error.status === 409)) {
+      const envelope = getPublicErrorEnvelope(error);
+      const availability = resolveAvailabilityResponse(
+        envelope?.data,
+        envelope?.message || fallbackMessage,
+      );
+
+      return {
+        ...availability,
+        message: availability.message || envelope?.message || fallbackMessage,
+      };
+    }
+
+    throw new Error(parseError(error).message || fallbackMessage);
+  }
+};
+
+export const checkSignUpHandleAvailability = async (
+  handle: string,
+  signal?: AbortSignal,
+): Promise<SignUpAvailabilityResponse> => checkSignUpAvailability(
+  '/auth/check-handle',
+  'handle',
+  handle,
+  signal,
+  SIGNUP_HANDLE_CHECK_ERROR_MESSAGE,
+);
+
+export const checkSignUpEmailAvailability = async (
+  email: string,
+  signal?: AbortSignal,
+): Promise<SignUpAvailabilityResponse> => checkSignUpAvailability(
+  '/auth/check-email',
+  'email',
+  email,
+  signal,
+  SIGNUP_EMAIL_CHECK_ERROR_MESSAGE,
+);
+
 export const loginUser = async (credentials: LoginRequest): Promise<LoginResponse> => {
   try {
     const response = await publicPost<RawLoginResponse, LoginRequest>('/auth/login', credentials);
@@ -186,6 +319,33 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
     const fieldError = getFieldErrorMessage(error);
     if (fieldError) {
       throw new Error(fieldError);
+    }
+
+    if (error instanceof PublicApiError) {
+      const parsed = parseError(error);
+      const envelope = getPublicErrorEnvelope(error);
+
+      if (parsed.responseCode === 'HANDLE_UNAVAILABLE') {
+        throw new SignUpSubmissionError(
+          parsed.message || '이미 사용 중인 아이디(@handle)입니다.',
+          {
+            code: parsed.responseCode,
+            field: 'handle',
+            normalized: extractConflictNormalized(envelope?.data, 'handle'),
+          },
+        );
+      }
+
+      if (parsed.responseCode === 'DUPLICATE_EMAIL') {
+        throw new SignUpSubmissionError(
+          parsed.message || '이미 사용 중인 이메일입니다.',
+          {
+            code: parsed.responseCode,
+            field: 'email',
+            normalized: extractConflictNormalized(envelope?.data, 'email'),
+          },
+        );
+      }
     }
 
     const parsed = parseError(error);

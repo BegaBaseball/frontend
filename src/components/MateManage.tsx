@@ -31,7 +31,14 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { normalizeMateParty } from '../api/mate';
+import {
+  approveApplication,
+  deleteParty,
+  normalizeMateParty,
+  rejectApplication,
+  updateParty,
+} from '../api/mate';
+import { getApiErrorStatus } from '../api/errorStatus';
 import {
   getMatePartyApplicationsQueryOptions,
   removeMatePartyFromCollections,
@@ -44,7 +51,6 @@ import {
 import { useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { Application, BadgeType } from '../types/mate';
 import { cn } from '../lib/utils';
-import { api, getApiErrorStatus } from '../utils/api';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import {
   getBadgeMeta,
@@ -215,7 +221,7 @@ export default function MateManage() {
   const handleApprove = async (applicationId: string | number) => {
     setApplicationActionError('');
     try {
-      const approvedApplication = await api.approveApplication(applicationId);
+      const approvedApplication = await approveApplication(applicationId);
       updateMatePartyApplicationQueryData(
         queryClient,
         party!.id,
@@ -248,7 +254,7 @@ export default function MateManage() {
   const handleReject = async (applicationId: string | number) => {
     setApplicationActionError('');
     try {
-      const rejectedApplication = await api.rejectApplication(applicationId);
+      const rejectedApplication = await rejectApplication(applicationId);
       updateMatePartyApplicationQueryData(
         queryClient,
         party!.id,
@@ -302,7 +308,7 @@ export default function MateManage() {
 
     setIsDeleting(true);
     try {
-      await api.deleteParty(party.id);
+      await deleteParty(party.id);
       removeMatePartyFromCollections(queryClient, party.id);
       removeMatePartyQueries(queryClient, party.id);
       toast.success('파티가 삭제되었습니다.');
@@ -350,7 +356,7 @@ export default function MateManage() {
     }
 
     try {
-      const updatedParty = await api.updateParty(party.id, editForm);
+      const updatedParty = await updateParty(party.id, editForm);
       syncMatePartyQueryData(queryClient, normalizeMateParty(updatedParty));
       toast.success('파티 정보가 수정되었습니다.');
       setDescriptionError('');

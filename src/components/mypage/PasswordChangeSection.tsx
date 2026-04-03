@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import '../common/autofill-input.css';
 import { changePassword } from '../../api/profile';
 import { toast } from 'sonner';
 import { useAuthAccessActions } from '../../store/authStore';
