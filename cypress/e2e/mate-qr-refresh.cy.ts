@@ -2,16 +2,56 @@
 
 describe('MateDetail QR refresh', () => {
   const checkinBaseUrl = (Cypress.config('baseUrl') || window.location.origin || 'http://localhost:5176').replace(/\/$/, '');
+  const fakeToken = 'mate-qr-refresh-token';
+  const testUser = {
+    id: 123,
+    email: 'test@example.com',
+    name: 'TestUser',
+    handle: '@testuser',
+    role: 'ROLE_USER',
+    favoriteTeam: 'KT',
+    hasPassword: true,
+    profileImageUrl: null,
+  };
+
+  const seedAuthState = (win: Window) => {
+    const authState = {
+      state: {
+        user: testUser,
+        isLoggedIn: true,
+        isAdmin: false,
+      },
+      version: 0,
+    };
+
+    win.localStorage.setItem('auth-storage', JSON.stringify(authState));
+    win.localStorage.setItem('accessToken', fakeToken);
+    win.localStorage.setItem('auth-bootstrap-hint', '1');
+    win.localStorage.setItem('bega_has_visited', 'true');
+    win.localStorage.setItem('bega_dont_show_guide', 'true');
+    win.document.cookie = `Authorization=${fakeToken}; path=/`;
+  };
+
+  const visitWithAuth = (path: string) => {
+    cy.visit(path, {
+      onBeforeLoad(win) {
+        seedAuthState(win);
+      },
+    });
+
+    cy.window().then((win) => {
+      seedAuthState(win);
+    });
+  };
 
   beforeEach(() => {
-    cy.login('user');
+    cy.clearCookies();
+    cy.clearLocalStorage();
     cy.mockAPI();
+    cy.viewport(1280, 800);
   });
 
   it('avoids immediate recursive refresh when session is already expired', () => {
-    const nowMs = Date.parse('2026-03-01T12:00:00Z');
-    cy.clock(nowMs);
-
     const detailParty = {
       id: 777,
       hostId: 123,
@@ -40,20 +80,14 @@ describe('MateDetail QR refresh', () => {
     let qrSessionCallCount = 0;
     let baselineCallCount = 0;
 
-    cy.intercept('GET', '**/api/parties*', {
-      statusCode: 200,
-      body: {
-        content: [detailParty],
-        totalElements: 1,
-        totalPages: 1,
-        number: 0,
-        size: 9,
-      },
-    }).as('getParties');
     cy.intercept('GET', '**/api/parties/777*', {
       statusCode: 200,
       body: detailParty,
     }).as('getPartyById');
+    cy.intercept('GET', '**/api/diary/seat-views*', {
+      statusCode: 200,
+      body: [],
+    }).as('getSeatViews');
     cy.intercept('GET', '**/api/applications/party/777/mine', {
       statusCode: 200,
       body: null,
@@ -75,42 +109,34 @@ describe('MateDetail QR refresh', () => {
       });
     }).as('createCheckinQrSession');
 
-    cy.visit('/mate');
-    cy.wait('@getParties');
-    cy.contains('문학 카펜트리').click();
-    cy.url().should('include', '/mate/777');
+    visitWithAuth('/mate/777');
     cy.wait('@getPartyById');
+    cy.contains('QR 자동 갱신 검증용 파티').should('be.visible');
+    cy.contains('button', '체크인 QR 보기').click();
     cy.wait('@createCheckinQrSession');
-    cy.contains('문학 카펜트리').should('be.visible');
 
     cy.then(() => {
       baselineCallCount = qrSessionCallCount;
       expect(baselineCallCount).to.be.greaterThan(0);
     });
 
-    cy.tick(0);
+    cy.wait(500);
     cy.then(() => {
       expect(qrSessionCallCount).to.eq(baselineCallCount);
     });
 
-    cy.tick(9_999);
+    cy.wait(8_500);
     cy.then(() => {
       expect(qrSessionCallCount).to.eq(baselineCallCount);
     });
 
-    cy.tick(1);
-    cy.then(() => {
-      if (qrSessionCallCount === baselineCallCount) {
-        // 일부 러너 환경에서 앱 타이머 제어가 느슨할 수 있어 보조 대기로 안정화
-        cy.wait(10_500);
-      }
-    });
+    cy.wait(2_500);
     cy.wrap(null).should(() => {
       expect(qrSessionCallCount).to.be.at.least(baselineCallCount);
       expect(qrSessionCallCount).to.be.at.most(baselineCallCount + 1);
     });
 
-    cy.tick(0);
+    cy.wait(500);
     cy.then(() => {
       expect(qrSessionCallCount).to.be.at.least(baselineCallCount);
       expect(qrSessionCallCount).to.be.at.most(baselineCallCount + 1);
@@ -143,20 +169,14 @@ describe('MateDetail QR refresh', () => {
       createdAt: '2026-02-20T09:00:00',
     };
 
-    cy.intercept('GET', '**/api/parties*', {
-      statusCode: 200,
-      body: {
-        content: [detailParty],
-        totalElements: 1,
-        totalPages: 1,
-        number: 0,
-        size: 9,
-      },
-    }).as('getParties');
     cy.intercept('GET', '**/api/parties/778*', {
       statusCode: 200,
       body: detailParty,
     }).as('getPartyById');
+    cy.intercept('GET', '**/api/diary/seat-views*', {
+      statusCode: 200,
+      body: [],
+    }).as('getSeatViews');
     cy.intercept('GET', '**/api/applications/party/778/mine', {
       statusCode: 200,
       body: null,
@@ -176,11 +196,9 @@ describe('MateDetail QR refresh', () => {
       },
     }).as('createCheckinQrSession');
 
-    cy.visit('/mate');
-    cy.wait('@getParties');
-    cy.contains('잠실').click();
-    cy.url().should('include', '/mate/778');
+    visitWithAuth('/mate/778');
     cy.wait('@getPartyById');
+    cy.contains('button', '체크인 QR 보기').click();
     cy.contains('체크인 QR을 새로 불러오는 중입니다.').should('be.visible');
     cy.wait('@createCheckinQrSession');
     cy.contains('체크인 QR을 새로 불러오는 중입니다.').should('not.exist');

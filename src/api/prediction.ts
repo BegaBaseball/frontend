@@ -1,4 +1,5 @@
-import api from './axios';
+import { privateDelete, privateGet, privatePost } from './privateClient';
+import { publicGet } from './publicClient';
 import { parseError } from '../utils/errorUtils';
 import { Game, GameDetail, MatchBounds, MatchDayNavigation, UserPredictionStat } from '../types/prediction';
 
@@ -237,12 +238,9 @@ export interface FetchOptions {
 
 export const fetchMatchBounds = async (): Promise<ApiResult<MatchBounds>> => {
   try {
-    const response = await api.get<MatchBounds>('/matches/bounds', {
-      skipGlobalErrorHandler: true,
-    });
     return {
       ok: true,
-      data: response.data,
+      data: await publicGet<MatchBounds>('/matches/bounds'),
     };
   } catch (error) {
     const parsed = parseError(error);
@@ -262,14 +260,13 @@ export const fetchMatchesByDay = async (
   options: FetchOptions = {}
 ): Promise<MatchDayResult> => {
   try {
-    const params = new URLSearchParams({ date });
-    const response = await api.get<MatchDayNavigation>(`/matches/day?${params}`, {
+    const data = await publicGet<MatchDayNavigation>('/matches/day', {
+      params: { date },
       signal: options.signal,
-      skipGlobalErrorHandler: true,
     });
     return {
       ok: true,
-      data: response.data,
+      data,
     };
   } catch (error) {
     const parsed = parseError(error);
@@ -288,8 +285,7 @@ export const fetchMatchesByDay = async (
  * 과거 경기 데이터 가져오기
  */
 export const fetchPastGames = async (): Promise<Game[]> => {
-  const response = await api.get<Game[]>('/games/past');
-  return response.data;
+  return publicGet<Game[]>('/games/past');
 };
 
 /**
@@ -303,23 +299,21 @@ export const fetchMatchesByRange = async ({
   includePast = true,
   withMeta = false,
 }: MatchRangeRequest): Promise<Game[]> => {
-  const params = new URLSearchParams({
-    startDate,
-    endDate,
-    page: Math.max(0, page).toString(),
-    size: Math.max(1, Math.min(500, size)).toString(),
-    includePast: includePast ? 'true' : 'false',
-    withMeta: withMeta ? 'true' : 'false',
+  const response = await publicGet<Game[] | MatchRangePageMeta>('/matches/range', {
+    params: {
+      startDate,
+      endDate,
+      page: Math.max(0, page),
+      size: Math.max(1, Math.min(500, size)),
+      includePast,
+      withMeta,
+    },
   });
-
-  const response = await api.get<Game[] | MatchRangePageMeta>(`/matches/range?${params}`, {
-    skipGlobalErrorHandler: true,
-  });
-  if (Array.isArray(response.data)) {
-    return response.data;
+  if (Array.isArray(response)) {
+    return response;
   }
 
-  return response.data.content;
+  return response.content;
 };
 
 export const fetchMatchesByRangeWithMeta = async ({
@@ -330,19 +324,16 @@ export const fetchMatchesByRangeWithMeta = async ({
   includePast = true,
 }: MatchRangeRequest): Promise<ApiResult<MatchRangePageMeta>> => {
   try {
-    const params = new URLSearchParams({
-      startDate,
-      endDate,
-      page: Math.max(0, page).toString(),
-      size: Math.max(1, Math.min(500, size)).toString(),
-      includePast: includePast ? 'true' : 'false',
-      withMeta: 'true',
+    const data = await publicGet<MatchRangePageMeta | Game[]>('/matches/range', {
+      params: {
+        startDate,
+        endDate,
+        page: Math.max(0, page),
+        size: Math.max(1, Math.min(500, size)),
+        includePast,
+        withMeta: true,
+      },
     });
-
-    const response = await api.get<MatchRangePageMeta | Game[]>(`/matches/range?${params}`, {
-      skipGlobalErrorHandler: true,
-    });
-    const data = response.data;
 
     if (Array.isArray(data)) {
       return {
@@ -385,28 +376,26 @@ export const fetchMatchesByRangeResult = async ({
   withMeta = false,
 }: MatchRangeRequest): Promise<MatchRangeResult> => {
   try {
-    const params = new URLSearchParams({
-      startDate,
-      endDate,
-      page: Math.max(0, page).toString(),
-      size: Math.max(1, Math.min(500, size)).toString(),
-      includePast: includePast ? 'true' : 'false',
-      withMeta: withMeta ? 'true' : 'false',
+    const data = await publicGet<Game[] | MatchRangePageMeta>('/matches/range', {
+      params: {
+        startDate,
+        endDate,
+        page: Math.max(0, page),
+        size: Math.max(1, Math.min(500, size)),
+        includePast,
+        withMeta,
+      },
     });
-
-    const response = await api.get<Game[] | MatchRangePageMeta>(`/matches/range?${params}`, {
-      skipGlobalErrorHandler: true,
-    });
-    if (Array.isArray(response.data)) {
+    if (Array.isArray(data)) {
       return {
         ok: true,
-        data: response.data,
+        data,
       };
     }
 
     return {
       ok: true,
-      data: response.data,
+      data,
     };
   } catch (error) {
     const parsed = parseError(error);
@@ -425,20 +414,18 @@ export const fetchMatchesByRangeResult = async ({
  * 특정 날짜의 경기 데이터 가져오기
  */
 export const fetchMatchesByDate = async (date: string): Promise<Game[]> => {
-  const response = await api.get<Game[]>(`/matches?date=${date}`);
-  return response.data;
+  return publicGet<Game[]>('/matches', {
+    params: { date },
+  });
 };
 
 /**
  * 특정 경기 상세 데이터 가져오기
  */
 export const fetchGameDetail = async (gameId: string, options?: FetchOptions): Promise<GameDetail> => {
-  const config = {
-    ...(options?.signal ? { signal: options.signal } : {}),
-    skipGlobalErrorHandler: true,
-  };
-  const response = await api.get<GameDetail>(`/matches/${gameId}`, config);
-  return response.data;
+  return publicGet<GameDetail>(`/matches/${gameId}`, {
+    signal: options?.signal,
+  });
 };
 
 export const fetchGameDetailResult = async (
@@ -446,14 +433,11 @@ export const fetchGameDetailResult = async (
   options?: FetchOptions
 ): Promise<GameDetailResult> => {
   try {
-    const config = {
-      ...(options?.signal ? { signal: options.signal } : {}),
-      skipGlobalErrorHandler: true,
-    };
-    const response = await api.get<GameDetail>(`/matches/${gameId}`, config);
     return {
       ok: true,
-      data: response.data,
+      data: await publicGet<GameDetail>(`/matches/${gameId}`, {
+        signal: options?.signal,
+      }),
     };
   } catch (error) {
     const parsed = parseError(error);
@@ -494,17 +478,12 @@ export const fetchAllUserVotesBulk = async (
   }
 
   try {
-    const response = await api.post<MyVotesResponse>('/predictions/my-votes', {
+    const response = await privatePost<MyVotesResponse, MyVotesRequest>('/predictions/my-votes', {
       gameIds: Array.from(new Set(gameIds)).filter((gameId) => gameId),
-    } as MyVotesRequest, {
-      skipGlobalErrorHandler: true,
     });
-    return extractVotesById(response.data);
+    return extractVotesById(response);
   } catch (error) {
     const parsedError = parseError(error);
-    if (!error || typeof error !== 'object' || !('status' in error)) {
-      throw error;
-    }
     throw new Error(parsedError.message || '배열 투표 조회에 실패했습니다.');
   }
 };
@@ -517,11 +496,10 @@ export const fetchVoteStatus = async (
   options?: FetchOptions
 ): Promise<VoteStatusResult> => {
   try {
-    const response = await api.get<VoteStatus>(`/predictions/status/${gameId}`, {
+    const response = await publicGet<VoteStatus>(`/predictions/status/${gameId}`, {
       signal: options?.signal,
-      skipGlobalErrorHandler: true,
     });
-    const normalizedData = extractVoteStatusPayload(response.data);
+    const normalizedData = extractVoteStatusPayload(response);
 
     return {
       ok: true,
@@ -544,9 +522,7 @@ export const fetchVoteStatus = async (
  * 투표하기
  */
 export const submitVote = async (gameId: string, votedTeam: 'home' | 'away'): Promise<boolean> => {
-  await api.post('/predictions/vote', { gameId, votedTeam }, {
-    skipGlobalErrorHandler: true,
-  });
+  await privatePost('/predictions/vote', { gameId, votedTeam });
   return true;
 };
 
@@ -554,9 +530,7 @@ export const submitVote = async (gameId: string, votedTeam: 'home' | 'away'): Pr
  * 투표 취소하기
  */
 export const cancelVote = async (gameId: string): Promise<boolean> => {
-  await api.delete(`/predictions/${gameId}`, {
-    skipGlobalErrorHandler: true,
-  });
+  await privateDelete(`/predictions/${gameId}`);
   return true;
 };
 
@@ -564,6 +538,6 @@ export const cancelVote = async (gameId: string): Promise<boolean> => {
  * 내 예측 통계 조회
  */
 export const fetchMyPredictionStats = async (): Promise<UserPredictionStat> => {
-  const response = await api.get<{ success: boolean; data: UserPredictionStat }>('/prediction/stats/me');
-  return response.data.data;
+  const response = await privateGet<{ success: boolean; data: UserPredictionStat }>('/prediction/stats/me');
+  return response.data;
 };

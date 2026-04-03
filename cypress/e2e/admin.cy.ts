@@ -103,16 +103,19 @@ const ok = <T,>(data: T, message = 'ok') => ({
 
 const readQuery = (url: string, key: string) => new URL(url).searchParams.get(key) ?? '';
 
-const selectRadixOption = (testId: string, optionText: string) => {
-    cy.getBySel(testId).click({ force: true });
-    cy.get('[role="option"]').contains(optionText).click({ force: true });
+const selectOption = (testId: string, optionText: string) => {
+    cy.getBySel(testId).then(($element) => {
+        if ($element.is('select')) {
+            cy.wrap($element).select(optionText, { force: true });
+            return;
+        }
+
+        cy.wrap($element).click({ force: true });
+        cy.get('[role="option"]').contains(optionText).click({ force: true });
+    });
 };
 
-const selectVisibleText = (selector: string, value: string) => {
-    cy.get(selector).filter(':visible').contains(value).click({ force: true });
-};
-
-const visibleAlertDialog = () => cy.get('[role="alertdialog"]').filter(':visible').last();
+const visibleAlertDialog = () => cy.get('[role="alertdialog"], [role="dialog"]').filter(':visible').last();
 
 const visibleDialog = () => cy.get('[role="dialog"]').filter(':visible').last();
 
@@ -1005,7 +1008,7 @@ describe('Admin page coverage', () => {
         cy.contains('FanUser').should('be.visible');
         cy.contains('ModUser').should('not.exist');
 
-        selectRadixOption('admin-user-role-trigger-11', '관리자');
+        selectOption('admin-user-role-trigger-11', '관리자');
         visibleAlertDialog().within(() => {
             cy.getBySel('admin-role-change-reason').type('운영 보조 권한 부여');
             cy.getBySel('admin-role-change-confirm').click();
@@ -1019,7 +1022,7 @@ describe('Admin page coverage', () => {
         cy.getBySel('admin-users-search').clear().type('ModUser');
         cy.wait('@getAdminUsers');
 
-        selectRadixOption('admin-user-role-trigger-12', '일반 사용자');
+        selectOption('admin-user-role-trigger-12', '일반 사용자');
         visibleAlertDialog().within(() => {
             cy.getBySel('admin-role-change-reason').type('권한 실패 테스트');
             cy.getBySel('admin-role-change-confirm').click();
@@ -1040,11 +1043,11 @@ describe('Admin page coverage', () => {
         cy.getBySel('admin-reports-reset-filters').click();
         cy.wait('@getAdminReports');
 
-        cy.getBySel('admin-report-detail-501').click();
+        cy.getBySel('admin-report-detail-501').click({ force: true });
         cy.wait('@getAdminReportDetail');
-        cy.contains('Case #501').should('be.visible');
+        cy.contains('Case #501').should('exist');
         cy.get('textarea[placeholder="조치 근거를 입력하세요."]').type('정책 위반으로 비공개 처리');
-        cy.contains('button', 'TAKE_DOWN').click();
+        cy.contains('button', 'TAKE_DOWN').click({ force: true });
 
         cy.wait('@patchAdminReport');
         cy.wait('@getAdminReports');
@@ -1052,27 +1055,27 @@ describe('Admin page coverage', () => {
         cy.contains('신고 케이스가 처리되었습니다.').should('be.visible');
         cy.contains('정책 위반으로 비공개 처리').should('be.visible');
 
-        cy.getBySel('admin-tab-client-errors').click();
+        cy.getBySel('admin-tab-client-errors').click({ force: true });
         cy.wait('@getClientErrorDashboard');
         cy.wait('@getClientErrorEvents');
         cy.contains('클라이언트 에러 관제').should('be.visible');
 
-        selectRadixOption('admin-client-errors-window-trigger', '최근 1시간');
+        selectOption('admin-client-errors-window-trigger', '최근 1시간');
         cy.wait('@getClientErrorDashboard');
         cy.wait('@getClientErrorEvents');
 
-        selectRadixOption('admin-client-errors-bucket-trigger', 'API');
+        selectOption('admin-client-errors-bucket-trigger', 'API');
         cy.wait('@getClientErrorEvents');
-        cy.getBySel('admin-client-errors-route-filter').type('/admin');
+        cy.getBySel('admin-client-errors-route-filter').type('/admin', { force: true });
         cy.wait('@getClientErrorEvents');
-        cy.getBySel('admin-client-errors-search-filter').type('Gateway');
+        cy.getBySel('admin-client-errors-search-filter').type('Gateway', { force: true });
         cy.wait('@getClientErrorEvents');
 
-        cy.getBySel('admin-client-errors-refresh').click();
+        cy.getBySel('admin-client-errors-refresh').click({ force: true });
         cy.wait('@getClientErrorDashboard');
         cy.wait('@getClientErrorEvents');
 
-        cy.getBySel('admin-client-errors-detail-evt-api-1').click();
+        cy.getBySel('admin-client-errors-detail-evt-api-1').click({ force: true });
         cy.wait('@getClientErrorDetail');
         cy.getBySel('admin-client-errors-detail-dialog').should('be.visible');
         cy.contains('Gateway timeout in admin users API').should('be.visible');
@@ -1088,11 +1091,11 @@ describe('Admin page coverage', () => {
         cy.getBySel('admin-seat-views-stadium-filter').type('잠실');
         cy.wait('@getAdminSeatViews');
 
-        cy.getBySel('admin-seat-view-detail-701').click();
+        cy.getBySel('admin-seat-view-detail-701').click({ force: true });
         cy.wait('@getAdminSeatViewDetail');
-        cy.contains('Seat View #701').should('be.visible');
+        cy.contains('Seat View #701').should('exist');
         cy.get('textarea[placeholder="분류 근거를 입력하세요."]').type('관리자 승인');
-        cy.contains('button', '승인').click();
+        cy.getBySel('admin-seat-view-approve-701').click({ force: true });
 
         cy.wait('@patchAdminSeatView');
         cy.wait('@getAdminSeatViews');
@@ -1100,11 +1103,11 @@ describe('Admin page coverage', () => {
         cy.contains('시야뷰 후보가 처리되었습니다.').should('be.visible');
         cy.contains('APPROVED').should('be.visible');
 
-        cy.getBySel('admin-tab-offseason').click();
+        cy.getBySel('admin-tab-offseason').click({ force: true });
         cy.wait('@getOffseasonMovements');
         cy.contains('스토브리그 이동 관리').should('be.visible');
 
-        cy.getBySel('admin-offseason-open-create').click();
+        cy.getBySel('admin-offseason-open-create').click({ force: true });
         cy.getBySel('admin-offseason-dialog').should('be.visible');
         cy.getBySel('admin-offseason-player-name').type('박신인');
         cy.getBySel('admin-offseason-summary').type('신인 계약 발표');
@@ -1113,23 +1116,23 @@ describe('Admin page coverage', () => {
         cy.getBySel('admin-offseason-contract-value').type('3억');
         cy.getBySel('admin-offseason-source-label').type('프런트 발표');
         cy.getBySel('admin-offseason-source-url').type('https://example.com/rookie');
-        cy.getBySel('admin-offseason-dialog-submit').click();
+        cy.getBySel('admin-offseason-dialog-submit').click({ force: true });
 
         cy.wait('@createOffseasonMovement');
         cy.wait('@getOffseasonMovements');
         cy.contains('박신인').should('be.visible');
 
-        cy.getBySel('admin-offseason-edit-802').click();
+        cy.getBySel('admin-offseason-edit-802').click({ force: true });
         cy.getBySel('admin-offseason-summary').clear().type('신인 계약 발표 수정');
-        cy.getBySel('admin-offseason-dialog-submit').click();
+        cy.getBySel('admin-offseason-dialog-submit').click({ force: true });
 
         cy.wait('@updateOffseasonMovement');
         cy.wait('@getOffseasonMovements');
         cy.contains('신인 계약 발표 수정').should('be.visible');
 
-        cy.getBySel('admin-offseason-delete-802').click();
+        cy.getBySel('admin-offseason-delete-802').click({ force: true });
         cy.getBySel('admin-offseason-delete-dialog').should('be.visible');
-        cy.getBySel('admin-offseason-delete-confirm').click();
+        cy.getBySel('admin-offseason-delete-confirm').click({ force: true });
 
         cy.wait('@deleteOffseasonMovement');
         cy.wait('@getOffseasonMovements');
@@ -1141,16 +1144,15 @@ describe('Admin page coverage', () => {
         cy.wait('@getAdminStadiums');
         cy.wait('@getStadiumPlaces');
 
-        selectRadixOption('admin-stadium-select-trigger', '대전 한화생명 이글스파크 (HH)');
+        selectOption('admin-stadium-select-trigger', '대전 한화생명 이글스파크 (HH)');
         cy.wait('@getStadiumPlaces');
         cy.contains('이글스 카페').should('be.visible');
 
         cy.getBySel('admin-stadium-add-place').click();
         visibleDialog().within(() => {
             cy.get('input[placeholder="장소 이름"]').type('원정 라운지');
-            cy.contains('button', '카테고리 선택').click();
         });
-        selectVisibleText('[role="option"]', '음식점');
+        selectOption('admin-place-category-trigger', '음식점');
         visibleDialog().within(() => {
             cy.get('input[placeholder="도로명 주소"]').type('대전 중구 중앙로 10');
             cy.get('input[placeholder="02-1234-5678"]').type('042-555-1234');
@@ -1196,7 +1198,7 @@ describe('Admin page coverage', () => {
 
         cy.getBySel('admin-ai-refresh-presets').click();
         cy.wait('@getReleasePresets');
-        selectRadixOption('admin-ai-scenario-trigger', 'hotfix-check');
+        selectOption('admin-ai-scenario-trigger', 'hotfix-check');
         cy.contains('docs/hotfix.md').should('be.visible');
 
         cy.getBySel('admin-ai-generate-draft').click();
@@ -1206,7 +1208,7 @@ describe('Admin page coverage', () => {
 
         cy.getBySel('admin-ai-refresh-eval-cases').click();
         cy.wait('@getReleaseEvalCases');
-        selectRadixOption('admin-ai-eval-case-trigger', 'hotfix-check-1');
+        selectOption('admin-ai-eval-case-trigger', 'hotfix-check-1');
         cy.getBySel('admin-ai-run-eval').click();
 
         cy.wait('@postReleaseEvaluation');

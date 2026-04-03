@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { KBO_STADIUMS, SEAT_CATEGORIES, SeatCategory } from '../utils/stadiumData';
 import { SEAT_ICONS } from '../utils/seatIcons';
 import { Sun, Cloud, CloudRain } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import {
   Plus,
   Users,
@@ -27,11 +25,30 @@ import LoadingSpinner from './LoadingSpinner';
 import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { Input } from './ui/input';
 import { ProfileAvatar } from './ui/ProfileAvatar';
-import { api } from '../utils/api';
-import { mapBackendPartyToFrontend, formatGameDate, formatHostAverageRating, getDayOfWeek, getHostAverageRating } from '../utils/mate';
+import { getMatePartyListQueryOptions } from '../hooks/mateQueryOptions';
+import {
+  seedMatePartyQueryData,
+} from '../hooks/mateList';
+import {
+  buildMateRouteLocationState,
+  formatGameDate,
+  formatHostAverageRating,
+  getDayOfWeek,
+  getHostAverageRating,
+} from '../utils/mate';
 import { Party, PartyStatus, BadgeType } from '../types/mate';
 import { useDebounce } from '../hooks/useDebounce';
 import { MATE_SEARCH_DEBOUNCE_MS } from '../utils/constants';
+import AdSlot from './ads/AdSlot';
+
+const MATE_TABS = [
+  { key: 'all', label: '전체' },
+  { key: 'recruiting', label: '모집 중' },
+  { key: 'matched', label: '매칭 완료' },
+  { key: 'selling', label: '티켓 판매' },
+] as const;
+
+type MateTabKey = typeof MATE_TABS[number]['key'];
 
 const toDateString = (date: Date) => {
   const d = new Date(date);
@@ -54,10 +71,10 @@ const isLegacyHostAvatarUrl = (url?: string) => {
 
 export default function Mate() {
   const navigate = useNavigate();
-  const setSelectedParty = useMateStore((state) => state.setSelectedParty);
+  const queryClient = useQueryClient();
   const searchQuery = useMateStore((state) => state.searchQuery);
   const setSearchQuery = useMateStore((state) => state.setSearchQuery);
-  const { userFavoriteTeam: favoriteTeam } = useAuthProfileSnapshot();
+  const { userFavoriteTeam: favoriteTeam, userId: authUserId } = useAuthProfileSnapshot();
   const favoriteTeamId = favoriteTeam && favoriteTeam !== '없음' ? favoriteTeam : null;
   const [myTeamOnly, setMyTeamOnly] = useState(false);
 
@@ -122,103 +139,69 @@ export default function Mate() {
     return sectionName;
   };
 
-  const [parties, setParties] = useState<Party[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const requestIdRef = useRef(0);
   const filterSignatureRef = useRef<string | null>(null);
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState<MateTabKey>('all');
   const [brokenHostAvatarIds] = useState<Set<number>>(new Set());
 
   const pageSize = 9;
 
-  const tabToStatusMap: Record<string, PartyStatus | undefined> = {
+  const tabToStatusMap: Record<MateTabKey, PartyStatus | undefined> = {
     all: undefined,
     recruiting: 'PENDING',
     matched: 'MATCHED',
     selling: 'SELLING',
   };
   const selectedStatus = tabToStatusMap[activeTab];
+  const dateKey = selectedDate ? toDateString(selectedDate) : '';
+  const teamIdFilter = myTeamOnly && favoriteTeamId ? favoriteTeamId : undefined;
+  const normalizedSearchQuery = debouncedInput.trim();
+  const filterSignature = [
+    normalizedSearchQuery,
+    dateKey,
+    selectedStatus ?? '',
+    teamIdFilter ?? '',
+  ].join('|');
+  const shouldResetPage =
+    filterSignatureRef.current !== null
+    && filterSignatureRef.current !== filterSignature
+    && currentPage !== 0;
+  const queryPage = shouldResetPage ? 0 : currentPage;
 
   useEffect(() => {
-    const controller = new AbortController();
-    const dateKey = selectedDate ? toDateString(selectedDate) : '';
-    const teamKey = myTeamOnly && favoriteTeamId ? favoriteTeamId : '';
-    const filterSignature = [
-      debouncedInput.trim(),
-      dateKey,
-      selectedStatus ?? '',
-      teamKey,
-    ].join('|');
-
-    if (
-      filterSignatureRef.current !== null
-      && filterSignatureRef.current !== filterSignature
-      && currentPage !== 0
-    ) {
-      filterSignatureRef.current = filterSignature;
-      setCurrentPage(0);
-      return () => {
-        controller.abort();
-      };
+    if (filterSignatureRef.current === filterSignature) {
+      return;
     }
 
     filterSignatureRef.current = filterSignature;
+    if (currentPage !== 0) {
+      setCurrentPage(0);
+    }
+  }, [currentPage, filterSignature]);
 
-    const fetchParties = async () => {
-      const requestId = ++requestIdRef.current;
-      setIsLoading(true);
-      setFetchError(false);
-      try {
-        const dateStr = selectedDate ? toDateString(selectedDate) : undefined;
-        const teamIdFilter = myTeamOnly && favoriteTeamId ? favoriteTeamId : undefined;
-        const effectiveQuery = debouncedInput.trim();
-        const data = await api.getParties(
-          teamIdFilter,
-          undefined,
-          currentPage,
-          pageSize,
-          selectedStatus,
-          effectiveQuery || undefined,
-          dateStr,
-          controller.signal,
-        );
-
-        if (requestId !== requestIdRef.current) return;
-
-        const mappedParties = data.content.map(mapBackendPartyToFrontend);
-        setParties(mappedParties);
-        setTotalPages(data.totalPages);
-      } catch (error) {
-        if (requestId !== requestIdRef.current) return;
-        const isAbortError =
-          (error instanceof DOMException && error.name === 'AbortError')
-          || (error instanceof Error && error.name === 'AbortError');
-        if (isAbortError) return;
-        console.error('파티 목록 불러오기 오류:', error);
-        setFetchError(true);
-      } finally {
-        if (requestId === requestIdRef.current) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void fetchParties();
-    return () => {
-      controller.abort();
-    };
-  }, [currentPage, debouncedInput, selectedDate, selectedStatus, retryCount, myTeamOnly, favoriteTeamId]);
+  const partyListQuery = useQuery({
+    ...getMatePartyListQueryOptions({
+      teamId: teamIdFilter,
+      page: queryPage,
+      size: pageSize,
+      status: selectedStatus,
+      searchQuery: normalizedSearchQuery || undefined,
+      gameDate: dateKey || undefined,
+    }),
+  });
+  const parties = partyListQuery.data?.content ?? [];
+  const totalPages = partyListQuery.data?.totalPages ?? 0;
+  const isLoading = partyListQuery.isPending && !partyListQuery.data;
+  const fetchError = Boolean(partyListQuery.error) && !partyListQuery.data;
 
   const handlePartyClick = (party: Party) => {
-    setSelectedParty(party);
-    navigate(`/mate/${party.id}`);
+    seedMatePartyQueryData(queryClient, party);
+    navigate(`/mate/${party.id}`, {
+      state: buildMateRouteLocationState(party),
+    });
   };
 
   const getBadgeIcon = (badge: BadgeType) => {
@@ -229,7 +212,7 @@ export default function Mate() {
 
   const hasActiveFilters = !!(inputValue.trim() || selectedDate);
 
-  const emptyMessagesByTab: Record<string, { withFilter: string; withoutFilter: string }> = {
+  const emptyMessagesByTab: Record<MateTabKey, { withFilter: string; withoutFilter: string }> = {
     all: { withFilter: '검색 조건에 맞는 파티가 없습니다', withoutFilter: '아직 개설된 파티가 없습니다' },
     recruiting: { withFilter: '검색 조건에 맞는 모집 중 파티가 없습니다', withoutFilter: '현재 모집 중인 파티가 없습니다' },
     matched: { withFilter: '검색 조건에 맞는 매칭 완료 파티가 없습니다', withoutFilter: '매칭 완료된 파티가 없습니다' },
@@ -279,7 +262,21 @@ export default function Mate() {
 
   const renderPartyGrid = (items: Party[]) => (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-      {items.map(renderPartyCard)}
+      {items.flatMap((party, index) => [
+        renderPartyCard(party),
+        index === 3 && items.length > 4 ? (
+          <AdSlot
+            key="mate-list-1"
+            slotId="mate_list_1"
+            pageType="mate_list"
+            listIndex={4}
+            creativeType="native_card"
+            loggedIn={Boolean(authUserId)}
+            userId={authUserId ? String(authUserId) : null}
+            minHeight={156}
+          />
+        ) : null,
+      ])}
     </div>
   );
 
@@ -289,19 +286,19 @@ export default function Mate() {
         variant="outline"
         className="border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] text-gray-700 dark:text-zinc-300 hover:bg-primary/15 hover:text-primary-foreground"
         onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-        disabled={currentPage === 0}
+        disabled={queryPage === 0}
         size="sm"
       >
         <ChevronLeft className="w-4 h-4 mr-1" />이전
       </Button>
       <span className="text-sm font-medium text-gray-500 dark:text-zinc-400">
-        {currentPage + 1} <span className="text-gray-600 dark:text-zinc-600 mx-1">/</span> {totalPages}
+        {queryPage + 1} <span className="text-gray-600 dark:text-zinc-600 mx-1">/</span> {totalPages}
       </span>
       <Button
         variant="outline"
         className="border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#16181c] text-gray-700 dark:text-zinc-300 hover:bg-primary/15 hover:text-primary-foreground"
         onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
-        disabled={currentPage === totalPages - 1}
+        disabled={queryPage >= totalPages - 1}
         size="sm"
       >
         다음<ChevronRight className="w-4 h-4 ml-1" />
@@ -373,13 +370,13 @@ export default function Mate() {
           {/* Header Badges */}
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="flex items-center gap-1.5 border-gray-200/80 bg-primary/5 dark:border-white/10 text-gray-700 dark:text-zinc-300 px-2.5 py-1">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-gray-700 dark:border-white/10 dark:text-zinc-300">
                 <span className="font-mono text-[11px]">{formatGameDate(party.gameDate)}</span>
                 {getWeatherIcon(party.gameDate)}
-              </Badge>
-              <Badge variant="outline" className="border-gray-200/80 bg-primary/5 dark:border-white/10 text-gray-700 dark:text-zinc-300 px-2.5 py-1 text-[11px]">
+              </span>
+              <span className="inline-flex rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-[11px] text-gray-700 dark:border-white/10 dark:text-zinc-300">
                 {party.stadium}
-              </Badge>
+              </span>
             </div>
             {getCombinedStatusBadge()}
           </div>
@@ -428,9 +425,9 @@ export default function Mate() {
               <span className="text-gray-700 dark:text-zinc-300">{party.currentParticipants} <span className="text-gray-500 dark:text-zinc-500 mx-0.5">/</span> {party.maxParticipants}명</span>
             </div>
             <div className="flex items-center gap-2 text-[13px]">
-              <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary h-5 px-1.5 text-[10px] font-normal">
+              <span className="inline-flex h-5 items-center rounded-md border border-primary/20 bg-primary/10 px-1.5 text-[10px] font-normal text-primary">
                 {flowLabel}
-              </Badge>
+              </span>
             </div>
           </div>
 
@@ -579,7 +576,10 @@ export default function Mate() {
               type="text"
               placeholder="팀명, 구장, 좌석으로 검색 (예: 삼성 블루존)"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                setCurrentPage(0);
+              }}
               className="pl-11 h-12 bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder-zinc-500 rounded-2xl focus:ring-1 focus:ring-primary/40 focus:border-primary/50 transition-all"
             />
           </div>
@@ -637,31 +637,34 @@ export default function Mate() {
         </div>
 
         {/* 탭 네비게이션 */}
-        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setCurrentPage(0); }} className="mb-6">
-          <TabsList className="relative mb-6 inline-flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl border border-gray-200/70 bg-white p-1.5 scrollbar-hide dark:border-white/5 dark:bg-[#16181c]">
-            {['all', 'recruiting', 'matched', 'selling'].map((tab) => (
-              <TabsTrigger
-                key={tab}
-                value={tab}
-            className="relative shrink-0 rounded-xl bg-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors duration-300 data-[state=active]:text-primary-foreground dark:text-zinc-400 sm:px-5"
-              >
-                {activeTab === tab && (
-                  <motion.span
-                    layoutId="activeTabMate"
-                    className="absolute inset-0 bg-primary rounded-xl shadow-sm"
-                    initial={false}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-10">
-                  {tab === 'all' && '전체'}
-                  {tab === 'recruiting' && '모집 중'}
-                  {tab === 'matched' && '매칭 완료'}
-                  {tab === 'selling' && '티켓 판매'}
-                </span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <div className="mb-6">
+          <div className="relative mb-6 inline-flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl border border-gray-200/70 bg-white p-1.5 scrollbar-hide dark:border-white/5 dark:bg-[#16181c]">
+            {MATE_TABS.map((tab) => {
+              const isActive = activeTab === tab.key;
+
+              return (
+                <button
+                  type="button"
+                  key={tab.key}
+                  onClick={() => {
+                    setActiveTab(tab.key);
+                    setCurrentPage(0);
+                  }}
+                  aria-pressed={isActive}
+                  className={`relative shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors duration-300 sm:px-5 ${
+                    isActive
+                      ? 'text-primary-foreground'
+                      : 'bg-transparent text-gray-500 dark:text-zinc-400'
+                  }`}
+                >
+                  {isActive && (
+                    <span className="absolute inset-0 rounded-xl bg-primary shadow-sm" />
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
           {/* 상태 렌더링 */}
           {isLoading ? (
@@ -673,27 +676,29 @@ export default function Mate() {
               <AlertCircle className="w-10 h-10 mx-auto mb-3 text-primary" />
               <p className="text-gray-900 dark:text-zinc-200 font-medium">파티 목록을 불러오지 못했습니다</p>
               <p className="text-gray-500 dark:text-zinc-500 text-sm mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
-              <Button variant="outline" className="mt-5 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15" onClick={() => setRetryCount((c) => c + 1)}>
+              <Button
+                variant="outline"
+                className="mt-5 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
+                onClick={() => {
+                  void partyListQuery.refetch();
+                }}
+              >
                 <RefreshCw className="w-4 h-4 mr-2" /> 다시 시도
               </Button>
             </div>
           ) : (
-            <>
-              {['all', 'recruiting', 'matched', 'selling'].map((tab) => (
-                <TabsContent key={tab} value={tab} className="space-y-4 m-0">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                    {parties.length === 0 ? renderEmptyState(tab as keyof typeof emptyMessagesByTab) : (
-                      <>
-                        {renderPartyGrid(parties)}
-                        {totalPages > 1 && renderPagination()}
-                      </>
-                    )}
-                  </motion.div>
-                </TabsContent>
-              ))}
-            </>
+            <div className="space-y-4 m-0">
+              <div className="transition-opacity duration-200">
+                {parties.length === 0 ? renderEmptyState(activeTab) : (
+                  <>
+                    {renderPartyGrid(parties)}
+                    {totalPages > 1 && renderPagination()}
+                  </>
+                )}
+              </div>
+            </div>
           )}
-        </Tabs>
+        </div>
       </div>
     </div>
   );

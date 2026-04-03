@@ -1,5 +1,5 @@
-import api from './axios';
-import { UserFollowSummary, PageResponse, normalizeUserFollowPageResponse } from './followApi';
+import { privateGet, privatePost } from './privateClient';
+import { UserFollowSummary, PageResponse, normalizeUserFollowPageResponse } from './followShared';
 
 // === 타입 정의 ===
 
@@ -19,16 +19,16 @@ interface BlockedUsersEnvelope {
  * 차단 토글 (차단/차단해제)
  */
 export async function toggleBlockByHandle(handle: string): Promise<BlockToggleResponse> {
-    const response = await api.post(`/users/profile/${encodeURIComponent(handle)}/block`);
-    return response.data;
+    return privatePost<BlockToggleResponse>(`/users/profile/${encodeURIComponent(handle)}/block`);
 }
 
 /**
  * 내가 차단한 유저 목록 조회
  */
 export async function getBlockedUsers(page = 0, size = 20): Promise<PageResponse<UserFollowSummary>> {
-    const response = await api.get<unknown>(`/users/me/blocked?page=${page}&size=${size}`);
-    const payload = response.data as PageResponse<UserFollowSummary> | BlockedUsersEnvelope;
+    const payload = await privateGet<unknown>(`/users/me/blocked`, {
+        params: { page, size },
+    }) as PageResponse<UserFollowSummary> | BlockedUsersEnvelope;
     if (payload && typeof payload === 'object' && 'data' in payload && payload.data) {
         return normalizeUserFollowPageResponse(payload.data);
     }

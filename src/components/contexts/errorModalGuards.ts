@@ -9,7 +9,6 @@ const HOME_MODAL_SUPPRESSED_EXACT_ENDPOINTS = new Set([
   '/kbo/league-start-dates',
 ]);
 const HOME_MODAL_SUPPRESSED_PREFIXES = [
-  '/kbo/rankings/',
   '/cheer/posts/hot',
 ];
 

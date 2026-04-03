@@ -1,16 +1,16 @@
-import { useMemo } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
+import './Diary.css';
 import { Card } from '../ui/card';
 import { useDiaryStatistics } from '../../hooks/useDiaryStatistics';
 import StatCard from './StatCard';
 import EmojiStatsCard from './EmojiStatsCard';
-import WinRateChart from './WinRateChart';
-import MonthlyStatsChart from './MonthlyStatsChart';
-import DayOfWeekChart from './DayOfWeekChart';
 import StadiumVisitList from './StadiumVisitList';
 import BadgeShowcase from './BadgeShowcase';
-import OpponentWinRateChart from './OpponentWinRateChart';
 import LoadingSpinner from '../LoadingSpinner';
 import { Trophy, TrendingUp, BarChart3, Star, Flame } from 'lucide-react';
+import ViewportDeferred from '../ViewportDeferred';
+
+const DiaryChartsSection = lazy(() => import('./DiaryChartsSection'));
 
 export default function DiaryStatistics() {
   const { statistics, emojiStats, isLoading, diaryEntries } = useDiaryStatistics();
@@ -34,6 +34,17 @@ export default function DiaryStatistics() {
       <LoadingSpinner size="lg" text="통계를 불러오는 중..." fullScreen={false} />
     );
   }
+
+  const chartSkeleton = (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Card key={index} className="h-[350px] bg-card animate-pulse" />
+        ))}
+      </div>
+      <Card className="h-[350px] bg-card animate-pulse" />
+    </div>
+  );
 
   return (
     <div className="space-y-6 lg:space-y-8 animate-fade-in-up">
@@ -77,32 +88,11 @@ export default function DiaryStatistics() {
         </div>
       </Card>
 
-      {/* 3. 차트 그리드 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 h-[350px]">
-          <WinRateChart
-            wins={statistics.totalWins}
-            draws={statistics.totalDraws}
-            losses={statistics.totalLosses}
-            winRate={statistics.winRate}
-          />
-        </div>
-
-        <div className="lg:col-span-1 h-[350px]">
-          <OpponentWinRateChart opponentStats={statistics.opponentWinRates || {}} />
-        </div>
-
-        <div className="lg:col-span-1 h-[350px]">
-          <MonthlyStatsChart data={monthlyData} />
-        </div>
-      </div>
-
-      {/* 3-2. 요일별 승률 */}
-      {Object.keys(statistics.dayOfWeekStats || {}).length > 0 && (
-        <div className="h-[350px]">
-          <DayOfWeekChart dayOfWeekStats={statistics.dayOfWeekStats} />
-        </div>
-      )}
+      <ViewportDeferred fallback={chartSkeleton}>
+        <Suspense fallback={chartSkeleton}>
+          <DiaryChartsSection statistics={statistics} monthlyData={monthlyData} />
+        </Suspense>
+      </ViewportDeferred>
 
       {/* 4. 구장 & 상세 기록 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

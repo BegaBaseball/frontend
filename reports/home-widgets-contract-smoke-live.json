@@ -1,0 +1,16 @@
+{
+  "ok": false,
+  "checkedAt": "2026-03-30T15:57:57.124Z",
+  "apiBase": "https://api.begabaseball.xyz/api",
+  "requestUrl": "https://api.begabaseball.xyz/api/home/widgets?date=2026-03-31",
+  "date": "2026-03-31",
+  "status": 200,
+  "responseKeys": [
+    "featuredMates",
+    "hotCheerPosts"
+  ],
+  "failures": [
+    "rankingSnapshot 계약이 누락되었거나 불완전합니다."
+  ],
+  "warnings": []
+}

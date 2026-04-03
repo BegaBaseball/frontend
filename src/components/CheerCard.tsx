@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, Edit2, Heart, MessageCircle, MoreHorizontal, Quote, Repeat2, Trash2, Undo2 } from 'lucide-react';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
@@ -7,26 +7,17 @@ import ImageGrid from './ImageGrid';
 import RollingNumber from './RollingNumber';
 import TeamLogo from './TeamLogo';
 import { TEAM_DATA } from '../constants/teams';
-import CommentModal from './CommentModal';
-import QuoteRepostEditor from './QuoteRepostEditor';
 import EmbeddedPost from './EmbeddedPost';
 import { useCheerMutations } from '../hooks/useCheerQueries';
 import { ProfileAvatar } from './ui/ProfileAvatar';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from './ui/dropdown-menu';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from './ui/popover';
+import PlainMenu from './ui/plain-menu';
 import { toast } from 'sonner';
 import { getRepostPolicyDecision } from '../utils/repostPolicy';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+
+const LazyCommentModal = lazy(() => import('./CommentModal'));
+const LazyQuoteRepostEditor = lazy(() => import('./QuoteRepostEditor'));
 
 interface CheerCardProps {
     post: CheerPost;
@@ -44,7 +35,10 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const { isLoggedIn } = useAuthSession();
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
     const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
-    const [isPopoverOpen, setIsPopoverOpen] = useState(false); // New state for manually closing popover if needed
+    const [isRepostMenuOpen, setIsRepostMenuOpen] = useState(false);
+    const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
+    const [hasMountedCommentModal, setHasMountedCommentModal] = useState(false);
+    const [hasMountedQuoteEditor, setHasMountedQuoteEditor] = useState(false);
 
     const contentText = post.content?.trim() || '';
     const resolveProfileImage = (imageUrl?: string) => {
@@ -119,6 +113,18 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         };
     }, []);
 
+    useEffect(() => {
+        if (isCommentModalOpen) {
+            setHasMountedCommentModal(true);
+        }
+    }, [isCommentModalOpen]);
+
+    useEffect(() => {
+        if (isQuoteEditorOpen) {
+            setHasMountedQuoteEditor(true);
+        }
+    }, [isQuoteEditorOpen]);
+
     const handleLikeClick = (event: React.MouseEvent) => {
         event.stopPropagation();
         if (!isLoggedIn) {
@@ -169,9 +175,6 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         }, 450);
     };
 
-    // Popover handles open state automatically, but we might want manual control if needed
-    // const handleRepostClick = ... (replaced by PopoverTrigger)
-
     const handleSimpleRepost = () => {
         if (!isLoggedIn) {
             redirectToLogin();
@@ -185,7 +188,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         const targetPostId = resolveActionPostId();
         setRepostAnimating(true);
         repostMutation.mutate(targetPostId);
-        setIsPopoverOpen(false); // Close popover
+        setIsRepostMenuOpen(false);
         if (repostTimerRef.current) window.clearTimeout(repostTimerRef.current);
         repostTimerRef.current = window.setTimeout(() => {
             setRepostAnimating(false);
@@ -201,7 +204,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
             toast.error(quoteUnavailableMessage);
             return;
         }
-        setIsPopoverOpen(false); // Close popover
+        setIsRepostMenuOpen(false);
         setIsQuoteEditorOpen(true);
     };
 
@@ -210,7 +213,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
             redirectToLogin();
             return;
         }
-        setIsPopoverOpen(false);
+        setIsRepostMenuOpen(false);
         cancelRepostMutation.mutate(post.id);
     };
 
@@ -371,28 +374,52 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             )}
                         </div>
                         {post.isOwner && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
+                            <PlainMenu
+                                open={isOwnerMenuOpen}
+                                onOpenChange={setIsOwnerMenuOpen}
+                                align="end"
+                                panelClassName="w-40 p-1"
+                                trigger={(
                                     <button
                                         type="button"
-                                        onClick={(event) => event.stopPropagation()}
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            setIsOwnerMenuOpen((prev) => !prev);
+                                        }}
                                         className="rounded-full p-1 text-[#64748B] dark:text-gray-300 transition-colors hover:bg-slate-100 dark:hover:bg-secondary hover:text-[#0f1419] dark:hover:text-white"
                                         aria-label="게시글 옵션"
+                                        aria-expanded={isOwnerMenuOpen}
+                                        aria-haspopup="menu"
                                     >
                                         <MoreHorizontal className="h-4 w-4" />
                                     </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="dark:bg-card dark:border-border">
-                                    <DropdownMenuItem onClick={handleEdit} className="dark:hover:bg-secondary dark:text-gray-100">
-                                        <Edit2 className="mr-2 h-4 w-4" />
-                                        수정하기
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500 dark:hover:bg-secondary">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        삭제하기
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                )}
+                            >
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={(event) => {
+                                        setIsOwnerMenuOpen(false);
+                                        handleEdit(event);
+                                    }}
+                                    className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
+                                >
+                                    <Edit2 className="mr-2 h-4 w-4" />
+                                    수정하기
+                                </button>
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={(event) => {
+                                        setIsOwnerMenuOpen(false);
+                                        void handleDelete(event);
+                                    }}
+                                    className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    삭제하기
+                                </button>
+                            </PlainMenu>
                         )}
                     </div>
 
@@ -473,18 +500,24 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             <RollingNumber value={commentCount} />
                         </button>
 
-                        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                            <PopoverTrigger asChild>
+                        <PlainMenu
+                            open={isRepostMenuOpen}
+                            onOpenChange={setIsRepostMenuOpen}
+                            align="start"
+                            panelClassName="w-48 overflow-hidden p-0"
+                            trigger={(
                                 <button
                                     type="button"
                                     className={`group/repost flex items-center gap-1.5 rounded-full transition-colors ${repostButtonActive ? 'text-emerald-500' : 'hover:text-emerald-500'
                                         }`}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        // PopoverTrigger handles spacing, but stopPropagation is good practice if wrapped
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setIsRepostMenuOpen((prev) => !prev);
                                     }}
                                     aria-label={repostButtonActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
                                     aria-pressed={repostButtonActive}
+                                    aria-expanded={isRepostMenuOpen}
+                                    aria-haspopup="menu"
                                 >
                                     <span
                                         className={`relative rounded-full p-2 transition-all duration-200 ${repostButtonActive ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'
@@ -502,16 +535,13 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                     </span>
                                     <RollingNumber value={repostCount} />
                                 </button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                                className="w-48 p-0"
-                                align="start"
-                                onClick={(e: React.MouseEvent) => e.stopPropagation()} // Prevent card click
-                            >
+                            )}
+                        >
                                 <div className="flex flex-col py-1">
                                     {canCancelRepost ? (
                                         <button
                                             type="button"
+                                            role="menuitem"
                                             onClick={handleCancelRepost}
                                             className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                         >
@@ -538,6 +568,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                             {canSimpleRepost ? (
                                                 <button
                                                     type="button"
+                                                    role="menuitem"
                                                     onClick={handleSimpleRepost}
                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                 >
@@ -561,6 +592,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                             {canQuoteRepost ? (
                                                 <button
                                                     type="button"
+                                                    role="menuitem"
                                                     onClick={handleQuoteRepost}
                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                 >
@@ -583,8 +615,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         </>
                                     )}
                                 </div>
-                            </PopoverContent>
-                        </Popover>
+                        </PlainMenu>
 
                         <button
                             type="button"
@@ -637,18 +668,38 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
                 {/* Portal Bubbling 방지를 위한 래퍼 */}
                 <div onClick={(e) => e.stopPropagation()}>
-                    <CommentModal
-                        isOpen={isCommentModalOpen}
-                        onClose={() => setIsCommentModalOpen(false)}
-                        post={post}
-                        targetPostId={actionPostId}
-                    />
+                    {hasMountedCommentModal && (
+                        <Suspense
+                            fallback={isCommentModalOpen ? (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-sm font-semibold text-white">
+                                    댓글 모달을 불러오는 중...
+                                </div>
+                            ) : null}
+                        >
+                            <LazyCommentModal
+                                isOpen={isCommentModalOpen}
+                                onClose={() => setIsCommentModalOpen(false)}
+                                post={post}
+                                targetPostId={actionPostId}
+                            />
+                        </Suspense>
+                    )}
 
-                    <QuoteRepostEditor
-                        isOpen={isQuoteEditorOpen}
-                        onClose={() => setIsQuoteEditorOpen(false)}
-                        post={post}
-                    />
+                    {hasMountedQuoteEditor && (
+                        <Suspense
+                            fallback={isQuoteEditorOpen ? (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-sm font-semibold text-white">
+                                    인용 작성기를 불러오는 중...
+                                </div>
+                            ) : null}
+                        >
+                            <LazyQuoteRepostEditor
+                                isOpen={isQuoteEditorOpen}
+                                onClose={() => setIsQuoteEditorOpen(false)}
+                                post={post}
+                            />
+                        </Suspense>
+                    )}
                 </div>
             </div>
         </div>

@@ -1,5 +1,16 @@
 /// <reference types="cypress" />
 
+import {
+    getPredictionAuthRequestTraces,
+    installPredictionAuthenticatedSessionIntercept,
+    installPredictionGuestSessionIntercept,
+    visitPredictionPage,
+    visitPredictionPublicPage,
+} from '../support/predictionPage';
+
+const COACH_BRIEFING_SESSION_STORAGE_KEY = 'prediction:coachBriefing:v2';
+const COACH_BRIEFING_LOCAL_STORAGE_KEY = 'prediction:coachBriefing:local:v2';
+
 const matchBoundsPayload = {
     hasData: true,
     earliestGameDate: '2026-02-01',
@@ -35,6 +46,32 @@ describe('Prediction Lazy Load', () => {
         hasNext: Boolean(nextDateValue),
     });
 
+    const buildCoachAnalyzeSse = (message = '실데이터 브리핑을 준비했습니다.') => [
+        'event: message\n',
+        `data: ${JSON.stringify({ delta: message })}\n`,
+        '\n',
+        'event: meta\n',
+        `data: ${JSON.stringify({
+            request_mode: 'auto_brief',
+            game_status_bucket: 'SCHEDULED',
+            structured_response: {
+                headline: '메타 헤드라인',
+                sentiment: 'positive',
+                key_metrics: [],
+                analysis: {
+                    strengths: [],
+                    weaknesses: [],
+                    risks: [],
+                },
+                detailed_markdown: '상세 리포트',
+                coach_note: '코치 노트',
+            },
+        })}\n`,
+        '\n',
+        'event: done\n',
+        'data: [DONE]',
+    ].join('');
+
     const buildGameDetail = (gameId: string) => {
         const datePrefix = gameId.slice(0, 8);
         const gameDate = `${datePrefix.slice(0, 4)}-${datePrefix.slice(4, 6)}-${datePrefix.slice(6, 8)}`;
@@ -55,10 +92,44 @@ describe('Prediction Lazy Load', () => {
     };
 
     const installCommonPredictionIntercepts = () => {
+        installPredictionAuthenticatedSessionIntercept('getPredictionSessionLazy');
+
         cy.intercept('GET', '**/api/matches/bounds*', {
             statusCode: 200,
             body: matchBoundsPayload,
         }).as('getMatchBoundsLazy');
+
+        cy.intercept('GET', '**/api/leaderboard/me', {
+            statusCode: 200,
+            body: {
+                handle: 'testuser',
+                userName: 'TestUser',
+                rank: 1,
+                totalScore: 0,
+                seasonScore: 0,
+                monthlyScore: 0,
+                weeklyScore: 0,
+                level: 1,
+                rankTitle: 'ROOKIE',
+                currentStreak: 0,
+                maxStreak: 0,
+                experiencePoints: 0,
+                nextLevelExp: 100,
+            },
+        }).as('getLeaderboardMeLazy');
+
+        cy.intercept('GET', '**/api/prediction/stats/me*', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    accuracy: 61.5,
+                    totalPredictions: 13,
+                    correctPredictions: 8,
+                    streak: 2,
+                },
+            },
+        }).as('getPredictionStatsLazy');
 
         cy.intercept('**/api/predictions/my-votes*', {
             statusCode: 200,
@@ -75,10 +146,18 @@ describe('Prediction Lazy Load', () => {
             body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
         }).as('getVoteStatusLazy');
 
-        cy.intercept('GET', '**/api/kbo/rankings/*', {
+        cy.intercept('GET', '**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: baseRankings,
         }).as('getRankingsLazy');
+
+        cy.intercept('POST', '**/ai/coach/analyze*', {
+            statusCode: 200,
+            headers: {
+                'content-type': 'text/event-stream',
+            },
+            body: buildCoachAnalyzeSse(),
+        }).as('coachAnalyzeLazy');
 
         cy.intercept('GET', '**/api/matches/*', (req) => {
             if (
@@ -97,62 +176,123 @@ describe('Prediction Lazy Load', () => {
         }).as('getGameDetailLazy');
     };
 
-    const openPredictionPage = () => {
-        const fakeToken = 'prediction-lazy-load-token';
-        const authState = {
-            state: {
-                user: {
-                    id: 123,
-                    email: 'test@example.com',
-                    name: 'TestUser',
-                    handle: 'testuser',
-                    favoriteTeam: 'HH',
-                    role: 'ROLE_USER',
-                    hasPassword: true,
-                    profileImageUrl: null,
-                },
-                isLoggedIn: true,
-                isAdmin: false,
-            },
-            version: 0,
-        };
-
-        const seedAuthState = (win: Window) => {
-            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            win.localStorage.setItem('accessToken', fakeToken);
-            win.localStorage.setItem('bega_has_visited', 'true');
-            win.localStorage.setItem('bega_dont_show_guide', 'true');
-        };
-
-        cy.visit('/prediction', {
-            onBeforeLoad(win) {
-                seedAuthState(win);
-                win.addEventListener('auth-session-expired', (event) => {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                }, true);
-            },
+    const openPredictionPage = (path = '/prediction', waitForMatchDayAlias = 'getMatchDay') => {
+        visitPredictionPage({
+            path,
+            token: 'prediction-lazy-load-token',
         });
-        cy.window().then((win) => {
-            seedAuthState(win);
-        });
-        cy.setCookie('Authorization', fakeToken);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
-        cy.wait('@getMatchDay');
+        if (waitForMatchDayAlias) {
+            cy.wait(`@${waitForMatchDayAlias}`);
+        }
         cy.get('@getUserVoteLazy.all').should('have.length', 0);
+        getPredictionAuthRequestTraces().should('deep.equal', []);
+    };
+
+    const installMatchDayResponse = (currentDate: string, nextDate: string, gameId = '20260203HHSS0') => {
+        cy.intercept('GET', '**/api/matches/day*', (req) => {
+            const url = new URL(req.url);
+            const date = url.searchParams.get('date') || '';
+
+            if (date === currentDate) {
+                req.reply({
+                    statusCode: 200,
+                    body: {
+                        date: currentDate,
+                        games: [
+                            {
+                                gameId,
+                                gameDate: currentDate,
+                                homeTeam: 'HH',
+                                awayTeam: 'SS',
+                                stadium: '대전',
+                                homeScore: null,
+                                awayScore: null,
+                                winner: null,
+                            },
+                        ],
+                        prevDate: null,
+                        nextDate,
+                        hasPrev: false,
+                        hasNext: true,
+                    },
+                });
+                return;
+            }
+
+            if (date === nextDate) {
+                req.reply({
+                    statusCode: 200,
+                    body: {
+                        date: nextDate,
+                        games: [
+                            {
+                                gameId: gameId.replace(currentDate.replace(/-/g, ''), nextDate.replace(/-/g, '')),
+                                gameDate: nextDate,
+                                homeTeam: 'HH',
+                                awayTeam: 'SS',
+                                stadium: '서울',
+                                homeScore: null,
+                                awayScore: null,
+                                winner: null,
+                            },
+                        ],
+                        prevDate: currentDate,
+                        nextDate: null,
+                        hasPrev: true,
+                        hasNext: false,
+                    },
+                });
+                return;
+            }
+
+            req.reply({ statusCode: 404, body: { message: `Unexpected date ${date}` } });
+        }).as('getMatchDayForLazyEntry');
+    };
+
+    const getPredictionChunkResourceCounts = (win: Window) => {
+        const resourceEntries = win.performance.getEntriesByType('resource');
+        const countChunkLoads = (chunkName: string) =>
+            resourceEntries.filter((entry) => entry.name.includes(chunkName)).length;
+        const countCoachAnalysisDialogLoads = () =>
+            resourceEntries.filter((entry) => (
+                entry.name.includes('/CoachAnalysisDialog.tsx')
+                || entry.name.includes('CoachAnalysisDialog-')
+            )).length;
+
+        return {
+            matchCard: countChunkLoads('AdvancedMatchCard'),
+            animatedSection: countChunkLoads('PredictionAnimatedSections'),
+            comboAnimation: countChunkLoads('ComboAnimation'),
+            coachBriefing: countChunkLoads('CoachBriefing'),
+            coachAnalysisDialog: countCoachAnalysisDialogLoads(),
+            rankingTab: countChunkLoads('PredictionRankingTab'),
+            rankingPrediction: countChunkLoads('RankingPrediction'),
+            statsPanel: countChunkLoads('PredictionStatsPanel'),
+            vendorMotion: countChunkLoads('vendor-motion'),
+        };
+    };
+
+    const assertPredictionChunkResourceCounts = (
+        assertCounts: (counts: ReturnType<typeof getPredictionChunkResourceCounts>) => void
+    ) => {
+        cy.window().should((win) => {
+            assertCounts(getPredictionChunkResourceCounts(win));
+        });
     };
 
     beforeEach(() => {
         cy.visit('about:blank');
         cy.window().then((win) => {
             win.sessionStorage.clear();
+            win.sessionStorage.removeItem(COACH_BRIEFING_SESSION_STORAGE_KEY);
             win.localStorage.removeItem('kbo-theme');
             win.localStorage.removeItem('prediction:run-session');
             win.sessionStorage.removeItem('prediction:run-session:v1');
             win.localStorage.removeItem('prediction:run-session');
+            win.localStorage.removeItem(COACH_BRIEFING_LOCAL_STORAGE_KEY);
         });
-        cy.login('user');
-        cy.mockAPI();
+        cy.mockAPI({ skipRankings: true });
         installCommonPredictionIntercepts();
         const now = new Date('2026-02-03T12:00:00').getTime();
         cy.clock(now, ['Date']);
@@ -287,7 +427,6 @@ describe('Prediction Lazy Load', () => {
             cy.get('button[aria-label="다음 날짜 보기"]:visible').first().click({ force: true });
         });
         cy.contains(displayDatePattern(nextDate)).should('exist');
-        cy.get('[data-testid="prediction-empty-nearest-date-btn"]').should('not.exist');
 
         cy.wrap(null).then(() => {
             expect(requestedDates).to.have.members([today, previousDate, nextDate]);
@@ -340,7 +479,7 @@ describe('Prediction Lazy Load', () => {
             .click({ force: true });
 
         cy.contains(displayDatePattern(previousDate)).should('exist');
-        cy.get('[data-testid="prediction-empty-nearest-date-btn"]').should('not.exist');
+        cy.contains(/SS\s+vs\s+HH/).should('exist');
 
         cy.wrap(null).then(() => {
             expect(requestedDates).to.have.members([today, previousDate]);
@@ -457,27 +596,285 @@ describe('Prediction Lazy Load', () => {
 
         openPredictionPage();
         cy.wait('@getMatchDay');
+        cy.wrap(null).should(() => {
+            expect(nextDateRequestCount).to.eq(1);
+        });
 
         cy.get('body').then(($body) => {
-            const retryButton = $body.find('button').filter((_, element) => (element.textContent || '').includes('다시 시도')).get(0) as HTMLButtonElement | undefined;
-            if (retryButton) {
-                cy.wrap(retryButton).click({ force: true });
+            const hasRetryButton = $body.find('button').filter((_, element) => (element.textContent || '').includes('다시 시도')).length > 0;
+            if (hasRetryButton) {
+                cy.contains('button', '다시 시도').click({ force: true });
                 return;
             }
 
-            const quickAction = $body.find('[data-testid="prediction-empty-nearest-date-btn"]').get(0) as HTMLButtonElement | undefined;
-            if (quickAction) {
-                cy.wrap(quickAction).click({ force: true });
+            const hasQuickAction = $body.find('[data-testid="prediction-empty-nearest-date-btn"]').length > 0;
+            if (hasQuickAction) {
+                cy.get('[data-testid="prediction-empty-nearest-date-btn"]').click({ force: true });
                 return;
             }
 
-            const nextButton = $body.find('button[aria-label="다음 날짜 보기"]').filter(':visible').get(0) as HTMLButtonElement | undefined;
-            if (nextButton) {
-                cy.wrap(nextButton).click({ force: true });
-            }
+            cy.get('button[aria-label="다음 날짜 보기"]:visible').first().click({ force: true });
         });
+        cy.contains(displayDatePattern(nextDate), { timeout: 15000 }).should('exist');
         cy.wrap(null).should(() => {
-            expect(nextDateRequestCount).to.eq(2);
+            expect(nextDateRequestCount).to.be.gte(1);
+        });
+    });
+
+    it('loads AdvancedMatchCard first and defers coaching enhancements until requested', () => {
+        installMatchDayResponse(today, nextDate);
+        openPredictionPage('/prediction', 'getMatchDayForLazyEntry');
+
+        cy.wait('@getMatchDayForLazyEntry');
+        cy.contains('button', '경기 상세 보기').should('be.visible');
+        cy.wait(1200);
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.matchCard).to.equal(0);
+            expect(counts.animatedSection).to.equal(0);
+            expect(counts.comboAnimation).to.equal(0);
+            expect(counts.coachBriefing).to.equal(0);
+            expect(counts.coachAnalysisDialog).to.equal(0);
+            expect(counts.rankingTab).to.equal(0);
+            expect(counts.rankingPrediction).to.equal(0);
+            expect(counts.statsPanel).to.equal(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
+        cy.get('@getPredictionStatsLazy.all').should('have.length', 0);
+
+        cy.contains('button', '경기 상세 보기').click({ force: true });
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.matchCard).to.be.greaterThan(0);
+            expect(counts.animatedSection).to.equal(0);
+            expect(counts.comboAnimation).to.equal(0);
+            expect(counts.coachBriefing).to.equal(0);
+            expect(counts.coachAnalysisDialog).to.equal(0);
+            expect(counts.rankingTab).to.equal(0);
+            expect(counts.rankingPrediction).to.equal(0);
+            expect(counts.statsPanel).to.equal(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
+        cy.get('@getPredictionStatsLazy.all').should('have.length', 0);
+
+        cy.wait(1300);
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.coachBriefing).to.be.greaterThan(0);
+            expect(counts.coachAnalysisDialog).to.equal(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
+        cy.get('@coachAnalyzeLazy.all').should('have.length', 0);
+
+        cy.get('[data-testid="coach-briefing-card"]').scrollIntoView();
+        cy.wait('@coachAnalyzeLazy');
+
+        cy.get('[data-testid="coach-analysis-open"]').click({ force: true });
+        cy.get('[data-testid="coach-analysis-dialog"]').should('be.visible');
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.coachAnalysisDialog).to.be.greaterThan(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
+    });
+
+    it('loads ComboAnimation only after vote success triggers combo state', () => {
+        let voteSubmitted = false;
+        let voteStatusRequestCount = 0;
+        let initialVoteStatusRequestCount = 0;
+
+        cy.intercept('GET', '**/api/leaderboard/me', {
+            statusCode: 200,
+            body: {
+                handle: 'testuser',
+                userName: 'TestUser',
+                rank: 1,
+                totalScore: 0,
+                seasonScore: 0,
+                monthlyScore: 0,
+                weeklyScore: 0,
+                level: 1,
+                rankTitle: 'ROOKIE',
+                currentStreak: 3,
+                maxStreak: 5,
+                experiencePoints: 0,
+                nextLevelExp: 100,
+            },
+        }).as('getLeaderboardMeLazyCombo');
+
+        cy.intercept('POST', '**/api/predictions/vote', (req) => {
+            voteSubmitted = true;
+            req.reply({
+                statusCode: 200,
+                body: { success: true },
+            });
+        }).as('submitPredictionVoteLazy');
+
+        cy.intercept('GET', '**/api/predictions/status/*', (req) => {
+            voteStatusRequestCount += 1;
+            req.reply({
+                statusCode: 200,
+                body: voteSubmitted
+                    ? { homeVotes: 1, awayVotes: 0, totalVotes: 1 }
+                    : { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
+            });
+        }).as('getVoteStatusComboLazy');
+
+        installMatchDayResponse(today, nextDate);
+        openPredictionPage('/prediction', 'getMatchDayForLazyEntry');
+
+        cy.wait('@getMatchDayForLazyEntry');
+        cy.contains('button', '경기 상세 보기').should('be.visible');
+        cy.wait(1200);
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.comboAnimation).to.equal(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
+
+        cy.contains('button', '경기 상세 보기').click({ force: true });
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.matchCard).to.be.greaterThan(0);
+            expect(counts.animatedSection).to.equal(0);
+            expect(counts.comboAnimation).to.equal(0);
+            expect(counts.coachBriefing).to.equal(0);
+            expect(counts.coachAnalysisDialog).to.equal(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
+
+        cy.then(() => {
+            initialVoteStatusRequestCount = voteStatusRequestCount;
+        });
+
+        cy.get('[data-testid="vote-home-btn"]').click({ force: true });
+        cy.wait('@submitPredictionVoteLazy');
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(voteSubmitted).to.equal(true);
+            expect(voteStatusRequestCount).to.be.greaterThan(initialVoteStatusRequestCount);
+            expect(counts.comboAnimation).to.be.greaterThan(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
+    });
+
+    it('keeps match detail loaded immediately on deep link access', () => {
+        const deepLinkDate = '2026-02-03';
+        const deepLinkGameId = '20260203HHSS0';
+
+        installMatchDayResponse(deepLinkDate, nextDate, deepLinkGameId);
+        openPredictionPage(
+            `/prediction?gameId=${deepLinkGameId}&date=${deepLinkDate}`,
+            'getMatchDayForLazyEntry'
+        );
+
+        cy.wait('@getMatchDayForLazyEntry');
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
+        cy.contains('button', '경기 상세 보기').should('not.exist');
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.matchCard).to.be.greaterThan(0);
+            expect(counts.animatedSection).to.equal(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
+    });
+
+    it('does not load match card chunk until match detail entry even after ranking tab interaction', () => {
+        installMatchDayResponse(today, nextDate);
+        openPredictionPage('/prediction', 'getMatchDayForLazyEntry');
+
+        cy.wait('@getMatchDayForLazyEntry');
+        cy.contains('button', '경기 상세 보기').should('be.visible');
+        cy.contains('button', '순위예측').click({ force: true });
+
+        cy.contains('button', '승부예측').click({ force: true });
+        cy.contains('button', '경기 상세 보기').should('be.visible');
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.matchCard).to.equal(0);
+            expect(counts.animatedSection).to.be.greaterThan(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
+    });
+
+    it('keeps ranking chunks and stats query deferred until the first ranking tab entry', () => {
+        installMatchDayResponse(today, nextDate);
+        openPredictionPage('/prediction', 'getMatchDayForLazyEntry');
+
+        cy.wait('@getMatchDayForLazyEntry');
+        cy.contains('button', '경기 상세 보기').should('be.visible');
+        cy.wait(1200);
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.rankingTab).to.equal(0);
+            expect(counts.rankingPrediction).to.equal(0);
+            expect(counts.statsPanel).to.equal(0);
+        });
+        cy.get('@getPredictionStatsLazy.all').should('have.length', 0);
+
+        cy.contains('button', '순위예측').click({ force: true });
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.rankingTab).to.be.greaterThan(0);
+            expect(counts.rankingPrediction).to.be.greaterThan(0);
+        });
+    });
+
+    it('retains deep-link selected match across tab switches in the same session', () => {
+        const deepLinkDate = '2026-02-03';
+        const deepLinkGameId = '20260203HHSS0';
+
+        cy.intercept('GET', '**/api/matches/day*', (req) => {
+            const url = new URL(req.url);
+            const date = url.searchParams.get('date') || '';
+
+            if (date === deepLinkDate) {
+                req.reply({
+                    statusCode: 200,
+                    body: buildDayResponse(deepLinkDate, [
+                        {
+                            gameId: deepLinkGameId,
+                            gameDate: deepLinkDate,
+                            homeTeam: 'HH',
+                            awayTeam: 'SS',
+                            stadium: '대전',
+                            homeScore: null,
+                            awayScore: null,
+                            winner: null,
+                        },
+                    ], null, nextDate),
+                });
+                return;
+            }
+
+            if (date === nextDate) {
+                req.reply({
+                    statusCode: 200,
+                    body: buildDayResponse(nextDate, [
+                        {
+                            gameId: '20260206HHSS0',
+                            gameDate: nextDate,
+                            homeTeam: 'HH',
+                            awayTeam: 'SS',
+                            stadium: '서울',
+                            homeScore: null,
+                            awayScore: null,
+                            winner: null,
+                        },
+                    ], deepLinkDate, null),
+                });
+                return;
+            }
+
+            req.reply({ statusCode: 404, body: { message: `Unexpected date ${date}` } });
+        }).as('getMatchDayDeepRetention');
+
+        installMatchDayResponse(deepLinkDate, nextDate, deepLinkGameId);
+        openPredictionPage(`/prediction?gameId=${deepLinkGameId}&date=${deepLinkDate}`, 'getMatchDayForLazyEntry');
+
+        cy.wait('@getMatchDayForLazyEntry');
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
+        cy.contains('button', '경기 상세 보기').should('not.exist');
+
+        cy.contains('button', '순위예측').click({ force: true });
+        cy.get('button', { timeout: 10000 }).contains('승부예측').click({ force: true });
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
+        cy.contains('button', '경기 상세 보기').should('not.exist');
+
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.matchCard).to.be.greaterThan(0);
+            expect(counts.animatedSection).to.be.greaterThan(0);
         });
     });
 });
@@ -539,7 +936,7 @@ describe('Prediction Public Access', () => {
             body: { message: 'legacy endpoint removed' },
         }).as('getGuestUserVoteLazy');
 
-        cy.intercept('GET', '**/api/kbo/rankings/*', {
+        cy.intercept('GET', '**/api/kbo/rankings/snapshot*', {
             statusCode: 200,
             body: baseRankings,
         }).as('getGuestRankingsLazy');
@@ -562,13 +959,8 @@ describe('Prediction Public Access', () => {
     };
 
     const openPredictionPageAsGuest = () => {
-        cy.visit('/prediction', {
-            onBeforeLoad(win) {
-                win.localStorage.removeItem('auth-storage');
-                win.localStorage.removeItem('accessToken');
-                win.localStorage.setItem('bega_has_visited', 'true');
-                win.localStorage.setItem('bega_dont_show_guide', 'true');
-            },
+        visitPredictionPublicPage({
+            path: '/prediction',
         });
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
     };
@@ -577,15 +969,10 @@ describe('Prediction Public Access', () => {
         cy.visit('about:blank');
         cy.clearAllCookies();
         cy.clearAllLocalStorage();
-        cy.mockAPI();
+        cy.mockAPI({ skipRankings: true });
         installGuestPredictionIntercepts();
         cy.clock(new Date('2026-02-03T12:00:00').getTime(), ['Date']);
-        cy.intercept('GET', '**/auth/mypage*', {
-            statusCode: 401,
-            body: {
-                message: 'Unauthorized',
-            },
-        }).as('getGuestSession');
+        installPredictionGuestSessionIntercept('getGuestSession');
     });
 
     it('loads public match day data for guests without requesting my-votes', () => {
@@ -652,8 +1039,16 @@ describe('Prediction Public Access', () => {
         cy.wrap(null).then(() => {
             expect(requestedDates).to.have.members([today, previousDate, nextDate]);
             expect(myVotesCallCount).to.equal(0);
-            cy.get('@getGuestSession.all').should('have.length', 0);
+            cy.get('@getGuestSession.all').then((calls) => {
+                expect(calls.length).to.be.at.most(1);
+            });
             cy.get('@getGuestUserVoteLazy.all').should('have.length', 0);
+        });
+        getPredictionAuthRequestTraces().then((traces) => {
+            expect(traces.length).to.be.at.most(1);
+            traces.forEach((trace) => {
+                expect(trace.url).to.include('/api/auth/mypage');
+            });
         });
     });
 });

@@ -2,18 +2,9 @@ import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { Laptop, Smartphone, ShieldAlert, Unlink, Link, Eye, EyeOff, AlertTriangle, Trash2, Clock3, Fingerprint } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../ui/alert-dialog';
+import '../common/autofill-input.css';
+import PlainDialog from '../ui/plain-dialog';
 import {
   getConnectedProviders,
   getDeviceSessions,
@@ -25,7 +16,8 @@ import {
   getTrustedDevices,
   deleteTrustedDevice,
 } from '../../api/profile';
-import { getSocialLoginUrl, getLinkToken } from '../../api/auth';
+import { getSocialLoginUrl } from '../../api/authPublic';
+import { getLinkToken } from '../../api/authPrivate';
 import { useAuthAccessActions } from '../../store/authStore';
 import { useAuthRedirectState } from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
@@ -491,6 +483,13 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
     }
   }, [showDeleteDialog]);
 
+  const handleDeleteDialogClose = () => {
+    if (deleteMutation.isPending) {
+      return;
+    }
+    setShowDeleteDialog(false);
+  };
+
   return (
       <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-8 mb-6">
       <div className="flex items-center gap-3 mb-6">
@@ -664,15 +663,18 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
         </div>
       </section>
 
-      <AlertDialog open={showAdvancedSettingsDialog} onOpenChange={setShowAdvancedSettingsDialog}>
-        <AlertDialogContent className="sm:max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>고급 설정</AlertDialogTitle>
-            <AlertDialogDescription>
-              평소에는 자주 쓰지 않지만, 계정 보호나 정리가 필요할 때 사용하는 기능입니다. 일부 작업은 현재 로그인 상태와 다른 기기에 영향을 줄 수 있습니다.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
+      <PlainDialog
+        open={showAdvancedSettingsDialog}
+        onClose={() => setShowAdvancedSettingsDialog(false)}
+        title="고급 설정"
+        description="평소에는 자주 쓰지 않지만, 계정 보호나 정리가 필요할 때 사용하는 기능입니다. 일부 작업은 현재 로그인 상태와 다른 기기에 영향을 줄 수 있습니다."
+        className="sm:max-w-2xl"
+        footer={(
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowAdvancedSettingsDialog(false)}>
+            닫기
+          </Button>
+        )}
+      >
           <div className="space-y-4 pt-1">
             <div className="rounded-xl border border-border bg-card/80 p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
@@ -802,36 +804,43 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
             </div>
 
           </div>
+      </PlainDialog>
 
-          <AlertDialogFooter>
-            <AlertDialogCancel asChild>
-              <Button variant="outline" className="w-full">
-                닫기
-              </Button>
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="w-5 h-5" />
-              탈퇴 예약 확인
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3 text-sm text-muted-foreground">
-                <p>탈퇴 예약을 진행하면 즉시 로그아웃되며, 7일 후 최종 삭제 절차가 진행됩니다.</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>유예 기간 동안 로그인과 토큰 재발급이 차단됩니다.</li>
-                  <li>이메일로 전달된 복구 링크로 7일 안에 예약을 취소할 수 있습니다.</li>
-                  <li>유예 기간이 지나면 기존과 동일한 데이터 정리 절차가 시작됩니다.</li>
-                </ul>
-                <p>본인이 직접 요청한 경우에만 아래 확인을 진행해 주세요.</p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+      <PlainDialog
+        open={showDeleteDialog}
+        onClose={handleDeleteDialogClose}
+        title={(
+          <span className="flex items-center gap-2 text-red-600">
+            <AlertTriangle className="w-5 h-5" />
+            탈퇴 예약 확인
+          </span>
+        )}
+        className="sm:max-w-lg"
+        hideCloseButton={deleteMutation.isPending}
+        footer={(
+          <>
+            <Button variant="outline" onClick={handleDeleteDialogClose} disabled={deleteMutation.isPending}>
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={deleteMutation.isPending || !isDeleteConfirmMatched}
+            >
+              {deleteMutation.isPending ? '예약 중...' : '탈퇴 예약'}
+            </Button>
+          </>
+        )}
+      >
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>탈퇴 예약을 진행하면 즉시 로그아웃되며, 7일 후 최종 삭제 절차가 진행됩니다.</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>유예 기간 동안 로그인과 토큰 재발급이 차단됩니다.</li>
+              <li>이메일로 전달된 복구 링크로 7일 안에 예약을 취소할 수 있습니다.</li>
+              <li>유예 기간이 지나면 기존과 동일한 데이터 정리 절차가 시작됩니다.</li>
+            </ul>
+            <p>본인이 직접 요청한 경우에만 아래 확인을 진행해 주세요.</p>
+          </div>
 
           {error && (
             <Alert variant="destructive" className="my-4">
@@ -843,7 +852,9 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
 
           {isLocalUser && (
             <div className="my-4 space-y-2">
-              <Label htmlFor="deletePassword">비밀번호 확인</Label>
+              <label htmlFor="deletePassword" className="text-sm font-medium text-foreground">
+                비밀번호 확인
+              </label>
               <div className="relative">
                 <Input
                   id="deletePassword"
@@ -866,7 +877,9 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
           )}
 
           <div className="my-2 space-y-2">
-            <Label htmlFor="deleteConfirmText">확인 문구 입력</Label>
+            <label htmlFor="deleteConfirmText" className="text-sm font-medium text-foreground">
+              확인 문구 입력
+            </label>
             <Input
               id="deleteConfirmText"
               value={deleteConfirmText}
@@ -877,19 +890,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
             />
             <p className="text-xs text-muted-foreground">위 문구를 정확히 입력하면 탈퇴 예약이 진행됩니다.</p>
           </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>취소</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={handleDeleteConfirm}
-              disabled={deleteMutation.isPending || !isDeleteConfirmMatched}
-            >
-              {deleteMutation.isPending ? '예약 중...' : '탈퇴 예약'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      </PlainDialog>
 
       <VerificationRequiredDialog
         isOpen={showSecurityDialog}

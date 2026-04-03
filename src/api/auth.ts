@@ -54,6 +54,20 @@ interface RawAuthProfileResponse {
   };
 }
 
+const getInjectedAuthProfileResponse = (): RawAuthProfileResponse | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const injectedResponse = (window as Window & {
+    __BEGA_TEST_AUTH_PROFILE__?: RawAuthProfileResponse;
+  }).__BEGA_TEST_AUTH_PROFILE__;
+
+  return injectedResponse && typeof injectedResponse === 'object'
+    ? injectedResponse
+    : null;
+};
+
 interface AuthProfile {
   id: number;
   email: string;
@@ -148,8 +162,14 @@ const normalizeAuthProfile = (payload: RawAuthProfileResponse): AuthProfile => {
 };
 
 export const fetchCurrentUserProfile = async (): Promise<AuthProfile> => {
+  const injectedResponse = getInjectedAuthProfileResponse();
+  if (injectedResponse) {
+    return normalizeAuthProfile(injectedResponse);
+  }
+
   const response = await api.get<RawAuthProfileResponse>('/auth/mypage', {
     skipGlobalErrorHandler: true,
+    skipAuthSessionHandling: true,
   });
   return normalizeAuthProfile(response.data);
 };
@@ -172,6 +192,14 @@ export interface SignUpResponse {
     email: string;
   };
 }
+
+export interface SignUpAvailabilityResponse {
+  available: boolean;
+  message?: string;
+  normalized?: string;
+}
+
+export type SignUpConflictField = 'handle' | 'email';
 
 export interface PolicyConsentPayloadItem {
   policyType: string;
@@ -300,7 +328,22 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
     }
 
     if (error instanceof AxiosError) {
-      throw new Error(getApiErrorMessage(error, '회원가입에 실패했습니다.'));
+      const serverMessage = getApiErrorMessage(error, '');
+      if (serverMessage) throw new Error(serverMessage);
+
+      // getApiErrorMessage returned empty — try field-level errors before falling back
+      const responseData = error.response?.data;
+      if (responseData && typeof responseData === 'object' && 'errors' in responseData) {
+        const errors = (responseData as Record<string, unknown>).errors;
+        if (errors && typeof errors === 'object') {
+          const firstFieldError = Object.values(errors as Record<string, unknown>).find(
+            (v): v is string => typeof v === 'string' && v.trim().length > 0,
+          );
+          if (firstFieldError) throw new Error(firstFieldError);
+        }
+      }
+
+      throw new Error('회원가입에 실패했습니다. 입력 정보를 확인하거나 잠시 후 다시 시도해주세요.');
     }
     if (error instanceof Error) {
       throw error;
@@ -387,49 +430,6 @@ export const logoutUser = async (): Promise<void> => {
   await api.post('/auth/logout');
 };
 
-/**
- * 비밀번호 재설정 요청 API 호출
- */
-export const requestPasswordReset = async (
-  email: string,
-  redirectPath?: string | null,
-): Promise<PasswordResetResponse> => {
-  try {
-    const redirect = sanitizeLoginRedirect(redirectPath);
-    const payload: PasswordResetRequest = redirect ? { email, redirect } : { email };
-    const response = await api.post<PasswordResetResponse>('/auth/password/reset/request', payload, {
-      skipGlobalErrorHandler: true,
-    });
-    return response.data;
-  } catch (error: unknown) {
-    throw new Error(getApiErrorMessage(error, '이메일 발송에 실패했습니다.'));
-  }
-};
-
-/**
- * 비밀번호 재설정 확인 API 호출
- */
-export const confirmPasswordReset = async (
-  token: string,
-  newPassword: string,
-  confirmPassword: string
-): Promise<PasswordResetConfirmResponse> => {
-  try {
-    const response = await api.post<PasswordResetConfirmResponse>('/auth/password/reset/confirm', {
-      token,
-      newPassword,
-      confirmPassword,
-    }, {
-      skipGlobalErrorHandler: true,
-    });
-    return response.data;
-  } catch (error: unknown) {
-    throw new Error(getApiErrorMessage(error, '비밀번호 변경에 실패했습니다.'));
-  }
-};
-
-// ========== OAuth2 State ==========
-
 export interface OAuth2StateData {
   email: string;
   name: string;
@@ -438,14 +438,3 @@ export interface OAuth2StateData {
   favoriteTeam: string | null;
   handle: string | null;
 }
-
-/**
- * OAuth2 로그인 state에서 사용자 정보를 조회합니다 (일회성).
- */
-export const consumeOAuth2State = async (stateId: string): Promise<OAuth2StateData> => {
-  const response = await api.get<OAuth2StateData>(`/auth/oauth2/state/${stateId}`, {
-    skipGlobalErrorHandler: true,
-    skipAuthSessionHandling: true,
-  });
-  return response.data;
-};

@@ -1,11 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { fetchPublicUserProfileByHandle } from '../../api/profile';
-import { fetchUserPostsByHandle } from '../../api/cheerApi';
-import { getPublicFollowCounts, FollowCountResponse, FollowToggleResponse } from '../../api/followApi';
+import { lazy, Suspense, type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchPublicUserProfileByHandle } from '../../api/profilePublic';
+import { fetchUserPostsByHandle } from '../../api/cheerPublic';
+import { getPublicFollowCounts, type FollowCountResponse, type FollowToggleResponse } from '../../api/followPublic';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
     Loader2,
@@ -22,11 +21,31 @@ import {
 import { Skeleton } from '../ui/skeleton';
 import { getTeamKoreanName } from '../../utils/teamNames';
 import { getTeamTheme } from '../../utils/teamColors';
-import CheerCard from '../CheerCard';
 import EndOfFeed from '../EndOfFeed';
-import FollowButton from './FollowButton';
 import { useAuthProfileSnapshot, useAuthSession } from '../../store/authStore';
-import UserListModal from './UserListModal';
+
+const CheerCard = lazy(() => import('../CheerCard'));
+const FollowButton = lazy(() => import('./FollowButton'));
+const UserListModal = lazy(() => import('./UserListModal'));
+
+function ProfileBadge({
+    className = '',
+    style,
+    children,
+}: {
+    className?: string;
+    style?: CSSProperties;
+    children: ReactNode;
+}) {
+    return (
+        <span
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${className}`}
+            style={style}
+        >
+            {children}
+        </span>
+    );
+}
 
 export default function UserProfile() {
     const { handle } = useParams<{ handle: string }>();
@@ -272,7 +291,7 @@ export default function UserProfile() {
                     {/* Badges */}
                     <div className="flex flex-wrap gap-2 mb-4">
                         {/* Points Badge */}
-                        <Badge
+                        <ProfileBadge
                             className="px-3 py-1 border-0"
                             style={{
                                 backgroundColor: theme.softBg,
@@ -281,11 +300,11 @@ export default function UserProfile() {
                         >
                             <Award className="w-3.5 h-3.5 mr-1" />
                             {profile.cheerPoints?.toLocaleString() || 0} P
-                        </Badge>
+                        </ProfileBadge>
 
                         {/* Team Badge */}
                         {profile.favoriteTeam && profile.favoriteTeam !== '없음' && (
-                            <Badge
+                            <ProfileBadge
                                 className="px-3 py-1 border-0"
                                 style={{
                                     backgroundColor: theme.primary,
@@ -294,7 +313,7 @@ export default function UserProfile() {
                             >
                                 <Trophy className="w-3.5 h-3.5 mr-1" />
                                 {getTeamKoreanName(profile.favoriteTeam)}
-                            </Badge>
+                            </ProfileBadge>
                         )}
                     </div>
 
@@ -343,21 +362,27 @@ export default function UserProfile() {
                 {!isOwnProfile && isLoggedIn && (
                     <div className="mt-4 px-6 mb-6 space-y-2">
                         <div className="flex gap-3">
-                            <FollowButton
-                                handle={profile.handle}
-                                initialFollowing={followCounts?.isFollowedByMe ?? false}
-                                initialNotify={followCounts?.notifyNewPosts ?? false}
-                                initialBlocked={followCounts?.blockedByMe ?? false}
-                                initialBlocking={followCounts?.blockingMe ?? false}
-                                onFollowChange={handleFollowChange}
-                                size="default"
-                                showNotifyOption={true}
-                                className="flex-1"
-                                style={{
-                                    backgroundColor: theme.primary,
-                                    color: theme.contrastText,
-                                }}
-                            />
+                            <Suspense
+                                fallback={
+                                    <div className="h-10 flex-1 rounded-md border border-gray-200 bg-gray-50 dark:border-border dark:bg-secondary/50" />
+                                }
+                            >
+                                <FollowButton
+                                    handle={profile.handle}
+                                    initialFollowing={followCounts?.isFollowedByMe ?? false}
+                                    initialNotify={followCounts?.notifyNewPosts ?? false}
+                                    initialBlocked={followCounts?.blockedByMe ?? false}
+                                    initialBlocking={followCounts?.blockingMe ?? false}
+                                    onFollowChange={handleFollowChange}
+                                    size="default"
+                                    showNotifyOption={true}
+                                    className="flex-1"
+                                    style={{
+                                        backgroundColor: theme.primary,
+                                        color: theme.contrastText,
+                                    }}
+                                />
+                            </Suspense>
                             <Button
                                 variant="outline"
                                 className="flex-1"
@@ -422,9 +447,34 @@ export default function UserProfile() {
                     </div>
                 ) : uniquePosts.length > 0 ? (
                     <div className="space-y-4">
-                        {uniquePosts.map((post) => (
-                            <CheerCard key={post.id} post={post} />
-                        ))}
+                        <Suspense
+                            fallback={
+                                <div className="space-y-4">
+                                    {[0, 1].map((index) => (
+                                        <div
+                                            key={index}
+                                            className="rounded-xl border border-gray-200 bg-white p-4 dark:border-border dark:bg-card"
+                                        >
+                                            <div className="mb-4 flex items-center gap-3">
+                                                <Skeleton className="h-10 w-10 rounded-full" />
+                                                <div className="space-y-2">
+                                                    <Skeleton className="h-4 w-24" />
+                                                    <Skeleton className="h-3 w-16" />
+                                                </div>
+                                            </div>
+                                            <Skeleton className="mb-2 h-4 w-full" />
+                                            <Skeleton className="h-4 w-3/4" />
+                                        </div>
+                                    ))}
+                                </div>
+                            }
+                        >
+                            <>
+                                {uniquePosts.map((post) => (
+                                    <CheerCard key={post.id} post={post} />
+                                ))}
+                            </>
+                        </Suspense>
                         {isFetchingNextPage && (
                             <div className="flex justify-center py-4">
                                 <Loader2
@@ -447,13 +497,15 @@ export default function UserProfile() {
 
             {/* User List Modal */}
             {profile && (
-                <UserListModal
-                    isOpen={userListModal.isOpen}
-                    onClose={() => setUserListModal(prev => ({ ...prev, isOpen: false }))}
-                    userHandle={profile.handle}
-                    type={userListModal.type}
-                    title={userListModal.title}
-                />
+                <Suspense fallback={null}>
+                    <UserListModal
+                        isOpen={userListModal.isOpen}
+                        onClose={() => setUserListModal(prev => ({ ...prev, isOpen: false }))}
+                        userHandle={profile.handle}
+                        type={userListModal.type}
+                        title={userListModal.title}
+                    />
+                </Suspense>
             )}
         </div>
     );

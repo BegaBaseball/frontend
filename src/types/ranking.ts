@@ -32,4 +32,6 @@ export interface RankingItemProps {
   alreadySaved: boolean;
   onRemove: (index: number) => void;
   onMove: (dragIndex: number, hoverIndex: number) => void;
+  draggedIndex?: number | null;
+  onDragIndexChange?: (index: number | null) => void;
 }

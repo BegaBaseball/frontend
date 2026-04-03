@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { normalizeAiDataSources, normalizeAiToolCalls } from '../api/aiMeta';
 import {
@@ -36,7 +36,7 @@ import {
   Message,
   StoredChatMessage,
 } from '../types/chatbot';
-import { buildHistoryPayload } from '../utils/chatbot';
+import { appendTextToBotMessage, buildHistoryPayload } from '../utils/chatbot';
 
 const GREETING_TEXT = '안녕하세요! 야구 가이드 BEGA입니다. 무엇을 도와드릴까요?';
 const CURRENT_SESSION_STORAGE_KEY = 'chatbot_current_session_id';
@@ -47,6 +47,7 @@ const JITTER_MIN_SECONDS = 1;
 const JITTER_MAX_SECONDS = 2;
 const SESSION_TITLE_LIMIT = 60;
 const SESSION_PREVIEW_LIMIT = 220;
+const STREAMING_BUFFER_FLUSH_INTERVAL_MS = 64;
 
 type QueuedMessage = {
   sessionId: number;
@@ -246,9 +247,10 @@ export const useChatBot = (initialOpen = false) => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const activeStreamAbortControllerRef = useRef<AbortController | null>(null);
   const activeBotMessageIdRef = useRef<string | null>(null);
+  const activeBotMessageIndexRef = useRef<number | null>(null);
   const activeRequestSeqRef = useRef(0);
   const streamingBuffer = useRef('');
-  const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const streamingFlushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   const [position, setPosition] = useState({
@@ -259,47 +261,94 @@ export const useChatBot = (initialOpen = false) => {
 
   const currentSessionTitle = sessions.find((session) => session.sessionId === currentSessionId)?.title ?? AiChatSessionTitleFallback;
 
-  useEffect(() => {
-    typingIntervalRef.current = setInterval(() => {
-      if (streamingBuffer.current.length > 0) {
-        setIsTyping(false);
-        const char = streamingBuffer.current.charAt(0);
-        streamingBuffer.current = streamingBuffer.current.slice(1);
-
-        setMessages((prev) => {
-          if (prev.length === 0) return prev;
-          const activeBotMessageId = activeBotMessageIdRef.current;
-          if (activeBotMessageId) {
-            let updated = false;
-            const nextMessages = prev.map((message) => {
-              if (message.id !== activeBotMessageId || message.sender !== 'bot') {
-                return message;
-              }
-              updated = true;
-              return { ...message, text: message.text + char };
-            });
-            return updated ? nextMessages : prev;
-          }
-          const lastMessage = prev[prev.length - 1];
-          if (lastMessage.sender !== 'bot') {
-            return prev;
-          }
-          return prev.map((message, index) => (
-            index === prev.length - 1 ? { ...message, text: message.text + char } : message
-          ));
-        });
+  const updateBotMessageById = (
+    botMessageId: string | null | undefined,
+    updater: (message: Message) => Message,
+    options?: { deferred?: boolean },
+  ) => {
+    const applyUpdate = () => setMessages((prev) => {
+      if (prev.length === 0) {
+        return prev;
       }
-    }, 20);
 
-    return () => {
-      if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-    };
+      const knownIndex = activeBotMessageIndexRef.current;
+      const targetIndex = botMessageId && knownIndex !== null && prev[knownIndex]?.id === botMessageId
+        ? knownIndex
+        : (() => {
+          for (let index = prev.length - 1; index >= 0; index -= 1) {
+            if (prev[index].sender === 'bot' && (!botMessageId || prev[index].id === botMessageId)) {
+              return index;
+            }
+          }
+          return -1;
+        })();
+
+      if (targetIndex < 0) {
+        return prev;
+      }
+
+      const current = prev[targetIndex];
+      if (current.sender !== 'bot') {
+        return prev;
+      }
+
+      const next = prev.slice();
+      next[targetIndex] = updater(current);
+      activeBotMessageIndexRef.current = targetIndex;
+      return next;
+    });
+
+    if (options?.deferred) {
+      startTransition(applyUpdate);
+      return;
+    }
+
+    applyUpdate();
+  };
+
+  const clearScheduledStreamingFlush = () => {
+    if (streamingFlushTimeoutRef.current) {
+      clearTimeout(streamingFlushTimeoutRef.current);
+      streamingFlushTimeoutRef.current = null;
+    }
+  };
+
+  const flushStreamingBuffer = (botMessageId?: string | null) => {
+    clearScheduledStreamingFlush();
+
+    if (!streamingBuffer.current) {
+      return;
+    }
+
+    const bufferedText = streamingBuffer.current;
+    streamingBuffer.current = '';
+    updateBotMessageById(
+      botMessageId ?? activeBotMessageIdRef.current,
+      (message) => appendTextToBotMessage(message, bufferedText),
+      { deferred: true },
+    );
+  };
+
+  const scheduleStreamingFlush = (botMessageId?: string | null) => {
+    if (!streamingBuffer.current || streamingFlushTimeoutRef.current) {
+      return;
+    }
+
+    streamingFlushTimeoutRef.current = setTimeout(() => {
+      streamingFlushTimeoutRef.current = null;
+      flushStreamingBuffer(botMessageId);
+    }, STREAMING_BUFFER_FLUSH_INTERVAL_MS);
+  };
+
+  useEffect(() => () => {
+    clearScheduledStreamingFlush();
   }, []);
 
   useEffect(() => {
     if (isOpen && !isLoadingMessages && messages.length === 0) {
       setMessages([createSystemGreeting()]);
       streamingBuffer.current += GREETING_TEXT;
+      scheduleStreamingFlush(null);
     }
   }, [isOpen, isLoadingMessages, messages.length]);
 
@@ -313,9 +362,6 @@ export const useChatBot = (initialOpen = false) => {
     const updateCountdown = () => {
       const remainingSeconds = Math.max(0, Math.ceil((rateLimitUntil - Date.now()) / 1000));
       setRateLimitCountdown(remainingSeconds);
-      if (remainingSeconds <= 0) {
-        setRateLimitActive(false);
-      }
     };
 
     updateCountdown();
@@ -328,6 +374,9 @@ export const useChatBot = (initialOpen = false) => {
       activeStreamAbortControllerRef.current?.abort(new DOMException('logout', 'AbortError'));
       activeStreamAbortControllerRef.current = null;
       activeBotMessageIdRef.current = null;
+      activeBotMessageIndexRef.current = null;
+      clearScheduledStreamingFlush();
+      streamingBuffer.current = '';
       setIsLoadingSessions(false);
       setIsLoadingMessages(false);
       setIsLoadingFavorites(false);
@@ -417,42 +466,6 @@ export const useChatBot = (initialOpen = false) => {
     }
   }, [messages, isOpen]);
 
-  const flushStreamingBuffer = (botMessageId?: string | null) => {
-    if (!streamingBuffer.current) {
-      return;
-    }
-
-    const bufferedText = streamingBuffer.current;
-    streamingBuffer.current = '';
-
-    setMessages((prev) => {
-      if (prev.length === 0) return prev;
-
-      if (botMessageId) {
-        let updated = false;
-        const nextMessages = prev.map((message) => {
-          if (message.id !== botMessageId || message.sender !== 'bot') {
-            return message;
-          }
-          updated = true;
-          return { ...message, text: message.text + bufferedText };
-        });
-        if (updated) {
-          return nextMessages;
-        }
-      }
-
-      const lastMessage = prev[prev.length - 1];
-      if (lastMessage.sender !== 'bot') {
-        return prev;
-      }
-
-      return prev.map((message, index) => (
-        index === prev.length - 1 ? { ...message, text: message.text + bufferedText } : message
-      ));
-    });
-  };
-
   const updateSessionsAfterMessage = (sessionId: number, content: string, createdAt: Date) => {
     setSessions((prev) => {
       const next = prev.map((session) => {
@@ -478,12 +491,18 @@ export const useChatBot = (initialOpen = false) => {
   const replacePlaceholderWithStoredMessage = (placeholderId: string, storedMessage: StoredChatMessage) => {
     const normalized = normalizeStoredMessage(storedMessage);
     setMessages((prev) => {
-      const replaced = prev.map((message) => (
-        message.id === placeholderId ? normalized : message
-      ));
-      if (replaced.some((message) => message.id === normalized.id)) {
-        return replaced;
+      const replacedIndex = prev.findIndex((message) => message.id === placeholderId);
+      if (replacedIndex >= 0) {
+        const next = prev.slice();
+        next[replacedIndex] = normalized;
+        activeBotMessageIndexRef.current = replacedIndex;
+        return next;
       }
+
+      if (prev.some((message) => message.id === normalized.id)) {
+        return prev;
+      }
+
       return [...prev, normalized];
     });
   };
@@ -510,6 +529,10 @@ export const useChatBot = (initialOpen = false) => {
       const storedMessages = await getChatSessionMessages(sessionId);
       setMessages(storedMessages.map(normalizeStoredMessage));
       setCurrentSessionId(sessionId);
+      activeBotMessageIdRef.current = null;
+      activeBotMessageIndexRef.current = null;
+      clearScheduledStreamingFlush();
+      streamingBuffer.current = '';
     } catch {
       toast.error('대화 내용을 불러오지 못했습니다.');
     } finally {
@@ -527,23 +550,20 @@ export const useChatBot = (initialOpen = false) => {
 
     activeRequestSeqRef.current += 1;
     flushStreamingBuffer(activeBotMessageId);
-    setMessages((prev) => prev.map((message) => (
-      message.id === activeBotMessageId && message.sender === 'bot'
-        ? {
-          ...message,
-          text: message.text.trim().length > 0 ? message.text : '응답을 취소했습니다.',
-          status: 'CANCELLED',
-          cancelled: true,
-          isError: false,
-        }
-        : message
-    )));
+    updateBotMessageById(activeBotMessageId, (message) => ({
+      ...message,
+      text: message.text.trim().length > 0 ? message.text : '응답을 취소했습니다.',
+      status: 'CANCELLED',
+      cancelled: true,
+      isError: false,
+    }));
     setIsProcessing(false);
     setIsTyping(false);
 
     controller.abort(new DOMException('chat stream cancelled', 'AbortError'));
     activeStreamAbortControllerRef.current = null;
     activeBotMessageIdRef.current = null;
+    activeBotMessageIndexRef.current = null;
     return true;
   };
 
@@ -567,7 +587,9 @@ export const useChatBot = (initialOpen = false) => {
         if (prev.some((message) => message.id === botMessageId)) {
           return prev;
         }
-        return [...prev, createBotPlaceholder(sessionId, botMessageId)];
+        const next = [...prev, createBotPlaceholder(sessionId, botMessageId)];
+        activeBotMessageIndexRef.current = next.length - 1;
+        return next;
       });
 
       await sendChatMessageStream(
@@ -578,33 +600,30 @@ export const useChatBot = (initialOpen = false) => {
           }
           assistantText += delta;
           streamingBuffer.current += delta;
+          scheduleStreamingFlush(botMessageId);
         },
         (meta) => {
           if (activeRequestSeqRef.current !== requestSeq) {
             return;
           }
           assistantMeta = meta;
-          setMessages((prev) => prev.map((message) => (
-            message.id === botMessageId && message.sender === 'bot'
-              ? {
-                ...message,
-                verified: meta.verified,
-                cached: meta.cached,
-                citations: meta.dataSources,
-                toolCalls: meta.toolCalls,
-                intent: meta.intent,
-                strategy: meta.strategy,
-                plannerMode: meta.plannerMode,
-                plannerCacheHit: meta.plannerCacheHit,
-                toolExecutionMode: meta.toolExecutionMode,
-                fallbackReason: meta.fallbackReason,
-                finishReason: meta.finish_reason,
-                cancelled: meta.cancelled ?? false,
-                isError: meta.error === 'temporary_generation_issue' || meta.finish_reason === 'error',
-                metadata: meta.perf ?? null,
-              }
-              : message
-          )));
+          updateBotMessageById(botMessageId, (message) => ({
+            ...message,
+            verified: meta.verified,
+            cached: meta.cached,
+            citations: meta.dataSources,
+            toolCalls: meta.toolCalls,
+            intent: meta.intent,
+            strategy: meta.strategy,
+            plannerMode: meta.plannerMode,
+            plannerCacheHit: meta.plannerCacheHit,
+            toolExecutionMode: meta.toolExecutionMode,
+            fallbackReason: meta.fallbackReason,
+            finishReason: meta.finish_reason,
+            cancelled: meta.cancelled ?? false,
+            isError: meta.error === 'temporary_generation_issue' || meta.finish_reason === 'error',
+            metadata: meta.perf ?? null,
+          }));
         },
         { signal: streamAbortController.signal },
       );
@@ -638,11 +657,13 @@ export const useChatBot = (initialOpen = false) => {
             errorCode: assistantMeta?.error ?? 'cancelled',
           });
         } catch {
-          setMessages((prev) => prev.map((message) => (
-            message.id === botMessageId
-              ? { ...message, text: cancelledText, status: 'CANCELLED', cancelled: true, isError: false }
-              : message
-          )));
+          updateBotMessageById(botMessageId, (message) => ({
+            ...message,
+            text: cancelledText,
+            status: 'CANCELLED',
+            cancelled: true,
+            isError: false,
+          }));
         }
       } else {
         const failureText = buildFailureText(error);
@@ -681,18 +702,14 @@ export const useChatBot = (initialOpen = false) => {
             errorCode,
           });
         } catch {
-          setMessages((prev) => prev.map((message) => (
-            message.id === botMessageId
-              ? {
-                ...message,
-                text: failureText,
-                status: 'ERROR',
-                isError: true,
-                cancelled: false,
-                errorCode,
-              }
-              : message
-          )));
+          updateBotMessageById(botMessageId, (message) => ({
+            ...message,
+            text: failureText,
+            status: 'ERROR',
+            isError: true,
+            cancelled: false,
+            errorCode,
+          }));
         }
 
         if (!(error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT))) {
@@ -703,6 +720,7 @@ export const useChatBot = (initialOpen = false) => {
       if (activeStreamAbortControllerRef.current === streamAbortController) {
         activeStreamAbortControllerRef.current = null;
         activeBotMessageIdRef.current = null;
+        activeBotMessageIndexRef.current = null;
       }
       setIsProcessing(false);
       setIsTyping(false);
@@ -730,18 +748,14 @@ export const useChatBot = (initialOpen = false) => {
     setSessions((prev) => sortSessions([created, ...prev]));
     setCurrentSessionId(created.sessionId);
     setMessages([]);
+    activeBotMessageIdRef.current = null;
+    activeBotMessageIndexRef.current = null;
+    clearScheduledStreamingFlush();
+    streamingBuffer.current = '';
     return created;
   };
 
-  const handleSendMessage = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const submittedInput = event.currentTarget instanceof HTMLFormElement
-      ? new FormData(event.currentTarget).get('message')
-      : null;
-    const trimmedInput = typeof submittedInput === 'string'
-      ? submittedInput.trim()
-      : inputMessage.trim();
-
+  const submitMessage = async (trimmedInput: string) => {
     if (!trimmedInput || !isLoggedIn) return;
     if (rateLimitActive && rateLimitCountdown > 0) return;
 
@@ -772,20 +786,25 @@ export const useChatBot = (initialOpen = false) => {
     }
   };
 
+  const handleSendMessage = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const submittedInput = event.currentTarget instanceof HTMLFormElement
+      ? new FormData(event.currentTarget).get('message')
+      : null;
+    const trimmedInput = typeof submittedInput === 'string'
+      ? submittedInput.trim()
+      : inputMessage.trim();
+
+    await submitMessage(trimmedInput);
+  };
+
   const handleRetrySend = async () => {
     if (rateLimitCountdown > 0) return;
     const retryText = inputMessage.trim() || pendingMessage.trim();
     if (!retryText) return;
-
-    const syntheticEvent = {
-      preventDefault: () => undefined,
-      currentTarget: null,
-    } as unknown as React.FormEvent;
-
-    setInputMessage(retryText);
-    await handleSendMessage(syntheticEvent);
     setRateLimitActive(false);
     setRateLimitUntil(null);
+    await submitMessage(retryText);
   };
 
   const handleRestorePendingMessage = () => {
@@ -811,6 +830,10 @@ export const useChatBot = (initialOpen = false) => {
       setSessions((prev) => sortSessions([session, ...prev]));
       setCurrentSessionId(session.sessionId);
       setMessages([]);
+      activeBotMessageIdRef.current = null;
+      activeBotMessageIndexRef.current = null;
+      clearScheduledStreamingFlush();
+      streamingBuffer.current = '';
       return session.sessionId;
     } catch {
       toast.error('새 대화를 시작하지 못했습니다.');
@@ -852,6 +875,10 @@ export const useChatBot = (initialOpen = false) => {
       });
       if (sessionId === currentSessionId && sessions.length <= 1) {
         setMessages([]);
+        activeBotMessageIdRef.current = null;
+        activeBotMessageIndexRef.current = null;
+        clearScheduledStreamingFlush();
+        streamingBuffer.current = '';
       }
     } catch {
       toast.error('대화를 삭제하지 못했습니다.');

@@ -127,19 +127,8 @@ describe('Mate Create Flow', () => {
     cy.get('#manualGameTime').clear().type('18:30');
     cy.get('#manualStadium').clear().type('잠실야구장');
 
-    cy.contains('label', '원정 팀')
-      .parent()
-      .within(() => {
-        cy.get('button[role="combobox"]').click();
-      });
-    cy.contains('[role="option"]', 'KT 위즈').click();
-
-    cy.contains('label', '홈 팀')
-      .parent()
-      .within(() => {
-        cy.get('button[role="combobox"]').click();
-      });
-    cy.contains('[role="option"]', 'LG 트윈스').click();
+    cy.get('#manualAwayTeam').select('KT 위즈');
+    cy.get('#manualHomeTeam').select('LG 트윈스');
 
     cy.contains('button', '다음').should('not.be.disabled');
   });

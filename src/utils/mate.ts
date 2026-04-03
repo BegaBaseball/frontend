@@ -1,6 +1,5 @@
 // src/utils/mate.ts
-import { Party, PartyStatus, BadgeType } from '../types/mate';
-import { MateParty, MateHistoryTab } from '../types/mate';
+import { BadgeType, MateHistoryTab, MateParty, MatePartySeed, MateRouteLocationState, Party, PartyStatus } from '../types/mate';
 
 interface BackendPartyDTO {
   id: number;
@@ -107,6 +106,70 @@ export const isPartyHostedByUser = (
   { id: party?.hostId ?? null, handle: party?.hostHandle ?? null },
   user,
 );
+
+export const normalizeMatePartySeed = (
+  party: MatePartySeed | null | undefined,
+): Party | null => {
+  if (!party) {
+    return null;
+  }
+
+  if ('hostName' in party) {
+    return party;
+  }
+
+  return {
+    id: party.id,
+    hostId: party.hostId,
+    hostHandle: party.hostHandle,
+    hostName: '',
+    hostBadge: 'NEW',
+    hostAverageRating: null,
+    hostReviewCount: 0,
+    teamId: party.teamId,
+    gameDate: party.gameDate,
+    gameTime: party.gameTime,
+    stadium: party.stadium,
+    homeTeam: party.homeTeam,
+    awayTeam: party.awayTeam,
+    section: party.section,
+    maxParticipants: party.maxParticipants,
+    currentParticipants: party.currentParticipants,
+    description: party.description || '',
+    ticketVerified: false,
+    status: party.status,
+    createdAt: '',
+  };
+};
+
+export const buildMateRouteLocationState = (
+  partySeed: MatePartySeed,
+): MateRouteLocationState => ({
+  partySeed,
+});
+
+export const getMateRoutePlaceholderParty = (
+  state: unknown,
+  routePartyId: number | null,
+): Party | undefined => {
+  if (!state || typeof state !== 'object' || !('partySeed' in state)) {
+    return undefined;
+  }
+
+  const placeholderParty = normalizeMatePartySeed(
+    (state as MateRouteLocationState).partySeed,
+  );
+
+  if (!placeholderParty) {
+    return undefined;
+  }
+
+  if (routePartyId !== null && placeholderParty.id !== routePartyId) {
+    return undefined;
+  }
+
+  return placeholderParty;
+};
 
 export const filterActiveParties = (parties: Party[]): Party[] => {
   return parties.filter(party =>

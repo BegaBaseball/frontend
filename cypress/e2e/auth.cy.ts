@@ -172,8 +172,7 @@ describe('Authentication Flow', () => {
             cy.get('input#password').type('Test1234!');
             cy.get('input#confirmPassword').type('Test1234!');
 
-            cy.get('button[role="combobox"]').first().click();
-            cy.contains('[role="option"]', 'LG 트윈스').click();
+            cy.get('[data-testid="signup-favorite-team"]').select('LG 트윈스');
 
             cy.contains('button', '회원가입').click();
 
@@ -216,8 +215,7 @@ describe('Authentication Flow', () => {
             cy.get('input#password').type('Test1234!');
             cy.get('input#confirmPassword').type('Test1234!');
 
-            cy.get('button[role="combobox"]').first().click();
-            cy.contains('[role="option"]', 'LG 트윈스').click();
+            cy.get('[data-testid="signup-favorite-team"]').select('LG 트윈스');
 
             cy.contains('button', '회원가입').click();
 

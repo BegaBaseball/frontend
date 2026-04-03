@@ -1,21 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, ImagePlus, Smile } from 'lucide-react';
 import { toast } from 'sonner';
-import TextareaAutosize from 'react-textarea-autosize';
 import { useTheme } from '../hooks/useTheme';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from './ui/dialog';
 import { Button } from './ui/button';
+import AutosizeTextarea from './ui/autosize-textarea';
 import TeamLogo from './TeamLogo';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { ShareMode } from '../api/cheerApi';
 import LazyEmojiPicker from './LazyEmojiPicker';
+import PlainDialog from './ui/plain-dialog';
 
 export interface CheerWritePayload {
     content: string;
@@ -194,16 +188,13 @@ export default function CheerWriteModal({
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
-            <DialogContent className="w-full h-auto max-w-[95%] sm:max-w-[600px] lg:max-w-[800px] max-h-[90vh] p-0 overflow-hidden border-none rounded-2xl bg-white dark:bg-card">
-                <DialogHeader className="px-4 py-3 sm:px-6 sm:py-4 border-b border-[#EFF3F4] dark:border-border flex flex-row items-center justify-between">
-                    <DialogTitle className="text-lg sm:text-xl font-bold">새 응원글 작성</DialogTitle>
-                    <DialogDescription className="sr-only">
-                        새로운 응원글을 작성하고 이미지를 업로드하는 모달입니다.
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div className="p-4 sm:p-6 lg:p-8">
+        <PlainDialog
+            open={isOpen}
+            onClose={onClose}
+            title="새 응원글 작성"
+            className="max-w-[95%] sm:max-w-[600px] lg:max-w-[800px] max-h-[90vh] overflow-hidden border-none rounded-2xl bg-white dark:bg-card"
+            bodyClassName="p-4 sm:p-6 lg:p-8"
+        >
                     <div className="flex gap-3 sm:gap-4">
                         {userProfileImageUrl ? (
                             <ProfileAvatar
@@ -288,7 +279,7 @@ export default function CheerWriteModal({
                                     className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
                                 />
                             </div>
-                            <TextareaAutosize
+                            <AutosizeTextarea
                                 autoFocus
                                 placeholder="지금 우리 팀에게 응원을 남겨주세요!"
                                 className="w-full resize-none border-none bg-transparent text-[16px] sm:text-[19px] lg:text-[20px] leading-relaxed text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none focus:ring-0 min-h-[150px] sm:min-h-[200px] lg:min-h-[300px]"
@@ -361,8 +352,6 @@ export default function CheerWriteModal({
                             </div>
                         </div>
                     </div>
-                </div>
-            </DialogContent>
-        </Dialog>
+        </PlainDialog>
     );
 }

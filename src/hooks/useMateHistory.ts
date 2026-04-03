@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchMyParties } from '../api/mate';
+import { getMateMyPartiesQueryOptions } from './mateQueryOptions';
 import { filterPartiesByTab } from '../utils/mate';
 import { MateHistoryTab, MateParty } from '../types/mate';
 import { toast } from 'sonner';
@@ -17,10 +17,7 @@ export const useMateHistory = (tab: MateHistoryTab) => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['myParties', userId],
-    queryFn: fetchMyParties,
-    staleTime: 5 * 60 * 1000, // 5분
-    gcTime: 30 * 60 * 1000, // 30분
+    ...getMateMyPartiesQueryOptions(userId),
     enabled: canLoadMyParties,
   });
 

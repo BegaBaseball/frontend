@@ -148,8 +148,8 @@ const sanitizeValue = (value: LogValue, depth = 0, seen = new WeakSet<object>())
       name: value.name || 'Error',
       message: value.message,
     };
-    if ((value as any).cause) {
-      safeError.code = (value as any).cause;
+    if ('cause' in value && value.cause) {
+      safeError.code = value.cause as unknown;
     }
     return safeError;
   }

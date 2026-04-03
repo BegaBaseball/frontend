@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import api from '../api/axios';
+import { publicGet } from '../api/publicClient';
 import { useIsMobile } from '../hooks/use-mobile';
 import { getTeamKoreanName } from '../utils/teamNames';
 import { OffseasonDesktopTable } from './offseason/OffseasonDesktopTable';
@@ -32,27 +32,16 @@ import {
     SORT_OPTIONS,
     TEAM_FILTER_ALL,
 } from './offseason/offseasonListTypes';
+import { OffseasonPill } from './offseason/offseasonUi';
 import { normalizeOffseasonErrorMessage } from './offseason/offseasonError';
 import { formatDateLabel, matchesSectionFilter, toDateValue } from './offseason/offseasonListUtils';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from './ui/select';
 
 const fetchMovements = async (): Promise<OffseasonMovement[]> => {
     try {
-        const response = await api.get<OffseasonMovement[]>('/kbo/offseason/movements', {
-            skipGlobalErrorHandler: true,
-        });
-
-        return response.data;
+        return await publicGet<OffseasonMovement[]>('/kbo/offseason/movements');
     } catch (error) {
         throw new Error(normalizeOffseasonErrorMessage(error));
     }
@@ -308,19 +297,19 @@ export default function OffSeasonList() {
                                 />
                             </div>
 
-                            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                                <SelectTrigger className="h-12 rounded-2xl border-zinc-200 bg-zinc-50 text-sm font-semibold shadow-none dark:border-zinc-800 dark:bg-zinc-950">
-                                    <SelectValue placeholder="팀 선택" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={TEAM_FILTER_ALL}>전체 구단</SelectItem>
-                                    {teamOptions.map((teamName) => (
-                                        <SelectItem key={teamName} value={teamName}>
-                                            {teamName}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <select
+                                aria-label="팀 필터"
+                                className="h-12 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-sm font-semibold shadow-none outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-zinc-800 dark:bg-zinc-950"
+                                value={selectedTeam}
+                                onChange={(event) => setSelectedTeam(event.target.value)}
+                            >
+                                <option value={TEAM_FILTER_ALL}>전체 구단</option>
+                                {teamOptions.map((teamName) => (
+                                    <option key={teamName} value={teamName}>
+                                        {teamName}
+                                    </option>
+                                ))}
+                            </select>
 
                             <div className="grid grid-cols-3 gap-2">
                                 {SORT_OPTIONS.map((option) => (
@@ -382,12 +371,12 @@ export default function OffSeasonList() {
                                 전체 {movements.length}건 중 {filteredList.length}건 표시
                             </span>
                             {activeFilters.map((label) => (
-                                <Badge
+                                <OffseasonPill
                                     key={label}
                                     className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
                                 >
                                     {label}
-                                </Badge>
+                                </OffseasonPill>
                             ))}
                         </div>
                     </div>
@@ -434,9 +423,9 @@ export default function OffSeasonList() {
                                     </p>
                                 </div>
                                 {bigOnly && (
-                                    <Badge className="rounded-full border border-yellow-200 bg-yellow-100 px-3 py-1 text-[11px] font-bold text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
+                                    <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-3 py-1 text-[11px] font-bold text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
                                         주요 소식 필터 적용
-                                    </Badge>
+                                    </OffseasonPill>
                                 )}
                             </div>
 

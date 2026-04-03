@@ -1,0 +1,55 @@
+import { lazy, Suspense, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
+import LoadingSpinner from './LoadingSpinner';
+import { useAuthSession } from '../store/authStore';
+import { requestLoadTrace } from '../utils/requestLoadTrace';
+
+const Landing = lazy(() => import('./Landing'));
+
+export default function RootEntryRoute() {
+  const { isLoggedIn, isAuthLoading } = useAuthSession();
+
+  useEffect(() => {
+    if (isAuthLoading) {
+      requestLoadTrace('RootEntryRoute:authLoading');
+      return;
+    }
+
+    if (isLoggedIn) {
+      requestLoadTrace('RootEntryRoute:redirectHome');
+      return;
+    }
+
+    requestLoadTrace('RootEntryRoute:landing');
+  }, [isAuthLoading, isLoggedIn]);
+
+  if (isAuthLoading) {
+    return (
+      <LoadingSpinner
+        variant="app"
+        message="첫 화면을 준비하고 있습니다."
+        subMessage="사용자 상태를 확인하는 중입니다."
+        minDurationMs={120}
+      />
+    );
+  }
+
+  if (isLoggedIn) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return (
+    <Suspense
+      fallback={
+        <LoadingSpinner
+          variant="app"
+          message="첫 화면을 준비하고 있습니다."
+          subMessage="랜딩 페이지를 불러오는 중입니다."
+          minDurationMs={80}
+        />
+      }
+    >
+      <Landing />
+    </Suspense>
+  );
+}
