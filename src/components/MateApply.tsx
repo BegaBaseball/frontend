@@ -16,12 +16,12 @@ import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api, ApiError } from '../utils/api';
+import { createApplication } from '../api/mate';
+import { getApiErrorStatus } from '../api/errorStatus';
 import { formatGameDate } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
 import { analyzeTicket, TicketInfo } from '../api/ticket';
 import { getApiErrorMessage } from '../utils/errorUtils';
-import { AxiosError } from 'axios';
 import LoadingSpinner from './LoadingSpinner';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import {
@@ -260,7 +260,7 @@ export default function MateApply() {
         throw new Error('판매 가격 정보가 올바르지 않습니다.');
       }
 
-      const createdApplication = await api.createApplication({
+      const createdApplication = await createApplication({
         partyId: party.id,
         message: applyMessage,
         verificationToken: isSelling ? null : ticketInfo?.verificationToken ?? null,
@@ -282,14 +282,14 @@ export default function MateApply() {
         : '참여 신청이 접수되었습니다.');
       navigate(`/mate/${party.id}`);
     } catch (error: unknown) {
-      if ((error instanceof AxiosError && error.response?.status === 401) ||
-        (error instanceof ApiError && error.status === 401)) {
+      const status = getApiErrorStatus(error);
+
+      if (status === 401) {
         redirectToLogin();
         return;
       }
 
-      if ((error instanceof AxiosError && error.response?.status === 403) ||
-        (error instanceof ApiError && error.status === 403)) {
+      if (status === 403) {
         setShowVerificationDialog(true);
       } else {
         console.error('신청 처리 오류:', error);

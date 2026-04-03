@@ -1,53 +1,61 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-import api from './axios';
+import test from 'node:test';
+
 import { fetchComments, fetchPosts, uploadPostImages } from './cheerApi';
 
+const resolveRequestUrl = (input: string | URL | Request): string =>
+  typeof input === 'string'
+    ? input
+    : input instanceof URL
+      ? input.toString()
+      : input.url;
+
 test('fetchPosts는 공개 응답에서 authorId 없이 cheer post를 정규화한다', async (t) => {
-  t.mock.method(api, 'get', async () => ({
-    data: {
-      content: [
-        {
-          id: 1,
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    content: [
+      {
+        id: 1,
+        teamId: 'LG',
+        content: 'content',
+        author: 'Slug User',
+        authorHandle: '@slug',
+        createdAt: '2026-03-10T00:00:00Z',
+        updatedAt: '2026-03-10T00:00:00Z',
+        commentCount: 0,
+        likeCount: 0,
+        bookmarkCount: 0,
+        repostCount: 0,
+        views: 0,
+        liked: false,
+        isBookmarked: false,
+        isOwner: false,
+        repostedByMe: false,
+        isHot: false,
+        postType: 'NORMAL',
+        imageUrls: [],
+        originalPost: {
+          id: 2,
           teamId: 'LG',
-          content: 'content',
-          author: 'Slug User',
-          authorHandle: '@slug',
+          content: 'embedded',
+          author: 'Embedded User',
+          authorHandle: '@embedded',
           createdAt: '2026-03-10T00:00:00Z',
-          updatedAt: '2026-03-10T00:00:00Z',
-          commentCount: 0,
           likeCount: 0,
-          bookmarkCount: 0,
+          commentCount: 0,
           repostCount: 0,
-          views: 0,
-          liked: false,
-          isBookmarked: false,
-          isOwner: false,
-          repostedByMe: false,
-          isHot: false,
-          postType: 'NORMAL',
           imageUrls: [],
-          originalPost: {
-            id: 2,
-            teamId: 'LG',
-            content: 'embedded',
-            author: 'Embedded User',
-            authorHandle: '@embedded',
-            createdAt: '2026-03-10T00:00:00Z',
-            likeCount: 0,
-            commentCount: 0,
-            repostCount: 0,
-            imageUrls: [],
-            deleted: false,
-          },
+          deleted: false,
         },
-      ],
-      last: true,
-      totalPages: 1,
-      totalElements: 1,
-      size: 20,
-      number: 0,
-    },
+      },
+    ],
+    last: true,
+    totalPages: 1,
+    totalElements: 1,
+    size: 20,
+    number: 0,
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
   }) as never);
 
   const response = await fetchPosts();
@@ -61,22 +69,23 @@ test('fetchPosts는 공개 응답에서 authorId 없이 cheer post를 정규화�
 });
 
 test('fetchComments는 공개 응답에서 authorEmail 없이 댓글을 정규화한다', async (t) => {
-  t.mock.method(api, 'get', async () => ({
-    data: {
-      content: [
-        {
-          id: 10,
-          author: 'Commenter',
-          authorHandle: '@commenter',
-          content: 'hello',
-          createdAt: '2026-03-10T00:00:00Z',
-          likeCount: 1,
-          likedByMe: false,
-          replies: [],
-        },
-      ],
-      totalElements: 1,
-    },
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    content: [
+      {
+        id: 10,
+        author: 'Commenter',
+        authorHandle: '@commenter',
+        content: 'hello',
+        createdAt: '2026-03-10T00:00:00Z',
+        likeCount: 1,
+        likedByMe: false,
+        replies: [],
+      },
+    ],
+    totalElements: 1,
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
   }) as never);
 
   const response = await fetchComments(1);
@@ -88,30 +97,39 @@ test('fetchComments는 공개 응답에서 authorEmail 없이 댓글을 정규�
 
 test('uploadPostImages는 string[]와 PostImageDto[] 응답을 모두 URL 배열로 정규화한다', async (t) => {
   const responses = [
-    {
-      data: [
-        {
-          id: 1,
-          storagePath: 'images/1.webp',
-          mimeType: 'image/webp',
-          bytes: 1234,
-          isThumbnail: false,
-          url: 'https://cdn.example.com/1.webp',
-        },
-      ],
-    },
-    {
-      data: ['https://cdn.example.com/legacy-1.webp', 'https://cdn.example.com/legacy-2.webp'],
-    },
+    [
+      {
+        id: 1,
+        storagePath: 'images/1.webp',
+        mimeType: 'image/webp',
+        bytes: 1234,
+        isThumbnail: false,
+        url: 'https://cdn.example.com/1.webp',
+      },
+    ],
+    ['https://cdn.example.com/legacy-1.webp', 'https://cdn.example.com/legacy-2.webp'],
   ];
 
   let callIndex = 0;
-  t.mock.method(api, 'post', async () => responses[callIndex++] as never);
+  const requestUrls: string[] = [];
+  const requestBodies: Array<BodyInit | null | undefined> = [];
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrls.push(resolveRequestUrl(input));
+    requestBodies.push(init?.body);
+
+    return new Response(JSON.stringify(responses[callIndex++]), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
 
   const file = new File(['hello'], 'hello.png', { type: 'image/png' });
   const first = await uploadPostImages(1, [file]);
   const second = await uploadPostImages(1, [file]);
 
+  assert.deepEqual(requestUrls, ['/api/cheer/posts/1/images', '/api/cheer/posts/1/images']);
+  assert.ok(requestBodies[0] instanceof FormData);
   assert.deepEqual(first, ['https://cdn.example.com/1.webp']);
   assert.deepEqual(second, ['https://cdn.example.com/legacy-1.webp', 'https://cdn.example.com/legacy-2.webp']);
 });

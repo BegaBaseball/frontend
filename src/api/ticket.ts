@@ -1,4 +1,4 @@
-import api from './axios';
+import { privatePost } from './privateClient';
 
 export interface TicketInfo {
     date: string | null;
@@ -20,12 +20,5 @@ export const analyzeTicket = async (file: File): Promise<TicketInfo> => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await api.post<TicketInfo>('/tickets/analyze', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-        skipGlobalErrorHandler: true,
-    });
-
-    return response.data;
+    return privatePost<TicketInfo, FormData>('/tickets/analyze', formData);
 };

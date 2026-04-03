@@ -1,6 +1,60 @@
 // src/utils/validation.ts
 import { VALIDATION_RULES, ERROR_MESSAGES } from '../constants/validation';
-import { SignUpFormData, LoginFormData, PasswordResetConfirmFormData } from '../types/auth';
+import {
+  SignUpFieldAvailability,
+  SignUpFieldAvailabilityState,
+  SignUpFormData,
+  LoginFormData,
+  PasswordResetConfirmFormData,
+} from '../types/auth';
+
+type SignUpAvailabilityField = 'handle' | 'email';
+
+const SIGNUP_AVAILABILITY_MESSAGES: Record<SignUpAvailabilityField, Record<Exclude<SignUpFieldAvailabilityState, 'idle'>, string>> = {
+  handle: {
+    checking: '핸들 중복 확인 중...',
+    available: '사용 가능한 핸들입니다.',
+    taken: '이미 사용 중인 핸들입니다.',
+    error: '핸들 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+  },
+  email: {
+    checking: '이메일 중복 확인 중...',
+    available: '사용 가능한 이메일입니다.',
+    taken: '이미 사용 중인 이메일입니다.',
+    error: '이메일 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+  },
+};
+
+export const SIGNUP_AVAILABILITY_DEBOUNCE_MS = 450;
+
+export const createSignUpAvailabilityState = (
+  field: SignUpAvailabilityField,
+  state: SignUpFieldAvailabilityState,
+  normalized?: string,
+  message?: string,
+): SignUpFieldAvailability => ({
+  state,
+  message: state === 'idle' ? '' : message || SIGNUP_AVAILABILITY_MESSAGES[field][state],
+  normalized,
+});
+
+export const normalizeSignUpHandleInput = (value: string): string => {
+  const lowercased = value.toLowerCase();
+  if (lowercased === '' || lowercased === '@') {
+    return '@';
+  }
+  return lowercased.startsWith('@') ? lowercased : `@${lowercased}`;
+};
+
+export const normalizeSignUpHandleValue = (value: string): string => {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === '@') {
+    return '@';
+  }
+  return normalized.startsWith('@') ? normalized : `@${normalized}`;
+};
+
+export const normalizeSignUpEmailValue = (value: string): string => value.trim().toLowerCase();
 
 // ========== 회원가입 검증 (기존) ==========
 export const validateField = (
@@ -19,8 +73,8 @@ export const validateField = (
       if (!value.trim()) {
         return '핸들을 입력해주세요.';
       }
-      if (!/^@[a-zA-Z0-9_]{1,14}$/.test(value)) {
-        return '핸들은 @로 시작하고 15자 이내의 영문, 숫자, 언더바(_)만 가능합니다.';
+      if (!/^@[a-z0-9_]{1,14}$/.test(value)) {
+        return '핸들은 @로 시작하고 15자 이내의 영문 소문자, 숫자, 언더바(_)만 가능합니다.';
       }
       return '';
 
@@ -28,7 +82,7 @@ export const validateField = (
       if (!value.trim()) {
         return ERROR_MESSAGES.EMAIL.REQUIRED;
       }
-      if (!VALIDATION_RULES.EMAIL.REGEX.test(value)) {
+      if (!VALIDATION_RULES.EMAIL.REGEX.test(value.trim())) {
         return ERROR_MESSAGES.EMAIL.INVALID;
       }
       return '';
@@ -86,7 +140,7 @@ export const validateLoginField = (
       if (!value.trim()) {
         return ERROR_MESSAGES.EMAIL.REQUIRED;
       }
-      if (!VALIDATION_RULES.EMAIL.REGEX.test(value)) {
+      if (!VALIDATION_RULES.EMAIL.REGEX.test(value.trim())) {
         return ERROR_MESSAGES.EMAIL.INVALID;
       }
       return '';

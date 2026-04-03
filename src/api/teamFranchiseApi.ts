@@ -1,4 +1,4 @@
-import api from './axios';
+import { publicGet } from './publicClient';
 
 export interface TeamFranchiseSummaryResponse {
     id: number;
@@ -27,12 +27,11 @@ const normalizeTeamCode = (teamCode: string): string => teamCode.trim();
 
 export const fetchTeamFranchiseByCode = async (teamCode: string): Promise<TeamFranchiseSummaryResponse> => {
     const normalizedCode = normalizeTeamCode(teamCode);
-    const response = await api.get(`/franchises/code/${encodeURIComponent(normalizedCode)}`);
-    return response.data;
+    return publicGet<TeamFranchiseSummaryResponse>(`/franchises/code/${encodeURIComponent(normalizedCode)}`);
 };
 
 export const fetchTeamFranchiseMetadata = async (teamCode: string): Promise<TeamFranchiseMetadata> => {
     const franchise = await fetchTeamFranchiseByCode(teamCode);
-    const response = await api.get(`/franchises/${franchise.id}/metadata`);
-    return response.data || {};
+    const response = await publicGet<TeamFranchiseMetadata>(`/franchises/${franchise.id}/metadata`);
+    return response || {};
 };

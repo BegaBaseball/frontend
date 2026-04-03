@@ -14,6 +14,7 @@ import {
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card, CardContent } from '../ui/card';
+import '../common/autofill-input.css';
 import {
   Alert,
   AlertDescription,

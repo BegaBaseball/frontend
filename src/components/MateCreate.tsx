@@ -11,7 +11,8 @@ import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Ticket, Loader2 } 
 import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
-import { api, getApiErrorStatus } from '../utils/api';
+import { checkSocialVerified } from '../api/mate';
+import { getApiErrorStatus } from '../api/errorStatus';
 import { TEAMS } from '../utils/constants';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
@@ -97,7 +98,7 @@ export default function MateCreate() {
 
     const verifySocialAccount = async () => {
       try {
-        const socialResult = await api.checkSocialVerified(currentUserId);
+        const socialResult = await checkSocialVerified(currentUserId);
         if (isMounted && socialResult.data === false) {
           setShowVerificationDialog(true);
         }

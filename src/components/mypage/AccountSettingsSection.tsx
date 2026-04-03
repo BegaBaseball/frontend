@@ -3,6 +3,7 @@ import { Laptop, Smartphone, ShieldAlert, Unlink, Link, Eye, EyeOff, AlertTriang
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import '../common/autofill-input.css';
 import PlainDialog from '../ui/plain-dialog';
 import {
   getConnectedProviders,
@@ -15,7 +16,8 @@ import {
   getTrustedDevices,
   deleteTrustedDevice,
 } from '../../api/profile';
-import { getSocialLoginUrl, getLinkToken } from '../../api/auth';
+import { getSocialLoginUrl } from '../../api/authPublic';
+import { getLinkToken } from '../../api/authPrivate';
 import { useAuthAccessActions } from '../../store/authStore';
 import { useAuthRedirectState } from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';

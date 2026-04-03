@@ -1,16 +1,16 @@
 import { useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { analyzeTicket, type TicketInfo } from '../api/ticket';
+import { createParty, getKboSchedule, type KboScheduleItem } from '../api/mate';
+import { getApiErrorStatus } from '../api/errorStatus';
 import {
   invalidateMateCollectionQueries,
   setMatePartyDetailQueryData,
 } from './mateQueryCache';
 import { useMateCreateDraft } from './useMateCreateDraft';
-import { api, getApiErrorStatus } from '../utils/api';
 import { mapBackendPartyToFrontend } from '../utils/mate';
 import { STADIUMS, TEAMS } from '../utils/constants';
 import { getApiErrorMessage } from '../utils/errorUtils';
-import type { KboScheduleItem } from '../utils/api';
 import type { MateCreateFormErrors, PartyFormData } from '../utils/mateCreateDraft';
 
 export interface MatchInfo {
@@ -312,7 +312,7 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
     clearMatchError();
 
     try {
-      const response = await api.getKboSchedule(formData.gameDate);
+      const response = await getKboSchedule(formData.gameDate);
       const matches = (response || []).map((game: KboScheduleItem) => ({
         id: game.gameId,
         gameTime: game.time,
@@ -373,7 +373,7 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
         reservationNumber: formData.reservationNumber,
       };
 
-      const createdParty = await api.createParty(partyData);
+      const createdParty = await createParty(partyData);
       const frontendParty = mapBackendPartyToFrontend(createdParty);
       setMatePartyDetailQueryData(queryClient, frontendParty);
       void invalidateMateCollectionQueries(queryClient);

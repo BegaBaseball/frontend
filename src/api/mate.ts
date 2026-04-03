@@ -1,25 +1,65 @@
-import type { Application, CheckIn, ChatMessage, Party, PartyReview, PartyStatus } from '../types/mate';
-import type { AxiosRequestConfig } from 'axios';
-import api from './axios';
-import { api as requestApi } from '../utils/api';
-import { getApiErrorStatus } from '../utils/api';
-import type { PaginatedResponse } from '../utils/api';
+import { getApiErrorStatus } from './errorStatus';
+import { privateDelete, privateGet, privatePatch, privatePost } from './privateClient';
+import { publicGet } from './publicClient';
 import { compressImage } from '../utils/imageCompression';
 import { mapBackendPartyToFrontend } from '../utils/mate';
+import type {
+  Application,
+  CancelApplicationRequest,
+  CancelApplicationResponse,
+  CheckIn,
+  ChatMessage,
+  CreateApplicationRequest,
+  CreateCheckInQrSessionRequest,
+  CreateCheckInQrSessionResponse,
+  CreateCheckInRequest,
+  CreatePartyRequest,
+  CreateReviewRequest,
+  Party,
+  PartyReview,
+  PartyStatus,
+  UpdatePartyRequest,
+} from '../types/mate';
 
 interface ApiEnvelope<T> {
   success?: boolean;
   data?: T;
   message?: string;
+  code?: string;
 }
 
 interface ListPayload<T> extends ApiEnvelope<T | T[]> {
   content?: T[];
 }
 
-type BackendPartyDTO = Parameters<typeof mapBackendPartyToFrontend>[0];
+interface PaginatedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
 
-export type FetchPartyByIdOptions = Parameters<typeof requestApi.getPartyById>[1];
+export interface KboScheduleItem {
+  gameId: string;
+  time: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+  gameStatus?: string | null;
+  gameStatusKr?: string | null;
+  homeScore?: number | string | null;
+  awayScore?: number | string | null;
+}
+
+interface FetchAllPartiesOptions {
+  signal?: AbortSignal;
+}
+
+export interface FetchPartyByIdOptions {
+  signal?: AbortSignal;
+  skipGlobalErrorHandler?: boolean;
+}
 
 export interface FetchMatePartiesPageParams {
   teamId?: string;
@@ -31,6 +71,8 @@ export interface FetchMatePartiesPageParams {
   gameDate?: string;
   signal?: AbortSignal;
 }
+
+type BackendPartyDTO = Parameters<typeof mapBackendPartyToFrontend>[0];
 
 const toList = <T>(payload: ListPayload<T> | T[] | null | undefined): T[] => {
   if (Array.isArray(payload)) {
@@ -55,43 +97,57 @@ const toList = <T>(payload: ListPayload<T> | T[] | null | undefined): T[] => {
 export const normalizeMateParty = (party: BackendPartyDTO | Party): Party =>
   mapBackendPartyToFrontend(party as BackendPartyDTO);
 
+export async function getKboSchedule(date: string): Promise<KboScheduleItem[]> {
+  return publicGet<KboScheduleItem[]>('/kbo/schedule', {
+    params: { date },
+  });
+}
+
+export async function checkSocialVerified(userId: number): Promise<ApiEnvelope<boolean>> {
+  return privateGet<ApiEnvelope<boolean>>(`/users/${userId}/social-verified`, {
+    skipAuthSessionHandling: true,
+  });
+}
+
 export async function fetchPartyById(
   partyId: number | string,
   options?: FetchPartyByIdOptions,
 ): Promise<Party> {
-  const response = await requestApi.getPartyById(partyId, options);
+  const response = await publicGet<BackendPartyDTO>(`/parties/${partyId}`, {
+    signal: options?.signal,
+  });
   return normalizeMateParty(response);
 }
 
 export async function fetchPartyReviews(
   partyId: number | string,
 ): Promise<PartyReview[]> {
-  return requestApi.getPartyReviews(Number(partyId));
+  return publicGet<PartyReview[]>(`/reviews/party/${Number(partyId)}`);
 }
 
 export async function fetchPartyApplications(
   partyId: number | string,
 ): Promise<Application[]> {
-  return requestApi.getApplicationsByParty(partyId);
+  return privateGet<Application[]>(`/applications/party/${partyId}`);
 }
 
 export async function fetchPartyCheckIns(
   partyId: number | string,
 ): Promise<CheckIn[]> {
-  return requestApi.getCheckInsByParty(partyId);
+  return privateGet<CheckIn[]>(`/checkin/party/${partyId}`);
 }
 
 export async function fetchPartyMessages(
   partyId: number | string,
 ): Promise<ChatMessage[]> {
-  return requestApi.getChatMessages(partyId);
+  return privateGet<ChatMessage[]>(`/chat/party/${partyId}`);
 }
 
 export async function fetchPartyMyApplication(
   partyId: number | string,
 ): Promise<Application | null> {
   try {
-    return await requestApi.getMyApplicationByParty(partyId);
+    return await privateGet<Application | null>(`/applications/party/${partyId}/mine`);
   } catch (error) {
     if (getApiErrorStatus(error) === 404) {
       return null;
@@ -103,16 +159,18 @@ export async function fetchPartyMyApplication(
 export async function fetchMatePartiesPage(
   params: FetchMatePartiesPageParams = {},
 ): Promise<PaginatedResponse<Party>> {
-  const response = await requestApi.getParties(
-    params.teamId,
-    params.stadium,
-    params.page ?? 0,
-    params.size ?? 9,
-    params.status,
-    params.searchQuery,
-    params.gameDate,
-    params.signal,
-  );
+  const response = await publicGet<PaginatedResponse<BackendPartyDTO>>('/parties', {
+    params: {
+      teamId: params.teamId,
+      stadium: params.stadium,
+      page: params.page ?? 0,
+      size: params.size ?? 9,
+      status: params.status,
+      searchQuery: params.searchQuery,
+      date: params.gameDate,
+    },
+    signal: params.signal,
+  });
 
   return {
     ...response,
@@ -120,48 +178,111 @@ export async function fetchMatePartiesPage(
   };
 }
 
-/**
- * 전체 파티 목록 조회 (페이징 - 최대 1000개)
- */
-export async function fetchAllParties(requestConfig: AxiosRequestConfig = {}): Promise<Party[]> {
-  const response = await api.get<ListPayload<BackendPartyDTO> | BackendPartyDTO[]>(`/parties?page=0&size=1000`, requestConfig);
+export async function fetchAllParties(
+  options: FetchAllPartiesOptions = {},
+): Promise<Party[]> {
+  const response = await publicGet<ListPayload<BackendPartyDTO> | BackendPartyDTO[]>('/parties', {
+    params: {
+      page: 0,
+      size: 1000,
+    },
+    signal: options.signal,
+  });
 
-  if (!response.data) {
-    throw new Error('파티 목록 조회 실패');
-  }
-
-  return toList(response.data).map(normalizeMateParty);
+  return toList(response).map(normalizeMateParty);
 }
 
-/**
- * 사용자의 신청 내역 조회
- */
 export async function fetchMyApplications(): Promise<Application[]> {
-  const response = await api.get<ListPayload<Application> | Application[]>(`/applications/my`);
-
-  if (!response.data) {
-    throw new Error('신청 내역 조회 실패');
-  }
-
-  return toList(response.data);
+  const response = await privateGet<ListPayload<Application> | Application[]>('/applications/my');
+  return toList(response);
 }
 
-/**
- * 사용자가 참여한 파티 목록 조회 (호스트 + 참여자)
- */
 export async function fetchMyParties(): Promise<Party[]> {
   try {
-    const response = await api.get<ListPayload<BackendPartyDTO> | BackendPartyDTO[]>(`/parties/my`);
-    return toList(response.data).map(normalizeMateParty);
+    const response = await privateGet<ListPayload<BackendPartyDTO> | BackendPartyDTO[]>('/parties/my');
+    return toList(response).map(normalizeMateParty);
   } catch (error) {
     console.error('메이트 내역 조회 실패:', error);
     throw error;
   }
 }
 
-/**
- * 채팅 이미지 업로드
- */
+export async function createParty(data: CreatePartyRequest): Promise<Party> {
+  return privatePost<Party, CreatePartyRequest>('/parties', data, {
+    skipAuthSessionHandling: true,
+  });
+}
+
+export async function updateParty(
+  partyId: number,
+  data: UpdatePartyRequest,
+): Promise<Party> {
+  return privatePatch<Party, UpdatePartyRequest>(`/parties/${partyId}`, data);
+}
+
+export async function deleteParty(partyId: number | string): Promise<void> {
+  await privateDelete(`/parties/${partyId}`);
+}
+
+export async function createApplication(
+  data: CreateApplicationRequest,
+): Promise<Application> {
+  return privatePost<Application, CreateApplicationRequest>('/applications', data, {
+    skipAuthSessionHandling: true,
+  });
+}
+
+export async function approveApplication(
+  applicationId: string | number,
+): Promise<Application> {
+  return privatePost<Application, undefined>(`/applications/${applicationId}/approve`);
+}
+
+export async function rejectApplication(
+  applicationId: string | number,
+): Promise<Application> {
+  return privatePost<Application, undefined>(`/applications/${applicationId}/reject`);
+}
+
+export async function cancelApplicationWithReason(
+  applicationId: string | number,
+  data: CancelApplicationRequest,
+): Promise<CancelApplicationResponse> {
+  return privatePost<CancelApplicationResponse, CancelApplicationRequest>(
+    `/applications/${applicationId}/cancel`,
+    data,
+  );
+}
+
+export async function createCheckIn(
+  data: CreateCheckInRequest,
+): Promise<CheckIn> {
+  return privatePost<CheckIn, CreateCheckInRequest>('/checkin', data);
+}
+
+export async function createCheckInQrSession(
+  data: CreateCheckInQrSessionRequest,
+): Promise<CreateCheckInQrSessionResponse> {
+  return privatePost<CreateCheckInQrSessionResponse, CreateCheckInQrSessionRequest>(
+    '/checkin/qr-session',
+    data,
+  );
+}
+
+export async function createReview(
+  data: CreateReviewRequest,
+): Promise<PartyReview> {
+  return privatePost<PartyReview, CreateReviewRequest>('/reviews', data);
+}
+
+export async function sendChatMessage(data: {
+  partyId: number | string;
+  message: string;
+  imageUrl?: string;
+}): Promise<ChatMessage> {
+  return privatePost<ChatMessage, typeof data>('/chat/messages', data);
+}
+
 export async function uploadChatImage(file: File): Promise<{ path: string; url?: string }> {
   let fileToUpload = file;
   try {
@@ -179,51 +300,40 @@ export async function uploadChatImage(file: File): Promise<{ path: string; url?:
   const formData = new FormData();
   formData.append('file', fileToUpload);
 
-  const response = await api.postForm('/storage/image', formData);
+  const response = await privatePost<ApiEnvelope<{ path?: string; url?: string; publicUrl?: string } | string>, FormData>(
+    '/storage/image',
+    formData,
+  );
 
-  type UploadData = { path?: string; url?: string; publicUrl?: string };
-  const payload = response.data?.data as UploadData | string | undefined;
+  const payload = response.data;
   const resolvedPath = typeof payload === 'string'
     ? payload
     : payload?.path || payload?.url || payload?.publicUrl;
 
-  if (response.data.success && resolvedPath) {
+  if (response.success && resolvedPath) {
     const resolvedUrl = typeof payload === 'string' ? undefined : payload?.url || payload?.publicUrl;
     return resolvedUrl ? { path: resolvedPath, url: resolvedUrl } : { path: resolvedPath };
   }
 
-  throw new Error(response.data.message || '사진 업로드에 실패했습니다.');
+  throw new Error(response.message || '사진 업로드에 실패했습니다.');
 }
 
-/**
- * 특정 파티 채팅방 읽음 처리
- */
 export async function updateChatReadTimestamp(partyId: number | string): Promise<void> {
   try {
-    await api.post(`/chat/party/${partyId}/read`, undefined, {
-      skipGlobalErrorHandler: true,
-      skipErrorReporting: true,
-    });
+    await privatePost(`/chat/party/${partyId}/read`);
   } catch (error) {
     console.error('채팅 읽음 처리 실패:', error);
-    // 읽음 처리는 백그라운드로 조용히 실패해도 무방함
   }
 }
 
-/**
- * 전체 안 읽은 메시지 수 조회
- */
 export async function getChatUnreadCounts(): Promise<number> {
   try {
-    const response = await api.get<{ success?: boolean; data?: number }>('/chat/my/unread-counts', {
-      skipGlobalErrorHandler: true,
-      skipErrorReporting: true,
-    });
+    const response = await privateGet<{ success?: boolean; data?: number }>('/chat/my/unread-counts');
 
-    const payload = response.data;
-    if (payload.success && typeof payload.data === 'number') {
-      return payload.data;
+    if (response.success && typeof response.data === 'number') {
+      return response.data;
     }
+
     return 0;
   } catch {
     return 0;

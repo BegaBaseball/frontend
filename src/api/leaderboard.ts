@@ -1,4 +1,4 @@
-import api from './axios';
+import { privateGet, privatePost } from './privateClient';
 
 // ============================================
 // TYPES
@@ -91,8 +91,7 @@ const normalizeNumber = (value: unknown, fallback: number): number =>
  * Fetch current user's rank and stats
  */
 export async function fetchMyRank(): Promise<UserLeaderboardStats> {
-  const response = await api.get<Partial<UserLeaderboardStats>>('/leaderboard/me');
-  const data = response.data ?? {};
+  const data = await privateGet<Partial<UserLeaderboardStats>>('/leaderboard/me');
   const fallback: UserLeaderboardStats = {
     handle: null,
     userName: '',
@@ -133,8 +132,7 @@ export async function fetchMyRank(): Promise<UserLeaderboardStats> {
  * Fetch user's powerup inventory
  */
 export async function fetchPowerups(): Promise<PowerupInventory> {
-  const response = await api.get<Partial<Record<keyof PowerupInventory, number | null>>>('/leaderboard/powerups');
-  const data = response.data ?? {};
+  const data = await privateGet<Partial<Record<keyof PowerupInventory, number | null>>>('/leaderboard/powerups');
   return {
     MAGIC_BAT: normalizeNumber(data.MAGIC_BAT, 0),
     GOLDEN_GLOVE: normalizeNumber(data.GOLDEN_GLOVE, 0),
@@ -146,8 +144,7 @@ export async function fetchPowerups(): Promise<PowerupInventory> {
  * Fetch active powerups for current user
  */
 export async function fetchActivePowerups(): Promise<ActivePowerup[]> {
-  const response = await api.get('/leaderboard/powerups/active');
-  return response.data;
+  return privateGet<ActivePowerup[]>('/leaderboard/powerups/active');
 }
 
 /**
@@ -157,8 +154,10 @@ export async function usePowerup(
   type: string,
   gameId?: string
 ): Promise<PowerupUseResult> {
-  const response = await api.post(`/leaderboard/powerups/${type}/use`, { gameId });
-  return response.data;
+  return privatePost<PowerupUseResult, { gameId?: string }>(
+    `/leaderboard/powerups/${type}/use`,
+    { gameId },
+  );
 }
 
 /**

@@ -4,7 +4,9 @@ type PrivateApiParamValue = string | number | boolean | null | undefined;
 
 interface PrivateApiErrorData {
   code?: string;
+  data?: unknown;
   error?: string;
+  errors?: Record<string, unknown>;
   message?: string;
 }
 
@@ -23,7 +25,7 @@ export class PrivateApiError extends Error {
 interface PrivateRequestOptions {
   body?: unknown;
   headers?: Record<string, string>;
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   params?: Record<string, PrivateApiParamValue>;
   signal?: AbortSignal;
   skipAuthSessionHandling?: boolean;
@@ -74,6 +76,14 @@ const parseResponseBody = async (response: Response): Promise<unknown> => {
   const text = await response.text();
   return text ? { message: text } : null;
 };
+
+const isBodyInitLike = (value: unknown): value is BodyInit =>
+  typeof value === 'string'
+  || value instanceof FormData
+  || value instanceof URLSearchParams
+  || value instanceof Blob
+  || value instanceof ArrayBuffer
+  || ArrayBuffer.isView(value);
 
 const dispatchAuthSessionExpired = (
   detail: Record<string, unknown>,
@@ -127,7 +137,12 @@ const privateRequest = async <T>(
 
   const method = options.method ?? 'GET';
   const url = buildPrivateApiUrl(endpoint, options.params);
-  const requestBody = options.body === undefined ? undefined : JSON.stringify(options.body);
+  const requestBody = options.body === undefined
+    ? undefined
+    : isBodyInitLike(options.body)
+      ? options.body
+      : JSON.stringify(options.body);
+  const shouldSetJsonContentType = requestBody !== undefined && !(requestBody instanceof FormData);
 
   try {
     const response = await fetch(url, {
@@ -135,7 +150,7 @@ const privateRequest = async <T>(
       method,
       headers: {
         Accept: 'application/json',
-        ...(requestBody !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(shouldSetJsonContentType ? { 'Content-Type': 'application/json' } : {}),
         ...(options.headers ?? {}),
       },
       body: requestBody,
@@ -219,10 +234,20 @@ export const privatePut = async <TResponse, TBody = unknown>(
   method: 'PUT',
 });
 
-export const privateDelete = async <TResponse>(
+export const privateDelete = async <TResponse, TBody = unknown>(
   endpoint: string,
-  options: Omit<PrivateRequestOptions, 'body' | 'method'> = {},
+  options: Omit<PrivateRequestOptions, 'method'> & { body?: TBody } = {},
 ): Promise<TResponse> => privateRequest<TResponse>(endpoint, {
   ...options,
   method: 'DELETE',
+});
+
+export const privatePatch = async <TResponse, TBody = unknown>(
+  endpoint: string,
+  body?: TBody,
+  options: Omit<PrivateRequestOptions, 'body' | 'method'> = {},
+): Promise<TResponse> => privateRequest<TResponse>(endpoint, {
+  ...options,
+  body,
+  method: 'PATCH',
 });
