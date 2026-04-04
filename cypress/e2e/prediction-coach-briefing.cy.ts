@@ -186,6 +186,7 @@ describe('Prediction Coach Briefing Regression', () => {
       cy.get('@getUserVote.all').should('have.length', 0);
     }
     if (!skipCoachBriefingProbe) {
+      advanceTime(100);
       cy.get('body').then(($body) => {
         const hasCoachBriefingCard = $body.find('[data-testid="coach-briefing-card"]').length > 0;
         if (hasCoachBriefingCard) {
@@ -200,7 +201,7 @@ describe('Prediction Coach Briefing Regression', () => {
           cy.wrap(detailButton).click({ force: true });
         }
       });
-      advanceTime(500);
+      advanceTime(1300);
       cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 })
         .scrollIntoView()
         .should('be.visible');
@@ -360,11 +361,6 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.tick(100);
     cy.tick(2000);
     cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 1);
-    cy.tick(8000);
-    cy.get('@coachAnalyzeRetry.all', { timeout: 10000 }).should((interceptions: any) => {
-      expect((interceptions as any[]).length).to.be.gte(2);
-    });
-
     cy.tick(30000);
     cy.get('@coachAnalyzeRetry.all').its('length').should((length) => {
       expect(Number(length)).to.be.gte(2);

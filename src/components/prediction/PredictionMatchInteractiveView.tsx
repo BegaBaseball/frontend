@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, type ReactElement } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, type ReactElement } from 'react';
 
 import type { Game, GameDetail, VoteStatus, VoteTeam } from '../../types/prediction';
 import { buildPredictionRecoveryPath } from '../../utils/predictionDeepLink';
@@ -115,6 +115,7 @@ export default function PredictionMatchInteractiveView({
   voteControllerState,
   onQueueVoteAction,
 }: PredictionMatchInteractiveViewProps) {
+  const immediateVoteLockRef = useRef(false);
   const predictionRecoveryPath = buildPredictionRecoveryPath({
     currentDate,
     currentGameId,
@@ -195,6 +196,13 @@ export default function PredictionMatchInteractiveView({
   const isRunBannerDismissed = voteControllerState?.isRunBannerDismissed ?? false;
   const runProgressMessage = voteControllerState?.runProgressMessage ?? null;
   const showRunProgressBanner = isRunInProgress && !isRunBannerDismissed;
+  const isVoteActionLocked = Boolean(pendingVoteAction) || isRunInProgress;
+
+  useEffect(() => {
+    if (!isVoteActionLocked) {
+      immediateVoteLockRef.current = false;
+    }
+  }, [isVoteActionLocked]);
 
   const topNoticeKind = (() => {
     if (showRunProgressBanner) {
@@ -353,7 +361,7 @@ export default function PredictionMatchInteractiveView({
           isLoggedIn={isLoggedIn}
           isAuthLoading={isAuthLoading}
           shouldRenderMatchCard={Boolean(currentGameId)}
-          isVoteActionLocked={Boolean(pendingVoteAction) || isRunInProgress}
+          isVoteActionLocked={isVoteActionLocked}
           predictionRecoveryPath={predictionRecoveryPath}
           canMovePrevDate={canMovePrevDate}
           canMoveNextDate={canMoveNextDate}
@@ -361,9 +369,11 @@ export default function PredictionMatchInteractiveView({
           nearestNavigationDate={nearestNavigationDate}
           isToday={new Date(currentDate).toDateString() === new Date().toDateString()}
           onVote={(team, game, isVoteOpen) => {
-            if (pendingVoteAction) {
+            if (immediateVoteLockRef.current || isVoteActionLocked) {
               return;
             }
+
+            immediateVoteLockRef.current = true;
 
             if (voteControllerState) {
               void voteControllerState.handleVote(team, game, isVoteOpen);
