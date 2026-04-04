@@ -3,7 +3,11 @@ name: Frontend Auth QA
 on:
   pull_request:
     paths:
+      - "src/api/authPublic.ts"
+      - "src/api/authPublic.test.ts"
+      - "src/api/publicClient.ts"
       - "src/components/auth/AuthLayout.tsx"
+      - "src/components/AppRoutes.tsx"
       - "src/components/Login.tsx"
       - "src/components/SignUp.tsx"
       - "src/components/PasswordReset.tsx"
@@ -14,8 +18,16 @@ on:
       - "src/components/ui/input.tsx"
       - "src/components/ui/select.tsx"
       - "src/components/ui/label.tsx"
+      - "src/hooks/useSignUpForm.ts"
       - "src/index.css"
+      - "src/types/auth.ts"
+      - "src/utils/loginRedirect.ts"
+      - "src/utils/validation.ts"
+      - "cypress/e2e/auth*.cy.ts"
+      - "cypress/support/**"
       - "scripts/auth-qa.mjs"
+      - "scripts/cypress-run.mjs"
+      - "scripts/test-e2e.mjs"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/frontend-auth-qa.yml"
@@ -28,7 +40,7 @@ concurrency:
 jobs:
   auth-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -47,11 +59,16 @@ jobs:
       - name: Run auth QA
         run: npm run qa:auth
 
+      - name: Run auth E2E smoke
+        id: auth_e2e
+        run: npm run test:e2e:auth:dev
+
       - name: Publish auth QA summary
         if: always()
         shell: bash
         run: |
           echo "### Frontend Auth QA" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Auth E2E smoke: ${{ steps.auth_e2e.outcome || 'skipped' }}" >> "${GITHUB_STEP_SUMMARY}"
           if [[ -f "output/auth-qa/auth-summary.md" ]]; then
             cat "output/auth-qa/auth-summary.md" >> "${GITHUB_STEP_SUMMARY}"
           elif [[ -f "output/auth-qa/auth-report.json" ]]; then
@@ -139,10 +156,21 @@ jobs:
             }
 
             console.log(lines.join('\n'));
-            NODE
+          NODE
           else
             echo "auth-summary.md not found" >> "${GITHUB_STEP_SUMMARY}"
           fi
+
+      - name: Upload auth Cypress failure artifacts
+        if: ${{ always() && steps.auth_e2e.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-auth-e2e-cypress-failures
+          path: |
+            cypress/screenshots/**
+            cypress/videos/**
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload auth QA artifacts
         if: always()

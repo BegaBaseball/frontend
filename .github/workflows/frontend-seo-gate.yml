@@ -1,0 +1,108 @@
+name: Frontend SEO Gate
+
+on:
+  pull_request:
+    paths:
+      - "**"
+      - ".github/workflows/frontend-seo-gate.yml"
+  workflow_dispatch:
+
+jobs:
+  seo-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
+      VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+      VITE_MATE_REQUIRE_SOCIAL_VERIFICATION: ${{ vars.VITE_MATE_REQUIRE_SOCIAL_VERIFICATION }}
+      VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID }}
+      VITE_GOOGLE_SITE_VERIFICATION: ${{ vars.VITE_GOOGLE_SITE_VERIFICATION }}
+      VITE_NAVER_SITE_VERIFICATION: ${{ vars.VITE_NAVER_SITE_VERIFICATION }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate repository variables
+        shell: bash
+        run: |
+          if [[ -z "${VITE_SITE_URL}" ]]; then
+            echo "Missing repository variable: VITE_SITE_URL" >&2
+            echo "Set Settings > Secrets and variables > Actions > Variables > VITE_SITE_URL" >&2
+            exit 1
+          fi
+          if [[ -z "${VITE_API_BASE_URL}" ]]; then
+            echo "Missing repository variable: VITE_API_BASE_URL" >&2
+            echo "Set Settings > Secrets and variables > Actions > Variables > VITE_API_BASE_URL" >&2
+            exit 1
+          fi
+          if [[ "${VITE_MATE_REQUIRE_SOCIAL_VERIFICATION}" != "true" && "${VITE_MATE_REQUIRE_SOCIAL_VERIFICATION}" != "false" ]]; then
+            echo "Repository variable VITE_MATE_REQUIRE_SOCIAL_VERIFICATION must be set to true or false" >&2
+            exit 1
+          fi
+          for var_name in VITE_GA4_MEASUREMENT_ID VITE_GOOGLE_SITE_VERIFICATION VITE_NAVER_SITE_VERIFICATION; do
+            if [[ -z "${!var_name}" ]]; then
+              echo "Missing repository variable: ${var_name}" >&2
+              echo "Set Settings > Secrets and variables > Actions > Variables > ${var_name}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Helmet runtime check
+        run: npm run seo:helmet:check
+
+      - name: Run SEO env check
+        run: npm run seo:env:check:strict
+
+      - name: Run SEO gate
+        run: npm run seo:gate
+
+      - name: Run SEO regression tests
+        run: npm run test:seo
+
+      - name: Publish SEO gate summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Frontend SEO Gate" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- VITE_SITE_URL: ${VITE_SITE_URL:-<unset>}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- VITE_API_BASE_URL: ${VITE_API_BASE_URL:-<unset>}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- VITE_MATE_REQUIRE_SOCIAL_VERIFICATION: ${VITE_MATE_REQUIRE_SOCIAL_VERIFICATION:-<unset>}" >> "${GITHUB_STEP_SUMMARY}"
+          for var_name in VITE_GA4_MEASUREMENT_ID VITE_GOOGLE_SITE_VERIFICATION VITE_NAVER_SITE_VERIFICATION; do
+            if [[ -n "${!var_name:-}" ]]; then
+              echo "- ${var_name}: configured" >> "${GITHUB_STEP_SUMMARY}"
+            else
+              echo "- ${var_name}: <unset>" >> "${GITHUB_STEP_SUMMARY}"
+            fi
+          done
+          if [[ -f "reports/seo-audit-report.json" ]]; then
+            node -e 'const fs=require("fs"); const p="reports/seo-audit-report.json"; const r=JSON.parse(fs.readFileSync(p,"utf8")); console.log(`Result: ${r.ok ? "PASS" : "FAIL"}`); if(Array.isArray(r.failures)&&r.failures.length){console.log("Failures:"); for(const f of r.failures){console.log(`- ${f}`);} } if(Array.isArray(r.warnings)&&r.warnings.length){console.log("Warnings:"); for(const w of r.warnings){console.log(`- ${w}`);} }' >> "${GITHUB_STEP_SUMMARY}"
+            echo '```json' >> "${GITHUB_STEP_SUMMARY}"
+            cat "reports/seo-audit-report.json" >> "${GITHUB_STEP_SUMMARY}"
+            echo '```' >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "seo-audit-report.json not found" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload SEO artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-seo-gate-artifacts
+          path: |
+            reports/seo-audit-report.json
+            dist/robots.txt
+            dist/sitemap.xml
+            dist/seo-prerender-report.json
+          if-no-files-found: warn
+          retention-days: 14
