@@ -1,9 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from '../hooks/useTheme';
 import LoadingSpinner from './LoadingSpinner';
 import ScrollToTop from './ScrollToTop';
 import AuthBootstrap from './AuthBootstrap';
+import SeoHead from '../seo/SeoHead';
 
 const AppRoutes = lazy(() => import('./AppRoutes'));
 
@@ -17,20 +19,23 @@ export default function AppBrowserShell() {
       disableTransitionOnChange
     >
       <BrowserRouter>
-        <ScrollToTop />
-        <AuthBootstrap />
-        <Suspense
-          fallback={
-            <LoadingSpinner
-              variant="app"
-              message="화면을 준비하고 있습니다..."
-              subMessage="잠시만 기다려주세요."
-              minDurationMs={250}
-            />
-          }
-        >
-          <AppRoutes />
-        </Suspense>
+        <HelmetProvider>
+          <ScrollToTop />
+          <AuthBootstrap />
+          <SeoHead />
+          <Suspense
+            fallback={
+              <LoadingSpinner
+                variant="app"
+                message="화면을 준비하고 있습니다..."
+                subMessage="잠시만 기다려주세요."
+                minDurationMs={250}
+              />
+            }
+          >
+            <AppRoutes />
+          </Suspense>
+        </HelmetProvider>
       </BrowserRouter>
     </ThemeProvider>
   );
