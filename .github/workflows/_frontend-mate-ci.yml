@@ -171,7 +171,7 @@ jobs:
           node scripts/mate-ci-summary.mjs "${{ inputs.mode }}" >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Render mate CI PR comment
-        if: ${{ always() && inputs.comment_on_pr && github.event_name == 'pull_request' }}
+        if: ${{ always() && inputs.comment_on_pr && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
         shell: bash
         run: |
           node scripts/mate-ci-pr-comment.mjs \
@@ -184,7 +184,8 @@ jobs:
             > reports/mate-ci/pr-comment.md
 
       - name: Upsert mate CI PR comment
-        if: ${{ always() && inputs.comment_on_pr && github.event_name == 'pull_request' }}
+        if: ${{ always() && inputs.comment_on_pr && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        continue-on-error: true
         uses: actions/github-script@v7
         env:
           COMMENT_PATH: reports/mate-ci/pr-comment.md
