@@ -10,6 +10,8 @@ export default function LaptopMockup({
   laptopRef
 }: LaptopMockupProps) {
   const scrollOffset = `${scrollProgress * scrollDistance}px`;
+  const sourceImage = features[activeFeature].mobileImage || features[activeFeature].image;
+  const fallbackImage = features[activeFeature].image;
 
   return (
     <div
@@ -28,9 +30,16 @@ export default function LaptopMockup({
             <div className="landing-mockup-screen">
               <img
                 key={activeFeature}
-                src={features[activeFeature].image}
+                src={sourceImage}
                 alt={features[activeFeature].title}
                 className="h-full w-full object-contain animate-fade-in"
+                onError={(event) => {
+                  const target = event.currentTarget;
+                  if (target.dataset.fallbacked !== '1') {
+                    target.dataset.fallbacked = '1';
+                    target.src = fallbackImage;
+                  }
+                }}
               />
             </div>
           </div>

@@ -67,11 +67,12 @@ const Button = React.forwardRef<HTMLButtonElement, PlainButtonProps>(({
       return null;
     }
 
-    const childRef = (child as React.ReactElement & { ref?: React.Ref<HTMLElement> }).ref;
+    const childElement = child as React.ReactElement<any>;
+    const childRef = (childElement as React.ReactElement & { ref?: React.Ref<HTMLElement> }).ref;
 
-    return React.cloneElement(child, {
+    return React.cloneElement(childElement, {
       ...props,
-      className: joinClassNames(resolvedClassName, child.props.className),
+      className: joinClassNames(resolvedClassName, childElement.props.className),
       ref: mergeRefs(childRef, ref as React.Ref<HTMLElement>),
     });
   }

@@ -1,4 +1,4 @@
-import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { lazy, startTransition, Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     CalendarDays,
@@ -15,15 +15,12 @@ import { useNavigate } from 'react-router-dom';
 import { publicGet } from '../api/publicClient';
 import { useIsMobile } from '../hooks/use-mobile';
 import { getTeamKoreanName } from '../utils/teamNames';
-import { OffseasonDesktopTable } from './offseason/OffseasonDesktopTable';
-import { OffseasonInsightsPanel } from './offseason/OffseasonInsightsPanel';
+import ViewportDeferred from './ViewportDeferred';
 import {
     OffseasonEmptyState,
     OffseasonErrorState,
     OffseasonListSkeleton,
 } from './offseason/OffseasonListStates';
-import { OffseasonMobileCards } from './offseason/OffseasonMobileCards';
-import { OffseasonMovementDetailPanel } from './offseason/OffseasonMovementDetailPanel';
 import {
     OffseasonMovement,
     SectionFilter,
@@ -39,6 +36,19 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 
+const OffseasonDesktopTable = lazy(() =>
+    import('./offseason/OffseasonDesktopTable').then((module) => ({ default: module.OffseasonDesktopTable })),
+);
+const OffseasonInsightsPanel = lazy(() =>
+    import('./offseason/OffseasonInsightsPanel').then((module) => ({ default: module.OffseasonInsightsPanel })),
+);
+const OffseasonMobileCards = lazy(() =>
+    import('./offseason/OffseasonMobileCards').then((module) => ({ default: module.OffseasonMobileCards })),
+);
+const OffseasonMovementDetailPanel = lazy(() =>
+    import('./offseason/OffseasonMovementDetailPanel').then((module) => ({ default: module.OffseasonMovementDetailPanel })),
+);
+
 const fetchMovements = async (): Promise<OffseasonMovement[]> => {
     try {
         return await publicGet<OffseasonMovement[]>('/kbo/offseason/movements');
@@ -46,6 +56,43 @@ const fetchMovements = async (): Promise<OffseasonMovement[]> => {
         throw new Error(normalizeOffseasonErrorMessage(error));
     }
 };
+
+function OffseasonInsightsFallback() {
+    return (
+        <Card className="rounded-3xl border border-zinc-200 bg-white/80 p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/80">
+            <div className="space-y-3 animate-pulse">
+                <div className="h-4 w-32 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                <div className="h-8 w-64 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                <div className="grid gap-3 xl:grid-cols-3">
+                    {Array.from({ length: 3 }, (_, index) => (
+                        <div key={index} className="h-44 rounded-3xl bg-zinc-100 dark:bg-zinc-950/70" />
+                    ))}
+                </div>
+            </div>
+        </Card>
+    );
+}
+
+function OffseasonListLeafFallback() {
+    return (
+        <div className="space-y-3 px-4 pb-4 pt-2 md:px-5 md:pb-5">
+            <div className="animate-pulse rounded-[28px] border border-zinc-200 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950/70">
+                <div className="h-4 w-40 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                <div className="mt-3 h-3 w-28 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+            </div>
+            {Array.from({ length: 3 }, (_, index) => (
+                <div
+                    key={index}
+                    className="animate-pulse rounded-[26px] border border-zinc-200 bg-white px-5 py-6 dark:border-zinc-800 dark:bg-zinc-950/90"
+                >
+                    <div className="h-5 w-48 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                    <div className="mt-3 h-3 w-full rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                    <div className="mt-2 h-3 w-3/4 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                </div>
+            ))}
+        </div>
+    );
+}
 
 export default function OffSeasonList() {
     const navigate = useNavigate();
@@ -383,7 +430,11 @@ export default function OffSeasonList() {
                 </Card>
 
                 {!isLoading && !isError && filteredList.length > 0 && (
-                    <OffseasonInsightsPanel movements={filteredList} onSelect={openMovementDetail} />
+                    <ViewportDeferred fallback={<OffseasonInsightsFallback />}>
+                        <Suspense fallback={<OffseasonInsightsFallback />}>
+                            <OffseasonInsightsPanel movements={filteredList} onSelect={openMovementDetail} />
+                        </Suspense>
+                    </ViewportDeferred>
                 )}
 
                 <section className="space-y-4">
@@ -429,30 +480,36 @@ export default function OffSeasonList() {
                                 )}
                             </div>
 
-                            {isMobile ? (
-                                <OffseasonMobileCards movements={filteredList} onSelect={openMovementDetail} />
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <div className="min-w-[860px]">
-                                        <OffseasonDesktopTable
-                                            movements={filteredList}
-                                            sortOrder={sortOrder}
-                                            onSortChange={setSortOrder}
-                                            onSelect={openMovementDetail}
-                                        />
+                            <Suspense fallback={<OffseasonListLeafFallback />}>
+                                {isMobile ? (
+                                    <OffseasonMobileCards movements={filteredList} onSelect={openMovementDetail} />
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <div className="min-w-[860px]">
+                                            <OffseasonDesktopTable
+                                                movements={filteredList}
+                                                sortOrder={sortOrder}
+                                                onSortChange={setSortOrder}
+                                                onSelect={openMovementDetail}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </Suspense>
                         </Card>
                     )}
                 </section>
 
-                <OffseasonMovementDetailPanel
-                    movement={selectedMovement}
-                    isMobile={isMobile}
-                    open={Boolean(selectedMovement)}
-                    onOpenChange={handleDetailOpenChange}
-                />
+                {selectedMovement && (
+                    <Suspense fallback={null}>
+                        <OffseasonMovementDetailPanel
+                            movement={selectedMovement}
+                            isMobile={isMobile}
+                            open
+                            onOpenChange={handleDetailOpenChange}
+                        />
+                    </Suspense>
+                )}
             </div>
         </div>
     );

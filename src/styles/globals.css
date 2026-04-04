@@ -75,43 +75,6 @@
   }
 }
 
-@layer components {
-  /* 햄버거 메뉴 버튼 - 768px 이상에서 숨김 */
-  @media (min-width: 768px) {
-    .hamburger-menu-btn {
-      display: none;
-    }
-  }
-
-  /* 모바일 메뉴 애니메이션 */
-  .mobile-menu-container {
-    animation: slideInFade 0.3s ease-out !important;
-  }
-
-  /* 모바일 메뉴 팝업 스타일 */
-  .mobile-menu-popup {
-    width: 380px;
-  }
-
-  /* 작은 화면에서는 화면 폭에 맞게 조정 */
-  @media (max-width: 420px) {
-    .mobile-menu-popup {
-      width: calc(100vw - 32px);
-    }
-  }
-}
-
-@keyframes slideInFade {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* --- 유저 프로필 버튼 애니메이션 (순수 CSS 강제 적용) --- */
 
 .user-profile-button {

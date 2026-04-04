@@ -5,7 +5,7 @@ import { filterPartiesByTab } from '../utils/mate';
 import { MateHistoryTab, MateParty } from '../types/mate';
 import { toast } from 'sonner';
 import { useAuthSession } from '../store/authStore';
-import type { AxiosError } from 'axios';
+import { getApiErrorStatus } from '../api/errorStatus';
 
 export const useMateHistory = (tab: MateHistoryTab) => {
   const { isLoggedIn, isAuthLoading, userId } = useAuthSession();
@@ -24,7 +24,7 @@ export const useMateHistory = (tab: MateHistoryTab) => {
   // ========== Error Handling ==========
   useEffect(() => {
     if (error) {
-      if ((error as AxiosError).response?.status === 403) {
+      if (getApiErrorStatus(error) === 403) {
         return;
       }
 

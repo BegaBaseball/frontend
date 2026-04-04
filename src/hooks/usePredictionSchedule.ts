@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchMatchesByDay,
-  fetchMatchesByRangeWithMeta,
-  fetchMatchBounds,
   type MatchDayResult,
 } from '../api/prediction';
-import { getTodayString, getTomorrowString, formatDate } from '../utils/prediction';
+import { getTodayString, getTomorrowString, formatDate } from '../utils/predictionDates';
 import { getApiErrorMessage, parseError, type ParsedError } from '../utils/errorUtils';
 import {
-  buildPredictionRangeWindow,
-  findAdjacentLoadedDateIndex,
-  getNextPredictionRangeAnchor,
   mergePredictionDateBuckets,
 } from '../utils/predictionRangeLoader';
 import {
@@ -32,11 +27,8 @@ import type { DateGames, Game, MatchBounds, MatchDayNavigation } from '../types/
 import {
   DEEP_LINK_RESOLVE_MAX_ATTEMPTS,
   MATCH_FETCH_SIZE,
-  MATCH_WINDOW_EXTEND_DAYS,
   getCurrentGame,
   isCancelLikeError,
-  isDateAfter,
-  isDateBefore,
   isRangeResultCanceled,
   mapPredictionErrorCode,
   mergeMatchLists,
@@ -47,6 +39,32 @@ import {
   type PredictionOverlayController,
   type RangeLoadState,
 } from './predictionHookShared';
+
+let predictionRangeApiModulePromise: Promise<typeof import('../api/predictionRange')> | null = null;
+let predictionRangeWindowModulePromise: Promise<typeof import('../utils/predictionRangeWindow')> | null = null;
+let predictionScheduleBoundaryLoadersModulePromise:
+  Promise<typeof import('./predictionScheduleBoundaryLoaders')> | null = null;
+
+const loadPredictionRangeApiModule = () => {
+  if (!predictionRangeApiModulePromise) {
+    predictionRangeApiModulePromise = import('../api/predictionRange');
+  }
+  return predictionRangeApiModulePromise;
+};
+
+const loadPredictionRangeWindowModule = () => {
+  if (!predictionRangeWindowModulePromise) {
+    predictionRangeWindowModulePromise = import('../utils/predictionRangeWindow');
+  }
+  return predictionRangeWindowModulePromise;
+};
+
+const loadPredictionScheduleBoundaryLoadersModule = () => {
+  if (!predictionScheduleBoundaryLoadersModulePromise) {
+    predictionScheduleBoundaryLoadersModulePromise = import('./predictionScheduleBoundaryLoaders');
+  }
+  return predictionScheduleBoundaryLoadersModulePromise;
+};
 
 type UsePredictionScheduleParams = {
   isLoggedIn: boolean;
@@ -104,22 +122,6 @@ const getPredictionRangeErrorMessage = (
 
   return getApiErrorMessage(new Error(normalizedMessage || fallback), fallback);
 };
-
-const normalizeFutureRangeErrorMessage = (error?: {
-  message?: string;
-  status?: number | null;
-  code?: string;
-}) => (
-  getPredictionRangeErrorMessage(error, '미래 구간 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.')
-);
-
-const normalizePastRangeErrorMessage = (error?: {
-  message?: string;
-  status?: number | null;
-  code?: string;
-}) => (
-  getPredictionRangeErrorMessage(error, '과거 경기 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.')
-);
 
 const normalizeMatchRangeError = (error?: {
   message?: string;
@@ -291,6 +293,7 @@ export const usePredictionSchedule = ({
       return;
     }
 
+    const { fetchMatchBounds } = await loadPredictionRangeApiModule();
     const result = await fetchMatchBounds();
     if (!result.ok) {
       return;
@@ -543,7 +546,7 @@ export const usePredictionSchedule = ({
       adjacentPrefetchIdleCallbackRef.current = null;
     }
     if (adjacentPrefetchTimeoutRef.current !== null) {
-      window.clearTimeout(adjacentPrefetchTimeoutRef.current);
+      globalThis.clearTimeout(adjacentPrefetchTimeoutRef.current);
       adjacentPrefetchTimeoutRef.current = null;
     }
   }, []);
@@ -555,7 +558,12 @@ export const usePredictionSchedule = ({
     }
 
     clearScheduledAdjacentPrefetch();
+    let hasRun = false;
     const run = () => {
+      if (hasRun) {
+        return;
+      }
+      hasRun = true;
       adjacentPrefetchIdleCallbackRef.current = null;
       adjacentPrefetchTimeoutRef.current = null;
       prefetchAdjacentDays(anchorDate);
@@ -565,13 +573,16 @@ export const usePredictionSchedule = ({
       adjacentPrefetchIdleCallbackRef.current = window.requestIdleCallback(run, {
         timeout: 1200,
       });
-      return;
     }
 
-    adjacentPrefetchTimeoutRef.current = window.setTimeout(run, 650);
+    adjacentPrefetchTimeoutRef.current = globalThis.setTimeout(run, 650) as unknown as number;
   }, [clearScheduledAdjacentPrefetch, prefetchAdjacentDays]);
 
   const fetchMatchRangeWindow = useCallback(async (request: MatchRangeLoadRequest) => {
+    const [{ fetchMatchesByRangeWithMeta }, { buildPredictionRangeWindow }] = await Promise.all([
+      loadPredictionRangeApiModule(),
+      loadPredictionRangeWindowModule(),
+    ]);
     const rangeWindow = buildPredictionRangeWindow({
       anchorDate: request.anchorDate,
       direction: request.direction,
@@ -639,312 +650,41 @@ export const usePredictionSchedule = ({
     }
   }, [loadPredictionDay]);
 
-  const setPastRangeError = useCallback((message: string) => {
-    setCanLoadMorePastState(false);
-    setPastRangeLoadErrorMessage(message);
-    setPastRangeLoadState('error');
-  }, [setCanLoadMorePastState]);
-
   const loadMoreFutureMatches = useCallback(async (
     forceRetry: boolean = false,
     moveToLoadedFuture: boolean = false,
     reason: MatchRangeLoadReason = 'navigation'
   ) => {
-    if (futureLoadActiveRef.current || isFetchingAllGamesRef.current) {
-      return;
-    }
-    if (!forceRetry && !canLoadMoreFutureRef.current) {
-      return;
-    }
-
-    const navigationAnchorDate = allDatesDataRef.current[currentDateIndexRef.current]?.date || getTodayString();
-    if (reason !== 'deepLink' || deepLinkDate) {
-      setFutureRangeLoadState('loading');
-      setFutureRangeLoadErrorMessage(null);
-      futureLoadActiveRef.current = true;
-      const requestId = ++futureRangeRequestRef.current;
-
-      try {
-        let anchorMeta = dayNavigationByDateRef.current[navigationAnchorDate];
-        if (!anchorMeta) {
-          const anchorResult = await loadPredictionDay(navigationAnchorDate, {
-            preserveVisibleDate: true,
-            requestKeySuffix: `future:anchor:${navigationAnchorDate}`,
-            requestGuard: () => futureRangeRequestRef.current !== requestId,
-          });
-          if (requestId !== futureRangeRequestRef.current) {
-            return;
-          }
-          if (!anchorResult.ok) {
-            if (isRangeResultCanceled(anchorResult.error)) {
-              restoreFutureRangeLoadState();
-              return;
-            }
-
-            const normalizedMessage = normalizeFutureRangeErrorMessage(anchorResult.error);
-            setCanLoadMoreFutureState(false);
-            setFutureRangeLoadErrorMessage(normalizedMessage);
-            setFutureRangeLoadState('error');
-            return;
-          }
-          anchorMeta = dayNavigationByDateRef.current[navigationAnchorDate];
-        }
-
-        if (!anchorMeta?.hasNext || !anchorMeta.nextDate) {
-          setFutureRangeEnd();
-          return;
-        }
-
-        const result = await loadPredictionDay(anchorMeta.nextDate, {
-          moveToLoadedDate: moveToLoadedFuture,
-          preserveVisibleDate: !moveToLoadedFuture,
-          requestKeySuffix: `future:day:${anchorMeta.nextDate}`,
-          requestGuard: () => futureRangeRequestRef.current !== requestId,
-        });
-        if (requestId !== futureRangeRequestRef.current) {
-          return;
-        }
-
-        if (!result.ok) {
-          if (isRangeResultCanceled(result.error)) {
-            restoreFutureRangeLoadState();
-            return;
-          }
-
-          const normalizedMessage = normalizeFutureRangeErrorMessage(result.error);
-          setCanLoadMoreFutureState(false);
-          setFutureRangeLoadErrorMessage(normalizedMessage);
-          setFutureRangeLoadState('error');
-          showPredictionErrorOverlay('NETWORK', {
-            message: normalizedMessage,
-            copyKey: 'network_error_message',
-            recovery: {
-              errorCode: 'NETWORK',
-              recoverable: true,
-              retryEnabled: true,
-              keepDraft: true,
-              actionPriorityOrder: ['RETRY', 'GO_LIST'],
-            },
-            onRetry: () => {
-              void loadMoreFutureMatches(true, true, reason);
-            },
-            onGoList: () => {
-              goToPredictionRecovery({ currentDate: navigationAnchorDate });
-            },
-          });
-          return;
-        }
-
-        const visibleDate = moveToLoadedFuture ? (result.data.date || anchorMeta.nextDate) : navigationAnchorDate;
-        syncRangeStateFromDates(allDatesDataRef.current, visibleDate);
-        scheduleAdjacentPrefetch(visibleDate);
-        console.info('[prediction.day.load]', {
-          direction: 'future',
-          result: 'success',
-          targetDate: result.data.date,
-          hasNext: dayNavigationByDateRef.current[result.data.date]?.hasNext,
-        });
-        return;
-      } catch (error) {
-        if (isRangeResultCanceled({
-          message: error instanceof Error ? error.message : '',
-          code: typeof error === 'object' ? (error as { code?: string }).code : undefined,
-        })) {
-          restoreFutureRangeLoadState();
-          return;
-        }
-        if (!isCancelLikeError(error)) {
-          const normalizedMessage = normalizeFutureRangeErrorMessage({
-            message: '미래 경기 조회에 실패했습니다.',
-          });
-          setCanLoadMoreFutureState(false);
-          setFutureRangeLoadErrorMessage(normalizedMessage);
-          setFutureRangeLoadState('error');
-          showPredictionErrorOverlay('NETWORK', {
-            message: normalizedMessage,
-            copyKey: 'network_error_message',
-            recovery: {
-              errorCode: 'NETWORK',
-              recoverable: true,
-              retryEnabled: true,
-              keepDraft: true,
-              actionPriorityOrder: ['RETRY', 'GO_LIST'],
-            },
-            onRetry: () => {
-              void loadMoreFutureMatches(true, true, reason);
-            },
-            onGoList: () => {
-              goToPredictionRecovery({ currentDate: navigationAnchorDate });
-            },
-          });
-        }
-      } finally {
-        futureLoadActiveRef.current = false;
-      }
-      return;
-    }
-
-    const latestBoundDate = getLatestBoundDate();
-    const currentAllDates = allDatesDataRef.current;
-    const anchorDate = currentAllDates[currentAllDates.length - 1]?.date || navigationAnchorDate;
-    if (latestBoundDate && !isDateBefore(anchorDate, latestBoundDate, false)) {
-      setFutureRangeEnd();
-      return;
-    }
-
-    setFutureRangeLoadState('loading');
-    setFutureRangeLoadErrorMessage(null);
-    futureLoadActiveRef.current = true;
-    const requestId = ++futureRangeRequestRef.current;
-    let windowShiftCount = 0;
-    let requestAnchorDate = anchorDate;
-
-    try {
-      while (true) {
-        const rangeWindow = buildPredictionRangeWindow({
-          anchorDate: requestAnchorDate,
-          direction: 'future',
-          windowDays: MATCH_WINDOW_EXTEND_DAYS,
-        });
-
-        if (latestBoundDate && isDateAfter(rangeWindow.startDate, latestBoundDate, false)) {
-          setFutureRangeEnd();
-          return;
-        }
-
-        const { result } = await fetchMatchRangeWindow({
-          anchorDate: requestAnchorDate,
-          direction: 'future',
-          windowDays: MATCH_WINDOW_EXTEND_DAYS,
-          reason,
-        });
-        if (requestId !== futureRangeRequestRef.current) {
-          return;
-        }
-
-        if (!result.ok) {
-          if (isRangeResultCanceled(result.error)) {
-            restoreFutureRangeLoadState();
-            return;
-          }
-
-          const normalizedMessage = normalizeFutureRangeErrorMessage(result.error);
-          setCanLoadMoreFutureState(false);
-          setFutureRangeLoadErrorMessage(normalizedMessage);
-          setFutureRangeLoadState('error');
-          showPredictionErrorOverlay('NETWORK', {
-            message: normalizedMessage,
-            copyKey: 'network_error_message',
-            recovery: {
-              errorCode: 'NETWORK',
-              recoverable: true,
-              retryEnabled: true,
-              keepDraft: true,
-              actionPriorityOrder: ['RETRY', 'GO_LIST'],
-            },
-            onRetry: () => {
-              void loadMoreFutureMatches(true, true, reason);
-            },
-            onGoList: () => {
-              goToPredictionRecovery({ currentDate: navigationAnchorDate });
-            },
-          });
-          return;
-        }
-
-        const nextMatches = result.data.content;
-        if (!nextMatches.length) {
-          const reachedLatestBound = latestBoundDate
-            ? !isDateBefore(rangeWindow.endDate, latestBoundDate, false)
-            : false;
-
-          if (reachedLatestBound) {
-            setFutureRangeEnd();
-            return;
-          }
-          if (!latestBoundDate && windowShiftCount >= 26) {
-            setFutureRangeEnd('탐색 가능한 예정 경기가 없습니다.');
-            return;
-          }
-
-          windowShiftCount += 1;
-          requestAnchorDate = getNextPredictionRangeAnchor(rangeWindow, 'future');
-          continue;
-        }
-
-        const baseDates = allDatesDataRef.current;
-        const normalized = mergePredictionDateBuckets(baseDates, nextMatches, mergeMatchLists);
-        setAllDatesData(normalized);
-        allDatesDataRef.current = normalized;
-        const currentVisibleDate = baseDates[currentDateIndexRef.current]?.date || anchorDate;
-        if (moveToLoadedFuture) {
-          const targetDateIndex = findAdjacentLoadedDateIndex(normalized, anchorDate, 'future');
-          const anchorIndex = normalized.findIndex((entry) => entry.date === anchorDate);
-          const nextDateIndex = targetDateIndex !== -1 ? targetDateIndex : anchorIndex;
-          if (nextDateIndex !== -1 && normalized[nextDateIndex]?.date !== currentVisibleDate) {
-            setCurrentDateIndex(nextDateIndex);
-          }
-        } else {
-          const restoredDateIndex = normalized.findIndex((entry) => entry.date === anchorDate);
-          if (restoredDateIndex !== -1 && normalized[restoredDateIndex]?.date !== currentVisibleDate) {
-            setCurrentDateIndex(restoredDateIndex);
-          }
-        }
-
-        const interactiveFutureGames = nextMatches.filter((game) => game.homeScore === null && game.awayScore === null);
-        if (isLoggedIn && interactiveFutureGames.length > 0) {
-          await fetchAndCacheUserVotes(
-            interactiveFutureGames.map((game) => game.gameId).filter(Boolean),
-            `future:${rangeWindow.startDate}`,
-            () => futureRangeRequestRef.current !== requestId
-          );
-        }
-
-        syncRangeStateFromDates(normalized, anchorDate);
-        console.info('[prediction.range.load]', {
-          direction: 'future',
-          result: 'success',
-          loadedCount: nextMatches.length,
-          canLoadMore: canLoadMoreFutureRef.current,
-        });
-        return;
-      }
-    } catch (error) {
-      if (isRangeResultCanceled({
-        message: error instanceof Error ? error.message : '',
-        code: typeof error === 'object' ? (error as { code?: string }).code : undefined,
-      })) {
-        restoreFutureRangeLoadState();
-        return;
-      }
-      if (!isCancelLikeError(error)) {
-        const normalizedMessage = normalizeFutureRangeErrorMessage({
-          message: '미래 경기 조회에 실패했습니다.',
-        });
-        setCanLoadMoreFutureState(false);
-        setFutureRangeLoadErrorMessage(normalizedMessage);
-        setFutureRangeLoadState('error');
-        showPredictionErrorOverlay('NETWORK', {
-          message: normalizedMessage,
-          copyKey: 'network_error_message',
-          recovery: {
-            errorCode: 'NETWORK',
-            recoverable: true,
-            retryEnabled: true,
-            keepDraft: true,
-            actionPriorityOrder: ['RETRY', 'GO_LIST'],
-          },
-          onRetry: () => {
-            void loadMoreFutureMatches(true, true, reason);
-          },
-          onGoList: () => {
-            goToPredictionRecovery({ currentDate: navigationAnchorDate });
-          },
-        });
-      }
-    } finally {
-      futureLoadActiveRef.current = false;
-    }
+    const { runLoadMoreFutureMatches } = await loadPredictionScheduleBoundaryLoadersModule();
+    await runLoadMoreFutureMatches({
+      forceRetry,
+      moveToLoadedFuture,
+      reason,
+      allDatesDataRef,
+      canLoadMoreFutureRef,
+      currentDateIndexRef,
+      dayNavigationByDateRef,
+      deepLinkDate,
+      fetchAndCacheUserVotes,
+      fetchMatchRangeWindow,
+      futureLoadActiveRef,
+      futureRangeRequestRef,
+      getLatestBoundDate,
+      goToPredictionRecovery,
+      isFetchingAllGamesRef,
+      isLoggedIn,
+      loadPredictionDay,
+      restoreFutureRangeLoadState,
+      scheduleAdjacentPrefetch,
+      setAllDatesData,
+      setCanLoadMoreFutureState,
+      setCurrentDateIndex,
+      setFutureRangeEnd,
+      setFutureRangeLoadErrorMessage,
+      setFutureRangeLoadState,
+      showPredictionErrorOverlay,
+      syncRangeStateFromDates,
+    });
   }, [
     deepLinkDate,
     fetchAndCacheUserVotes,
@@ -966,211 +706,34 @@ export const usePredictionSchedule = ({
     moveToLoadedPast: boolean = false,
     reason: MatchRangeLoadReason = 'navigation'
   ) => {
-    if (pastLoadActiveRef.current || isFetchingAllGamesRef.current) {
-      return;
-    }
-    if (!forceRetry && !canLoadMorePastRef.current) {
-      return;
-    }
-
-    const navigationAnchorDate = allDatesDataRef.current[currentDateIndexRef.current]?.date || getTodayString();
-    if (reason !== 'deepLink' || deepLinkDate) {
-      setPastRangeLoadState('loading');
-      setPastRangeLoadErrorMessage(null);
-      pastLoadActiveRef.current = true;
-      const requestId = ++pastRangeRequestRef.current;
-
-      try {
-        let anchorMeta = dayNavigationByDateRef.current[navigationAnchorDate];
-        if (!anchorMeta) {
-          const anchorResult = await loadPredictionDay(navigationAnchorDate, {
-            preserveVisibleDate: true,
-            requestKeySuffix: `past:anchor:${navigationAnchorDate}`,
-            requestGuard: () => pastRangeRequestRef.current !== requestId,
-          });
-          if (requestId !== pastRangeRequestRef.current) {
-            return;
-          }
-          if (!anchorResult.ok) {
-            if (isRangeResultCanceled(anchorResult.error)) {
-              restorePastRangeLoadState();
-              return;
-            }
-            setPastRangeError(normalizePastRangeErrorMessage(anchorResult.error));
-            return;
-          }
-          anchorMeta = dayNavigationByDateRef.current[navigationAnchorDate];
-        }
-
-        if (!anchorMeta?.hasPrev || !anchorMeta.prevDate) {
-          setPastRangeEnd();
-          return;
-        }
-
-        const result = await loadPredictionDay(anchorMeta.prevDate, {
-          moveToLoadedDate: moveToLoadedPast,
-          preserveVisibleDate: !moveToLoadedPast,
-          requestKeySuffix: `past:day:${anchorMeta.prevDate}`,
-          requestGuard: () => pastRangeRequestRef.current !== requestId,
-        });
-        if (requestId !== pastRangeRequestRef.current) {
-          return;
-        }
-
-        if (!result.ok) {
-          if (isRangeResultCanceled(result.error)) {
-            restorePastRangeLoadState();
-            return;
-          }
-          setPastRangeError(normalizePastRangeErrorMessage(result.error));
-          return;
-        }
-
-        const visibleDate = moveToLoadedPast ? (result.data.date || anchorMeta.prevDate) : navigationAnchorDate;
-        syncRangeStateFromDates(allDatesDataRef.current, visibleDate);
-        scheduleAdjacentPrefetch(visibleDate);
-        console.info('[prediction.day.load]', {
-          direction: 'past',
-          result: 'success',
-          targetDate: result.data.date,
-          hasPrev: dayNavigationByDateRef.current[result.data.date]?.hasPrev,
-        });
-        return;
-      } catch (error) {
-        if (isRangeResultCanceled({
-          message: error instanceof Error ? error.message : '',
-          code: typeof error === 'object' ? (error as { code?: string }).code : undefined,
-        })) {
-          restorePastRangeLoadState();
-          return;
-        }
-        if (!isCancelLikeError(error)) {
-          setPastRangeError('과거 경기 조회에 실패했습니다.');
-        }
-      } finally {
-        pastLoadActiveRef.current = false;
-      }
-      return;
-    }
-
-    const earliestBoundDate = getEarliestBoundDate();
-    const currentAllDates = allDatesDataRef.current;
-    const anchorDate = currentAllDates[0]?.date || navigationAnchorDate;
-    if (earliestBoundDate && !isDateAfter(anchorDate, earliestBoundDate, false)) {
-      setPastRangeEnd();
-      return;
-    }
-
-    setPastRangeLoadState('loading');
-    setPastRangeLoadErrorMessage(null);
-    pastLoadActiveRef.current = true;
-    const requestId = ++pastRangeRequestRef.current;
-    let windowShiftCount = 0;
-    let requestAnchorDate = anchorDate;
-
-    try {
-      while (true) {
-        const rangeWindow = buildPredictionRangeWindow({
-          anchorDate: requestAnchorDate,
-          direction: 'past',
-          windowDays: MATCH_WINDOW_EXTEND_DAYS,
-        });
-
-        if (earliestBoundDate && isDateBefore(rangeWindow.endDate, earliestBoundDate, false)) {
-          setPastRangeEnd();
-          return;
-        }
-
-        const { result } = await fetchMatchRangeWindow({
-          anchorDate: requestAnchorDate,
-          direction: 'past',
-          windowDays: MATCH_WINDOW_EXTEND_DAYS,
-          reason,
-        });
-        if (requestId !== pastRangeRequestRef.current) {
-          return;
-        }
-
-        if (!result.ok) {
-          if (isRangeResultCanceled(result.error)) {
-            restorePastRangeLoadState();
-            return;
-          }
-          setPastRangeError(normalizePastRangeErrorMessage(result.error));
-          return;
-        }
-
-        const nextMatches = result.data.content;
-        if (!nextMatches.length) {
-          const reachedEarliestBound = earliestBoundDate
-            ? !isDateAfter(rangeWindow.startDate, earliestBoundDate, false)
-            : false;
-
-          if (reachedEarliestBound) {
-            setPastRangeEnd();
-            return;
-          }
-          if (!earliestBoundDate && windowShiftCount >= 26) {
-            setPastRangeEnd('탐색 가능한 이전 경기가 없습니다.');
-            return;
-          }
-
-          windowShiftCount += 1;
-          requestAnchorDate = getNextPredictionRangeAnchor(rangeWindow, 'past');
-          continue;
-        }
-
-        const baseDates = allDatesDataRef.current;
-        const normalized = mergePredictionDateBuckets(baseDates, nextMatches, mergeMatchLists);
-        setAllDatesData(normalized);
-        allDatesDataRef.current = normalized;
-        const currentVisibleDate = baseDates[currentDateIndexRef.current]?.date || anchorDate;
-        if (moveToLoadedPast) {
-          const targetDateIndex = findAdjacentLoadedDateIndex(normalized, anchorDate, 'past');
-          const anchorIndex = normalized.findIndex((entry) => entry.date === anchorDate);
-          const nextDateIndex = targetDateIndex !== -1 ? targetDateIndex : anchorIndex;
-          if (nextDateIndex !== -1 && normalized[nextDateIndex]?.date !== currentVisibleDate) {
-            setCurrentDateIndex(nextDateIndex);
-          }
-        } else {
-          const restoredDateIndex = normalized.findIndex((entry) => entry.date === anchorDate);
-          if (restoredDateIndex !== -1 && normalized[restoredDateIndex]?.date !== currentVisibleDate) {
-            setCurrentDateIndex(restoredDateIndex);
-          }
-        }
-
-        const interactivePastGames = nextMatches.filter((game) => game.homeScore === null && game.awayScore === null);
-        if (isLoggedIn && interactivePastGames.length > 0) {
-          await fetchAndCacheUserVotes(
-            interactivePastGames.map((game) => game.gameId).filter(Boolean),
-            `past:${rangeWindow.startDate}`,
-            () => pastRangeRequestRef.current !== requestId
-          );
-        }
-
-        syncRangeStateFromDates(normalized, anchorDate);
-        console.info('[prediction.range.load]', {
-          direction: 'past',
-          result: 'success',
-          loadedCount: nextMatches.length,
-          canLoadMore: canLoadMorePastRef.current,
-        });
-        return;
-      }
-    } catch (error) {
-      if (isRangeResultCanceled({
-        message: error instanceof Error ? error.message : '',
-        code: typeof error === 'object' ? (error as { code?: string }).code : undefined,
-      })) {
-        restorePastRangeLoadState();
-        return;
-      }
-      if (!isCancelLikeError(error)) {
-        setPastRangeError('과거 경기 조회에 실패했습니다.');
-      }
-    } finally {
-      pastLoadActiveRef.current = false;
-    }
+    const { runLoadMorePastMatches } = await loadPredictionScheduleBoundaryLoadersModule();
+    await runLoadMorePastMatches({
+      forceRetry,
+      moveToLoadedPast,
+      reason,
+      allDatesDataRef,
+      canLoadMorePastRef,
+      currentDateIndexRef,
+      dayNavigationByDateRef,
+      deepLinkDate,
+      fetchAndCacheUserVotes,
+      fetchMatchRangeWindow,
+      getEarliestBoundDate,
+      isFetchingAllGamesRef,
+      isLoggedIn,
+      loadPredictionDay,
+      pastLoadActiveRef,
+      pastRangeRequestRef,
+      restorePastRangeLoadState,
+      scheduleAdjacentPrefetch,
+      setAllDatesData,
+      setCanLoadMorePastState,
+      setCurrentDateIndex,
+      setPastRangeEnd,
+      setPastRangeLoadErrorMessage,
+      setPastRangeLoadState,
+      syncRangeStateFromDates,
+    });
   }, [
     deepLinkDate,
     fetchAndCacheUserVotes,
@@ -1181,7 +744,6 @@ export const usePredictionSchedule = ({
     scheduleAdjacentPrefetch,
     restorePastRangeLoadState,
     setPastRangeEnd,
-    setPastRangeError,
     syncRangeStateFromDates,
   ]);
 

@@ -1,4 +1,4 @@
-import api from './axios';
+import { privateDelete, privateGet, privatePost } from './privateClient';
 import {
   ChatFavoriteItem,
   ChatSessionSummary,
@@ -19,74 +19,58 @@ const getData = <T>(payload: ApiEnvelope<T>): T => {
 };
 
 export const listChatSessions = async (): Promise<ChatSessionSummary[]> => {
-  const response = await api.get<ApiEnvelope<ChatSessionSummary[]>>('/ai/chat/sessions', {
-    skipGlobalErrorHandler: true,
-  });
-  return getData(response.data);
+  const response = await privateGet<ApiEnvelope<ChatSessionSummary[]>>('/ai/chat/sessions');
+  return getData(response);
 };
 
 export const createChatSession = async (): Promise<ChatSessionSummary> => {
-  const response = await api.post<ApiEnvelope<ChatSessionSummary>>('/ai/chat/sessions', undefined, {
-    skipGlobalErrorHandler: true,
-  });
-  return getData(response.data);
+  const response = await privatePost<ApiEnvelope<ChatSessionSummary>, undefined>('/ai/chat/sessions');
+  return getData(response);
 };
 
 export const getChatSessionMessages = async (sessionId: number): Promise<StoredChatMessage[]> => {
-  const response = await api.get<ApiEnvelope<StoredChatMessage[]>>(`/ai/chat/sessions/${sessionId}/messages`, {
-    skipGlobalErrorHandler: true,
-  });
-  return getData(response.data);
+  const response = await privateGet<ApiEnvelope<StoredChatMessage[]>>(`/ai/chat/sessions/${sessionId}/messages`);
+  return getData(response);
 };
 
 export const saveUserChatMessage = async (
   sessionId: number,
   content: string,
 ): Promise<StoredChatMessage> => {
-  const response = await api.post<ApiEnvelope<StoredChatMessage>>(
+  const response = await privatePost<ApiEnvelope<StoredChatMessage>, { content: string }>(
     `/ai/chat/sessions/${sessionId}/messages/user`,
     { content },
-    { skipGlobalErrorHandler: true },
   );
-  return getData(response.data);
+  return getData(response);
 };
 
 export const saveAssistantChatMessage = async (
   sessionId: number,
   payload: Record<string, unknown>,
 ): Promise<StoredChatMessage> => {
-  const response = await api.post<ApiEnvelope<StoredChatMessage>>(
+  const response = await privatePost<ApiEnvelope<StoredChatMessage>, Record<string, unknown>>(
     `/ai/chat/sessions/${sessionId}/messages/assistant`,
     payload,
-    { skipGlobalErrorHandler: true },
   );
-  return getData(response.data);
+  return getData(response);
 };
 
 export const deleteChatSession = async (sessionId: number): Promise<void> => {
-  await api.delete(`/ai/chat/sessions/${sessionId}`, {
-    skipGlobalErrorHandler: true,
-  });
+  await privateDelete(`/ai/chat/sessions/${sessionId}`);
 };
 
 export const listChatFavorites = async (): Promise<ChatFavoriteItem[]> => {
-  const response = await api.get<ApiEnvelope<ChatFavoriteItem[]>>('/ai/chat/favorites', {
-    skipGlobalErrorHandler: true,
-  });
-  return getData(response.data);
+  const response = await privateGet<ApiEnvelope<ChatFavoriteItem[]>>('/ai/chat/favorites');
+  return getData(response);
 };
 
 export const addChatFavorite = async (messageId: number): Promise<ChatFavoriteItem> => {
-  const response = await api.post<ApiEnvelope<ChatFavoriteItem>>(
+  const response = await privatePost<ApiEnvelope<ChatFavoriteItem>, undefined>(
     `/ai/chat/favorites/${messageId}`,
-    undefined,
-    { skipGlobalErrorHandler: true },
   );
-  return getData(response.data);
+  return getData(response);
 };
 
 export const removeChatFavorite = async (messageId: number): Promise<void> => {
-  await api.delete(`/ai/chat/favorites/${messageId}`, {
-    skipGlobalErrorHandler: true,
-  });
+  await privateDelete(`/ai/chat/favorites/${messageId}`);
 };

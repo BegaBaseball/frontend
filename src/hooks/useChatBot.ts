@@ -15,7 +15,6 @@ import {
 import {
   ChatStreamEventError,
   RateLimitError,
-  convertVoiceToText,
   sendChatMessageStream,
 } from '../api/chatbot';
 import {
@@ -230,7 +229,6 @@ export const useChatBot = (initialOpen = false) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [favorites, setFavorites] = useState<ChatFavoriteItem[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [messageQueue, setMessageQueue] = useState<QueuedMessage[]>([]);
@@ -251,13 +249,6 @@ export const useChatBot = (initialOpen = false) => {
   const activeRequestSeqRef = useRef(0);
   const streamingBuffer = useRef('');
   const streamingFlushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-
-  const [position, setPosition] = useState({
-    x: Math.max(0, window.innerWidth - 540),
-    y: Math.max(0, window.innerHeight - 900),
-  });
-  const [size, setSize] = useState({ width: 500, height: 750 });
 
   const currentSessionTitle = sessions.find((session) => session.sessionId === currentSessionId)?.title ?? AiChatSessionTitleFallback;
 
@@ -633,13 +624,14 @@ export const useChatBot = (initialOpen = false) => {
       const finalContent = assistantText.trim().length > 0
         ? assistantText
         : '응답이 비어 있습니다. 다시 시도해주세요.';
-      const finalStatus: ChatMessageStatus = assistantMeta?.cancelled || assistantMeta?.finish_reason === 'cancelled'
+      const resolvedAssistantMeta = assistantMeta as ChatMeta | null;
+      const finalStatus: ChatMessageStatus = resolvedAssistantMeta?.cancelled || resolvedAssistantMeta?.finish_reason === 'cancelled'
         ? 'CANCELLED'
-        : assistantMeta?.error || assistantMeta?.finish_reason === 'error'
+        : resolvedAssistantMeta?.error || resolvedAssistantMeta?.finish_reason === 'error'
           ? 'ERROR'
           : 'COMPLETED';
 
-      await persistAssistantOutcome(sessionId, botMessageId, finalContent, finalStatus, assistantMeta);
+      await persistAssistantOutcome(sessionId, botMessageId, finalContent, finalStatus, resolvedAssistantMeta);
 
       setFailureCount(0);
       setRateLimitActive(false);
@@ -651,10 +643,11 @@ export const useChatBot = (initialOpen = false) => {
 
       if (isStreamAbortError(error)) {
         const cancelledText = assistantText.trim().length > 0 ? assistantText : '응답을 취소했습니다.';
+        const resolvedAssistantMeta = assistantMeta as ChatMeta | null;
         try {
-          await persistAssistantOutcome(sessionId, botMessageId, cancelledText, 'CANCELLED', assistantMeta, {
+          await persistAssistantOutcome(sessionId, botMessageId, cancelledText, 'CANCELLED', resolvedAssistantMeta, {
             cancelled: true,
-            errorCode: assistantMeta?.error ?? 'cancelled',
+            errorCode: resolvedAssistantMeta?.error ?? 'cancelled',
           });
         } catch {
           updateBotMessageById(botMessageId, (message) => ({
@@ -921,49 +914,6 @@ export const useChatBot = (initialOpen = false) => {
     };
   }, []);
 
-  const handleMicClick = async () => {
-    if (!navigator.mediaDevices) {
-      toast.error('이 브라우저는 마이크를 지원하지 않습니다.');
-      return;
-    }
-
-    if (isRecording && mediaRecorder) {
-      setIsRecording(false);
-      setInputMessage('텍스트로 변환 중입니다...');
-      mediaRecorder.stop();
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks: Blob[] = [];
-
-      recorder.ondataavailable = (recordingEvent) => chunks.push(recordingEvent.data);
-
-      recorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-
-        try {
-          const text = await convertVoiceToText(blob);
-          setInputMessage(text);
-        } catch (error) {
-          setInputMessage(error instanceof Error ? error.message : '변환에 실패했습니다.');
-          toast.error('음성 변환에 실패했습니다.');
-        } finally {
-          stream.getTracks().forEach((track) => track.stop());
-        }
-      };
-
-      recorder.start();
-      setMediaRecorder(recorder);
-      setIsRecording(true);
-      setInputMessage('음성 녹음 중... (다시 클릭하여 중지)');
-    } catch {
-      toast.error('마이크 권한이 필요합니다.');
-    }
-  };
-
   return {
     isOpen,
     setIsOpen,
@@ -974,7 +924,6 @@ export const useChatBot = (initialOpen = false) => {
     favorites,
     inputMessage,
     setInputMessage,
-    isRecording,
     isTyping,
     isProcessing,
     rateLimitActive,
@@ -984,17 +933,12 @@ export const useChatBot = (initialOpen = false) => {
     isLoadingSessions,
     isLoadingMessages,
     isLoadingFavorites,
-    position,
-    setPosition,
-    size,
-    setSize,
     messagesEndRef,
     messagesContainerRef,
     handleSendMessage,
     handleRetrySend,
     handleRestorePendingMessage,
     handleCancelStream,
-    handleMicClick,
     handleCreateNewSession,
     handleSelectSession,
     handleDeleteSession,

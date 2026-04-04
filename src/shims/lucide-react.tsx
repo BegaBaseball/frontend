@@ -1400,3 +1400,10 @@ export const WifiOff = createNodeIcon(
     ['path', { d: 'm2 2 20 20', key: '1ooewy' }],
   ],
 );
+
+export const Wrench = createNodeIcon(
+  'Wrench',
+  [
+    ['path', { d: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.24-3.24a6 6 0 0 1-7.88 7.88l-8 8a2 2 0 1 1-2.83-2.83l8-8a6 6 0 0 1 7.88-7.88z', key: 'wrench-body' }],
+  ],
+);

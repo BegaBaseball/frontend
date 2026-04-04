@@ -41,16 +41,35 @@ const clearLegacyAuthTokenStorage = () => {
 clearLegacyAuthTokenStorage();
 
 const extractHttpStatus = (error: unknown): number | undefined => {
-  if (!error || typeof error !== 'object' || !('response' in (error as Record<string, unknown>))) {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+
+  if ('status' in (error as Record<string, unknown>) && typeof (error as { status?: unknown }).status === 'number') {
+    return (error as { status: number }).status;
+  }
+
+  if (!('response' in (error as Record<string, unknown>))) {
     return undefined;
   }
 
   const response = (error as { response?: { status?: number } }).response;
-  return response && typeof response.status === 'number' ? response.status : undefined;
+  return typeof response?.status === 'number' ? response.status : undefined;
 };
 
 const extractResponseCode = (error: unknown): string | undefined => {
-  if (!error || typeof error !== 'object' || !('response' in (error as Record<string, unknown>))) {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+
+  if ('data' in (error as Record<string, unknown>)) {
+    const data = (error as { data?: { code?: unknown } }).data;
+    if (typeof data?.code === 'string') {
+      return data.code;
+    }
+  }
+
+  if (!('response' in (error as Record<string, unknown>))) {
     return undefined;
   }
 
@@ -137,9 +156,9 @@ const normalizeProfileImageUrl = (value?: string | null): string | null => {
 };
 
 export const authStoreApi = {
-  fetchCurrentUserProfile: async () => {
+  fetchCurrentUserProfile: async (options?: { retryOn401?: boolean }) => {
     const authApi = await loadAuthApi();
-    return authApi.fetchCurrentUserProfile();
+    return authApi.fetchCurrentUserProfile(options);
   },
   logoutUser: async () => {
     const authApi = await loadAuthApi();
@@ -219,7 +238,9 @@ export const useAuthStore = create<AuthStore>()(
           }
 
           try {
-            const profile = await authStoreApi.fetchCurrentUserProfile();
+            const profile = await authStoreApi.fetchCurrentUserProfile({
+              retryOn401: !isPublicOptional,
+            });
             markPersistedAuthBootstrapSuccess();
             set({
               user: profile,

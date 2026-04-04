@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Game } from '../types/prediction';
-import { getGameStatus } from './prediction';
+import { getGameStatus, hasGameDetailProgressData } from './predictionStatus';
 
 const baseGame: Game = {
   gameId: '20260220HHLG0',
@@ -96,4 +96,55 @@ test('getGameStatus: statusCode와 statusLabel은 같은 상태 의미를 유지
     assert.equal(status.statusCode, expectedCode);
     assert.equal(status.statusLabel, expectedLabel);
   });
+});
+
+test('getGameStatus: SCHEDULED라도 과거 경기에서 점수가 있으면 종료 상태를 우선한다', () => {
+  const status = getGameStatus(baseGame, fixedNow, {
+    gameStatus: 'SCHEDULED',
+    gameDate: '2026-02-19',
+    startTime: '18:30',
+    homeScore: 4,
+    awayScore: 2,
+    hasProgressData: true,
+  });
+
+  assert.equal(status.statusCode, 'COMPLETED');
+  assert.equal(status.statusLabel, '경기 종료');
+  assert.equal(status.isVoteOpen, false);
+});
+
+test('getGameStatus: SCHEDULED라도 시작 이후 이닝 데이터가 있으면 진행중으로 본다', () => {
+  const status = getGameStatus(baseGame, fixedNow, {
+    gameStatus: 'SCHEDULED',
+    gameDate: '2026-02-20',
+    startTime: '11:30',
+    hasProgressData: true,
+  });
+
+  assert.equal(status.statusCode, 'LIVE');
+  assert.equal(status.statusLabel, '경기 진행중');
+  assert.equal(status.isVoteOpen, false);
+});
+
+test('hasGameDetailProgressData: 점수나 이닝 데이터가 있으면 true를 반환한다', () => {
+  assert.equal(hasGameDetailProgressData({
+    gameId: '1',
+    homeTeam: 'HH',
+    awayTeam: 'LG',
+    homeScore: 3,
+    awayScore: 1,
+  }), true);
+
+  assert.equal(hasGameDetailProgressData({
+    gameId: '1',
+    homeTeam: 'HH',
+    awayTeam: 'LG',
+    inningScores: [{ inning: 1, teamSide: 'away', runs: 1 }],
+  }), true);
+
+  assert.equal(hasGameDetailProgressData({
+    gameId: '1',
+    homeTeam: 'HH',
+    awayTeam: 'LG',
+  }), false);
 });

@@ -1,4 +1,4 @@
-import api from './axios';
+import { getApiBaseUrl } from './apiBase';
 
 export const DEFAULT_STREAM_TIMEOUT_MS = 30000;
 export const DEFAULT_STREAM_TIMEOUT_RETRY_ATTEMPTS = 3;
@@ -105,10 +105,10 @@ export const readWithTimeout = async <T>(
 export const getStreamRetryDelayMs = (attempt: number, baseDelayMs = DEFAULT_STREAM_RETRY_DELAY_MS): number =>
   Math.pow(2, attempt - 1) * baseDelayMs;
 
-export const buildStreamApiUrl = (path: string): string => {
-    const baseUrl = (api.defaults.baseURL ?? '/api').replace(/\/+$/, '');
+export const buildStreamApiUrl = (path: string, baseUrl = getApiBaseUrl()): string => {
+    const normalizedBaseUrl = (baseUrl || '/api').replace(/\/+$/, '');
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    return `${baseUrl}${normalizedPath}`;
+    return `${normalizedBaseUrl}${normalizedPath}`;
 };
 
 type StreamRequestInit = RequestInit & {

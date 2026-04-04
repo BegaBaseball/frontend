@@ -38,6 +38,7 @@ interface AdvancedMatchCardProps {
   userVote: 'home' | 'away' | null;
   votePercentages: { homePercentage: number; awayPercentage: number; totalVotes: number };
   isVoteOpen: boolean;
+  isVoteActionLocked?: boolean;
   statusLabel: string;
   statusCode: GameStatusCode;
   onVote: (team: VoteTeam) => void;
@@ -62,6 +63,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   userVote,
   votePercentages,
   isVoteOpen,
+  isVoteActionLocked = false,
   statusLabel,
   statusCode,
   onVote,
@@ -199,14 +201,14 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   const isPostponedStatus = statusCode === 'POSTPONED';
   const isCancelledStatus = statusCode === 'CANCELLED';
   const isPostponedOrCancelled = isPostponedStatus || isCancelledStatus;
-  const isScheduledLayout = statusCode === 'SCHEDULED';
-  const shouldHideResultSections = (isScheduledLayout && !hasDetailedScores) || isPostponedOrCancelled;
+  const isScheduledLayout = statusCode === 'SCHEDULED' && !hasDetailedScores;
+  const shouldHideResultSections = isScheduledLayout || isPostponedOrCancelled;
   const scheduledStateLabel = isPostponedStatus
     ? '경기 연기'
     : isCancelledStatus
       ? '경기 취소'
       : '경기 시작 예정';
-  const showStatusBadge = isPostponedOrCancelled || (isScheduledLayout && !hasDetailedScores);
+  const showStatusBadge = isPostponedOrCancelled || isScheduledLayout;
   const matchStatusLabel = isPostponedOrCancelled
     ? scheduledStateLabel
     : (statusCode === 'COMPLETED' || statusCode === 'DRAW') && lastInning
@@ -343,7 +345,10 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
     () => groupedSummary
       .flatMap((group) => group.entries.map((item) => ({ ...item, groupTitle: group.title })))
       .map((item, index) => ({
-        ...item,
+        type: item.type,
+        playerName: item.playerName ?? undefined,
+        detail: item.detail ?? undefined,
+        groupTitle: item.groupTitle,
         _index: index,
         _inning: extractInning(item.detail),
       }))
@@ -387,13 +392,14 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
           <div className="flex gap-2 md:gap-3 mt-4 md:mt-6">
             <Button
               onClick={() => onVote('away')}
+              disabled={isVoteActionLocked}
               aria-pressed={userVote === 'away'}
               aria-label={`${getFullTeamName(game.awayTeam)} 승리 예측`}
-              className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
+              className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden disabled:cursor-not-allowed disabled:active:scale-100"
               style={{
                 backgroundColor: getTeamColorByAnyKey(game.awayTeam),
                 fontWeight: 700,
-                opacity: userVote === 'away' ? 1 : userVote === 'home' ? 0.4 : 1,
+                opacity: isVoteActionLocked ? 0.7 : userVote === 'away' ? 1 : userVote === 'home' ? 0.4 : 1,
                 transform: userVote === 'away' ? 'scale(1.02)' : 'scale(1)'
               }}
             >
@@ -406,14 +412,15 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
             </Button>
             <Button
               onClick={() => onVote('home')}
+              disabled={isVoteActionLocked}
               aria-pressed={userVote === 'home'}
               aria-label={`${getFullTeamName(game.homeTeam)} 승리 예측`}
               data-testid="vote-home-btn"
-              className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden"
+              className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden disabled:cursor-not-allowed disabled:active:scale-100"
               style={{
                 backgroundColor: getTeamColorByAnyKey(game.homeTeam),
                 fontWeight: 700,
-                opacity: userVote === 'home' ? 1 : userVote === 'away' ? 0.4 : 1,
+                opacity: isVoteActionLocked ? 0.7 : userVote === 'home' ? 1 : userVote === 'away' ? 0.4 : 1,
                 transform: userVote === 'home' ? 'scale(1.02)' : 'scale(1)'
               }}
             >

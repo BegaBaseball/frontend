@@ -16,26 +16,6 @@ export default defineConfig(({ mode, command }) => {
   const alias = {
     sonner: path.resolve(__dirname, './src/shims/sonner.tsx'),
     'lucide-react': path.resolve(__dirname, './src/shims/lucide-react.tsx'),
-    'figma:asset/f552d9266ac817e0c86b657dead0069395c6da11.png': path.resolve(__dirname, './src/assets/f552d9266ac817e0c86b657dead0069395c6da11.png'),
-    'figma:asset/e2bd5a0f58df48e435d03f049811638d849de606.png': path.resolve(__dirname, './src/assets/e2bd5a0f58df48e435d03f049811638d849de606.png'),
-    'figma:asset/d97539563d3c93f568cb7a4331c9e607cfafe914.png': path.resolve(__dirname, './src/assets/d97539563d3c93f568cb7a4331c9e607cfafe914.png'),
-    'figma:asset/d94cd6cb1a915d591b57bbca900f8268281068e3.png': path.resolve(__dirname, './src/assets/d94cd6cb1a915d591b57bbca900f8268281068e3.png'),
-    'figma:asset/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png': path.resolve(__dirname, './src/assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png'),
-    'figma:asset/bb63ace90c2b7b74e708cae2f562fbca654538ec.png': path.resolve(__dirname, './src/assets/bb63ace90c2b7b74e708cae2f562fbca654538ec.png'),
-    'figma:asset/b414fb1229152a89657a33002953975be2a9217b.png': path.resolve(__dirname, './src/assets/b414fb1229152a89657a33002953975be2a9217b.png'),
-    'figma:asset/9e7d58fab40f3e586f2a0aaf6ee3c59993bcf101.png': path.resolve(__dirname, './src/assets/9e7d58fab40f3e586f2a0aaf6ee3c59993bcf101.png'),
-    'figma:asset/7642c88659d68a93b809e39f4c56d9c284123115.png': path.resolve(__dirname, './src/assets/7642c88659d68a93b809e39f4c56d9c284123115.png'),
-    'figma:asset/691ca553a888de6b3262d9c3c63d03f37db27b4a.png': path.resolve(__dirname, './src/assets/691ca553a888de6b3262d9c3c63d03f37db27b4a.png'),
-    'figma:asset/560639a3d1481dca02309d52b06d0efe43f355f7.png': path.resolve(__dirname, './src/assets/560639a3d1481dca02309d52b06d0efe43f355f7.png'),
-    'figma:asset/51e88fde588eb7cf7d5390b0fce1bb07ff440d2e.png': path.resolve(__dirname, './src/assets/51e88fde588eb7cf7d5390b0fce1bb07ff440d2e.png'),
-    'figma:asset/5162bdc3599041e7b7b1da494d7d0dcc490e5893.png': path.resolve(__dirname, './src/assets/5162bdc3599041e7b7b1da494d7d0dcc490e5893.png'),
-    'figma:asset/4b5cf234f729d37970ba7ab9c5a1134fcd8e70b6.png': path.resolve(__dirname, './src/assets/4b5cf234f729d37970ba7ab9c5a1134fcd8e70b6.png'),
-    'figma:asset/3aa01761d11828a81213baa8e622fec91540199d.png': path.resolve(__dirname, './src/assets/3aa01761d11828a81213baa8e622fec91540199d.png'),
-    'figma:asset/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png': path.resolve(__dirname, './src/assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png'),
-    'figma:asset/24a312517fb1be189f3fae2611b33f19a72d9401.png': path.resolve(__dirname, './src/assets/24a312517fb1be189f3fae2611b33f19a72d9401.png'),
-    'figma:asset/202a55c2e2083b7f096b21380d22d1769e56d762.png': path.resolve(__dirname, './src/assets/202a55c2e2083b7f096b21380d22d1769e56d762.png'),
-    'figma:asset/19b0bb1cde805dc5d6e6af053a4bd1622a1a4fad.png': path.resolve(__dirname, './src/assets/19b0bb1cde805dc5d6e6af053a4bd1622a1a4fad.png'),
-    'figma:asset/01cb53a9197c5457e6d7dd7460bdf1cd27b5440b.png': path.resolve(__dirname, './src/assets/01cb53a9197c5457e6d7dd7460bdf1cd27b5440b.png'),
     '@': path.resolve(__dirname, './src'),
   };
   if (useHelmetShim) {
@@ -69,6 +49,10 @@ export default defineConfig(({ mode, command }) => {
     },
     optimizeDeps: {
       include: ['sockjs-client'],
+    },
+    esbuild: {
+      drop: mode === 'production' ? ['debugger'] : [],
+      pure: mode === 'production' ? ['console.debug'] : [],
     },
     build: {
       target: 'esnext',
@@ -111,11 +95,6 @@ export default defineConfig(({ mode, command }) => {
               || id.includes('/@stomp/')
             ) {
               return 'vendor-realtime';
-            }
-            if (
-              id.includes('/axios/')
-            ) {
-              return 'vendor-network';
             }
           },
         },

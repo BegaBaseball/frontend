@@ -76,12 +76,13 @@ const Button = React.forwardRef<
       return null;
     }
 
-    const childRef = (child as React.ReactElement & { ref?: React.Ref<HTMLElement> }).ref;
+    const childElement = child as React.ReactElement<any>;
+    const childRef = (childElement as React.ReactElement & { ref?: React.Ref<HTMLElement> }).ref;
 
-    return React.cloneElement(child, {
+    return React.cloneElement(childElement, {
       ...props,
       "data-slot": "button",
-      className: cn(resolvedClassName, child.props.className),
+      className: cn(resolvedClassName, childElement.props.className),
       ref: mergeRefs(childRef, ref as React.Ref<HTMLElement>),
     });
   }

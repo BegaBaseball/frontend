@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import api from './axios';
 import { analyzeTeam, CoachAnalyzeError } from './coach';
 
 const baseRequest = {
@@ -30,13 +29,21 @@ const buildStreamResponse = (chunks: string[]) => {
 };
 
 test('analyzeTeam은 401에서 auth 전용 에러를 던진다', async (t) => {
-  t.mock.method(globalThis, 'fetch', async () => (
-    new Response(JSON.stringify({ detail: 'Unauthorized' }), {
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    const url = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+    return new Response(JSON.stringify({
+      detail: 'Unauthorized',
+      message: url.endsWith('/auth/reissue') ? 'reissue failed' : 'Unauthorized',
+    }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
-    })
-  ) as never);
-  t.mock.method(api, 'post', async () => ({ status: 401 }) as never);
+    });
+  });
 
   await assert.rejects(
     () => analyzeTeam(baseRequest),
@@ -51,14 +58,14 @@ test('analyzeTeam은 401에서 auth 전용 에러를 던진다', async (t) => {
 });
 
 test('analyzeTeam은 reissue 요청이 401로 실패해도 auth 전용 에러를 던진다', async (t) => {
-  t.mock.method(globalThis, 'fetch', async () => (
-    new Response(JSON.stringify({ detail: 'Unauthorized' }), {
+  let requestCount = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requestCount += 1;
+
+    return new Response(JSON.stringify({ detail: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
-    })
-  ) as never);
-  t.mock.method(api, 'post', async () => {
-    throw new Error('Request failed with status code 401');
+    });
   });
 
   await assert.rejects(
@@ -71,6 +78,8 @@ test('analyzeTeam은 reissue 요청이 401로 실패해도 auth 전용 에러를
       return true;
     },
   );
+
+  assert.equal(requestCount, 2);
 });
 
 test('analyzeTeam은 5xx에서 generic 분석 실패 에러를 던진다', async (t) => {
@@ -219,7 +228,7 @@ test('analyzeTeam은 message delta를 누적하고 done으로 종료한다', asy
 test('analyzeTeam은 explicit abort를 timeout이나 generic failure로 바꾸지 않는다', async (t) => {
   let delivered = false;
 
-  t.mock.method(globalThis, 'fetch', async (_input, init) => buildStreamResponse([
+  t.mock.method(globalThis, 'fetch', async (_input: string | URL | Request, _init?: RequestInit) => buildStreamResponse([
     'event: message\n',
     'data: {"delta":"첫 문장"}\n',
     '\n',

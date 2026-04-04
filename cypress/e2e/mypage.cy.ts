@@ -357,7 +357,7 @@ describe('My Page (User Profile)', () => {
                 }
             }).as('getMeSocialOnly');
 
-            visitMyPage(createAuthState({ provider: 'GOOGLE', hasPassword: false }));
+            visitMyPage(createAuthState({ hasPassword: false }));
             cy.wait('@getMeSocialOnly');
             cy.contains('TestUser', { timeout: 20000 }).should('be.visible');
 

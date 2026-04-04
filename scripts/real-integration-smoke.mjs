@@ -78,6 +78,25 @@ const normalizeFrontendOriginFromValue = (value) => {
 };
 
 const API_BASE = resolveApiBaseFromEnv();
+const HEALTH_URLS = (() => {
+  if (!API_BASE) {
+    return [];
+  }
+
+  try {
+    const parsed = new URL(API_BASE);
+    const basePath = parsed.pathname.replace(/\/+$/, '');
+    const servicePath = basePath.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+    const candidates = [
+      `${parsed.origin}${servicePath || ''}/actuator/health`,
+      `${parsed.origin}${basePath || ''}/actuator/health`,
+    ];
+
+    return [...new Set(candidates)];
+  } catch {
+    return [];
+  }
+})();
 const FRONTEND_ORIGIN = (() => {
   const normalizedCandidateFromEnv =
     normalizeFrontendOriginFromValue(process.env.SMOKE_FRONTEND_ORIGIN)
@@ -116,17 +135,33 @@ const steps = [];
 const runStartedAt = new Date().toISOString();
 const ALLOWED_DIAGNOSTIC_KINDS = new Set(['network', 'timeout', 'http', 'payload', 'config']);
 
+const normalizeHandleForExpectation = (value) => {
+  const trimmed = String(value ?? '').trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  return trimmed.startsWith('@')
+    ? trimmed.toLowerCase()
+    : `@${trimmed.toLowerCase()}`;
+};
+
+const normalizeEmailForExpectation = (value) => String(value ?? '').trim().toLowerCase();
+
 const randomSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
 const signupIdentity = {
   name: `smoke_user_${randomSuffix.slice(-6)}`,
-  handle: `@s${randomSuffix.slice(-8)}`,
-  email: `smoke_${randomSuffix}@example.com`,
+  handle: `@Smoke${randomSuffix.slice(-6)}`,
+  email: `Smoke_${randomSuffix}@Example.com`,
   password: 'Test1234!',
   favoriteTeam: 'LG',
 };
+const normalizedSignupHandle = normalizeHandleForExpectation(signupIdentity.handle);
+const normalizedSignupEmail = normalizeEmailForExpectation(signupIdentity.email);
 let activeLoginEmail = signupIdentity.email;
 let activeLoginPassword = signupIdentity.password;
 let samplePartyId = null;
+let didCreateSignupUser = false;
 
 const withTimeout = async (promise, timeoutMs, timeoutMessage) => {
   let timer;
@@ -199,6 +234,23 @@ const attachDiagnostics = (error, defaults = {}) => {
     normalized.status = normalized.diagnostics.status;
   }
   return normalized;
+};
+
+const withPublicAuthHint = (endpointName, error) => {
+  const status = typeof error?.status === 'number'
+    ? error.status
+    : (typeof error?.diagnostics?.status === 'number' ? error.diagnostics.status : null);
+  if (status === 401 || status === 403) {
+    return attachDiagnostics(new Error(
+      `${endpointName} is not publicly accessible on the deployed backend `
+      + `(status ${status}). The auth availability endpoint deployment is likely missing or outdated.`,
+    ), buildDiagnostics(error, {
+      step: 'signup-availability-precheck',
+      status,
+      kind: 'http',
+    }));
+  }
+  return error;
 };
 
 const formatDiagnostics = (diagnostics) => {
@@ -327,6 +379,31 @@ const requestJson = async (path, options = {}) => {
   };
 };
 
+const requestHealth = async (options = {}) => {
+  const {
+    timeoutMs = 3000,
+    expectedStatuses = [200],
+  } = options;
+
+  const candidates = HEALTH_URLS.length > 0
+    ? HEALTH_URLS
+    : [`${API_BASE}/actuator/health`];
+
+  let lastError = null;
+  for (const candidateUrl of candidates) {
+    try {
+      return await requestJson(candidateUrl, {
+        expectedStatuses,
+        timeoutMs,
+      });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('health endpoint request failed');
+};
+
 const runStep = async (name, fn) => {
   const startedAt = new Date().toISOString();
   const start = Date.now();
@@ -432,7 +509,7 @@ const main = async () => {
       await requestWithRetry(
         'backend-health',
         12,
-        () => requestJson('/actuator/health', {
+        () => requestHealth({
           expectedStatuses: [200],
           timeoutMs: 3000,
         }),
@@ -446,7 +523,7 @@ const main = async () => {
         step: 'backend-health',
         method: 'GET',
         path: '/actuator/health',
-        url: `${API_BASE}/actuator/health`,
+        url: HEALTH_URLS[0] || `${API_BASE}/actuator/health`,
       });
       throw wrappedError;
     }
@@ -460,6 +537,60 @@ const main = async () => {
   ));
 
   const policyConsents = extractRequiredPolicyConsents(policyResponse.data);
+
+  await runStep('signup-availability-precheck', async () => {
+    if (SKIP_SIGNUP) {
+      return {
+        status: 'skipped',
+        reason: 'SMOKE_SKIP_SIGNUP=1',
+      };
+    }
+
+    const handleQuery = signupIdentity.handle.replace(/^@/, '').toUpperCase();
+    const emailQuery = signupIdentity.email.toUpperCase();
+    const handlePath = `/auth/check-handle?${new URLSearchParams({ handle: handleQuery }).toString()}`;
+    const emailPath = `/auth/check-email?${new URLSearchParams({ email: emailQuery }).toString()}`;
+
+    let handleResponse;
+    let emailResponse;
+    try {
+      [handleResponse, emailResponse] = await Promise.all([
+        requestJson(handlePath, { expectedStatuses: [200] }),
+        requestJson(emailPath, { expectedStatuses: [200] }),
+      ]);
+    } catch (error) {
+      if (String(error?.diagnostics?.path || '').includes('/auth/check-email')) {
+        throw withPublicAuthHint('check-email', error);
+      }
+      if (String(error?.diagnostics?.path || '').includes('/auth/check-handle')) {
+        throw withPublicAuthHint('check-handle', error);
+      }
+      throw error;
+    }
+
+    if (handleResponse.data?.success !== true || handleResponse.data?.data?.available !== true) {
+      throw new Error(handleResponse.data?.message || 'signup handle precheck 응답이 유효하지 않습니다.');
+    }
+
+    if (handleResponse.data?.data?.normalized !== normalizedSignupHandle) {
+      throw new Error(`signup handle precheck normalized mismatch: ${handleResponse.data?.data?.normalized}`);
+    }
+
+    if (emailResponse.data?.success !== true || emailResponse.data?.data?.available !== true) {
+      throw new Error(emailResponse.data?.message || 'signup email precheck 응답이 유효하지 않습니다.');
+    }
+
+    if (emailResponse.data?.data?.normalized !== normalizedSignupEmail) {
+      throw new Error(`signup email precheck normalized mismatch: ${emailResponse.data?.data?.normalized}`);
+    }
+
+    return {
+      handleQuery,
+      handleNormalized: handleResponse.data.data.normalized,
+      emailQuery,
+      emailNormalized: emailResponse.data.data.normalized,
+    };
+  });
 
   await runStep('signup', async () => {
     if (SKIP_SIGNUP) {
@@ -490,6 +621,7 @@ const main = async () => {
         throw new Error(response.data?.message || '회원가입 응답 success=false');
       }
 
+      didCreateSignupUser = true;
       activeLoginEmail = signupIdentity.email;
       activeLoginPassword = signupIdentity.password;
       return { status: response.status, message: response.data?.message };
@@ -509,6 +641,48 @@ const main = async () => {
     }
   });
 
+  await runStep('signup-availability-postcheck', async () => {
+    if (!didCreateSignupUser) {
+      return {
+        status: 'skipped',
+        reason: 'signup user not created in this run',
+      };
+    }
+
+    const handleQuery = signupIdentity.handle.replace(/^@/, '').toUpperCase();
+    const emailQuery = signupIdentity.email.toUpperCase();
+    const handlePath = `/auth/check-handle?${new URLSearchParams({ handle: handleQuery }).toString()}`;
+    const emailPath = `/auth/check-email?${new URLSearchParams({ email: emailQuery }).toString()}`;
+
+    const [handleResponse, emailResponse] = await Promise.all([
+      requestJson(handlePath, { expectedStatuses: [409] }),
+      requestJson(emailPath, { expectedStatuses: [409] }),
+    ]);
+
+    if (handleResponse.data?.code !== 'HANDLE_UNAVAILABLE' || handleResponse.data?.data?.available !== false) {
+      throw new Error(handleResponse.data?.message || 'signup handle postcheck 응답이 유효하지 않습니다.');
+    }
+
+    if (handleResponse.data?.data?.normalized !== normalizedSignupHandle) {
+      throw new Error(`signup handle postcheck normalized mismatch: ${handleResponse.data?.data?.normalized}`);
+    }
+
+    if (emailResponse.data?.code !== 'DUPLICATE_EMAIL' || emailResponse.data?.data?.available !== false) {
+      throw new Error(emailResponse.data?.message || 'signup email postcheck 응답이 유효하지 않습니다.');
+    }
+
+    if (emailResponse.data?.data?.normalized !== normalizedSignupEmail) {
+      throw new Error(`signup email postcheck normalized mismatch: ${emailResponse.data?.data?.normalized}`);
+    }
+
+    return {
+      handleCode: handleResponse.data.code,
+      handleNormalized: handleResponse.data.data.normalized,
+      emailCode: emailResponse.data.code,
+      emailNormalized: emailResponse.data.data.normalized,
+    };
+  });
+
   await runStep('login', async () => {
     const response = await requestJson('/auth/login', {
       method: 'POST',
@@ -522,6 +696,10 @@ const main = async () => {
 
     if (response.data?.success !== true) {
       throw new Error(response.data?.message || '로그인 응답 success=false');
+    }
+
+    if (didCreateSignupUser && response.data?.data?.handle !== normalizedSignupHandle) {
+      throw new Error(`로그인 응답 handle canonicalization mismatch: ${response.data?.data?.handle}`);
     }
 
     return {

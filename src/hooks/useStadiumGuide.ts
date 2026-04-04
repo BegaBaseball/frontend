@@ -241,6 +241,28 @@ export const useStadiumGuide = () => {
     loadMapSdk();
   }, [loadMapSdk]);
 
+  useEffect(() => {
+    const isNearbyCategory = selectedCategory === 'store' || selectedCategory === 'parking';
+
+    if (!selectedStadium || !isNearbyCategory) {
+      return;
+    }
+
+    if (mapStatus !== 'error' || isMapReady || map) {
+      return;
+    }
+
+    if (!hasValidCoordinates(selectedStadium.lat, selectedStadium.lng)) {
+      return;
+    }
+
+    setPlaces([]);
+    setPlacesStatus('idle');
+    setPlacesError(null);
+    setNearbyStatus('error');
+    setNearbyError('지도가 준비되지 않아 주변 검색을 수행할 수 없습니다.');
+  }, [selectedCategory, selectedStadium, mapStatus, isMapReady, map]);
+
   const loading = useMemo(
     () =>
       stadiumsStatus === 'loading'

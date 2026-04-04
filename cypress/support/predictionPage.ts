@@ -157,6 +157,15 @@ const seedPredictionGuestState = (
 
 const installPredictionAuthRequestTrace = (win: Window) => {
   const typedWin = win as PredictionWindowWithAuthProfile;
+  const typedGlobalWin = win as Window & typeof globalThis;
+  type XhrOpen = (
+    this: XMLHttpRequest,
+    method: string,
+    url: string | URL,
+    async?: boolean,
+    username?: string | null,
+    password?: string | null,
+  ) => void;
   if (typedWin.__predictionAuthRequestTraces) {
     return;
   }
@@ -178,9 +187,9 @@ const installPredictionAuthRequestTrace = (win: Window) => {
     return originalFetch(...args);
   };
 
-  const xhrPrototype = win.XMLHttpRequest.prototype as XMLHttpRequest['prototype'] & {
+  const xhrPrototype = typedGlobalWin.XMLHttpRequest.prototype as typeof globalThis.XMLHttpRequest.prototype & {
     __predictionAuthTraceInstalled?: boolean;
-    __predictionAuthTraceOriginalOpen?: XMLHttpRequest['open'];
+    __predictionAuthTraceOriginalOpen?: XhrOpen;
   };
 
   if (xhrPrototype.__predictionAuthTraceInstalled) {
@@ -188,12 +197,14 @@ const installPredictionAuthRequestTrace = (win: Window) => {
   }
 
   xhrPrototype.__predictionAuthTraceInstalled = true;
-  xhrPrototype.__predictionAuthTraceOriginalOpen = xhrPrototype.open;
+  xhrPrototype.__predictionAuthTraceOriginalOpen = xhrPrototype.open as XhrOpen;
   xhrPrototype.open = function patchedPredictionAuthOpen(
     this: XMLHttpRequest,
     method: string,
     url: string | URL,
-    ...rest: [boolean | undefined, string | undefined, string | undefined]
+    async?: boolean,
+    username?: string | null,
+    password?: string | null,
   ) {
     const normalizedUrl = typeof url === 'string' ? url : url.toString();
     if (normalizedUrl.includes('/api/auth/mypage')) {
@@ -204,7 +215,11 @@ const installPredictionAuthRequestTrace = (win: Window) => {
         stack: new Error().stack,
       });
     }
-    return xhrPrototype.__predictionAuthTraceOriginalOpen!.call(this, method, url, ...rest);
+    if (typeof async === 'boolean') {
+      return xhrPrototype.__predictionAuthTraceOriginalOpen!.call(this, method, url, async, username, password);
+    }
+
+    return xhrPrototype.__predictionAuthTraceOriginalOpen!.call(this, method, url);
   };
 };
 
@@ -305,8 +320,15 @@ export const getPredictionAuthRequestTraces = () => (
 );
 
 export const ensureCoachBriefingVisible = () => {
-  cy.get('body').then(($body) => {
-    const hasCoachBriefing = $body.find('[data-testid="coach-briefing-title"]').length > 0;
+  cy.window().then((win) => {
+    const hasFakeClock = Boolean((win.setTimeout as typeof win.setTimeout & { clock?: unknown }).clock);
+    if (hasFakeClock) {
+      cy.tick(100);
+    }
+  });
+
+  cy.get('body', { timeout: 20000 }).then(($body) => {
+    const hasCoachBriefing = $body.find('[data-testid="coach-briefing-card"]').length > 0;
     if (hasCoachBriefing) {
       return;
     }
@@ -320,6 +342,12 @@ export const ensureCoachBriefingVisible = () => {
     }
   });
 
-  cy.get('[data-testid="coach-briefing-title"]', { timeout: 20000 }).should('exist');
-  cy.get('[data-testid="coach-briefing-card"]').scrollIntoView().should('be.visible');
+  cy.window().then((win) => {
+    const hasFakeClock = Boolean((win.setTimeout as typeof win.setTimeout & { clock?: unknown }).clock);
+    if (hasFakeClock) {
+      cy.tick(1300);
+    }
+  });
+
+  cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 }).scrollIntoView().should('be.visible');
 };
