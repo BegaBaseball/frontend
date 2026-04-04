@@ -1,0 +1,108 @@
+name: Frontend Prediction Mobile QA
+
+on:
+  pull_request:
+    paths:
+      - "src/components/Prediction.tsx"
+      - "src/components/RankingPrediction.tsx"
+      - "src/components/prediction/**"
+      - "src/hooks/usePrediction.ts"
+      - "src/hooks/useRankingPrediction.ts"
+      - "src/hooks/predictionHookShared.ts"
+      - "src/store/predictionStore.ts"
+      - "src/api/ranking.ts"
+      - "src/index.css"
+      - "package.json"
+      - "package-lock.json"
+      - "output/playwright/prediction-mobile-audit.mjs"
+      - "output/playwright/run-prediction-mobile-regression.mjs"
+      - ".github/workflows/frontend-prediction-mobile-qa.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-prediction-mobile-qa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prediction-mobile-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright runtime
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Run prediction mobile smoke
+        env:
+          PLAYWRIGHT_BROWSER_CHANNEL: chromium
+        run: npm run qa:prediction:mobile:smoke
+
+      - name: Publish prediction mobile summary
+        if: always()
+        shell: bash
+        run: |
+          SUMMARY_FILE="${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.md"
+          JSON_FILE="${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json"
+
+          echo "### Frontend Prediction Mobile QA" >> "${GITHUB_STEP_SUMMARY}"
+
+          if [[ -f "${SUMMARY_FILE}" ]]; then
+            cat "${SUMMARY_FILE}" >> "${GITHUB_STEP_SUMMARY}"
+          elif [[ -f "${JSON_FILE}" ]]; then
+            node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+            const fs = require('fs');
+
+            const report = JSON.parse(fs.readFileSync(process.env.JSON_FILE, 'utf8'));
+            const lines = [
+              `- Status: ${report.status}`,
+              `- Base URL: ${report.baseUrl}`,
+              `- Server mode: ${report.serverMode}`,
+              `- Entries: ${report.entryCount}`,
+              `- Overflow failures: ${report.overflowFailureCount}`,
+              `- Actionable failed requests: ${report.actionableFailedRequestCount}`,
+              `- Actionable console errors: ${report.actionableConsoleErrorCount}`,
+            ];
+
+            if (Array.isArray(report.states) && report.states.length > 0) {
+              lines.push(`- States: ${report.states.join(', ')}`);
+            }
+
+            if (report.error) {
+              lines.push('', '**Error**', `- ${report.error}`);
+            }
+
+            console.log(lines.join('\n'));
+          NODE
+          else
+            echo "prediction mobile summary not found" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+        env:
+          JSON_FILE: ${{ github.workspace }}/output/playwright/prediction-mobile-regression-summary.json
+
+      - name: Upload prediction mobile artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-prediction-mobile-qa-artifacts
+          path: |
+            output/playwright/prediction-mobile-regression-summary.json
+            output/playwright/prediction-mobile-regression-summary.md
+            output/playwright/prediction-mobile/report.json
+            output/playwright/prediction-mobile
+          if-no-files-found: warn
+          retention-days: 14

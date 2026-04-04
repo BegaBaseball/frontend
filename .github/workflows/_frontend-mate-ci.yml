@@ -1,0 +1,246 @@
+name: Frontend Mate CI Shared
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: "smoke or regression"
+        required: true
+        type: string
+      comment_on_pr:
+        description: "Publish or update a PR comment with the mate CI summary"
+        required: false
+        default: false
+        type: boolean
+      timeout_minutes:
+        description: "Job timeout in minutes"
+        required: true
+        type: number
+      trigger_note:
+        description: "Human-readable trigger summary"
+        required: true
+        type: string
+      suite_scope:
+        description: "Regression suite slice to execute"
+        required: false
+        default: "all"
+        type: string
+      upload_visual_artifacts:
+        description: "Upload successful mate-visual screenshots when extended regression runs"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  mate-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    env:
+      RUN_ROUTE: ${{ inputs.mode == 'regression' && (inputs.suite_scope == 'all' || inputs.suite_scope == 'route') }}
+      RUN_CREATE: ${{ inputs.mode == 'regression' && (inputs.suite_scope == 'all' || inputs.suite_scope == 'create') }}
+      RUN_EXTENDED: ${{ inputs.mode == 'regression' && (inputs.suite_scope == 'all' || inputs.suite_scope == 'extended') }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare mate CI reports
+        run: mkdir -p reports/mate-ci
+
+      - name: Run mate unit smoke
+        id: unit_smoke
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:mate:smoke 2>&1 | tee reports/mate-ci/unit-smoke.log
+
+      - name: Run mate build smoke
+        id: build_smoke
+        env:
+          VITE_SITE_URL: http://localhost:5173
+          VITE_API_BASE_URL: http://localhost:8080
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee reports/mate-ci/build-smoke.log
+
+      - name: Run mate core E2E smoke
+        id: e2e_smoke
+        if: ${{ inputs.mode == 'smoke' }}
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e:mate:smoke 2>&1 | tee reports/mate-ci/e2e-smoke.log
+
+      - name: Run mate route regression
+        id: route_regression
+        if: ${{ inputs.mode == 'regression' && env.RUN_ROUTE == 'true' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e:mate:regression:route 2>&1 | tee reports/mate-ci/route-regression.log
+
+      - name: Run mate create/session regression
+        id: create_regression
+        if: ${{ inputs.mode == 'regression' && env.RUN_CREATE == 'true' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e:mate:regression:create 2>&1 | tee reports/mate-ci/create-regression.log
+
+      - name: Run mate extended regression
+        id: extended_regression
+        if: ${{ inputs.mode == 'regression' && env.RUN_EXTENDED == 'true' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e:mate:regression:extended 2>&1 | tee reports/mate-ci/extended-regression.log
+
+      - name: Generate mate CI machine-readable summary
+        if: always()
+        shell: bash
+        env:
+          MATE_CI_STATUS_UNIT_SMOKE: ${{ steps.unit_smoke.outcome }}
+          MATE_CI_STATUS_BUILD_SMOKE: ${{ steps.build_smoke.outcome }}
+          MATE_CI_STATUS_E2E_SMOKE: ${{ steps.e2e_smoke.outcome || 'skipped' }}
+          MATE_CI_STATUS_ROUTE_REGRESSION: ${{ steps.route_regression.outcome || 'skipped' }}
+          MATE_CI_STATUS_CREATE_REGRESSION: ${{ steps.create_regression.outcome || 'skipped' }}
+          MATE_CI_STATUS_EXTENDED_REGRESSION: ${{ steps.extended_regression.outcome || 'skipped' }}
+        run: |
+          node scripts/mate-ci-summary.mjs "${{ inputs.mode }}" \
+            --json "reports/mate-ci/${{ inputs.mode }}-summary.json" \
+            --markdown "reports/mate-ci/${{ inputs.mode }}-summary.md"
+
+      - name: Upload mate CI report artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.mode == 'smoke' && 'frontend-mate-smoke-reports' || 'frontend-mate-regression-reports' }}
+          path: |
+            reports/mate-ci/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload mate Cypress failure artifacts
+        if: ${{ always() && ((inputs.mode == 'smoke' && steps.e2e_smoke.outcome == 'failure') || (inputs.mode == 'regression' && (steps.route_regression.outcome == 'failure' || steps.create_regression.outcome == 'failure' || steps.extended_regression.outcome == 'failure'))) }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.mode == 'smoke' && 'frontend-mate-smoke-cypress-failures' || 'frontend-mate-regression-cypress-failures' }}
+          path: |
+            cypress/screenshots/**
+            cypress/videos/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload mate visual screenshots
+        if: ${{ always() && inputs.mode == 'regression' && env.RUN_EXTENDED == 'true' && inputs.upload_visual_artifacts && steps.extended_regression.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-mate-regression-visual-artifacts
+          path: cypress/screenshots/mate-visual.cy.ts/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish mate CI summary
+        if: always()
+        shell: bash
+        env:
+          MATE_CI_STATUS_UNIT_SMOKE: ${{ steps.unit_smoke.outcome }}
+          MATE_CI_STATUS_BUILD_SMOKE: ${{ steps.build_smoke.outcome }}
+          MATE_CI_STATUS_E2E_SMOKE: ${{ steps.e2e_smoke.outcome || 'skipped' }}
+          MATE_CI_STATUS_ROUTE_REGRESSION: ${{ steps.route_regression.outcome || 'skipped' }}
+          MATE_CI_STATUS_CREATE_REGRESSION: ${{ steps.create_regression.outcome || 'skipped' }}
+          MATE_CI_STATUS_EXTENDED_REGRESSION: ${{ steps.extended_regression.outcome || 'skipped' }}
+          MATE_CI_TRIGGER_NOTE: ${{ inputs.trigger_note }}
+          MATE_CI_ARTIFACT_NOTE: ${{ inputs.mode == 'smoke' && 'machine-readable reports/logs are uploaded as `frontend-mate-smoke-reports`; failure screenshots/videos are uploaded as `frontend-mate-smoke-cypress-failures` for 14 days' || 'machine-readable reports/logs are uploaded as `frontend-mate-regression-reports`; failure screenshots/videos are uploaded as `frontend-mate-regression-cypress-failures` for 14 days' }}
+          MATE_CI_SECONDARY_ARTIFACT_NOTE: ${{ inputs.mode == 'regression' && inputs.upload_visual_artifacts && '`frontend-mate-regression-visual-artifacts` uploads successful mate-visual screenshots when extended regression runs' || '' }}
+        run: |
+          node scripts/mate-ci-summary.mjs "${{ inputs.mode }}" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Render mate CI PR comment
+        if: ${{ always() && inputs.comment_on_pr && github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          node scripts/mate-ci-pr-comment.mjs \
+            --summary "reports/mate-ci/${{ inputs.mode }}-summary.json" \
+            --mode "${{ inputs.mode }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --reports-artifact "${{ inputs.mode == 'smoke' && 'frontend-mate-smoke-reports' || 'frontend-mate-regression-reports' }}" \
+            --failure-artifact "${{ inputs.mode == 'smoke' && 'frontend-mate-smoke-cypress-failures' || 'frontend-mate-regression-cypress-failures' }}" \
+            ${{ inputs.mode == 'regression' && inputs.upload_visual_artifacts && '--secondary-artifact frontend-mate-regression-visual-artifacts' || '' }} \
+            > reports/mate-ci/pr-comment.md
+
+      - name: Upsert mate CI PR comment
+        if: ${{ always() && inputs.comment_on_pr && github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        env:
+          COMMENT_PATH: reports/mate-ci/pr-comment.md
+          COMMENT_MARKER: ${{ inputs.mode == 'smoke' && '<!-- mate-ci-smoke -->' || '<!-- mate-ci-regression -->' }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const body = fs.readFileSync(process.env.COMMENT_PATH, 'utf8');
+            const marker = process.env.COMMENT_MARKER;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body,
+            });
+
+      - name: Fail if any mate regression suite failed
+        if: ${{ always() && inputs.mode == 'regression' }}
+        shell: bash
+        run: |
+          should_fail=0
+
+          if [[ "${RUN_ROUTE}" == "true" && "${{ steps.route_regression.outcome }}" != "success" ]]; then
+            should_fail=1
+          fi
+
+          if [[ "${RUN_CREATE}" == "true" && "${{ steps.create_regression.outcome }}" != "success" ]]; then
+            should_fail=1
+          fi
+
+          if [[ "${RUN_EXTENDED}" == "true" && "${{ steps.extended_regression.outcome }}" != "success" ]]; then
+            should_fail=1
+          fi
+
+          if [[ "${should_fail}" == "1" ]]; then
+            exit 1
+          fi

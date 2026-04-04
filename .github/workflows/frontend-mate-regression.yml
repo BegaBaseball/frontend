@@ -1,0 +1,89 @@
+name: Frontend Mate Regression
+
+on:
+  pull_request:
+    types:
+      - labeled
+      - synchronize
+      - reopened
+    paths:
+      # Mate domain files.
+      - "src/api/mate*.ts"
+      - "src/components/Mate*.tsx"
+      - "src/components/mypage/Mate*.tsx"
+      - "src/hooks/mate*.ts"
+      - "src/hooks/internal/mate*.ts"
+      - "src/store/mateStore.ts"
+      - "src/types/mate.ts"
+      - "src/utils/mate*.ts"
+      - "cypress/e2e/mate*.cy.ts"
+      # Shared runtime and route entrypoints that directly affect mate flows.
+      - "src/App.tsx"
+      - "src/main.tsx"
+      - "src/components/Home.tsx"
+      - "src/components/LoadingSpinner.tsx"
+      - "src/components/ReviewDialog.tsx"
+      - "src/components/SeatViewGallery.tsx"
+      - "src/components/TeamLogo.tsx"
+      - "src/components/VerificationRequiredDialog.tsx"
+      - "src/components/common/OptimizedImage.tsx"
+      - "src/components/contexts/ConfirmDialogContext.tsx"
+      - "src/components/profile/UserProfileModal.tsx"
+      - "src/components/ui/**"
+      - "src/hooks/useWebSocket.ts"
+      - "src/store/authStore.ts"
+      - "src/utils/api.ts"
+      - "src/utils/errorUtils.ts"
+      - "src/utils/loginRedirect.ts"
+      - "src/utils/mateFlowUi.ts"
+      # Test harness, build tooling, and workflow contract.
+      - "cypress.config.ts"
+      - "cypress/support/**"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/cypress-run.mjs"
+      - "scripts/mate-ci-summary.mjs"
+      - "scripts/test-e2e.mjs"
+      - "vite.config.ts"
+      - ".github/labeler.yml"
+      - ".github/workflows/_frontend-mate-ci.yml"
+      - ".github/workflows/frontend-mate-regression-label.yml"
+      - ".github/workflows/frontend-mate-regression.yml"
+  workflow_dispatch:
+    inputs:
+      suite_scope:
+        description: "Run a single mate regression slice or the full stack"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - route
+          - create
+          - extended
+      upload_visual_artifacts:
+        description: "Upload mate-visual screenshots even when the regression succeeds"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "0 18 * * *"
+
+concurrency:
+  group: frontend-mate-regression-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mate-regression:
+    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-mate-regression') }}
+    uses: ./.github/workflows/_frontend-mate-ci.yml
+    permissions:
+      contents: read
+      issues: write
+    with:
+      comment_on_pr: true
+      mode: regression
+      timeout_minutes: 90
+      suite_scope: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.suite_scope || 'all' }}
+      upload_visual_artifacts: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.upload_visual_artifacts == 'true' }}
+      trigger_note: ${{ github.event_name == 'pull_request' && 'PR label `full-mate-regression` + mate-related path changes' || github.event_name == 'workflow_dispatch' && format('manual workflow dispatch (suite_scope={0})', github.event.inputs.suite_scope || 'all') || 'nightly at 03:00 Asia/Seoul (18:00 UTC)' }}

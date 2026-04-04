@@ -1,0 +1,109 @@
+name: Frontend SEO Postdeploy Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Smoke target base URL (served site)"
+        required: true
+        type: string
+        default: "https://www.begabaseball.xyz"
+      expected_site_url:
+        description: "Expected canonical/sitemap site URL"
+        required: true
+        type: string
+        default: "https://www.begabaseball.xyz"
+      timeout_ms:
+        description: "Request timeout in milliseconds"
+        required: true
+        type: string
+        default: "25000"
+
+jobs:
+  seo-postdeploy-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: frontend-seo-postdeploy-smoke-production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: ${{ inputs.base_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate workflow inputs
+        shell: bash
+        run: |
+          BASE_URL="${{ inputs.base_url }}"
+          EXPECTED_SITE_URL="${{ inputs.expected_site_url }}"
+          TIMEOUT_MS="${{ inputs.timeout_ms }}"
+
+          if ! [[ "${BASE_URL}" =~ ^https:// ]]; then
+            echo "base_url must start with https:// : ${BASE_URL}" >&2
+            exit 1
+          fi
+          if ! [[ "${EXPECTED_SITE_URL}" =~ ^https:// ]]; then
+            echo "expected_site_url must start with https:// : ${EXPECTED_SITE_URL}" >&2
+            exit 1
+          fi
+          if ! [[ "${TIMEOUT_MS}" =~ ^[0-9]+$ ]]; then
+            echo "timeout_ms must be an integer: ${TIMEOUT_MS}" >&2
+            exit 1
+          fi
+          if (( TIMEOUT_MS < 1000 || TIMEOUT_MS > 120000 )); then
+            echo "timeout_ms out of range (1000~120000): ${TIMEOUT_MS}" >&2
+            exit 1
+          fi
+
+          BASE_HOST="$(echo "${BASE_URL}" | sed -E 's#^https://([^/]+).*$#\1#')"
+          EXPECTED_HOST="$(echo "${EXPECTED_SITE_URL}" | sed -E 's#^https://([^/]+).*$#\1#')"
+          if [[ "${BASE_HOST}" != "${EXPECTED_HOST}" ]]; then
+            echo "Host mismatch: base_url=${BASE_HOST}, expected_site_url=${EXPECTED_HOST}" >&2
+            exit 1
+          fi
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run SEO postdeploy smoke
+        run: >
+          npm run seo:smoke:prod --
+          --base-url "${{ inputs.base_url }}"
+          --expected-site-url "${{ inputs.expected_site_url }}"
+          --timeout-ms "${{ inputs.timeout_ms }}"
+
+      - name: Publish smoke summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Frontend SEO Postdeploy Smoke" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Environment: production" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Base URL: ${{ inputs.base_url }}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Expected Site URL: ${{ inputs.expected_site_url }}" >> "${GITHUB_STEP_SUMMARY}"
+          if [[ -f "reports/seo-postdeploy-smoke.json" ]]; then
+            node -e 'const fs=require("fs"); const p="reports/seo-postdeploy-smoke.json"; const r=JSON.parse(fs.readFileSync(p,"utf8")); console.log(`Result: ${r.ok ? "PASS" : "FAIL"}`); if(Array.isArray(r.failures)&&r.failures.length){console.log("Failures:"); for(const f of r.failures){console.log(`- ${f}`);} } if(Array.isArray(r.warnings)&&r.warnings.length){console.log("Warnings:"); for(const w of r.warnings){console.log(`- ${w}`);} }' >> "${GITHUB_STEP_SUMMARY}"
+            echo '```json' >> "${GITHUB_STEP_SUMMARY}"
+            cat "reports/seo-postdeploy-smoke.json" >> "${GITHUB_STEP_SUMMARY}"
+            echo '```' >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "seo-postdeploy-smoke.json not found" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload smoke artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-seo-postdeploy-smoke-artifact
+          path: reports/seo-postdeploy-smoke.json
+          if-no-files-found: warn
+          retention-days: 14

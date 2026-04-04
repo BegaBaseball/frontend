@@ -1,0 +1,23 @@
+full-mate-regression:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/api/mate*.ts"
+          - "src/components/Mate*.tsx"
+          - "src/components/mypage/Mate*.tsx"
+          - "src/hooks/mate*.ts"
+          - "src/hooks/internal/mate*.ts"
+          - "src/store/mateStore.ts"
+          - "src/store/authStore.ts"
+          - "src/types/mate.ts"
+          - "src/utils/mate*.ts"
+          - "src/utils/api.ts"
+          - "src/utils/errorUtils.ts"
+          - "src/utils/loginRedirect.ts"
+          - "src/hooks/useWebSocket.ts"
+          - "cypress/e2e/mate*.cy.ts"
+          - "scripts/cypress-run.mjs"
+          - "scripts/mate-ci-summary.mjs"
+          - "scripts/test-e2e.mjs"
+          - ".github/workflows/_frontend-mate-ci.yml"
+          - ".github/workflows/frontend-mate-smoke.yml"
+          - ".github/workflows/frontend-mate-regression.yml"
