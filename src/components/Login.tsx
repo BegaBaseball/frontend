@@ -35,6 +35,7 @@ export default function Login() {
   const redirectPath = new URLSearchParams(location.search).get('redirect');
   const signUpPath = buildSignUpPath(redirectPath);
   const passwordResetPath = buildPasswordResetPath(redirectPath);
+  const sanitizeLoginText = (value: string) => value.replace(/[^\x20-\x7E]/g, '');
 
   const handleSocialLogin = (provider: 'kakao' | 'google' | 'naver') => {
     if (!isLoading) {
@@ -73,7 +74,7 @@ export default function Login() {
               autoCapitalize="none"
               autoCorrect="off"
               value={formData.email}
-              onChange={(event) => handleFieldChange('email', event.target.value)}
+              onChange={(event) => handleFieldChange('email', sanitizeLoginText(event.target.value))}
               onBlur={() => handleFieldBlur('email')}
               className={`auth-input login-autofill-input ${fieldErrors.email ? 'auth-input-error' : ''}`}
               placeholder="이메일을 입력하세요"
@@ -95,7 +96,7 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 value={formData.password}
-                onChange={(event) => handleFieldChange('password', event.target.value)}
+                onChange={(event) => handleFieldChange('password', sanitizeLoginText(event.target.value).replace(/\s/g, ''))}
                 onBlur={() => handleFieldBlur('password')}
                 className={`auth-input login-autofill-input pr-12 ${fieldErrors.password ? 'auth-input-error' : ''}`}
                 placeholder="비밀번호를 입력하세요"

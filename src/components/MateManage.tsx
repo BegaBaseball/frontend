@@ -22,7 +22,7 @@ import {
   Wallet,
   XCircle,
 } from 'lucide-react';
-import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
+import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import LoadingSpinner from './LoadingSpinner';
 import TeamLogo from './TeamLogo';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';

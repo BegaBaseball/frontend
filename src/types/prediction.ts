@@ -97,9 +97,11 @@ export interface Game {
   homeTeam: string;
   awayTeam: string;
   stadium: string;
+  startTime?: string | null;
   homeScore?: number;
   awayScore?: number;
   winner?: string | null;
+  gameStatus?: string | null;
   // 고도화를 위한 추가 필드
   homePitcher?: Pitcher;
   awayPitcher?: Pitcher;

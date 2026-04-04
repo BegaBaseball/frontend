@@ -3,6 +3,8 @@ import {
   AdminClientErrorDashboard,
   AdminClientErrorEventDetail,
   AdminClientErrorEventPage,
+  AdminGameStatusMismatchBatchResult,
+  AdminGameStatusRepairBatchResult,
   AdminMate,
   AdminOffseasonMovement,
   AdminOffseasonMovementPayload,
@@ -262,6 +264,52 @@ export const fetchAdminSeatViewDetail = async (seatViewId: number): Promise<Admi
     return unwrapAdminResponse(response, '시야뷰 후보 상세 조회 실패');
   } catch (error) {
     throw new Error(readErrorMessage(error, '시야뷰 후보 상세 조회 실패'));
+  }
+};
+
+export const fetchAdminGameStatusMismatches = async (params: {
+  startDate: string;
+  endDate?: string;
+}): Promise<AdminGameStatusMismatchBatchResult> => {
+  try {
+    const response = await privateGet<AdminApiResponse<AdminGameStatusMismatchBatchResult>>(
+      '/admin/games/status-mismatches',
+      { params },
+    );
+    return unwrapAdminResponse(response, '경기 상태 불일치 조회 실패');
+  } catch (error) {
+    if (isStatusError(error, 403)) {
+      throw new Error('관리자 권한이 필요합니다.');
+    }
+
+    throw new Error(readErrorMessage(error, '경기 상태 불일치 조회 실패'));
+  }
+};
+
+export const repairAdminGameStatusMismatches = async (params: {
+  startDate: string;
+  endDate?: string;
+  dryRun?: boolean;
+}): Promise<AdminGameStatusRepairBatchResult> => {
+  try {
+    const response = await privatePost<AdminApiResponse<AdminGameStatusRepairBatchResult>, Record<string, never>>(
+      '/admin/games/repair-status-mismatches',
+      {},
+      {
+        params: {
+          startDate: params.startDate,
+          endDate: params.endDate,
+          dryRun: params.dryRun ?? true,
+        },
+      },
+    );
+    return unwrapAdminResponse(response, '경기 상태 불일치 복구 실패');
+  } catch (error) {
+    if (isStatusError(error, 403)) {
+      throw new Error('관리자 권한이 필요합니다.');
+    }
+
+    throw new Error(readErrorMessage(error, '경기 상태 불일치 복구 실패'));
   }
 };
 

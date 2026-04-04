@@ -1,7 +1,6 @@
-
 import { AiDataSource, AiStreamMetaPayload, AiToolCall } from '../types/ai';
-import api from './axios';
 import { normalizeAiDataSources, normalizeAiToolCalls } from './aiMeta';
+import { requestPrivateReissue } from './privateClient';
 import { consumeSseStream } from './sse';
 import {
     COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS,
@@ -320,10 +319,8 @@ export async function analyzeTeam(
 
             if (request.status === 401) {
                 try {
-                    const refreshResponse = await api.post('/auth/reissue', undefined, {
-                        skipGlobalErrorHandler: true,
-                    });
-                    if (refreshResponse.status >= 200 && refreshResponse.status < 300) {
+                    const refreshSucceeded = await requestPrivateReissue();
+                    if (refreshSucceeded) {
                         if (attempt < MAX_RETRIES) {
                             continue;
                         }

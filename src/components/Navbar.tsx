@@ -1,6 +1,6 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import './NavigationMenu.css';
-import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { LogOut, ShieldAlert, Menu, X, Map, Users, Megaphone, LineChart } from 'lucide-react';
 import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
@@ -8,11 +8,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { useTheme } from '../hooks/useTheme';
 import ThemeToggleButton from './ThemeToggleButton';
+import NavbarNotificationControls from './NavbarNotificationControls';
 
+import { useAnimatedPresence } from '../hooks/useAnimatedPresence';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
-const NavbarNotificationControls = lazy(() => import('./NavbarNotificationControls'));
+const MOBILE_MENU_TRANSITION_MS = 280;
 
 type NavbarProps = {
   authenticatedShell?: boolean;
@@ -31,9 +34,14 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
   const { logout } = useAuthAccessActions();
   const isAdmin = isAdminRole(userRole);
   const isDesktop = useMediaQuery('(min-width: 768px)');
-  const shouldShowMobileMenuThemeToggle = !isDesktop && isMenuOpen;
-  const shouldShowTopThemeToggle = !shouldShowMobileMenuThemeToggle;
-  const shouldHideNotificationInMenuOverlay = shouldShowMobileMenuThemeToggle;
+  const { isMounted: isMobileMenuMounted, isVisible: isMobileMenuVisible } = useAnimatedPresence(
+    !isDesktop && isMenuOpen,
+    MOBILE_MENU_TRANSITION_MS,
+  );
+  const shouldShowMobileMenuThemeToggle = !isDesktop && isMobileMenuMounted;
+  const shouldShowTopThemeToggle = isDesktop;
+  const shouldShowDesktopNotificationButton = authenticatedShell && isDesktop;
+  const shouldShowMobileNotificationButton = authenticatedShell && !isDesktop && !shouldShowMobileMenuThemeToggle;
   const navIconButtonClass = 'relative h-10 w-10 p-2 rounded-full transition-all duration-200 focus:outline-none';
   const navIconToggleClass = `${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary`;
   const navIconSizeClass = 'h-6 w-6';
@@ -50,6 +58,8 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
   const menuPopupRef = useRef<HTMLDivElement | null>(null);
   const preMenuFocusRef = useRef<HTMLElement | null>(null);
   const refreshChatUnreadRef = useRef<(() => void) | null>(null);
+
+  useBodyScrollLock(shouldShowMobileMenuThemeToggle);
 
   useEffect(() => {
     if (!authenticatedShell || !isLoggedIn) {
@@ -129,9 +139,8 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
     }
   }, [isDesktop, isMenuOpen]);
 
-  // 메뉴 외부 클릭 시 닫기
   useEffect(() => {
-    if (!isMenuOpen) {
+    if (!shouldShowMobileMenuThemeToggle) {
       const returnFocusElement = preMenuFocusRef.current;
       if (returnFocusElement) {
         returnFocusElement.focus();
@@ -143,21 +152,10 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
       ? document.activeElement
       : null;
 
-    requestAnimationFrame(() => {
+    const frameId = window.requestAnimationFrame(() => {
       const focusTarget = menuPopupRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
       focusTarget?.focus();
     });
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const menuElement = menuPopupRef.current;
-      const menuButtonElement = menuToggleButtonRef.current;
-
-      if (menuElement && !menuElement.contains(target) &&
-        menuButtonElement && !menuButtonElement.contains(target)) {
-        setIsMenuOpen(false);
-      }
-    };
 
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -165,18 +163,13 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
       }
     };
 
-    const prevBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('keydown', handleEsc);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      window.cancelAnimationFrame(frameId);
       window.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = prevBodyOverflow;
     };
-  }, [isMenuOpen]);
+  }, [shouldShowMobileMenuThemeToggle]);
 
   const handleLogout = () => {
     logout();
@@ -197,7 +190,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
 
   return (
     <header
-      className={`border-b border-gray-200 dark:border-border sticky top-0 z-[60] transition-colors duration-300 ${isMenuOpen ? 'bg-background' : 'bg-background/80 backdrop-blur-md'
+      className={`border-b border-gray-200 dark:border-border sticky top-0 z-[60] transition-colors duration-300 ${shouldShowMobileMenuThemeToggle ? 'bg-background' : 'bg-background/80 backdrop-blur-md'
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -272,11 +265,8 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
             )}
 
 
-            {/* 알림 버튼 - 모바일 메뉴 열렸을 때 숨김 */}
-            {authenticatedShell && !shouldHideNotificationInMenuOverlay && (
-              <Suspense fallback={null}>
-                <NavbarNotificationControls buttonClassName={navIconToggleClass} />
-              </Suspense>
+            {shouldShowDesktopNotificationButton && (
+              <NavbarNotificationControls buttonClassName={navIconToggleClass} />
             )}
 
             {/* 4. 데스크톱 유저 버튼들 (중요: md:flex) */}
@@ -334,20 +324,25 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
 
             {/* 5. 햄버거 버튼 (중요: 768px 이상에서 숨김) */}
             {!isDesktop && (
-              <button
-                type="button"
-                ref={menuToggleButtonRef}
-                className={`${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary hover:scale-110 active:scale-95 ${isMenuOpen
-                  ? 'text-gray-900 dark:text-white'
-                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
-                  }`}
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
-                aria-expanded={isMenuOpen}
-                aria-controls={shouldShowMobileMenuThemeToggle ? 'mobile-menu-popup' : undefined}
-              >
-                {isMenuOpen ? <X className="w-7 h-7 stroke-[2.5]" /> : <Menu className="w-7 h-7" />}
-              </button>
+              <div className="flex items-center gap-2">
+                {shouldShowMobileNotificationButton && (
+                  <NavbarNotificationControls buttonClassName={navIconToggleClass} />
+                )}
+                <button
+                  type="button"
+                  ref={menuToggleButtonRef}
+                  className={`${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary hover:scale-110 active:scale-95 ${isMenuOpen
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
+                    }`}
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+                  aria-expanded={isMenuOpen}
+                  aria-controls={shouldShowMobileMenuThemeToggle ? 'mobile-menu-popup' : undefined}
+                >
+                  {isMenuOpen ? <X className="w-7 h-7 stroke-[2.5]" /> : <Menu className="w-7 h-7" />}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -355,144 +350,153 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
 
       {/* 6. 모바일 풀스크린 메뉴 */}
       {shouldShowMobileMenuThemeToggle && (
-        <div
-          ref={menuPopupRef}
-          id="mobile-menu-popup"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="mobile-menu-title"
-          tabIndex={-1}
-          className="mobile-menu-popup fixed top-16 left-0 right-0 bottom-0 z-50 overflow-y-auto bg-white dark:bg-background"
-        >
-          {/* 네비게이션 섹션 */}
-          <div className="px-6 py-6">
-            <div className="mb-4 flex items-center justify-between gap-2 px-4">
-              <p
-                id="mobile-menu-title"
-                className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider"
-              >
-                메뉴
-              </p>
-              <ThemeToggleButton
-                className={navIconToggleClass}
-                iconClassName={navIconSizeClass}
-              />
-            </div>
-            <div className="space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === `/${item.id}`;
-                return (
-                    <button
-                    type="button"
-                      key={item.id}
-                      aria-current={isActive ? 'page' : undefined}
-                      onClick={() => handleMobileNav(`/${item.id}`)}
-                    onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
-                    onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
-                    onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
-                    className={`flex items-center gap-4 w-full text-left py-4 px-4 text-lg font-semibold rounded-xl transition-all duration-200 ${isActive
-                      ? 'bg-primary/15 text-primary dark:text-primary-light'
-                      : isDarkMode
-                        ? 'text-gray-100 hover:bg-secondary'
-                        : 'text-gray-700 hover:bg-gray-100'
-                      }`}
+        <div className={`mobile-menu-layer ${isMobileMenuVisible ? 'is-open' : ''}`}>
+          <div
+            className="mobile-menu-backdrop"
+            onClick={() => setIsMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="mobile-menu-shell">
+            <div
+              ref={menuPopupRef}
+              id="mobile-menu-popup"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="mobile-menu-title"
+              tabIndex={-1}
+              className="mobile-menu-popup bg-white dark:bg-background"
+            >
+              {/* 네비게이션 섹션 */}
+              <div className="px-6 py-6" data-mobile-menu-section="nav">
+                <div className="mb-4 flex items-center justify-between gap-2 px-4">
+                  <p
+                    id="mobile-menu-title"
+                    className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider"
                   >
-                    <Icon className={`w-5 h-5 ${isActive ? '' : 'text-gray-400'}`} />
-                    <span className="flex items-center gap-2">
-                      {item.label}
-                      {item.id === 'mate' && chatUnreadCount > 0 && (
-                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
-                          {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                    메뉴
+                  </p>
+                  <ThemeToggleButton
+                    className={navIconToggleClass}
+                    iconClassName={navIconSizeClass}
+                  />
+                </div>
+                <div className="space-y-1">
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === `/${item.id}`;
+                    return (
+                        <button
+                        type="button"
+                          key={item.id}
+                          aria-current={isActive ? 'page' : undefined}
+                          onClick={() => handleMobileNav(`/${item.id}`)}
+                        onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                        onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                        onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                        className={`flex items-center gap-4 w-full text-left py-4 px-4 text-lg font-semibold rounded-xl transition-all duration-200 ${isActive
+                          ? 'bg-primary/15 text-primary dark:text-primary-light'
+                          : isDarkMode
+                            ? 'text-gray-100 hover:bg-secondary'
+                            : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                      >
+                        <Icon className={`w-5 h-5 ${isActive ? '' : 'text-gray-400'}`} />
+                        <span className="flex items-center gap-2">
+                          {item.label}
+                          {item.id === 'mate' && chatUnreadCount > 0 && (
+                            <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
+                              {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </span>
-                    {isActive && (
-                      <span className="ml-auto w-2 h-2 rounded-full bg-current" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 사용자 영역 */}
-          <div className="px-6 pb-6">
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
-              계정
-            </p>
-            {isLoggedIn ? (
-              <div className="space-y-2">
-                {/* 프로필 카드 */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    navigate(userProfilePath);
-                  }}
-                  className={`flex items-center gap-4 w-full py-4 px-4 rounded-xl transition-all duration-200 ${isDarkMode
-                    ? 'bg-card hover:bg-secondary'
-                    : 'bg-gray-50 hover:bg-gray-100'
-                    }`}
-                  aria-label="프로필로 이동"
-                >
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
-                    {userName?.charAt(0) || '?'}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      {userName || '회원'} 님
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-300">
-                      내 프로필 보기 →
-                    </p>
-                  </div>
-                </button>
-
-                {/* 관리자 버튼 - ADMIN 태그 스타일 */}
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleMobileNav('/admin')}
-                    className="flex items-center gap-3 w-full py-4 px-4 rounded-xl transition-all duration-200 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                    aria-label="관리자 페이지로 이동"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                      <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <span className="font-semibold text-amber-700 dark:text-amber-400">관리자</span>
-                    <span className="ml-auto px-2 py-0.5 text-xs font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
-                      ADMIN
-                    </span>
-                  </button>
-                )}
-
-                {/* 로그아웃 버튼 */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="flex items-center justify-center gap-2 w-full py-4 px-4 rounded-xl text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-semibold"
-                  aria-label="로그아웃"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span>로그아웃</span>
-                </button>
+                        {isActive && (
+                          <span className="ml-auto w-2 h-2 rounded-full bg-current" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            ) : (
-              <Button
-                type="button"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  navigate(buildLoginPath(getCurrentRelativeUrl()));
-                }}
-                className="w-full py-6 text-base font-semibold text-white rounded-xl bg-primary-dark hover:bg-primary"
-              >
-                로그인
-              </Button>
-            )}
+
+              {/* 사용자 영역 */}
+              <div className="px-6 pb-6" data-mobile-menu-section="account">
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
+                  계정
+                </p>
+                {isLoggedIn ? (
+                  <div className="space-y-2">
+                    {/* 프로필 카드 */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        navigate(userProfilePath);
+                      }}
+                      className={`flex items-center gap-4 w-full py-4 px-4 rounded-xl transition-all duration-200 ${isDarkMode
+                        ? 'bg-card hover:bg-secondary'
+                        : 'bg-gray-50 hover:bg-gray-100'
+                        }`}
+                      aria-label="프로필로 이동"
+                    >
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
+                        {userName?.charAt(0) || '?'}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {userName || '회원'} 님
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-300">
+                          내 프로필 보기 →
+                        </p>
+                      </div>
+                    </button>
+
+                    {/* 관리자 버튼 - ADMIN 태그 스타일 */}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleMobileNav('/admin')}
+                        className="flex items-center gap-3 w-full py-4 px-4 rounded-xl transition-all duration-200 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                        aria-label="관리자 페이지로 이동"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                          <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <span className="font-semibold text-amber-700 dark:text-amber-400">관리자</span>
+                        <span className="ml-auto px-2 py-0.5 text-xs font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                          ADMIN
+                        </span>
+                      </button>
+                    )}
+
+                    {/* 로그아웃 버튼 */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="flex items-center justify-center gap-2 w-full py-4 px-4 rounded-xl text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-semibold"
+                      aria-label="로그아웃"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span>로그아웃</span>
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      navigate(buildLoginPath(getCurrentRelativeUrl()));
+                    }}
+                    className="w-full py-6 text-base font-semibold text-white rounded-xl bg-primary-dark hover:bg-primary"
+                  >
+                    로그인
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

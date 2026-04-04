@@ -4,6 +4,7 @@ const LazyErrorBoundaryFallback = lazy(() => import('./ErrorBoundaryFallback'));
 
 interface Props {
   children?: ReactNode;
+  fallback?: ReactNode;
 }
 
 interface State {
@@ -44,7 +45,7 @@ class ErrorBoundary extends Component<Props, State> {
         eventId: this.state.errorId,
         error,
         source: 'runtime',
-        componentStack: errorInfo.componentStack,
+        componentStack: errorInfo.componentStack ?? undefined,
       });
 
       if (errorId !== this.state.errorId) {
@@ -66,10 +67,12 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-gray-900" />}>
-          <LazyErrorBoundaryFallback
-            errorId={this.state.errorId}
-            onRetry={this.resetErrorBoundary}
-          />
+          {this.props.fallback ?? (
+            <LazyErrorBoundaryFallback
+              errorId={this.state.errorId}
+              onRetry={this.resetErrorBoundary}
+            />
+          )}
         </Suspense>
       );
     }

@@ -23,19 +23,18 @@
       "react",
       "cypress"
     ],
-    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ],
       "lucide-react": [
-        "src/shims/lucide-react.tsx"
+        "./src/shims/lucide-react.tsx"
       ],
       "sonner": [
-        "src/shims/sonner.tsx"
+        "./src/shims/sonner.tsx"
       ],
       "figma:asset/*": [
-        "src/assets/*"
+        "./src/assets/*"
       ]
     }
   },

@@ -78,7 +78,7 @@ describe('MateDetail auxiliary panel lazy load', () => {
     );
 
     return {
-      qrPanel: countChunkLoads('/MateDetailQrPanel.tsx') + countChunkLoads('MateDetailQrPanel-'),
+      qrPanel: countChunkLoads('/MateDetailQrPanel.tsx') + countChunkLoads('MateDetailQrPanel-') + countChunkLoads('/MateDetailQrRuntime.tsx') + countChunkLoads('MateDetailQrRuntime-'),
       seatPanel: countChunkLoads('/MateDetailSeatPanel.tsx') + countChunkLoads('MateDetailSeatPanel-'),
       qrVendor: countChunkLoads('react-qr-code') + countChunkLoads('vendor-qr-'),
       seatGallery: countChunkLoads('/SeatViewGallery.tsx') + countChunkLoads('SeatViewGallery-'),

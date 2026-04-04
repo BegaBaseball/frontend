@@ -1,4 +1,4 @@
-import type { PaginatedResponse } from '../../utils/api';
+import type { PaginatedResponse } from '../../api/mate';
 import type { Application, CheckIn, Party, PartyStatus } from '../../types/mate';
 import type { MatePartyListKeyParams } from '../mateQueryKeys';
 
