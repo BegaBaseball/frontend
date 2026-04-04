@@ -9,19 +9,25 @@ jobs:
   cwv-baseline:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate repository variables
+      - name: Load public production env
+        shell: bash
+        run: |
+          if [[ ! -f ".env.production" ]]; then
+            echo "Missing .env.production" >&2
+            exit 1
+          fi
+          grep -E '^VITE_SITE_URL=' ".env.production" >> "${GITHUB_ENV}"
+
+      - name: Validate CWV env
         shell: bash
         run: |
           if [[ -z "${VITE_SITE_URL}" ]]; then
-            echo "Missing repository variable: VITE_SITE_URL" >&2
-            echo "Set Settings > Secrets and variables > Actions > Variables > VITE_SITE_URL" >&2
+            echo "Missing .env.production value: VITE_SITE_URL" >&2
             exit 1
           fi
 

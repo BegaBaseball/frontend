@@ -42,12 +42,24 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Check prediction mobile assets
+        id: prediction_assets
+        shell: bash
+        run: |
+          if [[ -f "output/playwright/run-prediction-mobile-regression.mjs" && -f "output/playwright/prediction-mobile-audit.mjs" ]]; then
+            echo "available=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "available=false" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Install Playwright runtime
+        if: ${{ steps.prediction_assets.outputs.available == 'true' }}
         run: |
           npm install --no-save playwright
           npx playwright install --with-deps chromium
 
       - name: Run prediction mobile smoke
+        if: ${{ steps.prediction_assets.outputs.available == 'true' }}
         env:
           PLAYWRIGHT_BROWSER_CHANNEL: chromium
         run: npm run qa:prediction:mobile:smoke
@@ -60,6 +72,13 @@ jobs:
           JSON_FILE="${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json"
 
           echo "### Frontend Prediction Mobile QA" >> "${GITHUB_STEP_SUMMARY}"
+
+          if [[ "${{ steps.prediction_assets.outputs.available }}" != "true" ]]; then
+            echo "- Result: SKIPPED" >> "${GITHUB_STEP_SUMMARY}"
+            echo "- Repo-local Playwright assets are missing: output/playwright/run-prediction-mobile-regression.mjs" >> "${GITHUB_STEP_SUMMARY}"
+            echo "- Repo-local Playwright assets are missing: output/playwright/prediction-mobile-audit.mjs" >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
 
           if [[ -f "${SUMMARY_FILE}" ]]; then
             cat "${SUMMARY_FILE}" >> "${GITHUB_STEP_SUMMARY}"
