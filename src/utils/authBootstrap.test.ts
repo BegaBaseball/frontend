@@ -9,6 +9,7 @@ import {
   markPersistedAuthBootstrapSuccess,
   normalizeAuthBootstrapPathname,
   resolveAuthBootstrapMode,
+  shouldHoldAuthUiDuringBootstrap,
   setPersistedAuthBootstrapMeta,
   setPersistedAuthBootstrapHint,
 } from './authBootstrap';
@@ -30,6 +31,16 @@ const createStorage = () => {
   };
 };
 
+const setWindowLocalStorage = (localStorage: ReturnType<typeof createStorage>) => {
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    writable: true,
+    value: {
+      localStorage,
+    } as Window & { localStorage: typeof localStorage },
+  });
+};
+
 test('normalizeAuthBootstrapPathname는 trailing slash를 제거한다', () => {
   assert.equal(normalizeAuthBootstrapPathname('/home/'), '/home');
   assert.equal(normalizeAuthBootstrapPathname('/'), '/');
@@ -37,9 +48,7 @@ test('normalizeAuthBootstrapPathname는 trailing slash를 제거한다', () => {
 
 test('persisted auth bootstrap hint를 저장하고 제거한다', () => {
   const localStorage = createStorage();
-  (globalThis as typeof globalThis & { window?: Window & { localStorage: typeof localStorage } }).window = {
-    localStorage,
-  } as Window & { localStorage: typeof localStorage };
+  setWindowLocalStorage(localStorage);
 
   assert.equal(hasPersistedAuthBootstrapHint(), false);
 
@@ -52,9 +61,7 @@ test('persisted auth bootstrap hint를 저장하고 제거한다', () => {
 
 test('persisted auth bootstrap meta를 저장하고 제거한다', () => {
   const localStorage = createStorage();
-  (globalThis as typeof globalThis & { window?: Window & { localStorage: typeof localStorage } }).window = {
-    localStorage,
-  } as Window & { localStorage: typeof localStorage };
+  setWindowLocalStorage(localStorage);
 
   assert.equal(getPersistedAuthBootstrapMeta(), null);
 
@@ -77,9 +84,7 @@ test('persisted auth bootstrap meta를 저장하고 제거한다', () => {
 
 test('markPersistedAuthBootstrapSuccess는 hint와 fresh success meta를 함께 기록한다', () => {
   const localStorage = createStorage();
-  (globalThis as typeof globalThis & { window?: Window & { localStorage: typeof localStorage } }).window = {
-    localStorage,
-  } as Window & { localStorage: typeof localStorage };
+  setWindowLocalStorage(localStorage);
 
   markPersistedAuthBootstrapSuccess(10_000);
 
@@ -93,9 +98,7 @@ test('markPersistedAuthBootstrapSuccess는 hint와 fresh success meta를 함께 
 
 test('markPersistedAuthBootstrapFailure는 cooldown을 기록하고 필요 시 hint를 제거한다', () => {
   const localStorage = createStorage();
-  (globalThis as typeof globalThis & { window?: Window & { localStorage: typeof localStorage } }).window = {
-    localStorage,
-  } as Window & { localStorage: typeof localStorage };
+  setWindowLocalStorage(localStorage);
 
   markPersistedAuthBootstrapSuccess(5_000);
   markPersistedAuthBootstrapFailure({
@@ -240,6 +243,39 @@ test('로그인 상태 홈 진입은 persisted auth hint와 무관하게 deferre
       hasPersistedAuthHint: false,
     }),
     'defer',
+  );
+});
+
+test('공개 홈 deferred bootstrap 동안에는 익명 auth UI를 보류한다', () => {
+  assert.equal(
+    shouldHoldAuthUiDuringBootstrap('/home', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: true,
+      now: 1_000,
+    }),
+    true,
+  );
+});
+
+test('bootstrap marker가 없으면 익명 auth UI를 그대로 렌더링한다', () => {
+  assert.equal(
+    shouldHoldAuthUiDuringBootstrap('/home', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+      now: 1_000,
+    }),
+    false,
+  );
+});
+
+test('이미 로그인된 상태에서는 auth UI 보류가 필요하지 않다', () => {
+  assert.equal(
+    shouldHoldAuthUiDuringBootstrap('/home', {
+      isLoggedIn: true,
+      hasPersistedAuthHint: true,
+      now: 1_000,
+    }),
+    false,
   );
 });
 

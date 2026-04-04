@@ -2,7 +2,7 @@ import { buttonVariants } from '../ui/button';
 import { Button } from '../ui/button';
 import PlainDialog from '../ui/plain-dialog';
 import { cn } from '../../lib/utils';
-import type { ConfirmOptions } from './ConfirmDialogContext';
+import type { ConfirmOptions } from './confirmDialogCore';
 
 interface ConfirmDialogRendererProps {
   open: boolean;

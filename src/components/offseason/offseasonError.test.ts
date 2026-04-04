@@ -1,23 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { AxiosError } from 'axios';
 
 import { normalizeOffseasonErrorMessage } from './offseasonError';
 
 test('normalizeOffseasonErrorMessage는 500 technical error를 사용자 친화형 문구로 바꾼다', () => {
-  const error = new AxiosError(
-    'Request failed with status code 500',
-    'ERR_BAD_RESPONSE',
-    {} as never,
-    undefined,
-    {
-      status: 500,
-      statusText: 'Internal Server Error',
+  const error = {
+    code: 'ERR_BAD_RESPONSE',
+    isAxiosError: true,
+    message: 'Request failed with status code 500',
+    name: 'AxiosError',
+    response: {
       data: {},
-      headers: {},
-      config: { headers: {} } as never,
+      status: 500,
     },
-  );
+  };
 
   assert.equal(
     normalizeOffseasonErrorMessage(error),
@@ -26,7 +22,12 @@ test('normalizeOffseasonErrorMessage는 500 technical error를 사용자 친화�
 });
 
 test('normalizeOffseasonErrorMessage는 네트워크 technical error를 사용자 친화형 문구로 바꾼다', () => {
-  const error = new AxiosError('Network Error', 'ERR_NETWORK');
+  const error = {
+    code: 'ERR_NETWORK',
+    isAxiosError: true,
+    message: 'Network Error',
+    name: 'AxiosError',
+  };
 
   assert.equal(
     normalizeOffseasonErrorMessage(error),

@@ -16,7 +16,7 @@ import {
   LineChart
 } from 'lucide-react';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
+import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import { useUIStore } from '../store/uiStore';
 
 // Types

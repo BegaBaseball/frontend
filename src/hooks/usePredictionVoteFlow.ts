@@ -80,8 +80,10 @@ export const usePredictionVoteFlow = ({
   const [runProgressMessage, setRunProgressMessage] = useState('예측을 준비 중입니다.');
   const [runStartAt, setRunStartAt] = useState<number | null>(null);
   const { deductCheerPoints } = useAuthCheerActions();
-  const { stats: currentUserStats } = useUserLeaderboardStats({ enabled: isLoggedIn });
-  const currentStreak = currentUserStats?.currentStreak ?? 0;
+  const {
+    stats: currentUserStats,
+    refetch: refetchUserLeaderboardStats,
+  } = useUserLeaderboardStats({ enabled: isLoggedIn });
   const triggerCombo = useLeaderboardStore((state) => state.triggerCombo);
 
   const flowRunCounterRef = useRef(0);
@@ -578,8 +580,13 @@ export const usePredictionVoteFlow = ({
         : getFullTeamName(game.awayTeam);
       toast.success(`${teamName} 승리 예측이 저장되었습니다! ⚾`);
 
-      if (currentStreak > 0) {
-        triggerCombo(currentStreak);
+      const resolvedCurrentStreak = currentUserStats?.currentStreak ?? (
+        isLoggedIn
+          ? (await refetchUserLeaderboardStats()).data?.currentStreak ?? 0
+          : 0
+      );
+      if (resolvedCurrentStreak > 0) {
+        triggerCombo(resolvedCurrentStreak);
       }
     } catch (error: unknown) {
       if (!isCancelLikeError(error)) {
@@ -629,7 +636,9 @@ export const usePredictionVoteFlow = ({
     showPredictionErrorOverlay,
     userVote,
     deductCheerPoints,
-    currentStreak,
+    currentUserStats?.currentStreak,
+    isLoggedIn,
+    refetchUserLeaderboardStats,
     triggerCombo,
   ]);
 

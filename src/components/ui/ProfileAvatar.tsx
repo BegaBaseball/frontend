@@ -70,6 +70,7 @@ export function ProfileAvatar({
   const resolvedHeight = height ?? width;
   const hasFixedSize = resolvedWidth != null && resolvedHeight != null;
   const resolvedSize = hasFixedSize ? resolvedWidth : undefined;
+  const resolvedSizes = sizes ?? (resolvedSize ? `${resolvedSize}px` : undefined);
   const sizeStyle = hasFixedSize
     ? {
       width: `${resolvedSize}px`,
@@ -88,19 +89,19 @@ export function ProfileAvatar({
     : iconSizes[size];
   const ringClass = ringClassName || 'p-px bg-black/5 dark:bg-white/10';
   const innerSizeClass = hasFixedSize || showRing ? 'w-full h-full' : containerClass;
-  const imageClassName = `${innerSizeClass} rounded-full object-cover block bg-gray-100 dark:bg-card ${className}`.trim();
+  const imageClassName = `${innerSizeClass} rounded-full object-cover block bg-gray-100 dark:bg-card image-render-quality ${className}`.trim();
   const fallbackClassName = `${innerSizeClass} rounded-full ${fallbackClassByName} text-white font-semibold flex items-center justify-center ${className}`.trim();
   const ringWrapperClassName = `${ringClass} rounded-full inline-flex items-center justify-center overflow-hidden ${!hasFixedSize ? containerClass : ''}`.trim();
 
   if (src && !imageError) {
     const imageElement = (
-      <img
-        src={src}
-        srcSet={srcSet}
-        sizes={sizes}
-        alt={alt}
-        width={resolvedSize}
-        height={resolvedSize}
+        <img
+          src={src}
+          srcSet={srcSet}
+          sizes={resolvedSizes}
+          alt={alt}
+          width={resolvedSize}
+          height={resolvedSize}
         style={imageStyle}
         decoding="async"
         loading="lazy"

@@ -121,6 +121,52 @@ export interface AdminApiResponse<T> {
   message?: string;
 }
 
+export interface AdminGameStatusMismatch {
+  gameId: string;
+  gameDate: string;
+  startTime: string | null;
+  rawStatus: string | null;
+  normalizedRawStatus: string | null;
+  effectiveStatus: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  inningScoreCount: number;
+  hasKnownScore: boolean;
+  hasInningScores: boolean;
+  reasons: string[];
+}
+
+export interface AdminGameScoreSyncResult {
+  gameId: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  gameStatus: string;
+  inningScoreCount: number;
+  synced: boolean;
+  usedInningScores: boolean;
+  winningTeam: string | null;
+  winningScore: number | null;
+}
+
+export interface AdminGameStatusMismatchBatchResult {
+  startDate: string;
+  endDate: string;
+  totalGames: number;
+  mismatchCount: number;
+  mismatches: AdminGameStatusMismatch[];
+}
+
+export interface AdminGameStatusRepairBatchResult {
+  startDate: string;
+  endDate: string;
+  dryRun: boolean;
+  totalGames: number;
+  mismatchCount: number;
+  repairedCount: number;
+  mismatches: AdminGameStatusMismatch[];
+  repairedGames: AdminGameScoreSyncResult[];
+}
+
 export interface AdminClientErrorDashboardTotals {
   api: number;
   runtime: number;

@@ -67,7 +67,7 @@ function Stack({ className, gap = "md", ...props }: StackProps) {
   );
 }
 
-interface SectionHeaderProps extends React.ComponentProps<"header"> {
+interface SectionHeaderProps extends Omit<React.ComponentProps<"header">, "title"> {
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   description?: React.ReactNode;

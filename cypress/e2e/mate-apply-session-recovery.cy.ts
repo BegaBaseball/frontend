@@ -65,9 +65,13 @@ describe('Mate Apply Session Recovery', () => {
       },
     }).as('analyzeApplyTicket');
 
-    cy.intercept('**/auth/reissue*', {
-      statusCode: 401,
-      body: { success: false, message: 'Unauthorized' },
+    let reissueAttemptCount = 0;
+    cy.intercept('**/auth/reissue*', (req) => {
+      reissueAttemptCount += 1;
+      req.reply({
+        statusCode: 401,
+        body: { success: false, message: 'Unauthorized' },
+      });
     }).as('reissueExpiredForApply');
 
     let applyAttempt = 0;
@@ -114,7 +118,9 @@ describe('Mate Apply Session Recovery', () => {
 
     cy.contains('참여 신청하기').click();
     cy.wait('@createRestoredApplication');
-    cy.wait('@reissueExpiredForApply');
+    cy.then(() => {
+      expect(reissueAttemptCount).to.eq(0);
+    });
     cy.location('pathname').should('eq', '/login');
     cy.location('search').should('eq', `?redirect=%2Fmate%2F${partyId}%2Fapply`);
     cy.window().then((win) => {

@@ -137,7 +137,7 @@ jobs:
             }
 
             console.log(lines.join('\n'));
-            NODE
+          NODE
           else
             echo "landing-summary.md not found" >> "${GITHUB_STEP_SUMMARY}"
           fi

@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import type { DateGames } from '../types/prediction';
 import {
   buildPredictionDateBuckets,
-  buildPredictionRangeWindow,
-  findAdjacentLoadedDateIndex,
-  getNextPredictionRangeAnchor,
   mergePredictionDateBuckets,
   shouldFetchPredictionBoundaryRange,
 } from './predictionRangeLoader';
+import {
+  buildPredictionRangeWindow,
+  getNextPredictionRangeAnchor,
+} from './predictionRangeWindow';
+import { findAdjacentLoadedDateIndex } from './predictionRangeSearch';
+
 
 const toDateGames = (date: string): DateGames => ({
   date,

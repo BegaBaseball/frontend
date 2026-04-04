@@ -1,10 +1,10 @@
 const escapeHtml = (value: string): string =>
   value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 const sanitizeUrl = (value: string): string | null => {
   const trimmed = value.trim();
@@ -44,7 +44,7 @@ const renderInline = (value: string): string => {
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
   return tokens.reduce(
-    (html, token, index) => html.replaceAll(`___MD_TOKEN_${index}___`, token),
+    (html, token, index) => html.split(`___MD_TOKEN_${index}___`).join(token),
     escaped,
   );
 };
@@ -178,7 +178,7 @@ const renderBlockquote = (lines: string[], startIndex: number): [string, number]
 };
 
 export const renderMarkdownToHtml = (content: string): string => {
-  const lines = content.replaceAll('\r\n', '\n').split('\n');
+  const lines = content.replace(/\r\n/g, '\n').split('\n');
   const blocks: string[] = [];
   let index = 0;
 

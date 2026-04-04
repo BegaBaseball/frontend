@@ -479,7 +479,7 @@ describe('Prediction Lazy Load', () => {
             .click({ force: true });
 
         cy.contains(displayDatePattern(previousDate)).should('exist');
-        cy.contains(/SS\s+vs\s+HH/).should('exist');
+        cy.contains(/(삼성\s*라이온즈|SS)\s+vs\s+(한화\s*이글스|HH)/).should('exist');
 
         cy.wrap(null).then(() => {
             expect(requestedDates).to.have.members([today, previousDate]);

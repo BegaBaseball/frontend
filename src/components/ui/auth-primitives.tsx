@@ -29,7 +29,7 @@ function AuthFormPanel({ className, ...props }: React.ComponentProps<"section">)
   return <section data-slot="auth-form-panel" className={cn("auth-form-panel", className)} {...props} />;
 }
 
-interface AuthHeaderProps extends React.ComponentProps<"header"> {
+interface AuthHeaderProps extends Omit<React.ComponentProps<"header">, "title"> {
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   description?: React.ReactNode;

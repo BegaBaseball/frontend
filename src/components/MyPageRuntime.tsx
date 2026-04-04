@@ -8,7 +8,7 @@ import { useMyPage } from '../hooks/useMyPage';
 
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useQuery } from '@tanstack/react-query';
-import { getPublicFollowCounts } from '../api/followPublic';
+import { getMyFollowCounts } from '../api/followApi';
 import { lazy, Suspense, useState } from 'react';
 import { useDiaryStore } from '../store/diaryStore';
 import { TicketInfo } from '../api/ticket';
@@ -41,9 +41,6 @@ export default function MyPageRuntime() {
     isLoading: isProfileLoading,
   } = useMyPage();
 
-  const followTargetHandle = profile?.handle || user?.handle || '';
-  const canLoadFollowCounts = followTargetHandle.length > 0;
-
   const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
 
   const handleTicketConfirm = (data: TicketInfo) => {
@@ -74,9 +71,10 @@ export default function MyPageRuntime() {
   const [isTicketUploadOpen, setIsTicketUploadOpen] = useState(false);
 
   const { data: followCounts } = useQuery({
-    queryKey: ['followCounts', followTargetHandle],
-    queryFn: () => getPublicFollowCounts(followTargetHandle),
-    enabled: canLoadFollowCounts,
+    queryKey: ['followCounts', 'me', user?.id ?? 0],
+    queryFn: () => getMyFollowCounts(),
+    enabled: Boolean(user?.id),
+    retry: false,
   });
 
   const formatCount = (count: number): string => {
@@ -418,6 +416,7 @@ export default function MyPageRuntime() {
             userHandle={user.handle || ''}
             type={userListModal.type}
             title={userListModal.title}
+            useCurrentUser
           />
         </Suspense>
       )}

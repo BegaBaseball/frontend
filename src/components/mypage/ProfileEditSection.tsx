@@ -242,8 +242,8 @@ export default function ProfileEditSection({
   };
 
   const renderMobileMenu = () => (
-    <div className="md:hidden space-y-4">
-      <div className="flex items-start gap-4 p-5 bg-card rounded-xl border border-border">
+    <div className="space-y-5 md:hidden">
+      <div className="flex items-start gap-4 rounded-xl border border-border bg-card p-5">
         <ProfileAvatar
           src={profileImage}
           alt={name}
@@ -256,20 +256,22 @@ export default function ProfileEditSection({
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {sectionList.map((section) => (
           <Button
             key={section.key}
             variant="outline"
-            className="w-full justify-between"
+            className="h-auto min-h-[72px] w-full justify-between rounded-xl px-4 py-3.5 text-left"
             onClick={() => handleSectionChange(section.key)}
             disabled={isLoading}
           >
-            <span className="flex flex-col items-start">
-              <span>{section.label}</span>
-              <span className="text-xs text-muted-foreground text-left">{section.description}</span>
+            <span className="flex min-w-0 flex-1 flex-col items-start gap-1 pr-3">
+              <span className="text-sm font-semibold leading-none">{section.label}</span>
+              <span className="text-left text-xs leading-relaxed whitespace-normal text-muted-foreground">
+                {section.description}
+              </span>
             </span>
-            <span className="text-sm">›</span>
+            <span className="text-base text-muted-foreground">›</span>
           </Button>
         ))}
       </div>

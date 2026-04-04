@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2, User, X } from 'lucide-react';
+import { getMyFollowers, getMyFollowing } from '../../api/followApi';
 import { getPublicFollowers, getPublicFollowing } from '../../api/followPublic';
 import { useAuthProfileSnapshot } from '../../store/authStore';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
@@ -16,9 +17,10 @@ interface UserListModalProps {
     userHandle: string;
     type: 'followers' | 'following';
     title: string;
+    useCurrentUser?: boolean;
 }
 
-export default function UserListModal({ isOpen, onClose, userHandle, type, title }: UserListModalProps) {
+export default function UserListModal({ isOpen, onClose, userHandle, type, title, useCurrentUser = false }: UserListModalProps) {
     const navigate = useNavigate();
     const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
     const titleId = useId();
@@ -32,8 +34,16 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
         isError,
         refetch,
     } = useInfiniteQuery({
-        queryKey: ['userList', userHandle, type],
+        queryKey: ['userList', useCurrentUser ? 'me' : userHandle, type],
         queryFn: ({ pageParam = 0 }) => {
+            if (useCurrentUser) {
+                if (type === 'followers') {
+                    return getMyFollowers(pageParam);
+                }
+
+                return getMyFollowing(pageParam);
+            }
+
             if (type === 'followers') {
                 return getPublicFollowers(userHandle, pageParam);
             }
@@ -42,7 +52,8 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
         },
         getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
         initialPageParam: 0,
-        enabled: isOpen && !!userHandle,
+        enabled: isOpen && (useCurrentUser || !!userHandle),
+        retry: false,
     });
 
     useEffect(() => {

@@ -123,6 +123,8 @@ const requestReissue = async (): Promise<boolean> => {
   return reissueInFlight;
 };
 
+export const requestPrivateReissue = async (): Promise<boolean> => requestReissue();
+
 const privateRequest = async <T>(
   endpoint: string,
   options: PrivateRequestOptions = {},
