@@ -1,6 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 
-import type { PaginatedResponse } from '../utils/api';
+import type { PaginatedResponse } from '../api/mate';
 import type { Application, CheckIn, MatePartySeed, Party } from '../types/mate';
 import { normalizeMatePartySeed } from '../utils/mate';
 import { MATE_KEYS } from './mateQueryKeys';

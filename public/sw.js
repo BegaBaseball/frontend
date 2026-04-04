@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 // @ts-nocheck
-const CACHE_NAME = 'bega-v1';
+const CACHE_NAME = 'bega-v3';
 const OFFLINE_URL = '/offline.html';
 
 // Static assets to pre-cache on install

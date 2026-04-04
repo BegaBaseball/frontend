@@ -4,7 +4,7 @@ import { dirname, matchesGlob, resolve } from 'node:path';
 
 export const FULL_MATE_REGRESSION_LABEL = 'full-mate-regression';
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-export const DEFAULT_REPO_ROOT = resolve(SCRIPT_DIR, '..', '..');
+export const DEFAULT_REPO_ROOT = resolve(SCRIPT_DIR, '..');
 export const LABELER_CONFIG_PATH = '.github/labeler.yml';
 
 const normalizePath = (value) => value.replace(/\\/g, '/');

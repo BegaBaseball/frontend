@@ -4,7 +4,13 @@ import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSessi
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { Button } from './ui/button';
 
-export default function PublicNavbarDesktopAuthControls() {
+interface PublicNavbarDesktopAuthControlsProps {
+  isAuthBootstrapPending?: boolean;
+}
+
+export default function PublicNavbarDesktopAuthControls({
+  isAuthBootstrapPending = false,
+}: PublicNavbarDesktopAuthControlsProps) {
   const navigate = useNavigate();
   const { isLoggedIn } = useAuthSession();
   const { userHandle, userName, userRole } = useAuthProfileSnapshot();
@@ -18,6 +24,19 @@ export default function PublicNavbarDesktopAuthControls() {
     logout();
     navigate('/home');
   };
+
+  if (isAuthBootstrapPending) {
+    return (
+      <Button
+        type="button"
+        disabled
+        aria-busy="true"
+        className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white bg-primary-dark/80 hover:bg-primary-dark/80 cursor-wait"
+      >
+        로그인 확인 중...
+      </Button>
+    );
+  }
 
   if (!isLoggedIn) {
     return (

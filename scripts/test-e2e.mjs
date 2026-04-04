@@ -3,6 +3,12 @@ import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:net';
 
 const projectRoot = process.cwd();
+const LOOPBACK_BIND_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '::1',
+]);
+
 const normalizeFrontendBaseUrl = (value) => {
   if (!value || typeof value !== 'string') {
     return null;
@@ -151,8 +157,20 @@ const findAvailablePort = async (host, startPort) => {
   return String(port);
 };
 
-const buildExecutionPlan = (host, port, testScript, baseCypressArgs) => {
-  const nextStartCommand = `${devServerEnvPrefix} npm run dev -- --host ${host} --port ${port}`;
+const resolveDevServerBindHost = (host, { useDocker = false, useAutoDocker = false } = {}) => {
+  if (!LOOPBACK_BIND_HOSTS.has(host)) {
+    return host;
+  }
+
+  if (useDocker || useAutoDocker || process.env.GITHUB_ACTIONS === 'true') {
+    return '0.0.0.0';
+  }
+
+  return host;
+};
+
+const buildExecutionPlan = (host, bindHost, port, testScript, baseCypressArgs) => {
+  const nextStartCommand = `${devServerEnvPrefix} npm run dev -- --host ${bindHost} --port ${port}`;
   const nextTargetUrl = `http://${host}:${port}`;
   const nextCypressArgsWithBaseUrl = applyBaseUrlConfig(baseCypressArgs, nextTargetUrl);
   const nextTestCommandArgs = buildCypressCommandArgs(testScript, nextCypressArgsWithBaseUrl);
@@ -164,6 +182,7 @@ const buildExecutionPlan = (host, port, testScript, baseCypressArgs) => {
 
   return {
     startCommand: nextStartCommand,
+    bindHost,
     targetUrl: nextTargetUrl,
     cypressArgsWithBaseUrl: nextCypressArgsWithBaseUrl,
     testCommandArgs: nextTestCommandArgs,
@@ -388,6 +407,7 @@ try {
   const testScript = useAutoDocker
     ? 'cy:run:rescue'
     : (useDocker ? 'cy:run:docker' : 'cy:run');
+  const bindHost = resolveDevServerBindHost(host, { useDocker, useAutoDocker });
 
   const baseCypressArgs = [...cypressArgs];
   if (skipVerify) {
@@ -402,9 +422,13 @@ try {
     }
   }
 
-  let executionPlan = buildExecutionPlan(host, port, testScript, baseCypressArgs);
+  let executionPlan = buildExecutionPlan(host, bindHost, port, testScript, baseCypressArgs);
   startCommand = executionPlan.startCommand;
   targetUrl = executionPlan.targetUrl;
+
+  if (bindHost !== host) {
+    console.log(`Docker-capable run detected. Binding dev server to ${bindHost} while targeting ${targetUrl}.`);
+  }
 
   if (noServer) {
     console.log('\nRunning Cypress without auto-starting dev server');
@@ -432,15 +456,15 @@ try {
   if (alreadyRunning) {
     const isHealthy = await isViteSourceServerHealthy(executionPlan.targetUrl);
     if (!isHealthy) {
-      const freshPort = await findAvailablePort(host, Number.parseInt(String(port), 10) + 1);
-      executionPlan = buildExecutionPlan(host, freshPort, testScript, baseCypressArgs);
+      const freshPort = await findAvailablePort(bindHost, Number.parseInt(String(port), 10) + 1);
+      executionPlan = buildExecutionPlan(host, bindHost, freshPort, testScript, baseCypressArgs);
       startCommand = executionPlan.startCommand;
       targetUrl = executionPlan.targetUrl;
       console.log(`\nDetected unhealthy source server at http://${host}:${port}`);
       console.log(`Starting a fresh dev server at ${executionPlan.targetUrl}`);
     } else if (shouldPreferManagedLocalServer) {
-      const freshPort = await findAvailablePort(host, Number.parseInt(String(port), 10) + 1);
-      executionPlan = buildExecutionPlan(host, freshPort, testScript, baseCypressArgs);
+      const freshPort = await findAvailablePort(bindHost, Number.parseInt(String(port), 10) + 1);
+      executionPlan = buildExecutionPlan(host, bindHost, freshPort, testScript, baseCypressArgs);
       startCommand = executionPlan.startCommand;
       targetUrl = executionPlan.targetUrl;
       console.log(`\nDetected reachable local dev server at ${resolvedFrontendTarget?.baseUrl || `http://${host}:${port}`}`);

@@ -848,6 +848,7 @@ describe('Game Prediction', () => {
             cy.spy(win.console, 'error').as('consoleError');
         });
         cy.tick(1000);
+        cy.tick(300);
         cy.wait(700);
 
         let coachAnalyzeCallCount = 0;

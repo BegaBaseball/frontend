@@ -31,6 +31,24 @@ const createStorage = () => {
   };
 };
 
+const setWindowSessionStorage = (
+  sessionStorage: ReturnType<typeof createStorage>,
+  location: Pick<Location, 'pathname' | 'search' | 'hash'> = {
+    pathname: '/home',
+    search: '',
+    hash: '',
+  },
+) => {
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    writable: true,
+    value: {
+      location,
+      sessionStorage,
+    } as unknown as Window & { sessionStorage: typeof sessionStorage },
+  });
+};
+
 test('sanitizeLoginRedirect는 안전한 상대 경로를 유지한다', () => {
   assert.equal(sanitizeLoginRedirect('/mate/123?tab=info#chat'), '/mate/123?tab=info#chat');
 });
@@ -69,14 +87,7 @@ test('buildLoginPathWithError는 error와 redirect query를 함께 구성한다'
 
 test('redirect 저장/조회/삭제는 sessionStorage를 사용한다', () => {
   const sessionStorage = createStorage();
-  (globalThis as typeof globalThis & { window?: Window & { sessionStorage: typeof sessionStorage } }).window = {
-    location: {
-      pathname: '/home',
-      search: '',
-      hash: '',
-    },
-    sessionStorage,
-  } as unknown as Window & { sessionStorage: typeof sessionStorage };
+  setWindowSessionStorage(sessionStorage);
 
   assert.equal(setStoredLoginRedirect('/mate/10'), '/mate/10');
   assert.equal(getStoredLoginRedirect(), '/mate/10');
@@ -87,14 +98,7 @@ test('redirect 저장/조회/삭제는 sessionStorage를 사용한다', () => {
 
 test('resolvePostLoginRedirect는 query, storage, fallback 순으로 결정한다', () => {
   const sessionStorage = createStorage();
-  (globalThis as typeof globalThis & { window?: Window & { sessionStorage: typeof sessionStorage } }).window = {
-    location: {
-      pathname: '/home',
-      search: '',
-      hash: '',
-    },
-    sessionStorage,
-  } as unknown as Window & { sessionStorage: typeof sessionStorage };
+  setWindowSessionStorage(sessionStorage);
 
   setStoredLoginRedirect('/prediction');
 
@@ -108,14 +112,11 @@ test('resolvePostLoginRedirect는 query, storage, fallback 순으로 결정한�
 
 test('getCurrentRelativeUrl은 현재 location을 상대 경로로 정규화한다', () => {
   const sessionStorage = createStorage();
-  (globalThis as typeof globalThis & { window?: Window & { sessionStorage: typeof sessionStorage } }).window = {
-    location: {
-      pathname: '/mate/42',
-      search: '?tab=chat',
-      hash: '#messages',
-    },
-    sessionStorage,
-  } as unknown as Window & { sessionStorage: typeof sessionStorage };
+  setWindowSessionStorage(sessionStorage, {
+    pathname: '/mate/42',
+    search: '?tab=chat',
+    hash: '#messages',
+  });
 
   assert.equal(getCurrentRelativeUrl(), '/mate/42?tab=chat#messages');
 });

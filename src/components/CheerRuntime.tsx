@@ -3,35 +3,29 @@ import { toast } from 'sonner';
 import { parseError } from '../utils/errorUtils';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthProfileActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
-import { AlertCircle, ArrowUp, Bookmark, Home, ImagePlus, PenSquare, Smile, UserRound, Megaphone, LineChart } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
+import { Bookmark, Home, ImagePlus, PenSquare, Smile, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TEAM_DATA } from '../constants/teams';
-import { createPost as createCheerPost, deletePost as deleteCheerPost, fetchHotPosts, fetchPostChanges, fetchPosts, fetchFollowingPosts, getTeamNameById, uploadPostImages, PageResponse, CheerPost, ShareMode } from '../api/cheerApi';
+import { getTeamNameById, PageResponse, CheerPost, ShareMode } from '../api/cheerApi';
 import { fetchTeamFranchiseMetadata } from '../api/teamFranchiseApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
 import TeamLogo from './TeamLogo';
-import CheerCard from './CheerCard';
-import CheerHot from './CheerHot';
-import AdSlot from './ads/AdSlot';
-import EndOfFeed from './EndOfFeed';
-import ErrorBoundary from './common/ErrorBoundary';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import AutosizeTextarea from './ui/autosize-textarea';
 import {
     normalizeHexColor,
-    toRgba,
     getReadableAccent,
     getContrastText,
     DEFAULT_BRAND_COLOR,
 } from '../utils/teamColors';
-import { compressImages } from '../utils/imageCompression';
-import { resolveLatestVisiblePostId } from '../utils/cheerPolling';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import type { CheerWritePayload } from './CheerWriteModal';
 
 const LazyCheerWriteModal = lazy(() => import('./CheerWriteModal'));
+const LazyCheerSidebarPanels = lazy(() => import('./CheerSidebarPanels'));
+const LazyCheerFeedRuntimeContent = lazy(() => import('./CheerFeedRuntimeContent'));
 
 type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
 type FeedTabKey = 'all' | 'popular' | 'following';
@@ -78,6 +72,9 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
             ? (tabParam as FeedTabKey)
             : feedTabs[0].key;
     });
+    const [shouldRenderSidebar, setShouldRenderSidebar] = useState(() => (
+        typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
+    ));
     const hasFetchedProfile = useRef(false);
     const didOpenComposerFromRoute = useRef(false);
     const didNotifyLoginRequiredFromWriteRoute = useRef(false);
@@ -148,6 +145,27 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
         setSearchParams(nextSearchParams, { replace: true });
     }, [activeFeedTab, feedTabs, searchParams, setSearchParams]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+            return;
+        }
+
+        const mediaQuery = window.matchMedia('(min-width: 1024px)');
+        const syncSidebarVisibility = () => {
+            setShouldRenderSidebar(mediaQuery.matches);
+        };
+
+        syncSidebarVisibility();
+
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', syncSidebarVisibility);
+            return () => mediaQuery.removeEventListener('change', syncSidebarVisibility);
+        }
+
+        mediaQuery.addListener(syncSidebarVisibility);
+        return () => mediaQuery.removeListener(syncSidebarVisibility);
+    }, []);
+
     const buildCheerWritePath = () => {
         const nextSearchParams = new URLSearchParams();
         const currentTab = searchParams.get('tab');
@@ -172,8 +190,6 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     const teamColor = normalizeHexColor(authUserFavoriteTeamColor || DEFAULT_BRAND_COLOR);
     const teamAccent = getReadableAccent(teamColor);
     const teamContrastText = getContrastText(teamColor);
-    const teamSoftBg = toRgba(teamColor, 0.12);
-    const teamSoftBorder = toRgba(teamColor, 0.25);
     const resolveProfileImage = (imageUrl?: string) => {
         if (!imageUrl) return null;
         if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
@@ -254,12 +270,8 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     const [composerPreviews, setComposerPreviews] = useState<{ file: File; url: string }[]>([]);
     const [composerSubmitting, setComposerSubmitting] = useState(false);
     const [composerDragging, setComposerDragging] = useState(false);
-    const [newPostCount, setNewPostCount] = useState(0);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const sentinelRef = useRef<HTMLDivElement | null>(null);
-    const observerRef = useRef<IntersectionObserver | null>(null);
     const previewsRef = useRef<{ file: File; url: string }[]>([]);
-    const retryCount = useRef(0); // For infinite scroll smart retry
 
     useEffect(() => {
         previewsRef.current = composerPreviews;
@@ -356,10 +368,12 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
             if (!hasFavoriteTeam) {
                 throw new Error('favoriteTeam-required');
             }
-            const created = await createCheerPost({
+            const { submitCheerPost } = await import('../utils/cheerSubmit');
+            return submitCheerPost({
                 teamId: authUserFavoriteTeam,
                 content: payload.content,
-                postType: payload.postType ?? 'NORMAL',
+                files: payload.files,
+                postType: payload.postType,
                 shareMode: payload.shareMode,
                 sourceUrl: payload.sourceUrl,
                 sourceTitle: payload.sourceTitle,
@@ -368,51 +382,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                 sourceLicenseUrl: payload.sourceLicenseUrl,
                 sourceChangedNote: payload.sourceChangedNote,
                 sourceSnapshotType: payload.sourceSnapshotType,
-            }, { skipAuthSessionHandling: true });
-            let uploadedUrls: string[] = [];
-            let uploadFailed = false;
-            if (created?.id && payload.files.length > 0) {
-                let filesToUpload = payload.files;
-                try {
-                    filesToUpload = await compressImages(payload.files, {
-                        maxSizeMB: 1,
-                        maxWidthOrHeight: 1920,
-                        initialQuality: 0.82,
-                        useWebWorker: true,
-                    });
-                } catch (compressionError) {
-                    console.warn('이미지 선압축에 실패하여 원본 업로드를 진행합니다.', compressionError);
-                    filesToUpload = payload.files;
-                }
-
-                try {
-                    uploadedUrls = await uploadPostImages(created.id, filesToUpload, { skipAuthSessionHandling: true });
-                } catch (error) {
-                    // 이미지 업로드 실패 시 게시글 삭제 (Atomic 처럼 동작하게)
-                    console.error('Image upload failed, deleting post...', error);
-                    try {
-                        await deleteCheerPost(created.id);
-                    } catch (deleteError) {
-                        console.error('Failed to delete post after image upload failure', deleteError);
-                    }
-
-                    const parsedError = parseError(error);
-                    if (parsedError.type === 'AUTH' || parsedError.responseCode === 'INVALID_AUTHOR') {
-                        throw error;
-                    }
-
-                    // 글로벌 에러 다이얼로그 호출 (파싱된 에러 사용)
-                    window.dispatchEvent(new CustomEvent('global-api-error', {
-                        detail: {
-                            ...parsedError,
-                            message: `이미지 업로드 실패: ${parsedError.message}`
-                        }
-                    }));
-
-                    throw new Error('IMAGE_UPLOAD_FAILED');
-                }
-            }
-            return { created, uploadedUrls, uploadFailed: false };
+            });
         },
         onMutate: async (payload) => {
             const optimisticId = Date.now() * -1;
@@ -556,165 +526,6 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
         }
     };
 
-    const {
-        data,
-        isLoading,
-        isFetchingNextPage,
-        hasNextPage,
-        error: queryError,
-        fetchNextPage,
-    } = useInfiniteQuery({
-        queryKey: ['cheer-posts', activeFeedTab],
-        queryFn: ({ pageParam = 0 }) => {
-            // 팔로우 탭: 팔로우한 유저의 게시글만 조회
-            if (activeFeedTab === 'following') {
-                return fetchFollowingPosts({
-                    page: pageParam as number,
-                    size: 20,
-                });
-            }
-            if (activeFeedTab === 'popular') {
-                return fetchHotPosts({
-                    page: pageParam as number,
-                    size: 20,
-                    algorithm: 'HYBRID',
-                });
-            }
-            return fetchPosts({
-                page: pageParam as number,
-                size: 20,
-                postType: activeTabConfig?.postType,
-                sort: activeTabConfig?.sort
-            });
-        },
-        getNextPageParam: (lastPage, allPages) => {
-            // Fallback logic if 'last' or 'number' is missing (which seems to be the case based on logs)
-            // If content is empty or less than page size (20), we assume it's the last page.
-            // RELAXED: Only stop if strictly empty, to handle backend filtering or irregular page sizes.
-            if (!lastPage || !lastPage.content || lastPage.content.length === 0) {
-                return undefined;
-            }
-            // If explicit 'last' exists, use it
-            if (lastPage.last) return undefined;
-
-            // Otherwise, infer next page number from allPages length
-            // allPages[0] is page 0, so length is the next page index.
-            // e.g. allPages has 1 item (page 0), next is 1.
-            return allPages.length;
-        },
-        initialPageParam: 0,
-        staleTime: 60 * 1000, // 1 minute
-        gcTime: 5 * 60 * 1000, // 5 minutes
-        // 팔로우 탭은 로그인 필수
-        enabled: activeFeedTab !== 'following' || isLoggedIn,
-    });
-
-    const currentPosts = useMemo(() => {
-        if (!data?.pages) return [];
-        const flattened = data.pages.flatMap((page) => page?.content ?? []);
-        const seen = new Set<number>();
-        return flattened.filter((post) => {
-            if (!post || !post.id) return false;
-            if (seen.has(post.id)) return false;
-            seen.add(post.id);
-            return true;
-        });
-    }, [data]);
-
-    const latestVisiblePostId = useMemo(
-        () => resolveLatestVisiblePostId(currentPosts),
-        [currentPosts]
-    );
-
-    // Polling for new posts
-    const { data: polledChanges } = useQuery({
-        queryKey: ['cheer-polling-changes', activeFeedTab, latestVisiblePostId],
-        queryFn: () => fetchPostChanges({
-            sinceId: latestVisiblePostId,
-        }),
-        refetchInterval: 15000,
-        enabled: !isLoading && activeFeedTab === 'all' && latestVisiblePostId !== null,
-    });
-
-    useEffect(() => {
-        if (!polledChanges) return;
-        if (polledChanges.newCount > 0) {
-            setNewPostCount(polledChanges.newCount);
-        }
-    }, [polledChanges]);
-
-    // Smart Retry for Infinite Scroll (Fix for Duplicate/Offset Loop)
-    useEffect(() => {
-        try {
-            if (!isFetchingNextPage && hasNextPage && data?.pages) {
-                const lastPage = data.pages[data.pages.length - 1];
-
-                // If the last page has content, check if it contributed any *new* unique items.
-                if (lastPage?.content?.length > 0) {
-                    // Safe mapping with null checks
-                    const lastPageIds = new Set(
-                        (lastPage.content as CheerPost[])
-                            .filter(p => p && typeof p.id === 'number')
-                            .map(p => p.id)
-                    );
-
-                    const previousPagesContent = data.pages.slice(0, -1).flatMap(p => p.content ?? []);
-                    const previousIds = new Set(
-                        (previousPagesContent as CheerPost[])
-                            .filter(p => p && typeof p.id === 'number')
-                            .map(p => p.id)
-                    );
-
-                    // Count how many items in the LAST page are valid (not in previous pages)
-                    const newUniqueItems = [...lastPageIds].filter(id => !previousIds.has(id)).length;
-
-                    if (newUniqueItems === 0 && retryCount.current < 5) {
-                        // Last page was ALL duplicates. Fetch next immediately to break the loop.
-                        retryCount.current += 1;
-                        fetchNextPage();
-                    } else if (newUniqueItems > 0) {
-                        // We found some new content! Reset retry count.
-                        retryCount.current = 0;
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Smart Retry Logic Error:", error);
-        }
-    }, [data, isFetchingNextPage, hasNextPage, fetchNextPage]);
-
-
-    const handleNewPostsClick = () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        queryClient.invalidateQueries({ queryKey: ['cheer-posts', activeFeedTab] });
-        setNewPostCount(0);
-    };
-
-
-
-
-
-    useEffect(() => {
-        if (!sentinelRef.current) return;
-        if (observerRef.current) observerRef.current.disconnect();
-
-        observerRef.current = new IntersectionObserver(
-            (entries) => {
-                const entry = entries[0];
-                if (!entry?.isIntersecting) return;
-                if (isFetchingNextPage || !hasNextPage) return;
-                fetchNextPage();
-            },
-            { rootMargin: '200px' }
-        );
-
-        observerRef.current.observe(sentinelRef.current);
-
-        return () => {
-            observerRef.current?.disconnect();
-        };
-    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
-
     return (
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-background">
             <div className="px-4 sm:px-6 py-6 sm:py-8">
@@ -787,22 +598,6 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                     })}
                                 </div>
                             </nav>
-
-                            {newPostCount > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={handleNewPostsClick}
-                                    className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
-                                    style={{
-                                        backgroundColor: teamSoftBg,
-                                        borderColor: teamSoftBorder,
-                                        color: teamAccent,
-                                    }}
-                                >
-                                    <ArrowUp className="w-4 h-4" />
-                                    새 글 {newPostCount}개 보기
-                                </button>
-                            )}
 
 
                             <section
@@ -934,31 +729,23 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                     </div>
                                 </div>
                             </section>
-
-                            <section className="mt-4">
-                                {isLoading && currentPosts.length === 0 ? (
-                                    <div className="divide-y divide-border/70 dark:divide-border/70">
+                            <Suspense
+                                fallback={(
+                                    <section className="mt-4 divide-y divide-border/70 dark:divide-border/70">
                                         {[1, 2, 3].map((index) => (
                                             <div key={index} className="px-4 py-4 animate-pulse">
                                                 <div className="flex gap-3">
-                                                    {/* Profile skeleton */}
                                                     <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-secondary flex-shrink-0" />
-
                                                     <div className="flex-1 space-y-3">
-                                                        {/* Author and time skeleton */}
                                                         <div className="flex items-center gap-2">
                                                             <div className="h-4 w-24 bg-slate-200 dark:bg-secondary rounded" />
                                                             <div className="h-3 w-16 bg-slate-200 dark:bg-secondary rounded" />
                                                         </div>
-
-                                                        {/* Content skeleton - multiple lines with varying widths */}
                                                         <div className="space-y-2">
                                                             <div className="h-4 w-full bg-slate-200 dark:bg-secondary rounded" />
                                                             <div className="h-4 w-5/6 bg-slate-200 dark:bg-secondary rounded" />
                                                             <div className="h-4 w-4/6 bg-slate-200 dark:bg-secondary rounded" />
                                                         </div>
-
-                                                        {/* Stats skeleton */}
                                                         <div className="flex gap-4 pt-2">
                                                             <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
                                                             <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
@@ -968,230 +755,64 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                                 </div>
                                             </div>
                                         ))}
-                                    </div>
-                                ) : queryError ? (
-                                    <div className="py-8 sm:py-10 px-4 sm:px-6 flex flex-col items-center justify-center gap-4">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
-                                            <div className="text-center">
-                                                <p className="text-[16px] font-semibold text-red-500 dark:text-red-400">
-                                                    데이터를 불러오지 못했습니다
-                                                </p>
-                                                <p className="mt-1 text-sm text-slate-500 dark:text-gray-300">
-                                                    네트워크 상태를 확인하고 다시 시도해 주세요
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => queryClient.invalidateQueries({ queryKey: ['cheer-posts', activeFeedTab] })}
-                                            className="rounded-full bg-slate-100 dark:bg-secondary px-6 py-2.5 text-sm font-semibold text-slate-700 dark:text-gray-200 hover:bg-slate-200 dark:hover:bg-secondary transition-colors"
-                                        >
-                                            다시 시도
-                                        </button>
-                                    </div>
-                                ) : activeFeedTab === 'following' && !isLoggedIn ? (
-                                    <div className="border-b border-border/70 dark:border-border px-4 sm:px-6 py-8 sm:py-10 text-center">
-                                        <p className="text-[#64748B] dark:text-gray-300">로그인이 필요합니다</p>
-                                        <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">팔로우한 유저의 글을 보려면 로그인해주세요.</p>
-                                        <button
-                                            type="button"
-                                            onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
-                                            className="mt-4 rounded-full px-6 py-2 text-sm font-semibold text-white"
-                                            style={{ backgroundColor: teamColor }}
-                                        >
-                                            로그인하기
-                                        </button>
-                                    </div>
-                                ) : currentPosts.length === 0 ? (
-                                    <div className="border-b border-border/70 dark:border-border px-4 sm:px-6 py-8 sm:py-10 text-center">
-                                        {activeFeedTab === 'following' ? (
-                                            <>
-                                                <p className="text-[#64748B] dark:text-gray-300">팔로우한 유저가 없습니다</p>
-                                                <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">다른 유저를 팔로우하면 여기에 글이 표시됩니다!</p>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <p className="text-[#64748B] dark:text-gray-300">아직 작성된 응원글이 없습니다.</p>
-                                                <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">첫 번째 응원글을 남겨보세요!</p>
-                                            </>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="px-4 py-4 space-y-4">
-                                        {currentPosts.flatMap((post, index) => [
-                                            <ErrorBoundary
-                                                key={post.id}
-                                                fallback={(
-                                                    <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
-                                                        일부 게시글을 표시하는 중 오류가 발생했습니다. 다음 게시글부터 계속 볼 수 있습니다.
-                                                    </article>
-                                                )}
-                                            >
-                                                <CheerCard post={post} />
-                                            </ErrorBoundary>,
-                                            index === 3 ? (
-                                                <AdSlot
-                                                    key="cheer-feed-1"
-                                                    slotId="cheer_feed_1"
-                                                    pageType="cheer_feed"
-                                                    listIndex={4}
-                                                    creativeType="native_card"
-                                                    loggedIn={Boolean(authUserId)}
-                                                    userId={authUserId ? String(authUserId) : null}
-                                                    minHeight={156}
-                                                />
-                                            ) : null,
-                                        ])}
-                                    </div>
+                                    </section>
                                 )}
-                                <div ref={sentinelRef} className="flex min-h-[120px] items-center justify-center">
-                                    {queryError && currentPosts.length > 0 ? (
-                                        <div className="flex flex-col items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-                                            <span>데이터를 불러오지 못했습니다.</span>
-                                            <p className="text-xs text-slate-400 dark:text-slate-300">
-                                                네트워크 상태를 확인하고 다시 시도해 주세요
-                                            </p>
-                                            <button
-                                                type="button"
-                                                onClick={() => fetchNextPage()}
-                                                className="rounded-full border border-slate-200 dark:border-border px-4 py-1.5 text-xs font-semibold text-slate-600 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-secondary"
-                                            >
-                                                다시 시도
-                                            </button>
-                                        </div>
-                                    ) : isFetchingNextPage ? (
-                                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-                                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                            불러오는 중...
-                                        </div>
-                                    ) : null}
-                                    {!hasNextPage && currentPosts.length > 0 && !isFetchingNextPage && (
-                                        <EndOfFeed />
-                                    )}
-                                </div>
-                            </section>
+                            >
+                                <LazyCheerFeedRuntimeContent
+                                    activeFeedTab={activeFeedTab}
+                                    activePostType={activeTabConfig?.postType}
+                                    activeSort={activeTabConfig?.sort}
+                                    isLoggedIn={isLoggedIn}
+                                    teamColor={teamColor}
+                                    authUserId={authUserId}
+                                    onRequireLogin={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
+                                />
+                            </Suspense>
                         </main>
 
-                        <aside className="hidden lg:flex w-[280px] xl:w-[320px] flex-col gap-4 sticky top-6 self-start">
-                            <div className="rounded-2xl border border-border/70 dark:border-border p-4 bg-white dark:bg-card">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-secondary flex items-center justify-center">
-                                        <TeamLogo teamId={teamLogoId} team={teamLabel} size={48} />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-semibold text-[#0F172A] dark:text-white">팀 정보 요약</p>
-                                        <p className="text-xs text-[#64748B] dark:text-gray-300">{teamName}</p>
-                                    </div>
-                                </div>
-                                {teamId === 'all' ? (
-                                    <p className="mt-3 text-sm text-[#64748B] dark:text-gray-300 leading-relaxed">모든 팀의 흐름을 한 번에 확인하세요.</p>
-                                ) : isTeamMetadataLoading ? (
-                                    <div className="mt-3 space-y-2">
-                                        <div className="h-4 w-full rounded bg-slate-100 dark:bg-secondary" />
-                                        <div className="h-4 w-4/5 rounded bg-slate-100 dark:bg-secondary" />
-                                        <div className="h-4 w-3/5 rounded bg-slate-100 dark:bg-secondary" />
-                                    </div>
-                                ) : isTeamMetadataError ? (
-                                    <div className="mt-3 rounded-xl bg-red-50 dark:bg-secondary/70 px-3 py-3 text-sm text-[#64748B] dark:text-gray-300">
-                                        <p>팀 요약 정보를 불러오지 못했습니다.</p>
-                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
-                                            네트워크 상태를 확인하고 다시 시도해 주세요
-                                        </p>
-                                        <button
-                                            type="button"
-                                            onClick={() => refetchTeamMetadata()}
-                                            className="mt-3 w-full rounded-full border border-red-200 dark:border-border px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-secondary"
-                                        >
-                                            다시 시도
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <p className="mt-3 text-sm text-[#64748B] dark:text-gray-300 leading-relaxed">{teamDescription}</p>
-                                )}
-                            </div>
-
-                            <div className="rounded-2xl border border-border/70 dark:border-border p-4 bg-white dark:bg-card">
-                                <p className="text-sm font-semibold text-[#0F172A] dark:text-white">오늘 경기</p>
-                                {isGamesLoading ? (
-                                    <div className="mt-3 space-y-3">
-                                        <div className="h-4 w-32 rounded bg-slate-100 dark:bg-secondary" />
-                                        <div className="h-12 rounded bg-slate-100 dark:bg-secondary" />
-                                        <div className="h-9 w-full rounded-full bg-slate-100 dark:bg-secondary" />
-                                    </div>
-                                ) : isGamesError ? (
-                                    <div className="mt-3 rounded-xl bg-slate-50 dark:bg-secondary/70 px-3 py-3 text-sm text-[#64748B] dark:text-gray-300">
-                                        경기 정보를 불러오지 못했습니다.
-                                        <button
-                                            type="button"
-                                            onClick={() => refetchGames()}
-                                            className="mt-3 w-full rounded-full border border-slate-200 dark:border-border py-2 text-xs font-semibold text-slate-600 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-secondary"
-                                        >
-                                            다시 시도
-                                        </button>
-                                    </div>
-                                ) : featuredGame ? (
-                                    <div className="mt-3 space-y-3">
-                                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-300">
-                                            <span>{featuredGame.stadium}</span>
-                                            <span>{featuredGame.time}</span>
-                                        </div>
-                                        <div className="rounded-xl border border-slate-100 dark:border-border px-3 py-3">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="flex items-center gap-2">
-                                                    <TeamLogo team={featuredGame.awayTeam} size={28} />
-                                                    <span className="text-sm font-semibold text-[#0F172A] dark:text-white">
-                                                        {featuredGame.awayTeam}
-                                                    </span>
-                                                </div>
-                                                <span className="text-xs text-slate-400">vs</span>
-                                                <div className="flex items-center gap-2">
-                                                    <TeamLogo team={featuredGame.homeTeam} size={28} />
-                                                    <span className="text-sm font-semibold text-[#0F172A] dark:text-white">
-                                                        {featuredGame.homeTeam}
-                                                    </span>
+                        {shouldRenderSidebar ? (
+                            <aside className="sticky top-6 hidden w-[280px] self-start lg:flex xl:w-[320px]">
+                                <Suspense
+                                    fallback={(
+                                        <div className="flex w-full flex-col gap-4">
+                                            <div className="rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
+                                                <div className="space-y-3">
+                                                    <div className="h-5 w-28 rounded bg-slate-100 dark:bg-secondary" />
+                                                    <div className="h-14 rounded bg-slate-100 dark:bg-secondary" />
+                                                    <div className="h-20 rounded bg-slate-100 dark:bg-secondary" />
                                                 </div>
                                             </div>
-                                            {(featuredGame.gameStatus === 'PLAYING' || featuredGame.gameStatus === 'COMPLETED') &&
-                                                featuredGame.homeScore !== undefined &&
-                                                featuredGame.awayScore !== undefined && (
-                                                    <div className="mt-3 flex items-center justify-center gap-6 text-lg font-bold text-[#0F172A] dark:text-white">
-                                                        <span>{featuredGame.awayScore}</span>
-                                                        <span className="text-xs text-slate-400">:</span>
-                                                        <span>{featuredGame.homeScore}</span>
-                                                    </div>
-                                                )}
-                                            <div className="mt-3 flex items-center justify-center">
-                                                <span
-                                                    className={cn(
-                                                        'rounded-full px-3 py-1 text-xs font-semibold',
-                                                        featuredGame.gameStatus === 'PLAYING'
-                                                            ? 'bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-300'
-                                                            : 'bg-slate-100 text-slate-600 dark:bg-secondary dark:text-gray-200'
-                                                    )}
-                                                >
-                                                    {featuredGame.gameStatus === 'PLAYING' ? 'LIVE' : featuredGame.gameStatusKr || '예정'}
-                                                </span>
+                                            <div className="rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
+                                                <div className="space-y-3">
+                                                    <div className="h-5 w-20 rounded bg-slate-100 dark:bg-secondary" />
+                                                    <div className="h-24 rounded bg-slate-100 dark:bg-secondary" />
+                                                </div>
                                             </div>
                                         </div>
-                                        <button
-                                            type="button"
-                                            className="w-full rounded-full border border-slate-200 dark:border-border py-2 text-sm font-semibold text-[#0F172A] dark:text-white hover:bg-slate-50 dark:hover:bg-secondary"
-                                            onClick={() => navigate('/prediction')}
-                                        >
-                                            경기 상세 보기
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="mt-3 rounded-xl bg-slate-50 dark:bg-secondary/70 px-3 py-3 text-sm text-[#64748B] dark:text-gray-300">
-                                        오늘 예정된 경기가 없습니다.
-                                    </div>
-                                )}
-                            </div>
-
-                            <CheerHot />
-
-                        </aside>
+                                    )}
+                                >
+                                    <LazyCheerSidebarPanels
+                                        teamLogoId={teamLogoId}
+                                        teamLabel={teamLabel}
+                                        teamName={teamName}
+                                        teamId={teamId}
+                                        isTeamMetadataLoading={isTeamMetadataLoading}
+                                        isTeamMetadataError={isTeamMetadataError}
+                                        onRefetchTeamMetadata={() => {
+                                            void refetchTeamMetadata();
+                                        }}
+                                        teamDescription={teamDescription}
+                                        isGamesLoading={isGamesLoading}
+                                        isGamesError={isGamesError}
+                                        onRefetchGames={() => {
+                                            void refetchGames();
+                                        }}
+                                        featuredGame={featuredGame}
+                                        onGoPrediction={() => navigate('/prediction')}
+                                    />
+                                </Suspense>
+                            </aside>
+                        ) : null}
                     </div>
                 </div>
             </div>

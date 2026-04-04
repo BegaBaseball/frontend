@@ -30,6 +30,7 @@ export default function NavbarNotificationControls({
       trigger={(
         <button
           type="button"
+          onClick={() => setIsNotificationOpen(!isNotificationOpen)}
           className={buttonClassName}
           aria-label={`알림${unreadCount > 0 ? ` (읽지 않은 알림 ${unreadCount}개)` : ''}`}
           aria-expanded={isNotificationOpen}

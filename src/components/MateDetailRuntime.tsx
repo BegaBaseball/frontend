@@ -1,30 +1,22 @@
-import { lazy, Suspense, type CSSProperties, type ReactNode, useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { lazy, Suspense, type CSSProperties, type ReactNode, useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useConfirmDialog } from './contexts/confirmDialogCore';
 import { OptimizedImage } from './common/OptimizedImage';
-import { ProfileAvatar } from './ui/ProfileAvatar';
-import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.png';
-import AdSlot from './ads/AdSlot';
+import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import { Button } from './ui/plain-button';
 import { Card } from './ui/card';
-import PlainDialog from './ui/plain-dialog';
 import { Skeleton } from './ui/skeleton';
-import { Input } from './ui/input';
 import {
   cancelApplicationWithReason,
-  createCheckInQrSession,
   normalizeMateParty,
   updateParty,
 } from '../api/mate';
-import { getApiErrorStatus } from '../api/errorStatus';
 import {
   getMatePartyApplicationsQueryOptions,
   getMatePartyMyApplicationQueryOptions,
-  getMatePartyReviewsQueryOptions,
   invalidateMatePartyQueries,
-  MATE_KEYS,
   removeMatePartyFromCollections,
   setMatePartyMyApplicationQueryData,
   syncMatePartyQueryData,
@@ -37,15 +29,11 @@ import {
   MapPin,
   Users,
   Shield,
-  Star,
   CheckCircle,
   Share2,
   ChevronLeft,
-  Clock,
   AlertTriangle,
-  MessageSquare,
   QrCode,
-  Info,
   Map as MapIcon,
   RefreshCw,
 } from 'lucide-react';
@@ -54,18 +42,13 @@ import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import {
-  extractHashtags,
-  formatHostAverageRating,
   formatGameDate,
-  getHostAverageRating,
-  hasSameMateUserIdentity,
   isPartyHostedByUser,
-  stripHashtags,
 } from '../utils/mate';
-import type { CancelReasonType, Application } from '../types/mate';
-import { QR_REFRESH_LEAD_MS, resolveQrRefreshDelayMs } from '../utils/qrRefresh';
+import type { CancelReasonType } from '../types/mate';
 import { getRefundPolicyMessage } from '../utils/paymentStatus';
-import { mateMobileBarClass } from '../utils/mateFlowUi';
+import ViewportDeferred from './ViewportDeferred';
+import type { MateDetailActionButton, MateDetailActionContext } from './MateDetailActionSection';
 
 const joinClassNames = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(' ');
@@ -104,8 +87,12 @@ const resolveMateDetailErrorMessage = (error: unknown, fallback: string): string
 
 const ReviewDialog = lazy(() => import('./ReviewDialog'));
 const LazyUserProfileModal = lazy(() => import('./profile/UserProfileModal'));
-const LazyMateDetailQrPanel = lazy(() => import('./MateDetailQrPanel'));
+const LazyMateDetailQrRuntime = lazy(() => import('./MateDetailQrRuntime'));
 const LazyMateDetailSeatPanel = lazy(() => import('./MateDetailSeatPanel'));
+const LazyMateDetailActionDialogs = lazy(() => import('./MateDetailActionDialogs'));
+const LazyMateDetailActionSection = lazy(() => import('./MateDetailActionSection'));
+const LazyMateDetailOverviewSection = lazy(() => import('./MateDetailOverviewSection'));
+const LazyMateDetailInfoSections = lazy(() => import('./MateDetailInfoSections'));
 
 function InlineBadge({
   className,
@@ -157,30 +144,13 @@ export default function MateDetailRuntime() {
   const [selectedCancelReason, setSelectedCancelReason] = useState<CancelReasonType>('BUYER_CHANGED_MIND');
   const [cancelMemo, setCancelMemo] = useState('');
   const [showQrPanel, setShowQrPanel] = useState(false);
-  const [qrCheckInUrl, setQrCheckInUrl] = useState('');
-  const [qrSessionExpiresAt, setQrSessionExpiresAt] = useState<string | null>(null);
-  const [isQrLoading, setIsQrLoading] = useState(false);
-  const [qrSessionError, setQrSessionError] = useState<string | null>(null);
-  const [isDocumentVisible, setIsDocumentVisible] = useState(() => (
-    typeof document === 'undefined' ? true : document.visibilityState === 'visible'
-  ));
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false); // For Seat View toggle
   const [showHostProfile, setShowHostProfile] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{ handle: string; name: string } | null>(null);
   const missingPartyRedirectRef = useRef<string | null>(null);
   const partyId = party?.id;
   const partyStatus = party?.status;
-  const qrCheckInUrlRef = useRef('');
-  const qrSessionExpiresAtRef = useRef<string | null>(null);
-  const fetchQrSessionRef = useRef<((isMountedRef: { current: boolean }, force?: boolean) => Promise<void>) | null>(null);
   const isHost = isPartyHostedByUser(party, { id: currentUserId, handle: currentUserHandle });
-  const partyReviewsQuery = useQuery({
-    ...(partyId != null
-      ? getMatePartyReviewsQueryOptions(partyId)
-      : getMatePartyReviewsQueryOptions('unknown')),
-    enabled: Boolean(partyId && partyStatus === 'COMPLETED'),
-  });
   const myApplicationQuery = useQuery({
     ...(partyId != null
       ? getMatePartyMyApplicationQueryOptions(partyId, currentUserId)
@@ -193,9 +163,6 @@ export default function MateDetailRuntime() {
       : getMatePartyApplicationsQueryOptions('unknown')),
     enabled: Boolean(partyId && isHost),
   });
-  const reviews = useMemo(() => (
-    Array.isArray(partyReviewsQuery.data) ? partyReviewsQuery.data : []
-  ), [partyReviewsQuery.data]);
   const myApplication = myApplicationQuery.data ?? null;
   const applications = hostApplicationsQuery.data ?? [];
 
@@ -216,27 +183,6 @@ export default function MateDetailRuntime() {
 
     return () => window.clearTimeout(redirectTimer);
   }, [id, navigate, partyStatusCode, party]);
-
-  useEffect(() => {
-    if (partyReviewsQuery.error && getApiErrorStatus(partyReviewsQuery.error) !== 403) {
-      toast.error('리뷰 정보를 불러오는데 실패했습니다.');
-    }
-  }, [partyReviewsQuery.error]);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') {
-      return;
-    }
-
-    const handleVisibilityChange = () => {
-      setIsDocumentVisible(document.visibilityState === 'visible');
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
 
   useEffect(() => {
     setShowQrPanel(false);
@@ -358,122 +304,6 @@ export default function MateDetailRuntime() {
     }
     return new URL(path, window.location.origin).toString();
   }, [id, party?.id]);
-
-  const scheduleNextQrRefresh = useCallback((
-    isMountedRef: { current: boolean },
-    expiresAt: string | null,
-  ) => {
-    if (refreshTimerRef.current !== null) {
-      clearTimeout(refreshTimerRef.current);
-      refreshTimerRef.current = null;
-    }
-
-    if (!isMountedRef.current || !isDocumentVisible || partyId === undefined || !canAccessCheckIn || !showQrPanel) {
-      return;
-    }
-
-    const delay = resolveQrRefreshDelayMs(expiresAt, Date.now());
-    refreshTimerRef.current = setTimeout(() => {
-      if (!isMountedRef.current || typeof document !== 'undefined' && document.visibilityState !== 'visible') {
-        return;
-      }
-      void fetchQrSessionRef.current?.(isMountedRef, true);
-    }, delay);
-  }, [canAccessCheckIn, isDocumentVisible, partyId, showQrPanel]);
-
-  const fetchQrSession = useCallback(async (
-    isMountedRef: { current: boolean },
-    force: boolean = false,
-  ) => {
-    if (partyId === undefined || !canAccessCheckIn || !isDocumentVisible || !showQrPanel) return;
-    const currentQrCheckInUrl = qrCheckInUrlRef.current;
-    const currentQrSessionExpiresAt = qrSessionExpiresAtRef.current;
-    if (!force && currentQrCheckInUrl && currentQrSessionExpiresAt) {
-      const parsedExpiresAtMs = Date.parse(currentQrSessionExpiresAt);
-      if (!Number.isNaN(parsedExpiresAtMs) && parsedExpiresAtMs - Date.now() > QR_REFRESH_LEAD_MS) {
-        scheduleNextQrRefresh(isMountedRef, currentQrSessionExpiresAt);
-        return;
-      }
-    }
-    setIsQrLoading(true);
-    try {
-      const qrSession = await createCheckInQrSession({ partyId: partyId });
-      if (!isMountedRef.current) return;
-
-      const nextQrCheckInUrl = qrSession.checkinUrl || fallbackCheckInUrl;
-      qrCheckInUrlRef.current = nextQrCheckInUrl;
-      setQrCheckInUrl(nextQrCheckInUrl);
-      setQrSessionError(null);
-      const expiresAt = qrSession.expiresAt ?? null;
-      const parsedExpiresAtMs = expiresAt ? Date.parse(expiresAt) : Number.NaN;
-      const isValidExpiresAt = expiresAt ? !Number.isNaN(parsedExpiresAtMs) : false;
-      if (expiresAt && !isValidExpiresAt) {
-        console.warn('[MateDetail] Invalid QR session expiresAt:', expiresAt);
-      }
-      const nextQrSessionExpiresAt = isValidExpiresAt ? expiresAt : null;
-      qrSessionExpiresAtRef.current = nextQrSessionExpiresAt;
-      setQrSessionExpiresAt(nextQrSessionExpiresAt);
-      scheduleNextQrRefresh(isMountedRef, nextQrSessionExpiresAt);
-    } catch (error: unknown) {
-      if (!isMountedRef.current) return;
-      console.error('QR 세션 발급 실패:', error);
-      qrCheckInUrlRef.current = fallbackCheckInUrl;
-      setQrCheckInUrl(fallbackCheckInUrl);
-      qrSessionExpiresAtRef.current = null;
-      setQrSessionError(resolveMateDetailErrorMessage(error, 'QR 세션을 발급하지 못했습니다.'));
-    } finally {
-      if (isMountedRef.current) {
-        setIsQrLoading(false);
-      }
-    }
-  }, [
-    canAccessCheckIn,
-    fallbackCheckInUrl,
-    isDocumentVisible,
-    scheduleNextQrRefresh,
-    partyId,
-    showQrPanel,
-  ]);
-
-  useEffect(() => {
-    fetchQrSessionRef.current = fetchQrSession;
-  }, [fetchQrSession]);
-
-  useEffect(() => {
-    const isMountedRef = { current: true };
-
-    qrCheckInUrlRef.current = fallbackCheckInUrl;
-    setQrCheckInUrl(fallbackCheckInUrl);
-    qrSessionExpiresAtRef.current = null;
-    setQrSessionExpiresAt(null);
-    setQrSessionError(null);
-
-    if (refreshTimerRef.current !== null) {
-      clearTimeout(refreshTimerRef.current);
-      refreshTimerRef.current = null;
-    }
-
-    if (partyId === undefined || !canAccessCheckIn || !isDocumentVisible || !showQrPanel) {
-      setIsQrLoading(false);
-      return () => {
-        isMountedRef.current = false;
-      };
-    }
-
-    void fetchQrSession(isMountedRef);
-
-    return () => {
-      isMountedRef.current = false;
-      if (refreshTimerRef.current !== null) {
-        clearTimeout(refreshTimerRef.current);
-        refreshTimerRef.current = null;
-      }
-    };
-  }, [partyId, canAccessCheckIn, fallbackCheckInUrl, fetchQrSession, isDocumentVisible, showQrPanel]);
-
-  const qrCodeValue = useMemo(() => qrCheckInUrl || fallbackCheckInUrl, [qrCheckInUrl, fallbackCheckInUrl]);
-
-
 
   if (isPartyLoading && !party) {
     return (
@@ -639,11 +469,6 @@ export default function MateDetailRuntime() {
     return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-secondary/80 dark:text-gray-200 dark:border-border/70';
   };
 
-  // description에서 해시태그 추출 (생성 Step 4에서 추가된 스타일 태그)
-  const hostTags = extractHashtags(party.description);
-  const mannerScore = getHostAverageRating(party);
-  const mannerScoreLabel = formatHostAverageRating(party);
-
 
   const posterShellClass = 'rounded-3xl overflow-hidden mb-8 border border-gray-200/80 shadow-2xl ring-1 ring-black/5 transform transition-all hover:scale-[1.01] dark:border-white/10 dark:shadow-[0_32px_80px_rgba(0,0,0,0.72)] dark:ring-white/10';
   const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
@@ -806,13 +631,8 @@ export default function MateDetailRuntime() {
   }
   const primaryMobileAction = actionButtons.find((action) => !action.disabled) ?? actionButtons[0] ?? null;
   const secondaryMobileAction = actionButtons[0]?.disabled ? null : (actionButtons[1] ?? null);
-  const getMobileActionClass = (actionKey: string) => {
-    if (actionKey === 'checkin') return 'border-[#5b21b6] text-[#5b21b6] hover:bg-[#5b21b6]/10';
-    if (actionKey === 'sale') return 'border-orange-400 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30';
-    if (actionKey === 'cancel') return 'border-red-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30';
-    if (actionKey === 'back') return 'border-primary text-primary hover:bg-primary/10';
-    return 'bg-primary text-white';
-  };
+  const actionContextForSection: MateDetailActionContext = actionContext;
+  const actionButtonsForSection: MateDetailActionButton[] = actionButtons;
 
   return (
       <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background pb-32 lg:pb-20">
@@ -969,363 +789,66 @@ export default function MateDetailRuntime() {
               </div>
             </div>
           </div>
-          <Card className={`mb-6 p-4 ${sectionCardClass}`}>
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
-              <div className={`${insetPanelClass} p-3`}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">거래 방식</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryTradeLabel}</p>
-              </div>
-              <div className={`${insetPanelClass} p-3`}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">티켓 인증</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{party.ticketVerified ? '인증 완료' : '확인 전'}</p>
-              </div>
-              <div className={`${insetPanelClass} p-3`}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">{summaryAmountLabel}</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryAmount.toLocaleString()}원</p>
-              </div>
-              <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">취소 규칙</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryPolicyText}</p>
-              </div>
-              <div className={`${insetPanelClass} p-3`}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">참여 현황</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{party.currentParticipants}/{party.maxParticipants}명</p>
-              </div>
-            </div>
-          </Card>
-
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-20">
             <div className="space-y-6 lg:col-span-2">
-              <Card className={`p-6 ${sectionCardClass}`}>
-                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
-                  <Info className="w-5 h-5 text-primary" /> 비용 안내
-                </h3>
-                <div className={`${insetPanelClass} p-5`}>
-                  {party.status === 'SELLING' ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-600 dark:text-gray-300">티켓 판매가</span>
-                        <span className="text-xl font-bold text-orange-600">
-                          {party.price?.toLocaleString()}원
-                        </span>
-                      </div>
-                      <div className="my-2 h-px w-full bg-gray-200 dark:bg-border" aria-hidden="true" />
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-300">티켓 가격</span>
-                        <span className="font-semibold text-gray-900 dark:text-gray-200">
-                          {(party.ticketPrice || 0).toLocaleString()}원
-                        </span>
-                      </div>
-                      <div className="my-2 h-px w-full bg-gray-200 dark:bg-border" aria-hidden="true" />
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className={`${insetPanelClass} p-4`}>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">정책 안내</p>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                      플랫폼 결제/환불 없이 승인 후 채팅으로 직거래를 조율합니다.
-                    </p>
-                  </div>
-                  <div className={`${insetPanelClass} p-4`}>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">다음 단계</p>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                      {isHost
-                        ? '신청 관리에서 승인 여부를 결정하고, 이후 채팅이나 체크인으로 흐름을 이어갈 수 있습니다.'
-                        : '상태에 따라 승인 대기, 채팅 입장, 체크인 준비로 이어집니다.'}
-                    </p>
-                  </div>
-                </div>
-              </Card>
+              <ViewportDeferred
+                rootMargin="0px 0px 160px 0px"
+                fallback={<div className={`min-h-[108px] rounded-xl border border-dashed border-gray-200 bg-gray-50/80 dark:border-border/70 dark:bg-secondary/60`} />}
+              >
+                <Suspense fallback={null}>
+                  <LazyMateDetailOverviewSection
+                    party={party}
+                    summaryTradeLabel={summaryTradeLabel}
+                    summaryAmountLabel={summaryAmountLabel}
+                    summaryAmount={summaryAmount}
+                    summaryPolicyText={summaryPolicyText}
+                    sectionCardClass={sectionCardClass}
+                    insetPanelClass={insetPanelClass}
+                  />
+                </Suspense>
+              </ViewportDeferred>
+              <ViewportDeferred
+                rootMargin="0px 0px 240px 0px"
+                fallback={<div className={`min-h-[520px] rounded-xl border border-dashed border-gray-200 bg-gray-50/80 dark:border-border/70 dark:bg-secondary/60`} />}
+              >
+                <Suspense fallback={null}>
+                  <LazyMateDetailInfoSections
+                    party={party}
+                    routePartyId={id}
+                    isHost={isHost}
+                    isApproved={isApproved}
+                    currentUserId={currentUserId}
+                    currentUserHandle={currentUserHandle}
+                    sectionCardClass={sectionCardClass}
+                    insetPanelClass={insetPanelClass}
+                    getSeatBadgeColor={getSeatBadgeColor}
+                    onOpenHostProfile={() => setShowHostProfile(true)}
+                    onOpenSeatViewGuide={() => setShowSeatViewGuide(true)}
+                    onRequestReview={setReviewTarget}
+                  />
+                </Suspense>
+              </ViewportDeferred>
+            </div>
 
-              <Card className={`p-5 sm:p-6 ${sectionCardClass}`}>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-start gap-4 sm:items-center">
-                    <ProfileAvatar
-                      src={party.hostProfileImageUrl ?? undefined}
-                      alt={party.hostName}
-                      fallbackName={party.hostName}
-                      width={80}
-                      height={80}
-                      showRing
-                      ringClassName="p-1 bg-white/95 dark:bg-secondary/90 border border-white/60 dark:border-white/10 shadow-lg"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">Host Trust</p>
-                      <button
-                        type="button"
-                        className="mt-1 text-left text-xl font-black text-gray-900 dark:text-white"
-                        onClick={() => setShowHostProfile(true)}
-                      >
-                        {party.hostName}
-                      </button>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <InlineBadge className="dark:border-border dark:text-gray-200">
-                          <Star className={`w-3 h-3 ${mannerScore === null ? 'text-gray-400' : 'text-yellow-500 fill-yellow-500'}`} />
-                          {mannerScore === null ? mannerScoreLabel : `평점 ${mannerScoreLabel}`}
-                        </InlineBadge>
-                        <InlineBadge className={`${party.ticketVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200' : 'dark:border-border dark:text-gray-200'}`}>
-                          <Shield className="w-3 h-3" />
-                          {party.ticketVerified ? '티켓 인증' : '인증 확인 전'}
-                        </InlineBadge>
-                        <InlineBadge className="border-purple-200 bg-purple-50 text-purple-600 dark:border-purple-900/50 dark:bg-purple-950/35 dark:text-purple-200">
-                          {summaryTradeLabel}
-                        </InlineBadge>
-                      </div>
-                    </div>
-                  </div>
-                  <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10 sm:w-auto" onClick={() => setShowHostProfile(true)}>
-                    프로필 보기
-                  </Button>
-                </div>
-              </Card>
-
-              <Card className={`p-6 ${sectionCardClass}`}>
-                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
-                  <MessageSquare className="w-5 h-5 text-primary" /> 파티 소개
-                </h3>
-                <p className="mb-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-300 md:text-base">
-                  {stripHashtags(party.description)}
-                </p>
-                {hostTags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {hostTags.map((tag, i) => (
-                      <InlineBadge key={i} className="border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-200">
-                        {tag}
-                      </InlineBadge>
-                    ))}
-                  </div>
-                )}
-              </Card>
-
-              <Card className={`p-6 overflow-hidden ${sectionCardClass}`}>
-                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
-                  <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
-                </h3>
-                <div className={`${insetPanelClass} p-5`}>
-                  <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
-                    경기장 구역 설명과 실제 좌석 시야 사진은 보조 패널에서 확인할 수 있습니다.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <InlineBadge className={getSeatBadgeColor(party.section)}>
-                      {party.section.split(' ')[0]}
-                    </InlineBadge>
-                    <InlineBadge className="dark:border-border dark:text-gray-200">
-                      <MapPin className="h-3 w-3" />
-                      {party.stadium}
-                    </InlineBadge>
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="mt-4 border-primary text-primary hover:bg-primary/10"
-                    onClick={() => setShowSeatViewGuide(true)}
-                  >
-                    좌석/구역 보기
-                  </Button>
-                </div>
-              </Card>
-
-              {party.status === 'COMPLETED' && currentUserId && (isHost || isApproved) && (
-                <Card className={`p-4 ${sectionCardClass}`}>
-                  <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white">
-                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    리뷰
-                  </h3>
-                  <div className="space-y-2">
-                    {(() => {
-                      const targets = isHost
-                        ? approvedApplications
-                          .filter((app): app is Application & { applicantHandle: string } => Boolean(app.applicantHandle))
-                          .map((app) => ({
-                            handle: app.applicantHandle,
-                            name: app.applicantName,
-                          }))
-                        : (party.hostHandle
-                          ? [{
-                            handle: party.hostHandle,
-                            name: party.hostName,
-                          }]
-                          : []);
-
-                      if (targets.length === 0) {
-                        return <p className="text-sm text-gray-400">리뷰 대상이 없습니다.</p>;
-                      }
-
-                        return targets.map((target) => {
-                          const myReview = reviews.find(
-                          (r) => hasSameMateUserIdentity(
-                            { handle: r.reviewerHandle },
-                            { handle: currentUserHandle },
-                          ) && hasSameMateUserIdentity(
-                            { handle: r.revieweeHandle },
-                            target,
-                          )
-                        );
-
-                        return (
-                          <div
-                            key={target.handle}
-                            className={`flex items-center justify-between p-3 ${insetPanelClass}`}
-                          >
-                            <div className="flex flex-col gap-1">
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                {target.name}
-                              </span>
-                              {myReview && (
-                                <div className="flex items-center gap-1">
-                                  {[1, 2, 3, 4, 5].map((num) => (
-                                    <Star
-                                      key={num}
-                                      className={`w-3.5 h-3.5 ${num <= myReview.rating
-                                        ? 'text-yellow-500 fill-yellow-500'
-                                        : 'text-gray-300'
-                                        }`}
-                                    />
-                                  ))}
-                                  {myReview.comment && (
-                                    <span className="ml-1 max-w-[120px] truncate text-xs text-gray-500 dark:text-gray-400">
-                                      "{myReview.comment}"
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            {myReview ? (
-                              <InlineBadge className="text-gray-500 dark:border-border dark:text-gray-300">
-                                작성 완료
-                              </InlineBadge>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-xs border-primary text-primary hover:bg-primary/10"
-                                onClick={() => setReviewTarget(target)}
-                              >
-                                리뷰 작성
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                </Card>
-              )}
-
-              <AdSlot
-                slotId="mate_detail_1"
-                pageType="mate_detail"
-                contentId={party?.id ? String(party.id) : (id ?? null)}
-                creativeType="sponsor_card"
-                loggedIn={Boolean(currentUserId)}
-                userId={currentUserId ? String(currentUserId) : null}
-                wave="ads_wave2"
-                minHeight={176}
-                className="mt-4"
+            <Suspense fallback={null}>
+              <LazyMateDetailActionSection
+                actionContext={actionContextForSection}
+                actionButtons={actionButtonsForSection}
+                isAwaitingApproval={isAwaitingApproval}
+                sectionCardClass={sectionCardClass}
+                insetPanelClass={insetPanelClass}
+                primaryMobileAction={primaryMobileAction}
+                secondaryMobileAction={secondaryMobileAction}
               />
-            </div>
-
-            <div className="space-y-4">
-              <Card className={`sticky top-6 p-5 ${sectionCardClass}`}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
-                  {actionContext.eyebrow}
-                </p>
-                <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">
-                  {actionContext.title}
-                </h3>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                  {actionContext.detail}
-                </p>
-
-                <div className="mt-4 space-y-2">
-                  {isAwaitingApproval && (
-                    <div
-                      data-testid="mate-pending-status"
-                      className={`${insetPanelClass} flex items-start gap-3 p-4 text-sm text-gray-600 dark:text-gray-300`}
-                    >
-                      <div className="mt-0.5 rounded-full bg-amber-100 p-2 text-amber-600 dark:bg-amber-400/15 dark:text-amber-200">
-                        <Clock className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          신청이 접수되었습니다.
-                        </p>
-                        <p className="mt-1">
-                          호스트 승인 전까지는 자유롭게 취소할 수 있고, 승인되면 채팅방 입장 버튼이 열립니다.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {actionButtons.length > 0 ? actionButtons.map((action) => (
-                    <Button
-                      key={action.key}
-                      onClick={action.onClick}
-                      disabled={action.disabled}
-                      variant={action.variant}
-                      className={action.className}
-                    >
-                      {action.label}
-                    </Button>
-                  )) : (
-                    <div className={`${insetPanelClass} p-4 text-sm text-gray-600 dark:text-gray-300`}>
-                      현재 바로 실행할 수 있는 액션은 없습니다. 상태 변화를 기다리거나 목록으로 돌아가세요.
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </div>
+            </Suspense>
           </div>
-
-          {primaryMobileAction && (
-            <div data-testid="mate-mobile-action-bar" className={`${mateMobileBarClass} lg:hidden`}>
-              <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2">
-                <div className="min-w-0 flex-[1_1_100%] sm:flex-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-                    {actionContext.eyebrow}
-                  </p>
-                  <p className="mt-1 truncate text-sm font-semibold text-gray-900 dark:text-white">
-                    {actionButtons[0]?.disabled ? actionButtons[0].label : actionContext.title}
-                  </p>
-                </div>
-                {secondaryMobileAction && (
-                  <Button
-                    onClick={secondaryMobileAction.onClick}
-                    disabled={secondaryMobileAction.disabled}
-                    variant={secondaryMobileAction.variant ?? 'outline'}
-                    className={`flex-1 sm:flex-none sm:min-w-[104px] ${getMobileActionClass(secondaryMobileAction.key)}`}
-                  >
-                    {secondaryMobileAction.label}
-                  </Button>
-                )}
-                <Button
-                  onClick={primaryMobileAction.onClick}
-                  disabled={primaryMobileAction.disabled}
-                  variant={primaryMobileAction.key === 'manage' || primaryMobileAction.key === 'apply' || primaryMobileAction.key === 'chat' ? 'default' : (primaryMobileAction.variant ?? 'outline')}
-                  className={`flex-1 sm:flex-none sm:min-w-[124px] ${primaryMobileAction.disabled ? 'bg-gray-300 text-gray-500 dark:bg-secondary/80 dark:text-gray-400' : getMobileActionClass(primaryMobileAction.key)}`}
-                >
-                  {primaryMobileAction.label}
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
         {showQrPanel ? (
           <Suspense fallback={null}>
-            <LazyMateDetailQrPanel
-              open={showQrPanel}
-              qrCodeValue={qrCodeValue}
-              isQrLoading={isQrLoading}
-              qrSessionExpiresAt={qrSessionExpiresAt}
-              qrSessionError={qrSessionError}
+            <LazyMateDetailQrRuntime
+              partyId={party.id}
+              fallbackCheckInUrl={fallbackCheckInUrl}
+              canAccessCheckIn={canAccessCheckIn}
               onClose={() => setShowQrPanel(false)}
               onOpenCheckInPage={handleCheckIn}
             />
@@ -1367,110 +890,31 @@ export default function MateDetailRuntime() {
           </Suspense>
         )}
 
-        <PlainDialog
-          open={showCancelDialog}
-          onClose={() => setShowCancelDialog(false)}
-          title="취소 사유 선택"
-          className="sm:max-w-lg"
-          footer={(
-            <>
-              <Button
-                variant="outline"
-                disabled={isCancelling}
-                onClick={() => setShowCancelDialog(false)}
-              >
-                뒤로가기
-              </Button>
-              <Button
-                disabled={isCancelling}
-                className="bg-primary text-white"
-                onClick={executeCancelApplication}
-              >
-                {isCancelling ? '취소 처리 중...' : '취소하기'}
-              </Button>
-            </>
-          )}
-        >
-            <div className="py-2">
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                직거래 파티는 취소 시 플랫폼 결제/환불이 적용되지 않습니다.
-              </p>
-              <div className="space-y-2">
-                {cancelReasonOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setSelectedCancelReason(option.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-left transition ${selectedCancelReason === option.value
-                      ? 'bg-primary/10 border-primary text-primary'
-                      : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-gray-200'
-                      }`}
-                    disabled={isCancelling}
-                  >
-                    <p className="font-medium">{option.label}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{option.description}</p>
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                  추가 메모 (선택)
-                </label>
-                <Input
-                  value={cancelMemo}
-                  onChange={(e) => setCancelMemo(e.target.value)}
-                  placeholder="선택 사유를 더 자세히 입력하세요."
-                  disabled={isCancelling}
-                />
-              </div>
-            </div>
-        </PlainDialog>
-
-        <PlainDialog
-          open={showSaleDialog}
-          onClose={() => setShowSaleDialog(false)}
-          title="티켓 판매 전환"
-          className="sm:max-w-md"
-          footer={(
-            <>
-              <Button
-                variant="outline"
-                disabled={isConvertingToSale}
-                onClick={() => setShowSaleDialog(false)}
-              >
-                취소
-              </Button>
-              <Button
-                disabled={isConvertingToSale}
-                className="bg-primary text-white"
-                onClick={handleConfirmSale}
-              >
-                {isConvertingToSale ? '전환 중...' : '확인'}
-              </Button>
-            </>
-          )}
-        >
-            <div className="py-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                판매 가격 (원)
-              </label>
-              <Input
-                type="number"
-                min={100}
-                step={1}
-                placeholder="예: 15000"
-                value={salePrice}
-                onChange={(e) => {
-                  setSalePrice(e.target.value);
-                  setSalePriceError('');
-                }}
-                className="mt-1"
-              />
-              {salePriceError && (
-                <p className="text-sm text-red-500 mt-1">{salePriceError}</p>
-              )}
-            </div>
-        </PlainDialog>
+        {(showCancelDialog || showSaleDialog) ? (
+          <Suspense fallback={null}>
+            <LazyMateDetailActionDialogs
+              showCancelDialog={showCancelDialog}
+              showSaleDialog={showSaleDialog}
+              isCancelling={isCancelling}
+              isConvertingToSale={isConvertingToSale}
+              cancelReasonOptions={cancelReasonOptions}
+              selectedCancelReason={selectedCancelReason}
+              cancelMemo={cancelMemo}
+              salePrice={salePrice}
+              salePriceError={salePriceError}
+              onCloseCancelDialog={() => setShowCancelDialog(false)}
+              onExecuteCancelApplication={executeCancelApplication}
+              onSelectCancelReason={setSelectedCancelReason}
+              onChangeCancelMemo={setCancelMemo}
+              onCloseSaleDialog={() => setShowSaleDialog(false)}
+              onConfirmSale={handleConfirmSale}
+              onChangeSalePrice={(value) => {
+                setSalePrice(value);
+                setSalePriceError('');
+              }}
+            />
+          </Suspense>
+        ) : null}
       </div>
   );
 }

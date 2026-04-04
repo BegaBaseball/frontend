@@ -85,6 +85,76 @@ describe('Authentication Flow', () => {
             });
         });
 
+        it('should keep the user signed in after reloading a protected page while bootstrap reissues the session', () => {
+            cy.fixture('user').then((user) => {
+                let profileRequestCount = 0;
+
+                cy.intercept('POST', '**/api/auth/login', {
+                    statusCode: 200,
+                    body: {
+                        success: true,
+                        data: {
+                            accessToken: 'fake-jwt-token',
+                            refreshToken: 'fake-refresh-token',
+                            ...user.testUser,
+                        },
+                    },
+                }).as('loginSuccessForReload');
+
+                cy.intercept('GET', '**/auth/mypage*', (req) => {
+                    profileRequestCount += 1;
+
+                    if (profileRequestCount === 1) {
+                        req.alias = 'getMeAfterLoginForReload';
+                        req.reply({
+                            statusCode: 200,
+                            body: { success: true, data: user.testUser },
+                        });
+                        return;
+                    }
+
+                    if (profileRequestCount === 2) {
+                        req.alias = 'getMeExpiredAfterReload';
+                        req.reply({
+                            statusCode: 401,
+                            body: { success: false, code: 'TOKEN_EXPIRED', message: 'Unauthorized' },
+                        });
+                        return;
+                    }
+
+                    req.alias = 'getMeRecoveredAfterReload';
+                    req.reply({
+                        delay: 900,
+                        statusCode: 200,
+                        body: { success: true, data: user.testUser },
+                    });
+                });
+
+                cy.intercept('POST', '**/auth/reissue*', {
+                    statusCode: 200,
+                    body: { success: true },
+                }).as('reissueAfterReload');
+
+                cy.visit('/login?redirect=%2Fmypage');
+                cy.get('input[type="email"], input[name="email"]').type(user.testUser.email);
+                cy.get('input[type="password"], input[name="password"]').type(user.testUser.password);
+                cy.get('button[type="submit"]').click();
+
+                cy.wait('@loginSuccessForReload');
+                cy.wait('@getMeAfterLoginForReload');
+                cy.location('pathname').should('eq', '/mypage');
+
+                cy.reload();
+
+                cy.location('pathname').should('eq', '/mypage');
+                cy.wait('@getMeExpiredAfterReload');
+                cy.wait('@reissueAfterReload');
+                cy.wait('@getMeRecoveredAfterReload');
+                cy.location('pathname').should('eq', '/mypage');
+                cy.contains('로그인 필요').should('not.exist');
+            });
+        });
+
         it('should return to login with a session error when profile verification fails after successful login', () => {
             cy.fixture('user').then((user) => {
                 cy.intercept('POST', '**/api/auth/login', {
@@ -138,6 +208,26 @@ describe('Authentication Flow', () => {
         it('should preserve redirect through login, signup, and post-signup login return', () => {
             cy.clock();
 
+            cy.intercept('GET', '**/api/auth/check-handle*', {
+                statusCode: 200,
+                body: {
+                    data: {
+                        available: true,
+                        normalized: '@redirectuser',
+                    },
+                },
+            }).as('checkHandleAvailable');
+
+            cy.intercept('GET', '**/api/auth/check-email*', {
+                statusCode: 200,
+                body: {
+                    data: {
+                        available: true,
+                        normalized: 'redirect_signup_user@example.com',
+                    },
+                },
+            }).as('checkEmailAvailable');
+
             cy.intercept('GET', '**/api/auth/policies/required', {
                 statusCode: 200,
                 body: {
@@ -173,6 +263,10 @@ describe('Authentication Flow', () => {
             cy.get('input#confirmPassword').type('Test1234!');
 
             cy.get('[data-testid="signup-favorite-team"]').select('LG 트윈스');
+            cy.tick(500);
+            cy.wait('@checkHandleAvailable');
+            cy.wait('@checkEmailAvailable');
+            cy.get('[data-testid="signup-submit"]').should('be.enabled');
 
             cy.contains('button', '회원가입').click();
 
@@ -186,6 +280,26 @@ describe('Authentication Flow', () => {
         });
 
         it('should sanitize technical signup errors', () => {
+            cy.intercept('GET', '**/api/auth/check-handle*', {
+                statusCode: 200,
+                body: {
+                    data: {
+                        available: true,
+                        normalized: '@signupfailure',
+                    },
+                },
+            }).as('checkHandleAvailableForFailure');
+
+            cy.intercept('GET', '**/api/auth/check-email*', {
+                statusCode: 200,
+                body: {
+                    data: {
+                        available: true,
+                        normalized: 'signup_failure_user@example.com',
+                    },
+                },
+            }).as('checkEmailAvailableForFailure');
+
             cy.intercept('GET', '**/api/auth/policies/required', {
                 statusCode: 200,
                 body: {
@@ -216,6 +330,9 @@ describe('Authentication Flow', () => {
             cy.get('input#confirmPassword').type('Test1234!');
 
             cy.get('[data-testid="signup-favorite-team"]').select('LG 트윈스');
+            cy.wait('@checkHandleAvailableForFailure');
+            cy.wait('@checkEmailAvailableForFailure');
+            cy.get('[data-testid="signup-submit"]').should('be.enabled');
 
             cy.contains('button', '회원가입').click();
 

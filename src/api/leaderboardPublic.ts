@@ -6,6 +6,8 @@ import type {
   RecentScore,
 } from './leaderboard';
 
+export type { LeaderboardType } from './leaderboard';
+
 interface LeaderboardPageResponse {
   content?: Array<Partial<LeaderboardEntry> & { rank?: number | string; handle?: string | null }>;
   totalPages?: number;

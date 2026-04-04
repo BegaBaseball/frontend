@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  fetchAdminGameStatusMismatches,
   fetchAdminPlaces,
   fetchAdminStadiums,
   fetchAdminUsers,
+  repairAdminGameStatusMismatches,
   fetchReleaseDecisionPresets,
 } from './admin';
 
@@ -110,6 +112,107 @@ test('fetchAdminPlaces는 raw 장소 배열을 반환한다', async (t) => {
 
   assert.equal(response[0]?.name, '버거집');
   assert.match(requestUrl, /\/api\/stadiums\/JAMSIL\/places$/);
+});
+
+test('fetchAdminGameStatusMismatches는 날짜 범위를 same-origin fetch query로 전달한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+
+    return buildJsonResponse({
+      success: true,
+      data: {
+        startDate: '2026-03-29',
+        endDate: '2026-03-29',
+        totalGames: 5,
+        mismatchCount: 1,
+        mismatches: [
+          {
+            gameId: '20260329HTSK0',
+            gameDate: '2026-03-29',
+            startTime: '14:00:00',
+            rawStatus: 'SCHEDULED',
+            normalizedRawStatus: 'SCHEDULED',
+            effectiveStatus: 'COMPLETED',
+            homeScore: 11,
+            awayScore: 6,
+            inningScoreCount: 9,
+            hasKnownScore: true,
+            hasInningScores: true,
+            reasons: ['inning scores present'],
+          },
+        ],
+      },
+    });
+  });
+
+  const response = await fetchAdminGameStatusMismatches({
+    startDate: '2026-03-29',
+    endDate: '2026-03-29',
+  });
+
+  assert.equal(response.mismatchCount, 1);
+  assert.match(requestUrl, /\/api\/admin\/games\/status-mismatches\?startDate=2026-03-29&endDate=2026-03-29$/);
+  assert.equal(requestInit?.credentials, 'include');
+});
+
+test('repairAdminGameStatusMismatches는 POST query와 빈 JSON body로 dryRun 플래그를 전달한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+
+    return buildJsonResponse({
+      success: true,
+      data: {
+        startDate: '2026-03-29',
+        endDate: '2026-03-29',
+        dryRun: false,
+        totalGames: 5,
+        mismatchCount: 1,
+        repairedCount: 1,
+        mismatches: [],
+        repairedGames: [
+          {
+            gameId: '20260329HTSK0',
+            homeScore: 11,
+            awayScore: 6,
+            gameStatus: 'COMPLETED',
+            inningScoreCount: 9,
+            synced: true,
+            usedInningScores: true,
+            winningTeam: 'SSG 랜더스',
+            winningScore: 11,
+          },
+        ],
+      },
+    });
+  });
+
+  const response = await repairAdminGameStatusMismatches({
+    startDate: '2026-03-29',
+    endDate: '2026-03-29',
+    dryRun: false,
+  });
+
+  assert.equal(response.repairedCount, 1);
+  assert.match(requestUrl, /\/api\/admin\/games\/repair-status-mismatches\?startDate=2026-03-29&endDate=2026-03-29&dryRun=false$/);
+  assert.equal(requestInit?.credentials, 'include');
+  assert.equal(requestInit?.method, 'POST');
+  assert.equal(requestInit?.body, '{}');
 });
 
 test('fetchReleaseDecisionPresets는 AI 운영 프리셋 raw 응답을 반환한다', async (t) => {

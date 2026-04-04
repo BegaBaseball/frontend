@@ -7,8 +7,8 @@ import type {
   PowerupInventory as PowerupInventoryState,
 } from '../../api/leaderboard';
 
-import mascotRight from '../../assets/images/mascot_v3.png';
-import stadiumBg from '../../assets/images/stadium_bg.png';
+import mascotRight from '../../assets/images/mascot_v3.webp';
+import stadiumBg from '../../assets/images/stadium_bg.webp';
 
 const retroDisplay = "'Press Start 2P', monospace";
 const retroText = "'Galmuri11', 'Galmuri9', sans-serif";

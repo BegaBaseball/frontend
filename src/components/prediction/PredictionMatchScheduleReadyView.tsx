@@ -1,0 +1,175 @@
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+
+import type { PredictionLocationState } from '../../utils/predictionDeepLink';
+import type { DateGames, Game, MatchBounds } from '../../types/prediction';
+import type { RangeLoadState } from '../../hooks/predictionHookShared';
+import { Card } from '../ui/card';
+import { PredictionLoaderIcon } from './PredictionShellIcons';
+
+const PredictionMatchInteractiveRuntime = lazy(() => import('./PredictionMatchInteractiveRuntime'));
+const PredictionMatchSchedulePreviewRuntime = lazy(() => import('./PredictionMatchSchedulePreviewRuntime'));
+
+type PredictionMatchScheduleReadyViewProps = {
+  locationState: PredictionLocationState;
+  searchParams: URLSearchParams;
+  setSearchParams: (nextInit: URLSearchParams, navigateOptions?: { replace?: boolean }) => void;
+  currentGame: Game | null;
+  currentDateGames: DateGames['games'];
+  currentDate: string;
+  currentDayNavigationMeta: { prevDate: string | null; nextDate: string | null } | null;
+  allDatesData: DateGames[];
+  currentDateIndex: number;
+  deepLinkNotice: string | null;
+  goToPreviousDate: () => void;
+  goToNextDate: () => void;
+  goToDate: (date: string) => Promise<void> | void;
+  currentGameId?: string;
+  pastRangeLoadState: RangeLoadState;
+  pastRangeLoadErrorMessage: string | null;
+  futureRangeLoadState: RangeLoadState;
+  futureRangeLoadErrorMessage: string | null;
+  canLoadMorePast: boolean;
+  canLoadMoreFuture: boolean;
+  matchBounds: MatchBounds | null;
+  retryLoadMorePastMatches: () => void;
+  retryLoadMoreFutureMatches: () => void;
+};
+
+export default function PredictionMatchScheduleReadyView({
+  locationState,
+  searchParams,
+  setSearchParams,
+  currentGame,
+  currentDateGames,
+  currentDate,
+  currentDayNavigationMeta,
+  allDatesData,
+  currentDateIndex,
+  deepLinkNotice,
+  goToPreviousDate,
+  goToNextDate,
+  goToDate,
+  currentGameId,
+  pastRangeLoadState,
+  pastRangeLoadErrorMessage,
+  futureRangeLoadState,
+  futureRangeLoadErrorMessage,
+  canLoadMorePast,
+  canLoadMoreFuture,
+  matchBounds,
+  retryLoadMorePastMatches,
+  retryLoadMoreFutureMatches,
+}: PredictionMatchScheduleReadyViewProps) {
+  const [hasEnteredMatchDetail, setHasEnteredMatchDetail] = useState(false);
+  const [hasStoredRunSession, setHasStoredRunSession] = useState(false);
+
+  const deepLinkGameId = useMemo(() => {
+    const queryGameId = searchParams.get('gameId')?.trim() || '';
+    const stateGameId = (locationState?.gameId || '').trim();
+    const stateSeedGameId = (locationState?.game?.gameId || '').trim();
+
+    return queryGameId || stateGameId || stateSeedGameId;
+  }, [locationState?.game?.gameId, locationState?.gameId, searchParams]);
+
+  const isDeepLinkMatchSelection = useMemo(() => {
+    if (!deepLinkGameId || !currentGameId) {
+      return false;
+    }
+
+    return currentGameId === deepLinkGameId;
+  }, [currentGameId, deepLinkGameId]);
+
+  useEffect(() => {
+    if (isDeepLinkMatchSelection) {
+      setHasEnteredMatchDetail(true);
+    }
+  }, [isDeepLinkMatchSelection]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    const syncStoredRunSession = () => {
+      const hasPendingRunSession = Boolean(
+        window.sessionStorage.getItem('prediction:run-session:v1')
+        || window.sessionStorage.getItem('prediction:run-session')
+      );
+      setHasStoredRunSession(hasPendingRunSession);
+    };
+
+    const handlePageShow = () => {
+      syncStoredRunSession();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncStoredRunSession();
+      }
+    };
+
+    syncStoredRunSession();
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  const handleEnterMatchDetail = useCallback(() => {
+    if (currentGameId) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.set('gameId', currentGameId);
+      if (currentDate) {
+        nextSearchParams.set('date', currentDate);
+      }
+      setSearchParams(nextSearchParams, { replace: true });
+    }
+    setHasEnteredMatchDetail(true);
+  }, [currentDate, currentGameId, searchParams, setSearchParams]);
+
+  const shouldRenderMatchCard =
+    (hasEnteredMatchDetail || isDeepLinkMatchSelection || hasStoredRunSession) && Boolean(currentGameId);
+
+  return (
+    <Suspense
+      fallback={(
+        <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
+          <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
+            <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
+            경기 화면을 준비하고 있습니다.
+          </div>
+        </Card>
+      )}
+    >
+      {shouldRenderMatchCard ? (
+        <PredictionMatchInteractiveRuntime />
+      ) : (
+        <PredictionMatchSchedulePreviewRuntime
+          currentGame={currentGame}
+          currentDateGames={currentDateGames}
+          currentDate={currentDate}
+          currentDayNavigationMeta={currentDayNavigationMeta}
+          allDatesData={allDatesData}
+          currentDateIndex={currentDateIndex}
+          deepLinkNotice={deepLinkNotice}
+          goToPreviousDate={goToPreviousDate}
+          goToNextDate={goToNextDate}
+          goToDate={goToDate}
+          currentGameId={currentGameId}
+          pastRangeLoadState={pastRangeLoadState}
+          pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
+          futureRangeLoadState={futureRangeLoadState}
+          futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
+          canLoadMorePast={canLoadMorePast}
+          canLoadMoreFuture={canLoadMoreFuture}
+          matchBounds={matchBounds}
+          retryLoadMorePastMatches={retryLoadMorePastMatches}
+          retryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
+          onEnterMatchDetail={handleEnterMatchDetail}
+        />
+      )}
+    </Suspense>
+  );
+}

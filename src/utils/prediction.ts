@@ -1,5 +1,5 @@
 // utils/prediction.ts
-import { Game, DateGames } from '../types/prediction';
+import { Game, GameDetail, DateGames } from '../types/prediction';
 import { DAYS_OF_WEEK } from '../constants/prediction';
 import { TEAM_DATA, TEAM_NAME_TO_ID } from '../constants/teams';
 
@@ -721,6 +721,7 @@ export interface GameStatusResult {
 }
 
 const NEUTRAL_GAME_STATUSES = new Set(['', 'UNKNOWN', 'TBD', 'PENDING', 'READY', 'NOT_STARTED', 'NONE']);
+const SCHEDULED_GAME_STATUSES = new Set([...NEUTRAL_GAME_STATUSES, 'SCHEDULED']);
 
 const resolveGameStatusCode = (normalizedStatus: string): GameStatusCode => {
   if (normalizedStatus === 'POSTPONED') return 'POSTPONED';
@@ -730,6 +731,33 @@ const resolveGameStatusCode = (normalizedStatus: string): GameStatusCode => {
   if (['LIVE', 'IN_PROGRESS', 'PLAYING'].includes(normalizedStatus)) return 'LIVE';
   if (normalizedStatus === 'SCHEDULED') return 'SCHEDULED';
   return 'UNKNOWN';
+};
+
+export const hasGameDetailProgressData = (detail?: GameDetail | null): boolean => {
+  if (!detail) {
+    return false;
+  }
+
+  if (detail.homeScore != null && detail.awayScore != null) {
+    return true;
+  }
+
+  const rawDetail = detail as unknown as Record<string, unknown>;
+  const candidateKeys = [
+    rawDetail.inningScores,
+    rawDetail.inning_scores,
+    rawDetail.inning_score,
+    rawDetail.innings,
+  ];
+
+  if (candidateKeys.some((value) => Array.isArray(value) && value.length > 0)) {
+    return true;
+  }
+
+  return (
+    (!!rawDetail.lineScore && typeof rawDetail.lineScore === 'object' && !Array.isArray(rawDetail.lineScore))
+    || (!!rawDetail.line_score && typeof rawDetail.line_score === 'object' && !Array.isArray(rawDetail.line_score))
+  );
 };
 
 /**
@@ -828,6 +856,9 @@ export const getGameStatus = (
     status?: string | null;
     gameDate?: string | null;
     startTime?: string | null;
+    homeScore?: number | null;
+    awayScore?: number | null;
+    hasProgressData?: boolean;
   }
 ): GameStatusResult => {
   if (!game) {
@@ -859,8 +890,11 @@ export const getGameStatus = (
     ? new Date(`${matchDate}T${normalizedStartTime}`)
     : null;
   const hasValidStartTime = startDateTime != null && !Number.isNaN(startDateTime.getTime());
-  const hasKnownScore = (game.homeScore !== null && game.homeScore !== undefined)
-    && (game.awayScore !== null && game.awayScore !== undefined);
+  const resolvedHomeScore = options?.homeScore ?? game.homeScore;
+  const resolvedAwayScore = options?.awayScore ?? game.awayScore;
+  const hasKnownScore = (resolvedHomeScore !== null && resolvedHomeScore !== undefined)
+    && (resolvedAwayScore !== null && resolvedAwayScore !== undefined);
+  const hasProgressData = options?.hasProgressData === true || hasKnownScore;
   const isDatePast = matchDate ? matchDate < todayKey : false;
   const isDateFuture = matchDate ? matchDate > todayKey : false;
   const isToday = matchDate ? matchDate === todayKey : false;
@@ -874,9 +908,33 @@ export const getGameStatus = (
 
   const hasNeutralStatus = !normalizedStatus || NEUTRAL_GAME_STATUSES.has(normalizedStatus);
   const shouldOverrideToScheduled = isDateFuture && !hasStarted && hasNeutralStatus;
+  const inferStatusFromProgressData = (): GameStatusCode => {
+    if (!hasProgressData) {
+      return 'UNKNOWN';
+    }
+
+    if (isDatePast) {
+      return hasKnownScore && resolvedHomeScore === resolvedAwayScore ? 'DRAW' : 'COMPLETED';
+    }
+
+    if (hasStarted || isToday) {
+      return 'LIVE';
+    }
+
+    return 'UNKNOWN';
+  };
   const statusCode: GameStatusCode = (() => {
     if (rawStatusCode === 'POSTPONED' || rawStatusCode === 'CANCELLED') {
       return rawStatusCode;
+    }
+    if (rawStatusCode === 'DRAW') {
+      return 'DRAW';
+    }
+    if (SCHEDULED_GAME_STATUSES.has(normalizedStatus)) {
+      const inferredProgressStatus = inferStatusFromProgressData();
+      if (inferredProgressStatus !== 'UNKNOWN') {
+        return inferredProgressStatus;
+      }
     }
     if (shouldOverrideToScheduled) {
       return 'SCHEDULED';

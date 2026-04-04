@@ -26,9 +26,13 @@ test.afterEach(() => {
 });
 
 const withWindowLocalStorage = (storage: ReturnType<typeof createStorage>) => {
-  (globalThis as typeof globalThis & { window?: Window & { localStorage: typeof storage } }).window = {
-    localStorage: storage,
-  } as Window & { localStorage: typeof storage };
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    writable: true,
+    value: {
+      localStorage: storage,
+    } as Window & { localStorage: typeof storage },
+  });
 };
 
 const AUTH_BOOTSTRAP_HINT_KEY = 'auth-bootstrap-hint';
@@ -155,6 +159,7 @@ test('public-optional bootstrap 401 실패는 사용자 state를 비우지 않�
   const storage = createStorage();
   withWindowLocalStorage(storage);
   setAuthBootstrapHint(storage, true);
+  const fetchOptions: Array<{ retryOn401?: boolean } | undefined> = [];
 
   useAuthStore.getState().login(
     'viewer@example.com',
@@ -167,7 +172,8 @@ test('public-optional bootstrap 401 실패는 사용자 state를 비우지 않�
     'viewer',
   );
 
-  t.mock.method(authStoreApi, 'fetchCurrentUserProfile', async () => {
+  t.mock.method(authStoreApi, 'fetchCurrentUserProfile', async (options?: { retryOn401?: boolean }) => {
+    fetchOptions.push(options);
     throw { response: { status: 401 } };
   });
 
@@ -177,6 +183,7 @@ test('public-optional bootstrap 401 실패는 사용자 state를 비우지 않�
   assert.equal(didAuthenticate, false);
   assert.equal(state.user?.email, 'viewer@example.com');
   assert.equal(state.isAuthLoading, false);
+  assert.deepEqual(fetchOptions, [{ retryOn401: false }]);
   assert.equal(hasAuthBootstrapHint(storage), false);
   assert.deepEqual(getAuthBootstrapMeta(), {
     version: 1,

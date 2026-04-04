@@ -1,0 +1,33 @@
+{
+  "ok": false,
+  "apiBase": "https://api.begabaseball.xyz/api",
+  "frontendOrigin": "https://www.begabaseball.xyz",
+  "timeoutMs": 15000,
+  "runStartedAt": "2026-04-04T12:59:24.294Z",
+  "checks": [
+    {
+      "name": "backend-health",
+      "status": "passed",
+      "result": {
+        "url": "https://api.begabaseball.xyz/actuator/health",
+        "status": 200
+      }
+    },
+    {
+      "name": "check-handle-public",
+      "status": "failed",
+      "error": "check-handle is not publicly accessible on the deployed backend (status 401). The auth availability endpoint deployment is likely missing or outdated."
+    },
+    {
+      "name": "check-email-public",
+      "status": "failed",
+      "error": "check-email is not publicly accessible on the deployed backend (status 401). The auth availability endpoint deployment is likely missing or outdated."
+    }
+  ],
+  "failures": [
+    "check-handle-public: check-handle is not publicly accessible on the deployed backend (status 401). The auth availability endpoint deployment is likely missing or outdated.",
+    "check-email-public: check-email is not publicly accessible on the deployed backend (status 401). The auth availability endpoint deployment is likely missing or outdated."
+  ],
+  "warnings": [],
+  "runFinishedAt": "2026-04-04T12:59:24.733Z"
+}

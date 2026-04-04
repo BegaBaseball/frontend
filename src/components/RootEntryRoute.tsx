@@ -1,17 +1,18 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import LoadingSpinner from './LoadingSpinner';
-import { useAuthSession } from '../store/authStore';
+import { useAuthBootstrapUiState } from '../hooks/useAuthBootstrapUiState';
 import { requestLoadTrace } from '../utils/requestLoadTrace';
 
 const Landing = lazy(() => import('./Landing'));
 
 export default function RootEntryRoute() {
-  const { isLoggedIn, isAuthLoading } = useAuthSession();
+  const { isAuthBootstrapPending, isAuthLoading, isLoggedIn } = useAuthBootstrapUiState();
+  const shouldShowAuthLoading = isAuthLoading || isAuthBootstrapPending;
 
   useEffect(() => {
-    if (isAuthLoading) {
-      requestLoadTrace('RootEntryRoute:authLoading');
+    if (shouldShowAuthLoading) {
+      requestLoadTrace(isAuthBootstrapPending ? 'RootEntryRoute:authBootstrapPending' : 'RootEntryRoute:authLoading');
       return;
     }
 
@@ -21,14 +22,14 @@ export default function RootEntryRoute() {
     }
 
     requestLoadTrace('RootEntryRoute:landing');
-  }, [isAuthLoading, isLoggedIn]);
+  }, [isAuthBootstrapPending, isAuthLoading, isLoggedIn, shouldShowAuthLoading]);
 
-  if (isAuthLoading) {
+  if (shouldShowAuthLoading) {
     return (
       <LoadingSpinner
         variant="app"
         message="첫 화면을 준비하고 있습니다."
-        subMessage="사용자 상태를 확인하는 중입니다."
+        subMessage={isAuthBootstrapPending ? '로그인 상태를 복구하는 중입니다.' : '사용자 상태를 확인하는 중입니다.'}
         minDurationMs={120}
       />
     );

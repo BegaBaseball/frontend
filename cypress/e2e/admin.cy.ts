@@ -60,6 +60,33 @@ type SeatViewRecord = {
     ticketVerifiedAt: string | null;
 };
 
+type GameStatusMismatchRecord = {
+    gameId: string;
+    gameDate: string;
+    startTime: string | null;
+    rawStatus: string | null;
+    normalizedRawStatus: string | null;
+    effectiveStatus: string;
+    homeScore: number | null;
+    awayScore: number | null;
+    inningScoreCount: number;
+    hasKnownScore: boolean;
+    hasInningScores: boolean;
+    reasons: string[];
+};
+
+type GameScoreSyncRecord = {
+    gameId: string;
+    homeScore: number | null;
+    awayScore: number | null;
+    gameStatus: string;
+    inningScoreCount: number;
+    synced: boolean;
+    usedInningScores: boolean;
+    winningTeam: string | null;
+    winningScore: number | null;
+};
+
 type OffseasonMovementRecord = {
     id: number;
     movementDate: string;
@@ -445,6 +472,37 @@ describe('Admin page coverage', () => {
             ],
         };
 
+        let gameStatusMismatches: GameStatusMismatchRecord[] = [
+            {
+                gameId: '20260329HTSK0',
+                gameDate: '2026-03-29',
+                startTime: '14:00:00',
+                rawStatus: 'SCHEDULED',
+                normalizedRawStatus: 'SCHEDULED',
+                effectiveStatus: 'COMPLETED',
+                homeScore: 11,
+                awayScore: 6,
+                inningScoreCount: 9,
+                hasKnownScore: true,
+                hasInningScores: true,
+                reasons: ['inning scores present', 'known final score'],
+            },
+        ];
+
+        const repairedGames: GameScoreSyncRecord[] = [
+            {
+                gameId: '20260329HTSK0',
+                homeScore: 11,
+                awayScore: 6,
+                gameStatus: 'COMPLETED',
+                inningScoreCount: 9,
+                synced: true,
+                usedInningScores: true,
+                winningTeam: 'SSG 랜더스',
+                winningScore: 11,
+            },
+        ];
+
         cy.mockAPI();
 
         cy.intercept('GET', '**/auth/mypage*', {
@@ -584,6 +642,51 @@ describe('Admin page coverage', () => {
                 body: ok(reports.find((report) => report.id === reportId)),
             });
         }).as('patchAdminReport');
+
+        cy.intercept('GET', '**/api/admin/games/status-mismatches*', (req) => {
+            const requestedStartDate = readQuery(req.url, 'startDate') || '2026-03-29';
+            const requestedEndDate = readQuery(req.url, 'endDate') || requestedStartDate;
+
+            req.alias = requestedStartDate === requestedEndDate
+                ? 'getAdminGameStatusMismatches'
+                : 'getAdminGameStatusRecommendationWindow';
+
+            req.reply({
+                statusCode: 200,
+                body: ok({
+                    startDate: requestedStartDate,
+                    endDate: requestedEndDate,
+                    totalGames: 5,
+                    mismatchCount: gameStatusMismatches.length,
+                    mismatches: gameStatusMismatches,
+                }),
+            });
+        }).as('getAdminGameStatusMismatches');
+
+        cy.intercept('POST', '**/api/admin/games/repair-status-mismatches*', (req) => {
+            const requestedStartDate = readQuery(req.url, 'startDate') || '2026-03-29';
+            const requestedEndDate = readQuery(req.url, 'endDate') || requestedStartDate;
+            const dryRun = readQuery(req.url, 'dryRun') !== 'false';
+            const currentMismatches = [...gameStatusMismatches];
+
+            if (!dryRun) {
+                gameStatusMismatches = [];
+            }
+
+            req.reply({
+                statusCode: 200,
+                body: ok({
+                    startDate: requestedStartDate,
+                    endDate: requestedEndDate,
+                    dryRun,
+                    totalGames: 5,
+                    mismatchCount: currentMismatches.length,
+                    repairedCount: currentMismatches.length,
+                    mismatches: currentMismatches,
+                    repairedGames: dryRun ? [] : repairedGames,
+                }),
+            });
+        }).as('repairAdminGameStatusMismatches');
 
         cy.intercept('GET', '**/api/admin/client-errors/dashboard*', {
             statusCode: 200,
@@ -1030,6 +1133,52 @@ describe('Admin page coverage', () => {
 
         cy.wait('@demoteAdminUser');
         cy.contains('SUPER_ADMIN 권한이 필요합니다.').should('be.visible');
+    });
+
+    it('covers game status mismatch diagnosis and repair workflow', () => {
+        let createObjectUrlStub: sinon.SinonStub;
+
+        cy.window().then((win) => {
+            createObjectUrlStub = cy.stub(win.URL, 'createObjectURL').returns('blob:game-status-export');
+        });
+
+        cy.getBySel('admin-tab-game-status').click({ force: true });
+        cy.wait('@getAdminGameStatusMismatches');
+        cy.wait('@getAdminGameStatusRecommendationWindow');
+        cy.contains('경기 상태 mismatch 진단 및 복구').should('be.visible');
+        cy.getBySel('admin-game-status-mismatch-20260329HTSK0').should('be.visible');
+        cy.contains('inning scores present').should('be.visible');
+        cy.getBySel('admin-game-status-suggestion-2026-03-29').should('be.visible').click({ force: true });
+        cy.wait('@getAdminGameStatusMismatches');
+        cy.getBySel('admin-game-status-start-date').should('have.value', '2026-03-29');
+        cy.getBySel('admin-game-status-end-date').should('have.value', '2026-03-29');
+        cy.contains('불일치 1건을 찾았습니다.').should('be.visible');
+
+        cy.getBySel('admin-game-status-diagnose').click({ force: true });
+        cy.wait('@getAdminGameStatusMismatches');
+        cy.contains('불일치 1건을 찾았습니다.').should('be.visible');
+        cy.getBySel('admin-game-status-download-mismatches').click({ force: true });
+
+        cy.getBySel('admin-game-status-dry-run').click({ force: true });
+        cy.wait('@repairAdminGameStatusMismatches');
+        cy.contains('dry-run 완료: mismatch 1건, 예상 복구 1건').should('be.visible');
+
+        cy.getBySel('admin-game-status-apply').click({ force: true });
+        visibleAlertDialog().within(() => {
+            cy.contains('button', '복구 실행').click({ force: true });
+        });
+
+        cy.wait('@repairAdminGameStatusMismatches');
+        cy.wait('@getAdminGameStatusMismatches');
+        cy.wait('@getAdminGameStatusRecommendationWindow');
+        cy.contains('실제 복구 완료: 1건 반영').should('be.visible');
+        cy.contains('선택한 날짜 범위에서 경기 상태 불일치가 없습니다.').should('be.visible');
+        cy.contains('최근 14일 범위에서 추천할 mismatch 날짜가 없습니다.').should('be.visible');
+        cy.getBySel('admin-game-status-repaired-20260329HTSK0').should('be.visible');
+        cy.getBySel('admin-game-status-download-repairs').click({ force: true });
+        cy.wrap(null).then(() => {
+            expect(createObjectUrlStub.callCount).to.eq(2);
+        });
     });
 
     it('covers reports and client error operations', () => {

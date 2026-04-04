@@ -135,10 +135,16 @@ export const validateLoginField = (
   fieldName: keyof LoginFormData,
   value: string
 ): string => {
+  const asciiValue = value.trim();
+  const hasNonAscii = /[^\x20-\x7E]/.test(asciiValue);
+
   switch (fieldName) {
     case 'email':
       if (!value.trim()) {
         return ERROR_MESSAGES.EMAIL.REQUIRED;
+      }
+      if (hasNonAscii) {
+        return ERROR_MESSAGES.ENCODE.INVALID;
       }
       if (!VALIDATION_RULES.EMAIL.REGEX.test(value.trim())) {
         return ERROR_MESSAGES.EMAIL.INVALID;
@@ -148,6 +154,12 @@ export const validateLoginField = (
     case 'password':
       if (!value) {
         return ERROR_MESSAGES.PASSWORD.REQUIRED;
+      }
+      if (/\s/.test(value)) {
+        return ERROR_MESSAGES.ENCODE.INVALID;
+      }
+      if (hasNonAscii) {
+        return ERROR_MESSAGES.ENCODE.INVALID;
       }
       return '';
 

@@ -1,0 +1,55 @@
+{
+  "status": "failed",
+  "runStartedAt": "2026-04-04T12:43:27.192Z",
+  "runFinishedAt": "2026-04-04T12:43:39.919Z",
+  "apiBase": "https://api.begabaseball.xyz/api",
+  "signupIdentity": {
+    "name": "smoke_user_192410",
+    "handle": "@Smoke192410",
+    "email": "Smoke_1775306607192410@Example.com"
+  },
+  "steps": [
+    {
+      "name": "backend-health",
+      "status": "failed",
+      "startedAt": "2026-04-04T12:43:27.196Z",
+      "finishedAt": "2026-04-04T12:43:39.919Z",
+      "durationMs": 12723,
+      "error": "backend unavailable at https://api.begabaseball.xyz/api. GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+      "diagnostics": {
+        "kind": "http",
+        "step": "backend-health",
+        "method": "GET",
+        "path": "/actuator/health",
+        "url": "https://api.begabaseball.xyz/api/actuator/health",
+        "status": 401,
+        "attempts": 12,
+        "message": "backend unavailable at https://api.begabaseball.xyz/api. GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다."
+      }
+    }
+  ],
+  "warnings": [
+    "backend-health 재시도 1/11: [http] GET /actuator/health status=401 attempts=1: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+    "backend-health 재시도 2/11: [http] GET /actuator/health status=401 attempts=2: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+    "backend-health 재시도 3/11: [http] GET /actuator/health status=401 attempts=3: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+    "backend-health 재시도 4/11: [http] GET /actuator/health status=401 attempts=4: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+    "backend-health 재시도 5/11: [http] GET /actuator/health status=401 attempts=5: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+    "backend-health 재시도 6/11: [http] GET /actuator/health status=401 attempts=6: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+    "backend-health 재시도 7/11: [http] GET /actuator/health status=401 attempts=7: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+    "backend-health 재시도 8/11: [http] GET /actuator/health status=401 attempts=8: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+    "backend-health 재시도 9/11: [http] GET /actuator/health status=401 attempts=9: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+    "backend-health 재시도 10/11: [http] GET /actuator/health status=401 attempts=10: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+    "backend-health 재시도 11/11: [http] GET /actuator/health status=401 attempts=11: GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다."
+  ],
+  "fatalError": "backend unavailable at https://api.begabaseball.xyz/api. GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+  "fatalErrorDetails": {
+    "kind": "http",
+    "step": "backend-health",
+    "method": "GET",
+    "path": "/actuator/health",
+    "url": "https://api.begabaseball.xyz/api/actuator/health",
+    "status": 401,
+    "attempts": 12,
+    "message": "backend unavailable at https://api.begabaseball.xyz/api. GET /actuator/health 상태코드 401 (기대: 200) - 인증이 필요합니다."
+  }
+}

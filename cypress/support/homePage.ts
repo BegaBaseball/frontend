@@ -140,6 +140,15 @@ const seedAnonymousHomeState = (
 
 export const installHomeAuthRequestTrace = (win: Window) => {
   const typedWin = win as HomeWindowWithAuthTrace;
+  const typedGlobalWin = win as Window & typeof globalThis;
+  type XhrOpen = (
+    this: XMLHttpRequest,
+    method: string,
+    url: string | URL,
+    async?: boolean,
+    username?: string | null,
+    password?: string | null,
+  ) => void;
   if (typedWin.__homeAuthRequestTraces) {
     return;
   }
@@ -161,9 +170,9 @@ export const installHomeAuthRequestTrace = (win: Window) => {
     return originalFetch(...args);
   };
 
-  const xhrPrototype = win.XMLHttpRequest.prototype as XMLHttpRequest['prototype'] & {
+  const xhrPrototype = typedGlobalWin.XMLHttpRequest.prototype as typeof globalThis.XMLHttpRequest.prototype & {
     __homeAuthTraceInstalled?: boolean;
-    __homeAuthTraceOriginalOpen?: XMLHttpRequest['open'];
+    __homeAuthTraceOriginalOpen?: XhrOpen;
   };
 
   if (xhrPrototype.__homeAuthTraceInstalled) {
@@ -171,12 +180,14 @@ export const installHomeAuthRequestTrace = (win: Window) => {
   }
 
   xhrPrototype.__homeAuthTraceInstalled = true;
-  xhrPrototype.__homeAuthTraceOriginalOpen = xhrPrototype.open;
+  xhrPrototype.__homeAuthTraceOriginalOpen = xhrPrototype.open as XhrOpen;
   xhrPrototype.open = function patchedHomeAuthOpen(
     this: XMLHttpRequest,
     method: string,
     url: string | URL,
-    ...rest: [boolean | undefined, string | undefined, string | undefined]
+    async?: boolean,
+    username?: string | null,
+    password?: string | null,
   ) {
     const normalizedUrl = typeof url === 'string' ? url : url.toString();
     if (normalizedUrl.includes('/api/auth/mypage')) {
@@ -187,7 +198,11 @@ export const installHomeAuthRequestTrace = (win: Window) => {
         stack: new Error().stack,
       });
     }
-    return xhrPrototype.__homeAuthTraceOriginalOpen!.call(this, method, url, ...rest);
+    if (typeof async === 'boolean') {
+      return xhrPrototype.__homeAuthTraceOriginalOpen!.call(this, method, url, async, username, password);
+    }
+
+    return xhrPrototype.__homeAuthTraceOriginalOpen!.call(this, method, url);
   };
 };
 

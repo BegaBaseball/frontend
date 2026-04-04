@@ -479,7 +479,6 @@ export default function HomeSecondaryPanels({
                 )}
               >
                 <LazyCalendarComponent
-                  mode="single"
                   selected={selectedDate}
                   onSelect={(date) => {
                     if (!date) {
