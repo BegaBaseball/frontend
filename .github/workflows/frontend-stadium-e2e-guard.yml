@@ -30,6 +30,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Load public map env
+        shell: bash
+        run: |
+          if [[ ! -f ".env.production" ]]; then
+            echo "Missing .env.production" >&2
+            exit 1
+          fi
+          grep -E '^(VITE_KAKAO_MAP_KEY|VITE_KAKAO_API_KEY)=' ".env.production" >> "${GITHUB_ENV}"
+
+      - name: Validate map env
+        shell: bash
+        run: |
+          if [[ -z "${VITE_KAKAO_MAP_KEY}" && -z "${VITE_KAKAO_API_KEY}" ]]; then
+            echo "Missing .env.production value: VITE_KAKAO_MAP_KEY or VITE_KAKAO_API_KEY" >&2
+            exit 1
+          fi
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
