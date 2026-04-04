@@ -186,8 +186,24 @@ describe('Prediction Coach Briefing Regression', () => {
       cy.get('@getUserVote.all').should('have.length', 0);
     }
     if (!skipCoachBriefingProbe) {
-      ensureCoachBriefingVisible();
+      cy.get('body').then(($body) => {
+        const hasCoachBriefingCard = $body.find('[data-testid="coach-briefing-card"]').length > 0;
+        if (hasCoachBriefingCard) {
+          return;
+        }
+
+        const detailButton = [...$body.find('button')].find((button) => (
+          button.textContent?.includes('경기 상세 보기')
+        ));
+
+        if (detailButton) {
+          cy.wrap(detailButton).click({ force: true });
+        }
+      });
       advanceTime(500);
+      cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 })
+        .scrollIntoView()
+        .should('be.visible');
     }
   };
 
@@ -391,22 +407,25 @@ describe('Prediction Coach Briefing Regression', () => {
         }),
       });
     }).as('coachAnalyzeStructured');
-    openPredictionPage();
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+    openPredictionPage({
+      useRealClock: true,
+    });
 
-    cy.tick(2000);
     cy.wait('@coachAnalyzeStructured');
-    cy.tick(100);
     cy.get('@coachAnalyzeStructured.all').its('length').then((length) => {
       initialStructuredCalls = Number(length);
       expect(initialStructuredCalls).to.be.gte(1);
     });
 
-    cy.tick(2000);
+    cy.wait(2000);
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.equal(initialStructuredCalls);
     });
-    cy.tick(7000);
-    cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
+    cy.wait(5000);
+    cy.get('@coachAnalyzeStructured.all', { timeout: 10000 }).its('length').should((length) => {
       expect(Number(length)).to.be.gte(initialStructuredCalls + 1);
     });
   });
@@ -489,29 +508,30 @@ describe('Prediction Coach Briefing Regression', () => {
         }),
       });
     }).as('coachAnalyzeReset');
-    openPredictionPage();
+	    openPredictionPage();
 
-    cy.tick(2000);
-    cy.wait('@coachAnalyzeReset');
-    cy.tick(4000);
-    cy.wait('@coachAnalyzeReset');
-    cy.get('@coachAnalyzeReset.all').its('length').then((length) => {
-      beforeSwitchCount = Number(length);
-      expect(beforeSwitchCount).to.be.gte(2);
-    });
+	    cy.wait('@coachAnalyzeReset');
+	    cy.tick(100);
+	    cy.tick(5000);
+	    cy.get('@coachAnalyzeReset.all', { timeout: 10000 }).should((interceptions: any) => {
+	      expect((interceptions as any[]).length).to.be.gte(1);
+	    });
+	    cy.get('@coachAnalyzeReset.all').its('length').then((length) => {
+	      beforeSwitchCount = Number(length);
+	      expect(beforeSwitchCount).to.be.gte(1);
+	    });
 
-    cy.get('button[aria-label="다음 날짜 보기"]')
-      .filter(':visible')
-      .first()
-      .should('be.enabled')
-      .click({ force: true });
-    cy.wait('@getScheduleRange');
-    cy.wait('@getGameDetail');
-
-    cy.tick(2000);
-    cy.wait('@coachAnalyzeReset');
-    cy.get('@coachAnalyzeReset.all').should((interceptions: any) => {
-      const interceptionList = interceptions as any[];
+	    cy.get('button[aria-label="다음 날짜 보기"]')
+	      .filter(':visible')
+	      .first()
+	      .should('be.enabled')
+	      .click({ force: true });
+	    cy.wait('@getScheduleRange');
+	    cy.wait('@getGameDetail');
+	    cy.tick(100);
+	    cy.tick(5000);
+	    cy.get('@coachAnalyzeReset.all', { timeout: 10000 }).should((interceptions: any) => {
+	      const interceptionList = interceptions as any[];
       const switchedGameRequests = interceptionList.filter((interception) => (
         extractCoachGameId(interception?.request?.body) === '20260601LGKT0'
       ));

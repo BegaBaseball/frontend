@@ -1,5 +1,5 @@
 // hooks/useAdminData.ts
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   fetchAdminStats,
@@ -77,6 +77,10 @@ export const useAdminData = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const [postsLoaded, setPostsLoaded] = useState(false);
+  const [matesLoaded, setMatesLoaded] = useState(false);
+  const lastLoadedUsersSearchRef = useRef<string | undefined>(undefined);
 
   const updateReportFilters = (next: Partial<AdminReportFilters>) => {
     setReportFilters((prev) => ({ ...prev, ...next }));
@@ -113,6 +117,8 @@ export const useAdminData = () => {
     try {
       const data = await fetchAdminUsers(search);
       setUsers(data);
+      setUsersLoaded(true);
+      lastLoadedUsersSearchRef.current = search;
     } catch (err) {
       console.error('유저 조회 오류:', err);
       setError(err instanceof Error ? err.message : '유저 목록을 불러오는데 실패했습니다.');
@@ -140,6 +146,7 @@ export const useAdminData = () => {
     try {
       const data = await fetchAdminPosts();
       setPosts(data);
+      setPostsLoaded(true);
     } catch (err) {
       console.error('게시글 조회 오류:', err);
       setError('게시글을 불러오는데 실패했습니다.');
@@ -166,6 +173,7 @@ export const useAdminData = () => {
     try {
       const data = await fetchAdminMates();
       setMates(data);
+      setMatesLoaded(true);
     } catch (err) {
       console.error('메이트 조회 오류:', err);
       setError('메이트를 불러오는데 실패했습니다.');
@@ -358,10 +366,17 @@ export const useAdminData = () => {
 
   // 검색어 디바운싱
   useEffect(() => {
+    if (activeTab !== 'users') {
+      return undefined;
+    }
+
+    const normalizedSearch = searchTerm || undefined;
+    if (normalizedSearch === lastLoadedUsersSearchRef.current) {
+      return undefined;
+    }
+
     const timer = setTimeout(() => {
-      if (activeTab === 'users') {
-        loadUsers(searchTerm || undefined);
-      }
+      loadUsers(normalizedSearch);
     }, 500);
 
     return () => clearTimeout(timer);
@@ -370,10 +385,23 @@ export const useAdminData = () => {
   // 초기 데이터 로드
   useEffect(() => {
     loadStats();
-    loadUsers();
-    loadPosts();
-    loadMates();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'users' && !usersLoaded) {
+      loadUsers(searchTerm || undefined);
+      return;
+    }
+
+    if (activeTab === 'posts' && !postsLoaded) {
+      loadPosts();
+      return;
+    }
+
+    if (activeTab === 'parties' && !matesLoaded) {
+      loadMates();
+    }
+  }, [activeTab, matesLoaded, postsLoaded, searchTerm, usersLoaded]);
 
   // 신고 탭 필터 반영 조회
   useEffect(() => {

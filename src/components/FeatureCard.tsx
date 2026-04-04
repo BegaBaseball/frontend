@@ -11,6 +11,8 @@ export default function FeatureCard({
   featureRef
 }: FeatureCardProps) {
   const Icon = feature.icon;
+  const imageSource = feature.mobileImage || feature.image;
+  const fallbackImage = feature.image;
 
   return (
     <div ref={featureRef} className="space-y-4">
@@ -52,6 +54,18 @@ export default function FeatureCard({
 
       {isExpanded && (
         <div className="landing-feature-guide animate-fade-in">
+          <img
+            src={imageSource}
+            alt={feature.title}
+            className="landing-feature-mobile-image mb-3 h-auto w-full rounded-lg border border-white/10 bg-gray-100 object-contain lg:hidden"
+            onError={(event) => {
+              const target = event.currentTarget;
+              if (target.dataset.fallbacked !== '1') {
+                target.dataset.fallbacked = '1';
+                target.src = fallbackImage;
+              }
+            }}
+          />
           <h4 className="mb-4 text-base font-bold text-foreground">
             사용 가이드
           </h4>

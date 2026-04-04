@@ -5,7 +5,8 @@ import { fetchRankingSnapshot } from '../../api/rankings';
 import { useLeaderboardStore } from '../../store/leaderboardStore';
 import type { RankingSnapshot } from '../../types/home';
 import type { Game, GameDetail, VoteTeam } from '../../types/prediction';
-import { resolveCoachBriefingPolicy, type GameStatusCode } from '../../utils/prediction';
+import type { GameStatusCode } from '../../utils/predictionStatus';
+import { resolveCoachBriefingPolicy } from '../../utils/predictionCoachPolicy';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 
@@ -29,6 +30,7 @@ interface PredictionMatchDetailPanelProps {
     totalVotes: number;
   };
   isVoteOpen: boolean;
+  isVoteActionLocked: boolean;
   statusLabel: string;
   statusCode: GameStatusCode;
   isPastGame: boolean;
@@ -56,6 +58,7 @@ export default function PredictionMatchDetailPanel({
   userVote,
   votePercentages,
   isVoteOpen,
+  isVoteActionLocked,
   statusLabel,
   statusCode,
   isPastGame,
@@ -70,17 +73,26 @@ export default function PredictionMatchDetailPanel({
 }: PredictionMatchDetailPanelProps) {
   const shouldRenderComboAnimation = useLeaderboardStore((state) => state.showComboAnimation);
   const [rankingSnapshot, setRankingSnapshot] = useState<RankingSnapshot | null>(null);
-  const seasonYear = useMemo(() => {
+  const [shouldMountCoachBriefing, setShouldMountCoachBriefing] = useState(false);
+  const rankingSnapshotDate = useMemo(() => {
     const referenceDate = gameDetail?.gameDate || game.gameDate;
-    const parsed = referenceDate ? new Date(referenceDate) : new Date();
-    return Number.isNaN(parsed.getTime()) ? new Date().getFullYear() : parsed.getFullYear();
+    if (!referenceDate) {
+      return null;
+    }
+
+    const parsed = new Date(referenceDate);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }, [game.gameDate, gameDetail?.gameDate]);
+  const seasonYear = useMemo(
+    () => rankingSnapshotDate?.getFullYear() ?? new Date().getFullYear(),
+    [rankingSnapshotDate],
+  );
 
   useEffect(() => {
     let cancelled = false;
     setRankingSnapshot(null);
 
-    void fetchRankingSnapshot({ seasonYear })
+    void fetchRankingSnapshot(rankingSnapshotDate ? { date: rankingSnapshotDate } : { seasonYear })
       .then((snapshot) => {
         if (!cancelled) {
           setRankingSnapshot(snapshot);
@@ -100,10 +112,25 @@ export default function PredictionMatchDetailPanel({
     return () => {
       cancelled = true;
     };
-  }, [seasonYear]);
+  }, [rankingSnapshotDate, seasonYear]);
 
   const areRankingsReady = rankingSnapshot != null;
   const rankings = rankingSnapshot?.rankings ?? [];
+
+  useEffect(() => {
+    if (!areRankingsReady) {
+      setShouldMountCoachBriefing(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShouldMountCoachBriefing(true);
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [areRankingsReady]);
 
   const rankingByTeamId = useMemo(() => {
     const map = new Map<string, { rank: number; gamesBehind?: number; games: number }>();
@@ -243,10 +270,11 @@ export default function PredictionMatchDetailPanel({
           gameDetailRefreshing={gameDetailRefreshing}
           gameDetailError={gameDetailError}
           gameDetailActions={gameDetailActions}
-          userVote={userVote}
-          votePercentages={votePercentages}
-          isVoteOpen={isVoteOpen}
-          statusLabel={statusLabel}
+        userVote={userVote}
+        votePercentages={votePercentages}
+        isVoteOpen={isVoteOpen}
+        isVoteActionLocked={isVoteActionLocked}
+        statusLabel={statusLabel}
           statusCode={statusCode}
           onVote={onVote}
           onPrevDate={onPrevDate}
@@ -254,7 +282,7 @@ export default function PredictionMatchDetailPanel({
           hasPrevDate={hasPrevDate}
           hasNextDate={hasNextDate}
           coachBriefing={(
-            areRankingsReady ? (
+            areRankingsReady && shouldMountCoachBriefing ? (
               <Suspense fallback={null}>
                 <CoachBriefing
                   game={game}

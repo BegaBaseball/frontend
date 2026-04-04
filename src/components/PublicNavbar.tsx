@@ -2,21 +2,33 @@ import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png
 import './NavigationMenu.css';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAnimatedPresence } from '../hooks/useAnimatedPresence';
+import { useAuthBootstrapUiState } from '../hooks/useAuthBootstrapUiState';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import ThemeToggleButton from './ThemeToggleButton';
+import NavbarNotificationControls from './NavbarNotificationControls';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { publicNavbarNavItems } from './publicNavbarNavItems';
 import { CloseIcon, MenuIcon } from './icons/PublicShellIcons';
 
 const PublicNavbarDesktopAuthControls = lazy(() => import('./PublicNavbarDesktopAuthControls'));
 const PublicNavbarMenuPanel = lazy(() => import('./PublicNavbarMenuPanel'));
+const MOBILE_MENU_TRANSITION_MS = 280;
 
 export default function PublicNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthBootstrapPending, isLoggedIn } = useAuthBootstrapUiState();
   const isDesktop = useMediaQuery('(min-width: 768px)');
-  const shouldRenderMobileMenu = !isDesktop && isMenuOpen;
-  const shouldShowTopThemeToggle = !shouldRenderMobileMenu;
+  const { isMounted: isMobileMenuMounted, isVisible: isMobileMenuVisible } = useAnimatedPresence(
+    !isDesktop && isMenuOpen,
+    MOBILE_MENU_TRANSITION_MS,
+  );
+  const shouldRenderMobileMenu = !isDesktop && isMobileMenuMounted;
+  const shouldShowTopThemeToggle = isDesktop;
+  const shouldShowDesktopNotificationButton = isLoggedIn && isDesktop;
+  const shouldShowMobileNotificationButton = isLoggedIn && !isDesktop && !shouldRenderMobileMenu;
   const navIconButtonClass = 'relative h-10 w-10 p-2 rounded-full transition-all duration-200 focus:outline-none';
   const navIconToggleClass = `${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary`;
   const navIconSizeClass = 'h-6 w-6';
@@ -27,6 +39,8 @@ export default function PublicNavbar() {
   const menuToggleButtonRef = useRef<HTMLButtonElement | null>(null);
   const menuPopupRef = useRef<HTMLDivElement | null>(null);
   const preMenuFocusRef = useRef<HTMLElement | null>(null);
+
+  useBodyScrollLock(shouldRenderMobileMenu);
 
   useEffect(() => {
     setIsMenuOpen(false);
@@ -39,7 +53,7 @@ export default function PublicNavbar() {
   }, [isDesktop, isMenuOpen]);
 
   useEffect(() => {
-    if (!isMenuOpen) {
+    if (!shouldRenderMobileMenu) {
       const returnFocusElement = preMenuFocusRef.current;
       if (returnFocusElement) {
         returnFocusElement.focus();
@@ -51,16 +65,10 @@ export default function PublicNavbar() {
       ? document.activeElement
       : null;
 
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const menuElement = menuPopupRef.current;
-      const menuButtonElement = menuToggleButtonRef.current;
-
-      if (menuElement && !menuElement.contains(target) &&
-        menuButtonElement && !menuButtonElement.contains(target)) {
-        setIsMenuOpen(false);
-      }
-    };
+    const frameId = window.requestAnimationFrame(() => {
+      const focusTarget = menuPopupRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      focusTarget?.focus();
+    });
 
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -68,22 +76,17 @@ export default function PublicNavbar() {
       }
     };
 
-    const prevBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('keydown', handleEsc);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      window.cancelAnimationFrame(frameId);
       window.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = prevBodyOverflow;
     };
-  }, [isMenuOpen]);
+  }, [shouldRenderMobileMenu]);
 
   return (
     <header
-      className={`border-b border-gray-200 dark:border-border sticky top-0 z-[60] transition-colors duration-300 ${isMenuOpen ? 'bg-background' : 'bg-background/80 backdrop-blur-md'
+      className={`border-b border-gray-200 dark:border-border sticky top-0 z-[60] transition-colors duration-300 ${shouldRenderMobileMenu ? 'bg-background' : 'bg-background/80 backdrop-blur-md'
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -146,50 +149,69 @@ export default function PublicNavbar() {
               />
             )}
 
+            {shouldShowDesktopNotificationButton && (
+              <NavbarNotificationControls buttonClassName={navIconToggleClass} />
+            )}
+
             {isDesktop && (
               <Suspense fallback={<div className="h-9 w-28 rounded-full bg-gray-100 dark:bg-secondary animate-pulse" />}>
                 <div className="flex items-center gap-1 md:gap-2 lg:gap-3 xl:gap-4">
-                  <PublicNavbarDesktopAuthControls />
+                  <PublicNavbarDesktopAuthControls isAuthBootstrapPending={isAuthBootstrapPending} />
                 </div>
               </Suspense>
             )}
 
             {!isDesktop && (
-              <button
-                type="button"
-                ref={menuToggleButtonRef}
-                className={`${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary hover:scale-110 active:scale-95 ${isMenuOpen
-                  ? 'text-gray-900 dark:text-white'
-                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
-                  }`}
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
-                aria-expanded={isMenuOpen}
-                aria-controls={shouldRenderMobileMenu ? 'mobile-menu-popup' : undefined}
-              >
-                {isMenuOpen ? <CloseIcon className="w-7 h-7 stroke-[2.5]" /> : <MenuIcon className="w-7 h-7" />}
-              </button>
+              <div className="flex items-center gap-2">
+                {shouldShowMobileNotificationButton && (
+                  <NavbarNotificationControls buttonClassName={navIconToggleClass} />
+                )}
+                <button
+                  type="button"
+                  ref={menuToggleButtonRef}
+                  className={`${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary hover:scale-110 active:scale-95 ${isMenuOpen
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
+                    }`}
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+                  aria-expanded={isMenuOpen}
+                  aria-controls={shouldRenderMobileMenu ? 'mobile-menu-popup' : undefined}
+                >
+                  {isMenuOpen ? <CloseIcon className="w-7 h-7 stroke-[2.5]" /> : <MenuIcon className="w-7 h-7" />}
+                </button>
+              </div>
             )}
           </div>
         </div>
       </div>
 
       {shouldRenderMobileMenu && (
-        <div
-          ref={menuPopupRef}
-          id="mobile-menu-popup"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="mobile-menu-title"
-          tabIndex={-1}
-          className="mobile-menu-popup fixed top-16 left-0 right-0 bottom-0 z-50 overflow-y-auto bg-white dark:bg-background"
-        >
-          <Suspense fallback={<div className="px-6 py-6"><div className="h-28 rounded-2xl bg-gray-100 dark:bg-secondary animate-pulse" /></div>}>
-            <PublicNavbarMenuPanel
-              onClose={() => setIsMenuOpen(false)}
-              prefetchPredictionPage={prefetchPredictionPage}
-            />
-          </Suspense>
+        <div className={`mobile-menu-layer ${isMobileMenuVisible ? 'is-open' : ''}`}>
+          <div
+            className="mobile-menu-backdrop"
+            onClick={() => setIsMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="mobile-menu-shell">
+            <div
+              ref={menuPopupRef}
+              id="mobile-menu-popup"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="mobile-menu-title"
+              tabIndex={-1}
+              className="mobile-menu-popup bg-white dark:bg-background"
+            >
+              <Suspense fallback={<div className="px-6 py-6"><div className="h-28 rounded-2xl bg-gray-100 dark:bg-secondary animate-pulse" /></div>}>
+                <PublicNavbarMenuPanel
+                  isAuthBootstrapPending={isAuthBootstrapPending}
+                  onClose={() => setIsMenuOpen(false)}
+                  prefetchPredictionPage={prefetchPredictionPage}
+                />
+              </Suspense>
+            </div>
+          </div>
         </div>
       )}
     </header>

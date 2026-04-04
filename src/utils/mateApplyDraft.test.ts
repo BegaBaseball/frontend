@@ -25,11 +25,19 @@ const createStorage = () => {
   };
 };
 
+const setWindowSessionStorage = (sessionStorage: ReturnType<typeof createStorage>) => {
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    writable: true,
+    value: {
+      sessionStorage,
+    } as unknown as Window & { sessionStorage: typeof sessionStorage },
+  });
+};
+
 test('MateApply draft는 partyId별로 저장하고 복원한다', () => {
   const sessionStorage = createStorage();
-  (globalThis as typeof globalThis & { window?: Window & { sessionStorage: typeof sessionStorage } }).window = {
-    sessionStorage,
-  } as unknown as Window & { sessionStorage: typeof sessionStorage };
+  setWindowSessionStorage(sessionStorage);
 
   saveMateApplyDraft('77', {
     message: '함께 응원하고 싶습니다!',
@@ -77,9 +85,7 @@ test('MateApply draft는 partyId별로 저장하고 복원한다', () => {
 
 test('MateApply draft는 내용이 비면 해당 partyId key를 정리한다', () => {
   const sessionStorage = createStorage();
-  (globalThis as typeof globalThis & { window?: Window & { sessionStorage: typeof sessionStorage } }).window = {
-    sessionStorage,
-  } as unknown as Window & { sessionStorage: typeof sessionStorage };
+  setWindowSessionStorage(sessionStorage);
 
   saveMateApplyDraft('91', {
     message: '초안 메시지',
@@ -100,9 +106,7 @@ test('MateApply draft는 내용이 비면 해당 partyId key를 정리한다', (
 
 test('MateApply draft는 잘못된 JSON이나 명시적 삭제를 안전하게 처리한다', () => {
   const sessionStorage = createStorage();
-  (globalThis as typeof globalThis & { window?: Window & { sessionStorage: typeof sessionStorage } }).window = {
-    sessionStorage,
-  } as unknown as Window & { sessionStorage: typeof sessionStorage };
+  setWindowSessionStorage(sessionStorage);
 
   sessionStorage.setItem(getMateApplyDraftStorageKey('55'), '{broken');
   assert.equal(loadMateApplyDraft('55'), null);

@@ -3,7 +3,7 @@ import homeScreenshot from '../assets/home.png';
 import predictionScreenshot from '../assets/prediction.png';
 import diaryScreenshot from '../assets/diary.png';
 import screenshot2 from '../assets/cheer.png';
-import screenshot3 from '../assets/stadium.png';
+import screenshot3 from '../assets/stadium.webp';
 import mateScreenshot1 from '../assets/mate.png';
 import { Feature } from '../types/landing';
 

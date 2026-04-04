@@ -5,7 +5,7 @@ export interface MatePartyListKeyParams {
   stadium?: string;
   page?: number;
   size?: number;
-  status?: PartyStatus;
+  status?: PartyStatus | 'all';
   searchQuery?: string;
   gameDate?: string;
 }

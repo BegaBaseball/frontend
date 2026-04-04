@@ -1,11 +1,10 @@
-// api/auth.ts
-import api from './axios';
-import { getApiErrorMessage } from '../utils/errorUtils';
-import { AxiosError } from 'axios';
-import { SERVER_BASE_URL } from '../constants/config';
-import { sanitizeLoginRedirect } from '../utils/loginRedirect';
+import {
+  PrivateApiError,
+  privateGet,
+  privatePost,
+  requestPrivateReissue,
+} from './privateClient';
 
-// ========== 타입 정의 ==========
 export interface LoginRequest {
   email: string;
   password: string;
@@ -21,18 +20,6 @@ export interface LoginResponse {
     handle?: string | null;
     cheerPoints?: number;
   };
-}
-
-interface RawLoginResponse {
-  success?: boolean;
-  message?: string | null;
-  data?: {
-    id?: number | string;
-    name?: string;
-    role?: string;
-    handle?: string | null;
-    cheerPoints?: number | string;
-  } | null;
 }
 
 interface RawAuthProfileResponse {
@@ -68,7 +55,7 @@ const getInjectedAuthProfileResponse = (): RawAuthProfileResponse | null => {
     : null;
 };
 
-interface AuthProfile {
+export interface AuthProfile {
   id: number;
   email: string;
   name?: string;
@@ -97,23 +84,6 @@ const normalizeOptionalNumber = (value: number | string | undefined): number | u
   return undefined;
 };
 
-const normalizeLoginResponse = (payload: RawLoginResponse): LoginResponse => ({
-  success: payload.success === true,
-  message: typeof payload.message === 'string' ? payload.message : null,
-  data: {
-    id: normalizeOptionalNumber(payload.data?.id),
-    name: typeof payload.data?.name === 'string' ? payload.data.name : undefined,
-    role: typeof payload.data?.role === 'string' ? payload.data.role : undefined,
-    handle:
-      typeof payload.data?.handle === 'string'
-        ? payload.data.handle
-        : payload.data?.handle === null
-          ? null
-          : undefined,
-    cheerPoints: normalizeOptionalNumber(payload.data?.cheerPoints),
-  },
-});
-
 export const normalizeProfileImageUrl = (value?: string | null): string | null => {
   if (!value || typeof value !== 'string') {
     return null;
@@ -121,10 +91,10 @@ export const normalizeProfileImageUrl = (value?: string | null): string | null =
 
   const trimmedValue = value.trim();
   if (
-    trimmedValue.startsWith('/assets/') ||
-    trimmedValue.startsWith('/src/assets/') ||
-    trimmedValue.startsWith('blob:') ||
-    trimmedValue.startsWith('data:')
+    trimmedValue.startsWith('/assets/')
+    || trimmedValue.startsWith('/src/assets/')
+    || trimmedValue.startsWith('blob:')
+    || trimmedValue.startsWith('data:')
   ) {
     return null;
   }
@@ -161,17 +131,40 @@ const normalizeAuthProfile = (payload: RawAuthProfileResponse): AuthProfile => {
   };
 };
 
-export const fetchCurrentUserProfile = async (): Promise<AuthProfile> => {
+const fetchCurrentUserProfileResponse = async (): Promise<RawAuthProfileResponse> => privateGet<RawAuthProfileResponse>('/auth/mypage', {
+  skipAuthSessionHandling: true,
+});
+
+export interface FetchCurrentUserProfileOptions {
+  retryOn401?: boolean;
+}
+
+export const fetchCurrentUserProfile = async (
+  options: FetchCurrentUserProfileOptions = {},
+): Promise<AuthProfile> => {
+  const { retryOn401 = true } = options;
   const injectedResponse = getInjectedAuthProfileResponse();
   if (injectedResponse) {
     return normalizeAuthProfile(injectedResponse);
   }
 
-  const response = await api.get<RawAuthProfileResponse>('/auth/mypage', {
-    skipGlobalErrorHandler: true,
-    skipAuthSessionHandling: true,
-  });
-  return normalizeAuthProfile(response.data);
+  try {
+    const response = await fetchCurrentUserProfileResponse();
+    return normalizeAuthProfile(response);
+  } catch (error) {
+    if (!(error instanceof PrivateApiError) || error.status !== 401 || !retryOn401) {
+      throw error;
+    }
+
+    try {
+      await requestPrivateReissue();
+    } catch {
+      throw error;
+    }
+
+    const response = await fetchCurrentUserProfileResponse();
+    return normalizeAuthProfile(response);
+  }
 };
 
 export interface SignUpRequest {
@@ -207,20 +200,6 @@ export interface PolicyConsentPayloadItem {
   agreed: boolean;
 }
 
-interface RequiredPolicyItem {
-  policyType?: string;
-  version?: string;
-  required?: boolean;
-}
-
-interface RequiredPoliciesApiResponse {
-  success?: boolean;
-  message?: string;
-  data?: {
-    policies?: RequiredPolicyItem[];
-  };
-}
-
 export interface PasswordResetRequest {
   email: string;
   redirect?: string;
@@ -242,192 +221,10 @@ export interface PasswordResetConfirmResponse {
   message: string;
 }
 
-const SIGNUP_SUBMIT_TIMEOUT_MS = 20_000;
-const SIGNUP_POLICY_TIMEOUT_MESSAGE = '필수 정책 정보를 불러오는 중 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
-const SIGNUP_SUBMIT_TIMEOUT_MESSAGE = '회원가입 요청 처리에 시간이 오래 걸리고 있습니다. 잠시 후 다시 시도해주세요. 같은 이메일이 이미 가입되었는지도 확인해주세요.';
-
-const isAxiosTimeoutError = (error: unknown): error is AxiosError =>
-  error instanceof AxiosError
-  && (error.code === 'ECONNABORTED' || /timeout of \d+ms exceeded/i.test(error.message));
-
-const resolvePolicyConsentsForSignup = async (
-  policyConsents?: PolicyConsentPayloadItem[],
-): Promise<PolicyConsentPayloadItem[]> => {
-  if (policyConsents && policyConsents.length > 0) {
-    return policyConsents;
-  }
-
-  try {
-    return await fetchRequiredPolicyConsents();
-  } catch (error: unknown) {
-    if (isAxiosTimeoutError(error)) {
-      throw new Error(SIGNUP_POLICY_TIMEOUT_MESSAGE);
-    }
-
-    if (error instanceof AxiosError) {
-      throw new Error(getApiErrorMessage(error, '필수 정책 정보를 불러오지 못했습니다.'));
-    }
-
-    if (error instanceof Error) {
-      throw error;
-    }
-
-    throw new Error(getApiErrorMessage(error, '필수 정책 정보를 불러오지 못했습니다.'));
-  }
-};
-
-// ========== API 함수 ==========
-
-/**
- * 로그인 API 호출
- */
-export const loginUser = async (credentials: LoginRequest): Promise<LoginResponse> => {
-  try {
-    const response = await api.post<RawLoginResponse>('/auth/login', credentials, {
-      skipGlobalErrorHandler: true, // 로그인 실패 시 모달 대신 폼 에러 표시
-    });
-    return normalizeLoginResponse(response.data);
-  } catch (error: unknown) {
-    if (error instanceof AxiosError && error.response?.status === 401) {
-      throw new Error('이메일 또는 비밀번호가 일치하지 않습니다.');
-    }
-    if (error instanceof AxiosError && error.response?.status === 403) {
-      const responseData = error.response?.data as
-        | { message?: string; error?: string }
-        | string
-        | null
-        | undefined;
-      const serverMessage =
-        (typeof responseData === 'string' ? responseData : responseData?.message || responseData?.error);
-      if (serverMessage) {
-        throw new Error(serverMessage);
-      }
-    }
-    throw new Error(getApiErrorMessage(error, '로그인에 실패했습니다.'));
-  }
-};
-
-/**
- * 회원가입 API 호출
- */
-export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> => {
-  const policyConsents = await resolvePolicyConsentsForSignup(data.policyConsents);
-
-  try {
-    const response = await api.post<SignUpResponse>('/auth/signup', {
-      ...data,
-      policyConsents,
-    }, {
-      skipGlobalErrorHandler: true,
-      timeout: SIGNUP_SUBMIT_TIMEOUT_MS,
-    });
-    return response.data;
-  } catch (error: unknown) {
-    if (isAxiosTimeoutError(error)) {
-      throw new Error(SIGNUP_SUBMIT_TIMEOUT_MESSAGE);
-    }
-
-    if (error instanceof AxiosError) {
-      const serverMessage = getApiErrorMessage(error, '');
-      if (serverMessage) throw new Error(serverMessage);
-
-      // getApiErrorMessage returned empty — try field-level errors before falling back
-      const responseData = error.response?.data;
-      if (responseData && typeof responseData === 'object' && 'errors' in responseData) {
-        const errors = (responseData as Record<string, unknown>).errors;
-        if (errors && typeof errors === 'object') {
-          const firstFieldError = Object.values(errors as Record<string, unknown>).find(
-            (v): v is string => typeof v === 'string' && v.trim().length > 0,
-          );
-          if (firstFieldError) throw new Error(firstFieldError);
-        }
-      }
-
-      throw new Error('회원가입에 실패했습니다. 입력 정보를 확인하거나 잠시 후 다시 시도해주세요.');
-    }
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error(getApiErrorMessage(error, '회원가입에 실패했습니다.'));
-  }
-};
-
-const fetchRequiredPolicyConsents = async (): Promise<PolicyConsentPayloadItem[]> => {
-  const response = await api.get<RequiredPoliciesApiResponse>('/auth/policies/required', {
-    skipGlobalErrorHandler: true,
-  });
-
-  const policies = response.data?.data?.policies;
-  if (!Array.isArray(policies) || policies.length === 0) {
-    throw new Error('필수 정책 정보를 불러오지 못했습니다.');
-  }
-
-  const requiredConsents = policies
-    .filter((policy): policy is RequiredPolicyItem & { policyType: string; version: string; required: true } => (
-      policy?.required === true
-      && typeof policy.policyType === 'string'
-      && policy.policyType.length > 0
-      && typeof policy.version === 'string'
-      && policy.version.length > 0
-    ))
-    .map((policy) => ({
-      policyType: policy.policyType,
-      version: policy.version,
-      agreed: true,
-    }));
-
-  if (requiredConsents.length === 0) {
-    throw new Error('필수 정책 동의 항목이 없습니다.');
-  }
-
-  return requiredConsents;
-};
-
-/**
- * 소셜 로그인 URL 생성
- */
-const OAUTH_LOGIN_BASE_URL = SERVER_BASE_URL;
-
-export const getSocialLoginUrl = (
-  provider: 'kakao' | 'google' | 'naver',
-  params?: { mode?: 'link'; linkToken?: string }
-): string => {
-  const url = `${OAUTH_LOGIN_BASE_URL}/oauth2/authorization/${provider}`;
-  if (params) {
-    const query = new URLSearchParams();
-    if (params.mode) query.append('mode', params.mode);
-    if (params.linkToken) query.append('linkToken', params.linkToken);
-    return `${url}?${query.toString()}`;
-  }
-  return url;
-};
-
-/**
- * OAuth2 계정 연동을 위한 Link Token 발급
- * - 로그인된 상태에서만 호출 가능
- * - 반환된 토큰을 OAuth2 리다이렉트 URL에 포함
- */
-export interface LinkTokenResponse {
-  linkToken: string;
-  expiresIn: number;
-}
-
-export const getLinkToken = async (): Promise<LinkTokenResponse> => {
-  try {
-    const response = await api.get<LinkTokenResponse>('/auth/link-token', {
-      skipGlobalErrorHandler: true,
-    });
-    return response.data;
-  } catch (error: unknown) {
-    throw new Error(getApiErrorMessage(error, '연동 토큰 발급에 실패했습니다.'));
-  }
-};
-
-/**
- * 로그아웃 API 호출
- */
 export const logoutUser = async (): Promise<void> => {
-  await api.post('/auth/logout');
+  await privatePost<void, undefined>('/auth/logout', undefined, {
+    skipAuthSessionHandling: true,
+  });
 };
 
 export interface OAuth2StateData {

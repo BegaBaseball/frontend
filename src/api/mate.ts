@@ -32,7 +32,7 @@ interface ListPayload<T> extends ApiEnvelope<T | T[]> {
   content?: T[];
 }
 
-interface PaginatedResponse<T> {
+export interface PaginatedResponse<T> {
   content: T[];
   totalElements: number;
   totalPages: number;

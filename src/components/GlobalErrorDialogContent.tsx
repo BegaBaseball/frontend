@@ -1,13 +1,14 @@
 import ErrorFeedbackPanel from './common/ErrorFeedbackPanel';
 import { Button } from './ui/button';
 import PlainDialog from './ui/plain-dialog';
+import type { ErrorSource } from '../types/error';
 
 interface GlobalErrorDialogContentProps {
     isOpen: boolean;
     message: string;
     statusCode: number | null;
     errorId: string | null;
-    source: string | null;
+    source: ErrorSource | null;
     prefixText: string;
     onRetry: (() => Promise<void>) | null;
     closeErrorModal: () => void;
@@ -38,7 +39,7 @@ export default function GlobalErrorDialogContent({
         >
             <ErrorFeedbackPanel
                 errorId={errorId}
-                source={source}
+                source={source ?? 'api'}
                 onRetry={onRetry}
             />
         </PlainDialog>

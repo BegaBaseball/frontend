@@ -8,7 +8,7 @@ import { OptimizedImage } from './common/OptimizedImage';
 import LoadingSpinner from './LoadingSpinner';
 import PlainDialog from './ui/plain-dialog';
 import RankingItem from './ranking/RankingItem';
-import firstPlaceImage from '../assets/f552d9266ac817e0c86b657dead0069395c6da11.png';
+import firstPlaceImage from '../assets/f552d9266ac817e0c86b657dead0069395c6da11.webp';
 import { useRankingPrediction } from '../hooks/useRankingPrediction';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
