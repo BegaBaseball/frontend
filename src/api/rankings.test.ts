@@ -6,7 +6,7 @@ import {
   getRankingSnapshotQueryOptions,
 } from './rankings';
 
-test('fetchRankingSnapshot은 공개 랭킹 스냅샷 요청으로 세션 처리만 건너뛰고 seasonYear를 전달한다', async (t) => {
+test('fetchRankingSnapshot은 explicit seasonYear가 있으면 exact-season 랭킹 엔드포인트를 사용한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
 
@@ -32,9 +32,36 @@ test('fetchRankingSnapshot은 공개 랭킹 스냅샷 요청으로 세션 처리
   const response = await fetchRankingSnapshot({ seasonYear: 2025 });
 
   assert.equal(response.rankingSeasonYear, 2025);
-  assert.match(requestUrl, /\/api\/kbo\/rankings\/snapshot\?seasonYear=2025$/);
+  assert.match(requestUrl, /\/api\/kbo\/rankings\/2025$/);
   assert.equal(requestInit?.credentials, 'include');
   assert.equal(requestInit?.headers && (requestInit.headers as Record<string, string>).Accept, 'application/json');
+});
+
+test('fetchRankingSnapshot은 auto mode에서 snapshot 엔드포인트를 사용한다', async (t) => {
+  let requestUrl = '';
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+    return new Response(JSON.stringify({
+      rankingSeasonYear: 2026,
+      rankingSourceMessage: '2026 시즌 순위 데이터',
+      isOffSeason: false,
+      rankings: [],
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const response = await fetchRankingSnapshot();
+
+  assert.equal(response.rankingSeasonYear, 2026);
+  assert.match(requestUrl, /\/api\/kbo\/rankings\/snapshot$/);
 });
 
 test('getRankingSnapshotQueryOptions는 auto와 explicit seasonYear를 서로 다른 캐시 키로 분리한다', () => {

@@ -1,9 +1,8 @@
 import { ChatMeta, ChatRequest, VoiceResponse } from '../types/chatbot';
 import { AiStreamMetaPayload } from '../types/ai';
 import { getMockRateLimitSeconds } from '../mock/chatbotRateLimitMock';
-import { isAxiosError } from 'axios';
-import api from './axios';
 import { normalizeAiStreamMeta } from './aiMeta';
+import { privatePost } from './privateClient';
 import { consumeSseStream } from './sse';
 import {
   DEFAULT_STREAM_TIMEOUT_MS,
@@ -215,31 +214,23 @@ export async function convertVoiceToText(audioBlob: Blob): Promise<string> {
   const formData = new FormData();
   formData.append('file', audioBlob, 'audio.webm');
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_STREAM_TIMEOUT_MS);
-
   try {
-    const response = await api.post<VoiceResponse>('/ai/chat/voice', formData, {
-      signal: controller.signal,
-      timeout: DEFAULT_STREAM_TIMEOUT_MS,
+    const response = await privatePost<VoiceResponse, FormData>('/ai/chat/voice', formData, {
+      timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
     });
 
-    clearTimeout(timeoutId);
-
-    return response.data.text || '';
+    return response.text || '';
   } catch (error) {
     if (
       error instanceof Error
       && (
         error.name === 'AbortError'
         || error.name === 'CanceledError'
-        || (isAxiosError(error) && error.code === 'ECONNABORTED')
+        || /^Request timed out after \d+ms$/i.test(error.message)
       )
     ) {
       throw new Error('변환 시간이 초과되었습니다.');
     }
     throw new Error('변환에 실패했습니다.');
-  } finally {
-    clearTimeout(timeoutId);
   }
 }

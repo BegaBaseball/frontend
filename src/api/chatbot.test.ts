@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ChatStreamEventError, sendChatMessageStream } from './chatbot';
+import { ChatStreamEventError, convertVoiceToText, sendChatMessageStream } from './chatbot';
+
+type MetaPayload = {
+  verified: boolean;
+  cached?: boolean;
+  intent?: string;
+  strategy?: string;
+  style: string;
+  dataSources: Array<{ title: string; url?: string; content?: string }>;
+  toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
+};
 
 const buildStreamResponse = (chunks: string[]) => {
   let chunkIndex = 0;
@@ -57,15 +67,7 @@ test('sendChatMessageStream normalizes meta payload into shared AI shapes', asyn
     '\n',
   ]) as never);
 
-  let metaPayload: {
-    verified: boolean;
-    cached?: boolean;
-    intent?: string;
-    strategy?: string;
-    style: string;
-    dataSources: Array<{ title: string; url?: string; content?: string }>;
-    toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
-  } | null = null;
+  let metaPayload: MetaPayload | null = null;
 
   await sendChatMessageStream(
     { question: '테스트 질문', history: null },
@@ -75,16 +77,19 @@ test('sendChatMessageStream normalizes meta payload into shared AI shapes', asyn
     },
   );
 
-  assert.notEqual(metaPayload, null);
-  assert.equal(metaPayload?.verified, true);
-  assert.equal(metaPayload?.cached, true);
-  assert.equal(metaPayload?.intent, 'team_summary');
-  assert.equal(metaPayload?.strategy, 'rag_v3');
-  assert.equal(metaPayload?.style, 'compact');
-  assert.deepEqual(metaPayload?.dataSources, [
+  const receivedMeta = metaPayload as unknown as MetaPayload;
+  if (!receivedMeta) {
+    throw new Error('Expected meta payload');
+  }
+  assert.equal(receivedMeta.verified, true);
+  assert.equal(receivedMeta.cached, true);
+  assert.equal(receivedMeta.intent, 'team_summary');
+  assert.equal(receivedMeta.strategy, 'rag_v3');
+  assert.equal(receivedMeta.style, 'compact');
+  assert.deepEqual(receivedMeta.dataSources, [
     { title: 'KBO', url: 'https://example.com/source', content: undefined },
   ]);
-  assert.deepEqual(metaPayload?.toolCalls, [
+  assert.deepEqual(receivedMeta.toolCalls, [
     { toolName: 'document_query', parameters: { team: 'KIA' } },
   ]);
 });
@@ -92,7 +97,7 @@ test('sendChatMessageStream normalizes meta payload into shared AI shapes', asyn
 test('sendChatMessageStream preserves explicit abort without mapping to stream errors', async (t) => {
   let delivered = false;
 
-  t.mock.method(globalThis, 'fetch', async (_input, init) => {
+  t.mock.method(globalThis, 'fetch', async (_input: string | URL | Request, init?: RequestInit) => {
     return new Response(new ReadableStream<Uint8Array>({
       start(controller) {
         const signal = init?.signal;
@@ -176,4 +181,48 @@ test('sendChatMessageStream forwards finish_reason and cancelled in meta', async
   assert.equal(metaPayload.finish_reason, 'cancelled');
   assert.equal(metaPayload.cancelled, true);
   assert.equal(metaPayload.error, 'temporary_generation_issue');
+});
+
+test('convertVoiceToText는 private voice endpoint 응답의 text를 반환한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+
+    return new Response(JSON.stringify({
+      text: '변환된 텍스트',
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const audioBlob = new Blob(['voice'], { type: 'audio/webm' });
+  const text = await convertVoiceToText(audioBlob);
+
+  assert.match(requestUrl, /\/api\/ai\/chat\/voice$/);
+  assert.equal(requestInit?.method, 'POST');
+  assert.ok(requestInit?.body instanceof FormData);
+  assert.equal(text, '변환된 텍스트');
+});
+
+test('convertVoiceToText는 timeout을 사용자 메시지로 변환한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => {
+    throw new Error('Request timed out after 10000ms');
+  });
+
+  const audioBlob = new Blob(['voice'], { type: 'audio/webm' });
+
+  await assert.rejects(
+    () => convertVoiceToText(audioBlob),
+    {
+      message: '변환 시간이 초과되었습니다.',
+    },
+  );
 });

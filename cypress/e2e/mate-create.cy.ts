@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+export {};
+
 const uploadTicketImage = () => {
   cy.get('input#ticketFile').selectFile(
     {

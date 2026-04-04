@@ -13,31 +13,31 @@ test('extractLabelGlobs reads only the full mate regression glob list', () => {
     'full-mate-regression:',
     '  - changed-files:',
     '      - any-glob-to-any-file:',
-    '          - "bega_frontend/src/components/Mate*.tsx"',
+    '          - "src/components/Mate*.tsx"',
     'another-label:',
     '  - changed-files:',
     '      - any-glob-to-any-file:',
     '          - "should-not-be-read"',
   ].join('\n'));
 
-  assert.deepEqual(globs, ['bega_frontend/src/components/Mate*.tsx']);
+  assert.deepEqual(globs, ['src/components/Mate*.tsx']);
 });
 
 test('loadFullMateRegressionGlobs reads the repository labeler config', () => {
   const globs = loadFullMateRegressionGlobs();
-  assert.ok(globs.includes('bega_frontend/src/components/Mate*.tsx'));
-  assert.ok(globs.includes('bega_frontend/src/store/authStore.ts'));
+  assert.ok(globs.includes('src/components/Mate*.tsx'));
+  assert.ok(globs.includes('src/store/authStore.ts'));
 });
 
 test('shouldApplyFullMateRegressionLabel matches mate-critical files only', () => {
   const globs = loadFullMateRegressionGlobs();
 
   assert.equal(
-    shouldApplyFullMateRegressionLabel(['bega_frontend/src/components/MateDetail.tsx'], globs),
+    shouldApplyFullMateRegressionLabel(['src/components/MateDetail.tsx'], globs),
     true,
   );
   assert.equal(
-    shouldApplyFullMateRegressionLabel(['bega_frontend/src/store/authStore.ts'], globs),
+    shouldApplyFullMateRegressionLabel(['src/store/authStore.ts'], globs),
     true,
   );
   assert.equal(
@@ -49,12 +49,12 @@ test('shouldApplyFullMateRegressionLabel matches mate-critical files only', () =
 test('findFullMateRegressionMatches returns only matching files', () => {
   const globs = loadFullMateRegressionGlobs();
   const matches = findFullMateRegressionMatches([
-    'bega_frontend/src/components/ui/button.tsx',
-    'bega_frontend/src/utils/loginRedirect.ts',
+    'src/components/ui/button.tsx',
+    'src/utils/loginRedirect.ts',
     'README.md',
   ], globs);
 
   assert.deepEqual(matches, [
-    'bega_frontend/src/utils/loginRedirect.ts',
+    'src/utils/loginRedirect.ts',
   ]);
 });

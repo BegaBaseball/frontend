@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+export {};
+
 const uploadTicketImage = () => {
   cy.get('input#ticketFile').selectFile(
     {
@@ -56,9 +58,13 @@ describe('Mate Create Session Recovery', () => {
       ],
     }).as('scheduleForRestore');
 
-    cy.intercept('**/auth/reissue*', {
-      statusCode: 401,
-      body: { success: false, message: 'Unauthorized' },
+    let reissueAttemptCount = 0;
+    cy.intercept('**/auth/reissue*', (req) => {
+      reissueAttemptCount += 1;
+      req.reply({
+        statusCode: 401,
+        body: { success: false, message: 'Unauthorized' },
+      });
     }).as('reissueExpiredForCreate');
 
     cy.intercept('POST', '**/api/parties', {
@@ -88,7 +94,9 @@ describe('Mate Create Session Recovery', () => {
     cy.contains('button', '확인').click();
 
     cy.wait('@createPartyUnauthorized');
-    cy.wait('@reissueExpiredForCreate');
+    cy.then(() => {
+      expect(reissueAttemptCount).to.eq(0);
+    });
     cy.location('pathname').should('eq', '/login');
     cy.location('search').should('eq', '?redirect=%2Fmate%2Fcreate');
     cy.window().then((win) => {

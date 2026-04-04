@@ -4,10 +4,11 @@ import { Button } from '../ui/button';
 import type { Game, GameDetail, VoteStatus, VoteTeam } from '../../types/prediction';
 import {
   calculateVotePercentages,
-  formatDate,
   getGameStatus,
+  hasGameDetailProgressData,
   type GameStatusResult,
-} from '../../utils/prediction';
+} from '../../utils/predictionStatus';
+import { formatDate } from '../../utils/predictionDates';
 import {
   PredictionChevronLeftIcon,
   PredictionChevronRightIcon,
@@ -31,13 +32,13 @@ interface PredictionMatchTabProps {
   isLoggedIn: boolean;
   isAuthLoading: boolean;
   shouldRenderMatchCard: boolean;
+  isVoteActionLocked: boolean;
   predictionRecoveryPath: string;
   canMovePrevDate: boolean;
   canMoveNextDate: boolean;
   isDetailRetryLoading: boolean;
   nearestNavigationDate: { date: string; isPast: boolean } | null;
   isToday: boolean;
-  onEnterMatchDetail: () => void;
   onVote: (team: VoteTeam, game: Game, isVoteOpen: boolean) => void;
   onPrevDate: () => void;
   onNextDate: () => void;
@@ -59,13 +60,13 @@ export default function PredictionMatchTab({
   isLoggedIn,
   isAuthLoading,
   shouldRenderMatchCard,
+  isVoteActionLocked,
   predictionRecoveryPath,
   canMovePrevDate,
   canMoveNextDate,
   isDetailRetryLoading,
   nearestNavigationDate,
   isToday,
-  onEnterMatchDetail,
   onVote,
   onPrevDate,
   onNextDate,
@@ -74,104 +75,111 @@ export default function PredictionMatchTab({
 }: PredictionMatchTabProps) {
   const currentVotes = currentGameId ? votes[currentGameId] || { home: 0, away: 0 } : { home: 0, away: 0 };
   const votePercentages = calculateVotePercentages(currentVotes.home, currentVotes.away);
+  const hasCurrentGameProgressData = hasGameDetailProgressData(currentGameDetail);
+  const hasCurrentGameScores = currentGame?.homeScore != null && currentGame?.awayScore != null;
   const gameStatus: GameStatusResult = getGameStatus(currentGame, new Date(), {
-    gameStatus: currentGameDetail?.gameStatus,
+    gameStatus: currentGameDetail?.gameStatus || currentGame?.gameStatus,
     gameDate: currentGameDetail?.gameDate || currentGame?.gameDate || currentDate,
-    startTime: currentGameDetail?.startTime || null,
+    startTime: currentGameDetail?.startTime || currentGame?.startTime || null,
+    homeScore: currentGameDetail?.homeScore ?? currentGame?.homeScore ?? null,
+    awayScore: currentGameDetail?.awayScore ?? currentGame?.awayScore ?? null,
+    hasProgressData: hasCurrentGameProgressData || hasCurrentGameScores,
   });
   const { isToday: isCurrentDateToday, isPastGame, isFutureGame, statusCode } = gameStatus;
 
   return (
     <>
+      <div className="flex md:hidden items-center justify-between mb-3 px-4">
+        <button
+          type="button"
+          onClick={onPrevDate}
+          disabled={!canMovePrevDate}
+          aria-label="이전 날짜 보기"
+          className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
+        >
+          <PredictionChevronLeftIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
+        </button>
+        <span className="font-medium text-slate-900 dark:text-gray-100">
+          {formatDate(currentDate)}
+        </span>
+        <button
+          type="button"
+          onClick={onNextDate}
+          disabled={!canMoveNextDate}
+          aria-label="다음 날짜 보기"
+          className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
+        >
+          <PredictionChevronRightIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
+        </button>
+      </div>
+
       <div className="w-full">
         {currentDateGames.length > 0 ? (
-          <>
-            {shouldRenderMatchCard && currentGame && currentGameId ? (
-              <Suspense
-                fallback={(
-                  <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
-                    <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-                      <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
-                      경기 카드를 준비하고 있습니다.
-                    </div>
-                  </Card>
-                )}
-              >
-                <PredictionMatchDetailPanel
-                  game={currentGame}
-                  gameDetail={currentGameDetail}
-                  gameDetailLoading={currentGameDetailLoading}
-                  gameDetailRefreshing={currentGameDetailRefreshing}
-                  gameDetailError={currentGameDetailError}
-                  isDetailRetryLoading={isDetailRetryLoading}
-                  reloadCurrentGameDetail={reloadCurrentGameDetail}
-                  predictionRecoveryPath={predictionRecoveryPath}
-                  userVote={userVote[currentGameId] || null}
-                  votePercentages={votePercentages}
-                  isVoteOpen={gameStatus.isVoteOpen}
-                  statusLabel={gameStatus.statusLabel}
-                  statusCode={statusCode}
-                  isPastGame={isPastGame}
-                  isFutureGame={isFutureGame}
-                  onVote={(team) => onVote(team, currentGame, gameStatus.isVoteOpen)}
-                  onPrevDate={onPrevDate}
-                  onNextDate={onNextDate}
-                  hasPrevDate={canMovePrevDate}
-                  hasNextDate={canMoveNextDate}
-                  isLoggedIn={isLoggedIn}
-                  isAuthLoading={isAuthLoading}
-                />
-              </Suspense>
-            ) : (
-              <Card className="relative p-4 sm:p-6 md:p-7 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[190px] rounded-2xl">
-                {currentGame ? (
-                  <>
-                    <div className="mb-3">
-                      <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">
-                        {currentGame.awayTeam} vs {currentGame.homeTeam}
-                      </p>
-                      <p className="text-sm text-slate-500 dark:text-gray-300 mt-1">
-                        {gameStatus.statusLabel}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="min-h-10 bg-emerald-700 hover:bg-emerald-800 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-white"
-                      onClick={onEnterMatchDetail}
-                    >
-                      경기 상세 보기
-                    </Button>
-                  </>
-                ) : (
-                  <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">
-                    {formatDate(currentDate)}
-                  </p>
-                )}
+          shouldRenderMatchCard && currentGame && currentGameId ? (
+            <Suspense
+              fallback={(
+                <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
+                  <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
+                    <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
+                    경기 카드를 준비하고 있습니다.
+                  </div>
+                </Card>
+              )}
+            >
+              <PredictionMatchDetailPanel
+                game={currentGame}
+                gameDetail={currentGameDetail}
+                gameDetailLoading={currentGameDetailLoading}
+                gameDetailRefreshing={currentGameDetailRefreshing}
+                gameDetailError={currentGameDetailError}
+                isDetailRetryLoading={isDetailRetryLoading}
+                reloadCurrentGameDetail={reloadCurrentGameDetail}
+                predictionRecoveryPath={predictionRecoveryPath}
+                userVote={userVote[currentGameId] || null}
+                votePercentages={votePercentages}
+                isVoteOpen={gameStatus.isVoteOpen}
+                isVoteActionLocked={isVoteActionLocked}
+                statusLabel={gameStatus.statusLabel}
+                statusCode={statusCode}
+                isPastGame={isPastGame}
+                isFutureGame={isFutureGame}
+                onVote={(team) => onVote(team, currentGame, gameStatus.isVoteOpen)}
+                onPrevDate={onPrevDate}
+                onNextDate={onNextDate}
+                hasPrevDate={canMovePrevDate}
+                hasNextDate={canMoveNextDate}
+                isLoggedIn={isLoggedIn}
+                isAuthLoading={isAuthLoading}
+              />
+            </Suspense>
+          ) : (
+            <Card className="relative p-4 sm:p-6 md:p-7 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[190px] rounded-2xl">
+              <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">
+                {formatDate(currentDate)}
+              </p>
 
-                <div className="hidden md:block">
-                  <button
-                    type="button"
-                    onClick={onPrevDate}
-                    disabled={!canMovePrevDate}
-                    aria-label="이전 날짜 보기"
-                    className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
-                  >
-                    <PredictionChevronLeftIcon size={36} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onNextDate}
-                    disabled={!canMoveNextDate}
-                    aria-label="다음 날짜 보기"
-                    className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
-                  >
-                    <PredictionChevronRightIcon size={36} />
-                  </button>
-                </div>
-              </Card>
-            )}
-          </>
+              <div className="hidden md:block">
+                <button
+                  type="button"
+                  onClick={onPrevDate}
+                  disabled={!canMovePrevDate}
+                  aria-label="이전 날짜 보기"
+                  className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
+                >
+                  <PredictionChevronLeftIcon size={36} />
+                </button>
+                <button
+                  type="button"
+                  onClick={onNextDate}
+                  disabled={!canMoveNextDate}
+                  aria-label="다음 날짜 보기"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
+                >
+                  <PredictionChevronRightIcon size={36} />
+                </button>
+              </div>
+            </Card>
+          )
         ) : (
           <Card className="relative p-4 sm:p-6 md:p-7 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[170px] sm:min-h-[210px] md:min-h-[250px] rounded-2xl">
             <div className="hidden md:block">
@@ -224,30 +232,6 @@ export default function PredictionMatchTab({
             ) : null}
           </Card>
         )}
-      </div>
-
-      <div className="flex md:hidden items-center justify-between mt-3 px-4">
-        <button
-          type="button"
-          onClick={onPrevDate}
-          disabled={!canMovePrevDate}
-          aria-label="이전 날짜 보기"
-          className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
-        >
-          <PredictionChevronLeftIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
-        </button>
-        <span className="font-medium text-slate-900 dark:text-gray-100">
-          {formatDate(currentDate)}
-        </span>
-        <button
-          type="button"
-          onClick={onNextDate}
-          disabled={!canMoveNextDate}
-          aria-label="다음 날짜 보기"
-          className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30"
-        >
-          <PredictionChevronRightIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
-        </button>
       </div>
     </>
   );

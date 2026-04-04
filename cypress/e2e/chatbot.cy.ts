@@ -1114,24 +1114,44 @@ describe('AI Chatbot', () => {
 
         it('surfaces timeout errors for streams that never establish a response', () => {
             const message = 'trigger timeout stream';
+            let timeoutStreamFetchCount = 0;
 
             openChatbotAndWaitForGreeting();
             cy.clock(Date.now(), ['Date', 'setTimeout', 'clearTimeout']);
 
             cy.window().then((win) => {
-                cy.stub(win, 'fetch').callsFake(() => {
-                    const error = new win.Error('timed out');
-                    error.name = 'TimeoutError';
-                    return Promise.reject(error);
+                const originalFetch = win.fetch.bind(win);
+
+                cy.stub(win, 'fetch').callsFake((input: RequestInfo | URL, init?: RequestInit) => {
+                    const url = typeof input === 'string'
+                        ? input
+                        : input instanceof URL
+                            ? input.toString()
+                            : input.url;
+
+                    if (url.includes('/ai/chat/stream')) {
+                        timeoutStreamFetchCount += 1;
+                        const error = new win.Error('timed out');
+                        error.name = 'TimeoutError';
+                        return Promise.reject(error);
+                    }
+
+                    return originalFetch(input, init);
                 }).as('timeoutFetch');
             });
 
             typeAndSend(message);
-            cy.get('@timeoutFetch').its('callCount').should('eq', 1);
+            cy.wrap(null).should(() => {
+                expect(timeoutStreamFetchCount).to.eq(1);
+            });
             cy.tick(1000);
-            cy.get('@timeoutFetch').its('callCount').should('eq', 2);
+            cy.wrap(null).should(() => {
+                expect(timeoutStreamFetchCount).to.eq(2);
+            });
             cy.tick(2000);
-            cy.get('@timeoutFetch').its('callCount').should('eq', 3);
+            cy.wrap(null).should(() => {
+                expect(timeoutStreamFetchCount).to.eq(3);
+            });
             cy.tick(100);
 
             cy.wait('@saveAssistantChatMessage').its('request.body').should((body) => {

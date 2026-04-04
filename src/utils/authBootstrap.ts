@@ -213,3 +213,16 @@ export const resolveAuthBootstrapMode = (
 
   return 'immediate';
 };
+
+export const shouldHoldAuthUiDuringBootstrap = (
+  pathname: string,
+  options: {
+    isLoggedIn: boolean;
+    hasPersistedAuthHint: boolean;
+    authBootstrapMeta?: AuthBootstrapMeta | null;
+    now?: number;
+  },
+): boolean => (
+  !options.isLoggedIn
+  && resolveAuthBootstrapMode(pathname, options) === 'defer'
+);

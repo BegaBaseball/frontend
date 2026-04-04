@@ -329,16 +329,12 @@ test('consumeOAuth2State는 공개 oauth state consume 경로를 호출한다', 
         : input.url;
 
     return new Response(JSON.stringify({
-      success: true,
-      data: {
-        accessToken: 'new-access-token',
-        refreshToken: 'new-refresh-token',
-        user: {
-          id: 1,
-          email: 'oauth@example.com',
-          name: 'OAuth User',
-        },
-      },
+      email: 'oauth@example.com',
+      name: 'OAuth User',
+      role: 'ROLE_USER',
+      profileImageUrl: null,
+      favoriteTeam: null,
+      handle: null,
     }), {
       headers: { 'content-type': 'application/json' },
       status: 200,
@@ -348,7 +344,8 @@ test('consumeOAuth2State는 공개 oauth state consume 경로를 호출한다', 
   const response = await consumeOAuth2State('oauth-state-id');
 
   assert.equal(requestUrl.endsWith('/api/auth/oauth2/state/oauth-state-id'), true);
-  assert.equal(response.success, true);
+  assert.equal(response.email, 'oauth@example.com');
+  assert.equal(response.name, 'OAuth User');
 });
 
 test('getSocialLoginUrl는 provider와 link params를 유지한다', () => {

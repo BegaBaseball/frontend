@@ -123,10 +123,12 @@ export const readMateCreateDraft = (
 
   try {
     const parsed = JSON.parse(raw) as PersistedMateCreateDraftPayload | PersistedMateCreateDraftState;
-    const state = isRecord(parsed) && isRecord(parsed.state) ? parsed.state : parsed;
-    if (!isRecord(state)) {
+    const nestedState = isRecord(parsed) && 'state' in parsed ? parsed.state : undefined;
+    const stateCandidate = isRecord(nestedState) ? nestedState : parsed;
+    if (!isRecord(stateCandidate)) {
       return fallback;
     }
+    const state = stateCandidate as PersistedMateCreateDraftState;
 
     return {
       createStep: normalizeMateCreateStep(toNumberOr(state.createStep, fallback.createStep)),

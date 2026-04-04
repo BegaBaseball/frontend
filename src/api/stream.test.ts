@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import api from './axios';
 import {
   DEFAULT_STREAM_RETRY_DELAY_MS,
   DEFAULT_STREAM_TIMEOUT_MS,
@@ -18,15 +17,8 @@ import {
 } from './stream';
 
 test('buildStreamApiUrl normalizes double slashes and leading slash path', () => {
-  const originalBaseUrl = api.defaults.baseURL;
-  api.defaults.baseURL = 'https://example.com/api/';
-
-  try {
-    assert.equal(buildStreamApiUrl('/health'), 'https://example.com/api/health');
-    assert.equal(buildStreamApiUrl('health'), 'https://example.com/api/health');
-  } finally {
-    api.defaults.baseURL = originalBaseUrl;
-  }
+  assert.equal(buildStreamApiUrl('/health', 'https://example.com/api/'), 'https://example.com/api/health');
+  assert.equal(buildStreamApiUrl('health', 'https://example.com/api/'), 'https://example.com/api/health');
 });
 
 test('getStreamRetryDelayMs applies exponential backoff', () => {

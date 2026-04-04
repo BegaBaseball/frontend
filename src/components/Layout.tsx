@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { requestLoadTrace } from '../utils/requestLoadTrace';
 import PublicNavbar from './PublicNavbar';
 const Navbar = lazy(() => import('./Navbar'));
@@ -12,6 +12,9 @@ type LayoutProps = {
 
 export default function Layout({ authenticated = true }: LayoutProps) {
   const [isFooterRequested, setIsFooterRequested] = useState(false);
+  const location = useLocation();
+
+  const shouldShowChatLauncher = authenticated || /^\/home\/?$/.test(location.pathname);
 
   useEffect(() => {
     requestLoadTrace(`Layout mount authenticated=${authenticated}`);
@@ -62,7 +65,7 @@ export default function Layout({ authenticated = true }: LayoutProps) {
           <Footer />
         </Suspense>
       ) : null}
-      {authenticated && (
+      {shouldShowChatLauncher && (
         <Suspense fallback={null}>
           <AuthenticatedLayoutChrome />
         </Suspense>

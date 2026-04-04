@@ -18,11 +18,13 @@ const navItemIconMap: Record<PublicNavbarNavItemId, typeof Megaphone> = {
 };
 
 interface PublicNavbarMenuPanelProps {
+  isAuthBootstrapPending?: boolean;
   onClose: () => void;
   prefetchPredictionPage: () => void;
 }
 
 export default function PublicNavbarMenuPanel({
+  isAuthBootstrapPending = false,
   onClose,
   prefetchPredictionPage,
 }: PublicNavbarMenuPanelProps) {
@@ -51,7 +53,7 @@ export default function PublicNavbarMenuPanel({
 
   return (
     <>
-      <div className="px-6 py-6">
+      <div className="px-6 py-6" data-mobile-menu-section="nav">
         <div className="mb-4 flex items-center justify-between gap-2 px-4">
           <p
             id="mobile-menu-title"
@@ -96,7 +98,7 @@ export default function PublicNavbarMenuPanel({
         </div>
       </div>
 
-      <div className="px-6 pb-6">
+      <div className="px-6 pb-6" data-mobile-menu-section="account">
         <p className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
           계정
         </p>
@@ -154,13 +156,18 @@ export default function PublicNavbarMenuPanel({
         ) : (
           <Button
             type="button"
+            disabled={isAuthBootstrapPending}
+            aria-busy={isAuthBootstrapPending}
             onClick={() => {
+              if (isAuthBootstrapPending) {
+                return;
+              }
               onClose();
               navigate(buildLoginPath(getCurrentRelativeUrl()));
             }}
             className="w-full py-6 text-base font-semibold text-white rounded-xl bg-primary-dark hover:bg-primary"
           >
-            로그인
+            {isAuthBootstrapPending ? '로그인 확인 중...' : '로그인'}
           </Button>
         )}
       </div>

@@ -33,7 +33,7 @@ interface AccountSettingsSectionProps {
   hasPassword?: boolean;
 }
 
-const DELETE_CONFIRM_TEXT = '정말로 삭제하시겠습니까?';
+const DELETE_CONFIRM_TEXT = '삭제하겠습니다';
 const LAST_METHOD_TOOLTIP = '현재 로그인 중인 유일한 수단이라 해제할 수 없습니다.';
 const deletePasswordInputClass = 'auth-autofill-input pr-10';
 
@@ -630,15 +630,15 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
 
       <section className="border-t border-border pt-6">
         <div className="rounded-xl border border-border bg-gradient-to-br from-muted/80 via-card to-card p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-3">
-              <div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
+              <div className="space-y-1.5">
                 <p className="font-medium">고급 설정</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm leading-relaxed text-muted-foreground">
                   자주 쓰지 않는 보안 작업만 따로 모아두었습니다. 보안 확인 후 팝업에서 열립니다.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
                 {['신뢰 기기 관리', '다른 기기 로그아웃', '탈퇴 예약'].map((label) => (
                   <span
                     key={label}
@@ -653,7 +653,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
               variant="outline"
               size="sm"
               onClick={handleAdvancedSectionRequest}
-              className="flex-shrink-0"
+              className="w-full sm:w-auto sm:flex-shrink-0"
               disabled={showSecurityDialog}
             >
               <ShieldAlert className="w-4 h-4 mr-2" />

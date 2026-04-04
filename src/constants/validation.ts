@@ -22,6 +22,9 @@ export const ERROR_MESSAGES = {
     MIN_LENGTH: '비밀번호는 8자 이상이어야 합니다',
     INVALID: '대문자, 소문자, 숫자, 특수문자를 각 1개 이상 포함해야 합니다',
   },
+  ENCODE: {
+    INVALID: '영문 입력만 가능합니다',
+  },
   CONFIRM_PASSWORD: {
     REQUIRED: '비밀번호 확인을 입력해주세요',
     NOT_MATCH: '비밀번호가 일치하지 않습니다',

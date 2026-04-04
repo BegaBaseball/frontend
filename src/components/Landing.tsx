@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import begaCharacter from '../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.png';
+import begaCharacter from '../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.webp';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import './Landing.css';
 import { LANDING_FEATURES } from '../constants/landing';

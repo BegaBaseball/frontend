@@ -502,8 +502,8 @@ export async function fetchComments(postId: number, page = 0, size = 20) {
   };
 }
 
-export async function createComment(postId: number, content: string) {
-  return privatePost(`/cheer/posts/${postId}/comments`, { content });
+export async function createComment(postId: number, content: string): Promise<Comment> {
+  return privatePost<Comment, { content: string }>(`/cheer/posts/${postId}/comments`, { content });
 }
 
 export async function deleteComment(commentId: number) {

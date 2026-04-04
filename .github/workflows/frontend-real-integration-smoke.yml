@@ -1,0 +1,158 @@
+name: Frontend Real Integration Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: "Target backend/API base URL (example: https://api.example.com)"
+        required: true
+        type: string
+        default: "https://api.begabaseball.xyz"
+      frontend_origin:
+        description: "Optional frontend origin used for Origin/Referer headers"
+        required: false
+        type: string
+        default: "https://www.begabaseball.xyz"
+      skip_signup:
+        description: "Use fallback login credentials instead of creating a new signup"
+        required: true
+        type: choice
+        options:
+          - "false"
+          - "true"
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  real-integration-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      SMOKE_API_BASE_URL: ${{ inputs.api_base_url }}
+      SMOKE_FRONTEND_ORIGIN: ${{ inputs.frontend_origin }}
+      SMOKE_LOGIN_EMAIL: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
+      SMOKE_LOGIN_PASSWORD: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate workflow inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          API_BASE_URL="${SMOKE_API_BASE_URL}"
+          FRONTEND_ORIGIN="${SMOKE_FRONTEND_ORIGIN}"
+          SKIP_SIGNUP_INPUT="${{ inputs.skip_signup }}"
+
+          if ! [[ "${API_BASE_URL}" =~ ^https?:// ]]; then
+            echo "api_base_url must start with http:// or https:// : ${API_BASE_URL}" >&2
+            exit 1
+          fi
+
+          if [[ -n "${FRONTEND_ORIGIN}" ]] && ! [[ "${FRONTEND_ORIGIN}" =~ ^https?:// ]]; then
+            echo "frontend_origin must start with http:// or https:// : ${FRONTEND_ORIGIN}" >&2
+            exit 1
+          fi
+
+          if [[ "${SKIP_SIGNUP_INPUT}" != "true" && "${SKIP_SIGNUP_INPUT}" != "false" ]]; then
+            echo "skip_signup must be true or false" >&2
+            exit 1
+          fi
+
+          if [[ "${SKIP_SIGNUP_INPUT}" == "true" ]]; then
+            if [[ -z "${SMOKE_LOGIN_EMAIL:-}" || -z "${SMOKE_LOGIN_PASSWORD:-}" ]]; then
+              echo "skip_signup=true requires repository secrets FRONTEND_REAL_SMOKE_LOGIN_EMAIL and FRONTEND_REAL_SMOKE_LOGIN_PASSWORD" >&2
+              exit 1
+            fi
+          fi
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run real integration smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ inputs.skip_signup }}" == "true" ]]; then
+            export SMOKE_SKIP_SIGNUP=1
+          else
+            export SMOKE_SKIP_SIGNUP=0
+          fi
+
+          npm run test:integration:real
+
+      - name: Publish smoke summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "### Frontend Real Integration Smoke" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- API base URL: ${SMOKE_API_BASE_URL}" >> "${GITHUB_STEP_SUMMARY}"
+          if [[ -n "${SMOKE_FRONTEND_ORIGIN}" ]]; then
+            echo "- Frontend origin: ${SMOKE_FRONTEND_ORIGIN}" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+          echo "- skip_signup: ${{ inputs.skip_signup }}" >> "${GITHUB_STEP_SUMMARY}"
+
+          if [[ -f "reports/real-integration-smoke-latest.json" ]]; then
+            node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+            const fs = require('fs');
+
+            const reportPath = 'reports/real-integration-smoke-latest.json';
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+            const lines = [
+              `- Result: ${String(report.status || 'unknown').toUpperCase()}`,
+            ];
+
+            if (Array.isArray(report.steps) && report.steps.length > 0) {
+              lines.push('', '| Step | Status | Duration (ms) |');
+              lines.push('| --- | --- | ---: |');
+              for (const step of report.steps) {
+                lines.push(`| ${step.name} | ${step.status} | ${step.durationMs ?? '-'} |`);
+              }
+            }
+
+            if (Array.isArray(report.warnings) && report.warnings.length > 0) {
+              lines.push('', '**Warnings**');
+              for (const warning of report.warnings) {
+                lines.push(`- ${warning}`);
+              }
+            }
+
+            if (report.fatalError) {
+              lines.push('', '**Fatal Error**', `- ${report.fatalError}`);
+            }
+
+            console.log(lines.join('\n'));
+          NODE
+
+            echo '```json' >> "${GITHUB_STEP_SUMMARY}"
+            cat "reports/real-integration-smoke-latest.json" >> "${GITHUB_STEP_SUMMARY}"
+            echo '```' >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "real-integration-smoke-latest.json not found" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload smoke artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-real-integration-smoke-artifact
+          path: |
+            reports/real-integration-smoke-*.json
+            reports/real-integration-smoke-latest.json
+          if-no-files-found: warn
+          retention-days: 14

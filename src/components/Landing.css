@@ -283,6 +283,11 @@
   box-shadow: var(--surface-shadow);
 }
 
+.landing-feature-mobile-image {
+  max-height: 11.5rem;
+  object-fit: contain;
+}
+
 :root.dark .landing-feature-guide,
 .dark .landing-feature-guide {
   background: hsl(var(--card));
@@ -383,6 +388,10 @@
 
   .landing-footer-grid {
     grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr));
+  }
+
+  .landing-feature-mobile-image {
+    max-height: 10rem;
   }
 }
 

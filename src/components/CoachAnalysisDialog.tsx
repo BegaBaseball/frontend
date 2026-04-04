@@ -804,7 +804,10 @@ export default function CoachAnalysisDialog({
             return buildAnalysisData({
                 headline: structured.headline || defaultAnalysisTitle,
                 sentiment: normalizeSentiment(structured.sentiment),
-                keyMetrics: structured.key_metrics,
+                keyMetrics: (structured.key_metrics ?? []).map((metric) => ({
+                    ...metric,
+                    is_critical: Boolean(metric.is_critical),
+                })),
                 analysis: structured.analysis,
                 detailedMarkdown: structured.detailed_markdown,
                 coachNote: structured.coach_note,

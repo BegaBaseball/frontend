@@ -405,7 +405,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         if ('requestIdleCallback' in window) {
             secondaryPanelsIdleCallbackRef.current = window.requestIdleCallback(mountPanels, { timeout: 1800 });
         } else {
-            secondaryPanelsTimeoutRef.current = window.setTimeout(mountPanels, 1000);
+            secondaryPanelsTimeoutRef.current = globalThis.setTimeout(mountPanels, 1000) as unknown as number;
         }
 
         return clearSecondaryPanelMount;

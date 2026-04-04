@@ -17,6 +17,7 @@ export const getMatePartyListQueryOptions = (
   queryKey: MATE_KEYS.partyList(params),
   queryFn: ({ signal }: { signal: AbortSignal }) => fetchMatePartiesPage({
     ...params,
+    status: params.status === 'all' ? undefined : params.status,
     signal,
   }),
   staleTime: 30 * 1000,
