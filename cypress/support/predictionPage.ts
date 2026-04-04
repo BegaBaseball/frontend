@@ -320,6 +320,13 @@ export const getPredictionAuthRequestTraces = () => (
 );
 
 export const ensureCoachBriefingVisible = () => {
+  cy.window().then((win) => {
+    const hasFakeClock = Boolean((win.setTimeout as typeof win.setTimeout & { clock?: unknown }).clock);
+    if (hasFakeClock) {
+      cy.tick(100);
+    }
+  });
+
   cy.get('body', { timeout: 20000 }).then(($body) => {
     const hasCoachBriefing = $body.find('[data-testid="coach-briefing-card"]').length > 0;
     if (hasCoachBriefing) {
@@ -338,7 +345,7 @@ export const ensureCoachBriefingVisible = () => {
   cy.window().then((win) => {
     const hasFakeClock = Boolean((win.setTimeout as typeof win.setTimeout & { clock?: unknown }).clock);
     if (hasFakeClock) {
-      cy.tick(300);
+      cy.tick(1300);
     }
   });
 
