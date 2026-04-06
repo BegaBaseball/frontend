@@ -3,6 +3,12 @@
 describe('Cheer Board', () => {
     const authToken =
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3RVc2VyIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+    const expectSquareSize = ($element: JQuery<HTMLElement>, size: number) => {
+        const { width, height } = $element[0].getBoundingClientRect();
+
+        expect(Math.round(width)).to.eq(size);
+        expect(Math.round(height)).to.eq(size);
+    };
     const seedLoggedInUser = (win: Window) => {
         win.localStorage.setItem(
             'auth-storage',
@@ -207,6 +213,54 @@ describe('Cheer Board', () => {
             // Should trigger a new request with sort parameter
             cy.wait('@getPopularPosts');
             cy.contains('Popular post 1').should('be.visible');
+        });
+
+        it('should render cheer avatar frames and composer ring with stable sizing', () => {
+            getOwnedPostCard().find('[data-testid="profile-avatar-frame"]').first()
+                .and('not.have.class', 'overflow-hidden')
+                .and('not.have.class', 'p-px')
+                .and('not.have.class', 'p-0.5')
+                .and(($frame) => {
+                    expectSquareSize($frame, 40);
+                })
+                .find('[data-testid="profile-avatar-image"], [data-testid="profile-avatar-fallback"]').first()
+                .should(($surface) => {
+                    expect($surface).to.have.class('w-full');
+                    expect($surface).to.have.class('h-full');
+
+                    if ($surface.attr('data-testid') === 'profile-avatar-image') {
+                        expect($surface.prop('tagName')).to.eq('svg');
+                        expect($surface).to.have.class('block');
+                    } else {
+                        expect($surface).to.have.class('avatar-edge-smooth');
+                        expect($surface).to.have.class('border');
+                        expect($surface).to.have.class('rounded-full');
+                    }
+                });
+
+            cy.get('textarea[placeholder*="응원"]').first()
+                .closest('div.flex-1')
+                .prev()
+                .as('composerAvatarSlot');
+
+            cy.get('@composerAvatarSlot').should(($slot) => {
+                expectSquareSize($slot, 40);
+            });
+
+            cy.get('@composerAvatarSlot').find('[data-testid="profile-avatar-frame"]').first()
+                .and('not.have.class', 'overflow-hidden')
+                .and('not.have.class', 'p-px')
+                .and('not.have.class', 'p-0.5')
+                .and(($frame) => {
+                    expectSquareSize($frame, 40);
+                });
+
+            cy.get('@composerAvatarSlot').find('[data-testid="profile-avatar-frame"]').first()
+                .children()
+                .first()
+                .should('have.class', 'avatar-edge-smooth')
+                .and('have.class', 'border')
+                .and('have.class', 'rounded-full');
         });
     });
 
