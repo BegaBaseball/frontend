@@ -115,7 +115,7 @@ export default function ChatBotSessionRuntime({
             </div>
             <p
               data-testid="chatbot-session-title"
-              className="text-white/80 text-[15px] md:text-[16px] m-0 truncate max-w-[220px] font-semibold"
+              className="text-white/80 text-[16px] md:text-[16px] m-0 truncate max-w-[220px] font-semibold"
               >
               {currentSessionTitle}
             </p>

@@ -137,7 +137,7 @@ export default function MyPageRuntime() {
       {user && hasMountedUserListModal && (
                 <Suspense
                   fallback={userListModal.isOpen ? (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-semibold text-white">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
                 목록을 불러오는 중...
               </div>
           ) : null}
@@ -155,7 +155,7 @@ export default function MyPageRuntime() {
       {hasMountedTicketUploadModal && (
         <Suspense
           fallback={isTicketUploadOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-semibold text-white">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
               티켓 등록 모달을 불러오는 중...
             </div>
           ) : null}

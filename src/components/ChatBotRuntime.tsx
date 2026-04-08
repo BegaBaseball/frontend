@@ -116,12 +116,12 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-white font-bold text-[15px] md:text-[15px] m-0">야구 가이드 BEGA</h3>
-              <span className="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-[15px] font-semibold text-white">
+              <h3 className="text-white font-bold text-[16px] md:text-[16px] m-0">야구 가이드 BEGA</h3>
+              <span className="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-[16px] font-semibold text-white">
                 Beta
               </span>
             </div>
-            <p className="text-white/80 text-[15px] m-0 truncate max-w-[220px]">대화 준비 중</p>
+            <p className="text-white/80 text-[16px] m-0 truncate max-w-[220px]">대화 준비 중</p>
           </div>
         </div>
         <button
@@ -133,7 +133,7 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
           <X className="w-5 h-5" />
         </button>
       </div>
-      <div className="flex flex-1 items-center justify-center text-[15px] text-muted-foreground">
+      <div className="flex flex-1 items-center justify-center text-[16px] text-muted-foreground">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         챗봇을 준비하는 중입니다.
       </div>
@@ -158,14 +158,14 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
               </span>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-white font-bold text-[15px] md:text-[15px] m-0">야구 가이드 BEGA</h3>
-                  <span className="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-[15px] font-semibold text-white">
+                  <h3 className="text-white font-bold text-[16px] md:text-[16px] m-0">야구 가이드 BEGA</h3>
+                  <span className="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-[16px] font-semibold text-white">
                     Beta
                   </span>
                 </div>
                 <p
                   data-testid="chatbot-session-title"
-                  className="text-white/80 text-[15px] m-0 truncate max-w-[220px]"
+                  className="text-white/80 text-[16px] m-0 truncate max-w-[220px]"
                 >
                   야구 정보 안내
                 </p>
@@ -186,7 +186,7 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
               <div className="flex items-center justify-center h-full">
                 <div className="text-center p-6 rounded-2xl bg-gray-100 dark:bg-card/50 border border-gray-300 dark:border-white/10">
                   <h3 className="text-gray-900 dark:text-white font-bold mb-2">로그인이 필요합니다</h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-[15px] font-semibold mb-4">야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-[16px] font-semibold mb-4">야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
                   <button
                     type="button"
                     onClick={handleNavigateToLogin}
@@ -202,11 +202,11 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
                 type="button"
                 data-testid="chatbot-login-cta-footer"
                 onClick={handleNavigateToLogin}
-                className="flex w-full items-center justify-center rounded-2xl bg-primary px-4 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[#3d7f6f]"
+                className="flex w-full items-center justify-center rounded-2xl bg-primary px-4 py-3 text-[16px] font-semibold text-white transition-colors hover:bg-[#3d7f6f]"
               >
                 로그인 후 질문하기
               </button>
-              <p className="mt-2 text-center text-[15px] text-muted-foreground">
+              <p className="mt-2 text-center text-[16px] text-muted-foreground">
                 경기 정보, 규정, 선수 기록 질문을 로그인 후 바로 이어서 확인할 수 있습니다.
               </p>
             </div>
