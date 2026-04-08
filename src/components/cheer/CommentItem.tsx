@@ -52,6 +52,7 @@ function CommentItemComponent({
 }: CommentItemProps) {
   const navigate = useNavigate();
   const isReply = depth > 0;
+  const avatarSize = isReply ? 40 : 48;
   const likeCount = comment.likeCount ?? 0;
   const isReplyOpen = activeReplyId === comment.id;
   const isCommentLiked = Boolean(comment.likedByMe);
@@ -83,7 +84,11 @@ function CommentItemComponent({
               src={comment.authorProfileImageUrl}
               alt={comment.author}
               fallbackName={comment.author}
-              size={isReply ? 'sm' : 'md'}
+              width={avatarSize}
+              height={avatarSize}
+              showRing
+              ringVariant="cheer"
+              ringClassName="p-0 bg-transparent"
             />
           </div>
         </div>
@@ -91,14 +96,14 @@ function CommentItemComponent({
           <div className="flex items-center justify-between">
             <div>
               <p
-                className="font-medium text-gray-900 dark:text-white cursor-pointer hover:underline"
+                className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:underline"
                 onClick={() => {
                   if (comment.authorHandle) navigate(`/profile/${comment.authorHandle}`);
                 }}
               >
                 {comment.author}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-300">
+              <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                 {comment.isPending ? '전송 중...' : comment.timeAgo}
               </p>
             </div>
@@ -113,10 +118,10 @@ function CommentItemComponent({
               </button>
             )}
           </div>
-          <p className="mt-2 whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed">
+          <p className="mt-2 whitespace-pre-wrap text-[16px] font-semibold text-gray-700 dark:text-gray-300 leading-relaxed">
             {comment.content}
           </p>
-          <div className="mt-3 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-300">
+          <div className="mt-3 flex items-center gap-4 text-[16px] text-gray-500 dark:text-gray-300">
             <button
               type="button"
               onClick={() => onCommentLike(comment.id)}

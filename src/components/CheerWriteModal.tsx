@@ -204,10 +204,10 @@ export default function CheerWriteModal({
                                 width={40}
                                 height={40}
                                 showRing
-                                ringClassName="p-px bg-slate-100 dark:bg-secondary"
+                                ringVariant="cheer"
                             />
                         ) : userFavoriteTeam && userFavoriteTeam !== '없음' ? (
-                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-secondary p-px flex-shrink-0 overflow-hidden">
+                            <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-200/90 p-0.5 flex-shrink-0 dark:bg-slate-700/80">
                                 <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
                                     <TeamLogo teamId={teamId} team={teamLabel} size={40} />
                                 </div>
@@ -219,7 +219,7 @@ export default function CheerWriteModal({
                                 width={40}
                                 height={40}
                                 showRing
-                                ringClassName="p-px bg-slate-100 dark:bg-secondary"
+                                ringVariant="cheer"
                             />
                         )}
                         <div className="flex-1 min-w-0 flex flex-col gap-2 sm:gap-3">
@@ -227,7 +227,7 @@ export default function CheerWriteModal({
                                 <select
                                     value={shareMode}
                                     onChange={(e) => setShareMode(e.target.value as ShareMode)}
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 >
                                     <option value="INTERNAL_REPOST">내부 공유</option>
                                     <option value="INTERNAL_QUOTE">내부 인용</option>
@@ -240,43 +240,43 @@ export default function CheerWriteModal({
                                     value={sourceUrl}
                                     onChange={(e) => setSourceUrl(e.target.value)}
                                     placeholder="출처 URL (외부 모드 필수)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceTitle}
                                     onChange={(e) => setSourceTitle(e.target.value)}
                                     placeholder="원문 제목 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceAuthor}
                                     onChange={(e) => setSourceAuthor(e.target.value)}
                                     placeholder="작성자/권리자 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceLicense}
                                     onChange={(e) => setSourceLicense(e.target.value)}
                                     placeholder="라이선스 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceLicenseUrl}
                                     onChange={(e) => setSourceLicenseUrl(e.target.value)}
                                     placeholder="라이선스 URL (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceChangedNote}
                                     onChange={(e) => setSourceChangedNote(e.target.value)}
                                     placeholder="변경사항 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceSnapshotType}
                                     onChange={(e) => setSourceSnapshotType(e.target.value)}
                                     placeholder="스냅샷 유형 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                             </div>
                             <AutosizeTextarea

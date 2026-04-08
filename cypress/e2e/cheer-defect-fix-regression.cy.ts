@@ -1457,6 +1457,7 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
 
         cy.wait('@getGuestCheerDetail');
         cy.wait('@getGuestCheerComments');
+        cy.get('#cheer-comments-section').scrollIntoView();
         cy.contains('댓글, 좋아요, 답글 참여는 로그인 후 이용할 수 있습니다.').should('be.visible');
         cy.contains('button', '로그인하고 참여하기').click();
         cy.location('pathname').should('eq', '/login');

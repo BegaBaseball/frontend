@@ -40,14 +40,14 @@ export default function CheerHot() {
                     <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400" />
                     <h2 className="text-lg font-bold text-red-500 dark:text-red-400">인기 피드</h2>
                 </div>
-                <p className="text-sm text-[#64748B] dark:text-gray-300">데이터를 불러오지 못했습니다.</p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-gray-300">
+                <p className="text-[16px] text-[#64748B] dark:text-gray-300">데이터를 불러오지 못했습니다.</p>
+                <p className="mt-1 text-[16px] text-slate-500 dark:text-gray-300">
                     네트워크 상태를 확인하고 다시 시도해 주세요
                 </p>
                 <button
                     type="button"
                     onClick={() => refetch()}
-                    className="mt-3 rounded-full border border-red-200 dark:border-border px-4 py-1.5 text-xs font-semibold text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-secondary"
+                    className="mt-3 rounded-full border border-red-200 dark:border-border px-4 py-1.5 text-[16px] font-semibold text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-secondary"
                 >
                     다시 시도
                 </button>
@@ -62,7 +62,7 @@ export default function CheerHot() {
                     <Flame className="w-5 h-5 text-red-500 fill-red-500 dark:text-red-400 dark:fill-red-400" />
                     <h2 className="text-lg font-bold text-red-500 dark:text-red-400">인기 피드</h2>
                 </div>
-                <p className="text-sm text-[#64748B] dark:text-gray-300">지금은 표시할 인기 글이 없습니다.</p>
+                <p className="text-[16px] text-[#64748B] dark:text-gray-300">지금은 표시할 인기 글이 없습니다.</p>
             </div>
         );
     }

@@ -192,7 +192,7 @@ export default function CheerDetail() {
 
     if (loading && !selectedPost) {
         return (
-            <div className="min-h-screen bg-white pb-20 dark:bg-background">
+            <div className="min-h-screen bg-white font-sans pb-20 dark:bg-background">
                 <div className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-white/80 px-4 backdrop-blur-md dark:bg-background/80">
                     <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-card" />
                     <div className="h-4 w-40 rounded bg-gray-100 dark:bg-card" />
@@ -224,13 +224,13 @@ export default function CheerDetail() {
             : '게시글을 불러오지 못했습니다.';
 
         return (
-            <div className="min-h-screen bg-slate-50 px-4 py-12 dark:bg-background">
+            <div className="min-h-screen bg-slate-50 font-sans px-4 py-12 dark:bg-background">
                 <div className="mx-auto flex max-w-xl justify-center">
                     <div className="w-full rounded-[24px] border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-white/10 dark:bg-slate-950">
                         <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                             게시글을 불러오지 못했습니다.
                         </p>
-                        <p className="mt-2 text-[15px] text-slate-600 dark:text-slate-300">
+                        <p className="mt-2 text-[16px] font-semibold text-slate-600 dark:text-slate-300">
                             {detailErrorMessage}
                         </p>
                         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
@@ -248,7 +248,7 @@ export default function CheerDetail() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-24 dark:bg-background sm:pb-20">
+        <div className="min-h-screen bg-slate-50 font-sans pb-24 dark:bg-background sm:pb-20">
             <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6 lg:px-8">
                 <Suspense
                     fallback={(
