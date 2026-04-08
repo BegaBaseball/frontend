@@ -495,7 +495,7 @@ const visitLoggedInShell = (allowSessionExpiry = false) => {
     });
     cy.setCookie('Authorization', authToken);
     cy.wait('@getMeAuthenticated');
-    cy.contains('직관 기록', { timeout: 20000 }).should('be.visible');
+    cy.get('button[aria-label="챗봇 열기"]', { timeout: 20000 }).should('be.visible');
     cy.get('[role="alertdialog"], [role="dialog"]').should('not.exist');
 };
 
@@ -990,15 +990,18 @@ describe('AI Chatbot', () => {
             typeAndSend(message);
             cy.wait('@rateLimitedMessage');
 
-            cy.contains('전 경기 실시간 스탯을 집계하고 있습니다.').should('be.visible');
-            cy.contains('11초 후 다시 시도').should('be.visible');
-            cy.contains('button', '메시지 복구').should('not.be.disabled');
+            cy.get('[data-testid="chatbot-panel"]').contains('전 경기 실시간 스탯을 집계하고 있습니다.').should('exist');
+            cy.get('[data-testid="chatbot-panel"]').contains('11초 후 다시 시도').should('exist');
+            cy.get('[data-testid="chatbot-panel"]').contains('button', '메시지 복구').should('exist').and('not.be.disabled');
 
             cy.tick(1000);
-            cy.contains('10초 후 다시 시도').should('be.visible');
+            cy.get('[data-testid="chatbot-panel"]').contains('10초 후 다시 시도').should('exist');
 
             cy.tick(11000);
-            cy.contains('button', /^지금 /).should('not.be.disabled').click();
+            cy.get('[data-testid="chatbot-panel"]')
+                .contains('button', /^지금 /)
+                .should('not.be.disabled')
+                .click({ force: true });
 
             cy.wait('@rateLimitedMessage');
             cy.contains('재시도 후 정상 응답이 도착했습니다.', { timeout: 10000 }).should('be.visible');

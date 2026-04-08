@@ -160,7 +160,7 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                         {isLoading ? (
                             <div className="flex flex-col items-center py-8">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                <p className="mt-2 text-sm text-gray-500">프로필 불러오는 중...</p>
+                                <p className="mt-2 text-[16px] text-gray-500">프로필 불러오는 중...</p>
                             </div>
                         ) : error ? (
                             <div className="py-8 text-center text-red-500">
@@ -183,17 +183,17 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                                 <div className="space-y-2 text-center">
                                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.name}</h3>
                                     {profile.favoriteTeam ? (
-                                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700 dark:bg-secondary dark:text-gray-200">
+                                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-[16px] text-gray-700 dark:bg-secondary dark:text-gray-200">
                                             <Trophy className="mr-1 h-3 w-3 text-primary" />
                                             {getTeamKoreanName(profile.favoriteTeam)}
                                         </span>
                                     ) : (
-                                        <span className="text-sm text-gray-500">응원팀 없음</span>
+                                        <span className="text-[16px] text-gray-500">응원팀 없음</span>
                                     )}
                                 </div>
 
                                 {followCounts && (
-                                    <div className="flex items-center justify-center gap-6 text-sm">
+                                    <div className="flex items-center justify-center gap-6 text-[16px]">
                                         <div className="flex items-center gap-1">
                                             <Users className="h-4 w-4 text-gray-400" />
                                             <span className="font-semibold text-gray-900 dark:text-white">{followCounts.followerCount}</span>
@@ -242,7 +242,7 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                                                 {profile.bio}
                                             </p>
                                         ) : (
-                                            <p className="text-sm italic text-gray-400">
+                                            <p className="text-[16px] italic text-gray-400">
                                                 아직 자기소개가 없습니다.
                                             </p>
                                         )}

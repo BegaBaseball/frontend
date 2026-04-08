@@ -1,22 +1,37 @@
 import { useLocation } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 
-import { useAuthSession } from '../store/authStore';
+import { useAuthStore } from '../store/authStore';
 import {
   getPersistedAuthBootstrapMeta,
   hasPersistedAuthBootstrapHint,
-  shouldHoldAuthUiDuringBootstrap,
+  resolveAuthBootstrapMode,
 } from '../utils/authBootstrap';
 
 export const useAuthBootstrapUiState = () => {
   const location = useLocation();
-  const { isAuthLoading, isLoggedIn, userId } = useAuthSession();
+  const {
+    isAuthLoading,
+    isLoggedIn,
+    publicAuthBootstrapPhase,
+    userId,
+  } = useAuthStore(
+    useShallow((state) => ({
+      isAuthLoading: state.isAuthLoading,
+      isLoggedIn: Boolean(state.user),
+      publicAuthBootstrapPhase: state.publicAuthBootstrapPhase,
+      userId: state.user?.id ?? null,
+    })),
+  );
+  const authBootstrapMode = resolveAuthBootstrapMode(location.pathname, {
+    isLoggedIn,
+    hasPersistedAuthHint: hasPersistedAuthBootstrapHint(),
+    authBootstrapMeta: getPersistedAuthBootstrapMeta(),
+  });
 
   return {
-    isAuthBootstrapPending: shouldHoldAuthUiDuringBootstrap(location.pathname, {
-      isLoggedIn,
-      hasPersistedAuthHint: hasPersistedAuthBootstrapHint(),
-      authBootstrapMeta: getPersistedAuthBootstrapMeta(),
-    }),
+    authBootstrapMode,
+    isAuthBootstrapPending: !isLoggedIn && publicAuthBootstrapPhase !== 'idle',
     isAuthLoading,
     isLoggedIn,
     userId,

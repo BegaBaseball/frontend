@@ -8,6 +8,7 @@ import {
 import {
   getPersistedAuthBootstrapMeta,
   hasPersistedAuthBootstrapHint,
+  normalizeAuthBootstrapPathname,
   resolveAuthBootstrapMode,
 } from '../utils/authBootstrap';
 import {
@@ -16,24 +17,46 @@ import {
   traceAuthEvent,
 } from '../utils/authTrace';
 
+const DEFERRED_PUBLIC_AUTH_BOOTSTRAP_DELAY_MS = 80;
+
 export default function AuthBootstrap() {
   const location = useLocation();
   const bootstrapPendingRef = useRef(true);
+  const deferredBootstrapAttemptKeyRef = useRef<string | null>(null);
   const { fetchProfileAndAuthenticate } = useAuthProfileActions();
   const { isLoggedIn, isAuthLoading } = useAuthSession();
+  const normalizedPathname = normalizeAuthBootstrapPathname(location.pathname);
+  const deferredBootstrapAttemptKey = `${normalizedPathname}:${isLoggedIn ? 'auth' : 'guest'}`;
   const authBootstrapMode = resolveAuthBootstrapMode(location.pathname, {
     isLoggedIn,
     hasPersistedAuthHint: hasPersistedAuthBootstrapHint(),
     authBootstrapMeta: getPersistedAuthBootstrapMeta(),
   });
+  const shouldSkipPublicBootstrapForCypress =
+    !isLoggedIn
+    && shouldSkipDeferredAuthBootstrapForCypress()
+    && (
+      normalizedPathname === '/'
+      || normalizedPathname === '/home'
+      || normalizedPathname === '/prediction'
+    );
+
+  const setPublicAuthBootstrapPhase = (phase: 'idle' | 'scheduled' | 'running') => {
+    const currentPhase = useAuthStore.getState().publicAuthBootstrapPhase;
+    if (currentPhase === phase) {
+      return;
+    }
+    useAuthStore.setState({ publicAuthBootstrapPhase: phase });
+  };
 
   useEffect(() => {
     traceAuthEvent(
       `AuthBootstrap: pathname=${location.pathname}, mode=${authBootstrapMode}, isLoggedIn=${isLoggedIn}, isAuthLoading=${isAuthLoading}`,
     );
 
-    if (authBootstrapMode === 'defer' && shouldSkipDeferredAuthBootstrapForCypress()) {
-      traceAuthEvent(`AuthBootstrap: Cypress skip for ${location.pathname}`);
+    if (shouldSkipPublicBootstrapForCypress) {
+      traceAuthEvent(`AuthBootstrap: Cypress public skip for ${location.pathname}`);
+      setPublicAuthBootstrapPhase('idle');
       if (isAuthLoading) {
         useAuthStore.setState({ isAuthLoading: false });
       }
@@ -42,6 +65,7 @@ export default function AuthBootstrap() {
 
     if (authBootstrapMode === 'skip' || authBootstrapMode === 'public-home') {
       traceAuthEvent(`AuthBootstrap: path ${location.pathname} is ${authBootstrapMode}, skipping auto bootstrap`);
+      setPublicAuthBootstrapPhase('idle');
       if (!isLoggedIn && isAuthLoading) {
         useAuthStore.setState({ isAuthLoading: false });
       }
@@ -57,6 +81,7 @@ export default function AuthBootstrap() {
         return;
       }
       bootstrapPendingRef.current = false;
+      setPublicAuthBootstrapPhase(authBootstrapMode === 'defer' ? 'running' : 'idle');
       traceAuthEvent(`AuthBootstrap: fetching profile for ${location.pathname}`);
       void fetchProfileAndAuthenticate({
         mode: authBootstrapMode === 'defer' ? 'public-optional' : 'default',
@@ -75,29 +100,37 @@ export default function AuthBootstrap() {
         useAuthStore.setState({ isAuthLoading: false });
       }
 
-      let timeoutId: ReturnType<typeof globalThis.setTimeout> | undefined;
-      let idleId: number | undefined;
-
-      if ('requestIdleCallback' in window) {
-        idleId = window.requestIdleCallback(runBootstrap, { timeout: 1500 });
-      } else {
-        timeoutId = globalThis.setTimeout(runBootstrap, 800);
+      if (deferredBootstrapAttemptKeyRef.current === deferredBootstrapAttemptKey) {
+        traceAuthEvent(`AuthBootstrap: defer already attempted for ${deferredBootstrapAttemptKey}, skipping`);
+        return;
       }
+
+      deferredBootstrapAttemptKeyRef.current = deferredBootstrapAttemptKey;
+      setPublicAuthBootstrapPhase('scheduled');
+
+      const timeoutId = globalThis.setTimeout(runBootstrap, DEFERRED_PUBLIC_AUTH_BOOTSTRAP_DELAY_MS);
 
       return () => {
         traceAuthEvent(`AuthBootstrap: defer cleanup for ${location.pathname}`);
-        if (idleId !== undefined && 'cancelIdleCallback' in window) {
-          window.cancelIdleCallback(idleId);
+        if (bootstrapPendingRef.current && useAuthStore.getState().publicAuthBootstrapPhase === 'scheduled') {
+          deferredBootstrapAttemptKeyRef.current = null;
+          setPublicAuthBootstrapPhase('idle');
         }
-        if (timeoutId !== undefined) {
-          globalThis.clearTimeout(timeoutId);
-        }
+        globalThis.clearTimeout(timeoutId);
       };
     }
 
     traceAuthEvent(`AuthBootstrap: immediate bootstrap for ${location.pathname}`);
+    setPublicAuthBootstrapPhase('idle');
     runBootstrap();
-  }, [authBootstrapMode, fetchProfileAndAuthenticate, isAuthLoading, isLoggedIn, location.pathname]);
+  }, [
+    authBootstrapMode,
+    deferredBootstrapAttemptKey,
+    fetchProfileAndAuthenticate,
+    isLoggedIn,
+    location.pathname,
+    shouldSkipPublicBootstrapForCypress,
+  ]);
 
   return null;
 }

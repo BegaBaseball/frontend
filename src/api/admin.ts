@@ -1,5 +1,7 @@
 import {
   AdminApiResponse,
+  AdminCoachAutoBriefOpsHealth,
+  AdminCoachAutoBriefOpsWindow,
   AdminClientErrorDashboard,
   AdminClientErrorEventDetail,
   AdminClientErrorEventPage,
@@ -576,6 +578,30 @@ export const deleteAdminOffseasonMovement = async (movementId: number): Promise<
     }
 
     throw new Error(readErrorMessage(error, '스토브리그 이동 삭제 실패'));
+  }
+};
+
+export const fetchCoachAutoBriefOpsHealth = async (params?: {
+  window?: AdminCoachAutoBriefOpsWindow;
+  startDate?: string;
+  endDate?: string;
+  sampleSize?: number;
+}): Promise<AdminCoachAutoBriefOpsHealth> => {
+  try {
+    return await privateGet<AdminCoachAutoBriefOpsHealth>('/ai/coach/auto-brief/ops/health', {
+      params: {
+        window: params?.window,
+        start_date: params?.startDate,
+        end_date: params?.endDate,
+        sample_size: params?.sampleSize,
+      },
+    });
+  } catch (error) {
+    if (isStatusError(error, 403)) {
+      throw new Error('관리자 권한이 필요합니다.');
+    }
+
+    throw new Error(readErrorMessage(error, 'Coach auto brief 운영 상태 조회 실패'));
   }
 };
 

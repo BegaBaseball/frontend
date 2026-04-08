@@ -157,16 +157,16 @@ export default function AccountDeletionRecovery() {
 
             {isLoading ? (
               <AuthStatusPanel tone="default" data-testid="account-recovery-status-panel" role="status">
-                <p className="text-sm font-medium">복구 가능 여부를 확인하고 있습니다.</p>
+                <p className="text-[16px] font-semibold">복구 가능 여부를 확인하고 있습니다.</p>
               </AuthStatusPanel>
             ) : error ? (
               <AuthStatusPanel tone="error" data-testid="account-recovery-status-panel" role="alert">
-                <p className="text-sm font-medium">{error}</p>
+                <p className="text-[16px] font-semibold">{error}</p>
               </AuthStatusPanel>
             ) : (
               <>
                 <AuthStatusPanel tone="default" role="status">
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2 text-[16px]">
                     <p className="font-semibold text-foreground">최종 삭제 예정 시각</p>
                     <p>{formatSchedule(scheduledFor)}</p>
                     <p className="auth-helper-text">이 시각 전까지 예약을 취소할 수 있으며, 취소가 끝나면 다시 로그인할 수 있습니다.</p>

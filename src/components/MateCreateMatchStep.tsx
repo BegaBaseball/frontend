@@ -34,7 +34,7 @@ export default function MateCreateMatchStep({
       <h2 className="mb-2 text-xl text-primary sm:text-2xl">
         경기 선택
       </h2>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-[16px] text-gray-500 mb-6">
         관람하실 경기를 선택해주세요
       </p>
 
@@ -55,7 +55,7 @@ export default function MateCreateMatchStep({
           <div className="grid gap-3 pt-2">
             {matchLoadErrorMessage && (
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm text-red-500">{matchLoadErrorMessage}</p>
+                <p className="text-[16px] text-red-500">{matchLoadErrorMessage}</p>
                 <Button variant="outline" size="sm" onClick={retry}>
                   다시 시도
                 </Button>
@@ -64,7 +64,7 @@ export default function MateCreateMatchStep({
             {isLoadingMatches ? (
               <div className="text-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-2" />
-                <p className="text-sm text-gray-500">경기를 불러오는 중입니다...</p>
+                <p className="text-[16px] text-gray-500">경기를 불러오는 중입니다...</p>
               </div>
             ) : availableMatches.length > 0 ? (
               availableMatches.map((match) => {
@@ -80,23 +80,23 @@ export default function MateCreateMatchStep({
                   >
                     <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex flex-col gap-3 sm:flex-1 sm:flex-row sm:items-center sm:gap-4">
-                        <div className="w-full text-left text-sm font-bold text-gray-500 dark:text-gray-300 sm:w-16 sm:text-center">
+                        <div className="w-full text-left text-[16px] font-bold text-gray-500 dark:text-gray-300 sm:w-16 sm:text-center">
                           {match.gameTime}
                         </div>
                         <div className="hidden h-8 w-px bg-gray-200 dark:bg-secondary sm:block" />
                         <div className="flex items-center justify-between gap-3 sm:flex-1 sm:justify-center">
-                          <span className="flex min-w-0 items-center gap-2 text-sm font-bold dark:text-gray-200 sm:text-base">
+                          <span className="flex min-w-0 items-center gap-2 text-[16px] font-bold dark:text-gray-200 sm:text-base">
                             <TeamLogo teamId={match.awayTeam} size="sm" />
                             <span className="truncate">{TEAMS.find((team) => team.id === match.awayTeam)?.name}</span>
                           </span>
-                          <span className="text-gray-400 text-xs">VS</span>
-                          <span className="flex min-w-0 items-center gap-2 text-sm font-bold dark:text-gray-200 sm:text-base">
+                          <span className="text-gray-400 text-[16px]">VS</span>
+                          <span className="flex min-w-0 items-center gap-2 text-[16px] font-bold dark:text-gray-200 sm:text-base">
                             <span className="truncate">{TEAMS.find((team) => team.id === match.homeTeam)?.name}</span>
                             <TeamLogo teamId={match.homeTeam} size="sm" />
                           </span>
                         </div>
                       </div>
-                      <div className="min-w-0 text-left text-xs text-gray-400 sm:ml-4 sm:min-w-[60px] sm:text-right">
+                      <div className="min-w-0 text-left text-[16px] text-gray-400 sm:ml-4 sm:min-w-[60px] sm:text-right">
                         {match.stadium}
                       </div>
                     </div>
@@ -142,7 +142,7 @@ export default function MateCreateMatchStep({
                       id="manualAwayTeam"
                       value={formData.awayTeam}
                       onChange={(event) => updateFormData({ awayTeam: event.target.value })}
-                      className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm dark:border-border dark:bg-input/30"
+                      className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[16px] dark:border-border dark:bg-input/30"
                     >
                       <option value="">원정 팀 선택</option>
                       {TEAMS.map((team) => (
@@ -158,7 +158,7 @@ export default function MateCreateMatchStep({
                       id="manualHomeTeam"
                       value={formData.homeTeam}
                       onChange={(event) => updateFormData({ homeTeam: event.target.value })}
-                      className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm dark:border-border dark:bg-input/30"
+                      className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[16px] dark:border-border dark:bg-input/30"
                     >
                       <option value="">홈 팀 선택</option>
                       {TEAMS.map((team) => (
@@ -169,7 +169,7 @@ export default function MateCreateMatchStep({
                     </select>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-300">
+                <p className="text-[16px] text-gray-500 dark:text-gray-300">
                   팀/구장까지 입력하면 다음 단계로 진행할 수 있습니다.
                 </p>
               </div>

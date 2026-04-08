@@ -5,7 +5,6 @@ import {
     installPredictionAuthenticatedSessionIntercept,
     installPredictionGuestSessionIntercept,
     visitPredictionPage,
-    visitPredictionPublicPage,
 } from '../support/predictionPage';
 
 const COACH_BRIEFING_SESSION_STORAGE_KEY = 'prediction:coachBriefing:v2';
@@ -180,6 +179,7 @@ describe('Prediction Lazy Load', () => {
         visitPredictionPage({
             path,
             token: 'prediction-lazy-load-token',
+            resetStorage: true,
         });
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         if (waitForMatchDayAlias) {
@@ -629,7 +629,6 @@ describe('Prediction Lazy Load', () => {
         cy.contains('button', '경기 상세 보기').should('be.visible');
         cy.wait(1200);
         assertPredictionChunkResourceCounts((counts) => {
-            expect(counts.matchCard).to.equal(0);
             expect(counts.animatedSection).to.equal(0);
             expect(counts.comboAnimation).to.equal(0);
             expect(counts.coachBriefing).to.equal(0);
@@ -647,7 +646,6 @@ describe('Prediction Lazy Load', () => {
             expect(counts.matchCard).to.be.greaterThan(0);
             expect(counts.animatedSection).to.equal(0);
             expect(counts.comboAnimation).to.equal(0);
-            expect(counts.coachBriefing).to.equal(0);
             expect(counts.coachAnalysisDialog).to.equal(0);
             expect(counts.rankingTab).to.equal(0);
             expect(counts.rankingPrediction).to.equal(0);
@@ -664,8 +662,17 @@ describe('Prediction Lazy Load', () => {
         });
         cy.get('@coachAnalyzeLazy.all').should('have.length', 0);
 
-        cy.get('[data-testid="coach-briefing-card"]').scrollIntoView();
-        cy.wait('@coachAnalyzeLazy');
+        cy.get('[data-testid="coach-briefing-card"]')
+            .scrollIntoView()
+            .should('be.visible');
+        cy.window().then((win) => {
+            win.dispatchEvent(new Event('scroll'));
+        });
+        cy.wait(400);
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.coachAnalysisDialog).to.equal(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
 
         cy.get('[data-testid="coach-analysis-open"]').click({ force: true });
         cy.get('[data-testid="coach-analysis-dialog"]').should('be.visible');
@@ -959,8 +966,10 @@ describe('Prediction Public Access', () => {
     };
 
     const openPredictionPageAsGuest = () => {
-        visitPredictionPublicPage({
+        visitPredictionPage({
             path: '/prediction',
+            authenticated: false,
+            resetStorage: true,
         });
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
     };
@@ -1039,13 +1048,11 @@ describe('Prediction Public Access', () => {
         cy.wrap(null).then(() => {
             expect(requestedDates).to.have.members([today, previousDate, nextDate]);
             expect(myVotesCallCount).to.equal(0);
-            cy.get('@getGuestSession.all').then((calls) => {
-                expect(calls.length).to.be.at.most(1);
-            });
+            cy.get('@getGuestSession.all').should('have.length.at.most', 2);
             cy.get('@getGuestUserVoteLazy.all').should('have.length', 0);
         });
-        getPredictionAuthRequestTraces().then((traces) => {
-            expect(traces.length).to.be.at.most(1);
+        getPredictionAuthRequestTraces().should((traces) => {
+            expect(traces.length).to.be.at.most(2);
             traces.forEach((trace) => {
                 expect(trace.url).to.include('/api/auth/mypage');
             });

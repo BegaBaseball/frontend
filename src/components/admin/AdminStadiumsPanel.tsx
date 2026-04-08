@@ -135,7 +135,7 @@ export function AdminStadiumsPanel({
                         {place.category}
                       </AdminBadge>
                     </TableCell>
-                    <TableCell className="font-medium text-slate-200">
+                    <TableCell className="font-semibold text-slate-200">
                       {place.name}
                     </TableCell>
                     <TableCell className="max-w-[160px] truncate text-sm text-slate-400">

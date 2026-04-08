@@ -14,7 +14,7 @@ export default function PredictionMatchesErrorView({
   onReloadMatches,
 }: PredictionMatchesErrorViewProps) {
   return (
-    <div className="min-h-screen bg-white transition-colors duration-200 dark:bg-background">
+    <div className="min-h-screen bg-white font-sans transition-colors duration-200 dark:bg-background">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         <Card className="relative flex min-h-[120px] flex-col items-center justify-center rounded-2xl border border-rose-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-rose-900/40 dark:bg-card dark:shadow-md sm:min-h-[170px] sm:p-5 md:min-h-[190px]">
           <div className="mb-4 rounded-full bg-rose-100 p-4 dark:bg-card">
@@ -26,7 +26,7 @@ export default function PredictionMatchesErrorView({
           <p className="text-slate-500 dark:text-gray-300">
             {matchesLoadErrorMessage || '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'}
           </p>
-          <p className="mt-2 text-sm text-slate-400 dark:text-gray-400">
+          <p className="mt-2 text-[16px] text-slate-400 dark:text-gray-400">
             잠시 후 다시 시도하거나 새로고침해 주세요.
           </p>
           <Button

@@ -1,19 +1,16 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { parseError } from '../utils/errorUtils';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthProfileActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
-import { useMutation, useQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
-import { Bookmark, Home, ImagePlus, PenSquare, Smile, UserRound, Megaphone, LineChart } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Bookmark, Home, PenSquare, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TEAM_DATA } from '../constants/teams';
-import { getTeamNameById, PageResponse, CheerPost, ShareMode } from '../api/cheerApi';
+import { getTeamNameById } from '../api/cheerApi';
 import { fetchTeamFranchiseMetadata } from '../api/teamFranchiseApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
 import TeamLogo from './TeamLogo';
-import { ProfileAvatar } from './ui/ProfileAvatar';
-import AutosizeTextarea from './ui/autosize-textarea';
 import {
     normalizeHexColor,
     getReadableAccent,
@@ -21,15 +18,11 @@ import {
     DEFAULT_BRAND_COLOR,
 } from '../utils/teamColors';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
-import type { CheerWritePayload } from './CheerWriteModal';
 
-const LazyCheerWriteModal = lazy(() => import('./CheerWriteModal'));
+const LazyCheerComposerRuntime = lazy(() => import('./CheerComposerRuntime'));
 const LazyCheerSidebarPanels = lazy(() => import('./CheerSidebarPanels'));
 const LazyCheerFeedRuntimeContent = lazy(() => import('./CheerFeedRuntimeContent'));
-
-type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
 type FeedTabKey = 'all' | 'popular' | 'following';
-type CheerPostType = CheerPost['postType'];
 type FeedTabConfig = {
     key: FeedTabKey;
     label: string;
@@ -56,7 +49,6 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     } = useAuthProfileSnapshot();
     const { isLoggedIn, isAuthLoading } = useAuthSession();
     const { fetchProfileAndAuthenticate } = useAuthProfileActions();
-    const queryClient = useQueryClient();
     const today = useMemo(() => new Date(), []);
     const feedTabs = useMemo<FeedTabConfig[]>(
         () => [
@@ -76,9 +68,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
         typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
     ));
     const hasFetchedProfile = useRef(false);
-    const didOpenComposerFromRoute = useRef(false);
-    const didNotifyLoginRequiredFromWriteRoute = useRef(false);
-    const hasFavoriteTeam = authUserFavoriteTeam && authUserFavoriteTeam !== '없음';
+    const hasFavoriteTeam = Boolean(authUserFavoriteTeam && authUserFavoriteTeam !== '없음');
     const userDisplayName = authUserName || authUserEmail || '나';
     const userProfilePath = authUserHandle
         ? `/profile/${authUserHandle.startsWith('@') ? authUserHandle : `@${authUserHandle}`}`
@@ -97,24 +87,6 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
         hasFetchedProfile.current = true;
         fetchProfileAndAuthenticate();
     }, [fetchProfileAndAuthenticate, hasFavoriteTeam, isAuthLoading, isLoggedIn]);
-
-    useEffect(() => {
-        if (!openComposerOnMount) return;
-        if (didOpenComposerFromRoute.current) return;
-        if (isAuthLoading) return;
-
-        if (!isLoggedIn) {
-            if (!didNotifyLoginRequiredFromWriteRoute.current) {
-                didNotifyLoginRequiredFromWriteRoute.current = true;
-                toast.error('로그인이 필요한 서비스입니다.');
-                navigate(buildLoginPath(getCurrentRelativeUrl()), { replace: true });
-            }
-            return;
-        }
-
-        didOpenComposerFromRoute.current = true;
-        setIsWriteModalOpen(true);
-    }, [isAuthLoading, isLoggedIn, navigate, openComposerOnMount]);
 
     useEffect(() => {
         const tabParam = searchParams.get('tab');
@@ -190,11 +162,6 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     const teamColor = normalizeHexColor(authUserFavoriteTeamColor || DEFAULT_BRAND_COLOR);
     const teamAccent = getReadableAccent(teamColor);
     const teamContrastText = getContrastText(teamColor);
-    const resolveProfileImage = (imageUrl?: string) => {
-        if (!imageUrl) return null;
-        if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
-        return imageUrl;
-    };
     const favoriteTeamId = hasFavoriteTeam ? authUserFavoriteTeam : null;
     const favoriteTeamLabel = favoriteTeamId ? TEAM_DATA[favoriteTeamId]?.name ?? favoriteTeamId : null;
     const favoriteTeamFull = favoriteTeamId ? TEAM_DATA[favoriteTeamId]?.fullName ?? favoriteTeamId : null;
@@ -229,11 +196,15 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
         if (liveGames.length) return liveGames[0];
         return todaysGames[0];
     }, [favoriteTeamFull, favoriteTeamId, favoriteTeamLabel, todaysGames]);
-    const teamId = hasFavoriteTeam ? authUserFavoriteTeam : 'all';
-    const teamLogoId = teamId !== 'all' ? teamId : undefined;
-    const rawTeamName = teamId !== 'all' ? getTeamNameById(teamId) : 'KBO 리그';
-    const teamLabel = TEAM_DATA[teamId]?.name || rawTeamName.split(' ')[0];
-    const teamName = TEAM_DATA[teamId]?.fullName || rawTeamName;
+    const teamId = favoriteTeamId ?? 'all';
+    const teamLogoId = favoriteTeamId ?? undefined;
+    const rawTeamName = favoriteTeamId ? getTeamNameById(favoriteTeamId) : 'KBO 리그';
+    const teamLabel = favoriteTeamId
+        ? (TEAM_DATA[favoriteTeamId]?.name || rawTeamName.split(' ')[0])
+        : 'KBO';
+    const teamName = favoriteTeamId
+        ? (TEAM_DATA[favoriteTeamId]?.fullName || rawTeamName)
+        : rawTeamName;
     const {
         data: teamMetadata,
         isLoading: isTeamMetadataLoading,
@@ -241,8 +212,8 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
         refetch: refetchTeamMetadata,
     } = useQuery({
         queryKey: ['cheer-team-metadata', teamId],
-        queryFn: () => fetchTeamFranchiseMetadata(teamId),
-        enabled: teamId !== 'all',
+        queryFn: () => fetchTeamFranchiseMetadata(favoriteTeamId!),
+        enabled: Boolean(favoriteTeamId),
         staleTime: 5 * 60 * 1000,
         gcTime: 30 * 60 * 1000,
     });
@@ -263,269 +234,6 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
             : '멋진 선택이에요! 함께 응원하며 즐거운 야구 생활을 시작해보세요.';
     }, [teamMetadata]);
     const activeTabConfig = feedTabs.find((item) => item.key === activeFeedTab);
-    const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
-    const [hasMountedWriteModal, setHasMountedWriteModal] = useState(false);
-    const [composerContent, setComposerContent] = useState('');
-    const [composerFiles, setComposerFiles] = useState<File[]>([]);
-    const [composerPreviews, setComposerPreviews] = useState<{ file: File; url: string }[]>([]);
-    const [composerSubmitting, setComposerSubmitting] = useState(false);
-    const [composerDragging, setComposerDragging] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const previewsRef = useRef<{ file: File; url: string }[]>([]);
-
-    useEffect(() => {
-        previewsRef.current = composerPreviews;
-    }, [composerPreviews]);
-
-    useEffect(() => {
-        if (isWriteModalOpen) {
-            setHasMountedWriteModal(true);
-        }
-    }, [isWriteModalOpen]);
-
-    useEffect(() => {
-        return () => {
-            previewsRef.current.forEach((preview) => URL.revokeObjectURL(preview.url));
-        };
-    }, []);
-
-    const addComposerFiles = (files: File[]) => {
-        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-        const validFiles: File[] = [];
-        let skippedCount = 0;
-
-        files.forEach((file) => {
-            if (!file.type.startsWith('image/')) return;
-            if (file.size > MAX_SIZE) {
-                skippedCount++;
-                return;
-            }
-            validFiles.push(file);
-        });
-
-        if (skippedCount > 0) {
-            toast.warning(`이미지 크기는 5MB 이하여야 합니다. (${skippedCount}개 파일 제외됨)`);
-        }
-
-        const combinedFiles = [...composerFiles, ...validFiles].slice(0, 10);
-        const newPreviews = validFiles.map((file) => ({
-            file,
-            url: URL.createObjectURL(file),
-        }));
-
-        setComposerFiles(combinedFiles);
-        setComposerPreviews((prev) => [...prev, ...newPreviews].slice(0, 10));
-    };
-
-    const handleComposerFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            addComposerFiles(Array.from(event.target.files));
-            event.target.value = '';
-        }
-    };
-
-    const handleComposerRemove = (index: number) => {
-        setComposerFiles((prev) => prev.filter((_, i) => i !== index));
-        setComposerPreviews((prev) => {
-            const target = prev[index];
-            if (target) URL.revokeObjectURL(target.url);
-            return prev.filter((_, i) => i !== index);
-        });
-    };
-
-    const handleComposerDragOver = (event: React.DragEvent) => {
-        event.preventDefault();
-        setComposerDragging(true);
-    };
-
-    const handleComposerDragLeave = (event: React.DragEvent) => {
-        event.preventDefault();
-        setComposerDragging(false);
-    };
-
-    const handleComposerDrop = (event: React.DragEvent) => {
-        event.preventDefault();
-        setComposerDragging(false);
-        if (event.dataTransfer.files) {
-            addComposerFiles(Array.from(event.dataTransfer.files));
-        }
-    };
-
-    const createMutation = useMutation({
-        mutationFn: async (payload: {
-            content: string;
-            files: File[];
-            postType?: CheerPostType;
-            shareMode?: ShareMode;
-            sourceUrl?: string;
-            sourceTitle?: string;
-            sourceAuthor?: string;
-            sourceLicense?: string;
-            sourceLicenseUrl?: string;
-            sourceChangedNote?: string;
-            sourceSnapshotType?: string;
-        }) => {
-            if (!hasFavoriteTeam) {
-                throw new Error('favoriteTeam-required');
-            }
-            const { submitCheerPost } = await import('../utils/cheerSubmit');
-            return submitCheerPost({
-                teamId: authUserFavoriteTeam,
-                content: payload.content,
-                files: payload.files,
-                postType: payload.postType,
-                shareMode: payload.shareMode,
-                sourceUrl: payload.sourceUrl,
-                sourceTitle: payload.sourceTitle,
-                sourceAuthor: payload.sourceAuthor,
-                sourceLicense: payload.sourceLicense,
-                sourceLicenseUrl: payload.sourceLicenseUrl,
-                sourceChangedNote: payload.sourceChangedNote,
-                sourceSnapshotType: payload.sourceSnapshotType,
-            });
-        },
-        onMutate: async (payload) => {
-            const optimisticId = Date.now() * -1;
-            const optimisticPost: CheerPost = {
-                id: optimisticId,
-                teamId: authUserFavoriteTeam || 'ALL',
-                team: authUserFavoriteTeam || 'ALL',
-                teamColor,
-                content: payload.content,
-                author: userDisplayName,
-                authorHandle: authUserHandle || '',
-                authorProfileImageUrl: authUserProfileImageUrl ?? undefined,
-                authorTeamId: authUserFavoriteTeam || undefined,
-                timeAgo: '방금 전',
-                likeCount: 0,
-                commentCount: 0,
-                bookmarkCount: 0,
-                repostCount: 0,
-                views: 0,
-                isHot: false,
-                liked: false,
-                bookmarked: false,
-                imageUrls: composerPreviews.map((preview) => preview.url),
-                imageUploadFailed: false,
-                postType: payload.postType ?? 'NORMAL',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                isOwner: true,
-                repostedByMe: false,
-                originalDeleted: false,
-                shareMode: payload.shareMode,
-                sourceInfo: payload.sourceUrl
-                    ? {
-                        url: payload.sourceUrl,
-                        title: payload.sourceTitle,
-                        author: payload.sourceAuthor,
-                        license: payload.sourceLicense,
-                        licenseUrl: payload.sourceLicenseUrl,
-                        changedNote: payload.sourceChangedNote,
-                        snapshotType: payload.sourceSnapshotType,
-                    }
-                    : undefined,
-            };
-
-            const updateCache = (key: (string | undefined)[]) => {
-                queryClient.setQueryData<CheerInfiniteData>(key, (old) => {
-                    if (!old || !old.pages?.length) return old;
-                    const firstPage = old.pages[0];
-                    const updatedFirstPage = {
-                        ...firstPage,
-                        content: [optimisticPost, ...(firstPage.content ?? [])],
-                    };
-                    return { ...old, pages: [updatedFirstPage, ...old.pages.slice(1)] };
-                });
-            };
-
-            const activeKey = ['cheer-posts', activeFeedTab];
-            const allKey = ['cheer-posts', 'all'];
-
-            const previousActive = queryClient.getQueryData(activeKey);
-            const previousAll = queryClient.getQueryData(allKey);
-
-            updateCache(activeKey);
-            if (activeFeedTab !== 'all') updateCache(allKey);
-
-            return { previousActive, previousAll, optimisticId };
-        },
-        onError: (_error, _payload, context) => {
-            if (!context) return;
-            queryClient.setQueryData(['cheer-posts', activeFeedTab], context.previousActive);
-            if (activeFeedTab !== 'all') {
-                queryClient.setQueryData(['cheer-posts', 'all'], context.previousAll);
-            }
-            const parsedError = parseError(_error);
-            if (parsedError.type === 'AUTH' || parsedError.responseCode === 'INVALID_AUTHOR') {
-                redirectToLogin(true);
-            } else if (_error instanceof Error && _error.message === 'IMAGE_UPLOAD_FAILED') {
-                return;
-            } else {
-                toast.error(parsedError.message || '게시글 등록에 실패했습니다.');
-            }
-
-        },
-        onSuccess: (result, _payload, context) => {
-            const createdPost = result?.created;
-            if (!createdPost || !context) return;
-            const uploadedUrls = result?.uploadedUrls ?? [];
-            const uploadFailed = Boolean(result?.uploadFailed);
-            const replaceOptimistic = (key: (string | undefined)[]) => {
-                queryClient.setQueryData<CheerInfiniteData>(key, (old) => {
-                    if (!old || !old.pages?.length) return old;
-                    const updatedPages = old.pages.map((page) => ({
-                        ...page,
-                        content: (page.content ?? []).map((post) =>
-                            post.id === context.optimisticId
-                                ? {
-                                    ...post,
-                                    ...createdPost,
-                                    authorProfileImageUrl: createdPost.authorProfileImageUrl ?? post.authorProfileImageUrl,
-                                    imageUrls: uploadedUrls.length > 0 ? uploadedUrls : post.imageUrls ?? createdPost.imageUrls,
-                                    imageUploadFailed: uploadFailed,
-                                }
-                                : post
-                        ),
-                    }));
-                    return { ...old, pages: updatedPages };
-                });
-            };
-            replaceOptimistic(['cheer-posts', activeFeedTab]);
-            if (activeFeedTab !== 'all') replaceOptimistic(['cheer-posts', 'all']);
-        },
-    });
-
-    const handleComposerSubmit = async () => {
-        if (!isLoggedIn) {
-            redirectToLogin(false);
-            return;
-        }
-        if (!hasFavoriteTeam) {
-            toast.warning('마이페이지에서 응원팀을 설정해주세요!');
-            return;
-        }
-        const trimmedContent = composerContent.trim();
-        if (!trimmedContent) return;
-
-        setComposerSubmitting(true);
-        try {
-            await createMutation.mutateAsync({
-                content: trimmedContent,
-                files: composerFiles,
-                postType: activeTabConfig?.postType,
-            });
-            setComposerContent('');
-            setComposerFiles([]);
-            composerPreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
-            setComposerPreviews([]);
-        } catch (error) {
-            // 에러는 mutation의 onError 또는 내부 catch에서 이미 처리됨
-        } finally {
-            setComposerSubmitting(false);
-        }
-    };
-
     return (
         <div className="min-h-screen bg-[#f7f9f9] dark:bg-background">
             <div className="px-4 sm:px-6 py-6 sm:py-8">
@@ -582,7 +290,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                                 type="button"
                                                 onClick={() => setActiveFeedTab(tab.key)}
                                                 className={cn(
-                                                    'relative px-4 py-2 min-h-11 flex items-center text-[14px] font-semibold rounded-full transition-all duration-200',
+                                                    'relative px-4 py-2 min-h-11 flex items-center text-[16px] font-semibold rounded-full transition-all duration-200',
                                                     isActive
                                                         ? 'text-[#0F172A] dark:text-gray-100'
                                                         : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-gray-300 dark:hover:bg-secondary dark:hover:text-white active:scale-[0.98]'
@@ -598,137 +306,47 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                     })}
                                 </div>
                             </nav>
-
-
-                            <section
-                                className={cn(
-                                    'relative mx-4 mt-4 rounded-2xl border border-slate-200 dark:border-border px-4 py-4 transition-all duration-200',
-                                    'bg-white dark:bg-card shadow-[0_1px_3px_rgba(0,0,0,0.05)]',
-                                    composerDragging && 'bg-sky-50/50 dark:bg-sky-900/30 border-2 border-dashed border-sky-300 dark:border-sky-500'
-                                )}
-                                onDragOver={handleComposerDragOver}
-                                onDragLeave={handleComposerDragLeave}
-                                onDrop={handleComposerDrop}
-                            >
-                                {composerDragging && (
-                                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-sky-50/30 dark:bg-sky-900/30 backdrop-blur-sm rounded-lg">
-                                        <ImagePlus className="h-8 w-8 text-sky-500 dark:text-sky-400" />
-                                        <span className="text-sm font-semibold text-sky-700 dark:text-sky-300">이미지를 놓으세요</span>
-                                    </div>
-                                )}
-                                <div className="flex gap-3">
-                                    <div className="h-10 w-10 shrink-0">
-                                        {authUserProfileImageUrl ? (
-                                            <ProfileAvatar
-                                                src={resolveProfileImage(authUserProfileImageUrl) || undefined}
-                                                alt={authUserName || '프로필'}
-                                                fallbackName={authUserName || '프로필'}
-                                                width={40}
-                                                height={40}
-                                                showRing
-                                                ringClassName="p-px bg-black/5 dark:bg-white/10"
-                                            />
-                                        ) : hasFavoriteTeam ? (
-                                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/5 dark:bg-white/10 p-px overflow-hidden">
-                                                <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
-                                                    <TeamLogo teamId={teamLogoId} team={teamLabel} size={40} />
+                            <Suspense
+                                fallback={(
+                                    <section className="relative mx-4 mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:border-border dark:bg-card">
+                                        <div className="flex animate-pulse gap-3">
+                                            <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200 dark:bg-secondary" />
+                                            <div className="flex-1 space-y-3">
+                                                <div className="h-5 w-full rounded bg-slate-200 dark:bg-secondary" />
+                                                <div className="h-5 w-5/6 rounded bg-slate-200 dark:bg-secondary" />
+                                                <div className="flex items-center justify-between border-t border-border/70 pt-2 dark:border-border">
+                                                    <div className="flex gap-2">
+                                                        <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-secondary" />
+                                                        <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-secondary" />
+                                                    </div>
+                                                    <div className="h-8 w-24 rounded-full bg-slate-200 dark:bg-secondary" />
                                                 </div>
-                                            </span>
-                                        ) : (
-                                            <ProfileAvatar
-                                                alt={authUserName || '프로필'}
-                                                fallbackName={authUserName || '프로필'}
-                                                width={40}
-                                                height={40}
-                                                showRing
-                                                ringClassName="p-px bg-black/5 dark:bg-white/10"
-                                            />
-                                        )}
-                                    </div>
-                                    <div className="flex-1">
-                                        <AutosizeTextarea
-                                            placeholder="지금 우리 팀에게 응원을 남겨주세요!"
-                                            className="w-full resize-none border-none bg-transparent text-[16px] text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none focus:ring-0"
-                                            minRows={2}
-                                            maxRows={10}
-                                            value={composerContent}
-                                            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setComposerContent(event.target.value)}
-                                        />
-                                        <div className="mt-2 flex items-center justify-between border-t border-border/70 dark:border-border pt-2">
-                                            <div className="flex items-center gap-2 text-[#536471] dark:text-gray-300">
-                                                <button
-                                                    type="button"
-                                                    className={`group relative rounded-full p-1 transition-colors ${composerFiles.length >= 10
-                                                        ? 'opacity-50 cursor-not-allowed'
-                                                        : 'hover:bg-slate-100 dark:hover:bg-secondary'
-                                                        }`}
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                    aria-label="이미지 첨부"
-                                                    disabled={composerFiles.length >= 10}
-                                                >
-                                                    <ImagePlus className="h-4 w-4" />
-                                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block whitespace-nowrap rounded bg-slate-800 dark:bg-secondary px-2 py-1 text-xs text-white shadow-lg">
-                                                        최대 10장, 각 5MB 이하
-                                                    </span>
-                                                </button>
-                                                {composerFiles.length >= 10 ? (
-                                                    <span className="text-xs text-amber-500 dark:text-amber-400 font-medium">10장 제한</span>
-                                                ) : composerFiles.length > 0 ? (
-                                                    <span className="text-xs text-slate-400">{composerFiles.length}/10</span>
-                                                ) : null}
-                                                <Smile className="h-4 w-4" />
-                                                <input
-                                                    ref={fileInputRef}
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    className="hidden"
-                                                    onChange={handleComposerFileSelect}
-                                                    disabled={composerSubmitting || composerFiles.length >= 10}
-                                                />
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {!composerContent.trim() && (
-                                                    <span className="text-xs text-slate-400 dark:text-gray-300">내용을 입력해 주세요</span>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    data-testid="write-post-btn"
-                                                    onClick={handleComposerSubmit}
-                                                    className="rounded-full px-4 py-1.5 text-sm font-bold disabled:opacity-60"
-                                                    style={{ backgroundColor: teamColor, color: teamContrastText }}
-                                                    disabled={composerSubmitting || !composerContent.trim()}
-                                                >
-                                                    {composerSubmitting ? '등록 중...' : '게시하기'}
-                                                </button>
                                             </div>
                                         </div>
-                                        {composerPreviews.length > 0 && (
-                                            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                                {composerPreviews.map((preview, index) => (
-                                                    <div
-                                                        key={preview.url}
-                                                        className="relative h-20 overflow-hidden rounded-lg border border-black/10 dark:border-white/10"
-                                                    >
-                                                        <img
-                                                            src={preview.url}
-                                                            alt={preview.file.name}
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            className="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-xs text-white"
-                                                            onClick={() => handleComposerRemove(index)}
-                                                        >
-                                                            X
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </section>
+                                    </section>
+                                )}
+                            >
+                                <LazyCheerComposerRuntime
+                                    openComposerOnMount={openComposerOnMount}
+                                    isAuthLoading={isAuthLoading}
+                                    isLoggedIn={isLoggedIn}
+                                    hasFavoriteTeam={hasFavoriteTeam}
+                                    authUserEmail={authUserEmail}
+                                    authUserHandle={authUserHandle}
+                                    authUserName={authUserName}
+                                    authUserFavoriteTeam={authUserFavoriteTeam}
+                                    authUserProfileImageUrl={authUserProfileImageUrl}
+                                    activeFeedTab={activeFeedTab}
+                                    activePostType={activeTabConfig?.postType}
+                                    teamColor={teamColor}
+                                    teamAccent={teamAccent}
+                                    teamContrastText={teamContrastText}
+                                    teamLabel={teamLabel}
+                                    teamLogoId={teamLogoId}
+                                    userDisplayName={userDisplayName}
+                                    onRequireLogin={(replace = true) => redirectToLogin(replace)}
+                                />
+                            </Suspense>
                             <Suspense
                                 fallback={(
                                     <section className="mt-4 divide-y divide-border/70 dark:divide-border/70">
@@ -842,10 +460,10 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                 style={isActive ? { color: teamAccent } : undefined}
                             >
                                 <Icon className="h-5 w-5" />
-                                <span className="text-[10px] font-medium">{item.label}</span>
-                            </button>
-                        );
-                    })}
+                                  <span className="text-[16px] font-bold">{item.label}</span>
+                                </button>
+                            );
+                        })}
                 </div>
             </nav>
 
@@ -860,40 +478,6 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                 <PenSquare className="mx-auto h-5 w-5" />
             </button>
 
-            {hasMountedWriteModal && (
-                <Suspense
-                    fallback={isWriteModalOpen ? (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-sm font-semibold text-white">
-                            작성 모달을 불러오는 중...
-                        </div>
-                    ) : null}
-                >
-                    <LazyCheerWriteModal
-                        isOpen={isWriteModalOpen}
-                        onClose={() => setIsWriteModalOpen(false)}
-                        onSubmit={async (payload: CheerWritePayload) => {
-                            await createMutation.mutateAsync({
-                                content: payload.content,
-                                files: payload.files,
-                                postType: activeTabConfig?.postType,
-                                shareMode: payload.shareMode,
-                                sourceUrl: payload.sourceUrl,
-                                sourceTitle: payload.sourceTitle,
-                                sourceAuthor: payload.sourceAuthor,
-                                sourceLicense: payload.sourceLicense,
-                                sourceLicenseUrl: payload.sourceLicenseUrl,
-                                sourceChangedNote: payload.sourceChangedNote,
-                                sourceSnapshotType: payload.sourceSnapshotType,
-                            });
-                        }}
-                        teamColor={teamColor}
-                        teamAccent={teamAccent}
-                        teamContrastText={teamContrastText}
-                        teamLabel={teamLabel}
-                        teamId={teamLogoId}
-                    />
-                </Suspense>
-            )}
         </div>
     );
 }

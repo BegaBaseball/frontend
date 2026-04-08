@@ -225,12 +225,12 @@ export default function Mate() {
     return (
       <div className="text-center py-20 bg-white dark:bg-[#16181c] rounded-2xl border border-gray-200/70 dark:border-white/5">
         <Users className="w-12 h-12 mx-auto mb-4 text-gray-500 dark:text-zinc-600" />
-        <p className="text-gray-900 dark:text-zinc-200 font-medium mb-2">
+        <p className="text-gray-900 dark:text-zinc-200 font-bold mb-2">
           {isSearchEmpty ? messages.withFilter : messages.withoutFilter}
         </p>
         {isSearchEmpty ? (
           <>
-            <p className="text-gray-500 dark:text-zinc-500 text-sm mb-6">검색어나 날짜 필터를 변경해보세요</p>
+            <p className="text-gray-500 dark:text-zinc-500 text-[16px] font-semibold mb-6">검색어나 날짜 필터를 변경해보세요</p>
             <Button
               variant="outline"
               size="sm"
@@ -246,7 +246,7 @@ export default function Mate() {
           </>
         ) : (
           <>
-            <p className="text-gray-500 dark:text-zinc-500 text-sm mb-6">첫 번째 파티를 만들어보세요!</p>
+            <p className="text-gray-500 dark:text-zinc-500 text-[16px] font-semibold mb-6">첫 번째 파티를 만들어보세요!</p>
             <Button
               size="sm"
               className="bg-primary text-primary-foreground font-bold hover:bg-primary-hover"
@@ -291,7 +291,7 @@ export default function Mate() {
       >
         <ChevronLeft className="w-4 h-4 mr-1" />이전
       </Button>
-      <span className="text-sm font-medium text-gray-500 dark:text-zinc-400">
+      <span className="text-[16px] font-semibold text-gray-500 dark:text-zinc-400">
         {queryPage + 1} <span className="text-gray-600 dark:text-zinc-600 mx-1">/</span> {totalPages}
       </span>
       <Button
@@ -354,8 +354,8 @@ export default function Mate() {
 
       return (
         <div className={`flex items-center rounded-md border ${statusConfig.border} ${statusConfig.bg} px-2.5 py-1`}>
-          {dDayStr && <span className={`text-[10px] font-bold ${statusConfig.text} mr-1.5 pr-1.5 border-r border-current/30`}>{dDayStr}</span>}
-          <span className={`text-[11px] font-bold ${statusConfig.text}`}>{statusConfig.label}</span>
+          {dDayStr && <span className={`text-[16px] font-bold ${statusConfig.text} mr-1.5 pr-1.5 border-r border-current/30`}>{dDayStr}</span>}
+          <span className={`text-[16px] font-semibold ${statusConfig.text}`}>{statusConfig.label}</span>
         </div>
       );
     };
@@ -371,10 +371,10 @@ export default function Mate() {
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-gray-700 dark:border-white/10 dark:text-zinc-300">
-                <span className="font-mono text-[11px]">{formatGameDate(party.gameDate)}</span>
+                <span className="font-mono text-[16px]">{formatGameDate(party.gameDate)}</span>
                 {getWeatherIcon(party.gameDate)}
               </span>
-              <span className="inline-flex rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-[11px] text-gray-700 dark:border-white/10 dark:text-zinc-300">
+              <span className="inline-flex rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-[16px] text-gray-700 dark:border-white/10 dark:text-zinc-300">
                 {party.stadium}
               </span>
             </div>
@@ -387,45 +387,45 @@ export default function Mate() {
               <h3 className="line-clamp-2 text-[20px] font-black tracking-tight text-gray-900 dark:text-white sm:line-clamp-1 sm:text-[22px]">{zoneName}</h3>
               <span className="shrink-0 text-lg font-bold text-gray-900 dark:text-white sm:text-xl">
                 {amount.toLocaleString()}
-                <span className="text-sm font-medium text-gray-500 dark:text-zinc-500 ml-0.5">원</span>
+                <span className="text-[16px] font-semibold text-gray-500 dark:text-zinc-500 ml-0.5">원</span>
               </span>
             </div>
-            <p className="text-[13px] text-gray-500 dark:text-zinc-400 line-clamp-1">{party.section}</p>
+          <p className="text-[16px] font-semibold text-gray-500 dark:text-zinc-400 line-clamp-1">{party.section}</p>
           </div>
 
           {/* VS Block (간결하게 변경) */}
           <div className="mb-5 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100 p-3 dark:border-white/5 dark:bg-black/30 sm:rounded-2xl sm:p-3.5">
             <div className="flex w-[40%] flex-col items-center gap-1.5 sm:gap-2">
               <TeamLogo teamId={party.homeTeam} size={40} className="drop-shadow-md" />
-              <span className="text-[12px] font-bold text-gray-700 dark:text-zinc-300 truncate w-full text-center">
+              <span className="text-[16px] font-bold text-gray-700 dark:text-zinc-300 truncate w-full text-center">
                 {resolveTeamDisplayName(party.homeTeam)}
               </span>
             </div>
-            <div className="text-sm font-black italic text-primary bg-primary/5 px-2 py-1 rounded">VS</div>
+            <div className="text-[16px] font-black italic text-primary bg-primary/5 px-2 py-1 rounded">VS</div>
             <div className="flex w-[40%] flex-col items-center gap-1.5 sm:gap-2">
               <TeamLogo teamId={party.awayTeam} size={40} className="drop-shadow-md" />
-              <span className="text-[12px] font-bold text-gray-700 dark:text-zinc-300 truncate w-full text-center">
+              <span className="text-[16px] font-bold text-gray-700 dark:text-zinc-300 truncate w-full text-center">
                 {resolveTeamDisplayName(party.awayTeam)}
               </span>
             </div>
           </div>
 
           {/* Info Rows (아이콘 기반) */}
-          <div className="mb-4 grid grid-cols-1 gap-x-2 gap-y-2.5 px-1 min-[360px]:grid-cols-2">
-            <div className="flex items-center gap-2 text-[13px]">
+            <div className="mb-4 grid grid-cols-1 gap-x-2 gap-y-2.5 px-1 min-[360px]:grid-cols-2">
+            <div className="flex items-center gap-2 text-[16px]">
               <Shield className={`w-4 h-4 ${party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'}`} />
-              <span className={party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'}>{ticketTrustLabel}</span>
+              <span className={(party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500') + ' font-semibold'}>{ticketTrustLabel}</span>
             </div>
-            <div className="flex items-center gap-2 text-[13px]">
+            <div className="flex items-center gap-2 text-[16px]">
               <Star className={`w-4 h-4 ${hostAverageRating === null ? 'text-gray-400 dark:text-zinc-500' : 'text-primary'}`} />
-              <span className={hostAverageRating === null ? 'text-gray-500 dark:text-zinc-500' : 'text-gray-700 dark:text-zinc-300'}>{hostReviewLabel}</span>
+              <span className={(hostAverageRating === null ? 'text-gray-500 dark:text-zinc-500' : 'text-gray-700 dark:text-zinc-300') + ' font-semibold'}>{hostReviewLabel}</span>
             </div>
-            <div className="flex items-center gap-2 text-[13px]">
+            <div className="flex items-center gap-2 text-[16px]">
               <Users className="w-4 h-4 text-primary" />
-              <span className="text-gray-700 dark:text-zinc-300">{party.currentParticipants} <span className="text-gray-500 dark:text-zinc-500 mx-0.5">/</span> {party.maxParticipants}명</span>
+              <span className="text-gray-700 dark:text-zinc-300 font-semibold">{party.currentParticipants} <span className="text-gray-500 dark:text-zinc-500 mx-0.5">/</span> {party.maxParticipants}명</span>
             </div>
-            <div className="flex items-center gap-2 text-[13px]">
-              <span className="inline-flex h-5 items-center rounded-md border border-primary/20 bg-primary/10 px-1.5 text-[10px] font-normal text-primary">
+            <div className="flex items-center gap-2 text-[16px]">
+              <span className="inline-flex h-5 items-center rounded-md border border-primary/20 bg-primary/10 px-1.5 text-[16px] font-semibold text-primary">
                 {flowLabel}
               </span>
             </div>
@@ -443,16 +443,16 @@ export default function Mate() {
                 className="ring-1 ring-gray-200 dark:ring-white/10"
               />
               <div className="flex flex-col">
-                <span className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-zinc-200">
+                <span className="flex items-center gap-1.5 text-[16px] font-bold text-gray-900 dark:text-zinc-200">
                   {party.hostName} {hostBadgeIcon}
                 </span>
-                <span className="text-[11px] text-gray-500 dark:text-zinc-500">상세 정보 확인</span>
+                <span className="text-[16px] font-semibold text-gray-500 dark:text-zinc-500">상세 정보 확인</span>
               </div>
             </div>
 
             {/* Progress Bar */}
             <div className="w-full sm:w-20">
-              <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold text-primary sm:justify-end">
+                <div className="mb-1.5 flex items-center justify-between text-[16px] font-semibold text-primary sm:justify-end">
                 <span className="text-gray-500 dark:text-zinc-500 sm:hidden">모집 진행</span>
                 {progressPercent}%
               </div>
@@ -473,7 +473,7 @@ export default function Mate() {
         {/* 헤더 영역 */}
         <div className="mb-6 flex flex-col gap-3 md:mb-7 md:flex-row md:items-end md:justify-between md:gap-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-zinc-500 mb-1">
+            <p className="text-[16px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-zinc-500 mb-1">
               Mate Flow
             </p>
             <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
@@ -504,10 +504,10 @@ export default function Mate() {
             <Card className="mb-7 animate-in slide-in-from-top-2 border border-gray-200/80 bg-white p-4 shadow-lg dark:border-white/10 dark:bg-[#16181c] sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-              <h3 className="mb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <h3 className="mb-3 text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-primary" /> 안전한 직관을 위한 체크포인트
                 </h3>
-                <ul className="space-y-2 text-sm text-gray-500 dark:text-zinc-400">
+          <ul className="space-y-2 text-[16px] font-semibold text-gray-500 dark:text-zinc-400">
                   <li className="flex items-start gap-2">
                     <span className="text-gray-600 dark:text-zinc-600">•</span> 거래 방식과 취소 규칙을 먼저 확인하세요.
                   </li>
@@ -556,7 +556,7 @@ export default function Mate() {
                       : 'bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 hover:border-primary/30'
                   }`}
                 >
-                <span className={`text-[11px] font-medium mb-1 ${isSelected ? 'text-primary-foreground' : isWeekend ? 'text-primary/80' : 'text-gray-500 dark:text-zinc-500'}`}>
+                <span className={`text-[16px] font-semibold mb-1 ${isSelected ? 'text-primary-foreground' : isWeekend ? 'text-primary/80' : 'text-gray-500 dark:text-zinc-500'}`}>
                     {getDayOfWeek(toDateString(date))}
                   </span>
                   <span className={`text-lg font-bold ${isSelected ? 'text-primary-foreground' : 'text-gray-700 dark:text-zinc-300'}`}>
@@ -589,7 +589,7 @@ export default function Mate() {
               <>
                 <Button
                   variant="outline"
-                  className={`rounded-full h-10 px-4 text-sm font-medium transition-colors ${
+                  className={`rounded-full h-10 px-4 text-[16px] font-semibold transition-colors ${
                     myTeamOnly ? 'bg-primary text-primary-foreground border-transparent' : 'bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 text-gray-500 dark:text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
                   }`}
                   onClick={() => { setMyTeamOnly(!myTeamOnly); setCurrentPage(0); }}
@@ -609,7 +609,7 @@ export default function Mate() {
                   <Button
                     key={zone.id}
                     variant="outline"
-                    className={`rounded-full h-10 px-4 text-sm font-medium transition-colors ${
+                    className={`rounded-full h-10 px-4 text-[16px] font-semibold transition-colors ${
                       inputValue?.includes(zone.name) ? 'bg-primary text-primary-foreground border-transparent' : 'bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 text-gray-500 dark:text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
                     }`}
                     onClick={() => toggleSearchQuery(zone.name)}
@@ -624,7 +624,7 @@ export default function Mate() {
                   <Button
                     key={key}
                     variant="outline"
-                    className={`rounded-full h-10 px-4 text-sm font-medium transition-colors ${
+                    className={`rounded-full h-10 px-4 text-[16px] font-semibold transition-colors ${
                       inputValue?.includes(info.label) ? 'bg-primary text-primary-foreground border-transparent' : 'bg-white dark:bg-[#16181c] border-gray-200/80 dark:border-white/10 text-gray-500 dark:text-zinc-400 hover:text-primary-foreground hover:border-primary/30'
                     }`}
                     onClick={() => toggleSearchQuery(info.label)}
@@ -651,7 +651,7 @@ export default function Mate() {
                     setCurrentPage(0);
                   }}
                   aria-pressed={isActive}
-                  className={`relative shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors duration-300 sm:px-5 ${
+                  className={`relative shrink-0 rounded-xl px-4 py-2.5 text-base font-bold transition-colors duration-300 sm:px-5 ${
                     isActive
                       ? 'text-primary-foreground'
                       : 'bg-transparent text-gray-500 dark:text-zinc-400'
@@ -674,8 +674,8 @@ export default function Mate() {
           ) : fetchError ? (
             <div className="text-center py-16 bg-white dark:bg-[#16181c] rounded-2xl border border-dashed border-primary/30">
               <AlertCircle className="w-10 h-10 mx-auto mb-3 text-primary" />
-              <p className="text-gray-900 dark:text-zinc-200 font-medium">파티 목록을 불러오지 못했습니다</p>
-              <p className="text-gray-500 dark:text-zinc-500 text-sm mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
+              <p className="text-gray-900 dark:text-zinc-200 font-bold">파티 목록을 불러오지 못했습니다</p>
+              <p className="text-gray-500 dark:text-zinc-500 text-[16px] font-bold mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
               <Button
                 variant="outline"
                 className="mt-5 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"

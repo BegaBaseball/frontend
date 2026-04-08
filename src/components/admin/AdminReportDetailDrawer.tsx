@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 import type { AdminReport } from '../../types/admin';
@@ -29,7 +30,7 @@ export default function AdminReportDetailDrawer({
   closeReportDetail,
   handleReportAction,
 }: AdminReportDetailDrawerProps) {
-  return (
+  const content = (
     <div className="fixed inset-0 z-50">
       <button
         type="button"
@@ -118,4 +119,10 @@ export default function AdminReportDetailDrawer({
       </aside>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return content;
+  }
+
+  return createPortal(content, document.body);
 }

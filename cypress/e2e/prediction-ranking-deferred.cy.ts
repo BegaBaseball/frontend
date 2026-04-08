@@ -1,5 +1,10 @@
 /// <reference types="cypress" />
 
+import {
+    installPredictionAuthenticatedSessionIntercept,
+    visitPredictionPage,
+} from '../support/predictionPage';
+
 describe('Prediction Ranking Deferred', () => {
     const today = '2026-02-03';
     const nextDate = '2026-02-06';
@@ -44,41 +49,10 @@ describe('Prediction Ranking Deferred', () => {
     };
 
     const openPredictionPage = () => {
-        const fakeToken = 'prediction-ranking-deferred-token';
-        const authState = {
-            state: {
-                user: {
-                    id: 123,
-                    email: 'test@example.com',
-                    name: 'TestUser',
-                    handle: 'testuser',
-                    favoriteTeam: 'HH',
-                    role: 'ROLE_USER',
-                    hasPassword: true,
-                    profileImageUrl: null,
-                },
-                isLoggedIn: true,
-                isAdmin: false,
-            },
-            version: 0,
-        };
-        const seedAuthState = (win: Window) => {
-            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            win.localStorage.setItem('accessToken', fakeToken);
-            win.localStorage.setItem('auth-bootstrap-hint', '1');
-            win.localStorage.setItem('bega_has_visited', 'true');
-            win.localStorage.setItem('bega_dont_show_guide', 'true');
-        };
-
-        cy.visit('/prediction', {
-            onBeforeLoad(win) {
-                seedAuthState(win);
-            },
+        visitPredictionPage({
+            path: '/prediction',
+            token: 'prediction-ranking-deferred-token',
         });
-        cy.window().then((win) => {
-            seedAuthState(win);
-        });
-        cy.setCookie('Authorization', fakeToken);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.wait('@getDeferredMatchDay');
         cy.get('@getDeferredUserVoteLegacy.all').should('have.length', 0);
@@ -90,6 +64,7 @@ describe('Prediction Ranking Deferred', () => {
         cy.clearAllLocalStorage();
         cy.mockAPI({ skipRankings: true });
         cy.clock(new Date('2026-02-03T12:00:00').getTime(), ['Date']);
+        installPredictionAuthenticatedSessionIntercept('getDeferredSession');
 
         cy.intercept('GET', '**/api/matches/bounds*', {
             statusCode: 200,

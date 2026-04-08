@@ -1,3 +1,5 @@
+import { lazy, Suspense } from 'react';
+
 import {
   Activity,
   Bot,
@@ -13,6 +15,8 @@ import {
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import type {
+  AdminCoachAutoBriefOpsHealth,
+  AdminCoachAutoBriefOpsWindow,
   ReleaseDecisionArtifactRecord,
   ReleaseDecisionArtifactSummary,
   ReleaseDecisionDraftResponse,
@@ -28,7 +32,24 @@ import {
   evalStatusBadgeClass,
 } from './AdminPanelPrimitives';
 
+const AdminCoachAutoBriefOpsPanelRuntime = lazy(() => import('./AdminCoachAutoBriefOpsPanelRuntime'));
+
 interface AdminAiOperationsPanelProps {
+  autoBriefOpsPanel: {
+    health: AdminCoachAutoBriefOpsHealth | null;
+    loading: boolean;
+    error: string | null;
+    selectedWindow: AdminCoachAutoBriefOpsWindow;
+    startDate: string;
+    endDate: string;
+    commandCopyState: 'idle' | 'done' | 'error';
+    onWindowChange: (value: AdminCoachAutoBriefOpsWindow) => void;
+    onStartDateChange: (value: string) => void;
+    onEndDateChange: (value: string) => void;
+    onRefresh: () => void | Promise<void>;
+    onApplyCustomWindow: () => void | Promise<void>;
+    onCopyCommand: () => void | Promise<void>;
+  };
   selectedReleasePreset: ReleaseDecisionPreset | null;
   releaseScenarioEvalCases: ReleaseDecisionEvalCase[];
   releaseScenarioArtifacts: ReleaseDecisionArtifactSummary[];
@@ -77,6 +98,7 @@ interface AdminAiOperationsPanelProps {
 }
 
 export function AdminAiOperationsPanel({
+  autoBriefOpsPanel,
   selectedReleasePreset,
   releaseScenarioEvalCases,
   releaseScenarioArtifacts,
@@ -123,6 +145,18 @@ export function AdminAiOperationsPanel({
   return (
     <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
       <div className="space-y-6">
+        <Suspense
+          fallback={(
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-12 text-center text-sm text-slate-400">
+              Coach auto brief ops 패널 로딩 중...
+            </div>
+          )}
+        >
+          <AdminCoachAutoBriefOpsPanelRuntime
+            {...autoBriefOpsPanel}
+          />
+        </Suspense>
+
         <div className="rounded-2xl border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-500/10 via-slate-900 to-slate-900 p-5 shadow-lg shadow-fuchsia-500/10">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -219,12 +253,12 @@ export function AdminAiOperationsPanel({
         <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
           <div className="flex items-center gap-2 text-white">
             <FileSearch className="h-4 w-4 text-fuchsia-300" />
-            <h4 className="font-medium">현재 프리셋 문서 범위</h4>
+            <h4 className="font-semibold">현재 프리셋 문서 범위</h4>
           </div>
           {selectedReleasePreset ? (
             <div className="mt-4 space-y-4">
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Seed Paths</p>
+                <p className="text-sm uppercase tracking-wide text-slate-500">Seed Paths</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {selectedReleasePreset.seed_paths.map((path) => (
                     <AdminBadge
@@ -237,7 +271,7 @@ export function AdminAiOperationsPanel({
                 </div>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Allowed Roots</p>
+                <p className="text-sm uppercase tracking-wide text-slate-500">Allowed Roots</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {selectedReleasePreset.allowed_roots.map((path) => (
                     <AdminBadge
@@ -260,7 +294,7 @@ export function AdminAiOperationsPanel({
         <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h4 className="flex items-center gap-2 font-medium text-white">
+              <h4 className="flex items-center gap-2 font-semibold text-white">
                 <Activity className="h-4 w-4 text-emerald-300" />
                 Deterministic Eval
               </h4>
@@ -311,7 +345,7 @@ export function AdminAiOperationsPanel({
 
             {selectedEvalCase && (
               <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">
+                <p className="text-sm uppercase tracking-wide text-slate-500">
                   Expected Decision
                 </p>
                 <div className="mt-2 flex items-center gap-2">
@@ -319,7 +353,7 @@ export function AdminAiOperationsPanel({
                     {selectedEvalCase.expected_decision}
                   </AdminBadge>
                 </div>
-                <p className="mt-4 text-xs uppercase tracking-wide text-slate-500">
+                <p className="mt-4 text-sm uppercase tracking-wide text-slate-500">
                   Required Keywords
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -350,7 +384,7 @@ export function AdminAiOperationsPanel({
         <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h4 className="flex items-center gap-2 font-medium text-white">
+              <h4 className="flex items-center gap-2 font-semibold text-white">
                 <Save className="h-4 w-4 text-sky-300" />
                 저장된 아티팩트
               </h4>
@@ -408,11 +442,11 @@ export function AdminAiOperationsPanel({
                           eval 없음
                         </AdminBadge>
                       )}
-                      <span className="text-xs text-slate-500">
+                      <span className="text-sm text-slate-500">
                         {new Date(artifact.saved_at_utc).toLocaleString('ko-KR')}
                       </span>
                     </div>
-                    <p className="mt-2 break-all text-sm font-medium text-white">
+                    <p className="mt-2 break-all text-sm font-semibold text-white">
                       {artifact.artifact_id}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -495,7 +529,7 @@ export function AdminAiOperationsPanel({
           <>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Decision</p>
+                <p className="text-sm uppercase tracking-wide text-slate-500">Decision</p>
                 <div className="mt-3 flex items-center gap-2">
                   <AdminBadge className={decisionBadgeClass[releaseDraftResult.result.draft.decision]}>
                     {releaseDraftResult.result.draft.decision}
@@ -510,26 +544,26 @@ export function AdminAiOperationsPanel({
               </div>
 
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Scenario</p>
-                <p className="mt-3 text-sm font-medium text-white">
+                <p className="text-sm uppercase tracking-wide text-slate-500">Scenario</p>
+                <p className="mt-3 text-sm font-semibold text-white">
                   {releaseDraftResult.result.scenario}
                 </p>
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-sm text-slate-500">
                   model: {releaseDraftResult.result.model}
                 </p>
               </div>
 
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Evidence</p>
+                <p className="text-sm uppercase tracking-wide text-slate-500">Evidence</p>
                 <p className="mt-3 text-2xl font-semibold text-fuchsia-200">
                   {releaseDraftResult.result.draft.evidence.length}
                 </p>
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-sm text-slate-500">
                   generated:{' '}
                   {new Date(releaseDraftResult.result.generated_at_utc).toLocaleString('ko-KR')}
                 </p>
                 {releaseLoadedArtifact?.artifact_id && (
-                  <p className="mt-2 break-all text-xs text-sky-300">
+                  <p className="mt-2 break-all text-sm text-sky-300">
                     loaded: {releaseLoadedArtifact.artifact_id}
                   </p>
                 )}
@@ -705,7 +739,7 @@ export function AdminAiOperationsPanel({
                         {item.source}
                       </AdminBadge>
                     </div>
-                    <p className="mt-3 text-sm font-medium text-white">{item.claim}</p>
+                    <p className="mt-3 text-sm font-semibold text-white">{item.claim}</p>
                     <p className="mt-2 text-sm leading-6 text-slate-400">{item.excerpt}</p>
                   </div>
                 ))}

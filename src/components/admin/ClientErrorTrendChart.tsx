@@ -141,7 +141,7 @@ export default function ClientErrorTrendChart({
         </g>
       </svg>
 
-      <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-300">
+      <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-300">
         {SERIES.map((series) => (
           <div key={series.key} className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: series.stroke }} />

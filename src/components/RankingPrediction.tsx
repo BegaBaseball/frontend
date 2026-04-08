@@ -76,7 +76,7 @@ export default function RankingPrediction() {
         <h2 className="mb-3 text-2xl font-bold text-primary">
           순위 예측 종료
         </h2>
-        <p className="mx-auto max-w-sm text-sm leading-relaxed text-gray-600 dark:text-gray-300 sm:text-base">
+        <p className="mx-auto max-w-sm text-[16px] leading-relaxed text-gray-600 dark:text-gray-300 sm:text-base">
           순위 예측은 11월 1일부터 5월 31일까지 가능합니다.
         </p>
       </Card>
@@ -164,9 +164,9 @@ export default function RankingPrediction() {
             </div>
           )}
 
-          <h2 className="mb-4 text-primary font-bold text-lg">
+            <h2 className="mb-4 text-primary font-bold text-lg">
             팀 선택
-            <span className="text-sm text-gray-500 dark:text-gray-300 ml-2 font-normal">
+            <span className="text-[16px] text-gray-500 dark:text-gray-300 ml-2 font-semibold">
               ({availableTeams.length}/10)
             </span>
           </h2>
@@ -208,7 +208,7 @@ export default function RankingPrediction() {
                   </div>
                 )}
 
-                <p className="text-sm mb-4">모든 팀이 배치되었습니다!</p>
+                <p className="text-[16px] mb-4">모든 팀이 배치되었습니다!</p>
 
                 {!isPredictionSaved && !alreadySaved ? (
                   <Button

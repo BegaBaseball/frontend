@@ -1,4 +1,4 @@
-import React, { Fragment, ReactNode, useState, useEffect, useRef, useMemo } from 'react';
+import React, { Fragment, ReactNode, Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { TrendingUp, ChevronLeft, ChevronRight, AlertTriangle, Clock3, Loader2 } from 'lucide-react';
@@ -8,16 +8,13 @@ import {
   Game,
   VoteTeam,
   GameDetail,
-  GameSummary,
 } from '../../types/prediction';
 import { GAME_TIME } from '../../constants/prediction';
 import { getTeamColorByAnyKey, getFullTeamName } from '../../constants/teams';
 import type { GameStatusCode } from '../../utils/prediction';
 import {
-  isDoosanTeam,
-} from '../../utils/inningTeamResolution';
-import {
   getInningTeamNameStyle,
+  getTeamLabelTextStyle,
   getTopScoreTextStyle,
 } from '../../utils/advancedMatchCardStyles';
 import {
@@ -25,8 +22,9 @@ import {
   formatTime,
   toNumericScore,
 } from '../../utils/inningScoreParser';
-import { VotePercentageGauge } from './VotePercentageGauge';
-import { GameSummaryTimeline } from './GameSummaryTimeline';
+import type { AdvancedMatchCardContentRuntimeProps } from './AdvancedMatchCardContentRuntime';
+
+const AdvancedMatchCardContentRuntime = lazy(() => import('./AdvancedMatchCardContentRuntime'));
 
 interface AdvancedMatchCardProps {
   game: Game;
@@ -73,22 +71,18 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   hasNextDate,
   coachBriefing,
 }: AdvancedMatchCardProps) {
-  const { homePercentage, awayPercentage, totalVotes } = votePercentages;
   const { theme, resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark'
     || theme === 'dark'
     || (typeof document !== 'undefined' && document.documentElement.classList.contains('dark'));
 
   // 애니메이션을 위한 상태 관리
-  const [inningPage, setInningPage] = useState(0);
   const [countedScores, setCountedScores] = useState({ away: 0, home: 0 });
   const [isVisible, setIsVisible] = useState(false);
   const scoreBoxRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const inningPointerStartXRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setInningPage(0);
     setIsVisible(false);
     setCountedScores({ away: 0, home: 0 });
   }, [game.gameId]);
@@ -136,26 +130,12 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   const startTimeLabel = gameDetail?.startTime || null;
   const homePitcherName = gameDetail?.homePitcher || game.homePitcher?.name || '발표 전';
   const awayPitcherName = gameDetail?.awayPitcher || game.awayPitcher?.name || '발표 전';
-  const attendanceLabel = gameDetail?.attendance != null
-    ? `${gameDetail.attendance.toLocaleString()}명`
-    : null;
-  const weatherLabel = gameDetail?.weather?.trim() || null;
-  const gameTimeLabel = gameDetail?.gameTimeMinutes != null
-    ? `${Math.floor(gameDetail.gameTimeMinutes / 60)}시간 ${gameDetail.gameTimeMinutes % 60}분`
-    : null;
 
   const inningRows = buildInningRows(game, gameDetail);
 
   const inningKeys = Object.keys(inningRows)
     .map(Number)
     .sort((a, b) => a - b);
-  const regularInnings = inningKeys.filter((inning) => inning <= 9);
-  const extraInnings = inningKeys.filter((inning) => inning > 9);
-  const regularInningCols = regularInnings.length
-    ? regularInnings
-    : Array.from({ length: 9 }, (_, index) => index + 1);
-  const extraInningCols = extraInnings;
-  const hasExtraInnings = extraInnings.length > 0;
   const hasDetailedInningScores = Object.keys(inningRows).length > 0;
   const inningTotals = Object.values(inningRows).reduce(
     (acc, score) => ({
@@ -169,10 +149,13 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   const homeColor = getTeamColorByAnyKey(game.homeTeam);
   const awayTeamName = getFullTeamName(game.awayTeam);
   const homeTeamName = getFullTeamName(game.homeTeam);
-  const awayTeamNameStyle = getInningTeamNameStyle(awayColor, isDarkMode, isDoosanTeam(game.awayTeam));
-  const homeTeamNameStyle = getInningTeamNameStyle(homeColor, isDarkMode, isDoosanTeam(game.homeTeam));
-  const topAwayScoreStyle = getTopScoreTextStyle(awayColor, isDarkMode, isDoosanTeam(game.awayTeam));
-  const topHomeScoreStyle = getTopScoreTextStyle(homeColor, isDarkMode, isDoosanTeam(game.homeTeam));
+  const awayTeamNameStyle = getInningTeamNameStyle(awayColor, isDarkMode);
+  const homeTeamNameStyle = getInningTeamNameStyle(homeColor, isDarkMode);
+  const topAwayScoreStyle = getTopScoreTextStyle(awayColor, isDarkMode);
+  const topHomeScoreStyle = getTopScoreTextStyle(homeColor, isDarkMode);
+  const teamLabelTextStyle = getTeamLabelTextStyle();
+  const awayTeamLabelTextStyle = getTeamLabelTextStyle(awayColor, isDarkMode);
+  const homeTeamLabelTextStyle = getTeamLabelTextStyle(homeColor, isDarkMode);
   const matchDateValue = gameDetail?.gameDate || game.gameDate;
   const matchDateLabel = matchDateValue ? matchDateValue.replace(/-/g, '.') : '';
   const formattedStartTime = formatTime(startTimeLabel) || GAME_TIME;
@@ -189,7 +172,6 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   const lastInning = inningKeys.length > 0 ? Math.max(...inningKeys) : 9;
   const hasDetailedScores = hasGameScore || Object.keys(inningRows).length > 0;
   const isResultDecided = hasGameScore && (statusCode === 'COMPLETED' || statusCode === 'DRAW');
-  const isInProgressScoring = hasGameScore && statusCode === 'LIVE';
   const isTie = hasGameScore && awayScoreValue === homeScoreValue;
   const winnerLabel = hasGameScore
     ? isTie
@@ -216,20 +198,6 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
       : statusLabel;
   const cheeringCaption = isScheduledLayout ? '사전 응원/예측 참여수' : '실시간 팬 응원 참여수';
   const isScoreboardLoading = gameDetailLoading && !hasDetailedScores;
-  const isDetailBusy = gameDetailLoading || gameDetailRefreshing;
-  const shouldShowMatchEnvironmentLoading = isDetailBusy && !attendanceLabel && !weatherLabel && !gameTimeLabel;
-
-  const cheeringTotal = totalVotes;
-  const awayVotes = cheeringTotal === 0
-    ? 0
-    : Math.round((awayPercentage / 100) * cheeringTotal);
-  const homeVotes = cheeringTotal === 0
-    ? 0
-    : Math.max(0, cheeringTotal - awayVotes);
-  const awayPercent = cheeringTotal === 0 ? 50 : (awayVotes / cheeringTotal) * 100;
-  const homePercent = cheeringTotal === 0 ? 50 : (homeVotes / cheeringTotal) * 100;
-
-
 
   useEffect(() => {
     if (!isVisible) return;
@@ -256,134 +224,32 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
     };
   }, [awayAnimatedScore, homeAnimatedScore, game.gameId, isVisible]);
 
-  const handleInningSwipeOffset = (offsetX: number) => {
-    if (!hasExtraInnings) return;
-    if (offsetX < -50 && inningPage === 0) {
-      setInningPage(1);
-    }
-    if (offsetX > 50 && inningPage === 1) {
-      setInningPage(0);
-    }
+  const contentRuntimeProps: AdvancedMatchCardContentRuntimeProps = {
+    game,
+    gameDetail,
+    gameDetailLoading,
+    gameDetailRefreshing,
+    gameDetailError,
+    gameDetailActions,
+    coachBriefing,
+    awayColor,
+    homeColor,
+    awayTeamName,
+    homeTeamName,
+    awayPitcherName,
+    homePitcherName,
+    awayScoreForDisplay,
+    homeScoreForDisplay,
+    votePercentages,
+    cheeringCaption,
+    statusCode,
+    isDarkMode,
+    isPostponedOrCancelled,
+    isCancelledStatus,
+    shouldHideResultSections,
+    isScoreboardLoading,
+    inningRows,
   };
-
-  const handleInningPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    event.currentTarget.setPointerCapture(event.pointerId);
-    inningPointerStartXRef.current = event.clientX;
-  };
-
-  const handleInningPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    if (inningPointerStartXRef.current == null) {
-      return;
-    }
-
-    const offsetX = event.clientX - inningPointerStartXRef.current;
-    inningPointerStartXRef.current = null;
-    handleInningSwipeOffset(offsetX);
-  };
-
-  const clearInningPointerStart = () => {
-    inningPointerStartXRef.current = null;
-  };
-
-  const summaryGroups = useMemo(() => (gameDetail?.summary || []).reduce(
-    (acc: Record<string, GameSummary[]>, item) => {
-      const key = item.type || '기타';
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(item);
-      return acc;
-    },
-    {} as Record<string, GameSummary[]>
-  ), [gameDetail?.summary]);
-
-  const summaryGroupDefs = useMemo(() => [
-    { key: 'batting', title: '타격', types: ['결승타', '홈런', '2루타', '3루타', '병살타'] },
-    { key: 'running', title: '주루', types: ['도루', '도루자', '주루사', '견제사'] },
-    { key: 'pitching', title: '투구/실책', types: ['폭투', '포일', '보크', '실책'] },
-    { key: 'etc', title: '기타', types: ['심판', '기타'] },
-  ], []);
-
-  const summaryTypeSet = useMemo(
-    () => new Set(summaryGroupDefs.flatMap((group) => group.types)),
-    [summaryGroupDefs]
-  );
-  const extraSummaryTypes = useMemo(
-    () => Object.keys(summaryGroups).filter((type) => !summaryTypeSet.has(type)),
-    [summaryGroups, summaryTypeSet]
-  );
-
-  const groupedSummary = useMemo(
-    () => summaryGroupDefs
-      .map((group) => {
-        const types = group.key === 'etc'
-          ? [...group.types, ...extraSummaryTypes]
-          : group.types;
-
-        const entries = types.flatMap((type) => {
-          const items = summaryGroups[type] || [];
-          const trimmed = type === '심판' ? items.slice(0, 1) : items;
-          return trimmed.map((item) => ({ ...item, type }));
-        });
-
-        return { title: group.title, entries };
-      })
-      .filter((group) => group.entries.length > 0),
-    [extraSummaryTypes, summaryGroupDefs, summaryGroups]
-  );
-
-  const extractInning = (detail?: string | null) => {
-    if (!detail) return Number.POSITIVE_INFINITY;
-    const match = detail.match(/(\d+)\s*회/);
-    return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
-  };
-
-  const timelineEntries = useMemo(
-    () => groupedSummary
-      .flatMap((group) => group.entries.map((item) => ({ ...item, groupTitle: group.title })))
-      .map((item, index) => ({
-        type: item.type,
-        playerName: item.playerName ?? undefined,
-        detail: item.detail ?? undefined,
-        groupTitle: item.groupTitle,
-        _index: index,
-        _inning: extractInning(item.detail),
-      }))
-      .sort((a, b) => (a._inning - b._inning) || (a._index - b._index)),
-    [groupedSummary]
-  );
-
-  const matchEnvironmentSection = (attendanceLabel || weatherLabel || gameTimeLabel || shouldShowMatchEnvironmentLoading) ? (
-    <section>
-      <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-        <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
-        경기 환경
-      </div>
-      <div className="grid grid-cols-1 gap-2.5 rounded-xl border border-gray-100 dark:border-border bg-white dark:bg-secondary/40 px-4 py-3 text-[13px] sm:grid-cols-3 sm:gap-3">
-        <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-          <p className="text-[12px] text-gray-400 dark:text-gray-300">관중</p>
-          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
-            {attendanceLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
-          </p>
-        </div>
-        <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-          <p className="text-[12px] text-gray-400 dark:text-gray-300">날씨</p>
-          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
-            {weatherLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
-          </p>
-        </div>
-        <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-          <p className="text-[12px] text-gray-400 dark:text-gray-300">경기시간</p>
-          <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
-            {gameTimeLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
-          </p>
-        </div>
-      </div>
-    </section>
-  ) : null;
 
   return (
     <Card className="overflow-hidden border border-slate-200/70 shadow-lg bg-white/90 dark:border-border dark:bg-card dark:shadow-xl transition-colors duration-300 mb-6 rounded-2xl">
@@ -398,12 +264,12 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden disabled:cursor-not-allowed disabled:active:scale-100"
               style={{
                 backgroundColor: getTeamColorByAnyKey(game.awayTeam),
-                fontWeight: 700,
+                fontWeight: 800,
                 opacity: isVoteActionLocked ? 0.7 : userVote === 'away' ? 1 : userVote === 'home' ? 0.4 : 1,
                 transform: userVote === 'away' ? 'scale(1.02)' : 'scale(1)'
               }}
             >
-              <span className="truncate px-2">{getFullTeamName(game.awayTeam)}</span>
+              <span className="truncate px-2" style={teamLabelTextStyle}>{getFullTeamName(game.awayTeam)}</span>
               {userVote === 'away' && (
                 <span className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/20 p-1 rounded-full">
                   <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
@@ -419,12 +285,12 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden disabled:cursor-not-allowed disabled:active:scale-100"
               style={{
                 backgroundColor: getTeamColorByAnyKey(game.homeTeam),
-                fontWeight: 700,
+                fontWeight: 800,
                 opacity: isVoteActionLocked ? 0.7 : userVote === 'home' ? 1 : userVote === 'away' ? 0.4 : 1,
                 transform: userVote === 'home' ? 'scale(1.02)' : 'scale(1)'
               }}
             >
-              <span className="truncate px-2">{getFullTeamName(game.homeTeam)}</span>
+              <span className="truncate px-2" style={teamLabelTextStyle}>{getFullTeamName(game.homeTeam)}</span>
               {userVote === 'home' && (
                 <span className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/20 p-1 rounded-full">
                   <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
@@ -439,19 +305,21 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               <Button
                 disabled
                 data-testid="vote-disabled-away-btn"
-                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300"
+                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300 text-[16px]"
+                style={awayTeamLabelTextStyle}
               >
                 {awayTeamName}
               </Button>
               <Button
                 disabled
                 data-testid="vote-disabled-home-btn"
-                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300"
+                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300 text-[16px]"
+                style={homeTeamLabelTextStyle}
               >
                 {homeTeamName}
               </Button>
             </div>
-            <p className="text-xs text-center text-amber-700 dark:text-amber-300">
+            <p className="text-[16px] text-center text-amber-700 dark:text-amber-300">
               현재 상태에서는 투표할 수 없습니다.
             </p>
           </div>
@@ -493,7 +361,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               {showStatusBadge && (
                 <div
                   data-testid="prediction-status-badge"
-                  className={`absolute top-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold backdrop-blur ${
+                  className={`absolute top-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-[16px] font-bold backdrop-blur ${
                     isCancelledStatus
                       ? 'bg-rose-500/30 text-rose-100 border border-rose-200/40'
                       : isPostponedStatus
@@ -511,7 +379,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 </div>
               )}
               <div
-                className={`absolute ${showStatusBadge ? 'top-8' : 'top-0'} max-w-[calc(100%-1.75rem)] rounded-full bg-black/30 px-2.5 py-1 text-[11px] font-semibold leading-tight backdrop-blur sm:px-3 sm:text-sm`}
+                className={`absolute ${showStatusBadge ? 'top-8' : 'top-0'} max-w-[calc(100%-1.75rem)] rounded-full bg-black/30 px-2.5 py-1 text-[16px] font-semibold leading-tight backdrop-blur sm:px-3 sm:text-[16px]`}
                 style={surfaceTransitionStyle}
               >
                 <span className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
@@ -532,10 +400,10 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 >
                   <TeamLogo team={game.awayTeam} size={40} className="h-10 w-10 sm:h-11 sm:w-11" />
                 </div>
-                <div className="mt-2 text-[13px] font-semibold leading-tight sm:text-sm">
+                <div className="mt-2 text-[16px] leading-tight" style={awayTeamLabelTextStyle}>
                   {awayTeamName}
                 </div>
-                <div className="text-[10px] text-white/80">AWAY</div>
+                <div className="text-[16px] text-white/80">AWAY</div>
               </div>
               <div
                 ref={scoreBoxRef}
@@ -551,7 +419,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 {isScheduledLayout ? (
                   <div className="flex flex-col items-center justify-center gap-1.5">
                     <span className="h-px w-8 bg-gray-300 dark:bg-gray-600" />
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[16px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
                       <Clock3 className="h-3 w-3" />
                       경기 시작 예정
                     </span>
@@ -563,9 +431,15 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                       <span className="text-gray-300 dark:text-gray-300">:</span>
                       <span style={topHomeScoreStyle}>{hasGameScore ? countedScores.home : '-'}</span>
                     </div>
-                    <div className="mt-1 text-[10px] font-semibold text-gray-500 dark:text-gray-300 sm:text-[11px]">{matchStatusLabel}</div>
+                    <div className="mt-1 text-[16px] font-semibold text-gray-500 dark:text-gray-300 sm:text-[16px]">{matchStatusLabel}</div>
                     {winnerLabel ? (
-                      <div className={`mt-1 text-[10px] font-bold sm:text-[11px] ${winnerLabel === '무승부' ? 'text-amber-600 dark:text-amber-300' : 'text-slate-600 dark:text-slate-200'}`}>
+                      <div
+                        className={`mt-1 text-[16px] font-semibold ${
+                          winnerLabel === '무승부'
+                            ? 'text-amber-600 dark:text-amber-300'
+                            : 'text-slate-600 dark:text-slate-200'
+                        }`}
+                      >
                         {winnerLabel}
                       </div>
                     ) : null}
@@ -579,262 +453,28 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 >
                   <TeamLogo team={game.homeTeam} size={40} className="h-10 w-10 sm:h-11 sm:w-11" />
                 </div>
-                <div className="mt-2 text-[13px] font-semibold leading-tight sm:text-sm">
+                <div className="mt-2 text-[16px] leading-tight" style={homeTeamLabelTextStyle}>
                   {homeTeamName}
                 </div>
-                <div className="text-[10px] text-white/80">HOME</div>
+                <div className="text-[16px] text-white/80">HOME</div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-6 px-4 py-6">
-            {(gameDetailError || isDetailBusy) && (
-              <div
-                data-testid={gameDetailError ? 'prediction-detail-error-banner' : 'prediction-detail-refresh-indicator'}
-                className={`flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm ${
-                  gameDetailError
-                    ? 'border-amber-200 bg-amber-50/90 text-amber-900 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-100'
-                    : 'border-sky-200 bg-sky-50/90 text-sky-900 dark:border-sky-700/40 dark:bg-sky-900/20 dark:text-sky-100'
-                }`}
-              >
-                <div className="flex items-start gap-2">
-                  {gameDetailError ? (
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  ) : (
-                    <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">
-                      {gameDetailError
-                        ? '일부 경기 상세 정보를 불러오지 못했습니다.'
-                        : gameDetailRefreshing
-                          ? '최신 경기 정보를 다시 불러오는 중입니다.'
-                          : '경기 상세 정보를 불러오는 중입니다.'}
-                    </p>
-                    {gameDetailError ? (
-                      <p className="mt-1 text-xs opacity-90">{gameDetailError}</p>
-                    ) : (
-                      <p className="mt-1 text-xs opacity-80">기존 기록은 유지한 채 가능한 정보부터 갱신합니다.</p>
-                    )}
-                  </div>
-                </div>
-                {gameDetailError && gameDetailActions ? (
-                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                    {gameDetailActions}
-                  </div>
-                ) : null}
-              </div>
-            )}
-
-            {isScoreboardLoading && (
-              <div className="text-center text-xs text-gray-500 dark:text-gray-300">경기 정보를 불러오는 중입니다...</div>
-            )}
-
-            {!isScoreboardLoading && shouldHideResultSections && (
-              <section>
-                <div className="rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-4 text-sm text-gray-600 dark:border-border dark:bg-secondary/40 dark:text-gray-200">
-                  {isPostponedOrCancelled ? (
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
-                      <p>
-                        {isCancelledStatus
-                          ? '해당 경기는 취소되어 투표 및 경기 상세 정보가 제공되지 않습니다.'
-                          : '해당 경기는 연기되어 투표 및 경기 상세 정보가 제공되지 않습니다.'}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-2">
-                      <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
-                      <p>스코어보드와 경기 주요 기록은 경기 시작 후 제공됩니다.</p>
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
-
-            {!isScoreboardLoading && !shouldHideResultSections && (
-              <section>
-                <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                  <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
-                  스코어보드
-                  {hasExtraInnings && (
-                    <span className="ml-auto text-xs text-gray-400">
-                      {inningPage === 0 ? '연장이닝 보기 →' : '← 정규이닝 보기'}
-                    </span>
-                  )}
-                </div>
-                <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-border bg-white dark:bg-secondary/40">
-                  {hasExtraInnings ? (
-                    <div
-                      className="overflow-hidden"
-                      onPointerDown={handleInningPointerDown}
-                      onPointerUp={handleInningPointerUp}
-                      onPointerCancel={clearInningPointerStart}
-                      style={{ touchAction: 'pan-y' }}
-                    >
-                      <div
-                        className="flex transition-transform duration-300 ease-out"
-                        style={{ transform: `translateX(-${inningPage * 100}%)` }}
-                      >
-                        {[regularInningCols, extraInningCols].map((cols, index) => (
-                          <div key={index} className="min-w-full px-3 py-3">
-                            <table className="w-full table-fixed border-collapse text-center text-[13px]">
-                              <thead className="bg-gray-100 dark:bg-border/60 text-[12px] text-gray-600 dark:text-gray-200 border-b border-gray-200 dark:border-border">
-                                <tr>
-                                  <th className="px-2 py-2 text-left font-semibold">팀</th>
-                                  {cols.map((inning) => (
-                                    <th key={inning} className="px-2 py-2 border-l border-gray-200 dark:border-border/70">{inning}</th>
-                                  ))}
-                                  <th className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600">R</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-gray-700 dark:text-gray-200">
-                                <tr className="border-b border-gray-100 dark:border-border/70 bg-white dark:bg-card hover:bg-emerald-50/50 dark:hover:bg-secondary/50 transition-colors">
-                                  <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={awayTeamNameStyle}>
-                                    {awayTeamName}
-                                  </td>
-                                  {cols.map((inning) => (
-                                  <td key={`away-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
-                                    {inningRows[inning]?.away ?? '-'}
-                                  </td>
-                                ))}
-                                  <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">
-                                    {awayScoreForDisplay}
-                                  </td>
-                                </tr>
-                                <tr className="border-b border-gray-100 dark:border-border/70 bg-gray-50/70 dark:bg-secondary/50 hover:bg-emerald-50/50 dark:hover:bg-secondary/60 transition-colors">
-                                  <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={homeTeamNameStyle}>
-                                    {homeTeamName}
-                                  </td>
-                                  {cols.map((inning) => (
-                                  <td key={`home-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
-                                    {inningRows[inning]?.home ?? '-'}
-                                  </td>
-                                ))}
-                                  <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">
-                                    {homeScoreForDisplay}
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-3 flex justify-center gap-2">
-                        {[0, 1].map((page) => (
-                          <button
-                            type="button"
-                            key={page}
-                            aria-label={page === 0 ? '정규 이닝 보기' : '연장 이닝 보기'}
-                            onClick={() => setInningPage(page)}
-                            className={`h-2 w-2 rounded-full ${inningPage === page ? 'bg-gray-800 dark:bg-gray-100' : 'bg-gray-200 dark:bg-border'}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="px-3 py-3">
-                      <table className="w-full table-fixed border-collapse text-center text-[13px]">
-                        <thead className="bg-gray-100 dark:bg-border/60 text-[12px] text-gray-600 dark:text-gray-200 border-b border-gray-200 dark:border-border">
-                          <tr>
-                            <th className="px-2 py-2 text-left font-semibold">팀</th>
-                            {regularInningCols.map((inning) => (
-                              <th key={inning} className="px-2 py-2 border-l border-gray-200 dark:border-border/70">{inning}</th>
-                            ))}
-                            <th className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600">R</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-gray-700 dark:text-gray-200">
-                          <tr className="border-b border-gray-100 dark:border-border/70 bg-white dark:bg-card hover:bg-emerald-50/50 dark:hover:bg-secondary/50 transition-colors">
-                            <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={awayTeamNameStyle}>
-                              {awayTeamName}
-                            </td>
-                            {regularInningCols.map((inning) => (
-                              <td key={`away-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
-                                {inningRows[inning]?.away ?? '-'}
-                              </td>
-                            ))}
-                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">{awayScoreForDisplay}</td>
-                          </tr>
-                          <tr className="border-b border-gray-100 dark:border-border/70 bg-gray-50/70 dark:bg-secondary/50 hover:bg-emerald-50/50 dark:hover:bg-secondary/60 transition-colors">
-                            <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={homeTeamNameStyle}>
-                              {homeTeamName}
-                            </td>
-                            {regularInningCols.map((inning) => (
-                              <td key={`home-${inning}`} className="px-2 py-2 border-l border-gray-100 dark:border-border/60">
-                                {inningRows[inning]?.home ?? '-'}
-                              </td>
-                            ))}
-                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">{homeScoreForDisplay}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
-
-            {!isPostponedOrCancelled && (
-              <section>
-                <VotePercentageGauge
-                  awayColor={awayColor}
-                  homeColor={homeColor}
-                  awayTeamName={awayTeamName}
-                  homeTeamName={homeTeamName}
-                  awayVotes={awayVotes}
-                  homeVotes={homeVotes}
-                  awayPercent={awayPercent}
-                  homePercent={homePercent}
-                  cheeringCaption={cheeringCaption}
-                  cheeringTotal={cheeringTotal}
-                />
-              </section>
-            )}
-
-            <section>
-              <div className="mb-3 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
-                선발 투수
-              </div>
-              <div className="flex items-center rounded-xl border border-gray-100 dark:border-border bg-gray-50 dark:bg-secondary/40 px-4 py-4 shadow-sm">
-                <div className="flex-1 text-center">
-                  <p className="text-xs font-semibold" style={{ color: awayColor }}>
-                    {awayTeamName}
-                  </p>
-                  <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{awayPitcherName}</p>
-                </div>
-                <div className="h-8 w-px bg-gray-200 dark:bg-border" />
-                <div className="flex-1 text-center">
-                  <p className="text-xs font-semibold" style={{ color: homeColor }}>
-                    {homeTeamName}
-                  </p>
-                  <p className="mt-1 text-[15px] font-bold text-gray-900 dark:text-gray-100">{homePitcherName}</p>
+          <Suspense
+            fallback={(
+              <div className="px-4 py-6">
+                <div className="flex items-center justify-center rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-5 text-[16px] text-gray-500 dark:border-border dark:bg-secondary/40 dark:text-gray-300">
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    경기 상세 섹션을 준비하고 있습니다.
+                  </span>
                 </div>
               </div>
-            </section>
-
-            {!gameDetailLoading && !isPostponedOrCancelled && coachBriefing}
-
-            {!gameDetailLoading && !shouldHideResultSections && timelineEntries.length > 0 && (
-              <GameSummaryTimeline
-                timelineEntries={timelineEntries}
-                awayColor={awayColor}
-                homeColor={homeColor}
-              />
             )}
-
-            {!gameDetailLoading && !shouldHideResultSections && Object.keys(inningRows).length === 0 && timelineEntries.length === 0 && (
-              <div className="text-center text-xs text-gray-500 dark:text-gray-300">표시할 경기 상세 정보가 없습니다.</div>
-            )}
-
-            {!gameDetailLoading && !shouldHideResultSections && summaryGroups['심판']?.length > 0 && (
-              <div className="border-t border-gray-100 dark:border-border pt-4 text-center text-[11px] text-gray-500 dark:text-gray-300">
-                심판: {summaryGroups['심판'][0]?.playerName || summaryGroups['심판'][0]?.detail || '정보 없음'}
-              </div>
-            )}
-            {matchEnvironmentSection}
-          </div>
+          >
+            <AdvancedMatchCardContentRuntime {...contentRuntimeProps} />
+          </Suspense>
         </div>
       </div>
     </Card>

@@ -1,21 +1,20 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, type ReactElement } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
+import type {
+  LoadVoteStatusOptions,
+  PredictionErrorOverlayState,
+} from '../../hooks/predictionHookShared';
 import type { Game, GameDetail, VoteStatus, VoteTeam } from '../../types/prediction';
-import { buildPredictionRecoveryPath } from '../../utils/predictionDeepLink';
+import type { PredRecoveryAction } from '../../types/predictionFlow';
 import { Card } from '../ui/card';
 import type { PredictionMatchVoteControllerRenderState } from './PredictionMatchVoteController';
 import { PredictionLoaderIcon } from './PredictionShellIcons';
 
-const PredictionErrorOverlay = lazy(() => import('./PredictionErrorOverlay'));
-const PredictionLoadingView = lazy(() => import('./PredictionLoadingView'));
-const PredictionMatchesErrorView = lazy(() => import('./PredictionMatchesErrorView'));
-const PredictionMatchTab = lazy(() => import('./PredictionMatchTab'));
-const PredictionTopNotice = lazy(() => import('./PredictionTopNotice'));
+const PredictionMatchInteractiveContentRuntime = lazy(
+  () => import('./PredictionMatchInteractiveContentRuntime'),
+);
 
-type TopNoticeKind = 'RUN' | 'FUTURE' | 'ERROR' | 'END' | 'INFO';
-type TopNotice = { kind: TopNoticeKind; content: ReactElement };
-
-type PredictionMatchInteractiveViewProps = {
+export type PredictionMatchInteractiveViewProps = {
   currentGame: Game | null;
   currentDateGames: Game[];
   currentDate: string;
@@ -48,21 +47,15 @@ type PredictionMatchInteractiveViewProps = {
   canLoadMorePast: boolean;
   canLoadMoreFuture: boolean;
   matchBounds: { hasData?: boolean; earliestGameDate?: string | null } | null;
-  reloadCurrentVoteStatus: (options?: { source?: 'manual' | 'run' }) => void;
+  reloadCurrentVoteStatus: (options?: LoadVoteStatusOptions) => void;
   reloadCurrentGameDetail: () => void;
-  predictionErrorOverlay: {
-    isOpen: boolean;
-    title: string;
-    message: string;
-    errorCode: string;
-    copyKey?: string | null;
-    recoveryState: { actionPriorityOrder: string[] };
-  } | null;
-  handlePredictionErrorOverlayAction: (action: string) => void;
+  predictionErrorOverlay: PredictionErrorOverlayState | null;
+  handlePredictionErrorOverlayAction: (action: PredRecoveryAction) => void | Promise<void>;
   closePredictionErrorOverlay: () => void;
   retryLoadMorePastMatches: () => void;
   retryLoadMoreFutureMatches: () => void;
   pendingVoteAction: unknown;
+  isQueueVoteLocked: boolean;
   loading: boolean;
   currentGameId?: string;
   voteControllerState?: PredictionMatchVoteControllerRenderState;
@@ -70,324 +63,96 @@ type PredictionMatchInteractiveViewProps = {
 };
 
 export default function PredictionMatchInteractiveView({
-  currentGame,
-  currentDateGames,
-  currentDate,
-  currentDayNavigationMeta,
-  votes,
-  userVote,
-  currentGameDetail,
-  currentGameDetailLoading,
-  currentGameDetailRefreshing,
-  isAuthLoading,
-  allDatesData,
-  currentDateIndex,
-  currentGameDetailError,
-  deepLinkNotice,
-  voteStatusError,
-  voteStatusLoading,
-  isCurrentVotePartial,
-  currentVotePartialReason,
-  goToPreviousDate,
-  goToNextDate,
-  goToDate,
-  reloadMatches,
-  isLoggedIn,
-  matchesLoadState,
-  matchesLoadErrorMessage,
-  pastRangeLoadState,
-  pastRangeLoadErrorMessage,
-  futureRangeLoadState,
-  futureRangeLoadErrorMessage,
-  canLoadMorePast,
-  canLoadMoreFuture,
-  matchBounds,
-  reloadCurrentVoteStatus,
-  reloadCurrentGameDetail,
-  predictionErrorOverlay,
-  handlePredictionErrorOverlayAction,
-  closePredictionErrorOverlay,
-  retryLoadMorePastMatches,
-  retryLoadMoreFutureMatches,
   pendingVoteAction,
-  loading,
-  currentGameId,
+  isQueueVoteLocked,
   voteControllerState,
+  currentGameId,
   onQueueVoteAction,
+  ...rest
 }: PredictionMatchInteractiveViewProps) {
   const immediateVoteLockRef = useRef(false);
-  const predictionRecoveryPath = buildPredictionRecoveryPath({
-    currentDate,
-    currentGameId,
-  });
+  const voteLockReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [optimisticVoteLock, setOptimisticVoteLock] = useState(false);
 
-  const canMovePrevDate = currentDateIndex > 0 || canLoadMorePast;
-  const canMoveNextDate = currentDateIndex < allDatesData.length - 1 || canLoadMoreFuture;
+  const isRunInProgress = voteControllerState?.isRunInProgress ?? false;
+  const isVoteActionLocked = Boolean(pendingVoteAction) || isRunInProgress;
+  const effectiveVoteActionLocked = isVoteActionLocked || isQueueVoteLocked || optimisticVoteLock;
 
-  const nearestNavigationDate = useMemo(() => {
-    if (!currentDayNavigationMeta) {
-      return null;
+  const clearVoteLockReleaseTimer = useCallback(() => {
+    if (voteLockReleaseTimerRef.current) {
+      clearTimeout(voteLockReleaseTimerRef.current);
+      voteLockReleaseTimerRef.current = null;
     }
+  }, []);
 
-    const previousCandidate = currentDayNavigationMeta.prevDate
-      ? allDatesData.find((entry) => entry.date === currentDayNavigationMeta.prevDate) || null
-      : null;
-    const nextCandidate = currentDayNavigationMeta.nextDate
-      ? allDatesData.find((entry) => entry.date === currentDayNavigationMeta.nextDate) || null
-      : null;
-
-    if (previousCandidate && previousCandidate.games.length > 0) {
-      return { date: previousCandidate.date, isPast: true };
-    }
-
-    if (nextCandidate && nextCandidate.games.length > 0) {
-      return { date: nextCandidate.date, isPast: false };
-    }
-
-    const previousKnownEmpty =
-      previousCandidate !== null && previousCandidate.games.length === 0;
-    const nextKnownEmpty = nextCandidate !== null && nextCandidate.games.length === 0;
-
-    if (previousKnownEmpty && currentDayNavigationMeta.nextDate) {
-      return { date: currentDayNavigationMeta.nextDate, isPast: false };
-    }
-
-    if (nextKnownEmpty && currentDayNavigationMeta.prevDate) {
-      return { date: currentDayNavigationMeta.prevDate, isPast: true };
-    }
-
-    if (currentDayNavigationMeta.prevDate) {
-      return { date: currentDayNavigationMeta.prevDate, isPast: true };
-    }
-
-    if (currentDayNavigationMeta.nextDate) {
-      return { date: currentDayNavigationMeta.nextDate, isPast: false };
-    }
-
-    return null;
-  }, [allDatesData, currentDayNavigationMeta]);
-
-  const handleNearestNavigation = useCallback(() => {
-    if (!nearestNavigationDate) {
+  useEffect(() => {
+    if (isVoteActionLocked) {
+      clearVoteLockReleaseTimer();
       return;
     }
 
-    void goToDate(nearestNavigationDate.date);
-  }, [goToDate, nearestNavigationDate]);
+    if (!optimisticVoteLock) {
+      return;
+    }
 
-  const normalizeBoundaryDate = (value: string | null | undefined): string | null => {
-    if (!value) return null;
-    const trimmed = value.trim();
-    return trimmed ? trimmed.slice(0, 10) : null;
-  };
+    clearVoteLockReleaseTimer();
+    voteLockReleaseTimerRef.current = setTimeout(() => {
+      immediateVoteLockRef.current = false;
+      setOptimisticVoteLock(false);
+      voteLockReleaseTimerRef.current = null;
+    }, 500);
 
-  const earliestBoundaryDate = normalizeBoundaryDate(matchBounds?.earliestGameDate);
-  const hasAdditionalPastMatches = Boolean(
-    matchBounds?.hasData
-      && earliestBoundaryDate
-      && allDatesData[0]?.date
-      && normalizeBoundaryDate(allDatesData[0].date)
-      && normalizeBoundaryDate(allDatesData[0].date)! > earliestBoundaryDate
-  );
-  const hasPastNavigation = canMovePrevDate || hasAdditionalPastMatches;
-  const isFutureRangeLoading = futureRangeLoadState === 'loading';
-  const isFutureRangeError = futureRangeLoadState === 'error';
-  const isRunInProgress = voteControllerState?.isRunInProgress ?? false;
-  const isRunBannerDismissed = voteControllerState?.isRunBannerDismissed ?? false;
-  const runProgressMessage = voteControllerState?.runProgressMessage ?? null;
-  const showRunProgressBanner = isRunInProgress && !isRunBannerDismissed;
-  const isVoteActionLocked = Boolean(pendingVoteAction) || isRunInProgress;
+    return () => {
+      clearVoteLockReleaseTimer();
+    };
+  }, [clearVoteLockReleaseTimer, isVoteActionLocked, optimisticVoteLock]);
+
+  useEffect(() => () => {
+    clearVoteLockReleaseTimer();
+  }, [clearVoteLockReleaseTimer]);
 
   useEffect(() => {
-    if (!isVoteActionLocked) {
-      immediateVoteLockRef.current = false;
-    }
-  }, [isVoteActionLocked]);
+    clearVoteLockReleaseTimer();
+    immediateVoteLockRef.current = false;
+    setOptimisticVoteLock(false);
+  }, [clearVoteLockReleaseTimer, currentGameId]);
 
-  const topNoticeKind = (() => {
-    if (showRunProgressBanner) {
-      return 'RUN';
-    }
-
-    if (isFutureRangeLoading || isFutureRangeError) {
-      return 'FUTURE';
+  const handleVote = useCallback((team: VoteTeam, game: Game, isVoteOpen: boolean) => {
+    if (immediateVoteLockRef.current || effectiveVoteActionLocked) {
+      return;
     }
 
-    if (currentDateIndex === 0 && pastRangeLoadState === 'loading') {
-      return 'INFO';
+    immediateVoteLockRef.current = true;
+    setOptimisticVoteLock(true);
+
+    if (voteControllerState) {
+      void voteControllerState.handleVote(team, game, isVoteOpen);
+      return;
     }
 
-    if (isCurrentVotePartial) {
-      return 'INFO';
-    }
-
-    if (voteStatusError) {
-      return 'ERROR';
-    }
-
-    if (currentDateIndex === 0 && pastRangeLoadState === 'error') {
-      return 'ERROR';
-    }
-
-    if (currentDateIndex === 0 && !canLoadMorePast && pastRangeLoadState === 'end') {
-      return 'END';
-    }
-
-    if (
-      currentDateIndex === allDatesData.length - 1
-      && !canLoadMoreFuture
-      && !hasPastNavigation
-      && futureRangeLoadState === 'end'
-    ) {
-      return 'END';
-    }
-
-    if (deepLinkNotice) {
-      return 'INFO';
-    }
-
-    return null;
-  })();
-
-  const sharedTopNotice: TopNotice | null = topNoticeKind
-    ? {
-        kind: topNoticeKind,
-        content: (
-          <Suspense fallback={null}>
-            <PredictionTopNotice
-              kind={topNoticeKind}
-              currentDateIndex={currentDateIndex}
-              pastRangeLoadState={pastRangeLoadState}
-              pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
-              futureRangeLoadState={futureRangeLoadState}
-              futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
-              canLoadMorePast={canLoadMorePast}
-              canLoadMoreFuture={canLoadMoreFuture}
-              hasPastNavigation={hasPastNavigation}
-              isCurrentVotePartial={isCurrentVotePartial}
-              currentVotePartialReason={currentVotePartialReason}
-              voteStatusError={voteStatusError}
-              isVoteRetryLoading={voteStatusLoading}
-              isRunInProgress={isRunInProgress}
-              isRunBannerDismissed={isRunBannerDismissed}
-              runProgressMessage={runProgressMessage}
-              deepLinkNotice={deepLinkNotice}
-              predictionRecoveryPath={predictionRecoveryPath}
-              onRetryLoadMorePastMatches={retryLoadMorePastMatches}
-              onRetryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
-              onRetryVoteStatus={() => {
-                reloadCurrentVoteStatus();
-              }}
-              onRetryPartialVoteStatus={() => {
-                reloadCurrentVoteStatus({ source: 'manual' });
-              }}
-              onDismissRunProgressBanner={() => {
-                voteControllerState?.dismissRunProgressBanner();
-              }}
-              onResumeRunProgressBanner={() => {
-                voteControllerState?.resumeRunProgressBanner();
-              }}
-            />
-          </Suspense>
-        ),
-      }
-    : null;
-
-  if (predictionErrorOverlay?.isOpen) {
-    return (
-      <Suspense fallback={null}>
-        <PredictionErrorOverlay
-          isOpen
-          title={predictionErrorOverlay.title}
-          message={predictionErrorOverlay.message}
-          errorCode={predictionErrorOverlay.errorCode}
-          copyKey={predictionErrorOverlay.copyKey}
-          actionPriorityOrder={predictionErrorOverlay.recoveryState.actionPriorityOrder}
-          onAction={handlePredictionErrorOverlayAction}
-          onClose={closePredictionErrorOverlay}
-        />
-      </Suspense>
-    );
-  }
-
-  if (isAuthLoading || loading) {
-    return (
-      <Suspense fallback={null}>
-        <PredictionLoadingView topNotice={sharedTopNotice?.content ?? null} />
-      </Suspense>
-    );
-  }
-
-  if (matchesLoadState === 'error') {
-    return (
-      <Suspense fallback={null}>
-        <PredictionMatchesErrorView
-          matchesLoadErrorMessage={matchesLoadErrorMessage}
-          predictionRecoveryPath={predictionRecoveryPath}
-          onReloadMatches={reloadMatches}
-        />
-      </Suspense>
-    );
-  }
+    onQueueVoteAction(team, game, isVoteOpen);
+  }, [effectiveVoteActionLocked, onQueueVoteAction, voteControllerState]);
 
   return (
-    <div className="relative">
-      {sharedTopNotice ? (
-        <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center sm:justify-end">
-          {sharedTopNotice.content}
-        </div>
-      ) : null}
-      <Suspense
-        fallback={(
-          <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
-            <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-              <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
-              경기 화면을 준비하고 있습니다.
-            </div>
-          </Card>
-        )}
-      >
-        <PredictionMatchTab
-          currentDateGames={currentDateGames}
-          currentDate={currentDate}
-          currentGame={currentGame}
-          currentGameId={currentGameId}
-          currentGameDetail={currentGameDetail}
-          currentGameDetailLoading={currentGameDetailLoading}
-          currentGameDetailRefreshing={currentGameDetailRefreshing}
-          currentGameDetailError={currentGameDetailError}
-          userVote={userVote}
-          votes={votes}
-          isLoggedIn={isLoggedIn}
-          isAuthLoading={isAuthLoading}
-          shouldRenderMatchCard={Boolean(currentGameId)}
-          isVoteActionLocked={isVoteActionLocked}
-          predictionRecoveryPath={predictionRecoveryPath}
-          canMovePrevDate={canMovePrevDate}
-          canMoveNextDate={canMoveNextDate}
-          isDetailRetryLoading={currentGameDetailLoading || currentGameDetailRefreshing}
-          nearestNavigationDate={nearestNavigationDate}
-          isToday={new Date(currentDate).toDateString() === new Date().toDateString()}
-          onVote={(team, game, isVoteOpen) => {
-            if (immediateVoteLockRef.current || isVoteActionLocked) {
-              return;
-            }
-
-            immediateVoteLockRef.current = true;
-
-            if (voteControllerState) {
-              void voteControllerState.handleVote(team, game, isVoteOpen);
-              return;
-            }
-
-            onQueueVoteAction(team, game, isVoteOpen);
-          }}
-          onPrevDate={goToPreviousDate}
-          onNextDate={goToNextDate}
-          onNearestNavigation={handleNearestNavigation}
-          reloadCurrentGameDetail={reloadCurrentGameDetail}
-        />
-      </Suspense>
-    </div>
+    <Suspense
+      fallback={(
+        <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
+          <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+            <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
+            경기 화면을 준비하고 있습니다.
+          </div>
+        </Card>
+      )}
+    >
+      <PredictionMatchInteractiveContentRuntime
+        {...rest}
+        currentGameId={currentGameId}
+        pendingVoteAction={pendingVoteAction}
+        isQueueVoteLocked={isQueueVoteLocked}
+        voteControllerState={voteControllerState}
+        effectiveVoteActionLocked={effectiveVoteActionLocked}
+        onVote={handleVote}
+      />
+    </Suspense>
   );
 }

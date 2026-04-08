@@ -11,6 +11,8 @@ import {
   normalizeSignUpEmailValue,
   normalizeSignUpHandleInput,
   normalizeSignUpHandleValue,
+  sanitizeLoginPasswordText,
+  sanitizeLoginText,
   SIGNUP_AVAILABILITY_DEBOUNCE_MS,
   validateAllFields,
   validateField,
@@ -133,8 +135,21 @@ export const useSignUpForm = () => {
   const isAvailabilityReady = handleAvailability.state === 'available' && emailAvailability.state === 'available';
   const isSubmitDisabled = isLoading || isSuccess || hasLocalValidationErrors || isAvailabilityChecking || !isAvailabilityReady;
 
+  const sanitizeFieldValue = (fieldName: FieldName, value: string) => {
+    if (fieldName === 'handle') {
+      return normalizeSignUpHandleInput(value);
+    }
+    if (fieldName === 'email') {
+      return sanitizeLoginText(value);
+    }
+    if (fieldName === 'password' || fieldName === 'confirmPassword') {
+      return sanitizeLoginPasswordText(value);
+    }
+    return value;
+  };
+
   const handleFieldChange = (fieldName: FieldName, value: string) => {
-    const nextValue = fieldName === 'handle' ? normalizeSignUpHandleInput(value) : value;
+    const nextValue = sanitizeFieldValue(fieldName, value);
     setFormData((prev) => ({ ...prev, [fieldName]: nextValue }));
     setError(null);
 
@@ -153,11 +168,9 @@ export const useSignUpForm = () => {
 
   const handleFieldBlur = (fieldName: FieldName) => {
     const value = formData[fieldName];
-    const normalizedValue = fieldName === 'handle'
-      ? normalizeSignUpHandleInput(value)
-      : value;
-    const nextFormData = fieldName === 'handle'
-      ? { ...formData, handle: normalizedValue }
+    const normalizedValue = sanitizeFieldValue(fieldName, value);
+    const nextFormData = ['handle', 'email', 'password', 'confirmPassword'].includes(fieldName)
+      ? { ...formData, [fieldName]: normalizedValue }
       : formData;
     const errorMessage = validateField(fieldName, normalizedValue, nextFormData);
     setFieldErrors((prev) => ({ ...prev, [fieldName]: errorMessage }));

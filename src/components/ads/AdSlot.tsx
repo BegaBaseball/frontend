@@ -350,7 +350,7 @@ export default function AdSlot({
       data-ad-slot={slotId}
       data-ad-variant={variant}
     >
-      <div className="mb-3 flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+      <div className="mb-3 flex items-center justify-between gap-2 text-[13px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
         <span>광고</span>
         <span>{slotId}</span>
       </div>

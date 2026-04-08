@@ -109,10 +109,10 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                         width={40}
                         height={40}
                         showRing
-                        ringClassName="p-px bg-black/5 dark:bg-white/10"
+                        ringVariant="cheer"
                     />
                 ) : (
-                    <span className="inline-flex h-10 w-10 rounded-full bg-black/5 dark:bg-white/10 p-px items-center justify-center">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/90 p-0.5 dark:bg-slate-700/80">
                         <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
                             <TeamLogo team={teamLabel} size={40} />
                         </span>
@@ -120,14 +120,14 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                 )}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1">
-                        <span className="font-bold text-[15px] dark:text-white">{post.author}</span>
-                        <span className="text-[14px] text-slate-500 dark:text-gray-300">@{post.authorHandle || post.author}</span>
+                        <span className="font-bold text-[16px] dark:text-white">{post.author}</span>
+                        <span className="text-[16px] text-slate-500 dark:text-gray-300">@{post.authorHandle || post.author}</span>
                         <span className="text-slate-400">·</span>
-                        <span className="text-[14px] text-slate-500 dark:text-gray-300">{post.timeAgo}</span>
+                        <span className="text-[16px] text-slate-500 dark:text-gray-300">{post.timeAgo}</span>
                     </div>
-                    <p className="text-[15px] text-slate-700 dark:text-gray-200 line-clamp-3 mb-2">{post.content}</p>
-                    <div className="text-[14px] text-slate-400">
-                        <span className="text-indigo-500 font-medium">@{post.authorHandle || post.author}</span> 님에게 댓글 남기는 중
+                    <p className="text-[16px] text-slate-700 dark:text-gray-200 line-clamp-3 mb-2">{post.content}</p>
+                    <div className="text-[16px] text-slate-400">
+                        <span className="text-indigo-500 font-semibold">@{post.authorHandle || post.author}</span> 님에게 댓글 남기는 중
                     </div>
                 </div>
             </div>
@@ -142,11 +142,11 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                             width={40}
                             height={40}
                             showRing
-                            ringClassName="p-px bg-black/5 dark:bg-white/10"
+                            ringVariant="cheer"
                         />
                     ) : (
                         userFavoriteTeam && userFavoriteTeam !== '없음' ? (
-                            <span className="inline-flex h-10 w-10 rounded-full bg-black/5 dark:bg-white/10 p-px items-center justify-center overflow-hidden">
+                            <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-200/90 p-0.5 dark:bg-slate-700/80">
                                 <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
                                     <TeamLogo team={TEAM_DATA[userFavoriteTeam]?.name || userFavoriteTeam} size={40} />
                                 </span>
@@ -158,7 +158,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                                 width={40}
                                 height={40}
                                 showRing
-                                ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                ringVariant="cheer"
                             />
                         )
                     )}

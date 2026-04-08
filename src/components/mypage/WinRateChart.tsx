@@ -50,7 +50,7 @@ export default function WinRateChart({ wins, draws, losses, winRate }: WinRateCh
                     >
                         <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-card shadow-inner">
                             <div className="text-3xl font-black text-primary">{winRate.toFixed(0)}%</div>
-                            <div className="text-xs font-semibold text-muted-foreground">승률</div>
+                            <div className="text-[16px] font-semibold text-muted-foreground">승률</div>
                         </div>
                     </div>
 
@@ -62,9 +62,9 @@ export default function WinRateChart({ wins, draws, losses, winRate }: WinRateCh
                                         className="h-3 w-3 rounded-full"
                                         style={{ backgroundColor: entry.color }}
                                     />
-                                    <span className="text-sm font-medium text-foreground">{entry.name}</span>
+                                    <span className="text-[16px] font-semibold text-foreground">{entry.name}</span>
                                 </div>
-                                <span className="text-sm font-semibold text-muted-foreground">
+                                <span className="text-[16px] font-semibold text-muted-foreground">
                                     {entry.value}경기
                                 </span>
                             </div>

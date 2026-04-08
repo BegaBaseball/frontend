@@ -1,11 +1,10 @@
 import { publicGet } from './publicClient';
 import type {
   ApiResult,
-  MatchBounds,
   MatchRangePageMeta,
   MatchRangeRequest,
-  Game,
 } from './prediction';
+import type { Game, MatchBounds } from '../types/prediction';
 import { parseError } from '../utils/errorUtils';
 
 export const fetchMatchBounds = async (): Promise<ApiResult<MatchBounds>> => {
@@ -78,4 +77,3 @@ export const fetchMatchesByRangeWithMeta = async ({
     };
   }
 };
-

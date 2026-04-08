@@ -106,8 +106,8 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
             `}
           >
             <DeferredMarkdown
-              className="prose max-w-none text-sm dark:prose-invert"
-              fallbackClassName="whitespace-pre-wrap break-words text-sm"
+              className="prose max-w-none text-[16px] dark:prose-invert"
+              fallbackClassName="whitespace-pre-wrap break-words text-[16px]"
               content={
                 isStreamError
                   ? '응답 중 오류가 발생했습니다. 다시 시도해주세요.'
@@ -116,23 +116,23 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
             />
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               {isCancelled && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-200 bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-200 bg-amber-100 px-1.5 py-0.5 text-[13px] font-semibold text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
                   응답 취소됨
                 </span>
               )}
               {message.cached && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-400">
-                  <Zap className="h-2.5 w-2.5" />
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[13px] font-semibold text-amber-600 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-400">
+                  <Zap className="h-3 w-3" />
                   빠른 응답
                 </span>
               )}
               {message.favorite && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200">
-                  <Star className="h-2.5 w-2.5 fill-current" />
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[13px] font-semibold text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200">
+                  <Star className="h-3 w-3 fill-current" />
                   즐겨찾기
                 </span>
               )}
-              <p className="m-0 text-[11px] text-gray-500 dark:text-gray-300">
+              <p className="m-0 text-[16px] text-gray-500 dark:text-gray-300">
                 {message.timestamp.toLocaleTimeString('ko-KR', {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -141,7 +141,7 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
             </div>
           </div>
           {message.strategy === 'llm_knowledge_db_unavailable' && (
-            <div className="mt-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700 dark:border-orange-700/40 dark:bg-orange-900/20 dark:text-orange-300">
+            <div className="mt-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-[16px] text-orange-700 dark:border-orange-700/40 dark:bg-orange-900/20 dark:text-orange-300">
               ⚠️ 현재 통계 DB에 일시적으로 접근할 수 없어 일반 지식 기반으로 답변드렸습니다.
               수치는 부정확할 수 있습니다.
             </div>
@@ -158,7 +158,7 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
                 <button
                   type="button"
                   onClick={() => onToggleToolCalls(index)}
-                  className="flex items-center gap-1 text-[10px] text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                  className="flex items-center gap-1 text-[16px] font-semibold text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                 >
                   <ChevronDown
                     className={`h-3 w-3 transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`}
@@ -171,13 +171,13 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
                       const label = TOOL_NAME_KO[toolCall.toolName];
                       const params = formatToolParams(toolCall.parameters);
                       return (
-                        <li
-                          key={toolIndex}
-                          className="flex items-start gap-1 text-[10px] text-gray-500 dark:text-gray-400"
-                        >
+                      <li
+                        key={toolIndex}
+                          className="flex items-start gap-1 text-[16px] text-gray-500 dark:text-gray-400"
+                      >
                           <span className="mt-0.5 shrink-0">╰</span>
                           <span>
-                            <span className="font-medium text-gray-600 dark:text-gray-300">
+                            <span className="font-semibold text-gray-600 dark:text-gray-300">
                               {label}
                             </span>
                             {params && (
@@ -231,8 +231,8 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
         </div>
       ) : (
         <div className="max-w-[85%] rounded-2xl bg-primary py-2.5 px-4 text-white">
-          <p className="m-0 text-sm">{message.text}</p>
-          <p className="mt-1 text-[11px] text-white/70">
+          <p className="m-0 text-[16px]">{message.text}</p>
+          <p className="mt-1 text-[16px] text-white/70">
             {message.timestamp.toLocaleTimeString('ko-KR', {
               hour: '2-digit',
               minute: '2-digit',
@@ -317,7 +317,7 @@ export default function ChatBotConversationPanel({
         className="scrollbar-hide flex flex-1 flex-col gap-3 overflow-y-auto p-4"
       >
         {isLoadingMessages ? (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+          <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             대화 내용을 불러오는 중입니다.
           </div>
@@ -338,10 +338,10 @@ export default function ChatBotConversationPanel({
             {isTyping && (
               <div className="flex justify-start">
                 <div
-                  className="chatbot-typing-text text-sm leading-6 text-zinc-500 dark:text-zinc-300"
+                  className="chatbot-typing-text text-[16px] leading-6 text-zinc-500 dark:text-zinc-300"
                   aria-live="polite"
                 >
-                  <span className="chatbot-baseball mr-1 inline-flex h-4 w-4 items-center justify-center align-top text-[14px]">
+                  <span className="chatbot-baseball mr-1 inline-flex h-4 w-4 items-center justify-center align-top text-[16px]">
                     ⚾
                   </span>
                   <span>{typingText}</span>
@@ -358,10 +358,10 @@ export default function ChatBotConversationPanel({
       </div>
 
       <div className="border-t border-gray-200 bg-gray-50/90 px-4 py-2 dark:border-white/10 dark:bg-black/20">
-        <button
-          type="button"
-          onClick={onNavigateToPrediction}
-          className="flex w-full items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
+          <button
+            type="button"
+            onClick={onNavigateToPrediction}
+            className="flex w-full items-center gap-1.5 text-[16px] font-semibold text-muted-foreground transition-colors hover:text-primary"
         >
           <BrainCircuit size={13} className="shrink-0" />
           <span>팀 심층 분석 (AI 코치)</span>
@@ -398,7 +398,7 @@ export default function ChatBotConversationPanel({
             placeholder={isProcessing ? '답변을 기다리는 중...' : '메시지를 입력하세요...'}
             inputMode="text"
             autoComplete="off"
-            className="flex-1 border-none bg-transparent px-1 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
+            className="flex-1 border-none bg-transparent px-1 py-2 text-[16px] text-gray-900 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
           />
           {isProcessing && (
             <button
@@ -430,7 +430,7 @@ export default function ChatBotConversationPanel({
             aria-live="assertive"
             aria-atomic="true"
             role="status"
-            className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100"
+            className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[16px] text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100"
           >
             <p className="m-0">{rateLimitCopy.main}</p>
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -443,7 +443,7 @@ export default function ChatBotConversationPanel({
                   onClick={onRetrySend}
                   disabled={rateLimitCountdown > 0}
                   className={`
-                    rounded-lg px-3 py-1 text-xs font-semibold transition-colors
+                    rounded-lg px-3 py-1 text-[16px] font-semibold transition-colors
                     ${
                       rateLimitCountdown > 0
                         ? 'cursor-not-allowed bg-amber-100 text-amber-500 dark:bg-amber-400/20 dark:text-amber-200'
@@ -460,7 +460,7 @@ export default function ChatBotConversationPanel({
                   onClick={onRestorePendingMessage}
                   disabled={!pendingMessage.trim()}
                   className={`
-                    rounded-lg border border-amber-200 px-3 py-1 text-xs font-semibold transition-colors
+                    rounded-lg border border-amber-200 px-3 py-1 text-[16px] font-semibold transition-colors
                     ${
                       pendingMessage.trim().length > 0
                         ? 'text-amber-900 hover:bg-amber-100 dark:border-amber-200/40 dark:text-amber-100 dark:hover:bg-amber-400/10'

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   draftReleaseDecision,
   evaluateReleaseDecisionDraft,
+  fetchCoachAutoBriefOpsHealth,
   fetchReleaseDecisionArtifactDetail,
   fetchReleaseDecisionArtifacts,
   fetchReleaseDecisionEvalCases,
@@ -10,6 +11,8 @@ import {
   saveReleaseDecisionArtifact,
 } from '../../api/admin';
 import type {
+  AdminCoachAutoBriefOpsHealth,
+  AdminCoachAutoBriefOpsWindow,
   ReleaseDecisionArtifactRecord,
   ReleaseDecisionArtifactSummary,
   ReleaseDecisionDraftResponse,
@@ -17,13 +20,23 @@ import type {
   ReleaseDecisionEvaluateResponse,
   ReleaseDecisionPreset,
 } from '../../types/admin';
-import { AdminAiOperationsPanel } from './AdminAiOperationsPanel';
+const AdminAiOperationsPanelRuntime = lazy(() => import('./AdminAiOperationsPanelRuntime'));
 
 const parseMultilineEntries = (value: string): string[] =>
   value
     .split('\n')
     .map((item) => item.trim())
     .filter(Boolean);
+
+const toDateInputValue = (value: Date): string => {
+  const year = value.getFullYear();
+  const month = `${value.getMonth() + 1}`.padStart(2, '0');
+  const day = `${value.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const DEFAULT_AUTO_BRIEF_START_DATE = toDateInputValue(new Date());
+const DEFAULT_AUTO_BRIEF_END_DATE = DEFAULT_AUTO_BRIEF_START_DATE;
 
 const downloadTextFile = (filename: string, content: string, mimeType: string) => {
   const blob = new Blob([content], { type: mimeType });
@@ -67,6 +80,14 @@ export default function AdminAiOperationsRuntime() {
     artifactId: string;
     mode: 'load' | 'markdown' | 'json';
   } | null>(null);
+  const [autoBriefOpsHealth, setAutoBriefOpsHealth] = useState<AdminCoachAutoBriefOpsHealth | null>(null);
+  const [autoBriefOpsLoading, setAutoBriefOpsLoading] = useState(false);
+  const [autoBriefOpsError, setAutoBriefOpsError] = useState<string | null>(null);
+  const [autoBriefOpsWindow, setAutoBriefOpsWindow] = useState<AdminCoachAutoBriefOpsWindow>('today');
+  const [autoBriefOpsStartDate, setAutoBriefOpsStartDate] = useState(DEFAULT_AUTO_BRIEF_START_DATE);
+  const [autoBriefOpsEndDate, setAutoBriefOpsEndDate] = useState(DEFAULT_AUTO_BRIEF_END_DATE);
+  const [autoBriefOpsCommandCopyState, setAutoBriefOpsCommandCopyState] =
+    useState<'idle' | 'done' | 'error'>('idle');
 
   const selectedReleasePreset = useMemo(
     () => releasePresets.find((preset) => preset.scenario === releaseSelectedScenario) ?? null,
@@ -80,6 +101,30 @@ export default function AdminAiOperationsRuntime() {
     () => releaseArtifacts.filter((item) => item.scenario === releaseSelectedScenario),
     [releaseArtifacts, releaseSelectedScenario],
   );
+
+  const runAutoBriefOpsHealthFetch = useCallback(async (request: {
+    window: AdminCoachAutoBriefOpsWindow;
+    startDate?: string;
+    endDate?: string;
+  }) => {
+    setAutoBriefOpsLoading(true);
+    setAutoBriefOpsError(null);
+    try {
+      const health = await fetchCoachAutoBriefOpsHealth({
+        window: request.window,
+        startDate: request.startDate,
+        endDate: request.endDate,
+      });
+      setAutoBriefOpsHealth(health);
+      setAutoBriefOpsCommandCopyState('idle');
+    } catch (error) {
+      setAutoBriefOpsError(
+        error instanceof Error ? error.message : 'Coach auto brief 운영 상태를 불러오지 못했습니다.',
+      );
+    } finally {
+      setAutoBriefOpsLoading(false);
+    }
+  }, []);
 
   const loadReleasePresets = useCallback(async () => {
     setReleasePresetsLoading(true);
@@ -129,6 +174,14 @@ export default function AdminAiOperationsRuntime() {
       setReleaseArtifactsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    void runAutoBriefOpsHealthFetch({
+      window: 'today',
+      startDate: DEFAULT_AUTO_BRIEF_START_DATE,
+      endDate: DEFAULT_AUTO_BRIEF_END_DATE,
+    });
+  }, [runAutoBriefOpsHealthFetch]);
 
   useEffect(() => {
     if (releasePresets.length === 0 && !releasePresetsLoading) {
@@ -347,47 +400,116 @@ export default function AdminAiOperationsRuntime() {
     }
   };
 
+  const handleAutoBriefOpsWindowChange = (window: AdminCoachAutoBriefOpsWindow) => {
+    setAutoBriefOpsWindow(window);
+    setAutoBriefOpsCommandCopyState('idle');
+    if (window !== 'custom') {
+      void runAutoBriefOpsHealthFetch({
+        window,
+        startDate: autoBriefOpsStartDate,
+        endDate: autoBriefOpsEndDate,
+      });
+    }
+  };
+
+  const handleAutoBriefOpsRefresh = async () => {
+    await runAutoBriefOpsHealthFetch({
+      window: autoBriefOpsWindow,
+      startDate: autoBriefOpsStartDate,
+      endDate: autoBriefOpsEndDate,
+    });
+  };
+
+  const handleAutoBriefOpsApplyCustomWindow = async () => {
+    await runAutoBriefOpsHealthFetch({
+      window: 'custom',
+      startDate: autoBriefOpsStartDate,
+      endDate: autoBriefOpsEndDate,
+    });
+  };
+
+  const handleAutoBriefOpsCopyCommand = async () => {
+    if (!autoBriefOpsHealth?.recommended_command) {
+      return;
+    }
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('clipboard-unavailable');
+      }
+      await navigator.clipboard.writeText(autoBriefOpsHealth.recommended_command);
+      setAutoBriefOpsCommandCopyState('done');
+    } catch {
+      setAutoBriefOpsCommandCopyState('error');
+    }
+  };
+
+  const autoBriefOpsPanel = {
+    health: autoBriefOpsHealth,
+    loading: autoBriefOpsLoading,
+    error: autoBriefOpsError,
+    selectedWindow: autoBriefOpsWindow,
+    startDate: autoBriefOpsStartDate,
+    endDate: autoBriefOpsEndDate,
+    commandCopyState: autoBriefOpsCommandCopyState,
+    onWindowChange: handleAutoBriefOpsWindowChange,
+    onStartDateChange: setAutoBriefOpsStartDate,
+    onEndDateChange: setAutoBriefOpsEndDate,
+    onRefresh: handleAutoBriefOpsRefresh,
+    onApplyCustomWindow: handleAutoBriefOpsApplyCustomWindow,
+    onCopyCommand: handleAutoBriefOpsCopyCommand,
+  };
+
   return (
-    <AdminAiOperationsPanel
-      selectedReleasePreset={selectedReleasePreset}
-      releaseScenarioEvalCases={releaseScenarioEvalCases}
-      releaseScenarioArtifacts={releaseScenarioArtifacts}
-      releasePresets={releasePresets}
-      releasePresetsLoading={releasePresetsLoading}
-      releaseSelectedScenario={releaseSelectedScenario}
-      releaseTaskPrompt={releaseTaskPrompt}
-      releaseSeedPathsInput={releaseSeedPathsInput}
-      releaseAllowedRootsInput={releaseAllowedRootsInput}
-      releaseDraftResult={releaseDraftResult}
-      releaseDraftLoading={releaseDraftLoading}
-      releaseDraftError={releaseDraftError}
-      releaseCopyState={releaseCopyState}
-      releaseEvalCasesLoading={releaseEvalCasesLoading}
-      releaseSelectedCaseId={releaseSelectedCaseId}
-      releaseEvaluationResult={releaseEvaluationResult}
-      releaseEvaluationLoading={releaseEvaluationLoading}
-      releaseEvaluationError={releaseEvaluationError}
-      releaseArtifactsLoading={releaseArtifactsLoading}
-      releaseArtifactsError={releaseArtifactsError}
-      releaseLoadedArtifact={releaseLoadedArtifact}
-      releaseSaveLoading={releaseSaveLoading}
-      releaseSaveMessage={releaseSaveMessage}
-      releaseSaveError={releaseSaveError}
-      releaseArtifactAction={releaseArtifactAction}
-      setReleaseTaskPrompt={setReleaseTaskPrompt}
-      setReleaseSeedPathsInput={setReleaseSeedPathsInput}
-      setReleaseAllowedRootsInput={setReleaseAllowedRootsInput}
-      loadReleasePresets={loadReleasePresets}
-      handleReleaseScenarioChange={handleReleaseScenarioChange}
-      handleReleaseDraftGenerate={handleReleaseDraftGenerate}
-      loadReleaseEvalCases={loadReleaseEvalCases}
-      handleReleaseCaseChange={handleReleaseCaseChange}
-      handleReleaseEvaluate={handleReleaseEvaluate}
-      loadReleaseArtifacts={loadReleaseArtifacts}
-      handleReleaseArtifactLoad={handleReleaseArtifactLoad}
-      handleReleaseArtifactDownload={handleReleaseArtifactDownload}
-      handleReleaseMarkdownCopy={handleReleaseMarkdownCopy}
-      handleReleaseSave={handleReleaseSave}
-    />
+    <Suspense
+      fallback={(
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400">
+          AI 운영 패널 로딩 중...
+        </div>
+      )}
+    >
+      <AdminAiOperationsPanelRuntime
+        autoBriefOpsPanel={autoBriefOpsPanel}
+        selectedReleasePreset={selectedReleasePreset}
+        releaseScenarioEvalCases={releaseScenarioEvalCases}
+        releaseScenarioArtifacts={releaseScenarioArtifacts}
+        releasePresets={releasePresets}
+        releasePresetsLoading={releasePresetsLoading}
+        releaseSelectedScenario={releaseSelectedScenario}
+        releaseTaskPrompt={releaseTaskPrompt}
+        releaseSeedPathsInput={releaseSeedPathsInput}
+        releaseAllowedRootsInput={releaseAllowedRootsInput}
+        releaseDraftResult={releaseDraftResult}
+        releaseDraftLoading={releaseDraftLoading}
+        releaseDraftError={releaseDraftError}
+        releaseCopyState={releaseCopyState}
+        releaseEvalCasesLoading={releaseEvalCasesLoading}
+        releaseSelectedCaseId={releaseSelectedCaseId}
+        releaseEvaluationResult={releaseEvaluationResult}
+        releaseEvaluationLoading={releaseEvaluationLoading}
+        releaseEvaluationError={releaseEvaluationError}
+        releaseArtifactsLoading={releaseArtifactsLoading}
+        releaseArtifactsError={releaseArtifactsError}
+        releaseLoadedArtifact={releaseLoadedArtifact}
+        releaseSaveLoading={releaseSaveLoading}
+        releaseSaveMessage={releaseSaveMessage}
+        releaseSaveError={releaseSaveError}
+        releaseArtifactAction={releaseArtifactAction}
+        setReleaseTaskPrompt={setReleaseTaskPrompt}
+        setReleaseSeedPathsInput={setReleaseSeedPathsInput}
+        setReleaseAllowedRootsInput={setReleaseAllowedRootsInput}
+        loadReleasePresets={loadReleasePresets}
+        handleReleaseScenarioChange={handleReleaseScenarioChange}
+        handleReleaseDraftGenerate={handleReleaseDraftGenerate}
+        loadReleaseEvalCases={loadReleaseEvalCases}
+        handleReleaseCaseChange={handleReleaseCaseChange}
+        handleReleaseEvaluate={handleReleaseEvaluate}
+        loadReleaseArtifacts={loadReleaseArtifacts}
+        handleReleaseArtifactLoad={handleReleaseArtifactLoad}
+        handleReleaseArtifactDownload={handleReleaseArtifactDownload}
+        handleReleaseMarkdownCopy={handleReleaseMarkdownCopy}
+        handleReleaseSave={handleReleaseSave}
+      />
+    </Suspense>
   );
 }

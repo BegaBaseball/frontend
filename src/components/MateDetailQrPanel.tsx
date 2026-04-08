@@ -50,19 +50,19 @@ export default function MateDetailQrPanel({
             level="Q"
           />
         </div>
-        <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+        <p className="text-[16px] text-center text-gray-500 dark:text-gray-400">
           체크인 QR은 열려 있는 동안만 갱신됩니다.
         </p>
         {isQrLoading ? (
-          <p className="text-xs text-gray-500 dark:text-gray-400">체크인 QR을 새로 불러오는 중입니다.</p>
+          <p className="text-[16px] text-gray-500 dark:text-gray-400">체크인 QR을 새로 불러오는 중입니다.</p>
         ) : null}
         {qrSessionExpiresAt ? (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-[16px] text-gray-500 dark:text-gray-400">
             유효: {new Date(qrSessionExpiresAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
           </p>
         ) : null}
         {qrSessionError ? (
-          <p className="text-xs text-center text-red-500">{qrSessionError}</p>
+          <p className="text-[16px] text-center text-red-500">{qrSessionError}</p>
         ) : null}
       </div>
     </PlainDialog>

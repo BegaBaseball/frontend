@@ -4,9 +4,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { runSessionScopedQueryCleanup } from '../lib/queryClientRegistry';
 import {
   clearPersistedAuthBootstrapState,
+  getPersistedAuthBootstrapMeta,
   hasPersistedAuthBootstrapHint,
   markPersistedAuthBootstrapFailure,
   markPersistedAuthBootstrapSuccess,
+  normalizeAuthBootstrapPathname,
+  resolveAuthBootstrapMode,
 } from '../utils/authBootstrap';
 import {
   clearStoredLoginRedirect,
@@ -16,7 +19,13 @@ import {
 } from '../utils/loginRedirect';
 
 const LEGACY_AUTH_TOKEN_KEY = 'authToken';
+const PUBLIC_OPTIONAL_BOOTSTRAP_DEDUP_MS = 60_000;
 let authApiModulePromise: Promise<typeof import('../api/auth')> | null = null;
+let publicOptionalBootstrapAttemptByPath: Record<string, number> = {};
+
+type AuthBootstrapRuntimeWindow = Window & {
+  __begaPublicOptionalBootstrapAttemptByPath?: Record<string, number>;
+};
 
 const loadAuthApi = () => {
   if (!authApiModulePromise) {
@@ -36,6 +45,31 @@ const clearLegacyAuthTokenStorage = () => {
   } catch {
     // 스토리지 접근 실패는 보안 정합성 검증에서 제외하고 진행합니다.
   }
+};
+
+const getPublicOptionalBootstrapAttemptStore = (): Record<string, number> => {
+  if (typeof window === 'undefined') {
+    return publicOptionalBootstrapAttemptByPath;
+  }
+
+  const typedWindow = window as AuthBootstrapRuntimeWindow;
+  if (!typedWindow.__begaPublicOptionalBootstrapAttemptByPath) {
+    typedWindow.__begaPublicOptionalBootstrapAttemptByPath = { ...publicOptionalBootstrapAttemptByPath };
+  }
+
+  publicOptionalBootstrapAttemptByPath = typedWindow.__begaPublicOptionalBootstrapAttemptByPath;
+  return publicOptionalBootstrapAttemptByPath;
+};
+
+const resetPublicOptionalBootstrapAttemptStore = () => {
+  publicOptionalBootstrapAttemptByPath = {};
+
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const typedWindow = window as AuthBootstrapRuntimeWindow;
+  delete typedWindow.__begaPublicOptionalBootstrapAttemptByPath;
 };
 
 clearLegacyAuthTokenStorage();
@@ -188,9 +222,12 @@ export const isAdminRole = (role?: string): boolean =>
 
 export const isLoggedInUser = (user: User | null): boolean => Boolean(user);
 
+export type PublicAuthBootstrapPhase = 'idle' | 'scheduled' | 'running';
+
 interface AuthState {
   user: User | null;
   isAuthLoading: boolean;
+  publicAuthBootstrapPhase: PublicAuthBootstrapPhase;
   showLoginRequiredDialog: boolean;
   pendingLoginRedirect: string | null;
 }
@@ -214,6 +251,7 @@ type AuthStore = AuthState & AuthActions;
 const getInitialState = (): AuthState => ({
   user: null,
   isAuthLoading: true,
+  publicAuthBootstrapPhase: 'idle',
   showLoginRequiredDialog: false,
   pendingLoginRedirect: null,
 });
@@ -232,9 +270,36 @@ export const useAuthStore = create<AuthStore>()(
           return pendingAuthProfileRequest;
         }
 
+        if (isPublicOptional) {
+          const pathname = normalizeAuthBootstrapPathname(
+            typeof window !== 'undefined' ? window.location.pathname : '/',
+          );
+          const authBootstrapMode = resolveAuthBootstrapMode(pathname, {
+            isLoggedIn: isLoggedInUser(get().user),
+            hasPersistedAuthHint: hasPersistedAuthBootstrapHint(),
+            authBootstrapMeta: getPersistedAuthBootstrapMeta(),
+          });
+          if (authBootstrapMode !== 'defer') {
+            set({ publicAuthBootstrapPhase: 'idle' });
+            return false;
+          }
+
+          const now = Date.now();
+          const lastAttemptAt = getPublicOptionalBootstrapAttemptStore()[pathname] ?? 0;
+          if (now - lastAttemptAt <= PUBLIC_OPTIONAL_BOOTSTRAP_DEDUP_MS) {
+            return false;
+          }
+          getPublicOptionalBootstrapAttemptStore()[pathname] = now;
+        }
+
         const request = (async (): Promise<boolean> => {
-          if (!isPublicOptional) {
-            set({ isAuthLoading: true });
+          if (isPublicOptional) {
+            set({ publicAuthBootstrapPhase: 'running' });
+          } else {
+            set({
+              isAuthLoading: true,
+              publicAuthBootstrapPhase: 'idle',
+            });
           }
 
           try {
@@ -261,10 +326,15 @@ export const useAuthStore = create<AuthStore>()(
               runSessionScopedQueryCleanup();
               set({
                 user: null,
-                isAuthLoading: false
+                isAuthLoading: false,
+                publicAuthBootstrapPhase: 'idle',
               });
             }
             return false;
+          } finally {
+            if (isPublicOptional) {
+              set({ publicAuthBootstrapPhase: 'idle' });
+            }
           }
         })();
 
@@ -330,10 +400,12 @@ export const useAuthStore = create<AuthStore>()(
             hasPassword,
           },
           isAuthLoading: false,
+          publicAuthBootstrapPhase: 'idle',
         });
       },
 
       logout: (skipServerLogout = false) => {
+        resetPublicOptionalBootstrapAttemptStore();
         clearStoredLoginRedirect();
         clearPersistedAuthBootstrapState();
         if (!get().user || skipServerLogout) {
@@ -363,6 +435,7 @@ export const useAuthStore = create<AuthStore>()(
       },
       reset: () =>
         {
+          resetPublicOptionalBootstrapAttemptStore();
           clearPersistedAuthBootstrapState();
           return set({
             ...getInitialState(),
@@ -439,6 +512,7 @@ export const useAuthProfileActions = () =>
     useShallow((state) => ({
       setUserProfile: state.setUserProfile,
       fetchProfileAndAuthenticate: state.fetchProfileAndAuthenticate,
+      reset: state.reset,
     })),
   );
 

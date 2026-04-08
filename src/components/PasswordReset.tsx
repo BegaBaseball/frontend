@@ -56,7 +56,7 @@ export default function PasswordReset() {
           <form onSubmit={handleSubmit} className="space-y-6" data-testid="password-reset-form">
             {error ? (
               <AuthStatusPanel tone="error" data-testid="password-reset-status-panel" role="alert">
-                <p className="text-sm font-medium">{error}</p>
+                <p className="text-[16px] font-semibold">{error}</p>
               </AuthStatusPanel>
             ) : null}
 

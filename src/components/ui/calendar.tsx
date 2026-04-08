@@ -151,9 +151,9 @@ function Calendar({
           >
             <ChevronLeft className="size-4" />
           </button>
-          <div className={cn("text-sm font-medium", classNames?.caption_label)}>
-            {internalMonth.getFullYear()}년 {internalMonth.getMonth() + 1}월
-          </div>
+            <div className={cn("text-[15px] font-semibold", classNames?.caption_label)}>
+              {internalMonth.getFullYear()}년 {internalMonth.getMonth() + 1}월
+            </div>
           <button
             type="button"
             onClick={() => updateMonth(1)}
@@ -175,7 +175,7 @@ function Calendar({
               <div
                 key={day}
                 className={cn(
-                  "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem] text-center mx-auto",
+                  "text-muted-foreground rounded-md w-8 font-semibold text-[14px] text-center mx-auto",
                   classNames?.head_cell,
                 )}
               >
@@ -195,10 +195,10 @@ function Calendar({
                 return (
                   <div
                     key={date.toISOString()}
-                    className={cn(
-                      "relative p-0 text-center text-sm",
-                      classNames?.cell,
-                    )}
+                className={cn(
+                  "relative p-0 text-center text-[15px]",
+                  classNames?.cell,
+                )}
                   >
                     <button
                       type="button"
@@ -210,7 +210,7 @@ function Calendar({
                       disabled={isDisabled}
                       className={cn(
                         buttonVariants({ variant: "ghost" }),
-                        "size-8 p-0 font-normal mx-auto",
+                        "size-8 p-0 font-semibold mx-auto",
                         isSelected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                         isToday && !isSelected && "bg-accent text-accent-foreground",
                         isOutside && "text-muted-foreground",
