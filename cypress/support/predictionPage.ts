@@ -334,6 +334,7 @@ export const ensureCoachBriefingVisible = () => {
       const hasFakeClock = Boolean((win.setTimeout as typeof win.setTimeout & { clock?: unknown }).clock);
       if (hasFakeClock) {
         cy.tick(ms, { log: false });
+        cy.wait(50, { log: false });
         return;
       }
       cy.wait(ms, { log: false });
