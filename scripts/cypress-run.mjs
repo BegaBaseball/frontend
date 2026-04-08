@@ -387,7 +387,14 @@ const runLocal = (environment = envWithCache) => {
   return status ?? 1;
 };
 
+const withCypressSkipVerifyEnv = (environment = envWithCache) => ({
+  ...environment,
+  CYPRESS_SKIP_VERIFY: 'true',
+});
+
 const runLocalWithoutVerify = (environment = envWithCache) => {
+  const skipVerifyEnvironment = withCypressSkipVerifyEnv(environment);
+
   if (shouldRunMateSpecsSequentially) {
     console.log('\n[local] direct sequential run without prior verify');
 
@@ -396,7 +403,7 @@ const runLocalWithoutVerify = (environment = envWithCache) => {
       const status = runCommandStatus(
         'npx',
         ['cypress', commandMode, ...cypressArgsWithoutSpec, '--spec', spec],
-        environment,
+        skipVerifyEnvironment,
       );
       if (status !== 0) {
         return status ?? 1;
@@ -412,7 +419,7 @@ const runLocalWithoutVerify = (environment = envWithCache) => {
     return 1;
   }
 
-  const status = runCommandStatus('npx', ['cypress', commandMode, ...cypressArgs], environment);
+  const status = runCommandStatus('npx', ['cypress', commandMode, ...cypressArgs], skipVerifyEnvironment);
   return status ?? 1;
 };
 
@@ -620,7 +627,12 @@ if (forceDocker) {
 }
 
 if (skipVerify) {
-  process.exit(runLocal());
+  const skipVerifyStatus = runLocalWithoutVerify(envWithCache);
+  if (skipVerifyStatus === 0) {
+    process.exit(0);
+  }
+
+  console.log('\nDirect run with verification disabled failed.');
 }
 
 if (requestTopLevelVersion) {
@@ -628,17 +640,21 @@ if (requestTopLevelVersion) {
   process.exit(status ?? 1);
 }
 
-const primaryVerify = enableSelfHeal
-  ? isVerifySuccessfulWithSelfHeal(envWithCache)
-  : isVerifySuccessful(envWithCache);
+const primaryVerify = skipVerify
+  ? false
+  : enableSelfHeal
+    ? isVerifySuccessfulWithSelfHeal(envWithCache)
+    : isVerifySuccessful(envWithCache);
 
 if (primaryVerify) {
   process.exit(runLocal());
 }
 
-console.log('\nLocal Cypress verify failed.');
+if (!skipVerify) {
+  console.log('\nLocal Cypress verify failed.');
+}
 
-if (commandMode === 'run') {
+if (!skipVerify && commandMode === 'run') {
   const localHasExpectedBinary = hasExpectedLocalBinary();
   if (localHasExpectedBinary && isBinaryVersionCompatible(envWithCache)) {
     console.log('\nTrying local direct run without global cache fallback.');
@@ -662,17 +678,7 @@ if (!useGlobalCache && allowGlobalFallback) {
       CYPRESS_CACHE_FOLDER: fallbackCacheDir,
     };
 
-    const fallbackVerify = enableSelfHeal
-      ? isVerifySuccessfulWithSelfHeal(fallbackEnv)
-      : isVerifySuccessful(fallbackEnv);
-    if (fallbackVerify) {
-      console.log('Fallback cache verification succeeded.');
-      process.exit(runLocal(fallbackEnv));
-    }
-
-    console.log('Fallback cache verification failed.');
-
-if (commandMode === 'run') {
+    if (skipVerify) {
       const fallbackHasExpectedBinary = getExpectedBinaryVersion(fallbackEnv);
       if (fallbackHasExpectedBinary && isBinaryVersionCompatible(fallbackEnv)) {
         const fallbackNoVerifyStatus = runLocalWithoutVerify(fallbackEnv);
@@ -680,11 +686,37 @@ if (commandMode === 'run') {
           process.exit(0);
         }
 
-        console.log('\nFallback cache verification skip verify run also failed.');
+        console.log('\nFallback cache direct run with verification disabled also failed.');
       } else if (fallbackHasExpectedBinary) {
         console.log(`\nFallback cache contains Cypress path ${installedCypressVersion} but binary version check failed.`);
       } else {
         console.log(`\nFallback cache does not contain Cypress ${installedCypressVersion}.`);
+      }
+    } else {
+      const fallbackVerify = enableSelfHeal
+        ? isVerifySuccessfulWithSelfHeal(fallbackEnv)
+        : isVerifySuccessful(fallbackEnv);
+      if (fallbackVerify) {
+        console.log('Fallback cache verification succeeded.');
+        process.exit(runLocal(fallbackEnv));
+      }
+
+      console.log('Fallback cache verification failed.');
+
+      if (commandMode === 'run') {
+        const fallbackHasExpectedBinary = getExpectedBinaryVersion(fallbackEnv);
+        if (fallbackHasExpectedBinary && isBinaryVersionCompatible(fallbackEnv)) {
+          const fallbackNoVerifyStatus = runLocalWithoutVerify(fallbackEnv);
+          if (fallbackNoVerifyStatus === 0) {
+            process.exit(0);
+          }
+
+          console.log('\nFallback cache verification skip verify run also failed.');
+        } else if (fallbackHasExpectedBinary) {
+          console.log(`\nFallback cache contains Cypress path ${installedCypressVersion} but binary version check failed.`);
+        } else {
+          console.log(`\nFallback cache does not contain Cypress ${installedCypressVersion}.`);
+        }
       }
     }
   }
@@ -694,7 +726,7 @@ if (!useGlobalCache && !allowGlobalFallback) {
   console.log('\nSkipping global Cypress cache fallback. Set CYPRESS_ALLOW_GLOBAL_FALLBACK=1 to re-enable it.');
 }
 
-if (commandMode === 'run') {
+if (!skipVerify && commandMode === 'run') {
   const defaultHasExpectedBinary = getExpectedBinaryVersion();
   if (defaultHasExpectedBinary && isBinaryVersionCompatible()) {
     const directNoVerifyStatus = runLocalWithoutVerify();
@@ -716,6 +748,7 @@ if (commandMode === 'open') {
 }
 
 if (!forceDocker && !autoDocker) {
+  console.log('Run `npm run cy:doctor` for local runtime diagnostics.');
   console.log('Set CYPRESS_USE_DOCKER=1 or run `npm run cy:run:docker -- [args]` to use Docker fallback.');
   console.log('If local verification is unstable, run with --auto-docker.');
   process.exit(1);
@@ -728,6 +761,14 @@ if (autoDocker && !forceDocker && commandMode !== 'run') {
 
 if (!hasDocker()) {
   console.log('\nDocker is not available. Re-run after installing Docker Desktop.');
+  console.log('Run `npm run cy:doctor` for local runtime diagnostics.');
+  console.log('For targeted browser checks, Playwright smoke scripts remain available.');
+  console.log('  - npm run qa:mobile:smoke');
+  console.log('    runs prediction and mate smoke in sequence');
+  console.log('  - npm run qa:prediction:mobile:smoke');
+  console.log('    reuses http://127.0.0.1:5176 when available, otherwise starts an isolated frontend');
+  console.log('  - npm run qa:mate:mobile:smoke');
+  console.log('    reuses http://127.0.0.1:5176 when available, otherwise starts an isolated frontend');
   process.exit(1);
 }
 
