@@ -1,18 +1,17 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import {
-  AlertTriangle,
   Bug,
   Clock3,
   Filter,
-  Link2,
   RefreshCw,
   Search,
-  Siren,
 } from 'lucide-react';
+import { AdminBadge } from './AdminPanelPrimitives';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import PlainDialog from '../ui/plain-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import ViewportDeferred from '../ViewportDeferred';
 import {
   fetchAdminClientErrorDashboard,
   fetchAdminClientErrorEventDetail,
@@ -24,9 +23,18 @@ import type {
   AdminClientErrorEventPage,
 } from '../../types/admin';
 import { getApiErrorMessage } from '../../utils/errorUtils';
-import { formatDate, getTimeAgo } from '../../utils/formatters';
+import { getTimeAgo } from '../../utils/formatters';
+import {
+  adminNativeSelectClassName,
+  bucketBadgeClass,
+  channelBadgeClass,
+  formatDetailedDateTime,
+  sourceBadgeClass,
+} from './clientErrorAdminShared';
 
 const ClientErrorTrendChart = lazy(() => import('./ClientErrorTrendChart'));
+const ClientErrorAdminInsightsRuntime = lazy(() => import('./ClientErrorAdminInsightsRuntime'));
+const ClientErrorAdminDetailRuntime = lazy(() => import('./ClientErrorAdminDetailRuntime'));
 
 type WindowKey = '1h' | '24h' | '7d';
 
@@ -63,34 +71,6 @@ const initialFilters: EventFilters = {
   search: '',
 };
 
-const bucketBadgeClass: Record<'api' | 'runtime' | 'feedback', string> = {
-  api: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
-  runtime: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-  feedback: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-};
-
-const sourceBadgeClass: Record<'api' | 'runtime' | 'unhandled_rejection' | 'unknown', string> = {
-  api: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
-  runtime: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-  unhandled_rejection: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30',
-  unknown: 'bg-slate-700 text-slate-300 border-slate-600',
-};
-
-const channelBadgeClass: Record<'telegram' | 'slack', string> = {
-  telegram: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
-  slack: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-};
-
-const adminNativeSelectClassName = 'rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-60';
-
-function AdminBadge({ className = '', children }: { className?: string; children: ReactNode }) {
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${className}`}>
-      {children}
-    </span>
-  );
-}
-
 const buildWindowRange = (windowKey: WindowKey) => {
   const to = new Date();
   const from = new Date(to);
@@ -117,15 +97,6 @@ const formatAxisLabel = (value: string, granularity: 'hour' | 'day') => {
   return `${String(date.getHours()).padStart(2, '0')}:00`;
 };
 
-const formatDetailedDateTime = (value: string | null | undefined) => {
-  if (!value) {
-    return '-';
-  }
-
-  const date = new Date(value);
-  return `${formatDate(value)} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-};
-
 function MonitoringCard({
   label,
   value,
@@ -143,7 +114,7 @@ function MonitoringCard({
 
   return (
     <div className={`rounded-2xl border p-5 ${toneClass}`}>
-      <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{label}</p>
+      <p className="text-sm uppercase tracking-[0.2em] text-slate-400">{label}</p>
       <p className="mt-3 text-4xl font-black">{value.toLocaleString()}</p>
     </div>
   );
@@ -371,7 +342,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                   <span className="text-sm font-semibold text-white">{item.count.toLocaleString()}건</span>
                 </div>
                 <p className="line-clamp-2 text-sm text-slate-200">{item.message}</p>
-                <div className="mt-3 space-y-1 text-xs text-slate-400">
+                <div className="mt-3 space-y-1 text-sm text-slate-400">
                   <p>route: {item.route}</p>
                   <p>fingerprint: {item.fingerprint}</p>
                   <p>최근 발생: {getTimeAgo(item.latestOccurredAt)}</p>
@@ -498,7 +469,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                     </TableCell>
                     <TableCell className="max-w-[320px] whitespace-normal">
                       <p className="line-clamp-2 text-sm text-slate-200">{event.message}</p>
-                      <p className="mt-2 text-xs font-mono text-slate-500">{event.eventId}</p>
+                      <p className="mt-2 text-sm font-mono text-slate-500">{event.eventId}</p>
                     </TableCell>
                     <TableCell className="max-w-[220px] whitespace-normal text-sm text-slate-300">
                       {event.route}
@@ -508,7 +479,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                     </TableCell>
                     <TableCell className="text-sm text-slate-400">
                       <p>{getTimeAgo(event.occurredAt)}</p>
-                      <p className="mt-1 text-xs text-slate-500">{formatDetailedDateTime(event.occurredAt)}</p>
+                      <p className="mt-1 text-sm text-slate-500">{formatDetailedDateTime(event.occurredAt)}</p>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -555,76 +526,47 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-          <div className="mb-4 flex items-center gap-3">
-            <Link2 className="h-5 w-5 text-amber-300" />
-            <div>
-              <h3 className="text-lg font-bold text-white">Recent Feedback</h3>
-              <p className="text-sm text-slate-400">사용자가 Error ID 기준으로 전송한 최신 제보입니다.</p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {dashboard?.recentFeedback.length ? dashboard.recentFeedback.map((item) => (
-              <div key={`${item.eventId}-${item.occurredAt}`} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <AdminBadge className={bucketBadgeClass.feedback}>FEEDBACK</AdminBadge>
-                  <span className="text-xs text-slate-500">{getTimeAgo(item.occurredAt)}</span>
-                </div>
-                <p className="text-sm text-slate-100">{item.comment}</p>
-                <div className="mt-3 space-y-1 text-xs text-slate-400">
-                  <p>eventId: {item.eventId}</p>
-                  <p>route: {item.route}</p>
-                  <p>actionTaken: {item.actionTaken}</p>
-                </div>
-              </div>
-            )) : (
-              <div className="rounded-2xl border border-dashed border-slate-800 px-4 py-10 text-center text-sm text-slate-500">
-                최근 피드백이 없습니다.
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-          <div className="mb-4 flex items-center gap-3">
-            <Siren className="h-5 w-5 text-rose-300" />
-            <div>
-              <h3 className="text-lg font-bold text-white">Recent Alerts</h3>
-              <p className="text-sm text-slate-400">백엔드가 설정된 채널로 전송한 최근 알림 결과입니다.</p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {dashboard?.recentAlerts.length ? dashboard.recentAlerts.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <AdminBadge className={bucketBadgeClass[item.bucket]}>{item.bucket.toUpperCase()}</AdminBadge>
-                    <AdminBadge className={channelBadgeClass[item.channel]}>{item.channel.toUpperCase()}</AdminBadge>
-                    <AdminBadge className={item.deliveryStatus === 'SENT' ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300' : 'border-red-500/30 bg-red-500/15 text-red-300'}>
-                      {item.deliveryStatus}
-                    </AdminBadge>
+      <ViewportDeferred
+        fallback={(
+          <div className="grid gap-6 xl:grid-cols-2">
+            {[1, 2].map((item) => (
+              <section key={item} className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+                <div className="animate-pulse space-y-3">
+                  <div className="h-5 w-32 rounded bg-slate-800" />
+                  <div className="h-4 w-56 rounded bg-slate-800" />
+                  <div className="space-y-3 pt-2">
+                    {[1, 2].map((card) => (
+                      <div key={card} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                        <div className="h-4 w-24 rounded bg-slate-800" />
+                        <div className="mt-3 h-4 w-full rounded bg-slate-800" />
+                        <div className="mt-2 h-4 w-5/6 rounded bg-slate-800" />
+                      </div>
+                    ))}
                   </div>
-                  <span className="text-xs text-slate-500">{formatDetailedDateTime(item.notifiedAt)}</span>
                 </div>
-                <p className="text-sm text-slate-100">{item.latestMessage || '메시지 없음'}</p>
-                <div className="mt-3 space-y-1 text-xs text-slate-400">
-                  <p>route: {item.route}</p>
-                  <p>count: {item.observedCount} / threshold {item.thresholdCount}</p>
-                  <p>fingerprint: {item.fingerprint}</p>
-                  {item.failureReason ? <p className="text-red-300">failure: {item.failureReason}</p> : null}
-                </div>
-              </div>
-            )) : (
-              <div className="rounded-2xl border border-dashed border-slate-800 px-4 py-10 text-center text-sm text-slate-500">
-                최근 알림 이력이 없습니다.
-              </div>
-            )}
+              </section>
+            ))}
           </div>
-        </section>
-      </div>
+        )}
+        rootMargin="240px 0px 280px 0px"
+      >
+        <Suspense
+          fallback={(
+            <div className="grid gap-6 xl:grid-cols-2">
+              {[1, 2].map((item) => (
+                <section key={item} className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+                  <div className="animate-pulse space-y-3">
+                    <div className="h-5 w-32 rounded bg-slate-800" />
+                    <div className="h-4 w-56 rounded bg-slate-800" />
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        >
+          <ClientErrorAdminInsightsRuntime dashboard={dashboard} />
+        </Suspense>
+      </ViewportDeferred>
 
       <PlainDialog
         open={detailOpen}
@@ -639,87 +581,12 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           {detailLoading ? (
             <div className="py-12 text-center text-slate-400">상세 정보를 불러오는 중입니다.</div>
           ) : selectedEvent ? (
-            <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <AdminBadge className={bucketBadgeClass[selectedEvent.event.bucket]}>{selectedEvent.event.bucket.toUpperCase()}</AdminBadge>
-                    <AdminBadge className={sourceBadgeClass[selectedEvent.event.source]}>{selectedEvent.event.source}</AdminBadge>
-                    <AdminBadge className="border-slate-700 bg-slate-800 text-slate-200">{selectedEvent.event.statusGroup}</AdminBadge>
-                  </div>
-                  <div className="space-y-2 text-sm text-slate-300">
-                    <p className="font-mono text-xs text-slate-500">{selectedEvent.event.eventId}</p>
-                    <p>{selectedEvent.event.message}</p>
-                    <p>route: {selectedEvent.event.route}</p>
-                    <p>endpoint: {selectedEvent.event.endpoint || '-'}</p>
-                    <p>occurredAt: {formatDetailedDateTime(selectedEvent.event.occurredAt)}</p>
-                    <p>feedbackCount: {selectedEvent.event.feedbackCount}</p>
-                    <p>fingerprint: {selectedEvent.event.fingerprint}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                  <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    <AlertTriangle className="h-4 w-4" />
-                    Feedback
-                  </h4>
-                  <div className="space-y-3">
-                    {selectedEvent.feedback.length ? selectedEvent.feedback.map((item) => (
-                      <div key={`${item.eventId}-${item.occurredAt}-${item.actionTaken}`} className="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
-                        <p className="text-sm text-slate-100">{item.comment}</p>
-                        <p className="mt-2 text-xs text-slate-500">
-                          {item.actionTaken} · {formatDetailedDateTime(item.occurredAt)}
-                        </p>
-                      </div>
-                    )) : (
-                      <div className="rounded-xl border border-dashed border-slate-800 px-3 py-8 text-center text-sm text-slate-500">
-                        연결된 피드백이 없습니다.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-2">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                  <h4 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Stack Trace</h4>
-                  <pre className="max-h-[280px] overflow-auto rounded-xl bg-slate-950/80 p-4 text-xs text-slate-200">
-                    {selectedEvent.stack || 'No stack trace'}
-                  </pre>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                  <h4 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Component Stack</h4>
-                  <pre className="max-h-[280px] overflow-auto rounded-xl bg-slate-950/80 p-4 text-xs text-slate-200">
-                    {selectedEvent.componentStack || 'No component stack'}
-                  </pre>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                <h4 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">같은 Fingerprint 최근 이벤트</h4>
-                <div className="space-y-3">
-                  {selectedEvent.sameFingerprintRecentEvents.length ? selectedEvent.sameFingerprintRecentEvents.map((item) => (
-                    <button
-                      key={item.eventId}
-                      type="button"
-                      onClick={() => void handleOpenDetail(item.eventId)}
-                      className="w-full rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-left transition hover:border-slate-600"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <AdminBadge className={sourceBadgeClass[item.source]}>{item.source}</AdminBadge>
-                        <span className="text-xs text-slate-500">{formatDetailedDateTime(item.occurredAt)}</span>
-                      </div>
-                      <p className="mt-2 text-sm text-slate-100">{item.message}</p>
-                    </button>
-                  )) : (
-                    <div className="rounded-xl border border-dashed border-slate-800 px-3 py-8 text-center text-sm text-slate-500">
-                      같은 fingerprint의 최근 이벤트가 없습니다.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={<div className="py-12 text-center text-slate-400">상세 정보를 준비하는 중입니다.</div>}>
+              <ClientErrorAdminDetailRuntime
+                selectedEvent={selectedEvent}
+                onOpenDetail={(eventId) => void handleOpenDetail(eventId)}
+              />
+            </Suspense>
           ) : (
             <div className="py-12 text-center text-slate-400">선택한 이벤트를 불러오지 못했습니다.</div>
           )}

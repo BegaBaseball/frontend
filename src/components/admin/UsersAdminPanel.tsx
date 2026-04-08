@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Search, Users, Trash2, UserCog } from 'lucide-react';
+import { AdminBadge } from './AdminPanelPrimitives';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import PlainDialog from '../ui/plain-dialog';
@@ -38,15 +39,7 @@ interface UsersAdminPanelProps {
   setRoleChangeReason: (reason: string) => void;
 }
 
-function AdminBadge({ className = '', children }: { className?: string; children: ReactNode }) {
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${className}`}>
-      {children}
-    </span>
-  );
-}
-
-const adminNativeSelectClassName = 'w-[120px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs text-slate-200 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-60';
+const adminNativeSelectClassName = 'w-[120px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-sm text-slate-200 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-60';
 
 export function UsersAdminPanel({
   searchTerm,
@@ -120,7 +113,7 @@ export function UsersAdminPanel({
                   >
                     <TableCell className="text-slate-300 font-mono text-sm">{user.id}</TableCell>
                     <TableCell className="text-slate-200">{user.email}</TableCell>
-                    <TableCell className="text-slate-200 font-medium">{user.name}</TableCell>
+                    <TableCell className="text-slate-200 font-semibold">{user.name}</TableCell>
                     <TableCell>
                       {user.favoriteTeam ? (
                         <div className="flex items-center gap-2">
@@ -156,7 +149,7 @@ export function UsersAdminPanel({
                       <TableCell>
                         {/* SUPER_ADMIN 자신의 역할은 변경 불가 */}
                         {user.id === currentUserId || user.role === 'ROLE_SUPER_ADMIN' ? (
-                          <span className="text-slate-600 text-xs">변경 불가</span>
+                          <span className="text-slate-600 text-sm">변경 불가</span>
                         ) : (
                           <select
                             data-testid={`admin-user-role-trigger-${user.id}`}
