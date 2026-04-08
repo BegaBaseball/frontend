@@ -67,7 +67,7 @@ export default function LoadingSpinner({
       >
         <div className="text-center">
           <div className={`inline-block animate-spin rounded-full border-b-2 border-primary ${sizeClasses[size]}`} />
-          {resolvedMessage && <p className="mt-4 text-muted-foreground font-medium text-lg">{resolvedMessage}</p>}
+          {resolvedMessage && <p className="mt-4 text-muted-foreground font-semibold text-lg">{resolvedMessage}</p>}
         </div>
       </div>
     );
@@ -99,7 +99,7 @@ export default function LoadingSpinner({
           </div>
         </div>
         <p className="text-lg font-semibold text-foreground mb-2">{resolvedMessage}</p>
-        {showTagline && subMessage && <p className="text-sm text-muted-foreground">{subMessage}</p>}
+        {showTagline && subMessage && <p className="text-[16px] text-muted-foreground">{subMessage}</p>}
       </div>
     </div>
   );

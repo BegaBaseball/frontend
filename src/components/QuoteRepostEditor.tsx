@@ -101,7 +101,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                             type="button"
                             onClick={handleSubmit}
                             disabled={!canSubmit}
-                            className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${
+                            className={`px-4 py-1.5 text-[15px] font-semibold rounded-full transition-colors ${
                             canSubmit
                                 ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                                 : 'bg-gray-200 dark:bg-secondary text-gray-400 cursor-not-allowed'
@@ -126,12 +126,12 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                                 width={40}
                                 height={40}
                                 showRing
-                                ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                ringVariant="cheer"
                             />
                         </div>
 
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 text-sm mb-2">
+                                <div className="flex items-center gap-1.5 text-[15px] mb-2">
                                     <span className="font-semibold text-gray-900 dark:text-white">
                                     {userName}
                                     </span>
@@ -157,7 +157,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                 <div className="px-4 py-3 border-t border-gray-100 dark:border-border flex-shrink-0">
                     <div className="flex justify-end">
                         <span
-                            className={`text-sm ${
+                            className={`text-[15px] ${
                                 isOverLimit
                                     ? 'text-red-500'
                                     : remainingChars <= 50

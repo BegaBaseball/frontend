@@ -39,7 +39,7 @@ export default function RollingNumber({ value }: RollingNumberProps) {
   const outgoingClass = direction === 'up' ? 'animate-roll-out-up' : 'animate-roll-out-down';
 
   return (
-    <div className="relative h-5 min-w-[16px] overflow-hidden text-[13px] font-medium leading-5">
+    <div className="relative h-6 min-w-[18px] overflow-hidden text-[16px] font-semibold leading-6">
       {previousValue !== null && (
         <span className={`absolute left-0 right-0 ${outgoingClass}`}>
           {previousValue}

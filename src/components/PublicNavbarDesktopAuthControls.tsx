@@ -31,7 +31,7 @@ export default function PublicNavbarDesktopAuthControls({
         type="button"
         disabled
         aria-busy="true"
-        className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white bg-primary-dark/80 hover:bg-primary-dark/80 cursor-wait"
+        className="rounded-full px-3 md:px-4 lg:px-6 text-[16px] md:text-[16px] text-white bg-primary-dark/80 hover:bg-primary-dark/80 cursor-wait"
       >
         로그인 확인 중...
       </Button>
@@ -43,7 +43,7 @@ export default function PublicNavbarDesktopAuthControls({
       <Button
         type="button"
         onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
-        className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white bg-primary-dark hover:bg-primary"
+        className="rounded-full px-3 md:px-4 lg:px-6 text-[16px] md:text-[16px] text-white bg-primary-dark hover:bg-primary"
       >
         로그인
       </Button>
@@ -55,7 +55,7 @@ export default function PublicNavbarDesktopAuthControls({
       <button
         type="button"
         onClick={() => navigate(userProfilePath)}
-        className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary dark:border-primary-light text-primary dark:text-primary-light font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-primary-foreground dark:hover:text-white"
+        className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary dark:border-primary-light text-primary dark:text-primary-light font-bold text-[16px] transition-all duration-300 hover:bg-primary hover:text-primary-foreground dark:hover:text-white"
       >
         <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:-translate-y-full group-hover:opacity-0 group-hover:text-white">
           {userName || '회원'} 님
@@ -70,7 +70,7 @@ export default function PublicNavbarDesktopAuthControls({
           type="button"
           onClick={() => navigate('/admin')}
           variant="outline"
-          className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1 text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+          className="rounded-full px-2 md:px-3 lg:px-4 text-[16px] md:text-[16px] flex items-center gap-1 text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
         >
           <ShieldAlert className="w-4 h-4" />
           관리자
@@ -79,7 +79,7 @@ export default function PublicNavbarDesktopAuthControls({
       <Button
         type="button"
         onClick={handleLogout}
-        className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1 text-primary dark:text-primary-light border-primary dark:border-primary-light"
+        className="rounded-full px-2 md:px-3 lg:px-4 text-[16px] md:text-[16px] flex items-center gap-1 text-primary dark:text-primary-light border-primary dark:border-primary-light"
         variant="outline"
       >
         <LogOut className="w-4 h-4" />

@@ -57,7 +57,7 @@ export default function PublicNavbarMenuPanel({
         <div className="mb-4 flex items-center justify-between gap-2 px-4">
           <p
             id="mobile-menu-title"
-            className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider"
+            className="text-[16px] font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider"
           >
             메뉴
           </p>
@@ -99,7 +99,7 @@ export default function PublicNavbarMenuPanel({
       </div>
 
       <div className="px-6 pb-6" data-mobile-menu-section="account">
-        <p className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
+        <p className="text-[16px] font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
           계정
         </p>
         {isLoggedIn ? (
@@ -120,7 +120,7 @@ export default function PublicNavbarMenuPanel({
                 <p className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {userName || '회원'} 님
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-300">
+                <p className="text-[16px] text-gray-500 dark:text-gray-300">
                   내 프로필 보기 →
                 </p>
               </div>
@@ -137,7 +137,7 @@ export default function PublicNavbarMenuPanel({
                   <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <span className="font-semibold text-amber-700 dark:text-amber-400">관리자</span>
-                <span className="ml-auto px-2 py-0.5 text-xs font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                <span className="ml-auto px-2 py-0.5 text-[16px] font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
                   ADMIN
                 </span>
               </button>
