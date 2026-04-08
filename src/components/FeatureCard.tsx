@@ -45,7 +45,7 @@ export default function FeatureCard({
                 )}
               />
             </div>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            <p className="mt-2 text-[15px] leading-6 text-muted-foreground">
               {feature.description}
             </p>
           </div>
@@ -71,7 +71,7 @@ export default function FeatureCard({
           </h4>
           <ul className="space-y-4">
             {feature.guide.map((step, stepIndex) => (
-              <li key={stepIndex} className="flex items-start gap-3 text-sm leading-6 text-foreground/80">
+              <li key={stepIndex} className="flex items-start gap-3 text-[15px] leading-6 text-foreground/80">
                 <span className="landing-step-badge flex-shrink-0">
                   {stepIndex + 1}
                 </span>

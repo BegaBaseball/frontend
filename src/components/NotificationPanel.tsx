@@ -177,7 +177,7 @@ export default function NotificationPanel() {
                 type="button"
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`text-xs font-bold pb-2 border-b-2 transition-colors ${activeTab === tab
+                className={`text-[16px] font-bold pb-2 border-b-2 transition-colors ${activeTab === tab
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                   }`}
@@ -190,7 +190,7 @@ export default function NotificationPanel() {
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-primary transition-colors"
+                className="flex items-center gap-1 text-[16px] text-gray-400 hover:text-primary transition-colors"
               >
               <CheckCheck className="w-3 h-3" />
               모두 읽음
@@ -208,7 +208,7 @@ export default function NotificationPanel() {
             <p className="text-gray-900 dark:text-gray-100 font-bold mb-1">
               새로운 알림이 없습니다
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-300">
+            <p className="text-[16px] text-gray-500 dark:text-gray-300">
               {activeTab === 'ALL' ? '새로운 소식이 도착하면 알려드릴게요!' : '해당 카테고리의 알림이 없습니다.'}
             </p>
           </div>
@@ -217,7 +217,7 @@ export default function NotificationPanel() {
             {Object.entries(groupedNotifications).map(([groupName, groupNotifs]) => (
               groupNotifs.length > 0 && (
                 <div key={groupName}>
-                  <div className="px-4 py-2 bg-gray-50/50 dark:bg-card/50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                <div className="px-4 py-2 bg-gray-50/50 dark:bg-card/50 text-[16px] font-bold text-gray-400 uppercase tracking-wider">
                     {groupName}
                   </div>
                   {groupNotifs.map((notification) => (
@@ -241,14 +241,14 @@ export default function NotificationPanel() {
                           {/* Content Area */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-0.5">
-                              <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate pr-2">
+                              <h4 className="text-[16px] font-bold text-gray-900 dark:text-gray-100 truncate pr-2">
                                 {notification.title}
                               </h4>
-                              <span className="text-[10px] text-gray-400 whitespace-nowrap flex-shrink-0">
+                                <span className="text-[16px] text-gray-400 whitespace-nowrap flex-shrink-0">
                                 {formatTime(notification.createdAt)}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed">
+                            <p className="text-[16px] text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed">
                               {renderMessageWithBold(notification.message)}
                             </p>
                           </div>
