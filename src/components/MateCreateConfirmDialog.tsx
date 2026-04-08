@@ -32,7 +32,7 @@ export default function MateCreateConfirmDialog({
             <h2 id="mate-create-confirm-title" className="text-lg font-semibold text-primary">
               파티 생성 확인
             </h2>
-            <p id="mate-create-confirm-description" className="text-sm text-muted-foreground">
+            <p id="mate-create-confirm-description" className="text-[16px] text-muted-foreground">
               아래 내용을 확인하고 파티를 생성하시겠습니까?
             </p>
           </div>
@@ -41,33 +41,33 @@ export default function MateCreateConfirmDialog({
             <div className="flex flex-col gap-3 rounded-lg bg-gray-50 p-4 dark:bg-card sm:flex-row sm:items-center sm:justify-center">
               <div className="flex items-center justify-center gap-2">
                 <TeamLogo teamId={formData.awayTeam} size="sm" />
-                <span className="font-bold text-sm">
+                <span className="font-bold text-[16px]">
                   {TEAMS.find((team) => team.id === formData.awayTeam)?.name}
                 </span>
               </div>
-              <span className="text-center text-gray-400 text-xs font-bold">VS</span>
+              <span className="text-center text-gray-400 text-[16px] font-bold">VS</span>
               <div className="flex items-center justify-center gap-2">
-                <span className="font-bold text-sm">
+                <span className="font-bold text-[16px]">
                   {TEAMS.find((team) => team.id === formData.homeTeam)?.name}
                 </span>
                 <TeamLogo teamId={formData.homeTeam} size="sm" />
               </div>
             </div>
 
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-[16px]">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <span className="text-gray-500">경기 일시</span>
-                <span className="break-words font-medium sm:text-right">
+                <span className="break-words font-semibold sm:text-right">
                   {formData.gameDate} {formData.gameTime || '18:30'}
                 </span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <span className="text-gray-500">경기장</span>
-                <span className="break-words font-medium sm:text-right">{formData.stadium}</span>
+                <span className="break-words font-semibold sm:text-right">{formData.stadium}</span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <span className="text-gray-500">좌석</span>
-                <span className="break-words font-medium sm:text-right">
+                <span className="break-words font-semibold sm:text-right">
                   {formData.seatDetail
                     ? [
                       formData.cheeringSide === 'HOME' ? '[홈응원]' : formData.cheeringSide === 'AWAY' ? '[원정응원]' : formData.cheeringSide === 'NEUTRAL' ? '[중립]' : '',
@@ -79,23 +79,23 @@ export default function MateCreateConfirmDialog({
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <span className="text-gray-500">모집 인원</span>
-                <span className="font-medium sm:text-right">{formData.maxParticipants}명 (본인 포함)</span>
+                <span className="font-semibold sm:text-right">{formData.maxParticipants}명 (본인 포함)</span>
               </div>
             </div>
 
-            <div className="space-y-2 border-t pt-3 text-sm">
+            <div className="space-y-2 border-t pt-3 text-[16px]">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <span className="text-gray-500">거래 기준 금액</span>
-                <span className="font-medium sm:text-right">{formData.ticketPrice.toLocaleString()}원</span>
+                <span className="font-semibold sm:text-right">{formData.ticketPrice.toLocaleString()}원</span>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-[16px] text-gray-500">
                 앱 내 결제 없이 승인 후 채팅으로 직거래를 진행합니다.
               </p>
             </div>
 
             <div className="border-t pt-3">
-              <p className="mb-1 text-xs text-gray-500">소개글</p>
-              <p className="line-clamp-3 text-sm text-gray-700 dark:text-gray-300">
+              <p className="mb-1 text-[16px] text-gray-500">소개글</p>
+              <p className="line-clamp-3 text-[16px] text-gray-700 dark:text-gray-300">
                 {formData.description}
               </p>
             </div>

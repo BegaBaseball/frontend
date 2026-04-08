@@ -2,6 +2,10 @@
 
 describe('Mate Page Accuracy', () => {
   const checkinBaseUrl = (Cypress.config('baseUrl') || window.location.origin || 'http://localhost:5176').replace(/\/$/, '');
+  const revealDeferredMateDetailContent = () => {
+    cy.contains('CHECK-IN QR').should('be.visible');
+    cy.scrollTo(0, 900);
+  };
   const baseParty = {
     hostProfileImageUrl: 'https://cdn.example.com/profile.png',
     hostFavoriteTeam: 'KT',
@@ -297,6 +301,7 @@ describe('Mate Page Accuracy', () => {
 
     cy.visit('/mate/777');
     cy.wait('@getPartyById');
+    revealDeferredMateDetailContent();
     cy.contains('거래 방식').should('be.visible');
     cy.contains('취소 규칙').should('be.visible');
     cy.contains('Host Trust').should('be.visible');
@@ -362,6 +367,7 @@ describe('Mate Page Accuracy', () => {
     // Verify team names to ensure data loaded
     cy.contains('KT').should('be.visible');
     cy.contains('LG').should('be.visible');
+    revealDeferredMateDetailContent();
     cy.contains('비용 안내').should('be.visible');
     cy.contains('파티 소개').should('be.visible');
 
