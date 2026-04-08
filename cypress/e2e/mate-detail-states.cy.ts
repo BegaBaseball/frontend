@@ -284,8 +284,9 @@ describe('MateDetail state coverage', () => {
     visitWithAuth(`/mate/${party.id}`);
     cy.wait('@getPartyById');
 
-    cy.contains('좌석 시야').should('be.visible');
     cy.contains('button', '좌석/구역 보기').click();
+    cy.get('[data-testid="mate-seat-panel"]').should('be.visible');
+    cy.contains('좌석 시야').should('be.visible');
     cy.wait('@getSeatViews');
     cy.contains('아직 등록된 시야가 없어요').should('be.visible');
   });
