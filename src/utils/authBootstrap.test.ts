@@ -226,6 +226,59 @@ test('recent failure cooldown이 있으면 hint가 있어도 공개 경로는 pu
   );
 });
 
+test('인증 페이지는 persisted auth hint가 없으면 skip을 유지한다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/login', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+    }),
+    'skip',
+  );
+});
+
+test('인증 페이지는 persisted auth hint가 있으면 즉시 세션 확인을 시작한다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/signup', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: true,
+      now: 1_000,
+    }),
+    'immediate',
+  );
+});
+
+test('인증 페이지는 fresh success meta만 있어도 즉시 세션 확인을 시작한다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/password/reset', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+      authBootstrapMeta: {
+        version: 1,
+        lastSuccessAt: 10_000,
+        lastFailureAt: null,
+      },
+      now: 20_000,
+    }),
+    'immediate',
+  );
+});
+
+test('인증 페이지는 recent failure cooldown이 있으면 hint가 있어도 skip을 유지한다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/account/deletion/recovery', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: true,
+      authBootstrapMeta: {
+        version: 1,
+        lastSuccessAt: 50_000,
+        lastFailureAt: 99_000,
+      },
+      now: 100_000,
+    }),
+    'skip',
+  );
+});
+
 test('로그인 상태 prediction 진입은 persisted auth hint와 무관하게 deferred revalidation을 유지한다', () => {
   assert.equal(
     resolveAuthBootstrapMode('/prediction', {

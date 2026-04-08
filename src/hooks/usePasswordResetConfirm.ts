@@ -2,7 +2,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { confirmPasswordReset } from '../api/authPublic';
-import { validatePasswordResetField, validatePasswordResetForm } from '../utils/validation';
+import {
+  sanitizeLoginPasswordText,
+  validatePasswordResetField,
+  validatePasswordResetForm,
+} from '../utils/validation';
 import { PasswordResetConfirmFormData, PasswordResetConfirmFieldErrors } from '../types/auth';
 
 const initialFormData: PasswordResetConfirmFormData = {
@@ -37,7 +41,8 @@ export const usePasswordResetConfirm = () => {
   }, [token]);
 
   const handleFieldChange = (fieldName: keyof PasswordResetConfirmFormData, value: string) => {
-    setFormData({ ...formData, [fieldName]: value });
+    const nextValue = sanitizeLoginPasswordText(value);
+    setFormData({ ...formData, [fieldName]: nextValue });
     
     // 에러 초기화
     if (fieldErrors[fieldName]) {
