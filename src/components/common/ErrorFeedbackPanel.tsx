@@ -86,16 +86,16 @@ export default function ErrorFeedbackPanel({
   return (
     <div className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-left">
       <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+        <p className="text-[16px] font-semibold uppercase tracking-[0.2em] text-gray-500">
           Error ID
         </p>
-        <code className="block break-all rounded-lg bg-white px-3 py-2 text-xs text-gray-700">
+        <code className="block break-all rounded-lg bg-white px-3 py-2 text-[16px] text-gray-700">
           {errorId || '생성 중'}
         </code>
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700" htmlFor={`error-feedback-${source}`}>
+        <label className="text-[16px] font-semibold text-gray-700" htmlFor={`error-feedback-${source}`}>
           상황 설명
         </label>
         <textarea
@@ -109,12 +109,12 @@ export default function ErrorFeedbackPanel({
           }}
           rows={4}
           placeholder="어떤 작업을 하던 중이었는지 적어주세요."
-          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-[16px] text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
         />
       </div>
 
       {statusMessage ? (
-        <p className={`text-sm ${status === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
+        <p className={`text-[16px] ${status === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
           {statusMessage}
         </p>
       ) : null}
@@ -125,7 +125,7 @@ export default function ErrorFeedbackPanel({
             type="button"
             onClick={() => void handleRetry()}
             disabled={isRetrying}
-            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+            className="rounded-xl bg-emerald-600 px-4 py-2 text-[16px] font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
           >
             {isRetrying ? '다시 시도 중...' : '다시 시도'}
           </button>
@@ -135,7 +135,7 @@ export default function ErrorFeedbackPanel({
           <button
             type="button"
             onClick={onReload}
-            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-[16px] font-semibold text-gray-700 transition hover:bg-gray-100"
           >
             페이지 새로고침
           </button>
@@ -145,7 +145,7 @@ export default function ErrorFeedbackPanel({
           type="button"
           onClick={() => void handleSubmitFeedback()}
           disabled={!errorId || !trimmedComment || isSubmitting}
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-red-100 disabled:bg-red-50 disabled:text-red-300"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-[16px] font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-red-100 disabled:bg-red-50 disabled:text-red-300"
         >
           {isSubmitting ? '제보 전송 중...' : '문제 제보'}
         </button>

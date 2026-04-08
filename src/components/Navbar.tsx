@@ -211,7 +211,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
               <h1 className="font-black text-xl tracking-widest text-primary dark:text-primary-light leading-none">
                 BEGA
               </h1>
-              <p className="text-[10px] font-bold text-muted-foreground dark:text-gray-300 tracking-tight">
+              <p className="text-[16px] font-bold text-muted-foreground dark:text-gray-300 tracking-tight">
                 BASEBALL GUIDE
               </p>
             </div>
@@ -231,7 +231,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                     onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     className={`
-                      relative px-1 py-1 text-sm lg:text-base font-bold transition-all duration-200
+                      relative px-1 py-1 text-[16px] lg:text-[16px] font-bold transition-all duration-200
                       ${location.pathname === `/${item.id}`
                         ? 'text-primary dark:text-primary-light'
                         : 'text-muted-foreground dark:text-gray-300 hover:text-primary dark:hover:text-primary-light'
@@ -245,7 +245,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                     )}
                     {/* 채팅 안 읽은 수 배지 */}
                     {item.id === 'mate' && chatUnreadCount > 0 && (
-                      <span className="absolute -top-2 -right-5 inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                      <span className="absolute -top-2 -right-5 inline-flex min-w-[20px] h-5 items-center justify-center rounded-full bg-red-600 px-1 text-[16px] font-bold leading-none text-white">
                         {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
                       </span>
                     )}
@@ -278,7 +278,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                     <button
                     type="button"
                       onClick={() => navigate(userProfilePath)}
-                      className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary dark:border-primary-light text-primary dark:text-primary-light font-bold text-xs transition-all duration-300 hover:bg-primary hover:text-primary-foreground dark:hover:text-white"
+                    className="group relative overflow-hidden flex items-center justify-center w-[115px] h-9 rounded-full border border-primary dark:border-primary-light text-primary dark:text-primary-light font-bold text-[16px] transition-all duration-300 hover:bg-primary hover:text-primary-foreground dark:hover:text-white"
                     >                                                      {/* 1. 닉네임: 평소 중앙, 호버 시 위로 사라짐 */}
                       <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:-translate-y-full group-hover:opacity-0 group-hover:text-white">
                         {userName || '회원'} 님
@@ -294,7 +294,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                         type="button"
                         onClick={() => navigate('/admin')}
                         variant="outline"
-                        className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1 text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        className="rounded-full px-2 md:px-3 lg:px-4 text-[16px] md:text-[16px] flex items-center gap-1 text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                       >
                         <ShieldAlert className="w-4 h-4" />
                         관리자
@@ -303,7 +303,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                     <Button
                       type="button"
                       onClick={handleLogout}
-                      className="rounded-full px-2 md:px-3 lg:px-4 text-xs md:text-sm flex items-center gap-1 text-primary dark:text-primary-light border-primary dark:border-primary-light"
+                      className="rounded-full px-2 md:px-3 lg:px-4 text-[16px] md:text-[16px] flex items-center gap-1 text-primary dark:text-primary-light border-primary dark:border-primary-light"
                       variant="outline"
                     >
                       <LogOut className="w-4 h-4" />
@@ -314,7 +314,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                   <Button
                     type="button"
                     onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
-                    className="rounded-full px-3 md:px-4 lg:px-6 text-xs md:text-sm text-white bg-primary-dark hover:bg-primary"
+                    className="rounded-full px-3 md:px-4 lg:px-6 text-[16px] md:text-[16px] text-white bg-primary-dark hover:bg-primary"
                   >
                     로그인
                   </Button>
@@ -371,7 +371,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                 <div className="mb-4 flex items-center justify-between gap-2 px-4">
                   <p
                     id="mobile-menu-title"
-                    className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider"
+                    className="text-[16px] font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider"
                   >
                     메뉴
                   </p>
@@ -404,7 +404,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                         <span className="flex items-center gap-2">
                           {item.label}
                           {item.id === 'mate' && chatUnreadCount > 0 && (
-                            <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
+                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[16px] font-bold leading-none text-white bg-red-500 rounded-full">
                               {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
                             </span>
                           )}
@@ -420,7 +420,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
 
               {/* 사용자 영역 */}
               <div className="px-6 pb-6" data-mobile-menu-section="account">
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
+                <p className="text-[16px] font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
                   계정
                 </p>
                 {isLoggedIn ? (
@@ -445,7 +445,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                         <p className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                           {userName || '회원'} 님
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-300">
+                        <p className="text-[16px] text-gray-500 dark:text-gray-300">
                           내 프로필 보기 →
                         </p>
                       </div>
@@ -463,7 +463,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                           <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                         </div>
                         <span className="font-semibold text-amber-700 dark:text-amber-400">관리자</span>
-                        <span className="ml-auto px-2 py-0.5 text-xs font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                    <span className="ml-auto px-2 py-0.5 text-[16px] font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
                           ADMIN
                         </span>
                       </button>

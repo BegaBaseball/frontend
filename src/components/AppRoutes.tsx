@@ -9,6 +9,7 @@ const AdminRoute = lazy(() => import('./AdminRoute'));
 const Home = lazy(() => import('./Home'));
 const OffSeasonHomePage = lazy(() => import('./OffSeasonHomePage'));
 const OffSeasonListPage = lazy(() => import('./OffSeasonListPage'));
+const PublicOnlyAuthRoute = lazy(() => import('./PublicOnlyAuthRoute'));
 const Login = lazy(() => import('./Login'));
 const SignUp = lazy(() => import('./SignUp'));
 const PasswordReset = lazy(() => import('./PasswordReset'));
@@ -42,11 +43,13 @@ const LeaderboardPage = lazy(() => import('../pages/LeaderboardPage'));
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/password/reset" element={<PasswordReset />} />
-      <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
-      <Route path="/account/deletion/recovery" element={<AccountDeletionRecovery />} />
+      <Route element={<PublicOnlyAuthRoute />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/password/reset" element={<PasswordReset />} />
+        <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
+        <Route path="/account/deletion/recovery" element={<AccountDeletionRecovery />} />
+      </Route>
       <Route path="/oauth/callback" element={<OAuthCallback />} />
 
       <Route path="/" element={<RootEntryRoute />} />

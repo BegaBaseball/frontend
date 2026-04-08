@@ -33,14 +33,14 @@ export default function NotFound() {
           <button
             type="button"
             onClick={() => navigate('/home')}
-            className="w-full sm:w-auto rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.98]"
+            className="w-full sm:w-auto rounded-xl bg-emerald-600 px-6 py-2.5 text-base font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.98]"
           >
             홈으로 이동
           </button>
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="w-full sm:w-auto rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 transition hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.98]"
+            className="w-full sm:w-auto rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-2.5 text-base font-semibold text-gray-700 dark:text-gray-300 transition hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.98]"
           >
             이전 페이지로
           </button>
