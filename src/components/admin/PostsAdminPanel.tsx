@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { MessageSquare, Trash2 } from 'lucide-react';
+import { AdminBadge } from './AdminPanelPrimitives';
 import { Button } from '../ui/button';
 import PlainDialog from '../ui/plain-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -21,14 +22,6 @@ interface AdminPost {
 interface PostsAdminPanelProps {
   posts: AdminPost[];
   handleDeletePost: (postId: number) => void;
-}
-
-function AdminBadge({ className = '', children }: { className?: string; children: ReactNode }) {
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${className}`}>
-      {children}
-    </span>
-  );
 }
 
 export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProps) {

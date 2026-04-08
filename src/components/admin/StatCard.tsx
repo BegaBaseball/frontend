@@ -61,7 +61,7 @@ export function StatCard({
 
       <div className="relative flex items-start justify-between">
         <div>
-          <p className="text-slate-400 text-sm font-medium tracking-wide uppercase mb-2">
+          <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase mb-2">
             {label}
           </p>
           <p className={`text-4xl font-black ${classes.text} tracking-tight`}>

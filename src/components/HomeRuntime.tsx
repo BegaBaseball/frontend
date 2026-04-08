@@ -568,15 +568,15 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
                     <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-700/50 rounded-xl px-4 py-3">
                         <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                        <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
-                            서버 연결에 문제가 있습니다. 백엔드 서비스 상태를 확인해주세요.
-                        </p>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => { setConnectionError(false); void loadHomeBootstrap(selectedDate); }}
-                            className="ml-auto shrink-0 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30"
-                        >
+                            <p className="text-[16px] text-amber-800 dark:text-amber-300 font-semibold">
+                                서버 연결에 문제가 있습니다. 백엔드 서비스 상태를 확인해주세요.
+                            </p>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => { setConnectionError(false); void loadHomeBootstrap(selectedDate); }}
+                                className="ml-auto shrink-0 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 font-semibold"
+                            >
                             <RefreshCw className="w-4 h-4 mr-1" /> 재시도
                         </Button>
                     </div>
@@ -592,7 +592,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                 KBO LEAGUE
                             </h1>
                         </div>
-                        <p className="text-gray-500 dark:text-gray-300 font-medium pl-4">
+                        <p className="text-gray-500 dark:text-gray-300 font-semibold pl-4">
                             {selectedDate.getFullYear()} 시즌 경기 일정 및 순위
                         </p>
                     </div>
@@ -627,7 +627,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                 setShouldMountSecondaryPanels(true);
                                 setShowCalendar(true);
                             }}
-                            className="text-xs text-primary dark:text-emerald-400 h-auto p-0 font-bold hover:underline opacity-80 hover:opacity-100 transition-opacity"
+                            className="text-[16px] text-primary dark:text-emerald-400 h-auto p-0 font-bold hover:underline opacity-80 hover:opacity-100 transition-opacity"
                         >
                             날짜 변경
                         </Button>
@@ -664,7 +664,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                             aria-selected={isActive}
                                             aria-controls={`home-tabpanel-${tab.value}`}
                                             id={`home-tab-${tab.value}`}
-                                            className={`rounded-lg px-2 py-2 text-sm font-medium transition-all ${
+                                            className={`rounded-lg px-2 py-2 text-[16px] font-semibold transition-all ${
                                                 isActive
                                                     ? 'bg-primary text-white shadow-md'
                                                     : 'text-foreground dark:text-muted-foreground'

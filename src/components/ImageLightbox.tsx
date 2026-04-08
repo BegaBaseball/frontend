@@ -84,7 +84,7 @@ export default function ImageLightbox({
           className="h-full w-full select-none object-contain"
           draggable={false}
         />
-        <p className="mt-4 text-center text-sm text-white/60">
+        <p className="mt-4 text-center text-[16px] font-semibold text-white/60">
           {currentIndex + 1} / {images.length}
         </p>
       </div>

@@ -105,7 +105,7 @@ export default function PublicNavbar() {
               <h1 className="font-black text-xl tracking-widest text-primary dark:text-primary-light leading-none">
                 BEGA
               </h1>
-              <p className="text-[10px] font-bold text-muted-foreground dark:text-gray-300 tracking-tight">
+              <p className="text-[16px] font-bold text-muted-foreground dark:text-gray-300 tracking-tight">
                 BASEBALL GUIDE
               </p>
             </div>
@@ -123,8 +123,8 @@ export default function PublicNavbar() {
                     onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
-                    className={`
-                      relative px-1 py-1 text-sm lg:text-base font-bold transition-all duration-200
+                      className={`
+                      relative px-1 py-1 text-[16px] lg:text-[16px] font-bold transition-all duration-200
                       ${location.pathname === `/${item.id}`
                         ? 'text-primary dark:text-primary-light'
                         : 'text-muted-foreground dark:text-gray-300 hover:text-primary dark:hover:text-primary-light'

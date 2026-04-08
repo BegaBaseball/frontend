@@ -207,17 +207,17 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
         {/* Header: 구장 & 시간 & 상태 */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <span className="bg-muted px-2 py-1 rounded border border-border/80 text-xs text-muted-foreground">
+            <span className="bg-muted px-2 py-1 rounded border border-border/80 text-[16px] font-semibold text-muted-foreground">
               {(game.stadium ?? '').replace('구장', '')}
             </span>
-            <span className="font-mono text-sm text-muted-foreground">
+            <span className="font-mono text-[16px] text-muted-foreground">
               {game.time}
             </span>
           </div>
 
           {statusStyle && (
             <span
-              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border
+              className={`inline-flex items-center rounded-full px-3 py-1 text-[16px] font-semibold border
               ${statusCode === 'COMPLETED' ? 'text-[#2ecc71] border-[#2ecc71]/40 bg-[#2ecc71]/10' :
                 statusCode === 'LIVE' ? 'text-rose-400 border-rose-900 bg-rose-950/30' :
                   'text-muted-foreground border-border bg-secondary'}`}
@@ -234,7 +234,7 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
             <div className="w-16 h-16 flex items-center justify-center p-2 rounded-[1rem] bg-secondary border border-border/80">
               <TeamLogo team={game.awayTeam} size="full" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-sm tracking-tight text-foreground">
+            <span className="font-bold text-[16px] tracking-tight text-foreground">
               {(game.awayTeamFull ?? '').split(' ')[0]}
             </span>
           </div>
@@ -250,7 +250,7 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
                 </div>
 
                 <div className="flex items-center gap-4 mt-1">
-                  <div className="flex items-center gap-1.5 text-[12px] font-bold">
+                  <div className="flex items-center gap-1.5 text-[16px] font-bold">
                     <span className={`w-1.5 h-1.5 rounded-full ${awayOutcomeLabel === '승'
                       ? 'bg-[#2ecc71] shadow-[0_0_6px_rgba(46,204,113,0.5)]'
                       : awayOutcomeLabel === '패'
@@ -263,7 +263,7 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-[12px] font-bold">
+                  <div className="flex items-center gap-1.5 text-[16px] font-bold">
                     <span className={homeOutcomeLabel === '승' ? 'text-[#2ecc71]' : homeOutcomeLabel === '패' ? 'text-rose-500' : 'text-zinc-500'}>
                       {homeOutcomeLabel || '-'}
                     </span>
@@ -289,7 +289,7 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
             <div className="w-16 h-16 flex items-center justify-center p-2 rounded-[1rem] bg-secondary border border-border/80">
               <TeamLogo team={game.homeTeam} size="full" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-sm tracking-tight text-foreground">
+            <span className="font-bold text-[16px] tracking-tight text-foreground">
               {(game.homeTeamFull ?? '').split(' ')[0]}
             </span>
           </div>
@@ -298,7 +298,7 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
         {/* Footer: 경기 정보 */}
         <div className="flex justify-center mt-5">
           {game.gameInfo ? (
-            <span className="text-xs text-muted-foreground px-3 py-1.5 rounded-md border border-border bg-secondary">
+            <span className="text-[16px] font-semibold text-muted-foreground px-3 py-1.5 rounded-md border border-border bg-secondary">
               {game.gameInfo}
             </span>
           ) : null}

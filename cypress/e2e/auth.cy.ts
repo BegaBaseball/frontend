@@ -85,6 +85,43 @@ describe('Authentication Flow', () => {
             });
         });
 
+        it('should replace login history after successful login so back does not reopen login', () => {
+            cy.fixture('user').then((user) => {
+                cy.visit('/home');
+                cy.contains('button', '로그인').first().click();
+                cy.location('pathname').should('eq', '/login');
+
+                cy.intercept('POST', '**/api/auth/login', {
+                    statusCode: 200,
+                    body: {
+                        success: true,
+                        data: {
+                            accessToken: 'fake-jwt-token',
+                            refreshToken: 'fake-refresh-token',
+                            ...user.testUser,
+                        },
+                    },
+                }).as('loginSuccessHistoryReplace');
+
+                cy.intercept('GET', '**/auth/mypage*', {
+                    statusCode: 200,
+                    body: { success: true, data: user.testUser },
+                }).as('getMeAfterHistoryReplace');
+
+                cy.get('input[type="email"], input[name="email"]').type(user.testUser.email);
+                cy.get('input[type="password"], input[name="password"]').type(user.testUser.password);
+                cy.get('button[type="submit"]').click();
+
+                cy.wait('@loginSuccessHistoryReplace');
+                cy.wait('@getMeAfterHistoryReplace');
+                cy.location('pathname').should('eq', '/home');
+
+                cy.go('back');
+                cy.location('pathname').should('eq', '/home');
+                cy.get('input[type="email"], input[name="email"]').should('not.exist');
+            });
+        });
+
         it('should keep the user signed in after reloading a protected page while bootstrap reissues the session', () => {
             cy.fixture('user').then((user) => {
                 let profileRequestCount = 0;
@@ -187,6 +224,25 @@ describe('Authentication Flow', () => {
                 cy.location('search').should('include', 'error=auth_session_not_established');
                 cy.contains('로그인 처리 후 세션을 확인하지 못했습니다. 다시 시도해주세요.').should('be.visible');
             });
+        });
+
+        it('should redirect authenticated auth-page entry to the redirect target on direct visit', () => {
+            cy.visit('/login?redirect=%2Fmypage', {
+                onBeforeLoad(win) {
+                    win.localStorage.setItem('auth-bootstrap-hint', '1');
+                    win.localStorage.setItem('auth-bootstrap-meta', JSON.stringify({
+                        version: 1,
+                        lastSuccessAt: 10_000,
+                        lastFailureAt: null,
+                    }));
+                    win.sessionStorage.setItem('pendingLoginRedirect', '/prediction?date=2026-03-12');
+                },
+            });
+
+            cy.wait('@getMe');
+            cy.location('pathname').should('eq', '/mypage');
+            cy.location('search').should('eq', '');
+            cy.window().its('sessionStorage').invoke('getItem', 'pendingLoginRedirect').should('eq', null);
         });
 
         it('should preserve redirect when navigating to password reset', () => {

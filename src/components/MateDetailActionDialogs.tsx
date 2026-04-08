@@ -73,7 +73,7 @@ export default function MateDetailActionDialogs({
         )}
       >
         <div className="py-2">
-          <p className="mb-3 text-sm text-gray-600 dark:text-gray-300">
+          <p className="mb-3 text-[16px] text-gray-600 dark:text-gray-300">
             직거래 파티는 취소 시 플랫폼 결제/환불이 적용되지 않습니다.
           </p>
           <div className="space-y-2">
@@ -88,13 +88,13 @@ export default function MateDetailActionDialogs({
                   }`}
                 disabled={isCancelling}
               >
-                <p className="font-medium">{option.label}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{option.description}</p>
+                <p className="font-semibold">{option.label}</p>
+                <p className="text-[16px] text-gray-500 dark:text-gray-400">{option.description}</p>
               </button>
             ))}
           </div>
           <div className="mt-3">
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-[16px] font-semibold text-gray-700 dark:text-gray-300">
               추가 메모 (선택)
             </label>
             <Input
@@ -132,7 +132,7 @@ export default function MateDetailActionDialogs({
         )}
       >
         <div className="py-2">
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label className="mb-1 block text-[16px] font-semibold text-gray-700 dark:text-gray-300">
             판매 가격 (원)
           </label>
           <Input
@@ -145,7 +145,7 @@ export default function MateDetailActionDialogs({
             className="mt-1"
           />
           {salePriceError && (
-            <p className="mt-1 text-sm text-red-500">{salePriceError}</p>
+            <p className="mt-1 text-[16px] text-red-500">{salePriceError}</p>
           )}
         </div>
       </PlainDialog>

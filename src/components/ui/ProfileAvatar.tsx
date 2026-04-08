@@ -1,4 +1,102 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+
+const RING_CLASS_MAP = {
+  default: 'p-px bg-black/5 dark:bg-white/10',
+  cheer: 'p-0.5 bg-slate-200/90 dark:bg-slate-700/80',
+  cheerFeed: 'text-slate-200 dark:text-slate-700',
+} as const;
+
+type RingVariant = keyof typeof RING_CLASS_MAP;
+
+interface ProfileAvatarSvgImageProps {
+  alt: string;
+  className: string;
+  clipPathId: string;
+  src: string;
+  showStroke?: boolean;
+  svgCx: number;
+  svgCy: number;
+  svgHeight: number;
+  svgRadius: number;
+  svgWidth: number;
+  onError: () => void;
+}
+
+function ProfileAvatarSvgImage({
+  alt,
+  className,
+  clipPathId,
+  src,
+  showStroke = false,
+  svgCx,
+  svgCy,
+  svgHeight,
+  svgRadius,
+  svgWidth,
+  onError,
+}: ProfileAvatarSvgImageProps) {
+  return (
+    <svg
+      data-testid="profile-avatar-image"
+      className={className}
+      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      width={svgWidth}
+      height={svgHeight}
+      aria-label={alt}
+      role="img"
+    >
+      <defs>
+        <clipPath id={clipPathId}>
+          <circle cx={svgCx} cy={svgCy} r={svgRadius} />
+        </clipPath>
+      </defs>
+      <image
+        href={src}
+        x="0"
+        y="0"
+        width={svgWidth}
+        height={svgHeight}
+        preserveAspectRatio="xMidYMid slice"
+        clipPath={`url(#${clipPathId})`}
+        onError={onError}
+      />
+      {showStroke ? (
+        <circle
+          cx={svgCx}
+          cy={svgCy}
+          r={svgRadius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+      ) : null}
+    </svg>
+  );
+}
+
+interface CheerFeedAvatarFallbackProps {
+  className: string;
+  iconSizeClass: string;
+  initials: string;
+}
+
+function CheerFeedAvatarFallback({
+  className,
+  iconSizeClass,
+  initials,
+}: CheerFeedAvatarFallbackProps) {
+  return (
+    <div
+      data-testid="profile-avatar-fallback"
+      className={className}
+    >
+      <span className={`${iconSizeClass} flex items-center justify-center`}>
+        {initials}
+      </span>
+    </div>
+  );
+}
 
 interface ProfileAvatarProps {
   src?: string | null | undefined;
@@ -12,6 +110,7 @@ interface ProfileAvatarProps {
   className?: string;
   showRing?: boolean;
   ringClassName?: string;
+  ringVariant?: RingVariant;
 }
 
 export function ProfileAvatar({
@@ -26,8 +125,10 @@ export function ProfileAvatar({
   className = '',
   showRing = false,
   ringClassName,
+  ringVariant = 'default',
 }: ProfileAvatarProps) {
   const [imageError, setImageError] = useState(false);
+  const svgId = useId().replace(/:/g, '');
 
   useEffect(() => {
     setImageError(false);
@@ -69,12 +170,12 @@ export function ProfileAvatar({
   const resolvedWidth = width ?? height;
   const resolvedHeight = height ?? width;
   const hasFixedSize = resolvedWidth != null && resolvedHeight != null;
-  const resolvedSize = hasFixedSize ? resolvedWidth : undefined;
+  const resolvedSize = hasFixedSize && resolvedWidth === resolvedHeight ? resolvedWidth : undefined;
   const resolvedSizes = sizes ?? (resolvedSize ? `${resolvedSize}px` : undefined);
   const sizeStyle = hasFixedSize
     ? {
-      width: `${resolvedSize}px`,
-      height: `${resolvedSize}px`,
+      width: `${resolvedWidth}px`,
+      height: `${resolvedHeight}px`,
     }
     : undefined;
   const imageStyle = {
@@ -85,23 +186,45 @@ export function ProfileAvatar({
   };
   const containerClass = hasFixedSize ? '' : sizeClasses[size];
   const iconSizeClass = hasFixedSize
-    ? (resolvedSize! >= 48 ? iconSizes.lg : resolvedSize! >= 40 ? iconSizes.md : iconSizes.sm)
+    ? (Math.max(resolvedWidth!, resolvedHeight!) >= 48
+      ? iconSizes.lg
+      : Math.max(resolvedWidth!, resolvedHeight!) >= 40
+        ? iconSizes.md
+        : iconSizes.sm)
     : iconSizes[size];
-  const ringClass = ringClassName || 'p-px bg-black/5 dark:bg-white/10';
+  const sizePixels = {
+    sm: 40,
+    md: 48,
+    lg: 56,
+  } as const;
+  const isCheerFeedFrame = showRing && ringVariant === 'cheerFeed';
+  const isCheerRingFrame = showRing && ringVariant === 'cheer';
+  const usesSvgImageSurface = isCheerFeedFrame || isCheerRingFrame;
+  const ringClass = ringClassName || RING_CLASS_MAP[ringVariant];
   const innerSizeClass = hasFixedSize || showRing ? 'w-full h-full' : containerClass;
-  const imageClassName = `${innerSizeClass} rounded-full object-cover block bg-gray-100 dark:bg-card image-render-quality ${className}`.trim();
-  const fallbackClassName = `${innerSizeClass} rounded-full ${fallbackClassByName} text-white font-semibold flex items-center justify-center ${className}`.trim();
-  const ringWrapperClassName = `${ringClass} rounded-full inline-flex items-center justify-center overflow-hidden ${!hasFixedSize ? containerClass : ''}`.trim();
-
-  if (src && !imageError) {
-    const imageElement = (
-        <img
-          src={src}
-          srcSet={srcSet}
-          sizes={resolvedSizes}
-          alt={alt}
-          width={resolvedSize}
-          height={resolvedSize}
+  const cheerFeedSvgToneClass = `${innerSizeClass} block ${ringClass} ${className}`.trim();
+  const cheerFeedFallbackClass = `${innerSizeClass} avatar-edge-smooth rounded-full border ${ringClassName || 'border-slate-200 dark:border-slate-700'} ${fallbackClassByName} text-white font-semibold flex items-center justify-center ${className}`.trim();
+  const imageClassName = `${innerSizeClass} ${isCheerFeedFrame ? '' : 'rounded-full'} object-cover block bg-gray-100 dark:bg-card ${className}`.trim();
+  const cheerRingSvgClassName = `${innerSizeClass} block bg-gray-100 dark:bg-card ${className}`.trim();
+  const fallbackClassName = `${innerSizeClass} ${isCheerFeedFrame ? '' : 'rounded-full'} ${fallbackClassByName} text-white font-semibold flex items-center justify-center ${className}`.trim();
+  const ringWrapperClassName = isCheerFeedFrame
+    ? `inline-flex items-center justify-center ${!hasFixedSize ? containerClass : ''}`.trim()
+    : `${ringClass} rounded-full inline-flex items-center justify-center overflow-hidden ${!hasFixedSize ? containerClass : ''}`.trim();
+  const svgWidth = resolvedWidth ?? sizePixels[size];
+  const svgHeight = resolvedHeight ?? sizePixels[size];
+  const svgRadius = Math.max(0, Math.min(svgWidth, svgHeight) / 2 - 0.5);
+  const svgCx = svgWidth / 2;
+  const svgCy = svgHeight / 2;
+  const clipPathId = `profile-avatar-clip-${svgId}`;
+  const imageElement = src && !imageError && !usesSvgImageSurface
+    ? (
+      <img
+        src={src}
+        srcSet={srcSet}
+        sizes={resolvedSizes}
+        alt={alt}
+        width={resolvedSize}
+        height={resolvedSize}
         style={imageStyle}
         decoding="async"
         loading="lazy"
@@ -109,18 +232,25 @@ export function ProfileAvatar({
         className={imageClassName}
         onError={() => setImageError(true)}
       />
-    );
-
-    if (!showRing) {
-      return imageElement;
-    }
-
-    return (
-      <span className={ringWrapperClassName} style={sizeStyle}>
-        {imageElement}
-      </span>
-    );
-  }
+    )
+    : null;
+  const ringSvgImageElement = src && !imageError && usesSvgImageSurface
+    ? (
+      <ProfileAvatarSvgImage
+        alt={alt}
+        className={isCheerFeedFrame ? cheerFeedSvgToneClass : cheerRingSvgClassName}
+        clipPathId={clipPathId}
+        src={src}
+        showStroke={isCheerFeedFrame}
+        svgCx={svgCx}
+        svgCy={svgCy}
+        svgHeight={svgHeight}
+        svgRadius={svgRadius}
+        svgWidth={svgWidth}
+        onError={() => setImageError(true)}
+      />
+    )
+    : null;
 
   const fallbackElement = (
     <div
@@ -134,13 +264,55 @@ export function ProfileAvatar({
     </div>
   );
 
+  const contentElement = ringSvgImageElement || imageElement || fallbackElement;
+
   if (!showRing) {
-    return fallbackElement;
+    return contentElement;
+  }
+
+  if (isCheerFeedFrame) {
+    const cheerFeedContentElement = src && !imageError ? (
+      <ProfileAvatarSvgImage
+        alt={alt}
+        className={cheerFeedSvgToneClass}
+        clipPathId={clipPathId}
+        src={src}
+        showStroke
+        svgCx={svgCx}
+        svgCy={svgCy}
+        svgHeight={svgHeight}
+        svgRadius={svgRadius}
+        svgWidth={svgWidth}
+        onError={() => setImageError(true)}
+      />
+    ) : (
+      <CheerFeedAvatarFallback
+        className={cheerFeedFallbackClass}
+        iconSizeClass={iconSizeClass}
+        initials={initials}
+      />
+    );
+
+    return (
+      <span
+        data-testid="profile-avatar-frame"
+        className={ringWrapperClassName}
+        style={sizeStyle}
+      >
+        {cheerFeedContentElement}
+      </span>
+    );
   }
 
   return (
-    <span className={ringWrapperClassName} style={sizeStyle}>
-      {fallbackElement}
+    <span
+      data-testid="profile-avatar-frame"
+      className={ringWrapperClassName}
+      style={sizeStyle}
+    >
+      <span className="inline-flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+        {contentElement}
+      </span>
     </span>
   );
 }

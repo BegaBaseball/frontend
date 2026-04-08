@@ -83,7 +83,7 @@ export default function StadiumGuideRuntime() {
           <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm">{stadiumsError}</span>
+              <span className="text-[16px]">{stadiumsError}</span>
             </div>
             <Button
               size="sm"
@@ -174,15 +174,15 @@ export default function StadiumGuideRuntime() {
                         )}
                       </div>
                       {selectedStadiumAddress && (
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+                      <p className="text-[16px] text-gray-600 dark:text-gray-300 mb-1">
                           📍 {selectedStadiumAddress}
                         </p>
                       )}
                       {selectedStadiumPhone && (
-                        <p className="text-sm text-gray-600 dark:text-gray-300">📞 {selectedStadiumPhone}</p>
+                        <p className="text-[16px] text-gray-600 dark:text-gray-300">📞 {selectedStadiumPhone}</p>
                       )}
                       {!hasStadiumCoordinates && (
-                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
+                        <p className="text-[16px] text-amber-700 dark:text-amber-400 mt-2">
                           좌표 정보가 없어 길찾기/지도 표시를 제공할 수 없습니다.
                         </p>
                       )}
@@ -225,7 +225,7 @@ export default function StadiumGuideRuntime() {
                     {selectedStadium?.stadiumName || '구장을 선택하세요'}
                   </h4>
                   <p className="text-gray-600 dark:text-gray-300 mt-2">주변 지도</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-300 mt-4">
+                  <p className="text-[16px] text-gray-500 dark:text-gray-300 mt-4">
                     {!selectedStadium
                       ? '구장을 선택하면 지도를 표시합니다.'
                       : !KAKAO_API_KEY
@@ -283,7 +283,7 @@ export default function StadiumGuideRuntime() {
                       }}
                     >
                       <Icon className="w-6 h-6" />
-                      <span className="text-sm" style={{ fontWeight: isSelected ? 700 : 400 }}>
+                        <span className="text-[16px]" style={{ fontWeight: isSelected ? 700 : 400 }}>
                         {config.label}
                       </span>
                     </button>
@@ -310,7 +310,7 @@ export default function StadiumGuideRuntime() {
                 <h3 className="font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
                   {CATEGORY_CONFIGS[selectedCategory].label} 목록
                 </h3>
-                <span className="text-xs text-gray-400 dark:text-gray-500">
+                <span className="text-[16px] text-gray-400 dark:text-gray-500">
                   {filteredPlaces.length}개
                 </span>
               </div>
@@ -323,7 +323,7 @@ export default function StadiumGuideRuntime() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     disabled={listControlsDisabled}
-                    className="pl-9 h-9 text-sm dark:bg-card dark:border-border"
+                    className="pl-9 h-9 text-[16px] dark:bg-card dark:border-border"
                   />
                 </div>
                 <div className="relative">
@@ -332,7 +332,7 @@ export default function StadiumGuideRuntime() {
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value as StadiumGuideSortOrder)}
                     disabled={listControlsDisabled}
-                    className="stadium-guide-select h-9 pl-8 pr-3 text-sm rounded-md border border-input bg-background dark:bg-card dark:border-border dark:text-gray-200 cursor-pointer"
+                    className="stadium-guide-select h-9 pl-8 pr-3 text-[16px] rounded-md border border-input bg-background dark:bg-card dark:border-border dark:text-gray-200 cursor-pointer"
                   >
                     <option value="default">기본순</option>
                     <option value="rating">평점순</option>
@@ -382,7 +382,7 @@ export default function StadiumGuideRuntime() {
                         <div className="rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700 p-4">
                           <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-2">
                             <AlertTriangle className="w-4 h-4" />
-                            <span className="text-sm font-semibold">
+                            <span className="text-[16px] font-semibold">
                               {formatOptionalText(listError, '목록을 불러오지 못했습니다.')}
                             </span>
                           </div>
@@ -431,23 +431,23 @@ export default function StadiumGuideRuntime() {
                                     <h4 className="dark:text-white" style={{ fontWeight: 700 }}>{place.name}</h4>
                                   </div>
                                   {placeDescription && (
-                                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">
+                                    <p className="text-gray-600 dark:text-gray-300 text-[16px] mb-1">
                                       {placeDescription}
                                     </p>
                                   )}
                                   {placeAddress && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-300">📍 {placeAddress}</p>
+                                    <p className="text-[16px] text-gray-600 dark:text-gray-300">📍 {placeAddress}</p>
                                   )}
                                   {placePhone && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-300">📞 {placePhone}</p>
+                                    <p className="text-[16px] text-gray-600 dark:text-gray-300">📞 {placePhone}</p>
                                   )}
                                   {(placeOpenTime || placeCloseTime) && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    <p className="text-[16px] text-gray-600 dark:text-gray-300">
                                       ⏰ {formatOptionalText(placeOpenTime)} - {formatOptionalText(placeCloseTime)}
                                     </p>
                                   )}
-                                  {!hasPlaceCoordinates && (
-                                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                    {!hasPlaceCoordinates && (
+                                    <p className="text-[16px] text-amber-700 dark:text-amber-400 mt-1">
                                       좌표 정보가 없어 길찾기를 제공할 수 없습니다.
                                     </p>
                                   )}

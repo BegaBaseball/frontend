@@ -119,7 +119,7 @@ export default function NoticePageRuntime() {
                     <h3 className="mb-1 text-base text-zinc-900 dark:text-zinc-100">
                       {post.content?.split('\n')[0]?.slice(0, 60) || '공지사항'}
                     </h3>
-                    <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-3 text-[16px] text-gray-500 dark:text-gray-400">
                       <span>{post.author}</span>
                       <span>•</span>
                       <span>{post.timeAgo}</span>

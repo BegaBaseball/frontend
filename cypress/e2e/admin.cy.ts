@@ -332,6 +332,77 @@ describe('Admin page coverage', () => {
         },
     };
 
+    const coachAutoBriefOpsHealth = {
+        window: 'today',
+        date_window: '2026-04-08',
+        generated_at_utc: '2026-04-08T09:00:00Z',
+        runbook_path: 'task/operations/coach-auto-brief-prewarm-runbook.md',
+        recommended_command:
+            './.venv/bin/python scripts/batch_coach_auto_brief.py --years 2026 --date-window 2026-04-08 --eligible-only --prioritize-unresolved --quality-report reports/coach_auto_brief_prewarm_2026-04-08.json',
+        summary: {
+            loaded_target_count: 12,
+            selected_target_count: 2,
+            generated_success_count: 0,
+            cache_hit_count: 1,
+            in_progress_count: 1,
+            failed_count: 1,
+            unresolved_count: 2,
+            completed_count: 0,
+            cache_state_breakdown: {
+                FAILED_LOCKED: 1,
+                PENDING_WAIT: 1,
+            },
+            data_quality_breakdown: {
+                insufficient: 1,
+                partial: 1,
+            },
+        },
+        unresolved_targets: [
+            {
+                game_id: '20260408KTLG0',
+                game_date: '2026-04-08',
+                away_team_id: 'KT',
+                home_team_id: 'LG',
+                stage_label: 'REGULAR',
+                game_status_bucket: 'SCHEDULED',
+                cache_key: 'cache-locked',
+                cache_state: 'FAILED_LOCKED',
+                data_quality: 'insufficient',
+                headline: '근거 부족으로 운영 갱신이 필요합니다.',
+                reason: 'failed_locked',
+            },
+            {
+                game_id: '20260408HHSK0',
+                game_date: '2026-04-08',
+                away_team_id: 'HH',
+                home_team_id: 'SK',
+                stage_label: 'REGULAR',
+                game_status_bucket: 'SCHEDULED',
+                cache_key: 'cache-pending',
+                cache_state: 'PENDING_WAIT',
+                data_quality: 'partial',
+                headline: '최신 브리핑 준비 중입니다.',
+                reason: 'pending_wait',
+            },
+        ],
+        latest_report: {
+            path: 'reports/coach_auto_brief_prewarm_2026-04-08.json',
+            run_started_at: '2026-04-08T08:55:00Z',
+            run_finished_at: '2026-04-08T09:00:00Z',
+            date_window: '2026-04-08',
+            unresolved_count: 2,
+            completed_count: 0,
+            cache_state_breakdown: {
+                FAILED_LOCKED: 1,
+                PENDING_WAIT: 1,
+            },
+            data_quality_breakdown: {
+                insufficient: 1,
+                partial: 1,
+            },
+        },
+    };
+
     beforeEach(() => {
         users = [
             {
@@ -1054,6 +1125,11 @@ describe('Admin page coverage', () => {
             body: releasePresets,
         }).as('getReleasePresets');
 
+        cy.intercept('GET', '**/api/ai/coach/auto-brief/ops/health*', {
+            statusCode: 200,
+            body: coachAutoBriefOpsHealth,
+        }).as('getCoachAutoBriefOpsHealth');
+
         cy.intercept('POST', '**/api/ai/release-decision/draft', (req) => {
             req.reply({
                 statusCode: 200,
@@ -1340,9 +1416,14 @@ describe('Admin page coverage', () => {
         });
 
         cy.getBySel('admin-tab-ai').click();
+        cy.wait('@getCoachAutoBriefOpsHealth');
         cy.wait('@getReleasePresets');
         cy.wait('@getReleaseEvalCases');
         cy.wait('@getReleaseArtifacts');
+        cy.contains('Coach Auto Brief Ops').should('be.visible');
+        cy.contains('FAILED_LOCKED').should('be.visible');
+        cy.getBySel('admin-ai-auto-brief-unresolved-20260408KTLG0').should('be.visible');
+        cy.contains('reports/coach_auto_brief_prewarm_2026-04-08.json').should('be.visible');
         cy.contains('릴리즈 결정 초안 생성').should('be.visible');
 
         cy.getBySel('admin-ai-refresh-presets').click();

@@ -1,14 +1,11 @@
-import { lazy, Suspense, useCallback, useMemo, type ReactElement } from 'react';
+import { lazy, Suspense, useCallback, useMemo } from 'react';
 
 import type { DateGames, Game, MatchBounds } from '../../types/prediction';
 import type { RangeLoadState } from '../../hooks/predictionHookShared';
-import { buildPredictionRecoveryPath } from '../../utils/predictionDeepLink';
+import type { PredictionTopNoticeKind } from './PredictionTopNotice';
 
 const PredictionMatchPreviewTab = lazy(() => import('./PredictionMatchPreviewTab'));
-const PredictionTopNotice = lazy(() => import('./PredictionTopNotice'));
-
-type TopNoticeKind = 'RUN' | 'FUTURE' | 'ERROR' | 'END' | 'INFO';
-type TopNotice = { kind: TopNoticeKind; content: ReactElement };
+const PredictionMatchScheduleTopNoticeRuntime = lazy(() => import('./PredictionMatchScheduleTopNoticeRuntime'));
 
 type PredictionMatchSchedulePreviewRuntimeProps = {
   currentGame: Game | null;
@@ -57,39 +54,6 @@ export default function PredictionMatchSchedulePreviewRuntime({
   retryLoadMoreFutureMatches,
   onEnterMatchDetail,
 }: PredictionMatchSchedulePreviewRuntimeProps) {
-  const predictionRecoveryPath = buildPredictionRecoveryPath({
-    currentDate,
-    currentGameId,
-  });
-
-  const shellPastRangeErrorMessage = useMemo(() => {
-    if (!pastRangeLoadErrorMessage) {
-      return null;
-    }
-
-    if (pastRangeLoadState !== 'error') {
-      return pastRangeLoadErrorMessage;
-    }
-
-    return pastRangeLoadErrorMessage.includes('이전 경기 조회')
-      ? pastRangeLoadErrorMessage
-      : `이전 경기 조회 실패: ${pastRangeLoadErrorMessage}`;
-  }, [pastRangeLoadErrorMessage, pastRangeLoadState]);
-
-  const shellFutureRangeErrorMessage = useMemo(() => {
-    if (!futureRangeLoadErrorMessage) {
-      return null;
-    }
-
-    if (futureRangeLoadState !== 'error') {
-      return futureRangeLoadErrorMessage;
-    }
-
-    return futureRangeLoadErrorMessage.includes('미래 구간 조회')
-      ? futureRangeLoadErrorMessage
-      : `미래 구간 조회 실패: ${futureRangeLoadErrorMessage}`;
-  }, [futureRangeLoadErrorMessage, futureRangeLoadState]);
-
   const canMovePrevDate = currentDateIndex > 0 || canLoadMorePast;
   const canMoveNextDate = currentDateIndex < allDatesData.length - 1 || canLoadMoreFuture;
 
@@ -162,7 +126,7 @@ export default function PredictionMatchSchedulePreviewRuntime({
   const isFutureRangeLoading = futureRangeLoadState === 'loading';
   const isFutureRangeError = futureRangeLoadState === 'error';
 
-  const topNoticeKind = useMemo<TopNoticeKind | null>(() => {
+  const topNoticeKind = useMemo<PredictionTopNoticeKind | null>(() => {
     if (isFutureRangeLoading || isFutureRangeError) {
       return 'FUTURE';
     }
@@ -206,47 +170,28 @@ export default function PredictionMatchSchedulePreviewRuntime({
     pastRangeLoadState,
   ]);
 
-  const sharedTopNotice: TopNotice | null = topNoticeKind
-    ? {
-        kind: topNoticeKind,
-        content: (
+  return (
+    <div className="relative font-sans">
+      {topNoticeKind ? (
+        <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center sm:justify-end">
           <Suspense fallback={null}>
-            <PredictionTopNotice
+            <PredictionMatchScheduleTopNoticeRuntime
               kind={topNoticeKind}
               currentDateIndex={currentDateIndex}
+              currentDate={currentDate}
+              currentGameId={currentGameId}
               pastRangeLoadState={pastRangeLoadState}
-              pastRangeLoadErrorMessage={shellPastRangeErrorMessage}
+              pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
               futureRangeLoadState={futureRangeLoadState}
-              futureRangeLoadErrorMessage={shellFutureRangeErrorMessage}
+              futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
               canLoadMorePast={canLoadMorePast}
               canLoadMoreFuture={canLoadMoreFuture}
               hasPastNavigation={hasPastNavigation}
-              isCurrentVotePartial={false}
-              currentVotePartialReason={null}
-              voteStatusError={null}
-              isVoteRetryLoading={false}
-              isRunInProgress={false}
-              isRunBannerDismissed={false}
-              runProgressMessage={null}
               deepLinkNotice={deepLinkNotice}
-              predictionRecoveryPath={predictionRecoveryPath}
               onRetryLoadMorePastMatches={retryLoadMorePastMatches}
               onRetryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
-              onRetryVoteStatus={() => {}}
-              onRetryPartialVoteStatus={() => {}}
-              onDismissRunProgressBanner={() => {}}
-              onResumeRunProgressBanner={() => {}}
             />
           </Suspense>
-        ),
-      }
-    : null;
-
-  return (
-    <div className="relative">
-      {sharedTopNotice ? (
-        <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center sm:justify-end">
-          {sharedTopNotice.content}
         </div>
       ) : null}
       <PredictionMatchPreviewTab

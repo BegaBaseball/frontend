@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 import type { AdminSeatView } from '../../types/admin';
@@ -13,8 +14,8 @@ interface AdminSeatViewDetailDrawerProps {
   handleSeatViewAction: (
     seatViewId: number,
     payload: {
-      adminLabel?: string;
-      moderationStatus?: string;
+      adminLabel: 'SEAT_VIEW' | 'TICKET' | 'OTHER' | 'INAPPROPRIATE';
+      moderationStatus: 'APPROVED' | 'REJECTED';
       adminMemo?: string;
     }
   ) => Promise<void>;
@@ -29,7 +30,7 @@ export default function AdminSeatViewDetailDrawer({
   closeSeatViewDetail,
   handleSeatViewAction,
 }: AdminSeatViewDetailDrawerProps) {
-  return (
+  const content = (
     <div className="fixed inset-0 z-50">
       <button
         type="button"
@@ -147,4 +148,10 @@ export default function AdminSeatViewDetailDrawer({
       </aside>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return content;
+  }
+
+  return createPortal(content, document.body);
 }

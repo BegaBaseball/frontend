@@ -12,7 +12,7 @@ const AdminPageRuntimeFallback = () => (
 
 export default function AdminPage() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 admin-page">
+    <div className="min-h-screen bg-slate-950 text-slate-100 text-[15px] admin-page">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-radial from-amber-900/20 via-transparent to-transparent" />
         <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-radial from-emerald-900/10 via-transparent to-transparent" />
@@ -48,7 +48,7 @@ export default function AdminPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            <span className="text-xs text-emerald-400 font-medium uppercase tracking-wider">
+            <span className="text-sm text-emerald-400 font-semibold uppercase tracking-wider">
               Live Monitoring
             </span>
           </div>

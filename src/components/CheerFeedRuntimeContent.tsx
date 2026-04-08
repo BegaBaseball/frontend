@@ -178,7 +178,7 @@ export default function CheerFeedRuntimeContent({
                 <button
                     type="button"
                     onClick={handleNewPostsClick}
-                    className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-sm font-semibold transition-colors flex items-center justify-center gap-2 border-b"
+                    className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-[16px] font-bold transition-colors flex items-center justify-center gap-2 border-b"
                     style={{
                         backgroundColor: `${teamColor}1A`,
                         borderColor: `${teamColor}40`,
@@ -222,10 +222,10 @@ export default function CheerFeedRuntimeContent({
                         <div className="flex flex-col items-center gap-3">
                             <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
                             <div className="text-center">
-                                <p className="text-[16px] font-semibold text-red-500 dark:text-red-400">
+                                <p className="text-[16px] font-bold text-red-500 dark:text-red-400">
                                     데이터를 불러오지 못했습니다
                                 </p>
-                                <p className="mt-1 text-sm text-slate-500 dark:text-gray-300">
+                                <p className="mt-1 text-[16px] font-bold text-slate-500 dark:text-gray-300">
                                     네트워크 상태를 확인하고 다시 시도해 주세요
                                 </p>
                             </div>
@@ -233,19 +233,19 @@ export default function CheerFeedRuntimeContent({
                         <button
                             type="button"
                             onClick={() => queryClient.invalidateQueries({ queryKey: ['cheer-posts', activeFeedTab] })}
-                            className="rounded-full bg-slate-100 dark:bg-secondary px-6 py-2.5 text-sm font-semibold text-slate-700 dark:text-gray-200 hover:bg-slate-200 dark:hover:bg-secondary transition-colors"
+                            className="rounded-full bg-slate-100 dark:bg-secondary px-6 py-2.5 text-[16px] font-bold text-slate-700 dark:text-gray-200 hover:bg-slate-200 dark:hover:bg-secondary transition-colors"
                         >
                             다시 시도
                         </button>
                     </div>
                 ) : activeFeedTab === 'following' && !isLoggedIn ? (
                     <div className="border-b border-border/70 dark:border-border px-4 sm:px-6 py-8 sm:py-10 text-center">
-                        <p className="text-[#64748B] dark:text-gray-300">로그인이 필요합니다</p>
-                        <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">팔로우한 유저의 글을 보려면 로그인해주세요.</p>
+                        <p className="text-[#64748B] font-bold dark:text-gray-300">로그인이 필요합니다</p>
+                        <p className="mt-1 text-[16px] font-bold text-slate-400 dark:text-gray-300">팔로우한 유저의 글을 보려면 로그인해주세요.</p>
                         <button
                             type="button"
                             onClick={onRequireLogin}
-                            className="mt-4 rounded-full px-6 py-2 text-sm font-semibold text-white"
+                            className="mt-4 rounded-full px-6 py-2 text-[16px] font-bold text-white"
                             style={{ backgroundColor: teamColor }}
                         >
                             로그인하기
@@ -255,13 +255,13 @@ export default function CheerFeedRuntimeContent({
                     <div className="border-b border-border/70 dark:border-border px-4 sm:px-6 py-8 sm:py-10 text-center">
                         {activeFeedTab === 'following' ? (
                             <>
-                                <p className="text-[#64748B] dark:text-gray-300">팔로우한 유저가 없습니다</p>
-                                <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">다른 유저를 팔로우하면 여기에 글이 표시됩니다!</p>
+                                <p className="text-[#64748B] font-bold dark:text-gray-300">팔로우한 유저가 없습니다</p>
+                                <p className="mt-1 text-[16px] font-bold text-slate-400 dark:text-gray-300">다른 유저를 팔로우하면 여기에 글이 표시됩니다!</p>
                             </>
                         ) : (
                             <>
-                                <p className="text-[#64748B] dark:text-gray-300">아직 작성된 응원글이 없습니다.</p>
-                                <p className="mt-1 text-sm text-slate-400 dark:text-gray-300">첫 번째 응원글을 남겨보세요!</p>
+                                <p className="text-[#64748B] font-bold dark:text-gray-300">아직 작성된 응원글이 없습니다.</p>
+                                <p className="mt-1 text-[16px] font-bold text-slate-400 dark:text-gray-300">첫 번째 응원글을 남겨보세요!</p>
                             </>
                         )}
                     </div>
@@ -271,7 +271,7 @@ export default function CheerFeedRuntimeContent({
                             <ErrorBoundary
                                 key={post.id}
                                 fallback={(
-                                    <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                                    <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-[16px] text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
                                         일부 게시글을 표시하는 중 오류가 발생했습니다. 다음 게시글부터 계속 볼 수 있습니다.
                                     </article>
                                 )}
@@ -295,23 +295,23 @@ export default function CheerFeedRuntimeContent({
                 )}
                 <div ref={sentinelRef} className="flex min-h-[120px] items-center justify-center">
                     {queryError && currentPosts.length > 0 ? (
-                        <div className="flex flex-col items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-                            <span>데이터를 불러오지 못했습니다.</span>
-                            <p className="text-xs text-slate-400 dark:text-slate-300">
+                        <div className="flex flex-col items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+                                <span className="font-bold">데이터를 불러오지 못했습니다.</span>
+                            <p className="text-[16px] font-bold text-slate-400 dark:text-slate-300">
                                 네트워크 상태를 확인하고 다시 시도해 주세요
                             </p>
                             <button
                                 type="button"
                                 onClick={() => fetchNextPage()}
-                                className="rounded-full border border-slate-200 dark:border-border px-4 py-1.5 text-xs font-semibold text-slate-600 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-secondary"
+                                className="rounded-full border border-slate-200 dark:border-border px-4 py-1.5 text-[16px] font-bold text-slate-600 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-secondary"
                             >
                                 다시 시도
                             </button>
                         </div>
                     ) : isFetchingNextPage ? (
-                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
+                        <div className="flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
                             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                            불러오는 중...
+                            <span className="font-bold">불러오는 중...</span>
                         </div>
                     ) : null}
                     {!hasNextPage && currentPosts.length > 0 && !isFetchingNextPage && (

@@ -1,0 +1,55 @@
+{
+  "status": "failed",
+  "runStartedAt": "2026-04-05T07:27:47.541Z",
+  "runFinishedAt": "2026-04-05T07:27:58.612Z",
+  "apiBase": "http://127.0.0.1:18080/api",
+  "signupIdentity": {
+    "name": "smoke_user_541561",
+    "handle": "@Smoke541561",
+    "email": "Smoke_1775374067541561@Example.com"
+  },
+  "steps": [
+    {
+      "name": "backend-health",
+      "status": "failed",
+      "startedAt": "2026-04-05T07:27:47.545Z",
+      "finishedAt": "2026-04-05T07:27:58.612Z",
+      "durationMs": 11067,
+      "error": "backend unavailable at http://127.0.0.1:18080/api. fetch failed",
+      "diagnostics": {
+        "kind": "network",
+        "step": "backend-health",
+        "method": "GET",
+        "path": "/actuator/health",
+        "url": "http://127.0.0.1:18080/actuator/health",
+        "status": null,
+        "attempts": 12,
+        "message": "backend unavailable at http://127.0.0.1:18080/api. fetch failed"
+      }
+    }
+  ],
+  "warnings": [
+    "backend-health 재시도 1/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=1: fetch failed",
+    "backend-health 재시도 2/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=2: fetch failed",
+    "backend-health 재시도 3/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=3: fetch failed",
+    "backend-health 재시도 4/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=4: fetch failed",
+    "backend-health 재시도 5/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=5: fetch failed",
+    "backend-health 재시도 6/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=6: fetch failed",
+    "backend-health 재시도 7/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=7: fetch failed",
+    "backend-health 재시도 8/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=8: fetch failed",
+    "backend-health 재시도 9/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=9: fetch failed",
+    "backend-health 재시도 10/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=10: fetch failed",
+    "backend-health 재시도 11/11: [network] GET http://127.0.0.1:18080/api/actuator/health attempts=11: fetch failed"
+  ],
+  "fatalError": "backend unavailable at http://127.0.0.1:18080/api. fetch failed",
+  "fatalErrorDetails": {
+    "kind": "network",
+    "step": "backend-health",
+    "method": "GET",
+    "path": "/actuator/health",
+    "url": "http://127.0.0.1:18080/actuator/health",
+    "status": null,
+    "attempts": 12,
+    "message": "backend unavailable at http://127.0.0.1:18080/api. fetch failed"
+  }
+}

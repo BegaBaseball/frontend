@@ -16,14 +16,14 @@ export default function Footer() {
             <h3 className="tracking-wider text-lg" style={{ fontWeight: 900 }}>
               BEGA
             </h3>
-            <p className="text-[10px] text-gray-400 uppercase">BASEBALL GUIDE</p>
+            <p className="text-[16px] text-gray-400 uppercase">BASEBALL GUIDE</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
           <div>
-            <h4 className="mb-2 text-sm font-bold">서비스</h4>
-            <ul className="space-y-1 text-xs text-zinc-600 dark:text-gray-400">
+            <h4 className="mb-2 text-base font-bold">서비스</h4>
+            <ul className="space-y-1 text-[16px] text-zinc-600 dark:text-gray-400">
               <li>
                 <Link to="/home" className="hover:text-primary dark:hover:text-white">
                   홈
@@ -57,8 +57,8 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="mb-2 text-sm font-bold">정보</h4>
-            <ul className="space-y-1 text-xs text-zinc-600 dark:text-gray-400">
+            <h4 className="mb-2 text-base font-bold">정보</h4>
+            <ul className="space-y-1 text-[16px] text-zinc-600 dark:text-gray-400">
               <li>
                 <Link to="/notice" className="hover:text-primary dark:hover:text-white">
                   공지사항
@@ -77,8 +77,8 @@ export default function Footer() {
             </ul>
           </div>
           <div className="col-span-2 md:col-span-1">
-            <h4 className="mb-2 text-sm font-bold">고객센터</h4>
-            <ul className="space-y-1 text-xs text-zinc-600 dark:text-gray-400">
+            <h4 className="mb-2 text-base font-bold">고객센터</h4>
+            <ul className="space-y-1 text-[16px] text-zinc-600 dark:text-gray-400">
               <li>
                 이메일:{' '}
                 <a
@@ -93,7 +93,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-zinc-200 dark:border-gray-800 pt-4 text-center text-zinc-500 dark:text-gray-500 text-[10px]">
+        <div className="border-t border-zinc-200 dark:border-gray-800 pt-4 text-center text-zinc-500 dark:text-gray-500 text-[16px]">
           <p>© 2025 BEGA (BASEBALL GUIDE). All rights reserved.</p>
         </div>
       </div>

@@ -44,7 +44,7 @@ function InlineBadge({
   return (
     <span
       className={joinClassNames(
-        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold',
+        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[16px] font-semibold',
         className,
       )}
     >
@@ -108,13 +108,13 @@ export default function MateDetailReviewsSection({
 
   return (
     <Card className={`p-4 ${sectionCardClass}`}>
-      <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white">
+      <h3 className="mb-3 flex items-center gap-1.5 text-[16px] font-semibold text-gray-900 dark:text-white">
         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
         리뷰
       </h3>
       <div className="space-y-2">
         {targets.length === 0 ? (
-          <p className="text-sm text-gray-400">리뷰 대상이 없습니다.</p>
+          <p className="text-[16px] text-gray-400">리뷰 대상이 없습니다.</p>
         ) : targets.map((target) => {
           const myReview = reviews.find(
             (review) => hasSameMateUserIdentity(
@@ -132,7 +132,7 @@ export default function MateDetailReviewsSection({
               className={`flex items-center justify-between p-3 ${insetPanelClass}`}
             >
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                <span className="text-[16px] font-semibold text-gray-900 dark:text-white">
                   {target.name}
                 </span>
                 {myReview && (
@@ -147,7 +147,7 @@ export default function MateDetailReviewsSection({
                       />
                     ))}
                     {myReview.comment && (
-                      <span className="ml-1 max-w-[120px] truncate text-xs text-gray-500 dark:text-gray-400">
+                      <span className="ml-1 max-w-[120px] truncate text-[16px] text-gray-500 dark:text-gray-400">
                         "{myReview.comment}"
                       </span>
                     )}
@@ -162,7 +162,7 @@ export default function MateDetailReviewsSection({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs border-primary text-primary hover:bg-primary/10"
+                  className="text-[16px] border-primary text-primary hover:bg-primary/10"
                   onClick={() => onRequestReview(target)}
                 >
                   리뷰 작성

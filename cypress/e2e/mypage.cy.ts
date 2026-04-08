@@ -143,7 +143,16 @@ describe('My Page (User Profile)', () => {
         });
 
         it('should apply uploaded image immediately after save', () => {
-            const updatedProfileImage = uploadedProfileImage;
+            const updatedProfileImage = '/mock/profile-avatar.svg';
+            const previewProfileImage = 'blob:test-profile-preview';
+
+            cy.intercept('GET', updatedProfileImage, {
+                statusCode: 200,
+                headers: {
+                    'content-type': 'image/svg+xml',
+                },
+                body: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#16a34a"/></svg>',
+            }).as('getUpdatedProfileImage');
 
             cy.intercept('GET', '**/api/auth/mypage*', {
                 statusCode: 200,
@@ -166,7 +175,7 @@ describe('My Page (User Profile)', () => {
                 body: {
                     success: true,
                     data: {
-                        userId: 1,
+                        userId: 123,
                         storagePath: 'users/avatars/test-profile.png',
                         publicUrl: updatedProfileImage,
                         mimeType: 'image/png',
@@ -175,34 +184,38 @@ describe('My Page (User Profile)', () => {
                 },
             }).as('uploadProfileImage');
 
-            cy.intercept('PUT', '**/api/auth/mypage', (req) => {
-                expect(req.body.profileImageUrl).to.eq(updatedProfileImage);
-                req.reply({
-                    statusCode: 200,
-                    body: {
-                        success: true,
-                        data: {
-                            name: 'TestUser',
-                            email: 'test@example.com',
-                            favoriteTeam: 'HH',
-                            bio: 'I love baseball!',
-                            profileImageUrl: updatedProfileImage,
-                        },
+            cy.intercept('PUT', '**/api/auth/mypage', {
+                statusCode: 200,
+                body: {
+                    success: true,
+                    data: {
+                        name: 'TestUser',
+                        email: 'test@example.com',
+                        favoriteTeam: 'HH',
+                        bio: 'I love baseball!',
+                        profileImageUrl: updatedProfileImage,
                     },
-                });
+                },
             }).as('updateProfile');
 
             cy.wait(500);
             cy.contains('내 정보 수정').click();
             cy.url().should('include', 'view=editProfile');
+            cy.window().then((win) => {
+                cy.stub(win.URL, 'createObjectURL').returns(previewProfileImage);
+                cy.stub(win.URL, 'revokeObjectURL').callsFake(() => undefined);
+            });
 
-            cy.get('input[type="file"]').selectFile({
-                contents: Cypress.Buffer.from('avatar image'),
-                fileName: 'avatar.png',
-                mimeType: 'image/png',
-            }, { force: true });
+            cy.fixture('tiny-image.base64').then((base64) => {
+                cy.get('[data-testid="profile-image-upload-input"]').selectFile({
+                    contents: Cypress.Buffer.from(base64, 'base64'),
+                    fileName: 'avatar.png',
+                    mimeType: 'image/png',
+                }, { force: true });
+            });
 
-            cy.contains('button', '저장하기').click();
+            cy.contains('이미지가 선택되었습니다. 저장 버튼을 눌러주세요.').should('be.visible');
+            cy.contains('button', '저장하기').should('not.be.disabled').click();
 
             cy.wait('@uploadProfileImage');
             cy.wait('@updateProfile');
@@ -210,7 +223,10 @@ describe('My Page (User Profile)', () => {
 
             cy.contains('변경사항이 적용되었습니다').should('be.visible');
             cy.url().should('include', '/mypage');
-            cy.get('[data-testid="profile-avatar-image"]').should('have.attr', 'src', updatedProfileImage);
+            cy.url().should('not.include', 'view=editProfile');
+            cy.contains('button', '메이트 내역').should('be.visible');
+            cy.wait('@getUpdatedProfileImage');
+            cy.get('[data-testid="profile-avatar-image"]', { timeout: 20000 }).should('have.attr', 'src', updatedProfileImage);
         });
 
         it('should not send profileImageUrl when image is not changed', () => {

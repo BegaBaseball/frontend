@@ -114,12 +114,12 @@ export default function VerificationRequiredDialog({
                         <h2 id={titleId} className={`text-xl font-bold ${isSecurityMode ? 'text-white' : 'text-foreground'}`}>
                             {dialogTitle}
                         </h2>
-                        <div id={descriptionId} className={`pt-2 text-sm ${isSecurityMode ? 'text-slate-200' : 'text-muted-foreground'}`}>
+                        <div id={descriptionId} className={`pt-2 text-[16px] ${isSecurityMode ? 'text-slate-200' : 'text-muted-foreground'}`}>
                             {dialogDescription}
                         </div>
                     </div>
-                    <div className={`my-4 rounded-lg p-4 text-sm ${isSecurityMode ? 'border border-slate-700 bg-slate-900/60 text-slate-100' : 'bg-gray-50 text-gray-600'}`}>
-                        <p className={`mb-1 font-medium ${isSecurityMode ? 'text-white' : 'text-gray-900'}`}>
+                    <div className={`my-4 rounded-lg p-4 text-[16px] ${isSecurityMode ? 'border border-slate-700 bg-slate-900/60 text-slate-100' : 'bg-gray-50 text-gray-600'}`}>
+                        <p className={`mb-1 font-semibold ${isSecurityMode ? 'text-white' : 'text-gray-900'}`}>
                             {isSecurityMode ? '보안 조치 안내' : '왜 필요한가요?'}
                         </p>
                         <ul className="list-disc list-inside space-y-1">

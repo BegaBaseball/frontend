@@ -3,11 +3,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from '../hooks/useTheme';
 import LoadingSpinner from './LoadingSpinner';
-import ScrollToTop from './ScrollToTop';
-import AuthBootstrap from './AuthBootstrap';
-import SeoHead from '../seo/SeoHead';
 
-const AppRoutes = lazy(() => import('./AppRoutes'));
+const AppShellRuntime = lazy(() => import('./AppShellRuntime'));
 
 export default function AppBrowserShell() {
   return (
@@ -20,9 +17,6 @@ export default function AppBrowserShell() {
     >
       <BrowserRouter>
         <HelmetProvider>
-          <ScrollToTop />
-          <AuthBootstrap />
-          <SeoHead />
           <Suspense
             fallback={
               <LoadingSpinner
@@ -33,7 +27,7 @@ export default function AppBrowserShell() {
               />
             }
           >
-            <AppRoutes />
+            <AppShellRuntime />
           </Suspense>
         </HelmetProvider>
       </BrowserRouter>

@@ -137,7 +137,7 @@ export default function CheerEdit() {
               <div className="space-y-6">
                 {/* Content */}
                 <div className="space-y-2">
-                  <label className="block text-sm text-primary">
+                  <label className="block text-[16px] text-primary">
                     내용 *
                   </label>
                   <Textarea
@@ -151,10 +151,10 @@ export default function CheerEdit() {
                 {/* Images */}
                 <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                    <label className="block text-sm text-primary">
+                    <label className="block text-[16px] text-primary">
                       첨부 이미지
                     </label>
-                    <span className="text-xs text-gray-500 dark:text-gray-300">
+                    <span className="text-[16px] text-gray-500 dark:text-gray-300">
                       최대 10개, 파일당 5MB 이하
                     </span>
                   </div>
@@ -173,7 +173,7 @@ export default function CheerEdit() {
                         input?.click();
                       }
                     }}
-                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-gray-500 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50 dark:border-green-500/60 dark:bg-green-950/40' : 'border-gray-300 dark:border-border hover:border-gray-400 dark:hover:border-white/20 dark:bg-secondary/20'
+                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-[16px] text-gray-500 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50 dark:border-green-500/60 dark:bg-green-950/40' : 'border-gray-300 dark:border-border hover:border-gray-400 dark:hover:border-white/20 dark:bg-secondary/20'
                       }`}
                   >
                     <Upload className="h-6 w-6" />
@@ -215,7 +215,7 @@ export default function CheerEdit() {
                                 }`}
                             >
                               <ImageIcon className="h-8 w-8" />
-                              <span className="mt-1 text-xs">로딩 중...</span>
+                              <span className="mt-1 text-[16px]">로딩 중...</span>
                             </div>
                             <button
                               type="button"
@@ -225,12 +225,12 @@ export default function CheerEdit() {
                               aria-label={`이미지 ${idx + 1} 삭제`}
                             >
                               {deletingImageId === image.id ? (
-                                <span className="text-[10px] font-semibold">삭제</span>
+                              <span className="text-[16px] font-semibold">삭제</span>
                               ) : (
                                 <X className="h-4 w-4" strokeWidth={3} />
                               )}
                             </button>
-                            <div className="absolute bottom-0 left-0 right-0 z-10 bg-black/60 px-2 py-1 text-center text-xs text-white">
+                              <div className="absolute bottom-0 left-0 right-0 z-10 bg-black/60 px-2 py-1 text-center text-[16px] text-white">
                               이미지 {idx + 1}
                             </div>
                           </div>
@@ -257,7 +257,7 @@ export default function CheerEdit() {
                           >
                             <X className="h-4 w-4" strokeWidth={3} />
                           </button>
-                          <div className="absolute top-1.5 left-1.5 z-10 rounded bg-green-600 px-2 py-0.5 text-xs text-white">
+                          <div className="absolute top-1.5 left-1.5 z-10 rounded bg-green-600 px-2 py-0.5 text-[16px] text-white">
                             새 이미지
                           </div>
                         </div>

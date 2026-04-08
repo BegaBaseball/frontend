@@ -36,7 +36,7 @@ export default function PredictionStatsPanel() {
         <div className="bg-slate-50/50 dark:bg-slate-950/50 px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <Target className="w-4 h-4 text-indigo-500" />
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">나의 예측 퍼포먼스</h3>
+            <h3 className="text-[16px] font-bold text-slate-800 dark:text-slate-100">나의 예측 퍼포먼스</h3>
           </div>
         </div>
 
@@ -78,11 +78,11 @@ export default function PredictionStatsPanel() {
                 <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none">
                   {animatedAccuracyPercent.toFixed(1)}
                 </span>
-                <span className="text-[10px] sm:text-xs font-bold text-slate-400 leading-none">%</span>
+                <span className="text-[16px] sm:text-[16px] font-bold text-slate-400 leading-none">%</span>
               </div>
             </div>
 
-            <p className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 leading-none">전체 적중률</p>
+            <p className="text-[16px] sm:text-[16px] font-bold text-slate-500 dark:text-slate-400 leading-none">전체 적중률</p>
           </div>
 
           <div className="hidden sm:block w-px h-16 bg-slate-200 dark:bg-slate-700/50 shrink-0" />
@@ -91,39 +91,39 @@ export default function PredictionStatsPanel() {
             <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
               <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                 <Hash className="w-3.5 h-3.5" />
-                <span className="text-[11px] sm:text-xs font-semibold">총 예측</span>
+                <span className="text-[16px] sm:text-[16px] font-semibold">총 예측</span>
               </div>
               <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
                 <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">
                   {predictionStats.totalPredictions}
                 </span>
-                <span className="text-[10px] sm:text-xs font-medium text-slate-400">회</span>
+                <span className="text-[16px] sm:text-[16px] font-semibold text-slate-400">회</span>
               </div>
             </div>
 
             <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
               <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span className="text-[11px] sm:text-xs font-semibold">적중</span>
+                <span className="text-[16px] sm:text-[16px] font-semibold">적중</span>
               </div>
               <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
                 <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">
                   {predictionStats.correctPredictions}
                 </span>
-                <span className="text-[10px] sm:text-xs font-medium text-slate-400">회</span>
+                <span className="text-[16px] sm:text-[16px] font-semibold text-slate-400">회</span>
               </div>
             </div>
 
             <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
               <div className="flex items-center gap-1 text-orange-600 dark:text-orange-500">
                 <Flame className="w-3.5 h-3.5" />
-                <span className="text-[11px] sm:text-xs font-semibold">연속 적중</span>
+                <span className="text-[16px] sm:text-[16px] font-semibold">연속 적중</span>
               </div>
               <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
                 <span className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums leading-none">
                   {predictionStats.streak}
                 </span>
-                <span className="text-[10px] sm:text-xs font-bold text-orange-500/70">연</span>
+                <span className="text-[16px] sm:text-[16px] font-bold text-orange-500/70">연</span>
               </div>
             </div>
           </div>
