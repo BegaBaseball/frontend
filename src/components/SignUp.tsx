@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState } from 'react';
-import { CheckCircle2, Eye, EyeOff, Lock, Mail, User, XCircle } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { TEAM_LIST, getFullTeamName } from '../constants/teams';
@@ -16,6 +16,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 
 const LazyTeamRecommendationTest = lazy(() => import('./TeamRecommendationTest'));
+const LazySignUpStatusPanel = lazy(() => import('./auth/SignUpStatusPanel'));
 
 const getAvailabilityMessageClassName = (state: 'idle' | 'checking' | 'available' | 'taken' | 'error') => {
   if (state === 'available') {
@@ -63,24 +64,10 @@ export default function SignUp() {
       />
 
       <form onSubmit={handleSubmit} className="space-y-6" noValidate data-testid="signup-form">
-        {isSuccess ? (
-          <AuthStatusPanel tone="success" data-testid="signup-status-panel" role="status">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-            <div className="space-y-1">
-              <p className="font-semibold">회원가입 성공!</p>
-              <p className="text-sm">환영합니다! 잠시 후 로그인 화면으로 이동합니다...</p>
-            </div>
-          </AuthStatusPanel>
-        ) : null}
-
-        {error && !isSuccess ? (
-          <AuthStatusPanel tone="error" data-testid="signup-status-panel" role="alert">
-            <XCircle className="mt-0.5 h-5 w-5 shrink-0" />
-            <div className="space-y-1">
-              <p className="font-semibold">회원가입 실패</p>
-              <p className="text-sm">{error}</p>
-            </div>
-          </AuthStatusPanel>
+        {isSuccess || error ? (
+          <Suspense fallback={null}>
+            <LazySignUpStatusPanel error={error} isSuccess={isSuccess} />
+          </Suspense>
         ) : null}
 
         <AuthFieldGroup>
@@ -269,7 +256,7 @@ export default function SignUp() {
 
             {formData.favoriteTeam === '없음' ? (
               <AuthStatusPanel tone="warning" role="status">
-                <div className="space-y-1 text-sm">
+                <div className="space-y-1 text-[16px]">
                   <p className="font-semibold">응원구단을 선택하지 않으면 응원석을 이용할 수 없습니다.</p>
                   <p>회원가입 후에도 마이페이지 &gt; 내 정보 수정에서 언제든 변경할 수 있습니다.</p>
                 </div>
@@ -285,7 +272,7 @@ export default function SignUp() {
                   setHasOpenedTeamTest(true);
                   setShowTeamTest(true);
                 }}
-                className="h-auto px-2 py-1 text-sm text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
+                className="h-auto px-2 py-1 text-[16px] text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
                 disabled={isLoading || isSuccess}
                 data-testid="signup-team-test"
               >
@@ -297,7 +284,7 @@ export default function SignUp() {
               <Suspense
                 fallback={
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
-                    <div className="rounded-2xl border border-border bg-card px-6 py-4 text-sm text-muted-foreground shadow-2xl">
+                    <div className="rounded-2xl border border-border bg-card px-6 py-4 text-[16px] text-muted-foreground shadow-2xl">
                       구단 테스트를 불러오는 중...
                     </div>
                   </div>

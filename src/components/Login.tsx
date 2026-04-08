@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getSocialLoginUrl } from '../api/authPublic';
 import { useLoginForm } from '../hooks/useLoginForm';
 import { buildPasswordResetPath, buildSignUpPath } from '../utils/loginRedirect';
+import { sanitizeLoginPasswordText, sanitizeLoginText } from '../utils/validation';
 import AuthLayout from './auth/AuthLayout';
 import {
   AuthActionGroup,
@@ -35,7 +36,6 @@ export default function Login() {
   const redirectPath = new URLSearchParams(location.search).get('redirect');
   const signUpPath = buildSignUpPath(redirectPath);
   const passwordResetPath = buildPasswordResetPath(redirectPath);
-  const sanitizeLoginText = (value: string) => value.replace(/[^\x20-\x7E]/g, '');
 
   const handleSocialLogin = (provider: 'kakao' | 'google' | 'naver') => {
     if (!isLoading) {
@@ -55,7 +55,7 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
         {error ? (
           <AuthStatusPanel tone="error" data-testid="login-status-panel" role="alert">
-            <p className="text-sm font-medium">{error}</p>
+            <p className="text-[16px] font-semibold">{error}</p>
           </AuthStatusPanel>
         ) : null}
 
@@ -96,7 +96,7 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 value={formData.password}
-                onChange={(event) => handleFieldChange('password', sanitizeLoginText(event.target.value).replace(/\s/g, ''))}
+                onChange={(event) => handleFieldChange('password', sanitizeLoginPasswordText(event.target.value))}
                 onBlur={() => handleFieldBlur('password')}
                 className={`auth-input login-autofill-input pr-12 ${fieldErrors.password ? 'auth-input-error' : ''}`}
                 placeholder="비밀번호를 입력하세요"
@@ -117,7 +117,7 @@ export default function Login() {
             {fieldErrors.password ? <p className="auth-error-text">* {fieldErrors.password}</p> : null}
 
             <div className="auth-support-row">
-              <label htmlFor="remember-email" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <label htmlFor="remember-email" className="inline-flex items-center gap-2 text-[16px] text-muted-foreground">
                 <input
                   id="remember-email"
                   type="checkbox"
@@ -132,7 +132,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => navigate(passwordResetPath)}
-                className="auth-link text-sm"
+                className="auth-link text-[16px]"
                 disabled={isLoading}
                 data-testid="login-password-reset-link"
               >
@@ -183,7 +183,7 @@ export default function Login() {
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center">
-          <span className="bg-card px-4 text-sm text-muted-foreground">또는</span>
+          <span className="bg-card px-4 text-[16px] text-muted-foreground">또는</span>
         </div>
       </div>
 

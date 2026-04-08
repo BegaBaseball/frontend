@@ -4,7 +4,8 @@ const AUTH_BOOTSTRAP_META_VERSION = 1;
 const AUTH_BOOTSTRAP_SUCCESS_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTH_BOOTSTRAP_FAILURE_COOLDOWN_MS = 60 * 1000;
 
-const AUTH_BOOTSTRAP_SKIPPED_PATHS = new Set([
+const AUTH_BOOTSTRAP_SKIPPED_PATHS = new Set<string>();
+const AUTH_BOOTSTRAP_AUTH_PAGE_PATHS = new Set([
   '/login',
   '/signup',
   '/password/reset',
@@ -183,6 +184,18 @@ export const resolveAuthBootstrapMode = (
   const authBootstrapMeta = options.authBootstrapMeta ?? null;
 
   if (AUTH_BOOTSTRAP_SKIPPED_PATHS.has(normalizedPathname)) {
+    return 'skip';
+  }
+
+  if (AUTH_BOOTSTRAP_AUTH_PAGE_PATHS.has(normalizedPathname)) {
+    if (isFailureCooldownActive(authBootstrapMeta, now)) {
+      return 'skip';
+    }
+
+    if (options.hasPersistedAuthHint || hasFreshSuccess(authBootstrapMeta, now)) {
+      return 'immediate';
+    }
+
     return 'skip';
   }
 

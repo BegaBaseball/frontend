@@ -8,7 +8,15 @@ import {
   PasswordResetConfirmFormData,
 } from '../types/auth';
 
+const NON_ASCII_REGEX = /[^\x20-\x7E]/;
+const NON_ASCII_REPLACE_REGEX = /[^\x20-\x7E]/g;
+
 type SignUpAvailabilityField = 'handle' | 'email';
+
+export const sanitizeLoginText = (value: string): string => value.replace(NON_ASCII_REPLACE_REGEX, '');
+export const sanitizeLoginPasswordText = (value: string): string => sanitizeLoginText(value).replace(/\s/g, '');
+
+export const hasNonAsciiCharacters = (value: string): boolean => NON_ASCII_REGEX.test(value);
 
 const SIGNUP_AVAILABILITY_MESSAGES: Record<SignUpAvailabilityField, Record<Exclude<SignUpFieldAvailabilityState, 'idle'>, string>> = {
   handle: {
@@ -39,7 +47,7 @@ export const createSignUpAvailabilityState = (
 });
 
 export const normalizeSignUpHandleInput = (value: string): string => {
-  const lowercased = value.toLowerCase();
+  const lowercased = sanitizeLoginText(value.toLowerCase());
   if (lowercased === '' || lowercased === '@') {
     return '@';
   }
@@ -47,7 +55,7 @@ export const normalizeSignUpHandleInput = (value: string): string => {
 };
 
 export const normalizeSignUpHandleValue = (value: string): string => {
-  const normalized = value.trim().toLowerCase();
+  const normalized = sanitizeLoginText(value.trim().toLowerCase());
   if (!normalized || normalized === '@') {
     return '@';
   }
@@ -62,16 +70,20 @@ export const validateField = (
   value: string,
   formData?: SignUpFormData
 ): string => {
+  const trimmedValue = value.trim();
   switch (fieldName) {
     case 'name':
-      if (!value.trim()) {
+      if (!trimmedValue) {
         return ERROR_MESSAGES.NAME.REQUIRED;
       }
       return '';
 
     case 'handle':
-      if (!value.trim()) {
+      if (!trimmedValue) {
         return '핸들을 입력해주세요.';
+      }
+      if (hasNonAsciiCharacters(trimmedValue)) {
+        return ERROR_MESSAGES.ENCODE.INVALID;
       }
       if (!/^@[a-z0-9_]{1,14}$/.test(value)) {
         return '핸들은 @로 시작하고 15자 이내의 영문 소문자, 숫자, 언더바(_)만 가능합니다.';
@@ -79,10 +91,13 @@ export const validateField = (
       return '';
 
     case 'email':
-      if (!value.trim()) {
+      if (!trimmedValue) {
         return ERROR_MESSAGES.EMAIL.REQUIRED;
       }
-      if (!VALIDATION_RULES.EMAIL.REGEX.test(value.trim())) {
+      if (hasNonAsciiCharacters(trimmedValue)) {
+        return ERROR_MESSAGES.ENCODE.INVALID;
+      }
+      if (!VALIDATION_RULES.EMAIL.REGEX.test(trimmedValue)) {
         return ERROR_MESSAGES.EMAIL.INVALID;
       }
       return '';
@@ -90,6 +105,9 @@ export const validateField = (
     case 'password':
       if (!value) {
         return ERROR_MESSAGES.PASSWORD.REQUIRED;
+      }
+      if (/\s/.test(value) || hasNonAsciiCharacters(value)) {
+        return ERROR_MESSAGES.ENCODE.INVALID;
       }
       if (value.length < VALIDATION_RULES.PASSWORD.MIN_LENGTH) {
         return ERROR_MESSAGES.PASSWORD.MIN_LENGTH;
@@ -136,14 +154,13 @@ export const validateLoginField = (
   value: string
 ): string => {
   const asciiValue = value.trim();
-  const hasNonAscii = /[^\x20-\x7E]/.test(asciiValue);
 
   switch (fieldName) {
     case 'email':
       if (!value.trim()) {
         return ERROR_MESSAGES.EMAIL.REQUIRED;
       }
-      if (hasNonAscii) {
+      if (hasNonAsciiCharacters(asciiValue)) {
         return ERROR_MESSAGES.ENCODE.INVALID;
       }
       if (!VALIDATION_RULES.EMAIL.REGEX.test(value.trim())) {
@@ -158,7 +175,7 @@ export const validateLoginField = (
       if (/\s/.test(value)) {
         return ERROR_MESSAGES.ENCODE.INVALID;
       }
-      if (hasNonAscii) {
+      if (hasNonAsciiCharacters(value)) {
         return ERROR_MESSAGES.ENCODE.INVALID;
       }
       return '';
@@ -185,6 +202,9 @@ export const validatePasswordResetField = (
       if (!value) {
         return ERROR_MESSAGES.PASSWORD.REQUIRED;
       }
+      if (/\s/.test(value) || hasNonAsciiCharacters(value)) {
+        return ERROR_MESSAGES.ENCODE.INVALID;
+      }
       if (value.length < VALIDATION_RULES.PASSWORD.MIN_LENGTH) {
         return ERROR_MESSAGES.PASSWORD.MIN_LENGTH;
       }
@@ -196,6 +216,9 @@ export const validatePasswordResetField = (
     case 'confirmPassword':
       if (!value) {
         return ERROR_MESSAGES.CONFIRM_PASSWORD.REQUIRED;
+      }
+      if (/\s/.test(value) || hasNonAsciiCharacters(value)) {
+        return ERROR_MESSAGES.ENCODE.INVALID;
       }
       if (formData && value !== formData.newPassword) {
         return ERROR_MESSAGES.CONFIRM_PASSWORD.NOT_MATCH;

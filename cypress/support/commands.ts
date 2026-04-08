@@ -47,6 +47,8 @@ const defaultFollowCounts = {
     blockedByMe: false,
     blockingMe: false,
 };
+const AUTH_BOOTSTRAP_META_KEY = 'auth-bootstrap-meta';
+const CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY = 'cypress:skip-public-auth-bootstrap';
 
 Cypress.Commands.add('mockPublicFollowCounts', (handle: string, body = defaultFollowCounts) => {
     const normalizedHandle = handle.trim();
@@ -96,15 +98,26 @@ Cypress.Commands.add('login', (userType = 'user') => {
             state: {
                 user: user,
                 isLoggedIn: true,
-                isAdmin: user.role === 'ROLE_ADMIN' || user.role === 'ROLE_SUPER_ADMIN'
+                isAdmin: user.role === 'ROLE_ADMIN' || user.role === 'ROLE_SUPER_ADMIN',
+                isAuthLoading: false,
             },
             version: 0
         };
 
-        const seedAuthState = (win: Window) => {
+        const seedAuthState = (win: Window, options?: { skipPublicBootstrap?: boolean }) => {
+            if (options?.skipPublicBootstrap) {
+                win.sessionStorage.setItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY, '1');
+            } else {
+                win.sessionStorage.removeItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY);
+            }
             win.localStorage.setItem('auth-storage', JSON.stringify(authState));
             win.localStorage.setItem('accessToken', fakeToken);
             win.localStorage.setItem('auth-bootstrap-hint', '1');
+            win.localStorage.setItem(AUTH_BOOTSTRAP_META_KEY, JSON.stringify({
+                version: 1,
+                lastSuccessAt: Date.now(),
+                lastFailureAt: null,
+            }));
             win.localStorage.setItem('bega_has_visited', 'true');
             win.localStorage.setItem('bega_dont_show_guide', 'true');
         };
@@ -147,10 +160,9 @@ Cypress.Commands.add('login', (userType = 'user') => {
 
         cy.visit('/', {
             onBeforeLoad(win) {
-                seedAuthState(win);
+                seedAuthState(win, { skipPublicBootstrap: true });
             },
         });
-        cy.wait('@sessionGetMe');
         cy.window().then((win) => {
             seedAuthState(win);
         });
@@ -188,6 +200,11 @@ Cypress.Commands.add('mockAPI', (options: { skipRankings?: boolean } = {}) => {
             }
         }
     }).as('getMe');
+
+    cy.intercept('GET', '**/api/users/*/social-verified', {
+        statusCode: 200,
+        body: { success: true, data: true },
+    }).as('getSocialVerified');
 
     // Teams
     cy.fixture('teams').then((teams) => {
