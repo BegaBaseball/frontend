@@ -39,7 +39,7 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
             </CardHeader>
             <CardContent>
                 <div className="grid h-[250px] grid-cols-[36px_minmax(0,1fr)] gap-3">
-                    <div className="flex h-[210px] flex-col justify-between pt-2 text-[11px] font-medium text-muted-foreground">
+                    <div className="flex h-[210px] flex-col justify-between pt-2 text-[16px] font-semibold text-muted-foreground">
                         {tickValues.map((tick) => (
                             <span key={tick}>{tick}%</span>
                         ))}
@@ -64,7 +64,7 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
 
                                 return (
                                     <div key={entry.day} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-300">
+                                        <span className="text-[16px] font-semibold text-slate-500 dark:text-slate-300">
                                             {entry.winRate}%
                                         </span>
                                         <div className="flex h-[150px] w-full items-end justify-center">
@@ -75,8 +75,8 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
                                             />
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-xs font-semibold text-foreground">{entry.day}</p>
-                                            <p className="text-[11px] text-muted-foreground">{entry.count}경기</p>
+                                            <p className="text-[16px] font-semibold text-foreground">{entry.day}</p>
+                                            <p className="text-[16px] text-muted-foreground">{entry.count}경기</p>
                                         </div>
                                     </div>
                                 );

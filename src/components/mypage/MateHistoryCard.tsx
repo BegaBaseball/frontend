@@ -37,13 +37,13 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
               {party.stadium}
             </h3>
             <span
-              className={`px-3 py-1 rounded-full text-sm ${statusStyle.bg} ${statusStyle.text}`}
+              className={`px-3 py-1 rounded-full text-[16px] ${statusStyle.bg} ${statusStyle.text}`}
             >
               {statusLabel}
             </span>
           </div>
 
-          <div className="space-y-1 text-sm text-muted-foreground">
+          <div className="space-y-1 text-[16px] text-muted-foreground">
             <p>
               날짜: {formatGameDate(party.gameDate)} {party.gameTime.substring(0, 5)}
             </p>
@@ -55,7 +55,7 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
 
           {party.status === 'COMPLETED' && (
             <div className="mt-3 p-3 bg-green-50 rounded-lg">
-              <p className="text-sm text-green-700">
+              <p className="text-[16px] text-green-700">
                 경기 관람 완료 · 직거래 일정 종료
               </p>
             </div>
@@ -63,14 +63,14 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
 
           {party.status === 'CHECKED_IN' && (
             <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-700">
+              <p className="text-[16px] text-blue-700">
                 체크인 완료 · 경기 관람 완료
               </p>
             </div>
           )}
           {/* 상세보기 힌트 추가 */}
           <div className="mt-3 pt-3 border-t">
-            <span className="text-sm text-primary">
+            <span className="text-[16px] text-primary">
               상세보기 →
             </span>
           </div>
