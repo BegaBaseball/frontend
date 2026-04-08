@@ -3,7 +3,6 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  Loader2,
   MapPin,
   QrCode,
   Users,
@@ -19,7 +18,6 @@ import {
   getPartyStatusMeta,
   mateHeroCardClass,
   mateInsetPanelClass,
-  mateMobileBarClass,
   mateSectionCardClass,
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
@@ -80,20 +78,9 @@ function MatePill({ className = '', children }: { className?: string; children: 
   );
 }
 
-function ProgressBar({ value, className = '' }: { value: number; className?: string }) {
-  const safeValue = Math.max(0, Math.min(100, value));
-
-  return (
-    <div className={`w-full overflow-hidden rounded-full bg-gray-200 dark:bg-secondary/80 ${className}`} aria-hidden="true">
-      <div
-        className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
-        style={{ width: `${safeValue}%` }}
-      />
-    </div>
-  );
-}
-
 const MateCheckInRosterRuntime = lazy(() => import('./MateCheckInRosterRuntime'));
+const MateCheckInActionRuntime = lazy(() => import('./MateCheckInActionRuntime'));
+const MateCheckInStatusRuntime = lazy(() => import('./MateCheckInStatusRuntime'));
 
 interface MateCheckInContentRuntimeProps {
   party: Party;
@@ -189,22 +176,6 @@ export default function MateCheckInContentRuntime({
     { handle: checkIn.userHandle },
     { handle: party.hostHandle },
   ));
-  const primaryMobileAction = !isCheckedIn
-    ? {
-      label: isChecking ? '처리 중...' : '체크인하기',
-      onClick: onCheckIn,
-      disabled: isChecking,
-      className: 'bg-primary text-white',
-    }
-    : allCheckedIn
-      ? {
-        label: '완료 확인',
-        onClick: onComplete,
-        disabled: false,
-        className: 'bg-primary text-white',
-      }
-      : null;
-
   return (
     <>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -323,147 +294,43 @@ export default function MateCheckInContentRuntime({
             </Alert>
           )}
 
-          {!isCheckedIn ? (
-            <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-                    Personal Check-In
-                  </p>
-                  <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">도착 인증이 아직 필요합니다</h2>
-                  <p className="mt-2 text-[16px] leading-6 text-gray-600 dark:text-gray-300">
-                    경기장에 도착했다면 아래 버튼으로 체크인을 완료하세요. 기록은 노쇼 판단과 분쟁 처리 기준으로 사용됩니다.
-                  </p>
-                  <ul className="mt-4 space-y-2 text-[16px] text-gray-600 dark:text-gray-300">
-                    <li className="flex gap-2">
-                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                      <span>경기장 근처에서만 체크인이 가능합니다.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                      <span>체크인 기록은 노쇼 판정 및 분쟁 처리에 사용됩니다.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                      <span>체크인하지 않으면 노쇼로 처리될 수 있습니다.</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className={`${mateInsetPanelClass} min-w-full p-5 text-center sm:min-w-[280px] lg:max-w-[320px]`}>
-                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/25">
-                    <MapPin className="h-10 w-10 text-primary" />
+          <Suspense
+            fallback={(
+              <div className="space-y-6">
+                <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
+                  <div className="space-y-4 animate-pulse">
+                    <div className="h-6 w-40 rounded bg-muted" />
+                    <div className="h-24 rounded-2xl bg-muted/70" />
                   </div>
-                  <p className="mt-4 text-lg font-bold text-gray-900 dark:text-white">체크인 준비 완료</p>
-                  <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">
-                    경기장에 도착하셨다면 지금 바로 체크인을 진행하세요.
-                  </p>
-                  <Button
-                    onClick={onCheckIn}
-                    disabled={isChecking}
-                    className="mt-5 w-full bg-primary text-white"
-                    size="lg"
-                  >
-                    {isChecking ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        처리 중...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="mr-2 h-5 w-5" />
-                        체크인하기
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ) : (
-            <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-                    Personal Status
-                  </p>
-                  <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">체크인 완료</h2>
-                  <p className="mt-2 text-[16px] leading-6 text-gray-600 dark:text-gray-300">
-                    체크인 시간이 기록되었습니다. 이제 다른 참여자의 도착 상태 또는 최종 완료 단계를 확인하면 됩니다.
-                  </p>
-                  <div className={`${mateInsetPanelClass} mt-4 p-4 text-[16px] text-gray-600 dark:text-gray-300`}>
-                    체크인 시간: {myCheckIn ? new Date(myCheckIn.checkedInAt).toLocaleString('ko-KR') : '-'}
+                </Card>
+                <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
+                  <div className="space-y-4 animate-pulse">
+                    <div className="h-6 w-40 rounded bg-muted" />
+                    <div className="h-20 rounded-2xl bg-muted/70" />
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="h-20 rounded-2xl bg-muted/70" />
+                      <div className="h-20 rounded-2xl bg-muted/70" />
+                      <div className="h-20 rounded-2xl bg-muted/70" />
+                    </div>
                   </div>
-                </div>
-
-                <div className={`${mateInsetPanelClass} min-w-full p-5 text-center sm:min-w-[280px] lg:max-w-[320px]`}>
-                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-950/25">
-                    <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
-                  </div>
-                  <p className="mt-4 text-lg font-bold text-green-700 dark:text-green-300">도착 인증 완료</p>
-                  <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">
-                    {allCheckedIn
-                      ? '모든 참여자가 체크인을 완료했습니다.'
-                      : '다른 참여자의 도착 상태를 계속 확인할 수 있습니다.'}
-                  </p>
-                  {allCheckedIn && (
-                    <Button
-                      onClick={onComplete}
-                      variant="outline"
-                      className="mt-5 w-full border-primary text-primary hover:bg-primary/10"
-                    >
-                      완료 확인
-                    </Button>
-                  )}
-                </div>
+                </Card>
               </div>
-            </Card>
-          )}
-
-          <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`} data-testid="checkin-progress-card">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-                  Group Progress
-                </p>
-                <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">전체 체크인 진행률</h2>
-                <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">
-                  개인 체크인과 별개로 전체 인원이 얼마나 도착했는지 보여줍니다.
-                </p>
-              </div>
-              <MatePill
-                className={cn(
-                  'border text-[16px] font-semibold',
-                  allCheckedIn
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
-                    : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300',
-                )}
-              >
-                {allCheckedIn ? '전원 도착 완료' : `${remainingCount}명 대기 중`}
-              </MatePill>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <div className="flex items-center justify-between text-[16px] text-gray-600 dark:text-gray-300">
-                <span>진행률</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{progressValue}%</span>
-              </div>
-              <ProgressBar value={progressValue} className="h-3" />
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className={`${mateInsetPanelClass} p-4`}>
-                  <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">완료</p>
-                  <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">{checkedInCount}명</p>
-                </div>
-                <div className={`${mateInsetPanelClass} p-4`}>
-                  <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">대기</p>
-                  <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">{remainingCount}명</p>
-                </div>
-                <div className={`${mateInsetPanelClass} p-4`}>
-                  <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">진입 방식</p>
-                  <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">{sessionLabel}</p>
-                </div>
-              </div>
-            </div>
-          </Card>
+            )}
+          >
+            <MateCheckInStatusRuntime
+              isCheckedIn={isCheckedIn}
+              isChecking={isChecking}
+              allCheckedIn={allCheckedIn}
+              checkedInCount={checkedInCount}
+              totalParticipants={totalParticipants}
+              remainingCount={remainingCount}
+              progressValue={progressValue}
+              sessionLabel={sessionLabel}
+              myCheckIn={myCheckIn}
+              onCheckIn={onCheckIn}
+              onComplete={onComplete}
+            />
+          </Suspense>
 
           <Suspense
             fallback={(
@@ -491,112 +358,21 @@ export default function MateCheckInContentRuntime({
         </div>
 
         <div className="space-y-4">
-          <Card className={`hidden p-5 lg:flex lg:sticky lg:top-6 ${mateSectionCardClass}`}>
-            <div>
-              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-                Next Action
-              </p>
-              <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">지금 해야 할 일</h3>
-              <p className="mt-2 text-[16px] leading-6 text-gray-600 dark:text-gray-300">
-                {!isCheckedIn
-                  ? '먼저 본인 체크인을 완료하세요. 그 다음 그룹 진행률을 확인하면 됩니다.'
-                  : allCheckedIn
-                    ? '전체 체크인이 마무리되었습니다. 완료 확인 후 목록으로 돌아갈 수 있습니다.'
-                    : isHost
-                      ? '다른 참여자의 도착 상태를 확인하고 필요하면 채팅에서 위치를 조율하세요.'
-                      : '다른 참여자가 도착할 때까지 채팅에서 위치와 시간을 다시 맞출 수 있습니다.'}
-              </p>
-
-              <div className="mt-4 space-y-2">
-                {!isCheckedIn ? (
-                  <Button
-                    onClick={onCheckIn}
-                    disabled={isChecking}
-                    className="w-full bg-primary text-white"
-                  >
-                    {isChecking ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        처리 중...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        체크인하기
-                      </>
-                    )}
-                  </Button>
-                ) : allCheckedIn ? (
-                  <Button onClick={onComplete} className="w-full bg-primary text-white">
-                    완료 확인
-                  </Button>
-                ) : (
-                  <div className={`${mateInsetPanelClass} p-4 text-[16px] text-gray-600 dark:text-gray-300`}>
-                    {isHost ? '아직 도착하지 않은 참여자를 기다리는 중입니다.' : '다른 참여자의 체크인 완료를 기다리는 중입니다.'}
-                  </div>
-                )}
-
-                <Button
-                  variant="outline"
-                  className="w-full border-primary text-primary hover:bg-primary/10"
-                  onClick={onNavigateToChat}
-                >
-                  채팅으로 이동
-                </Button>
-              </div>
-
-              <div className={`${mateInsetPanelClass} mt-4 p-4`}>
-                <p className="text-[16px] font-semibold text-gray-900 dark:text-white">체크인 기준</p>
-                <ul className="mt-3 space-y-2 text-[16px] text-gray-600 dark:text-gray-300">
-                  <li className="flex gap-2">
-                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span>개인 체크인이 먼저 완료되어야 그룹 진행률이 올라갑니다.</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span>QR 세션 진입 여부와 관계없이 기록 기준은 동일합니다.</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span>전원 체크인 이후에는 완료 확인 단계로 넘어갑니다.</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </Card>
+          <Suspense fallback={null}>
+            <MateCheckInActionRuntime
+              isCheckedIn={isCheckedIn}
+              isChecking={isChecking}
+              allCheckedIn={allCheckedIn}
+              isHost={isHost}
+              checkedInCount={checkedInCount}
+              totalParticipants={totalParticipants}
+              onCheckIn={onCheckIn}
+              onComplete={onComplete}
+              onNavigateToChat={onNavigateToChat}
+            />
+          </Suspense>
         </div>
       </div>
-
-      {primaryMobileAction && (
-        <div className={`${mateMobileBarClass} lg:hidden`}>
-          <div className="mx-auto max-w-6xl">
-            <div className="min-w-0">
-              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-                체크인 요약
-              </p>
-              <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white">
-                {checkedInCount}/{totalParticipants}명 체크인 완료
-              </p>
-            </div>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              <Button
-                onClick={onNavigateToChat}
-                variant="outline"
-                className="w-full border-primary text-primary hover:bg-primary/10 sm:flex-1"
-              >
-                채팅으로
-              </Button>
-              <Button
-                onClick={primaryMobileAction.onClick}
-                disabled={primaryMobileAction.disabled}
-                className={cn('w-full sm:flex-1', primaryMobileAction.className)}
-              >
-                {primaryMobileAction.label}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

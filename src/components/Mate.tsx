@@ -651,7 +651,7 @@ export default function Mate() {
                     setCurrentPage(0);
                   }}
                   aria-pressed={isActive}
-                  className={`relative shrink-0 rounded-xl px-4 py-2.5 text-base font-semibold transition-colors duration-300 sm:px-5 ${
+                  className={`relative shrink-0 rounded-xl px-4 py-2.5 text-base font-bold transition-colors duration-300 sm:px-5 ${
                     isActive
                       ? 'text-primary-foreground'
                       : 'bg-transparent text-gray-500 dark:text-zinc-400'
@@ -674,8 +674,8 @@ export default function Mate() {
           ) : fetchError ? (
             <div className="text-center py-16 bg-white dark:bg-[#16181c] rounded-2xl border border-dashed border-primary/30">
               <AlertCircle className="w-10 h-10 mx-auto mb-3 text-primary" />
-              <p className="text-gray-900 dark:text-zinc-200 font-semibold">파티 목록을 불러오지 못했습니다</p>
-              <p className="text-gray-500 dark:text-zinc-500 text-[16px] font-semibold mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
+              <p className="text-gray-900 dark:text-zinc-200 font-bold">파티 목록을 불러오지 못했습니다</p>
+              <p className="text-gray-500 dark:text-zinc-500 text-[16px] font-bold mt-1">네트워크 연결을 확인하고 다시 시도해주세요</p>
               <Button
                 variant="outline"
                 className="mt-5 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
