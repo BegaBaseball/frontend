@@ -56,6 +56,7 @@ export interface AnalyzeRequest {
 export type CoachRequestMode = 'auto_brief' | 'manual_detail';
 export type CoachGenerationMode = 'deterministic_auto' | 'llm_manual' | 'evidence_fallback';
 export type CoachDataQuality = 'grounded' | 'partial' | 'insufficient';
+export const COACH_MANUAL_STREAM_TIMEOUT_MS = 90000;
 
 export interface AnalyzeRequestBase {
     request_mode: CoachRequestMode;
@@ -229,6 +230,37 @@ export const isCoachAnalyzeError = (error: unknown): error is CoachAnalyzeError 
 const createCoachRequestFailedError = (message = '분석 중 오류가 발생했습니다.'): CoachAnalyzeError =>
     new CoachAnalyzeError('REQUEST_FAILED', message);
 
+interface ParsedCoachErrorPayload {
+    code?: string;
+    detail?: string;
+    message?: string;
+    rawText: string;
+}
+
+const readCoachErrorPayload = async (response: Response): Promise<ParsedCoachErrorPayload> => {
+    const clone = response.clone();
+    const rawText = await clone.text();
+    if (!rawText) {
+        return { rawText };
+    }
+
+    try {
+        const parsed = JSON.parse(rawText) as {
+            code?: unknown;
+            detail?: unknown;
+            message?: unknown;
+        };
+        return {
+            code: typeof parsed.code === 'string' ? parsed.code : undefined,
+            detail: typeof parsed.detail === 'string' ? parsed.detail : undefined,
+            message: typeof parsed.message === 'string' ? parsed.message : undefined,
+            rawText,
+        };
+    } catch {
+        return { rawText };
+    }
+};
+
 const isCoachRequestMode = (requestMode: AnalyzeRequest['request_mode']): requestMode is CoachRequestMode => (
     requestMode === 'auto_brief' || requestMode === 'manual_detail'
 );
@@ -253,6 +285,10 @@ const normalizeQuestionOverride = (questionOverride: AnalyzeRequest['question_ov
     }
     return trimmed;
 };
+
+export const getCoachStreamReadTimeoutMs = (requestMode: CoachRequestMode): number => (
+    requestMode === 'manual_detail' ? COACH_MANUAL_STREAM_TIMEOUT_MS : DEFAULT_STREAM_TIMEOUT_MS
+);
 
 const buildCoachAnalyzePayload = (
     requestMode: CoachRequestMode,
@@ -307,6 +343,7 @@ export async function analyzeTeam(
     const MAX_RETRIES = COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS;
     let attempt = 0;
     let response: Response | null = null;
+    let lastUnauthorizedPayload: ParsedCoachErrorPayload | null = null;
 
     while (true) {
         attempt++;
@@ -318,6 +355,12 @@ export async function analyzeTeam(
             });
 
             if (request.status === 401) {
+                lastUnauthorizedPayload = await readCoachErrorPayload(request);
+                if (lastUnauthorizedPayload.code === 'AI_UPSTREAM_UNAUTHORIZED') {
+                    response = request;
+                    break;
+                }
+
                 try {
                     const refreshSucceeded = await requestPrivateReissue();
                     if (refreshSucceeded) {
@@ -368,6 +411,9 @@ export async function analyzeTeam(
             throw new Error('Failed to connect to coach stream');
         }
         if (response.status === 401) {
+            if (lastUnauthorizedPayload?.code === 'AI_UPSTREAM_UNAUTHORIZED') {
+                throw createCoachRequestFailedError();
+            }
             throw new CoachAnalyzeError(
                 'AUTH_EXPIRED',
                 '인증이 만료되었습니다. 다시 로그인 후 시도해주세요.',
@@ -489,7 +535,7 @@ export async function analyzeTeam(
             };
 
             const { sawDone } = await consumeSseStream(responseBody, {
-                timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+                timeoutMs: getCoachStreamReadTimeoutMs(requestMode),
                 signal: options?.signal,
                 onEvent: ({ event, data: dataStr }) => {
                     if (event !== 'message' && event !== 'meta' && event !== 'error') {
@@ -523,8 +569,16 @@ export async function analyzeTeam(
                 },
             });
 
-            if (!sawDone) {
+            const hasRecoverableTerminalState = Boolean(structuredData) && inProgress !== true;
+            if (!sawDone && !hasRecoverableTerminalState) {
                 throw new Error(CHATBOT_STREAM_INCOMPLETE_ERROR);
+            }
+            if (!sawDone && hasRecoverableTerminalState) {
+                console.warn('Coach stream closed without done event after terminal meta.', {
+                    requestMode: requestModeFromMeta,
+                    cacheState,
+                    gameStatusBucket,
+                });
             }
         } catch (error) {
             if (isStreamReadTimeoutError(error)) {
